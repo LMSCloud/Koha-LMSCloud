@@ -41,9 +41,9 @@ plugin that shows a stats on borrowers
 
 =cut
 
-$debug and open DEBUG, ">/tmp/bor_issues_top.debug.log";
+$debug and open my $debugfh, '>', '/tmp/bor_issues_top.debug.log';
 
-my $input = new CGI;
+my $input = CGI->new;
 my $fullreportname = "reports/bor_issues_top.tt";
 my $do_it   = $input->param('do_it');
 my $limit   = $input->param("Limit");
@@ -58,11 +58,10 @@ my ($template, $borrowernumber, $cookie)
     = get_template_and_user({template_name => $fullreportname,
                 query => $input,
                 type => "intranet",
-                authnotrequired => 0,
                 flagsrequired => {reports => '*'},
                 debug => 1,
                 });
-our $sep     = $input->param("sep") || C4::Context->preference('delimiter') || ',';
+our $sep     = $input->param("sep") || C4::Context->preference('CSVDelimiter') || ',';
 $sep = "\t" if ($sep eq 'tabulation');
 $template->param(do_it => $do_it,
         );
@@ -104,13 +103,12 @@ if ($do_it) {
 }
 
 my $dbh = C4::Context->dbh;
-my @values;
 
 # here each element returned by map is a hashref, get it?
 my @mime  = ( map { {type =>$_} } (split /[;:]/, 'CSV') ); # FIXME translation
 my $delims = GetDelimiterChoices;
 
-my $patron_categories = Koha::Patron::Categories->search_limited({}, {order_by => ['categorycode']});
+my $patron_categories = Koha::Patron::Categories->search_with_library_limits({}, {order_by => ['categorycode']});
 my $itemtypes = Koha::ItemTypes->search_with_localization;
 $template->param(
 	    mimeloop => \@mime,
@@ -125,7 +123,6 @@ sub calculate {
     my ($limit, $column, $filters) = @_;
 
     my @loopcol;
-    my @loopline;
     my @looprow;
     my %globalline;
 	my %columns;
@@ -226,25 +223,25 @@ sub calculate {
         $strsth2 .=" GROUP BY $colfield";
         $strsth2 .=" ORDER BY $colorder";
 
-        $debug and print DEBUG "bor_issues_top (old_issues) SQL: $strsth2\n";
+        $debug and print $debugfh "bor_issues_top (old_issues) SQL: $strsth2\n";
         my $sth2 = $dbh->prepare($strsth2);
         $sth2->execute;
-        print DEBUG "rows: ", $sth2->rows, "\n";
+        print $debugfh "rows: ", $sth2->rows, "\n";
         while (my @row = $sth2->fetchrow) {
 			$columns{($row[0] ||'NULL')}++;
             push @loopcol, { coltitle => $row[0] || 'NULL' };
         }
 
 		$strsth2 =~ s/old_issues/issues/g;
-        $debug and print DEBUG "bor_issues_top (issues) SQL: $strsth2\n";
+        $debug and print $debugfh "bor_issues_top (issues) SQL: $strsth2\n";
 		$sth2 = $dbh->prepare($strsth2);
         $sth2->execute;
-        $debug and print DEBUG "rows: ", $sth2->rows, "\n";
+        $debug and print $debugfh "rows: ", $sth2->rows, "\n";
         while (my @row = $sth2->fetchrow) {
 			$columns{($row[0] ||'NULL')}++;
             push @loopcol, { coltitle => $row[0] || 'NULL' };
         }
-		$debug and print DEBUG "full array: ", Dumper(\%columns), "\n";
+        $debug and print $debugfh "full array: ", Dumper(\%columns), "\n";
     }else{
         $columns{''} = 1;
     }
@@ -281,10 +278,10 @@ sub calculate {
     $strcalc .= ",$colfield " if ($colfield);
     $strcalc .= " LIMIT $limit" if ($limit);
 
-    $debug and print DEBUG "(old_issues) SQL : $strcalc\n";
+    $debug and print $debugfh "(old_issues) SQL : $strcalc\n";
     my $dbcalc = $dbh->prepare($strcalc);
     $dbcalc->execute;
-    $debug and print DEBUG "rows: ", $dbcalc->rows, "\n";
+    $debug and print $debugfh "rows: ", $dbcalc->rows, "\n";
 	my %patrons = ();
 	# DATA STRUCTURE is going to look like this:
 	# 	(2253=> {name=>"John Doe",
@@ -303,10 +300,10 @@ sub calculate {
 	use Data::Dumper;
 
 	$strcalc =~ s/old_issues/issues/g;
-    $debug and print DEBUG "(issues) SQL : $strcalc\n";
+    $debug and print $debugfh "(issues) SQL : $strcalc\n";
     $dbcalc = $dbh->prepare($strcalc);
     $dbcalc->execute;
-    $debug and print DEBUG "rows: ", $dbcalc->rows, "\n";
+    $debug and print $debugfh "rows: ", $dbcalc->rows, "\n";
     while (my @data = $dbcalc->fetchrow) {
         my ($row, $rank, $id, $col) = @data;
         $col = "zzEMPTY" if (!defined($col));
@@ -325,7 +322,7 @@ sub calculate {
 			$patrons{$id}->{total} += $count;
 		}
 	}
-    $debug and print DEBUG "\n\npatrons: ", Dumper(\%patrons);
+    $debug and print $debugfh "\n\npatrons: ", Dumper(\%patrons);
     
 	my $i = 1;
 	my @cols_in_order = sort keys %columns;		# if you want to order the columns, do something here
@@ -371,6 +368,6 @@ sub calculate {
     return [\%globalline];	# reference to a 1 element array: that element is a hashref
 }
 
-$debug and close DEBUG;
+$debug and close $debugfh;
 1;
 __END__

@@ -5,18 +5,18 @@ package Koha::Database;
 #
 # This file is part of Koha.
 #
-# Koha is free software; you can redistribute it and/or modify it under the
-# terms of the GNU General Public License as published by the Free Software
-# Foundation; either version 3 of the License, or (at your option) any later
-# version.
+# Koha is free software; you can redistribute it and/or modify it
+# under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 3 of the License, or
+# (at your option) any later version.
 #
-# Koha is distributed in the hope that it will be useful, but WITHOUT ANY
-# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
-# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+# Koha is distributed in the hope that it will be useful, but
+# WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+# GNU General Public License for more details.
 #
-# You should have received a copy of the GNU General Public License along
-# with Koha; if not, write to the Free Software Foundation, Inc.,
-# 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+# You should have received a copy of the GNU General Public License
+# along with Koha; if not, see <http://www.gnu.org/licenses>.
 
 =head1 NAME
 
@@ -49,21 +49,19 @@ sub _new_schema {
 
     require Koha::Schema;
 
-    my $context = C4::Context->new();
+    my $db_driver = C4::Context::db_scheme2dbi(C4::Context->config('db_scheme'));;
 
-    my $db_driver = $context->{db_driver};
-
-    my $db_name   = $context->config("database");
-    my $db_host   = $context->config("hostname");
-    my $db_port   = $context->config("port") || '';
-    my $db_user   = $context->config("user");
-    my $db_passwd = $context->config("pass");
-    my $tls = $context->config("tls");
+    my $db_name   = C4::Context->config("database");
+    my $db_host   = C4::Context->config("hostname");
+    my $db_port   = C4::Context->config("port") || '';
+    my $db_user   = C4::Context->config("user");
+    my $db_passwd = C4::Context->config("pass");
+    my $tls = C4::Context->config("tls");
     my $tls_options;
     if( $tls && $tls eq 'yes' ) {
-        my $ca = $context->config('ca');
-        my $cert = $context->config('cert');
-        my $key = $context->config('key');
+        my $ca = C4::Context->config('ca');
+        my $cert = C4::Context->config('cert');
+        my $key = C4::Context->config('key');
         $tls_options = ";mysql_ssl=1;mysql_ssl_client_key=".$key.";mysql_ssl_client_cert=".$cert.";mysql_ssl_ca_file=".$ca;
     }
 
@@ -76,26 +74,30 @@ sub _new_schema {
         %encoding_attr = ( mysql_enable_utf8 => 1 );
         $encoding_query = "set NAMES 'utf8mb4'";
         $tz_query = qq(SET time_zone = "$tz") if $tz;
-        unless ( C4::Context->config('strict_sql_modes') ) {
-            $sql_mode_query = q{SET sql_mode = 'IGNORE_SPACE,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION'};
+        if (   C4::Context->config('strict_sql_modes')
+            || ( exists $ENV{_} && $ENV{_} =~ m|prove| )
+            || $ENV{KOHA_TESTING}
+        ) {
+            $sql_mode_query = q{SET sql_mode = 'ONLY_FULL_GROUP_BY,STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_ENGINE_SUBSTITUTION'};
         } else {
-            $sql_mode_query = q{SET sql_mode = 'ONLY_FULL_GROUP_BY,STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION'};
+            $sql_mode_query = q{SET sql_mode = 'IGNORE_SPACE,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_ENGINE_SUBSTITUTION'};
         }
     }
     elsif ( $db_driver eq 'Pg' ) {
         $encoding_query = "set client_encoding = 'UTF8';";
         $tz_query = qq(SET TIME ZONE = "$tz") if $tz;
     }
+
     my $schema = Koha::Schema->connect(
         {
             dsn => "dbi:$db_driver:database=$db_name;host=$db_host;port=$db_port".($tls_options? $tls_options : ""),
             user => $db_user,
             password => $db_passwd,
             %encoding_attr,
-            RaiseError => $ENV{DEBUG} ? 1 : 0,
+            RaiseError => 1,
             PrintError => 1,
-            unsafe => 1,
             quote_names => 1,
+            auto_savepoint => 1,
             on_connect_do => [
                 $encoding_query || (),
                 $tz_query || (),
@@ -106,17 +108,19 @@ sub _new_schema {
 
     my $dbh = $schema->storage->dbh;
     eval {
-        $dbh->{RaiseError} = 1;
+        my $HandleError = $dbh->{HandleError};
         if ( $ENV{KOHA_DB_DO_NOT_RAISE_OR_PRINT_ERROR} ) {
-            $dbh->{RaiseError} = 0;
-            $dbh->{PrintError} = 0;
+            $dbh->{HandleError} = sub { return 1 };
         }
         $dbh->do(q|
             SELECT * FROM systempreferences WHERE 1 = 0 |
         );
-        $dbh->{RaiseError} = $ENV{DEBUG} ? 1 : 0;
+        $dbh->{HandleError} = $HandleError;
     };
-    $dbh->{RaiseError} = 0 if $@;
+
+    if ( $@ ) {
+        $dbh->{HandleError} = sub { warn $_[0]; return 1 };
+    }
 
     return $schema;
 }

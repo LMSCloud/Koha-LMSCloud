@@ -11,7 +11,7 @@
 	<tr>
         <td><label for="f1">Literary text indicator:</label></td>
 		<td>
-			<select name="f1" id="f1" size="1">
+            <select name="f1" id="f1">
 			[% IF ( f1space ) %]
 				<option value=" " selected="selected">non required value</option>
 			[% ELSE %]
@@ -129,10 +129,10 @@
 </form>
 
 [% MACRO jsinclude BLOCK %]
-    <script type="text/javascript">
+    <script>
         function report() {
             var doc   = opener.document;
-            var field = doc.getElementById("[% index %]");
+            var field = doc.getElementById("[% index | html %]");
 
             field.value =  document.f_pop.f1.value;
             window.close();

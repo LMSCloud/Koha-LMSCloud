@@ -31,14 +31,13 @@ use C4::Creators;
 use C4::Patroncards;
 use Koha::Patrons;
 
-my $cgi = new CGI;
+my $cgi = CGI->new;
 my ( $template, $loggedinuser, $cookie ) = get_template_and_user(
     {
         template_name   => "patroncards/edit-batch.tt",
         query           => $cgi,
         type            => "intranet",
-        authnotrequired => 0,
-        flagsrequired   => { catalogue => 1 },
+        flagsrequired   => { tools => 'label_creator' },
         debug           => 1,
     }
 );
@@ -55,6 +54,7 @@ my $display_columns = [ {_summary       => {label => 'Summary', link_field => 0}
                       ];
 my $op = $cgi->param('op') || 'new';
 my $batch_id = $cgi->param('element_id') || $cgi->param('batch_id') || 0;
+my $description = $cgi->param('description') || '';
 my ( @label_ids, @item_numbers, @borrower_numbers );
 @label_ids = $cgi->multi_param('label_id') if $cgi->param('label_id');
 @item_numbers = $cgi->multi_param('item_number') if $cgi->param('item_number');
@@ -93,6 +93,7 @@ if ($bor_num_list) {
     }
     if ($batch_id != 0) {$batch = C4::Patroncards::Batch->retrieve(batch_id => $batch_id);}
     if ($batch_id == 0 || $batch == -2) {$batch = C4::Patroncards::Batch->new(branch_code => $branch_code);}
+    $template->param( description => $batch->{'description'} );
     if ($branch_code){
         foreach my $borrower_number (@borrower_numbers) {
             $err = $batch->add_item($borrower_number);
@@ -119,6 +120,7 @@ elsif ($op eq 'de_duplicate') {
 }
 elsif ($op eq 'edit') {
     $batch = C4::Patroncards::Batch->retrieve(batch_id => $batch_id);
+    $template->param( description => $batch->{'description'} );
 }
 elsif ($op eq 'new') {
     if ($branch_code eq '') {

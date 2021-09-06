@@ -19,17 +19,22 @@
 
 use Modern::Perl;
 
-use Test::More tests => 3;
+use Test::More tests => 10;
 
+use Koha::Database;
+use Koha::Subscription;
 use Koha::Subscriptions;
 use Koha::Biblio;
+use Koha::Biblios;
 
 use t::lib::TestBuilder;
 
 my $schema = Koha::Database->new->schema;
 $schema->storage->txn_begin;
 
-my $builder = t::lib::TestBuilder->new;
+my $builder     = t::lib::TestBuilder->new;
+
+use_ok('Koha::Subscription');
 
 subtest 'Koha::Subscription->biblio' => sub {
     plan tests => 1;
@@ -87,6 +92,87 @@ subtest 'Koha::Subscription->vendor' => sub {
     is( ref($object->vendor), 'Koha::Acquisition::Bookseller', 'Koha::Subscription->vendor should return a Koha::Acquisition::Bookseller' );
     is( $object->vendor->id, $subscription->{aqbooksellerid}, 'Koha::Subscription->vendor should return the correct vendor' );
 };
+
+subtest 'Koha::Subscription->frequency' => sub {
+    plan tests => 2;
+    my $frequency = $builder->build_object( { class => 'Koha::Subscription::Frequencies' } );
+    my $subscription = $builder->build_object(
+        {
+            class  => 'Koha::Subscriptions',
+            value  => { periodicity => $frequency->id }
+        }
+    );
+    is( ref($subscription->frequency), 'Koha::Subscription::Frequency', 'Koha::Subscription->frequency should return a Koha::Subscription::Frequency' );
+    is( $subscription->frequency->id, $frequency->id, 'Koha::Subscription->frequency should return the correct frequency' );
+};
+
+my $nb_of_subs = Koha::Subscriptions->search->count;
+my $biblio_1   = $builder->build_sample_biblio;
+my $bi_1       = $biblio_1->biblioitem;
+my $sub_freq_1 = $builder->build( { source => 'SubscriptionFrequency' } );
+my $sub_np_1   = $builder->build( { source => 'SubscriptionNumberpattern' } );
+my $sub_1      = $builder->build(
+    {
+        source => 'Subscription',
+        value  => {
+            biblionumber  => $biblio_1->biblionumber,
+            periodicity   => $sub_freq_1->{id},
+            numberpattern => $sub_np_1->{id}
+        }
+    }
+);
+
+is(
+    Koha::Subscriptions->search->count,
+    $nb_of_subs + 1,
+    'The subscription should have been added'
+);
+is(
+    $sub_1->{biblionumber},
+    $biblio_1->biblionumber,
+    'The link between sub and biblio is well done'
+);
+is( $sub_1->{periodicity}, $sub_freq_1->{id},
+    'The link between sub and sub_freq is well done' );
+is( $sub_1->{numberpattern},
+    $sub_np_1->{id},
+    'The link between sub and sub_numberpattern is well done' );
+
+my $ref = {
+    'title'           => $biblio_1->title,
+    'sfdescription'   => $sub_freq_1->{description},
+    'unit'            => $sub_freq_1->{unit},
+    'unitsperissue'   => $sub_freq_1->{unitsperissue},
+    'issuesperunit'   => $sub_freq_1->{issuesperunit},
+    'label'           => $sub_np_1->{label},
+    'sndescription'   => $sub_np_1->{description},
+    'numberingmethod' => $sub_np_1->{numberingmethod},
+    'label'           => $sub_np_1->{label},
+    'label1'          => $sub_np_1->{label1},
+    'add1'            => $sub_np_1->{add1},
+    'every1'          => $sub_np_1->{every1},
+    'whenmorethan1'   => $sub_np_1->{whenmorethan1},
+    'setto1'          => $sub_np_1->{setto1},
+    'numbering1'      => $sub_np_1->{numbering1},
+    'label2'          => $sub_np_1->{label2},
+    'add2'            => $sub_np_1->{add2},
+    'every2'          => $sub_np_1->{every2},
+    'whenmorethan2'   => $sub_np_1->{whenmorethan2},
+    'setto2'          => $sub_np_1->{setto2},
+    'numbering2'      => $sub_np_1->{numbering2},
+    'label3'          => $sub_np_1->{label3},
+    'add3'            => $sub_np_1->{add3},
+    'every3'          => $sub_np_1->{every3},
+    'whenmorethan3'   => $sub_np_1->{whenmorethan3},
+    'setto3'          => $sub_np_1->{setto3},
+    'numbering3'      => $sub_np_1->{numbering3},
+    'issn'            => $bi_1->issn,
+    'ean'             => $bi_1->ean,
+    'publishercode'   => $bi_1->publishercode,
+};
+
+is_deeply( Koha::Subscription->get_sharable_info( $sub_1->{subscriptionid} ),
+    $ref, "get_sharable_info function is ok" );
 
 $schema->storage->txn_rollback;
 

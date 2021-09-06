@@ -35,13 +35,12 @@ use C4::Circulation;
 use C4::Members;
 use Koha::DateUtils;
 
-my $query = new CGI;
+my $query = CGI->new;
 my ( $template, $borrowernumber, $cookie ) = get_template_and_user(
     {
         template_name   => "opac-ics.tt",
         query           => $query,
         type            => "opac",
-        authnotrequired => 0,
         debug           => 1,
     }
 );
@@ -55,7 +54,7 @@ my $pending_checkouts = $patron->pending_checkouts;
 while ( my $c = $pending_checkouts->next ) {
     my $issue = $c->unblessed_all_relateds;
     my $vevent = Data::ICal::Entry::Event->new();
-    my $timestamp = DateTime->now(); # Defaults to UTC
+    my $timestamp = dt_from_string(undef,undef,"UTC"); #Get current time in UTC
     # Send some values to the template to generate summary and description
     $issue->{overdue} = $c->is_overdue;
     $template->param(

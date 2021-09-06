@@ -25,23 +25,31 @@ use C4::Output;
 use C4::Auth;
 use Koha::ArticleRequests;
 
-my $query = new CGI;
+my $query = CGI->new;
 
 my ( $template, $borrowernumber, $cookie ) = get_template_and_user(
     {
         template_name   => "opac-account.tt",
         query           => $query,
         type            => "opac",
-        authnotrequired => 0,
         debug           => 1,
     }
 );
 
 my $id = $query->param('id');
 
-if ( $id && $borrowernumber ) {
+if ( $id ) {
     my $ar = Koha::ArticleRequests->find( $id );
-    $ar->cancel() if $ar;
+    if ( !$ar ) {
+        print $query->redirect("/cgi-bin/koha/errors/404.pl");
+        exit;
+    }
+    elsif ( $ar->borrowernumber != $borrowernumber ) {
+        print $query->redirect("/cgi-bin/koha/errors/403.pl");
+        exit;
+    }
+
+    $ar->cancel();
 }
 
 print $query->redirect("/cgi-bin/koha/opac-user.pl#opac-user-article-requests");

@@ -22,63 +22,43 @@ use Modern::Perl;
 use C4::Context;
 # WARNING: Any other tested YAML library fails to work properly in this
 # script content
-use YAML::Syck qw( Dump LoadFile );
+# FIXME Really?
+use YAML::XS;
 use Locale::PO;
 use FindBin qw( $Bin );
-
-$YAML::Syck::ImplicitTyping = 1;
-
-
-# Default file header for .po syspref files
-my $default_pref_po_header = Locale::PO->new(-msgid => '', -msgstr =>
-    "Project-Id-Version: PACKAGE VERSION\\n" .
-    "PO-Revision-Date: YEAR-MO-DA HO:MI +ZONE\\n" .
-    "Last-Translator: FULL NAME <EMAIL\@ADDRESS>\\n" .
-    "Language-Team: Koha Translate List <koha-translate\@lists.koha-community.org>\\n" .
-    "MIME-Version: 1.0\\n" .
-    "Content-Type: text/plain; charset=UTF-8\\n" .
-    "Content-Transfer-Encoding: 8bit\\n" .
-    "Plural-Forms: nplurals=2; plural=(n > 1);\\n"
-);
-
+use File::Basename;
+use File::Path qw( make_path );
+use File::Copy;
 
 sub set_lang {
     my ($self, $lang) = @_;
 
     $self->{lang} = $lang;
-    $self->{po_path_lang} = $self->{context}->config('intrahtdocs') .
+    $self->{po_path_lang} = C4::Context->config('intrahtdocs') .
                             "/prog/$lang/modules/admin/preferences";
 }
-
 
 sub new {
     my ($class, $lang, $pref_only, $verbose) = @_;
 
     my $self                 = { };
 
-    my $context              = C4::Context->new();
-    $self->{context}         = $context;
-    $self->{path_pref_en}    = $context->config('intrahtdocs') .
+    $self->{path_pref_en}    = C4::Context->config('intrahtdocs') .
                                '/prog/en/modules/admin/preferences';
     set_lang( $self, $lang ) if $lang;
     $self->{pref_only}       = $pref_only;
     $self->{verbose}         = $verbose;
     $self->{process}         = "$Bin/tmpl_process3.pl " . ($verbose ? '' : '-q');
     $self->{path_po}         = "$Bin/po";
-    $self->{po}              = { '' => $default_pref_po_header };
-    $self->{domain}          = 'messages';
-    $self->{cp}              = `which cp`;
-    $self->{msgmerge}        = `which msgmerge`;
-    $self->{xgettext}        = `which xgettext`;
-    $self->{sed}             = `which sed`;
-    chomp $self->{cp};
-    chomp $self->{msgmerge};
-    chomp $self->{xgettext};
-    chomp $self->{sed};
-
-    unless ($self->{xgettext}) {
-        die "Missing 'xgettext' executable. Have you installed the gettext package?\n";
-    }
+    $self->{po}              = {};
+    $self->{domain}          = 'Koha';
+    $self->{msgfmt}          = `which msgfmt`;
+    $self->{po2json}         = "$Bin/po2json";
+    $self->{gzip}            = `which gzip`;
+    $self->{gunzip}          = `which gunzip`;
+    chomp $self->{msgfmt};
+    chomp $self->{gzip};
+    chomp $self->{gunzip};
 
     # Get all .pref file names
     opendir my $fh, $self->{path_pref_en};
@@ -94,22 +74,17 @@ sub new {
     $self->{langs} = \@langs;
 
     # Map for both interfaces opac/intranet
-    my $opachtdocs = $context->config('opachtdocs');
+    my $opachtdocs = C4::Context->config('opachtdocs');
     $self->{interface} = [
         {
             name   => 'Intranet prog UI',
-            dir    => $context->config('intrahtdocs') . '/prog',
+            dir    => C4::Context->config('intrahtdocs') . '/prog',
             suffix => '-staff-prog.po',
-        },
-        {
-            name   => 'Intranet prog help',
-            dir    => $context->config('intrahtdocs') . '/prog/en/modules/help',
-            suffix => '-staff-help.po',
         },
     ];
 
     # OPAC themes
-    opendir my $dh, $context->config('opachtdocs');
+    opendir my $dh, C4::Context->config('opachtdocs');
     for my $theme ( grep { not /^\.|lib|xslt/ } readdir($dh) ) {
         push @{$self->{interface}}, {
             name   => "OPAC $theme",
@@ -121,8 +96,8 @@ sub new {
     # MARC flavours (hardcoded list)
     for ( "MARC21", "UNIMARC", "NORMARC" ) {
         # search for strings on staff & opac marc files
-        my $dirs = $context->config('intrahtdocs') . '/prog';
-        opendir $fh, $context->config('opachtdocs');
+        my $dirs = C4::Context->config('intrahtdocs') . '/prog';
+        opendir $fh, C4::Context->config('opachtdocs');
         for ( grep { not /^\.|\.\.|lib$|xslt/ } readdir($fh) ) {
             $dirs .= ' ' . "$opachtdocs/$_";
         }
@@ -133,174 +108,126 @@ sub new {
         };
     }
 
+    # EN YAML installer files
+    push @{$self->{installer}}, {
+        name   => "YAML installer files",
+        dirs   => [ 'installer/data/mysql/en/mandatory',
+                    'installer/data/mysql/en/optional'],
+        suffix => "-installer.po",
+    };
+
+    # EN MARC21 YAML installer files
+    push @{$self->{installer}}, {
+        name   => "MARC21 YAML installer files",
+        dirs   => [ 'installer/data/mysql/en/marcflavour/marc21/mandatory',
+                    'installer/data/mysql/en/marcflavour/marc21/optional'],
+        suffix => "-installer-MARC21.po",
+    };
+
+    # EN UNIMARC YAML installer files
+    push @{$self->{installer}}, {
+        name   => "UNIMARC YAML installer files",
+        dirs   => [ 'installer/data/mysql/en/marcflavour/unimarc/mandatory', ],
+        suffix => "-installer-UNIMARC.po",
+    };
+
     bless $self, $class;
 }
 
-
 sub po_filename {
-    my $self = shift;
+    my $self   = shift;
+    my $suffix = shift;
 
-    my $context    = C4::Context->new;
     my $trans_path = $Bin . '/po';
-    my $trans_file = "$trans_path/" . $self->{lang} . "-pref.po";
+    my $trans_file = "$trans_path/" . $self->{lang} . $suffix;
     return $trans_file;
 }
 
-
-sub po_append {
-    my ($self, $id, $comment) = @_;
-    my $po = $self->{po};
-    my $p = $po->{$id};
-    if ( $p ) {
-        $p->comment( $p->comment . "\n" . $comment );
-    }
-    else {
-        $po->{$id} = Locale::PO->new(
-            -comment => $comment,
-            -msgid   => $id,
-            -msgstr  => ''
-        );
-    }
-}
-
-
-sub add_prefs {
-    my ($self, $comment, $prefs) = @_;
-
-    for my $pref ( @$prefs ) {
-        my $pref_name = '';
-        for my $element ( @$pref ) {
-            if ( ref( $element) eq 'HASH' ) {
-                $pref_name = $element->{pref};
-                last;
-            }
-        }
-        for my $element ( @$pref ) {
-            if ( ref( $element) eq 'HASH' ) {
-                while ( my ($key, $value) = each(%$element) ) {
-                    next unless $key eq 'choices';
-                    next unless ref($value) eq 'HASH';
-                    for my $ckey ( keys %$value ) {
-                        my $id = $self->{file} . "#$pref_name# " . $value->{$ckey};
-                        $self->po_append( $id, $comment );
-                    }
-                }
-            }
-            elsif ( $element ) {
-                $self->po_append( $self->{file} . "#$pref_name# $element", $comment );
-            }
-        }
-    }
-}
-
-
 sub get_trans_text {
-    my ($self, $id) = @_;
+    my ($self, $msgid, $default) = @_;
 
-    my $po = $self->{po}->{$id};
-    return unless $po;
-    return Locale::PO->dequote($po->msgstr);
+    my $po = $self->{po}->{Locale::PO->quote($msgid)};
+    if ($po) {
+        my $msgstr = Locale::PO->dequote($po->msgstr);
+        if ($msgstr and length($msgstr) > 0) {
+            return $msgstr;
+        }
+    }
+
+    return $default;
 }
 
+sub get_translated_tab_content {
+    my ($self, $file, $tab_content) = @_;
 
-sub update_tab_prefs {
-    my ($self, $pref, $prefs) = @_;
+    if ( ref($tab_content) eq 'ARRAY' ) {
+        return $self->get_translated_prefs($file, $tab_content);
+    }
 
-    for my $p ( @$prefs ) {
-        my $pref_name = '';
-        next unless $p;
-        for my $element ( @$p ) {
-            if ( ref( $element) eq 'HASH' ) {
-                $pref_name = $element->{pref};
-                last;
-            }
-        }
-        for my $i ( 0..@$p-1 ) {
-            my $element = $p->[$i];
-            if ( ref( $element) eq 'HASH' ) {
-                while ( my ($key, $value) = each(%$element) ) {
-                    next unless $key eq 'choices';
-                    next unless ref($value) eq 'HASH';
-                    for my $ckey ( keys %$value ) {
-                        my $id = $self->{file} . "#$pref_name# " . $value->{$ckey};
-                        my $text = $self->get_trans_text( $id );
-                        $value->{$ckey} = $text if $text;
-                    }
+    my $translated_tab_content = {
+        map {
+            my $section = $_;
+            my $sysprefs = $tab_content->{$section};
+            my $msgid = sprintf('%s %s', $file, $section);
+
+            $self->get_trans_text($msgid, $section) => $self->get_translated_prefs($file, $sysprefs);
+        } keys %$tab_content
+    };
+
+    return $translated_tab_content;
+}
+
+sub get_translated_prefs {
+    my ($self, $file, $sysprefs) = @_;
+
+    my $translated_prefs = [
+        map {
+            my ($pref_elt) = grep { ref($_) eq 'HASH' && exists $_->{pref} } @$_;
+            my $pref_name = $pref_elt ? $pref_elt->{pref} : '';
+
+            my $translated_syspref = [
+                map {
+                    $self->get_translated_pref($file, $pref_name, $_);
+                } @$_
+            ];
+
+            $translated_syspref;
+        } @$sysprefs
+    ];
+
+    return $translated_prefs;
+}
+
+sub get_translated_pref {
+    my ($self, $file, $pref_name, $syspref) = @_;
+
+    unless (ref($syspref)) {
+        $syspref //= '';
+        my $msgid = sprintf('%s#%s# %s', $file, $pref_name, $syspref);
+        return $self->get_trans_text($msgid, $syspref);
+    }
+
+    my $translated_pref = {
+        map {
+            my $key = $_;
+            my $value = $syspref->{$key};
+
+            my $translated_value = $value;
+            if (($key eq 'choices' || $key eq 'multiple') && ref($value) eq 'HASH') {
+                $translated_value = {
+                    map {
+                        my $msgid = sprintf('%s#%s# %s', $file, $pref_name, $value->{$_});
+                        $_ => $self->get_trans_text($msgid, $value->{$_})
+                    } keys %$value
                 }
             }
-            elsif ( $element ) {
-                my $id = $self->{file} . "#$pref_name# $element";
-                my $text = $self->get_trans_text( $id );
-                $p->[$i] = $text if $text;
-            }
-        }
-    }
+
+            $key => $translated_value
+        } keys %$syspref
+    };
+
+    return $translated_pref;
 }
-
-
-sub get_po_from_prefs {
-    my $self = shift;
-
-    for my $file ( @{$self->{pref_files}} ) {
-        my $pref = LoadFile( $self->{path_pref_en} . "/$file" );
-        $self->{file} = $file;
-        # Entries for tab titles
-        $self->po_append( $self->{file}, $_ ) for keys %$pref;
-        while ( my ($tab, $tab_content) = each %$pref ) {
-            if ( ref($tab_content) eq 'ARRAY' ) {
-                $self->add_prefs( $tab, $tab_content );
-                next;
-            }
-            while ( my ($section, $sysprefs) = each %$tab_content ) {
-                my $comment = "$tab > $section";
-                $self->po_append( $self->{file} . " " . $section, $comment );
-                $self->add_prefs( $comment, $sysprefs );
-            }
-        }
-    }
-}
-
-
-sub save_po {
-    my $self = shift;
-
-    # Create file header if it doesn't already exist
-    my $po = $self->{po};
-    $po->{''} ||= $default_pref_po_header;
-
-    # Write .po entries into a file put in Koha standard po directory
-    Locale::PO->save_file_fromhash( $self->po_filename, $po );
-    say "Saved in file: ", $self->po_filename if $self->{verbose};
-}
-
-
-sub get_po_merged_with_en {
-    my $self = shift;
-
-    # Get po from current 'en' .pref files
-    $self->get_po_from_prefs();
-    my $po_current = $self->{po};
-
-    # Get po from previous generation
-    my $po_previous = Locale::PO->load_file_ashash( $self->po_filename );
-
-    for my $id ( keys %$po_current ) {
-        my $po =  $po_previous->{Locale::PO->quote($id)};
-        next unless $po;
-        my $text = Locale::PO->dequote( $po->msgstr );
-        $po_current->{$id}->msgstr( $text );
-    }
-}
-
-
-sub update_prefs {
-    my $self = shift;
-    print "Update '", $self->{lang},
-          "' preferences .po file from 'en' .pref files\n" if $self->{verbose};
-    $self->get_po_merged_with_en();
-    $self->save_po();
-}
-
 
 sub install_prefs {
     my $self = shift;
@@ -310,45 +237,24 @@ sub install_prefs {
         exit;
     }
 
-    # Get the language .po file merged with last modified 'en' preferences
-    $self->get_po_merged_with_en();
+    $self->{po} = Locale::PO->load_file_ashash($self->po_filename("-pref.po"), 'utf8');
 
     for my $file ( @{$self->{pref_files}} ) {
-        my $pref = LoadFile( $self->{path_pref_en} . "/$file" );
-        $self->{file} = $file;
-        # First, keys are replaced (tab titles)
-        $pref = do {
-            my %pref = map { 
-                $self->get_trans_text( $self->{file} ) || $_ => $pref->{$_}
-            } keys %$pref;
-            \%pref;
+        my $pref = YAML::XS::LoadFile( $self->{path_pref_en} . "/$file" );
+
+        my $translated_pref = {
+            map {
+                my $tab = $_;
+                my $tab_content = $pref->{$tab};
+
+                $self->get_trans_text($file, $tab) => $self->get_translated_tab_content($file, $tab_content);
+            } keys %$pref
         };
-        while ( my ($tab, $tab_content) = each %$pref ) {
-            if ( ref($tab_content) eq 'ARRAY' ) {
-                $self->update_tab_prefs( $pref, $tab_content );
-                next;
-            }
-            while ( my ($section, $sysprefs) = each %$tab_content ) {
-                $self->update_tab_prefs( $pref, $sysprefs );
-            }
-            my $ntab = {};
-            for my $section ( keys %$tab_content ) {
-                my $id = $self->{file} . " $section";
-                my $text = $self->get_trans_text($id);
-                my $nsection = $text ? $text : $section;
-                if( exists $ntab->{$nsection} ) {
-                    # When translations collide (see BZ 18634)
-                    push @{$ntab->{$nsection}}, @{$tab_content->{$section}};
-                } else {
-                    $ntab->{$nsection} = $tab_content->{$section};
-                }
-            }
-            $pref->{$tab} = $ntab;
-        }
+
+
         my $file_trans = $self->{po_path_lang} . "/$file";
         print "Write $file\n" if $self->{verbose};
-        open my $fh, ">", $file_trans;
-        print $fh Dump($pref);
+        YAML::XS::DumpFile($file_trans, $translated_pref);
     }
 }
 
@@ -368,11 +274,10 @@ sub install_tmpl {
                 "    With: $self->{path_po}/$self->{lang}$trans->{suffix}\n"
                 if $self->{verbose};
 
-            my $trans_dir = ( $trans->{name} =~ /help/ )?"$t_dir":"$t_dir/en/";
-            my $lang_dir  = ( $trans->{name} =~ /help/ )?"$t_dir":"$t_dir/$self->{lang}";
+            my $trans_dir = "$t_dir/en/";
+            my $lang_dir  = "$t_dir/$self->{lang}";
             $lang_dir =~ s|/en/|/$self->{lang}/|;
             mkdir $lang_dir unless -d $lang_dir;
-            my $excludes = ( $trans->{name} !~ /help/   )?"":"-x 'help'";
             # if installing MARC po file, only touch corresponding files
             my $marc     = ( $trans->{name} =~ /MARC/ )?"-m \"$trans->{name}\"":"";            # for MARC translations
             # if not installing MARC po file, ignore all MARC files
@@ -383,7 +288,6 @@ sub install_tmpl {
                 "-i $trans_dir " .
                 "-o $lang_dir  ".
                 "-s $self->{path_po}/$self->{lang}$trans->{suffix} -r " .
-                "$excludes " .
                 "$marc " .
                 ( @files   ? ' -f ' . join ' -f ', @files : '') .
                 ( @nomarc  ? ' -n ' . join ' -n ', @nomarc : '');
@@ -391,197 +295,215 @@ sub install_tmpl {
     }
 }
 
+sub translate_yaml {
+    my $self   = shift;
+    my $target = shift;
+    my $srcyml = shift;
 
-sub update_tmpl {
-    my ($self, $files) = @_;
+    my $po_file = $self->po_filename( $target->{suffix} );
+    return $srcyml unless ( -e $po_file );
 
-    say "Update templates" if $self->{verbose};
-    for my $trans ( @{$self->{interface}} ) {
-        my @files   = @$files;
-        my @nomarc = ();
-        print
-            "  Update templates '$trans->{name}'\n",
-            "    From: $trans->{dir}/en/\n",
-            "    To  : $self->{path_po}/$self->{lang}$trans->{suffix}\n"
-                if $self->{verbose};
+    my $po_ref  = Locale::PO->load_file_ashash( $po_file, 'utf8' );
 
-        my $trans_dir = ( $trans->{name} =~ /help/ )?"$trans->{dir}":join("/en/ -i ",split(" ",$trans->{dir}))."/en/"; # multiple source dirs
-        # do no process 'help' dirs unless needed
-        my $excludes  = ( $trans->{name} !~ /help/ )?"-x help":"";
-        # if processing MARC po file, only use corresponding files
-        my $marc      = ( $trans->{name} =~ /MARC/ )?"-m \"$trans->{name}\"":"";            # for MARC translations
-        # if not processing MARC po file, ignore all MARC files
-        @nomarc       = ( 'marc21', 'unimarc', 'normarc' ) if ( $trans->{name} !~ /MARC/ );      # hardcoded MARC variants
+    my $dstyml   = YAML::XS::LoadFile( $srcyml );
 
-        system
-            "$self->{process} update " .
-            "-i $trans_dir " .
-            "-s $self->{path_po}/$self->{lang}$trans->{suffix} -r " .
-            "$excludes " .
-            "$marc "     .
-            ( @files   ? ' -f ' . join ' -f ', @files : '') .
-            ( @nomarc  ? ' -n ' . join ' -n ', @nomarc : '');
-    }
-}
+    # translate fields in table rows
+    my @tables = @{ $dstyml->{'tables'} };
+    for my $table ( @tables ) {                                                         # each table
+        my $table_name = ( keys %$table )[0];
+        my @translatable = @{ $table->{$table_name}->{translatable} };
+        my @rows = @{ $table->{$table_name}->{rows} };
+        my @multiline = @{ $table->{$table_name}->{'multiline'} };                      # to check multiline values
+        for my $row ( @rows ) {                                                         # each row
+            for my $field ( @translatable ) {                                           # each translatable field
+                if ( @multiline and grep { $_ eq $field } @multiline ) {                # multiline fields, only notices ATM
+                    foreach my $line ( @{$row->{$field}} ) {
+                        next if ( $line =~ /^(\s*<.*?>\s*$|^\s*\[.*?\]\s*|\s*)$/ );     # discard pure html, TT, empty
+                        my @ttvar;
+                        while ( $line =~ s/(<<.*?>>|\[\%.*?\%\]|<.*?>)/\%s/ ) {         # put placeholders, save matches
+                            my $var = $1;
+                            push @ttvar, $var;
+                        }
 
-
-sub create_prefs {
-    my $self = shift;
-
-    if ( -e $self->po_filename ) {
-        say "Preferences .po file already exists. Delete it if you want to recreate it.";
-        return;
-    }
-    $self->get_po_from_prefs();
-    $self->save_po();
-}
-
-
-sub create_tmpl {
-    my ($self, $files) = @_;
-
-    say "Create templates\n" if $self->{verbose};
-    for my $trans ( @{$self->{interface}} ) {
-        my @files   = @$files;
-        my @nomarc = ();
-        print
-            "  Create templates .po files for '$trans->{name}'\n",
-            "    From: $trans->{dir}/en/\n",
-            "    To  : $self->{path_po}/$self->{lang}$trans->{suffix}\n"
-                if $self->{verbose};
-
-        my $trans_dir = ( $trans->{name} =~ /help/ )?"$trans->{dir}":join("/en/ -i ",split(" ",$trans->{dir}))."/en/"; # multiple source dirs
-        my $excludes  = ( $trans->{name} !~ /help/ )?"-x help":"";
-        # if processing MARC po file, only use corresponding files
-        my $marc      = ( $trans->{name} =~ /MARC/ )?"-m \"$trans->{name}\"":"";            # for MARC translations
-        # if not processing MARC po file, ignore all MARC files
-        @nomarc       = ( 'marc21', 'unimarc', 'normarc' ) if ( $trans->{name} !~ /MARC/ ); # hardcoded MARC variants
-
-        system
-            "$self->{process} create " .
-            "-i $trans_dir " .
-            "-s $self->{path_po}/$self->{lang}$trans->{suffix} -r " .
-            "$excludes " .
-            "$marc " .
-            ( @files  ? ' -f ' . join ' -f ', @files   : '') .
-            ( @nomarc ? ' -n ' . join ' -n ', @nomarc : '');
-    }
-}
-
-sub create_messages {
-    my $self = shift;
-
-    print "Create messages ($self->{lang})\n" if $self->{verbose};
-    system
-        "$self->{cp} $self->{domain}.pot " .
-        "$self->{path_po}/$self->{lang}-$self->{domain}.po";
-}
-
-sub update_messages {
-    my $self = shift;
-
-    my $pofile = "$self->{path_po}/$self->{lang}-$self->{domain}.po";
-    print "Update messages ($self->{lang})\n" if $self->{verbose};
-    if ( not -f $pofile ) {
-        print "File $pofile does not exist\n" if $self->{verbose};
-        $self->create_messages();
-    }
-    system "$self->{msgmerge} -U $pofile $self->{domain}.pot";
-}
-
-sub extract_messages {
-    my $self = shift;
-
-    my $intranetdir = $self->{context}->config('intranetdir');
-    my @files_to_scan;
-    my @directories_to_scan = ('.');
-    my @blacklist = qw(blib koha-tmpl skel tmp t);
-    while (@directories_to_scan) {
-        my $dir = shift @directories_to_scan;
-        opendir DIR, "$intranetdir/$dir" or die "Unable to open $dir: $!";
-        foreach my $entry (readdir DIR) {
-            next if $entry =~ /^\./;
-            my $relentry = "$dir/$entry";
-            $relentry =~ s|^\./||;
-            if (-d "$intranetdir/$relentry" and not grep /^$relentry$/, @blacklist) {
-                push @directories_to_scan, "$relentry";
-            } elsif (-f "$intranetdir/$relentry" and $relentry =~ /(pl|pm)$/) {
-                push @files_to_scan, "$relentry";
+                        if ( $line =~ /^(\s|%s|-|[[:punct:]]|\(|\))*$/ ) {              # ignore non strings
+                            while ( @ttvar ) {                                          # restore placeholders
+                                my $var = shift @ttvar;
+                                $line =~ s/\%s/$var/;
+                            }
+                            next;
+                        } else {
+                            my $po = $po_ref->{"\"$line\""};                            # quoted key
+                            if ( $po  and not defined( $po->fuzzy() )                   # not fuzzy
+                                      and length( $po->msgid() ) > 2                    # not empty msgid
+                                      and length( $po->msgstr() ) > 2 ) {               # not empty msgstr
+                                $line = $po->dequote( $po->msgstr() );
+                            }
+                            while ( @ttvar ) {                                          # restore placeholders
+                                my $var = shift @ttvar;
+                                $line =~ s/\%s/$var/;
+                            }
+                        }
+                    }
+                } else {
+                    next unless defined $row->{$field};                                 # next if null value
+                    my $po = $po_ref->{"\"$row->{$field}\""};                           # quoted key
+                    if ( $po  and not defined( $po->fuzzy() )                           # not fuzzy
+                              and length( $po->msgid() ) > 2                            # not empty msgid
+                              and length( $po->msgstr() ) > 2 ) {                       # not empty msgstr
+                        $row->{$field} = $po->dequote( $po->msgstr() );
+                    }
+                }
             }
         }
     }
 
-    my $xgettext_cmd = "$self->{xgettext} -L Perl --from-code=UTF-8 " .
-        "-o $Bin/$self->{domain}.pot -D $intranetdir";
-    $xgettext_cmd .= " $_" foreach (@files_to_scan);
-
-    if (system($xgettext_cmd) != 0) {
-        die "system call failed: $xgettext_cmd";
-    }
-
-    if ( -f "$Bin/$self->{domain}.pot" ) {
-        my $replace_charset_cmd = "$self->{sed} --in-place " .
-            "$Bin/$self->{domain}.pot " .
-            "--expression='s/charset=CHARSET/charset=UTF-8/'";
-        if (system($replace_charset_cmd) != 0) {
-            die "system call failed: $replace_charset_cmd";
+    # translate descriptions
+    for my $description ( @{ $dstyml->{'description'} } ) {
+        my $po = $po_ref->{"\"$description\""};
+        if ( $po  and not defined( $po->fuzzy() )
+                  and length( $po->msgid() ) > 2
+                  and length( $po->msgstr() ) > 2 ) {
+            $description = $po->dequote( $po->msgstr() );
         }
-    } else {
-        print "No messages found\n" if $self->{verbose};
-        return;
     }
-    return 1;
+
+    return $dstyml;
 }
 
-sub remove_pot {
+sub install_installer {
+    my $self = shift;
+    return unless ( $self->{installer} );
+
+    my $intradir  = C4::Context->config('intranetdir');
+    my $db_scheme = C4::Context->config('db_scheme');
+    my $langdir  = "$intradir/installer/data/$db_scheme/$self->{lang}";
+    if ( -d $langdir ) {
+        say "$self->{lang} installer dir $langdir already exists.\nDelete it if you want to recreate it." if $self->{verbose};
+        return;
+    }
+
+    say "Install installer files\n" if $self->{verbose};
+
+    for my $target ( @{ $self->{installer} } ) {
+        return unless ( -e $self->po_filename( $target->{suffix} ) );
+        for my $dir ( @{ $target->{dirs} } ) {
+            ( my $tdir = "$dir" ) =~ s|/en/|/$self->{lang}/|;
+            make_path("$intradir/$tdir");
+
+            opendir( my $dh, "$intradir/$dir" ) or die ("Can't open $intradir/$dir");
+            my @files = grep { ! /^\.+$/ } readdir($dh);
+            close($dh);
+
+            for my $file ( @files ) {
+                if ( $file =~ /yml$/ ) {
+                    my $translated_yaml = translate_yaml( $self, $target, "$intradir/$dir/$file" );
+                    YAML::XS::DumpFile( "$intradir/$tdir/$file", $translated_yaml );
+                } else {
+                    File::Copy::copy( "$intradir/$dir/$file", "$intradir/$tdir/$file" );
+                }
+            }
+        }
+    }
+}
+
+sub locale_name {
     my $self = shift;
 
-    unlink "$Bin/$self->{domain}.pot";
+    my ($language, $region, $country) = split /-/, $self->{lang};
+    $country //= $region;
+    my $locale = $language;
+    if ($country && length($country) == 2) {
+        $locale .= '_' . $country;
+    }
+
+    return $locale;
+}
+
+sub install_messages {
+    my ($self) = @_;
+
+    my $locale = $self->locale_name();
+    my $modir = "$self->{path_po}/$locale/LC_MESSAGES";
+    my $pofile = "$self->{path_po}/$self->{lang}-messages.po";
+    my $mofile = "$modir/$self->{domain}.mo";
+    my $js_pofile = "$self->{path_po}/$self->{lang}-messages-js.po";
+
+    unless ( -f $pofile && -f $js_pofile ) {
+        die "PO files for language '$self->{lang}' do not exist";
+    }
+
+    say "Install messages ($locale)" if $self->{verbose};
+    make_path($modir);
+    system "$self->{msgfmt} -o $mofile $pofile";
+
+    my $js_locale_data = 'var json_locale_data = {"Koha":' . `$self->{po2json} $js_pofile` . '};';
+    my $progdir = C4::Context->config('intrahtdocs') . '/prog';
+    mkdir "$progdir/$self->{lang}/js";
+    open my $fh, '>', "$progdir/$self->{lang}/js/locale_data.js";
+    print $fh $js_locale_data;
+    close $fh;
+
+    my $opachtdocs = C4::Context->config('opachtdocs');
+    opendir(my $dh, $opachtdocs);
+    for my $theme ( grep { not /^\.|lib|xslt/ } readdir($dh) ) {
+        mkdir "$opachtdocs/$theme/$self->{lang}/js";
+        open my $fh, '>', "$opachtdocs/$theme/$self->{lang}/js/locale_data.js";
+        print $fh $js_locale_data;
+        close $fh;
+    }
+}
+
+sub compress {
+    my ($self, $files) = @_;
+    my @langs = $self->{lang} ? ($self->{lang}) : $self->get_all_langs();
+    for my $lang ( @langs ) {
+        $self->set_lang( $lang );
+        opendir( my $dh, $self->{path_po} );
+        my @files = grep { $_ =~ /^$self->{lang}.*po$/ } readdir $dh;
+        foreach my $file ( @files ) {
+            say "Compress file $file" if $self->{verbose};
+            system "$self->{gzip} -9 $self->{path_po}/$file";
+        }
+    }
+}
+
+sub uncompress {
+    my ($self, $files) = @_;
+    my @langs = $self->{lang} ? ($self->{lang}) : $self->get_all_langs();
+    for my $lang ( @langs ) {
+        opendir( my $dh, $self->{path_po} );
+        $self->set_lang( $lang );
+        my @files = grep { $_ =~ /^$self->{lang}.*po.gz$/ } readdir $dh;
+        foreach my $file ( @files ) {
+            say "Uncompress file $file" if $self->{verbose};
+            system "$self->{gunzip} $self->{path_po}/$file";
+        }
+    }
 }
 
 sub install {
     my ($self, $files) = @_;
     return unless $self->{lang};
-    $self->install_tmpl($files) unless $self->{pref_only};
-    $self->install_prefs();
+    $self->uncompress();
+
+    if ($self->{pref_only}) {
+        $self->install_prefs();
+    } else {
+        $self->install_tmpl($files);
+        $self->install_prefs();
+        $self->install_messages();
+        $self->install_installer();
+    }
 }
 
 
 sub get_all_langs {
     my $self = shift;
     opendir( my $dh, $self->{path_po} );
-    my @files = grep { $_ =~ /-pref.po$/ }
+    my @files = grep { $_ =~ /-pref.(po|po.gz)$/ }
         readdir $dh;
-    @files = map { $_ =~ s/-pref.po$//; $_ } @files;
+    @files = map { $_ =~ s/-pref.(po|po.gz)$//r } @files;
 }
-
-
-sub update {
-    my ($self, $files) = @_;
-    my @langs = $self->{lang} ? ($self->{lang}) : $self->get_all_langs();
-    my $extract_ok = $self->extract_messages();
-    for my $lang ( @langs ) {
-        $self->set_lang( $lang );
-        $self->update_tmpl($files) unless $self->{pref_only};
-        $self->update_prefs();
-        $self->update_messages() if $extract_ok;
-    }
-    $self->remove_pot() if $extract_ok;
-}
-
-
-sub create {
-    my ($self, $files) = @_;
-    return unless $self->{lang};
-    $self->create_tmpl($files) unless $self->{pref_only};
-    $self->create_prefs();
-    if ($self->extract_messages()) {
-        $self->create_messages();
-        $self->remove_pot();
-    }
-}
-
-
 
 1;
 
@@ -628,7 +550,7 @@ appropriate directory.
 
 Create 4 kinds of .po files in F<po> subdirectory:
 (1) one from each theme on opac pages templates,
-(2) intranet templates and help,
+(2) intranet templates,
 (3) preferences, and
 (4) one for each MARC dialect.
 
@@ -640,7 +562,7 @@ Create 4 kinds of .po files in F<po> subdirectory:
 Contains extracted text from english (en) OPAC templates found in
 <KOHA_ROOT>/koha-tmpl/opac-tmpl/{theme}/en/ directory.
 
-=item F<lang>-staff-prog.po and F<lang>-staff-help.po
+=item F<lang>-staff-prog.po
 
 Contains extracted text from english (en) intranet templates found in
 <KOHA_ROOT>/koha-tmpl/intranet-tmpl/prog/en/ directory.

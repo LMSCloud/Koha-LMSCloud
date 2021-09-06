@@ -1,6 +1,7 @@
 #!/usr/bin/perl
 
 use Modern::Perl;
+use Koha::Database;
 use Koha::DateUtils;
 use Koha::Libraries;
 
@@ -10,11 +11,9 @@ BEGIN {
     use_ok('C4::NewsChannels');
 }
 
+my $schema = Koha::Database->new->schema;
+$schema->storage->txn_begin;
 my $dbh = C4::Context->dbh;
-
-# Start transaction
-$dbh->{AutoCommit} = 0;
-$dbh->{RaiseError} = 1;
 
 # Add LIB1, if it doesn't exist.
 my $addbra = 'LIB1';
@@ -75,7 +74,7 @@ my $href_entry1 = {
     content        => $new1,
     lang           => $lang1,
     expirationdate => $expirationdate1,
-    timestamp      => $timestamp1,
+    published_on=> $timestamp1,
     number         => $number1,
     branchcode     => 'LIB1',
 };
@@ -90,7 +89,7 @@ my $href_entry2 = {
     content        => $new2,
     lang           => $lang2,
     expirationdate => $expirationdate2,
-    timestamp      => $timestamp2,
+    published_on=> $timestamp2,
     number         => $number2,
     borrowernumber => $brwrnmbr,
     branchcode     => 'LIB1',
@@ -104,7 +103,7 @@ my $href_entry3 = {
     title          => $title3,
     content        => $new3,
     lang           => $lang3,
-    timestamp      => $timestamp3,
+    published_on=> $timestamp3,
     number         => $number3,
     borrowernumber => $brwrnmbr,
     branchcode     => 'LIB1',
@@ -115,14 +114,14 @@ is( $rv, 1, 'Successfully added the third dummy news item without expiration dat
 # We need to determine the idnew in a non-MySQLism way.
 # This should be good enough.
 my $query =
-q{ SELECT idnew from opac_news WHERE timestamp='2000-01-01' AND expirationdate='2999-12-30'; };
+q{ SELECT idnew from opac_news WHERE published_on='2000-01-01' AND expirationdate='2999-12-30'; };
 my ( $idnew1 ) = $dbh->selectrow_array( $query );
 $query =
-q{ SELECT idnew from opac_news WHERE timestamp='2000-01-01' AND expirationdate='2999-12-31'; };
+q{ SELECT idnew from opac_news WHERE published_on='2000-01-01' AND expirationdate='2999-12-31'; };
 my ( $idnew2 ) = $dbh->selectrow_array( $query );
 
 $query =
-q{ SELECT idnew from opac_news WHERE timestamp='2000-01-02'; };
+q{ SELECT idnew from opac_news WHERE published_on='2000-01-02'; };
 my ( $idnew3 ) = $dbh->selectrow_array( $query );
 
 # Test upd_opac_new
@@ -141,6 +140,7 @@ $expirationdate1 = output_pref( { dt => dt_from_string( $expirationdate1 ), date
 $timestamp2      = output_pref( { dt => dt_from_string( $timestamp2 ), dateonly => 1 } );
 $expirationdate2 = output_pref( { dt => dt_from_string( $expirationdate2) , dateonly => 1 } );
 
+my $updated_on = %{get_opac_new($idnew1)}{updated_on};
 is_deeply(
     get_opac_new($idnew1),
     {
@@ -148,22 +148,19 @@ is_deeply(
         content        => $new1,
         lang           => $lang1,
         expirationdate => $expirationdate1,
-        timestamp      => $timestamp1,
+        published_on=> $timestamp1,
         number         => $number1,
         borrowernumber => undef,
         idnew          => $idnew1,
         branchname     => "$addbra branch",
         branchcode     => $addbra,
-        # this represents $lang => 1 in the hash
-        # that's returned... which seems a little
-        # redundant given that there's a perfectly
-        # good 'lang' key in the hash
-        ''             => 1,
+        updated_on     => $updated_on,
     },
     'got back expected news item via get_opac_new - ID 1'
 );
 
 # Test get_opac_new (single news item)
+$updated_on = %{get_opac_new($idnew2)}{updated_on};
 is_deeply(
     get_opac_new($idnew2),
     {  
@@ -171,13 +168,13 @@ is_deeply(
         content        => $new2,
         lang           => $lang2,
         expirationdate => $expirationdate2,
-        timestamp      => $timestamp2,
+        published_on=> $timestamp2,
         number         => $number2,
         borrowernumber => $brwrnmbr,
         idnew          => $idnew2,
         branchname     => "$addbra branch",
         branchcode     => $addbra,
-        ''             => 1,
+        updated_on     => $updated_on,
     },
     'got back expected news item via get_opac_new - ID 2'
 );
@@ -226,5 +223,3 @@ subtest 'Regression tests on author title, firstname, and surname.', sub {
     ok($check==3,'Both with and without author data tested');
     done_testing();
 };
-
-$dbh->rollback;

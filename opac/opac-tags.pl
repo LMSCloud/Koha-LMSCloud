@@ -38,15 +38,17 @@ use CGI::Cookie; # need to check cookies before having CGI parse the POST reques
 use C4::Auth qw(:DEFAULT check_cookie_auth);
 use C4::Context;
 use C4::Debug;
-use C4::Output qw(:html :ajax pagination_bar);
+use C4::Output qw(:html :ajax );
 use C4::Scrubber;
 use C4::Biblio;
+use C4::Items qw(GetItemsInfo GetHiddenItemnumbers);
 use C4::Tags qw(add_tag get_approval_rows get_tag_rows remove_tag stratify_tags);
 use C4::XSLT;
 
 use Data::Dumper;
 
 use Koha::Biblios;
+use Koha::CirculationRules;
 
 my %newtags = ();
 my @deltags = ();
@@ -85,24 +87,19 @@ sub ajax_auth_cgi {     # returns CGI object
 my $is_ajax = is_ajax();
 my $openadds = C4::Context->preference('TagsModeration') ? 0 : 1;
 my $query = ($is_ajax) ? &ajax_auth_cgi({}) : CGI->new();
-unless (C4::Context->preference('TagsEnabled')) {
-	push @errors, {+ tagsdisabled=>1 };
-    push @globalErrorIndexes, $#errors;
-} else {
-	foreach ($query->param) {
-		if (/^newtag(.*)/) {
-			my $biblionumber = $1;
-			unless ($biblionumber =~ /^\d+$/) {
-				$debug and warn "$_ references non numerical biblionumber '$biblionumber'";
-				push @errors, {+'badparam' => $_ };
-                push @globalErrorIndexes, $#errors;
-				next;
-			}
-			$newtags{$biblionumber} = $query->param($_);
-		} elsif (/^del(\d+)$/) {
-			push @deltags, $1;
-		}
-	}
+foreach ($query->param) {
+    if (/^newtag(.*)/) {
+        my $biblionumber = $1;
+        unless ($biblionumber =~ /^\d+$/) {
+            $debug and warn "$_ references non numerical biblionumber '$biblionumber'";
+            push @errors, {+'badparam' => $_ };
+            push @globalErrorIndexes, $#errors;
+            next;
+        }
+        $newtags{$biblionumber} = $query->param($_);
+    } elsif (/^del(\d+)$/) {
+        push @deltags, $1;
+    }
 }
 
 my $add_op = (scalar(keys %newtags) + scalar(@deltags)) ? 1 : 0;
@@ -118,6 +115,11 @@ if ($is_ajax) {
         authnotrequired => ($add_op ? 0 : 1), # auth required to add tags
         debug           => 1,
 	});
+}
+
+unless ( C4::Context->preference('TagsEnabled') ) {
+    print $query->redirect("/cgi-bin/koha/errors/404.pl");
+    exit;
 }
 
 if ($add_op) {
@@ -226,25 +228,79 @@ if ($is_ajax) {
 
 my $results = [];
 my $my_tags = [];
+my $borcat  = q{};
 
 if ($loggedinuser) {
+    my $patron = Koha::Patrons->find( { borrowernumber => $loggedinuser } );
+    $borcat = $patron ? $patron->categorycode : $borcat;
+    my $rules = C4::Context->yaml_preference('OpacHiddenItems');
+    my $should_hide = ( $rules ) ? 1 : 0;
     $my_tags = get_tag_rows({borrowernumber=>$loggedinuser});
     my $my_approved_tags = get_approval_rows({ approved => 1 });
+
+    my $art_req_itypes;
+    if( C4::Context->preference('ArticleRequests') ) {
+        $art_req_itypes = Koha::CirculationRules->guess_article_requestable_itemtypes({ $patron ? ( categorycode => $patron->categorycode ) : () });
+    }
+
+    # get biblionumbers stored in the cart
+    my @cart_list;
+
+    if($query->cookie("bib_list")){
+        my $cart_list = $query->cookie("bib_list");
+        @cart_list = split(/\//, $cart_list);
+    }
+
     foreach my $tag (@$my_tags) {
+        $tag->{visible} = 0;
         my $biblio = Koha::Biblios->find( $tag->{biblionumber} );
-        my $record = &GetMarcBiblio({ biblionumber => $tag->{biblionumber} });
-        $tag->{subtitle} = GetRecordValue( 'subtitle', $record, GetFrameworkCode( $tag->{biblionumber} ) );
+        my $record = &GetMarcBiblio({
+            biblionumber => $tag->{biblionumber},
+            embed_items  => 1,
+            opac         => 1,
+            borcat       => $borcat });
+        next unless $record;
+        my $hidden_items = undef;
+        my @hidden_itemnumbers;
+        my @all_items;
+        if ($should_hide) {
+            @all_items = GetItemsInfo( $tag->{biblionumber} );
+            @hidden_itemnumbers = GetHiddenItemnumbers({
+                items => \@all_items,
+                borcat => $borcat });
+            $hidden_items = \@hidden_itemnumbers;
+        }
+        next
+          if (
+            (
+                !$patron
+                or ( $patron and !$patron->category->override_hidden_items )
+            )
+            and $biblio->hidden_in_opac( { rules => $rules } )
+          );
         $tag->{title} = $biblio->title;
+        $tag->{subtitle} = $biblio->subtitle;
+        $tag->{medium} = $biblio->medium;
+        $tag->{part_number} = $biblio->part_number;
+        $tag->{part_name} = $biblio->part_name;
         $tag->{author} = $biblio->author;
+        # BZ17530: 'Intelligent' guess if result can be article requested
+        $tag->{artreqpossible} = ( $art_req_itypes->{ $tag->{itemtype} // q{} } || $art_req_itypes->{ '*' } ) ? 1 : q{};
 
         my $xslfile = C4::Context->preference('OPACXSLTResultsDisplay');
         my $lang   = $xslfile ? C4::Languages::getlanguage()  : undef;
         my $sysxml = $xslfile ? C4::XSLT::get_xslt_sysprefs() : undef;
 
-        if ( $xslfile ) {
+        if ($xslfile) {
+            my $variables = {
+                anonymous_session => ($loggedinuser) ? 0 : 1
+            };
             $tag->{XSLTBloc} = XSLTParse4Display(
-                    $tag->{ biblionumber }, $record, "OPACXSLTResultsDisplay",
-                    1, undef, $sysxml, $xslfile, $lang
+                $tag->{biblionumber},     $record,
+                "OPACXSLTResultsDisplay", 1,
+                $hidden_items,            $sysxml,
+                $xslfile,                 $lang,
+                $variables
             );
         }
 
@@ -252,6 +308,11 @@ if ($loggedinuser) {
         $date =~ /\s+(\d{2}\:\d{2}\:\d{2})/;
         $tag->{time_created_display} = $1;
         $tag->{approved} = ( grep { $_->{term} eq $tag->{term} and $_->{approved} } @$my_approved_tags );
+        $tag->{visible} = 1;
+        # while we're checking each line, see if item is in the cart
+        if ( grep {$_ eq $biblio->biblionumber} @cart_list) {
+            $tag->{incart} = 1;
+        }
     }
 }
 

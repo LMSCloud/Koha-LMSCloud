@@ -1,11 +1,12 @@
 {
   "/libraries": {
     "get": {
-      "x-mojo-to": "Library#list",
-      "operationId": "listLibrary",
+      "x-mojo-to": "Libraries#list",
+      "operationId": "listLibraries",
       "tags": [
         "library"
       ],
+      "summary": "List libraries",
       "parameters": [
         {
           "name": "name",
@@ -125,6 +126,27 @@
           "description": "Case insensitive 'starts-with' search on OPAC info",
           "required": false,
           "type": "string"
+        },
+        {
+          "$ref": "../parameters.json#/match"
+        },
+        {
+          "$ref": "../parameters.json#/order_by"
+        },
+        {
+          "$ref": "../parameters.json#/page"
+        },
+        {
+          "$ref": "../parameters.json#/per_page"
+        },
+        {
+          "$ref": "../parameters.json#/q_param"
+        },
+        {
+          "$ref": "../parameters.json#/q_body"
+        },
+        {
+          "$ref": "../parameters.json#/q_header"
         }
       ],
       "produces": [
@@ -157,14 +179,18 @@
         "permissions": {
           "catalogue": "1"
         }
-      }
+      },
+      "x-koha-embed": [
+        "smtp_server"
+      ]
     },
     "post": {
-      "x-mojo-to": "Library#add",
+      "x-mojo-to": "Libraries#add",
       "operationId": "addLibrary",
       "tags": [
         "library"
       ],
+      "summary": "Add library",
       "parameters": [
         {
           "name": "body",
@@ -232,11 +258,12 @@
   },
   "/libraries/{library_id}": {
     "get": {
-      "x-mojo-to": "Library#get",
+      "x-mojo-to": "Libraries#get",
       "operationId": "getLibrary",
       "tags": [
         "library"
       ],
+      "summary": "Get library",
       "parameters": [
         {
           "$ref": "../parameters.json#/library_id_pp"
@@ -263,14 +290,18 @@
         "permissions": {
           "catalogue": "1"
         }
-      }
+      },
+      "x-koha-embed": [
+        "smtp_server"
+      ]
     },
     "put": {
-      "x-mojo-to": "Library#update",
+      "x-mojo-to": "Libraries#update",
       "operationId": "updateLibrary",
       "tags": [
         "library"
       ],
+      "summary": "Update library",
       "parameters": [
         {
           "$ref": "../parameters.json#/library_id_pp"
@@ -342,11 +373,12 @@
       }
     },
     "delete": {
-      "x-mojo-to": "Library#delete",
+      "x-mojo-to": "Libraries#delete",
       "operationId": "deleteLibrary",
       "tags": [
         "library"
       ],
+      "summary": "Delete library",
       "parameters": [
         {
           "$ref": "../parameters.json#/library_id_pp"

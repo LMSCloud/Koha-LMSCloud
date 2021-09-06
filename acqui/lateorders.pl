@@ -45,7 +45,6 @@ To know on which branch this script have to display late order.
 
 use Modern::Perl;
 use CGI qw ( -utf8 );
-use C4::Bookseller qw( GetBooksellersWithLateOrders );
 use C4::Auth;
 use C4::Koha;
 use C4::Output;
@@ -53,20 +52,21 @@ use C4::Context;
 use C4::Acquisition;
 use C4::Letters;
 use Koha::DateUtils;
+use Koha::Acquisition::Orders;
+use Koha::CsvProfiles;
 
-my $input = new CGI;
+my $input = CGI->new;
 my ($template, $loggedinuser, $cookie) = get_template_and_user(
     {
         template_name   => "acqui/lateorders.tt",
         query           => $input,
         type            => "intranet",
-        authnotrequired => 0,
         flagsrequired   => { acquisition => 'order_receive' },
         debug           => 1,
     }
 );
 
-my $booksellerid = $input->param('booksellerid') || undef; # we don't want "" or 0
+my $booksellerid = $input->param('booksellerid');
 my $delay        = $input->param('delay') // 0;
 
 # Get the "date from" param if !defined is today
@@ -107,71 +107,59 @@ if ($op and $op eq "send_alert"){
     eval {
         $err = SendAlerts( 'claimacquisition', \@ordernums, $input->param("letter_code") );
         if ( not ref $err or not exists $err->{error} ) {
-            AddClaim ( $_ ) for @ordernums;
+            Koha::Acquisition::Orders->find($_)->claim() for @ordernums;
         }
     };
 
-    if ( $@ ) {
-        $template->param(error_claim => $@);
-    } elsif ( ref $err and exists $err->{error} and $err->{error} eq "no_email" ) {
+    if ( ref $err and exists $err->{error} and $err->{error} eq "no_email" ) {
         $template->{VARS}->{'error_claim'} = "no_email";
     } elsif ( ref $err and exists $err->{error} and $err->{error} eq "no_order_selected"){
         $template->{VARS}->{'error_claim'} = "no_order_selected";
+    } elsif ( $@ or ref $err and exists $err->{error} ) {
+        $template->param(error_claim => $@ || $err->{error});
     } else {
         $template->{VARS}->{'info_claim'} = 1;
     }
 }
 
-my @parameters = ( $delay );
-push @parameters, $estimateddeliverydatefrom_dt
-    ? $estimateddeliverydatefrom_dt->ymd()
-    : undef;
+my @lateorders = Koha::Acquisition::Orders->filter_by_lates(
+    {
+        delay        => $delay,
+        (
+            $estimateddeliverydatefrom_dt
+            ? ( estimated_from => $estimateddeliverydatefrom_dt )
+            : ()
+        ),
+        (
+            $estimateddeliverydateto_dt
+            ? ( estimated_to => $estimateddeliverydateto_dt )
+            : ()
+        )
+    },
+)->as_list;
 
-push @parameters, $estimateddeliverydateto_dt
-    ? $estimateddeliverydateto_dt->ymd()
-    : undef;
+my $booksellers = Koha::Acquisition::Booksellers->search(
+    {
+        id => {
+            -in => [ map { $_->basket->booksellerid } @lateorders ]
+        },
+    }
+);
 
-my %supplierlist = GetBooksellersWithLateOrders(@parameters);
-
-my (@sloopy);	# supplier loop
-foreach( sort { $supplierlist{$a} cmp $supplierlist{$b} } keys %supplierlist ) {
-	push @sloopy, (($booksellerid and $booksellerid eq $_ )            ?
-					{id=>$_, name=>$supplierlist{$_}, selected=>1} :
-					{id=>$_, name=>$supplierlist{$_}} )            ;
-}
-$template->param(SUPPLIER_LOOP => \@sloopy);
-
-$template->param(Supplier=>$supplierlist{$booksellerid}) if ($booksellerid);
-$template->param(booksellerid=>$booksellerid) if ($booksellerid);
-
-@parameters =
-  ( $delay, $booksellerid, $branch );
-if ($estimateddeliverydatefrom_dt) {
-    push @parameters, $estimateddeliverydatefrom_dt->ymd();
-}
-else {
-    push @parameters, undef;
-}
-if ($estimateddeliverydateto_dt) {
-    push @parameters, $estimateddeliverydateto_dt->ymd();
-}
-my @lateorders = GetLateOrders( @parameters );
-
-my $total;
-foreach (@lateorders){
-	$total += $_->{subtotal};
-}
+@lateorders = grep { $_->basket->booksellerid eq $booksellerid } @lateorders if $booksellerid;
 
 my $letters = GetLetters({ module => "claimacquisition" });
 
 $template->param(ERROR_LOOP => \@errors) if (@errors);
 $template->param(
-	lateorders => \@lateorders,
+    lateorders => \@lateorders,
+    booksellers => $booksellers,
+    bookseller_filter => ( $booksellerid ? $booksellers->find($booksellerid) : undef),
 	delay => $delay,
     letters => $letters,
     estimateddeliverydatefrom => $estimateddeliverydatefrom,
     estimateddeliverydateto   => $estimateddeliverydateto,
-	total => $total,
 	intranetcolorstylesheet => C4::Context->preference("intranetcolorstylesheet"),
+    csv_profiles         => [ Koha::CsvProfiles->search({ type => 'sql', used_for => 'late_orders' }) ],
 );
 output_html_with_http_headers $input, $cookie, $template->output;

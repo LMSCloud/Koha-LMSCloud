@@ -28,10 +28,11 @@ use C4::Circulation;
 use C4::Reserves;
 use Koha::Illrequest;
 
-my $cgi= new CGI;
+my $cgi= CGI->new;
 
 checkauth($cgi, 0, {circulate => 'circulate_remaining_permissions'}, 'intranet');
 
+my $op = $cgi->param('op') || "";
 my $biblionumber=$cgi->param('biblionumber');
 my $itemnumber=$cgi->param('itemnumber');
 my $biblioitemnumber=$cgi->param('biblioitemnumber');
@@ -40,12 +41,14 @@ my $itemnotes=$cgi->param('itemnotes');
 my $itemnotes_nonpublic=$cgi->param('itemnotes_nonpublic');
 my $withdrawn=$cgi->param('withdrawn');
 my $damaged=$cgi->param('damaged');
+my $exclude_from_local_holds_priority = $cgi->param('exclude_from_local_holds_priority');
 
 my $confirm=$cgi->param('confirm');
 my $dbh = C4::Context->dbh;
 
 # get the rest of this item's information
-my $item_data_hashref = GetItem($itemnumber, undef);
+my $item = Koha::Items->find($itemnumber);
+my $item_data_hashref = $item->unblessed;
 
 # make sure item statuses are set to 0 if empty or NULL
 for ($damaged,$itemlost,$withdrawn) {
@@ -54,22 +57,22 @@ for ($damaged,$itemlost,$withdrawn) {
     }
 }
 
+my $messages = q{};
+
 # modify MARC item if input differs from items table.
-my $item_changes = {};
-if (defined $itemnotes_nonpublic) { # i.e., itemnotes_nonpublic parameter passed from form
+if ( $op eq "set_non_public_note" ) {
     checkauth($cgi, 0, {editcatalogue => 'edit_items'}, 'intranet');
     if ((not defined  $item_data_hashref->{'itemnotes_nonpublic'}) or $itemnotes_nonpublic ne $item_data_hashref->{'itemnotes_nonpublic'}) {
-        $item_changes->{'itemnotes_nonpublic'} = $itemnotes_nonpublic;
+        $item->itemnotes_nonpublic($itemnotes_nonpublic);
     }
 }
-elsif (defined $itemnotes) { # i.e., itemnotes parameter passed from form
+elsif ( $op eq "set_public_note" ) { # i.e., itemnotes parameter passed from form
     checkauth($cgi, 0, {editcatalogue => 'edit_items'}, 'intranet');
     if ((not defined  $item_data_hashref->{'itemnotes'}) or $itemnotes ne $item_data_hashref->{'itemnotes'}) {
-        $item_changes->{'itemnotes'} = $itemnotes;
+        $item->itemnotes($itemnotes);
     }
-} elsif ($itemlost ne $item_data_hashref->{'itemlost'}) {
-    $item_changes->{'itemlost'} = $itemlost;
-
+} elsif ( $op eq "set_lost" && $itemlost ne $item_data_hashref->{'itemlost'}) {
+    $item->itemlost($itemlost);
     # if $itemlost != 0 and it is an ILL item then update also the ILL backend status
     if ( $itemlost && $item_data_hashref->{'itemlost'} == 0 ) {
         if ( C4::Context->preference("IllModule") ) {    # check if the ILL module is activated at all
@@ -82,18 +85,21 @@ elsif (defined $itemnotes) { # i.e., itemnotes parameter passed from form
             };
         }
     }
-} elsif ($withdrawn ne $item_data_hashref->{'withdrawn'}) {
-    $item_changes->{'withdrawn'} = $withdrawn;
-} elsif ($damaged ne $item_data_hashref->{'damaged'}) {
-    $item_changes->{'damaged'} = $damaged;
+} elsif ( $op eq "set_withdrawn" && $withdrawn ne $item_data_hashref->{'withdrawn'}) {
+    $item->withdrawn($withdrawn);
+} elsif ( $op eq "set_exclude_priority" && $exclude_from_local_holds_priority ne $item_data_hashref->{'exclude_from_local_holds_priority'}) {
+    $item->exclude_from_local_holds_priority($exclude_from_local_holds_priority);
+    $messages = "updated_exclude_from_local_holds_priority=$exclude_from_local_holds_priority&";
+} elsif ( $op eq "set_damaged" && $damaged ne $item_data_hashref->{'damaged'}) {
+    $item->damaged($damaged);
 } else {
     #nothings changed, so do nothing.
     print $cgi->redirect("moredetail.pl?biblionumber=$biblionumber&itemnumber=$itemnumber#item$itemnumber");
 	exit;
 }
 
-ModItem($item_changes, $biblionumber, $itemnumber);
+$item->store;
 
-LostItem($itemnumber, 'moredetail') if $itemlost;
+LostItem($itemnumber, 'moredetail') if $op eq "set_lost";
 
-print $cgi->redirect("moredetail.pl?biblionumber=$biblionumber&itemnumber=$itemnumber#item$itemnumber");
+print $cgi->redirect("moredetail.pl?" . $messages . "biblionumber=$biblionumber&itemnumber=$itemnumber#item$itemnumber");

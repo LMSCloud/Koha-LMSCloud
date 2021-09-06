@@ -17,74 +17,190 @@
 
 use Modern::Perl;
 
-use Test::More tests => 6;
-use Test::Warn;
+use Test::More tests => 4;
+use Test::Exception;
 
 use t::lib::Mocks;
 use t::lib::TestBuilder;
 
 use C4::Circulation;
 use C4::Context;
-use C4::Members;
 use Koha::Checkouts;
 use Koha::Database;
+use Koha::DateUtils qw(dt_from_string);
+use Koha::Old::Checkouts;
+use Koha::Patrons;
+use Koha::Patron::Debarments;
 
 my $schema = Koha::Database->schema;
-$schema->storage->txn_begin;
-
 my $builder = t::lib::TestBuilder->new;
 
-my $library = $builder->build({ source => 'Branch' });
+subtest 'Failure tests' => sub {
 
-C4::Context->_new_userenv('xxx');
-C4::Context->set_userenv(0,0,0,'firstname','surname', $library->{branchcode}, $library->{branchname}, '', '', '');
+    plan tests => 5;
 
-my $patron_category = $builder->build({ source => 'Category', value => { category_type => 'P', enrolmentfee => 0 } });
-my $patron = $builder->build({ source => 'Borrower', value => { branchcode => $library->{branchcode}, categorycode => $patron_category->{categorycode} } } );
+    $schema->storage->txn_begin;
 
-my $biblioitem = $builder->build( { source => 'Biblioitem' } );
-my $item = $builder->build(
-    {
-        source => 'Item',
-        value  => {
-            homebranch    => $library->{branchcode},
-            holdingbranch => $library->{branchcode},
-            notforloan    => 0,
-            itemlost      => 0,
-            withdrawn     => 0,
-            biblionumber  => $biblioitem->{biblionumber},
+    my $category = $builder->build_object( { class => 'Koha::Patron::Categories', value => { category_type => 'P', enrolmentfee => 0 } } );
+    my $library  = $builder->build_object( { class => 'Koha::Libraries' } );
+    my $patron   = $builder->build_object(
+        {   class => 'Koha::Patrons',
+            value => { branchcode => $library->branchcode, categorycode => $category->categorycode }
         }
-    }
-);
+    );
+    my $item = $builder->build_sample_item(
+        {
+            library => $library->branchcode,
+        }
+    );
 
-subtest 'anonymous patron' => sub {
+    t::lib::Mocks::mock_userenv( { branchcode => $library->branchcode } );
+
+    my ( $issue_id, $issue );
+    # The next call will return undef for invalid item number
+    eval { $issue_id = C4::Circulation::MarkIssueReturned( $patron->borrowernumber, 'invalid_itemnumber', undef, 0 ) };
+    is( $@, '', 'No die triggered by invalid itemnumber' );
+    is( $issue_id, undef, 'No issue_id returned' );
+
+    # In the next call we return the item and try it another time
+    $issue = C4::Circulation::AddIssue( $patron->unblessed, $item->barcode );
+    eval { $issue_id = C4::Circulation::MarkIssueReturned( $patron->borrowernumber, $item->itemnumber, undef, 0 ) };
+    is( $issue_id, $issue->issue_id, "Item has been returned (issue $issue_id)" );
+    eval { $issue_id = C4::Circulation::MarkIssueReturned( $patron->borrowernumber, $item->itemnumber, undef, 0 ) };
+    is( $@, '', 'No crash on returning item twice' );
+    is( $issue_id, undef, 'Cannot return an item twice' );
+
+
+    $schema->storage->txn_rollback;
+};
+
+subtest 'Anonymous patron tests' => sub {
+
     plan tests => 2;
-    # The next call will raise an error, because data are not correctly set
-    t::lib::Mocks::mock_preference('AnonymousPatron', '');
-    my $issue = C4::Circulation::AddIssue( $patron, $item->{barcode} );
-    eval { C4::Circulation::MarkIssueReturned( $patron->{borrowernumber}, $item->{itemnumber}, 'dropbox_branch', 'returndate', 2 ) };
+
+    $schema->storage->txn_begin;
+
+    my $category = $builder->build_object( { class => 'Koha::Patron::Categories', value => { category_type => 'P', enrolmentfee => 0 } } );
+    my $library  = $builder->build_object( { class => 'Koha::Libraries' } );
+    my $patron   = $builder->build_object(
+        {   class => 'Koha::Patrons',
+            value => { branchcode => $library->branchcode, categorycode => $category->categorycode }
+        }
+    );
+    my $item = $builder->build_sample_item(
+        {
+            library => $library->branchcode,
+        }
+    );
+
+    t::lib::Mocks::mock_userenv( { branchcode => $library->branchcode } );
+
+    # Anonymous patron not set
+    t::lib::Mocks::mock_preference( 'AnonymousPatron', '' );
+
+    my $issue = C4::Circulation::AddIssue( $patron->unblessed, $item->barcode );
+    eval { C4::Circulation::MarkIssueReturned( $patron->borrowernumber, $item->itemnumber, undef, 2 ) };
     like ( $@, qr<Fatal error: the patron \(\d+\) .* AnonymousPatron>, 'AnonymousPatron is not set - Fatal error on anonymization' );
     Koha::Checkouts->find( $issue->issue_id )->delete;
 
-    my $anonymous_borrowernumber = C4::Members::AddMember( categorycode => $patron_category->{categorycode}, branchcode => $library->{branchcode} );
-    t::lib::Mocks::mock_preference('AnonymousPatron', $anonymous_borrowernumber);
-    $issue = C4::Circulation::AddIssue( $patron, $item->{barcode} );
-    eval { C4::Circulation::MarkIssueReturned( $patron->{borrowernumber}, $item->{itemnumber}, 'dropbox_branch', 'returndate', 2 ) };
+    # Create a valid anonymous user
+    my $anonymous = $builder->build_object({
+        class => 'Koha::Patrons',
+        value => {
+            categorycode => $category->categorycode,
+            branchcode => $library->branchcode
+        }
+    });
+    t::lib::Mocks::mock_preference('AnonymousPatron', $anonymous->borrowernumber);
+    $issue = C4::Circulation::AddIssue( $patron->unblessed, $item->barcode );
+
+    eval { C4::Circulation::MarkIssueReturned( $patron->borrowernumber, $item->itemnumber, undef, 2 ) };
     is ( $@, q||, 'AnonymousPatron is set correctly - no error expected');
+
+    $schema->storage->txn_rollback;
 };
 
-my ( $issue_id, $issue );
-# The next call will return undef for invalid item number
-eval { $issue_id = C4::Circulation::MarkIssueReturned( $patron->{borrowernumber}, 'invalid_itemnumber', 'dropbox_branch', 'returndate', 0 ) };
-is( $@, '', 'No die triggered by invalid itemnumber' );
-is( $issue_id, undef, 'No issue_id returned' );
+subtest 'Manually pass a return date' => sub {
 
-# In the next call we return the item and try it another time
-$issue = C4::Circulation::AddIssue( $patron, $item->{barcode} );
-eval { $issue_id = C4::Circulation::MarkIssueReturned( $patron->{borrowernumber}, $item->{itemnumber}, undef, undef, 0 ) };
-is( $issue_id, $issue->issue_id, "Item has been returned (issue $issue_id)" );
-eval { $issue_id = C4::Circulation::MarkIssueReturned( $patron->{borrowernumber}, $item->{itemnumber}, undef, undef, 0 ) };
-is( $@, '', 'No crash on returning item twice' );
-is( $issue_id, undef, 'Cannot return an item twice' );
+    plan tests => 3;
 
-$schema->storage->txn_rollback;
+    $schema->storage->txn_begin;
+
+    my $category = $builder->build_object( { class => 'Koha::Patron::Categories', value => { category_type => 'P', enrolmentfee => 0 } } );
+    my $library = $builder->build_object( { class => 'Koha::Libraries' } );
+    my $patron  = $builder->build_object(
+        {   class => 'Koha::Patrons',
+            value => { branchcode => $library->branchcode, categorycode => $category->categorycode }
+        }
+    );
+    my $item = $builder->build_sample_item(
+        {
+            library => $library->branchcode,
+        }
+    );
+
+    t::lib::Mocks::mock_userenv({ branchcode => $library->branchcode });
+
+    my ( $issue, $issue_id );
+
+    $issue = C4::Circulation::AddIssue( $patron->unblessed, $item->barcode );
+    $issue_id = C4::Circulation::MarkIssueReturned( $patron->borrowernumber, $item->itemnumber, '2018-12-25', 0 );
+
+    is( $issue_id, $issue->issue_id, "Item has been returned" );
+    my $old_checkout = Koha::Old::Checkouts->find( $issue_id );
+    is( $old_checkout->returndate, '2018-12-25 00:00:00', 'Manually passed date stored correctly' );
+
+    $issue = C4::Circulation::AddIssue( $patron->unblessed, $item->barcode );
+
+    {
+        # Hiding the expected warning displayed by DBI
+        # DBD::mysql::st execute failed: Incorrect datetime value: 'bad_date' for column 'returndate'
+        local *STDERR;
+        open STDERR, '>', '/dev/null';
+        throws_ok
+            { $issue_id = C4::Circulation::MarkIssueReturned( $patron->borrowernumber, $item->itemnumber, 'bad_date', 0 ); }
+            'Koha::Exceptions::Object::BadValue',
+            'An exception is thrown on bad date';
+        close STDERR;
+    }
+
+    $schema->storage->txn_rollback;
+};
+
+subtest 'AutoRemoveOverduesRestrictions' => sub {
+    plan tests => 2;
+
+    $schema->storage->txn_begin;
+
+    t::lib::Mocks::mock_preference('AutoRemoveOverduesRestrictions', 1);
+
+    my $patron = $builder->build_object({ class => 'Koha::Patrons' });
+    t::lib::Mocks::mock_userenv( { branchcode => $patron->branchcode } );
+    my $item_1 = $builder->build_sample_item;
+    my $item_2 = $builder->build_sample_item;
+    my $item_3 = $builder->build_sample_item;
+    my $five_days_ago = dt_from_string->subtract( days => 5 );
+    my $checkout_1 = AddIssue( $patron->unblessed, $item_1->barcode, $five_days_ago ); # overdue
+    my $checkout_2 = AddIssue( $patron->unblessed, $item_2->barcode, $five_days_ago ); # overdue
+    my $checkout_3 = AddIssue( $patron->unblessed, $item_3->barcode ); # not overdue
+
+    Koha::Patron::Debarments::AddUniqueDebarment(
+        {
+            borrowernumber => $patron->borrowernumber,
+            type           => 'OVERDUES',
+            comment => "OVERDUES_PROCESS simulation",
+        }
+    );
+
+    C4::Circulation::MarkIssueReturned( $patron->borrowernumber, $item_1->itemnumber );
+
+    my $debarments = Koha::Patron::Debarments::GetDebarments({ borrowernumber => $patron->borrowernumber });
+    is( $debarments->[0]->{type}, 'OVERDUES', 'OVERDUES debarment is not removed if patron still has overdues' );
+
+    C4::Circulation::MarkIssueReturned( $patron->borrowernumber, $item_2->itemnumber );
+
+    $debarments = Koha::Patron::Debarments::GetDebarments({ borrowernumber => $patron->borrowernumber });
+    is( scalar @$debarments, 0, 'OVERDUES debarment is removed if patron does not have overdues' );
+
+    $schema->storage->txn_rollback;
+};

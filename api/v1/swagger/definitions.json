@@ -17,6 +17,15 @@
   "bzsh_order_items_status": {
     "$ref": "definitions/bzsh_order_items_status.json"
   },
+  "basket": {
+    "$ref": "definitions/basket.json"
+  },
+  "cashup": {
+    "$ref": "definitions/cashup.json"
+  },
+  "circ-rule-kind": {
+    "$ref": "definitions/circ-rule-kind.json"
+  },
   "city": {
     "$ref": "definitions/city.json"
   },
@@ -26,20 +35,68 @@
   "external_order": {
     "$ref": "definitions/external_order.json"
   },
+  "fund": {
+    "$ref": "definitions/fund.json"
+  },
   "hold": {
     "$ref": "definitions/hold.json"
+  },
+  "invoice": {
+    "$ref": "definitions/invoice.json"
+  },
+  "checkouts": {
+    "$ref": "definitions/checkouts.json"
+  },
+  "checkout": {
+    "$ref": "definitions/checkout.json"
   },
   "holds": {
     "$ref": "definitions/holds.json"
   },
+  "ill_backends": {
+    "$ref": "definitions/ill_backends.json"
+  },
+  "ill_backend": {
+    "$ref": "definitions/ill_backend.json"
+  },
+  "import_batch_profile": {
+    "$ref": "definitions/import_batch_profile.json"
+  },
+  "import_batch_profiles": {
+    "$ref": "definitions/import_batch_profiles.json"
+  },
   "library": {
     "$ref": "definitions/library.json"
+  },
+  "transfer_limit": {
+    "$ref": "definitions/transfer_limit.json"
+  },
+  "item": {
+    "$ref": "definitions/item.json"
+  },
+  "order": {
+    "$ref": "definitions/order.json"
+  },
+  "advancededitormacro": {
+    "$ref": "definitions/advancededitormacro.json"
   },
   "patron": {
     "$ref": "definitions/patron.json"
   },
+  "patron_account_credit": {
+    "$ref": "definitions/patron_account_credit.json"
+  },
   "patron_balance": {
     "$ref": "definitions/patron_balance.json"
+  },
+  "patron_extended_attribute": {
+    "$ref": "definitions/patron_extended_attribute.json"
+  },
+  "quote": {
+    "$ref": "definitions/quote.json"
+  },
+  "allows_renewal": {
+    "$ref": "definitions/allows_renewal.json"
   },
   "vendor": {
     "$ref": "definitions/vendor.json"
@@ -49,5 +106,11 @@
   },
   "zkshp_illrequest": {
     "$ref": "definitions/zkshp_illrequest.json"
+  },
+  "return_claim": {
+    "$ref": "definitions/return_claim.json"
+  },
+  "smtp_server": {
+    "$ref": "definitions/smtp_server.json"
   }
 }

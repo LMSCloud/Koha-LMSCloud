@@ -24,25 +24,23 @@ use C4::Auth;
 use C4::Context;
 use C4::Output;
 use C4::Members;
-use C4::Members::Attributes qw(GetBorrowerAttributes);
 use C4::Suggestions;
 use Koha::Patrons;
 
-my $input = new CGI;
+my $input = CGI->new;
 
 my ( $template, $loggedinuser, $cookie ) = get_template_and_user(
     {   template_name   => "members/purchase-suggestions.tt",
         query           => $input,
         type            => "intranet",
-        authnotrequired => 0,
-        flagsrequired   => { borrowers => 'edit_borrowers' },
+        flagsrequired   => { suggestions => 'suggestions_manage' },
         debug           => 1,
     }
 );
 
 my $borrowernumber = $input->param('borrowernumber');
 
-my $logged_in_user = Koha::Patrons->find( $loggedinuser ) or die "Not logged in";
+my $logged_in_user = Koha::Patrons->find( $loggedinuser );
 my $patron         = Koha::Patrons->find( $borrowernumber );
 output_and_exit_if_error( $input, $cookie, $template, { module => 'members', logged_in_user => $logged_in_user, current_patron => $patron } );
 
@@ -51,14 +49,6 @@ $template->param(
     patron => $patron,
     suggestionsview  => 1,
 );
-
-if (C4::Context->preference('ExtendedPatronAttributes')) {
-    my $attributes = GetBorrowerAttributes($borrowernumber);
-    $template->param(
-        ExtendedPatronAttributes => 1,
-        extendedattributes => $attributes
-    );
-}
 
 my $suggestions = SearchSuggestion( { suggestedby => $borrowernumber } );
 

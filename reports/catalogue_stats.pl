@@ -41,7 +41,7 @@ plugin that shows a stats on borrowers
 =cut
 
 our $debug = 0;
-my $input = new CGI;
+my $input = CGI->new;
 my $fullreportname = "reports/catalogue_stats.tt";
 my $do_it       = $input->param('do_it');
 my $line        = $input->param("Line");
@@ -70,7 +70,6 @@ my ($template, $borrowernumber, $cookie)
 	= get_template_and_user({template_name => $fullreportname,
 				query => $input,
 				type => "intranet",
-				authnotrequired => 0,
 				flagsrequired => {reports => '*'},
 				debug => 1,
 				});
@@ -114,11 +113,7 @@ if ($do_it) {
     }
 } else {
 	my $dbh = C4::Context->dbh;
-	my @values;
-	my %labels;
 	my $count=0;
-	my $req;
-	my @select;
 
     my $itemtypes = Koha::ItemTypes->search_with_localization;
 
@@ -397,7 +392,6 @@ sub calculate {
     }
 
     my $i = 0;
-    my @totalcol;
     my $hilighted = -1;
 
     #Initialization of cell values.....

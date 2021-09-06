@@ -56,9 +56,6 @@ INSERT INTO `authorised_values` ( `category`, `authorised_value`, `lib`) VALUES 
 -- Statut Limité
 INSERT INTO authorised_values (category, authorised_value, lib) VALUES ('RESTRICTED','1','Exclu du prêt');
 
--- Facture manuelle
-INSERT INTO `authorised_values` (category, authorised_value, lib) VALUES ('MANUAL_INV','Frais de copie','.25');
-
 -- Message personnalisable aux utilisateurs
 INSERT INTO `authorised_values` (category, authorised_value, lib) VALUES ('BOR_NOTES','ADDR','Address Notes');
 
@@ -85,3 +82,11 @@ INSERT INTO authorised_values (category, authorised_value, lib) VALUES ('SIP_MED
 INSERT INTO authorised_values (category, authorised_value, lib) VALUES ('SIP_MEDIA_TYPE', '008', 'Livre avec disquette');
 INSERT INTO authorised_values (category, authorised_value, lib) VALUES ('SIP_MEDIA_TYPE', '009', 'Livre avec CD');
 INSERT INTO authorised_values (category, authorised_value, lib) VALUES ('SIP_MEDIA_TYPE', '010', 'Livre avec cassette audio');
+
+-- return claims
+INSERT INTO authorised_values (category, authorised_value, lib) VALUES ('RETURN_CLAIM_RESOLUTION', 'RET_BY_PATRON', 'Returned by patron');
+INSERT INTO authorised_values (category, authorised_value, lib) VALUES ('RETURN_CLAIM_RESOLUTION', 'FOUND_IN_LIB',  'Found in library');
+
+-- hold cancellation
+INSERT INTO authorised_values (category, authorised_value, lib) VALUES ('HOLD_CANCELLATION','NOT_FOUND','Item could not be located on shelves');
+INSERT INTO authorised_values (category, authorised_value, lib) VALUES ('HOLD_CANCELLATION','DAMAGED','Item was found to be too damaged to fill hold');

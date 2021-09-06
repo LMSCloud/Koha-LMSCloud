@@ -32,14 +32,13 @@ use Koha::Club::Template::EnrollmentFields;
 use Koha::Database;
 my $schema = Koha::Database->new()->schema();
 
-my $cgi = new CGI;
+my $cgi = CGI->new;
 
 my ( $template, $loggedinuser, $cookie ) = get_template_and_user(
     {
         template_name   => 'clubs/templates-add-modify.tt',
         query           => $cgi,
         type            => 'intranet',
-        authnotrequired => 0,
         flagsrequired   => { clubs => 'edit_templates' },
     }
 );
@@ -92,7 +91,7 @@ if ( $cgi->param('name') ) {    # Update or create club
           ? Koha::Club::Template::Fields->find($field_id)
           : Koha::Club::Template::Field->new();
 
-        if ( grep( /^$field_id$/, @field_delete ) ) {
+        if ( grep { $_ eq $field_id } @field_delete ) {
             $field->delete();
         }
         else {
@@ -126,7 +125,7 @@ if ( $cgi->param('name') ) {    # Update or create club
           ? Koha::Club::Template::EnrollmentFields->find($field_id)
           : Koha::Club::Template::EnrollmentField->new();
 
-        if ( grep( /^$field_id$/, @field_delete ) ) {
+        if ( grep { $_ eq $field_id } @field_delete ) {
             $field->delete();
         }
         else {

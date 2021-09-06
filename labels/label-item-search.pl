@@ -45,7 +45,7 @@ BEGIN {
     }
 }
 
-my $query = new CGI;
+my $query = CGI->new;
 
 my $type      = $query->param('type');
 my $op        = $query->param('op') || '';
@@ -67,8 +67,6 @@ my $display_columns = [ {_add                   => {label => "Add Item", link_fi
                       ];
 
 if ( $op eq "do_search" ) {
-    my $QParser;
-    $QParser = C4::Context->queryparser if (C4::Context->preference('UseQueryParser'));
     $idx         = $query->param('idx');
     $ccl_textbox = $query->param('ccl_textbox');
     if ( $ccl_textbox && $idx ) {
@@ -82,14 +80,8 @@ if ( $op eq "do_search" ) {
         $datefrom = eval { dt_from_string ( $datefrom ) };
         if ($datefrom) {
             $datefrom = output_pref( { dt => $datefrom, dateonly => 1, dateformat => 'iso' } );
-            if ($QParser) {
-                $ccl_query .= ' && ' if $ccl_textbox;
-                $ccl_query .=
-                    "acqdate(" . $datefrom . '-)';
-            } else {
-                $ccl_query .= ' and ' if $ccl_textbox;
-                $ccl_query .= "acqdate,ge,st-date-normalized=" . $datefrom;
-            }
+            $ccl_query .= ' and ' if $ccl_textbox;
+            $ccl_query .= "acqdate,ge,st-date-normalized=" . $datefrom;
         }
     }
 
@@ -97,13 +89,8 @@ if ( $op eq "do_search" ) {
         $dateto = eval { dt_from_string ( $dateto ) };
         if ($dateto) {
            $dateto = output_pref( { dt => $dateto, dateonly => 1, dateformat => 'iso' } );
-            if ($QParser) {
-                $ccl_query .= ' && ' if ( $ccl_textbox || $datefrom );
-                $ccl_query .= "acqdate(-" . $dateto . ')';
-            } else {
-                $ccl_query .= ' and ' if ( $ccl_textbox || $datefrom );
-                $ccl_query .= "acqdate,le,st-date-normalized=" . $dateto;
-            }
+            $ccl_query .= ' and ' if ( $ccl_textbox || $datefrom );
+            $ccl_query .= "acqdate,le,st-date-normalized=" . $dateto;
         }
     }
 
@@ -159,7 +146,6 @@ if ($show_results) {
             template_name   => "labels/result.tt",
             query           => $query,
             type            => "intranet",
-            authnotrequired => 0,
             flagsrequired   => { borrowers => 'edit_borrowers' },
             flagsrequired   => { catalogue => 1 },
             debug           => 1,
@@ -239,7 +225,6 @@ else {
             template_name   => "labels/search.tt",
             query           => $query,
             type            => "intranet",
-            authnotrequired => 0,
             flagsrequired   => { catalogue => 1 },
             debug           => 1,
         }

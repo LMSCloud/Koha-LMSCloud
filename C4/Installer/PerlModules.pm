@@ -4,11 +4,8 @@ use warnings;
 use strict;
 
 use File::Spec;
-
-use C4::Installer::PerlDependencies;
-
-
-our $PERL_DEPS = $C4::Installer::PerlDependencies::PERL_DEPS;
+use File::Basename;
+use Module::CPANfile;
 
 sub new {
     my $invocant = shift;
@@ -17,44 +14,34 @@ sub new {
         upgrade_pm  => [],
         current_pm  => [],
     };
+
     my $type = ref($invocant) || $invocant;
     bless ($self, $type);
     return $self;
 }
 
-sub prereq_pm {
+sub prereqs {
     my $self = shift;
-    my $prereq_pm = {};
-    for (keys %$PERL_DEPS) {
-        $prereq_pm->{$_} = $PERL_DEPS->{$_}->{'min_ver'};
+
+    unless (defined $self->{prereqs}) {
+        my $filename = $INC{'C4/Installer/PerlModules.pm'};
+        my $path = dirname(dirname(dirname($filename)));
+        $self->{prereqs} = Module::CPANfile->load("$path/cpanfile")->prereqs;
     }
-    return $prereq_pm;
+
+    return $self->{prereqs};
 }
 
-sub required {
+sub prereq_pm {
     my $self = shift;
-    my %params = @_;
-    if ($params{'module'}) {
-        return -1 unless grep {m/$params{'module'}/} keys(%$PERL_DEPS);
-        return $PERL_DEPS->{$params{'module'}}->{'required'};
+
+    my $prereq_pm = {};
+    my $reqs = $self->prereqs->merged_requirements;
+    foreach my $module ($reqs->required_modules) {
+        $prereq_pm->{$module} = $reqs->requirements_for_module($module);
     }
-    elsif ($params{'required'}) {
-        my $required_pm = [];
-        for (keys %$PERL_DEPS) {
-            push (@$required_pm, $_) if $PERL_DEPS->{$_}->{'required'} == 1;
-        }
-        return $required_pm;
-    }
-    elsif ($params{'optional'}) {
-        my $optional_pm = [];
-        for (keys %$PERL_DEPS) {
-            push (@$optional_pm, $_) if $PERL_DEPS->{$_}->{'required'} == 0;
-        }
-        return $optional_pm;
-    }
-    else {
-        return -1; # unrecognized parameter passed in
-    }
+
+    return $prereq_pm;
 }
 
 sub versions_info {
@@ -65,56 +52,52 @@ sub versions_info {
     $self->{'upgrade_pm'} = [];
     $self->{'current_pm'} = [];
 
-    for my $module ( sort keys %$PERL_DEPS ) {
-        my $module_infos = $self->version_info($module);
-        my $status       = $module_infos->{status};
-        push @{ $self->{"${status}_pm"} }, { $module => $module_infos };
+    foreach my $phase ($self->prereqs->phases) {
+        foreach my $type ($self->prereqs->types_in($phase)) {
+            my $reqs = $self->prereqs->requirements_for($phase, $type);
+            foreach my $module ($reqs->required_modules) {
+                no warnings;  # perl throws warns for invalid $VERSION numbers which some modules use
+
+                my $module_infos = {
+                    cur_ver  => 0,
+                    required => $type eq 'requires',
+                };
+
+                my $vers = $reqs->structured_requirements_for_module($module);
+                for my $req (@$vers) {
+                    if ( $req->[0] eq '>=' || $req->[0] eq '>' ) {
+                        $module_infos->{min_ver} = $req->[1];
+                    } elsif ( $req->[0] eq '<=' || $req->[0] eq '<' ) {
+                        $module_infos->{max_ver} = $req->[1];
+                    } else {
+                        push @{$module_infos->{exc_ver}}, $req->[1];
+                    }
+                }
+
+                my $attr;
+
+                $Readonly::XS::MAGIC_COOKIE="Do NOT use or require Readonly::XS unless you're me.";
+                eval "require $module";
+                if ($@) {
+                    $attr = 'missing_pm';
+                } else {
+                    my $pkg_version = $module->can("VERSION") ? $module->VERSION : 0;
+                    $module_infos->{cur_ver} = $pkg_version;
+                    if ($reqs->accepts_module($module => $pkg_version)) {
+                        $attr = 'current_pm';
+                    } else {
+                        $attr = 'upgrade_pm';
+                    }
+                }
+
+                push @{ $self->{$attr} }, { $module => $module_infos };
+            }
+        }
     }
 }
-
-sub version_info {
-    no warnings
-      ;  # perl throws warns for invalid $VERSION numbers which some modules use
-    my ( $self, $module ) = @_;
-    return -1 unless grep { /^$module$/ } keys(%$PERL_DEPS);
-
-    $Readonly::XS::MAGIC_COOKIE="Do NOT use or require Readonly::XS unless you're me.";
-    eval "require $module";
-    my $pkg_version = $module->can("VERSION") ? $module->VERSION : 0;
-    my $min_version = $PERL_DEPS->{$module}->{'min_ver'} // 0;
-
-    my ( $cur_ver, $upgrade, $status );
-    if ($@) {
-        ( $cur_ver, $upgrade, $status ) = ( 0, 0, 'missing' );
-    }
-    elsif ( version->parse("$pkg_version") < version->parse("$min_version") ) {
-        ( $cur_ver, $upgrade, $status ) = ( $module->VERSION, 1, 'upgrade' );
-    }
-    else {
-        ( $cur_ver, $upgrade, $status ) = ( $module->VERSION, 0, 'current' );
-    }
-
-    return {
-        cur_ver  => $cur_ver,
-        min_ver  => $PERL_DEPS->{$module}->{min_ver},
-        required => $PERL_DEPS->{$module}->{required},
-        usage    => $PERL_DEPS->{$module}->{usage},
-        upgrade  => $upgrade,
-        status   => $status,
-    };
-}
-
 
 sub get_attr {
     return $_[0]->{$_[1]};
-}
-
-sub module_count {
-    return scalar(keys(%$PERL_DEPS));
-}
-
-sub module_list {
-    return keys(%$PERL_DEPS);
 }
 
 1;
@@ -148,39 +131,16 @@ A module for manipulating Koha Perl dependency list objects.
 
         PREREQ_PM    => $perl_modules->prereq_pm,>
 
-=head2 required()
 
-    This method accepts a single parameter with three possible values: a module name, the keyword 'required,' the keyword 'optional.' If passed the name of a module, a boolean value is returned indicating whether the module is required (1) or not (0). If on of the two keywords is passed in, it returns an arrayref to an array who's elements are the names of the modules specified either required or optional.
+=head2 versions_info
 
-    example:
-        C<my $is_required = $perl_modules->required(module => 'CGI::Carp');>
+        C<$perl_modules->versions_info;>
 
-        C<my $optional_pm_names = $perl_modules->required(optional => 1);>
-
-=head2 version_info()
-
-    Depending on the parameters passed when invoking, this method will give the current status of modules currently used in Koha as well as the currently installed version if the module is installed, the current minimum required version, and the upgrade status. If passed C<module => module_name>, the method evaluates only that module. If passed C<all => 1>, all modules are evaluated.
-
-    example:
-        C<my $module_status = $perl_modules->version_info('foo');>
-
-        This usage returns a hashref with a single key/value pair. The key is the module name. The value is an anonymous hash with the following keys:
-
-        cur_ver = version number of the currently installed version (This is 0 if the module is not currently installed.)
-        min_ver = minimum version required by Koha
-        upgrade = upgrade status of the module relative to Koha's requirements (0 if the installed module does not need upgrading; 1 if it does)
-        required = 0 of the module is optional; 1 if required
-
-        {
-           'required' => 1,
-           'cur_ver' => '1.30_01',
-           'upgrade' => 0,
-           'min_ver' => '1.29'
-        };
-
-        C<$perl_modules->version_info;>
-
-        This usage loads the same basic data as the previous usage into three accessors: missing_pm, upgrade_pm, and current_pm. Each of these may be accessed by using the C<get_attr> method. Each accessor returns an anonymous array who's elements are anonymous hashes. They follow this format (NOTE: Upgrade status is indicated by the accessor name.):
+        This loads info of required modules into three accessors: missing_pm,
+        upgrade_pm, and current_pm. Each of these may be accessed by using the
+        C<get_attr> method. Each accessor returns an anonymous array who's
+        elements are anonymous hashes. They follow this format (NOTE: Upgrade
+        status is indicated by the accessor name.):
 
         [
                   {
@@ -212,23 +172,6 @@ A module for manipulating Koha Perl dependency list objects.
     example:
         C<my $missing_pm = $perl_modules->get_attr('missing_pm');>
 
-=head2 module_count
-
-    Returns a scalar value representing the current number of Perl modules used by Koha.
-
-    example:
-        C<my $module_count = $perl_modules->module_count;>
-
-=head2 module_list
-
-    Returns an array who's elements are the names of the Perl modules used by Koha.
-
-    example:
-        C<my @module_list = $perl_modules->module_list;>
-
-    This is useful for commandline exercises such as:
-
-        perl -MC4::Installer::PerlModules -e 'my $deps = C4::Installer::PerlModule->new; print (join("\n",$deps->module_list));'
 
 =head1 AUTHOR
 
@@ -242,11 +185,18 @@ Copyright 2010 Foundations Bible College.
 
 This file is part of Koha.
 
-Koha is free software; you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software
-Foundation; either version 2 of the License, or (at your option) any later version.
+Koha is free software; you can redistribute it and/or modify it
+under the terms of the GNU General Public License as published by
+the Free Software Foundation; either version 3 of the License, or
+(at your option) any later version.
 
-You should have received a copy of the GNU General Public License along with Koha; if not, write to the Free Software Foundation, Inc., 51 Franklin Street,
-Fifth Floor, Boston, MA 02110-1301 USA.
+Koha is distributed in the hope that it will be useful, but
+WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with Koha; if not, see <http://www.gnu.org/licenses>.
 
 =head1 DISCLAIMER OF WARRANTY
 

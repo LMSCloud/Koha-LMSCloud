@@ -43,7 +43,6 @@ my ( $template, $loggedinuser, $cookie, $flags ) = get_template_and_user(
         template_name   => 'acqui/invoices.tt',
         query           => $input,
         type            => 'intranet',
-        authnotrequired => 0,
         flagsrequired   => { 'acquisition' => '*' },
         debug           => 1,
     }
@@ -112,9 +111,20 @@ foreach my $budget (@$budgets) {
     push @budgets_loop, $budget if CanUserUseBudget( $loggedinuser, $budget, $flags );
 }
 
+my (@openedinvoices, @closedinvoices);
+for my $sub ( @{$invoices} ) {
+    unless ( $sub->{closedate} ) {
+        push @openedinvoices, $sub
+    } else {
+        push @closedinvoices, $sub
+    }
+}
+
 $template->{'VARS'}->{'budgets_loop'} = \@budgets_loop;
 
 $template->param(
+    openedinvoices => \@openedinvoices,
+    closedinvoices => \@closedinvoices,
     do_search => ( $op and $op eq 'do_search' ) ? 1 : 0,
     invoices => $invoices,
     invoicenumber   => $invoicenumber,

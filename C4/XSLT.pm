@@ -31,7 +31,7 @@ use C4::Circulation;
 use C4::Reserves;
 use Koha::AuthorisedValues;
 use Koha::ItemTypes;
-use Koha::XSLT_Handler;
+use Koha::XSLT::Base;
 use Koha::Libraries;
 
 use Encode;
@@ -49,7 +49,7 @@ BEGIN {
     @EXPORT = qw(
         &XSLTParse4Display
     );
-    $engine=Koha::XSLT_Handler->new( { do_not_return_source => 1 } );
+    $engine=Koha::XSLT::Base->new( { do_not_return_source => 1 } );
 }
 
 =head1 NAME
@@ -84,7 +84,7 @@ sub transformMARCXML4XSLT {
                 for my $subfield ( $field->subfields() ) {
                     my ( $letter, $value ) = @$subfield;
                     # Replace the field value with the authorised value *except* for MARC21/NORMARC field 942$n (suppression in opac)
-                    if ( !( $tag eq '942' && $subfield eq 'n' ) || $marcflavour eq 'UNIMARC' ) {
+                    if ( !( $tag eq '942' && $subfield->[0] eq 'n' ) || $marcflavour eq 'UNIMARC' ) {
                         $value = GetAuthorisedValueDesc( $tag, $letter, $value, '', $tagslib )
                             if $av->{ $tag }->{ $letter };
                     }
@@ -173,20 +173,22 @@ sub get_xslt_sysprefs {
     my $sysxml = "<sysprefs>\n";
     foreach my $syspref ( qw/ hidelostitems OPACURLOpenInNewWindow
                               DisplayOPACiconsXSLT URLLinkText viewISBD
-                              OPACBaseURL TraceCompleteSubfields UseICU
+                              OPACBaseURL TraceCompleteSubfields UseICUStyleQuotes
                               UseAuthoritiesForTracings TraceSubjectSubdivisions
                               Display856uAsImage OPACDisplay856uAsImage 
                               UseControlNumber IntranetBiblioDefaultView BiblioDefaultView
                               OPACItemLocation DisplayIconsXSLT
                               AlternateHoldingsField AlternateHoldingsSeparator
                               TrackClicks opacthemes IdRef OpacSuppression
-                              OPACResultsLibrary DivibibEnabled 
-                              ExcludeReviewsWithMARC520Indicator1Value
+                              OPACResultsLibrary OPACShowOpenURL 
+                              DivibibEnabled ExcludeReviewsWithMARC520Indicator1Value
                               IncludeAdditionalMARCFieldsInOPACDetailView
                               IncludeAdditionalMARCFieldsInOPACResultView
                               IncludeAdditionalMARCFieldsInOPACVolumeView
                               IncludeAdditionalMARCFieldsInStaffDetailView
-                              IncludeAdditionalMARCFieldsInStaffResultView / )
+                              IncludeAdditionalMARCFieldsInStaffResultView
+                              OpenURLResolverURL OpenURLImageLocation
+                              OpenURLText OPACShowMusicalInscripts OPACPlayMusicalInscripts / )
     {
         my $sp = C4::Context->preference( $syspref );
         next unless defined($sp);
@@ -203,18 +205,18 @@ sub get_xslt_sysprefs {
 }
 
 sub XSLTParse4Display {
-    my ( $biblionumber, $orig_record, $xslsyspref, $fixamps, $hidden_items, $sysxml, $xslfilename, $lang ) = @_;
+    my ( $biblionumber, $orig_record, $xslsyspref, $fixamps, $hidden_items, $sysxml, $xslfilename, $lang, $variables ) = @_;
 
     $sysxml ||= C4::Context->preference($xslsyspref);
     $xslfilename ||= C4::Context->preference($xslsyspref);
     $lang ||= C4::Languages::getlanguage();
 
     if ( $xslfilename =~ /^\s*"?default"?\s*$/i ) {
-        my $htdocs;
-        my $theme;
-        my $xslfile;
+        
+        my ( $htdocs, $theme, $xslfile );
         my $is_intranet = 0;
         my $customdocs;
+
         if ($xslsyspref eq "XSLTDetailsDisplay") {
             $is_intranet = 1;
             $htdocs  = C4::Context->config('intrahtdocs');
@@ -274,11 +276,38 @@ sub XSLTParse4Display {
 
     # grab the XML, run it through our stylesheet, push it out to the browser
     my $record = transformMARCXML4XSLT($biblionumber, $orig_record);
-    my $itemsxml  = buildKohaItemsNamespace($biblionumber, $hidden_items);
+    my $itemsxml;
+    if ( $xslsyspref eq "OPACXSLTDetailsDisplay" || $xslsyspref eq "XSLTDetailsDisplay" || $xslsyspref eq "XSLTResultsDisplay" ) {
+        $itemsxml = ""; #We don't use XSLT for items display on these pages
+    } else {
+        $itemsxml = buildKohaItemsNamespace($biblionumber, $hidden_items);
+    }
     my $xmlrecord = $record->as_xml(C4::Context->preference('marcflavour'));
 
-    $xmlrecord =~ s/\<\/record\>/$itemsxml$sysxml\<\/record\>/;
-    if ($fixamps) { # We need to correct the HTML entities that Zebra outputs
+    $variables ||= {};
+    if (C4::Context->preference('OPACShowOpenURL')) {
+        my @biblio_itemtypes;
+        my $biblio = Koha::Biblios->find($biblionumber);
+        if (C4::Context->preference('item-level_itypes')) {
+            @biblio_itemtypes = $biblio->items->get_column("itype");
+        } else {
+            push @biblio_itemtypes, $biblio->itemtype;
+        }
+        my @itypes = split( /\s/, C4::Context->preference('OPACOpenURLItemTypes') );
+        my %original = ();
+        map { $original{$_} = 1 } @biblio_itemtypes;
+        if ( grep { $original{$_} } @itypes ) {
+            $variables->{OpenURLResolverURL} = $biblio->get_openurl;
+        }
+    }
+    my $varxml = "<variables>\n";
+    while (my ($key, $value) = each %$variables) {
+        $varxml .= "<variable name=\"$key\">$value</variable>\n";
+    }
+    $varxml .= "</variables>\n";
+
+    $xmlrecord =~ s/\<\/record\>/$itemsxml$sysxml$varxml\<\/record\>/;
+    if ($fixamps) { # We need to correct the ampersand entities that Zebra outputs
         $xmlrecord =~ s/\&amp;amp;/\&amp;/g;
         $xmlrecord =~ s/\&amp\;lt\;/\&lt\;/g;
         $xmlrecord =~ s/\&amp\;gt\;/\&gt\;/g;
@@ -302,65 +331,76 @@ Is only used in this module currently.
 sub buildKohaItemsNamespace {
     my ($biblionumber, $hidden_items) = @_;
 
-    my @items = C4::Items::GetItemsInfo($biblionumber);
-    if ($hidden_items && @$hidden_items) {
-        my %hi = map {$_ => 1} @$hidden_items;
-        @items = grep { !$hi{$_->{itemnumber}} } @items;
-    }
+    $hidden_items ||= [];
+    my @items = Koha::Items->search(
+        {
+            'me.biblionumber' => $biblionumber,
+            'me.itemnumber'   => { not_in => $hidden_items }
+        },
+        { prefetch => [ 'branchtransfers', 'reserves' ] }
+    );
 
     my $shelflocations =
-      { map { $_->{authorised_value} => $_->{opac_description} } Koha::AuthorisedValues->get_descriptions_by_koha_field( { frameworkcode => GetFrameworkCode($biblionumber), kohafield => 'items.location' } ) };
+      { map { $_->{authorised_value} => $_->{opac_description} } Koha::AuthorisedValues->get_descriptions_by_koha_field( { frameworkcode => "", kohafield => 'items.location' } ) };
     my $ccodes =
-      { map { $_->{authorised_value} => $_->{opac_description} } Koha::AuthorisedValues->get_descriptions_by_koha_field( { frameworkcode => GetFrameworkCode($biblionumber), kohafield => 'items.ccode' } ) };
+      { map { $_->{authorised_value} => $_->{opac_description} } Koha::AuthorisedValues->get_descriptions_by_koha_field( { frameworkcode => "", kohafield => 'items.ccode' } ) };
 
     my %branches = map { $_->branchcode => $_->branchname } Koha::Libraries->search({}, { order_by => 'branchname' });
 
     my $itemtypes = { map { $_->{itemtype} => $_ } @{ Koha::ItemTypes->search->unblessed } };
-    my $location = "";
-    my $ccode = "";
     my $xml = '';
+    my %descs = map { $_->{authorised_value} => $_ } Koha::AuthorisedValues->get_descriptions_by_koha_field( { kohafield => 'items.notforloan' } );
+    my $ref_status = C4::Context->preference('Reference_NFL_Statuses') || '1|2';
+
     for my $item (@items) {
         my $status;
+        my $substatus = '';
 
-        my ( $transfertwhen, $transfertfrom, $transfertto ) = C4::Circulation::GetTransfers($item->{itemnumber});
-
-        my $reservestatus = C4::Reserves::GetReserveStatus( $item->{itemnumber} );
-
-        if ( ( $item->{itype} && $itemtypes->{ $item->{itype} }->{notforloan} ) || $item->{notforloan} || $item->{onloan} || $item->{withdrawn} || $item->{itemlost} || $item->{damaged} ||
-             (defined $transfertwhen && $transfertwhen ne '') || $item->{itemnotforloan} || (defined $reservestatus && $reservestatus eq "Waiting") ){ 
-            if ( $item->{notforloan} < 0) {
-                $status = "On order";
-            } 
-            if ( $item->{itemnotforloan} && $item->{itemnotforloan} > 0 || $item->{notforloan} && $item->{notforloan} > 0 || $item->{itype} && $itemtypes->{ $item->{itype} }->{notforloan} && $itemtypes->{ $item->{itype} }->{notforloan} == 1 ) {
-                $status = "reference";
-            }
-            if ($item->{onloan}) {
-                $status = "Checked out";
-            }
-            if ( $item->{withdrawn}) {
-                $status = "Withdrawn";
-            }
-            if ($item->{itemlost}) {
-                $status = "Lost";
-            }
-            if ($item->{damaged}) {
-                $status = "Damaged"; 
-            }
-            if (defined $transfertwhen && $transfertwhen ne '') {
-                $status = 'In transit';
-            }
-            if (defined $reservestatus && $reservestatus eq "Waiting") {
-                $status = 'Waiting';
-            }
-        } else {
+        if ($item->has_pending_hold) {
+            $status = 'Pending hold';
+        }
+        elsif ( $item->holds->waiting->count ) {
+            $status = 'Waiting';
+        }
+        elsif ($item->get_transfer) {
+            $status = 'In transit';
+        }
+        elsif ($item->damaged) {
+            $status = "Damaged";
+        }
+        elsif ($item->itemlost) {
+            $status = "Lost";
+        }
+        elsif ( $item->withdrawn) {
+            $status = "Withdrawn";
+        }
+        elsif ($item->onloan) {
+            $status = "Checked out";
+        }
+        elsif ( $item->notforloan ) {
+            $status = $item->notforloan =~ /^($ref_status)$/
+                ? "reference"
+                : "reallynotforloan";
+            $substatus = exists $descs{$item->notforloan} ? $descs{$item->notforloan}->{opac_description} : "Not for loan";
+        }
+        elsif ( exists $itemtypes->{ $item->effective_itemtype }
+            && $itemtypes->{ $item->effective_itemtype }->{notforloan}
+            && $itemtypes->{ $item->effective_itemtype }->{notforloan} == 1 )
+        {
+            $status = "1" =~ /^($ref_status)$/
+                ? "reference"
+                : "reallynotforloan";
+            $substatus = "Not for loan";
+        }
+        else {
             $status = "available";
         }
-        my $homebranch = $item->{homebranch}? xml_escape($branches{$item->{homebranch}}):'';
-        my $holdingbranch = $item->{holdingbranch}? xml_escape($branches{$item->{holdingbranch}}):'';
-        $location = $item->{location}? xml_escape($shelflocations->{$item->{location}}||$item->{location}):'';
-        $ccode = $item->{ccode}? xml_escape($ccodes->{$item->{ccode}}||$item->{ccode}):'';
-        my $itemcallnumber = xml_escape($item->{itemcallnumber});
-        my $stocknumber = $item->{stocknumber}? xml_escape($item->{stocknumber}):'';
+        my $homebranch     = xml_escape($branches{$item->homebranch});
+        my $holdingbranch  = xml_escape($branches{$item->holdingbranch});
+        my $location       = xml_escape($item->location && exists $shelflocations->{$item->location} ? $shelflocations->{$item->location} : $item->location);
+        my $ccode          = xml_escape($item->ccode    && exists $ccodes->{$item->ccode}            ? $ccodes->{$item->ccode}            : $item->ccode);
+        my $itemcallnumber = xml_escape($item->itemcallnumber);
+        my $stocknumber    = xml_escape($item->stocknumber);
         $xml .=
             "<item>"
           . "<homebranch>$homebranch</homebranch>"
@@ -368,6 +408,7 @@ sub buildKohaItemsNamespace {
           . "<location>$location</location>"
           . "<ccode>$ccode</ccode>"
           . "<status>".( $status // q{} )."</status>"
+          . "<substatus>$substatus</substatus>"
           . "<itemcallnumber>$itemcallnumber</itemcallnumber>"
           . "<stocknumber>$stocknumber</stocknumber>"
           . "</item>";

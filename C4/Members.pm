@@ -21,8 +21,7 @@ package C4::Members;
 # along with Koha; if not, see <http://www.gnu.org/licenses>.
 
 
-use strict;
-#use warnings; FIXME - Bug 2505
+use Modern::Perl;
 use C4::Context;
 use String::Random qw( random_string );
 use Scalar::Util qw( looks_like_number );
@@ -36,12 +35,10 @@ use C4::Reserves;
 use C4::Accounts;
 use C4::Biblio;
 use C4::Letters;
-use C4::Members::Attributes qw(SearchIdMatchingAttribute UpdateBorrowerAttribute);
 use C4::NewsChannels; #get slip news
 use DateTime;
 use Koha::Database;
 use Koha::DateUtils;
-use Text::Unaccent qw( unac_string );
 use Koha::AuthUtils qw(hash_password);
 use Koha::Acquisition::Currencies;
 use Koha::Database;
@@ -49,15 +46,8 @@ use Koha::Holds;
 use Koha::List::Patron;
 use Koha::Patrons;
 use Koha::Patron::Categories;
-use Koha::Schema;
 
 our (@ISA,@EXPORT,@EXPORT_OK,$debug);
-
-use Module::Load::Conditional qw( can_load );
-if ( ! can_load( modules => { 'Koha::NorwegianPatronDB' => undef } ) ) {
-   $debug && warn "Unable to load Koha::NorwegianPatronDB";
-}
-
 
 BEGIN {
     $debug = $ENV{DEBUG} || 0;
@@ -73,23 +63,9 @@ BEGIN {
         &IssueSlip
     );
 
-    #Modify data
-    push @EXPORT, qw(
-        &ModMember
-        &changepassword
-    );
-
-    #Insert data
-    push @EXPORT, qw(
-        &AddMember
-    &AddMember_Auto
-        &AddMember_Opac
-    );
-
     #Check data
     push @EXPORT, qw(
         &checkuserpassword
-        &fixup_cardnumber
         &checkcardnumber
     );
 }
@@ -104,7 +80,7 @@ use C4::Members;
 
 =head1 DESCRIPTION
 
-This module contains routines for adding, modifying and deleting members/patrons/borrowers 
+This module contains routines for adding, modifying and deleting members/patrons/borrowers
 
 =head1 FUNCTIONS
 
@@ -146,7 +122,7 @@ The following will be set where applicable:
  $flags->{WAITING}->{message}       Message -- deprecated
  $flags->{WAITING}->{itemlist}      ref-to-array: list of available items
 
-=over 
+=over
 
 =item C<$flags-E<gt>{ODUES}-E<gt>{itemlist}> is a reference-to-array listing the
 overdue items. Its elements are references-to-hash, each describing an
@@ -162,7 +138,7 @@ fields from the reserves table of the Koha database.
 
 =back
 
-All the "message" fields that include language generated in this function are deprecated, 
+All the "message" fields that include language generated in this function are deprecated,
 because such strings belong properly in the display layer.
 
 The "message" field that comes from the DB is OK.
@@ -201,8 +177,8 @@ sub patronflags {
     $no_issues_charge_guarantees = undef unless looks_like_number( $no_issues_charge_guarantees );
     if ( defined $no_issues_charge_guarantees ) {
         my $p = Koha::Patrons->find( $patroninformation->{borrowernumber} );
-        my @guarantees = $p->guarantees();
-        my $guarantees_non_issues_charges;
+        my @guarantees = map { $_->guarantee } $p->guarantee_relationships;
+        my $guarantees_non_issues_charges = 0;
         foreach my $g ( @guarantees ) {
             $guarantees_non_issues_charges += $g->account->non_issues_charges;
         }
@@ -272,282 +248,6 @@ sub patronflags {
     return ( \%flags );
 }
 
-=head2 ModMember
-
-  my $success = ModMember(borrowernumber => $borrowernumber,
-                                            [ field => value ]... );
-
-Modify borrower's data.  All date fields should ALREADY be in ISO format.
-
-return :
-true on success, or false on failure
-
-=cut
-
-sub ModMember {
-    my (%data) = @_;
-
-    # trim whitespace from data which has some non-whitespace in it.
-    foreach my $field_name (keys(%data)) {
-        if ( defined $data{$field_name} && $data{$field_name} =~ /\S/ ) {
-            $data{$field_name} =~ s/^\s*|\s*$//g;
-        }
-    }
-
-    # test to know if you must update or not the borrower password
-    if (exists $data{password}) {
-        if ($data{password} eq '****' or $data{password} eq '') {
-            delete $data{password};
-        } else {
-            if ( C4::Context->preference('NorwegianPatronDBEnable') && C4::Context->preference('NorwegianPatronDBEnable') == 1 ) {
-                warn "C4::Members::ModMember - NorwegianPatronDB hooks will be deprecated as of 18.11.0\n";
-                # Update the hashed PIN in borrower_sync.hashed_pin, before Koha hashes it
-                Koha::NorwegianPatronDB::NLUpdateHashedPIN( $data{'borrowernumber'}, $data{password} );
-            }
-            $data{password} = hash_password($data{password});
-        }
-    }
-
-    my $old_categorycode = Koha::Patrons->find( $data{borrowernumber} )->categorycode;
-
-    # get only the columns of a borrower
-    my $schema = Koha::Database->new()->schema;
-    my @columns = $schema->source('Borrower')->columns;
-    my $new_borrower = { map { join(' ', @columns) =~ /$_/ ? ( $_ => $data{$_} ) : () } keys(%data) };
-
-    $new_borrower->{dateofbirth}     ||= undef if exists $new_borrower->{dateofbirth};
-    $new_borrower->{dateenrolled}    ||= undef if exists $new_borrower->{dateenrolled};
-    $new_borrower->{dateexpiry}      ||= undef if exists $new_borrower->{dateexpiry};
-    $new_borrower->{debarred}        ||= undef if exists $new_borrower->{debarred};
-    $new_borrower->{sms_provider_id} ||= undef if exists $new_borrower->{sms_provider_id};
-    $new_borrower->{guarantorid}     ||= undef if exists $new_borrower->{guarantorid};
-
-    my $patron = Koha::Patrons->find( $new_borrower->{borrowernumber} );
-
-    my $borrowers_log = C4::Context->preference("BorrowersLog");
-    if ( $borrowers_log && $patron->cardnumber ne $new_borrower->{cardnumber} )
-    {
-        logaction(
-            "MEMBERS",
-            "MODIFY",
-            $data{'borrowernumber'},
-            to_json(
-                {
-                    cardnumber_replaced => {
-                        previous_cardnumber => $patron->cardnumber,
-                        new_cardnumber      => $new_borrower->{cardnumber},
-                    }
-                },
-                { utf8 => 1, pretty => 1 }
-            )
-        );
-    }
-
-    delete $new_borrower->{userid} if exists $new_borrower->{userid} and not $new_borrower->{userid};
-
-    my $execute_success = $patron->store if $patron->set($new_borrower);
-
-    if ($execute_success) { # only proceed if the update was a success
-        # If the patron changes to a category with enrollment fee, we add a fee
-        if ( $data{categorycode} and $data{categorycode} ne $old_categorycode ) {
-            if ( C4::Context->preference('FeeOnChangePatronCategory') ) {
-                $patron->add_enrolment_fee_if_needed;
-            }
-        }
-        
-        if ( $new_borrower->{dateexpiry} ) {
-            UpdateFamilyCardMembers($data{borrowernumber},$new_borrower->{dateexpiry});
-        }
-
-        # If NorwegianPatronDBEnable is enabled, we set syncstatus to something that a
-        # cronjob will use for syncing with NL
-        if ( C4::Context->preference('NorwegianPatronDBEnable') && C4::Context->preference('NorwegianPatronDBEnable') == 1 ) {
-            warn "C4::Members::ModMember - NorwegianPatronDB hooks will be deprecated as of 18.11.0\n";
-            my $borrowersync = Koha::Database->new->schema->resultset('BorrowerSync')->find({
-                'synctype'       => 'norwegianpatrondb',
-                'borrowernumber' => $data{'borrowernumber'}
-            });
-            # Do not set to "edited" if syncstatus is "new". We need to sync as new before
-            # we can sync as changed. And the "new sync" will pick up all changes since
-            # the patron was created anyway.
-            if ( $borrowersync->syncstatus ne 'new' && $borrowersync->syncstatus ne 'delete' ) {
-                $borrowersync->update( { 'syncstatus' => 'edited' } );
-            }
-            # Set the value of 'sync'
-            $borrowersync->update( { 'sync' => $data{'sync'} } );
-            # Try to do the live sync
-            Koha::NorwegianPatronDB::NLSync({ 'borrowernumber' => $data{'borrowernumber'} });
-        }
-
-        logaction("MEMBERS", "MODIFY", $data{'borrowernumber'}, "UPDATE (executed w/ arg: $data{'borrowernumber'})") if $borrowers_log;
-    }
-    return $execute_success;
-}
-
-=head2 UpdateFamilyCardMembers
-  &UpdateFamilyCardMembers($borrowernumber,$date);
-Update family card member subscriptions to a given date if the borrowers category is family card category.
-=cut
-
-sub UpdateFamilyCardMembers {
-    my ($borrowerid,$date) = @_;
-    
-    my $dbh = C4::Context->dbh;
-    
-    my $query = q{
-        SELECT l.borrowernumber as borrowernumber
-        FROM borrowers b, borrowers l, categories c
-        WHERE     b.borrowernumber = ? 
-              AND c.family_card = 1 
-              AND l.guarantorid = b.borrowernumber
-              AND c.categorycode = b.categorycode};
-    $query =~ s/^\s+/ /mg; 
-    my $sth = $dbh->prepare($query);
-    
-    $sth->execute($borrowerid);
-    while (my $row = $sth->fetchrow_hashref) {
-        $dbh->do("UPDATE borrowers SET dateexpiry = ? WHERE borrowernumber = ?", undef, $date, $row->{borrowernumber});
-        logaction("MEMBERS", "RENEW", $row->{borrowernumber}, "Membership renewed with family card") if C4::Context->preference("BorrowersLog");
-    }
-    $sth->finish;
-}
-
-=head2 AddMember
-
-  $borrowernumber = &AddMember(%borrower);
-
-insert new borrower into table
-
-(%borrower keys are database columns. Database columns could be
-different in different versions. Please look into database for correct
-column names.)
-
-Returns the borrowernumber upon success
-
-Returns as undef upon any db error without further processing
-
-=cut
-
-#'
-sub AddMember {
-    my (%data) = @_;
-    my $dbh = C4::Context->dbh;
-    my $schema = Koha::Database->new()->schema;
-
-    my $category = Koha::Patron::Categories->find( $data{categorycode} );
-    unless ($category) {
-        Koha::Exceptions::Object::FKConstraint->throw(
-            broken_fk => 'categorycode',
-            value     => $data{categorycode},
-        );
-    }
-
-    # trim whitespace from data which has some non-whitespace in it.
-    foreach my $field_name (keys(%data)) {
-        if ( defined $data{$field_name} && $data{$field_name} =~ /\S/ ) {
-            $data{$field_name} =~ s/^\s*|\s*$//g;
-        }
-    }
-
-    my $p = Koha::Patron->new( { userid => $data{userid}, firstname => $data{firstname}, surname => $data{surname} } );
-    # generate a proper login if none provided
-    $data{'userid'} = $p->generate_userid
-      if ( $data{'userid'} eq '' || ! $p->has_valid_userid );
-
-    # add expiration date if it isn't already there
-    # if it is a new family card member copy the expiration date from the guarantor
-    if ( $data{guarantorid} ) {
-        my $guarantor = Koha::Patrons->find( $data{guarantorid} );
-        $data{dateexpiry} = $guarantor->dateexpiry if ( $guarantor && $guarantor->is_family_card() );
-    }
-    $data{dateexpiry} ||= $category->get_expiry_date;
-
-    # add enrollment date if it isn't already there
-    unless ( $data{'dateenrolled'} ) {
-        $data{'dateenrolled'} = output_pref( { dt => dt_from_string, dateonly => 1, dateformat => 'iso' } );
-    }
-
-    if ( C4::Context->preference("autoMemberNum") ) {
-        if ( not exists $data{cardnumber} or not defined $data{cardnumber} or $data{cardnumber} eq '' ) {
-            $data{cardnumber} = fixup_cardnumber( $data{cardnumber} );
-        }
-    }
-
-    $data{'privacy'} =
-        $category->default_privacy() eq 'default' ? 1
-      : $category->default_privacy() eq 'never'   ? 2
-      : $category->default_privacy() eq 'forever' ? 0
-      :                                             undef;
-
-    $data{'privacy_guarantor_checkouts'} = 0 unless defined( $data{'privacy_guarantor_checkouts'} );
-
-    # Make a copy of the plain text password for later use
-    my $plain_text_password = $data{'password'};
-
-    # create a disabled account if no password provided
-    $data{'password'} = ($data{'password'})? hash_password($data{'password'}) : '!';
-
-    # we don't want invalid dates in the db (mysql has a bad habit of inserting 0000-00-00
-    $data{'dateofbirth'}     = undef if ( not $data{'dateofbirth'} );
-    $data{'debarred'}        = undef if ( not $data{'debarred'} );
-    $data{'sms_provider_id'} = undef if ( not $data{'sms_provider_id'} );
-    $data{'guarantorid'}     = undef if ( not $data{'guarantorid'} );
-
-    # get only the columns of Borrower
-    # FIXME Do we really need this check?
-    my @columns = $schema->source('Borrower')->columns;
-    my $new_member = { map { join(' ',@columns) =~ /$_/ ? ( $_ => $data{$_} )  : () } keys(%data) } ;
-
-    delete $new_member->{borrowernumber};
-
-    my $patron = Koha::Patron->new( $new_member )->store;
-    $data{borrowernumber} = $patron->borrowernumber;
-
-    # If NorwegianPatronDBEnable is enabled, we set syncstatus to something that a
-    # cronjob will use for syncing with NL
-    if ( exists $data{'borrowernumber'} && C4::Context->preference('NorwegianPatronDBEnable') && C4::Context->preference('NorwegianPatronDBEnable') == 1 ) {
-        warn "C4::Members::AddMember - NorwegianPatronDB hooks will be deprecated as of 18.11.0\n";
-        Koha::Database->new->schema->resultset('BorrowerSync')->create({
-            'borrowernumber' => $data{'borrowernumber'},
-            'synctype'       => 'norwegianpatrondb',
-            'sync'           => 1,
-            'syncstatus'     => 'new',
-            'hashed_pin'     => Koha::NorwegianPatronDB::NLEncryptPIN( $plain_text_password ),
-        });
-    }
-
-    logaction("MEMBERS", "CREATE", $data{'borrowernumber'}, "") if C4::Context->preference("BorrowersLog");
-
-    $patron->add_enrolment_fee_if_needed;
-
-    return $data{borrowernumber};
-}
-
-=head2 fixup_cardnumber
-
-Warning: The caller is responsible for locking the members table in write
-mode, to avoid database corruption.
-
-=cut
-
-sub fixup_cardnumber {
-    my ($cardnumber) = @_;
-    my $autonumber_members = C4::Context->boolean_preference('autoMemberNum') || 0;
-
-    # Find out whether member numbers should be generated
-    # automatically. Should be either "1" or something else.
-    # Defaults to "0", which is interpreted as "no".
-
-    ($autonumber_members) or return $cardnumber;
-    my $dbh = C4::Context->dbh;
-
-    my $sth = $dbh->prepare(
-        'SELECT MAX( CAST( cardnumber AS SIGNED ) ) FROM borrowers WHERE cardnumber REGEXP "^-?[0-9]+$"'
-    );
-    $sth->execute;
-    my ($result) = $sth->fetchrow;
-    return $result + 1;
-}
 
 =head2 GetAllIssues
 
@@ -577,19 +277,21 @@ sub GetAllIssues {
 
     my $dbh = C4::Context->dbh;
     my $query =
-'SELECT *, issues.timestamp as issuestimestamp, issues.renewals AS renewals,items.renewals AS totalrenewals,items.timestamp AS itemstimestamp
-  FROM issues 
+'SELECT issues.*, items.*, biblio.*, biblioitems.*, issues.timestamp as issuestimestamp, issues.renewals AS renewals,items.renewals AS totalrenewals,items.timestamp AS itemstimestamp,borrowers.firstname,borrowers.surname
+  FROM issues
   LEFT JOIN items on items.itemnumber=issues.itemnumber
+  LEFT JOIN borrowers on borrowers.borrowernumber=issues.issuer_id
   LEFT JOIN biblio ON items.biblionumber=biblio.biblionumber
   LEFT JOIN biblioitems ON items.biblioitemnumber=biblioitems.biblioitemnumber
-  WHERE borrowernumber=? 
+  WHERE issues.borrowernumber=?
   UNION ALL
-  SELECT *, old_issues.timestamp as issuestimestamp, old_issues.renewals AS renewals,items.renewals AS totalrenewals,items.timestamp AS itemstimestamp 
-  FROM old_issues 
+  SELECT old_issues.*, items.*, biblio.*, biblioitems.*, old_issues.timestamp as issuestimestamp, old_issues.renewals AS renewals,items.renewals AS totalrenewals,items.timestamp AS itemstimestamp,borrowers.firstname,borrowers.surname
+  FROM old_issues
   LEFT JOIN items on items.itemnumber=old_issues.itemnumber
+  LEFT JOIN borrowers on borrowers.borrowernumber=old_issues.issuer_id
   LEFT JOIN biblio ON items.biblionumber=biblio.biblionumber
   LEFT JOIN biblioitems ON items.biblioitemnumber=biblioitems.biblioitemnumber
-  WHERE borrowernumber=? AND old_issues.itemnumber IS NOT NULL
+  WHERE old_issues.borrowernumber=? AND old_issues.itemnumber IS NOT NULL
   order by ' . $order;
     if ($limit) {
         $query .= " limit $limit";
@@ -637,7 +339,7 @@ database column.
 =cut
 
 sub get_cardnumber_length {
-    my $borrower = Koha::Schema->resultset('Borrower');
+    my $borrower = Koha::Database->new->schema->resultset('Borrower');
     my $field_size = $borrower->result_source->column_info('cardnumber')->{size};
     my ( $min, $max ) = ( 0, $field_size ); # borrowers.cardnumber is a nullable varchar(20)
     $min = 1 if C4::Context->preference('BorrowerMandatoryField') =~ /cardnumber/;
@@ -664,7 +366,7 @@ sub get_cardnumber_length {
   $borrowers = &GetBorrowersToExpunge(
       not_borrowed_since => $not_borrowed_since,
       expired_before       => $expired_before,
-      category_code        => $category_code,
+      category_code        => \@category_code,
       patron_list_id       => $patron_list_id,
       branchcode           => $branchcode
   );
@@ -682,11 +384,11 @@ sub GetBorrowersToExpunge {
     my $filtercategory   = $params->{'category_code'};
     my $filterbranch     = $params->{'branchcode'} ||
                         ((C4::Context->preference('IndependentBranches')
-                             && C4::Context->userenv 
+                             && C4::Context->userenv
                              && !C4::Context->IsSuperLibrarian()
                              && C4::Context->userenv->{branch})
                          ? C4::Context->userenv->{branch}
-                         : "");  
+                         : "");
     my $filterpatronlist = $params->{'patron_list_id'};
 
     my $dbh   = C4::Context->dbh;
@@ -699,18 +401,19 @@ sub GetBorrowersToExpunge {
             FROM   borrowers
             JOIN   categories USING (categorycode)
             LEFT JOIN (
-                SELECT guarantorid
-                FROM borrowers
-                WHERE guarantorid IS NOT NULL
-                    AND guarantorid <> 0
-            ) as tmp ON borrowers.borrowernumber=tmp.guarantorid
+                SELECT guarantor_id
+                FROM borrower_relationships
+                WHERE guarantor_id IS NOT NULL
+                    AND guarantor_id <> 0
+            ) as tmp ON borrowers.borrowernumber=tmp.guarantor_id
             LEFT JOIN old_issues USING (borrowernumber)
             LEFT JOIN issues USING (borrowernumber)|;
     if ( $filterpatronlist  ){
         $query .= q| LEFT JOIN patron_list_patrons USING (borrowernumber)|;
     }
     $query .= q| WHERE  category_type <> 'S'
-        AND tmp.guarantorid IS NULL
+        AND ( borrowers.flags IS NULL OR borrowers.flags = 0 )
+        AND tmp.guarantor_id IS NULL
     |;
     my @query_params;
     if ( $filterbranch && $filterbranch ne "" ) {
@@ -726,8 +429,13 @@ sub GetBorrowersToExpunge {
         push @query_params, $filterlastseen;
     }
     if ( $filtercategory ) {
-        $query .= " AND categorycode = ? ";
-        push( @query_params, $filtercategory );
+        if (ref($filtercategory) ne 'ARRAY' ) {
+            $filtercategory = [ $filtercategory ];
+        }
+        if ( @$filtercategory ) {
+            $query .= " AND categorycode IN (" . join(',', ('?') x @$filtercategory) . ") ";
+            push( @query_params, @$filtercategory );
+        }
     }
     if ( $filterpatronlist ){
         $query.=" AND patron_list_id = ? ";
@@ -741,16 +449,21 @@ sub GetBorrowersToExpunge {
         push @query_params,$filterdate;
     }
 
+    if ( my $anonymous_patron = C4::Context->preference("AnonymousPatron") ) {
+        $query .= q{ AND borrowernumber != ? };
+        push( @query_params, $anonymous_patron );
+    }
+
     warn $query if $debug;
 
     my $sth = $dbh->prepare($query);
-    if (scalar(@query_params)>0){  
+    if (scalar(@query_params)>0){
         $sth->execute(@query_params);
     }
     else {
         $sth->execute;
     }
-    
+
     my @results;
     while ( my $data = $sth->fetchrow_hashref ) {
         push @results, $data;
@@ -931,40 +644,6 @@ sub IssueSlip {
     );
 }
 
-=head2 AddMember_Auto
-
-=cut
-
-sub AddMember_Auto {
-    my ( %borrower ) = @_;
-
-    $borrower{'cardnumber'} ||= fixup_cardnumber();
-
-    $borrower{'borrowernumber'} = AddMember(%borrower);
-
-    return ( %borrower );
-}
-
-=head2 AddMember_Opac
-
-=cut
-
-sub AddMember_Opac {
-    my ( %borrower ) = @_;
-
-    $borrower{'categorycode'} //= C4::Context->preference('PatronSelfRegistrationDefaultCategory');
-    if (not defined $borrower{'password'}){
-        my $sr = new String::Random;
-        $sr->{'A'} = [ 'A'..'Z', 'a'..'z' ];
-        my $password = $sr->randpattern("AAAAAAAAAA");
-        $borrower{'password'} = $password;
-    }
-
-    %borrower = AddMember_Auto(%borrower);
-
-    return ( $borrower{'borrowernumber'}, $borrower{'password'} );
-}
-
 =head2 DeleteExpiredOpacRegistrations
 
     Delete accounts that haven't been upgraded from the 'temporary' category
@@ -978,18 +657,18 @@ sub DeleteExpiredOpacRegistrations {
     my $category_code = C4::Context->preference('PatronSelfRegistrationDefaultCategory');
 
     return 0 if not $category_code or not defined $delay or $delay eq q||;
+    my $date_enrolled = dt_from_string();
+    $date_enrolled->subtract( days => $delay );
 
-    my $query = qq|
-SELECT borrowernumber
-FROM borrowers
-WHERE categorycode = ? AND DATEDIFF( NOW(), dateenrolled ) > ? |;
+    my $registrations_to_del = Koha::Patrons->search({
+        dateenrolled => {'<=' => $date_enrolled->ymd},
+        categorycode => $category_code,
+    });
 
-    my $dbh = C4::Context->dbh;
-    my $sth = $dbh->prepare($query);
-    $sth->execute( $category_code, $delay );
     my $cnt=0;
-    while ( my ($borrowernumber) = $sth->fetchrow_array() ) {
-        Koha::Patrons->find($borrowernumber)->delete;
+    while ( my $registration = $registrations_to_del->next() ) {
+        next if $registration->checkouts->count || $registration->account->balance;
+        $registration->delete;
         $cnt++;
     }
     return $cnt;

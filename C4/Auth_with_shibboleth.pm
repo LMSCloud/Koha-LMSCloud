@@ -23,10 +23,11 @@ use C4::Debug;
 use C4::Context;
 use Koha::AuthUtils qw(get_script_name);
 use Koha::Database;
-use C4::Members qw( AddMember_Auto );
+use Koha::Patrons;
 use C4::Members::Messaging;
 use Carp;
 use CGI;
+use List::MoreUtils qw(any);
 
 use vars qw(@ISA @EXPORT @EXPORT_OK %EXPORT_TAGS $debug);
 
@@ -53,18 +54,17 @@ sub shib_ok {
 sub logout_shib {
     my ($query) = @_;
     my $uri = _get_uri();
-    print $query->redirect( $uri . "/Shibboleth.sso/Logout?return=$uri" );
+    my $return = _get_return($query);
+    print $query->redirect( $uri . "/Shibboleth.sso/Logout?return=$return" );
 }
 
 # Returns Shibboleth login URL with callback to the requesting URL
 sub login_shib_url {
     my ($query) = @_;
 
-    my $param = _get_uri() . get_script_name();
-    if ( $query->query_string() ) {
-        $param = $param . '%3F' . $query->query_string();
-    }
-    my $uri = _get_uri() . "/Shibboleth.sso/Login?target=$param";
+    my $target = _get_return($query);
+    my $uri = _get_uri() . "/Shibboleth.sso/Login?target=" . $target;
+
     return $uri;
 }
 
@@ -82,9 +82,14 @@ sub get_login_shib {
     my $config = _get_shib_config();
 
     my $matchAttribute = $config->{mapping}->{ $config->{matchpoint} }->{is};
-    $debug and warn $matchAttribute . " value: " . $ENV{$matchAttribute};
 
-    return $ENV{$matchAttribute} || '';
+    if ( any { /(^psgi\.|^plack\.)/i } keys %ENV ) {
+      $debug and warn $matchAttribute . " value: " . $ENV{"HTTP_".uc($matchAttribute)};
+      return $ENV{"HTTP_".uc($matchAttribute)} || '';
+    } else {
+      $debug and warn $matchAttribute . " value: " . $ENV{$matchAttribute};
+      return $ENV{$matchAttribute} || '';
+    }
 }
 
 # Checks for password correctness
@@ -97,10 +102,18 @@ sub checkpw_shib {
     $debug and warn "User Shibboleth-authenticated as: $match";
 
     # Does the given shibboleth attribute value ($match) match a valid koha user ?
-    my $borrower =
-      Koha::Database->new()->schema()->resultset('Borrower')
-      ->find( { $config->{matchpoint} => $match } );
+    my $borrowers = Koha::Patrons->search( { $config->{matchpoint} => $match } );
+    if ( $borrowers->count > 1 ){
+        # If we have more than 1 borrower the matchpoint is not unique
+        # we cannot know which patron is the correct one, so we should fail
+         $debug and warn "There are several users with $config->{matchpoint} of $match, matchpoints must be unique";
+        return 0;
+    }
+    my $borrower = $borrowers->next;
     if ( defined($borrower) ) {
+        if ($config->{'sync'}) {
+            _sync($borrower->borrowernumber, $config, $match);
+        }
         return ( 1, $borrower->get_column('cardnumber'), $borrower->get_column('userid') );
     }
 
@@ -119,42 +132,93 @@ sub _autocreate {
     my %borrower = ( $config->{matchpoint} => $match );
 
     while ( my ( $key, $entry ) = each %{$config->{'mapping'}} ) {
-        $borrower{$key} = ( $entry->{'is'} && $ENV{ $entry->{'is'} } ) || $entry->{'content'} || '';
+        if ( any { /(^psgi\.|^plack\.)/i } keys %ENV ) {
+            $borrower{$key} = ( $entry->{'is'} && $ENV{"HTTP_" . uc($entry->{'is'}) } ) || $entry->{'content'} || '';
+        } else {
+            $borrower{$key} = ( $entry->{'is'} && $ENV{ $entry->{'is'} } ) || $entry->{'content'} || '';
+        }
     }
 
-    %borrower = AddMember_Auto( %borrower );
-    C4::Members::Messaging::SetMessagingPreferencesFromDefaults( { borrowernumber => $borrower{'borrowernumber'}, categorycode => $borrower{'categorycode'} } );
+    my $patron = Koha::Patron->new( \%borrower )->store;
+    C4::Members::Messaging::SetMessagingPreferencesFromDefaults( { borrowernumber => $patron->borrowernumber, categorycode => $patron->categorycode } );
 
-    return ( 1, $borrower{'cardnumber'}, $borrower{'userid'} );
+    return ( 1, $patron->cardnumber, $patron->userid );
+}
+
+sub _sync {
+    my ($borrowernumber, $config, $match ) = @_;
+    my %borrower;
+    $borrower{'borrowernumber'} = $borrowernumber;
+    while ( my ( $key, $entry ) = each %{$config->{'mapping'}} ) {
+        if ( any { /(^psgi\.|^plack\.)/i } keys %ENV ) {
+            $borrower{$key} = ( $entry->{'is'} && $ENV{"HTTP_" . uc($entry->{'is'}) } ) || $entry->{'content'} || '';
+        } else {
+            $borrower{$key} = ( $entry->{'is'} && $ENV{ $entry->{'is'} } ) || $entry->{'content'} || '';
+        }
+    }
+    my $patron = Koha::Patrons->find( $borrowernumber );
+    $patron->set(\%borrower)->store;
 }
 
 sub _get_uri {
 
     my $protocol = "https://";
+    my $interface = C4::Context->interface;
+    $debug and warn "shibboleth interface: " . $interface;
 
-    my $uri = C4::Context->preference('OPACBaseURL') // '';
-    if ($uri eq '') {
-        $debug and warn 'OPACBaseURL not set!';
+    my $uri;
+    if ( $interface eq 'intranet' ) {
+
+        $uri = C4::Context->preference('staffClientBaseURL') // '';
+        if ($uri eq '') {
+            $debug and warn 'staffClientBaseURL not set!';
+        }
+    } else {
+        $uri = C4::Context->preference('OPACBaseURL') // '';
+        if ($uri eq '') {
+            $debug and warn 'OPACBaseURL not set!';
+        }
     }
+
     if ($uri =~ /(.*):\/\/(.*)/) {
         my $oldprotocol = $1;
         if ($oldprotocol ne 'https') {
             $debug
                 and warn
-                  'Shibboleth requires OPACBaseURL to use the https protocol!';
+                  'Shibboleth requires OPACBaseURL/staffClientBaseURL to use the https protocol!';
         }
         $uri = $2;
     }
-
     my $return = $protocol . $uri;
     return $return;
+}
+
+sub _get_return {
+    my ($query) = @_;
+
+    my $uri_base_part = _get_uri() . get_script_name();
+
+    my $uri_params_part = '';
+    foreach my $param ( sort $query->url_param() ) {
+        # url_param() always returns parameters that were deleted by delete()
+        # This additional check ensure that parameter was not deleted.
+        my $uriPiece = $query->param($param);
+        if ($uriPiece) {
+            $uri_params_part .= '&' if $uri_params_part;
+            $uri_params_part .= $param . '=';
+            $uri_params_part .= $uriPiece;
+        }
+    }
+    $uri_base_part .= '%3F' if $uri_params_part;
+
+    return $uri_base_part . URI::Escape::uri_escape_utf8($uri_params_part);
 }
 
 sub _get_shib_config {
     my $config = C4::Context->config('shibboleth');
 
     if ( !$config ) {
-        carp 'shibboleth config not defined';
+        carp 'shibboleth config not defined' if $debug;
         return 0;
     }
 
@@ -236,12 +300,23 @@ Map their attributes to what you want to see in koha
 
 Tell apache that we wish to allow koha to authenticate via shibboleth.
 
-This is as simple as adding the below to your virtualhost config:
+This is as simple as adding the below to your virtualhost config (for CGI running):
 
  <Location />
    AuthType shibboleth
    Require shibboleth
  </Location>
+
+Or (for Plack running):
+
+ <Location />
+   AuthType shibboleth
+   Require shibboleth
+   ShibUseEnvironment Off
+   ShibUseHeaders On
+ </Location>
+
+IMPORTANT: Please note, if you are running in the plack configuration you should consult https://wiki.shibboleth.net/confluence/display/SHIB2/NativeSPSpoofChecking for security advice regarding header spoof checking settings. (See also bug 17776 on Bugzilla about enabling ShibUseHeaders.)
 
 =item 5.
 
@@ -295,6 +370,22 @@ Returns the shibboleth login attribute should it be found present in the http se
 Given a shib_login attribute, this routine checks for a matching local user and if found returns true, their cardnumber and their userid.  If a match is not found, then this returns false.
 
   my ( $retval, $retcard, $retuserid ) = C4::Auth_with_shibboleth::checkpw_shib( $shib_login );
+
+=head2 _get_uri
+
+  _get_uri();
+
+A sugar function to that simply returns the current page URI with appropriate protocol attached
+
+This routine is NOT exported
+
+=head2 _get_shib_config
+
+  my $config = _get_shib_config();
+
+A sugar function that checks for a valid shibboleth configuration, and if found returns a hashref of it's contents
+
+This routine is NOT exported
 
 =head2 _autocreate
 

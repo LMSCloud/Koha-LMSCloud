@@ -2,29 +2,30 @@ package Koha::Patron::Category;
 
 # This file is part of Koha.
 #
-# Koha is free software; you can redistribute it and/or modify it under the
-# terms of the GNU General Public License as published by the Free Software
-# Foundation; either version 3 of the License, or (at your option) any later
-# version.
+# Koha is free software; you can redistribute it and/or modify it
+# under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 3 of the License, or
+# (at your option) any later version.
 #
-# Koha is distributed in the hope that it will be useful, but WITHOUT ANY
-# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
-# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+# Koha is distributed in the hope that it will be useful, but
+# WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+# GNU General Public License for more details.
 #
-# You should have received a copy of the GNU General Public License along
-# with Koha; if not, write to the Free Software Foundation, Inc.,
-# 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+# You should have received a copy of the GNU General Public License
+# along with Koha; if not, see <http://www.gnu.org/licenses>.
 
 use Modern::Perl;
 
 use Carp;
+use List::MoreUtils qw(any);
 
 use C4::Members::Messaging;
 
 use Koha::Database;
 use Koha::DateUtils;
 
-use base qw(Koha::Object);
+use base qw(Koha::Object Koha::Object::Limit::Library);
 
 =head1 NAME
 
@@ -102,117 +103,6 @@ sub default_messaging {
     return \@messaging;
 }
 
-=head3 branch_limitations
-
-my $limitations = $category->branch_limitations();
-
-$category->branch_limitations( \@branchcodes );
-
-=cut
-
-sub branch_limitations {
-    my ( $self, $branchcodes ) = @_;
-
-    if ($branchcodes) {
-        return $self->replace_branch_limitations($branchcodes);
-    }
-    else {
-        return $self->get_branch_limitations();
-    }
-
-}
-
-=head3 get_branch_limitations
-
-my $limitations = $category->get_branch_limitations();
-
-=cut
-
-sub get_branch_limitations {
-    my ($self) = @_;
-
-    my @branchcodes =
-      $self->_catb_resultset->search( { categorycode => $self->categorycode } )
-      ->get_column('branchcode')->all();
-
-    return \@branchcodes;
-}
-
-=head3 add_branch_limitation
-
-$category->add_branch_limitation( $branchcode );
-
-=cut
-
-sub add_branch_limitation {
-    my ( $self, $branchcode ) = @_;
-
-    croak("No branchcode passed in!") unless $branchcode;
-
-    my $limitation = $self->_catb_resultset->update_or_create(
-        { categorycode => $self->categorycode, branchcode => $branchcode } );
-
-    return $limitation ? 1 : undef;
-}
-
-=head3 del_branch_limitation
-
-$category->del_branch_limitation( $branchcode );
-
-=cut
-
-sub del_branch_limitation {
-    my ( $self, $branchcode ) = @_;
-
-    croak("No branchcode passed in!") unless $branchcode;
-
-    my $limitation =
-      $self->_catb_resultset->find(
-        { categorycode => $self->categorycode, branchcode => $branchcode } );
-
-    unless ($limitation) {
-        my $categorycode = $self->categorycode;
-        carp(
-"No branch limit for branch $branchcode found for categorycode $categorycode to delete!"
-        );
-        return;
-    }
-
-    return $limitation->delete();
-}
-
-=head3 replace_branch_limitations
-
-$category->replace_branch_limitations( \@branchcodes );
-
-=cut
-
-sub replace_branch_limitations {
-    my ( $self, $branchcodes ) = @_;
-
-    $self->_catb_resultset->search( { categorycode => $self->categorycode } )->delete;
-
-    my @return_values =
-      map { $self->add_branch_limitation($_) } @$branchcodes;
-
-    return \@return_values;
-}
-
-=head3 Koha::Objects->_catb_resultset
-
-Returns the internal resultset or creates it if undefined
-
-=cut
-
-sub _catb_resultset {
-    my ($self) = @_;
-
-    $self->{_catb_resultset} ||=
-      Koha::Database->new->schema->resultset('CategoriesBranch');
-
-    return $self->{_catb_resultset};
-}
-
 sub get_expiry_date {
     my ($self, $date ) = @_;
     if ( $self->enrolmentperiod ) {
@@ -222,6 +112,94 @@ sub get_expiry_date {
     } else {
         return $self->enrolmentperioddate;
     }
+}
+
+=head3 effective_reset_password
+
+Returns if patrons in this category can reset their password. If set in $self->reset_password
+or, if undef, falls back to the OpacResetPassword system preference.
+
+=cut
+
+sub effective_reset_password {
+    my ($self) = @_;
+
+    return $self->reset_password // C4::Context->preference('OpacResetPassword');
+}
+
+=head3 effective_change_password
+
+Returns if patrons in this category can change their password. If set in $self->change_password
+or, if undef, falls back to the OpacPasswordChange system preference.
+
+=cut
+
+sub effective_change_password {
+    my ($self) = @_;
+
+    return $self->change_password // C4::Context->preference('OpacPasswordChange');
+}
+
+=head3 effective_min_password_length
+
+    $category->effective_min_password_length()
+
+Retrieve category's password length if set, or minPasswordLength otherwise
+
+=cut
+
+sub effective_min_password_length {
+    my ($self) = @_;
+
+    return $self->min_password_length // C4::Context->preference('minPasswordLength');
+}
+
+=head3 effective_require_strong_password
+
+    $category->effective_require_strong_password()
+
+Retrieve category's password strength if set, or RequireStrongPassword otherwise
+
+=cut
+
+sub effective_require_strong_password {
+    my ($self) = @_;
+
+    return $self->require_strong_password // C4::Context->preference('RequireStrongPassword');
+}
+
+=head3 override_hidden_items
+
+    if ( $patron->category->override_hidden_items ) {
+        ...
+    }
+
+Returns a boolean that if patrons of this category are exempt from the OPACHiddenItems policies
+
+TODO: Remove on bug 22547
+
+=cut
+
+sub override_hidden_items {
+    my ($self) = @_;
+    return any { $_ eq $self->categorycode }
+    split( /\|/, C4::Context->preference('OpacHiddenItemsExceptions') );
+}
+
+=head2 Internal methods
+
+=head3 _library_limits
+
+ configure library limits
+
+=cut
+
+sub _library_limits {
+    return {
+        class => "CategoriesBranch",
+        id => "categorycode",
+        library => "branchcode",
+    };
 }
 
 =head3 type

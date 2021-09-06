@@ -28,7 +28,7 @@ use C4::Auth;
 use Koha::Biblios;
 use Koha::Virtualshelves;
 
-my $query           = new CGI;
+my $query           = CGI->new;
 my @biblionumbers   = $query->multi_param('biblionumber');
 my $selectedshelf   = $query->param('selectedshelf');
 my $newshelf        = $query->param('newshelf');
@@ -52,7 +52,6 @@ my ( $template, $loggedinuser, $cookie ) = get_template_and_user(
     {   template_name   => "opac-addbybiblionumber.tt",
         query           => $query,
         type            => "opac",
-        authnotrequired => 0,
     }
 );
 
@@ -148,6 +147,10 @@ if ($authorized) {
             @biblios,
             {   biblionumber => $biblionumber,
                 title        => $biblio->title,
+                subtitle     => $biblio->subtitle,
+                medium       => $biblio->medium,
+                part_number  => $biblio->part_number,
+                part_name    => $biblio->part_name,
                 author       => $biblio->author,
             }
         );
@@ -164,4 +167,4 @@ if ($authorized) {
     );
 }
 $template->param( authorized => $authorized, errcode => $errcode, );
-output_html_with_http_headers $query, $cookie, $template->output;
+output_html_with_http_headers $query, $cookie, $template->output, undef, { force_no_caching => 1 };

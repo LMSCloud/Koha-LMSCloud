@@ -20,20 +20,23 @@
 
 use Modern::Perl;
 
+use Koha::Script -cron;
 use C4::Reports::Guided; # 0.12
+use Koha::Reports;
 use C4::Context;
 use C4::Log;
 use Koha::Email;
 use Koha::DateUtils;
+use Koha::SMTP::Servers;
 
 use Getopt::Long qw(:config auto_help auto_version);
 use Pod::Usage;
-use MIME::Lite;
-use Text::CSV_XS;
+use Text::CSV::Encoded;
 use CGI qw ( -utf8 );
 use Carp;
 use Encode;
 use JSON qw( to_json );
+use Try::Tiny;
 
 BEGIN {
     # find Koha's Perl modules
@@ -65,6 +68,7 @@ runreport.pl [ -h | -m ] [ -v ] reportID [ reportID ... ]
    --to=s          e-mail address to send report to
    --from=s        e-mail address to send report from
    --subject=s     subject for the e-mail
+   --param=s      parameters for the report
    --store-results store the result of the report
    --csv-header    add column names as first line of csv output
 
@@ -120,6 +124,12 @@ E-mail address to send report from. Defaults to KohaAdminEmailAddress.
 
 Subject for the e-mail message. Defaults to "Koha Saved Report"
 
+=item B<--param>
+
+Repeatable, should provide one param per param requested for the report.
+Report params are not combined as on the staff side, so you may need to repeat
+params.
+
 =item B<--store-results>
 
 Store the result of the report into the saved_reports DB table.
@@ -167,12 +177,13 @@ Reports - Guided Reports
 my $help    = 0;
 my $man     = 0;
 my $verbose = 0;
-my $email   = 0;
+my $send_email = 0;
 my $attachment = 0;
 my $format  = "text";
 my $to      = "";
 my $from    = "";
 my $subject = "";
+my @params = ();
 my $separator = ',';
 my $quote = '"';
 my $store_results = 0;
@@ -190,7 +201,8 @@ GetOptions(
     'to=s'              => \$to,
     'from=s'            => \$from,
     'subject=s'         => \$subject,
-    'email'             => \$email,
+    'param=s'           => \@params,
+    'email'             => \$send_email,
     'a|attachment'      => \$attachment,
     'username:s'        => \$username,
     'password:s'        => \$password,
@@ -215,8 +227,8 @@ if ($format eq 'tsv' || $format eq 'text') {
     $separator = "\t";
 }
 
-if ($to or $from or $email) {
-    $email = 1;
+if ($to or $from or $send_email) {
+    $send_email = 1;
     $from or $from = C4::Context->preference('KohaAdminEmailAddress');
     $to   or $to   = C4::Context->preference('KohaAdminEmailAddress');
 }
@@ -231,14 +243,14 @@ my $today = dt_from_string();
 my $date = $today->ymd();
 
 foreach my $report_id (@ARGV) {
-    my $report = get_saved_report($report_id);
+    my $report = Koha::Reports->find( $report_id );
     unless ($report) {
         warn "ERROR: No saved report $report_id found";
         next;
     }
-    my $sql         = $report->{savedsql};
-    my $report_name = $report->{report_name};
-    my $type        = $report->{type};
+    my $sql         = $report->savedsql;
+    my $report_name = $report->report_name;
+    my $type        = $report->type;
 
     $verbose and print "SQL: $sql\n\n";
     if ( $subject eq "" )
@@ -252,7 +264,12 @@ foreach my $report_id (@ARGV) {
             $subject = 'Koha Saved Report';
         }
     }
-    my ($sth) = execute_query( $sql, undef, undef, undef, $report_id );
+
+    # convert SQL parameters to placeholders
+    my $params_needed = ( $sql =~ s/(<<[^>]+>>)/\?/g );
+    die("You supplied ". scalar @params . " parameter(s) and $params_needed are required by the report") if scalar @params != $params_needed;
+
+    my ($sth) = execute_query( $sql, undef, undef, \@params, $report_id );
     my $count = scalar($sth->rows);
     unless ($count) {
         print "NO OUTPUT: 0 results from execute_query\n";
@@ -272,17 +289,18 @@ foreach my $report_id (@ARGV) {
         }
         $message = $cgi->table(join "", @rows);
     } elsif ($format eq 'csv') {
-        my $csv = Text::CSV_XS->new({
+        my $csv = Text::CSV::Encoded->new({
+            encoding_out => 'utf8',
             binary      => 1,
             quote_char  => $quote,
             sep_char    => $separator,
             });
 
         if ( $csv_header ) {
-            my $fields = $sth->{NAME};
-            $csv->combine( @$fields );
+            my @fields = map { decode( 'utf8', $_ ) } @{ $sth->{NAME} };
+            $csv->combine( @fields );
             $message .= $csv->string() . "\n";
-            push @rows_to_store, [@$fields] if $store_results;
+            push @rows_to_store, [@fields] if $store_results;
         }
 
         while (my $line = $sth->fetchrow_arrayref) {
@@ -290,33 +308,53 @@ foreach my $report_id (@ARGV) {
             $message .= $csv->string() . "\n";
             push @rows_to_store, [@$line] if $store_results;
         }
+        $message = Encode::decode_utf8($message);
     }
     if ( $store_results ) {
         my $json = to_json( \@rows_to_store );
         C4::Reports::Guided::store_results( $report_id, $json );
     }
-    if ($email) {
-        my $args = { to => $to, from => $from, subject => $subject };
+    if ($send_email) {
+
+        my $email = Koha::Email->new(
+            {
+                to      => $to,
+                from    => $from,
+                subject => $subject,
+            }
+        );
+
         if ( $format eq 'html' ) {
             $message = "<html><head><style>tr:nth-child(2n+1) { background-color: #ccc;}</style></head><body>$message</body></html>";
-            $args->{contenttype} = 'text/html';
+            $email->html_body($message);
         }
-        my $email = Koha::Email->new();
-        my %mail  = $email->create_message_headers($args);
-        $mail{Data} = $message;
-        $mail{Auth} = { user => $username, pass => $password, method => $method } if $username;
+        else {
+            $email->text_body($message);
+        }
 
-        my $msg = MIME::Lite->new(%mail);
-
-        $msg->attach(
-            Type        => "text/$format",
-            Data        => encode( 'utf8', $message ),
-            Filename    => "report$report_id-$date.$format",
-            Disposition => 'attachment',
+        $email->attach(
+            Encode::encode_utf8($message),
+            content_type => "text/$format",
+            name         => "report$report_id-$date.$format",
+            disposition  => 'attachment',
         ) if $attachment;
 
-        $msg->send();
-        carp "Mail not sent" unless $msg->last_send_successful();
+        my $smtp_server = Koha::SMTP::Servers->get_default;
+        $smtp_server->set(
+            {
+                user_name => $username,
+                password  => $password,
+            }
+        )
+            if $username;
+
+        $email->transport( $smtp_server->transport );
+        try {
+            $email->send_or_die;
+        }
+        catch {
+            carp "Mail not sent: $_";
+        };
     }
     else {
         print $message;

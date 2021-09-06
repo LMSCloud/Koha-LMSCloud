@@ -2,24 +2,25 @@
 
 # This file is part of Koha.
 #
-# Koha is free software; you can redistribute it and/or modify it under the
-# terms of the GNU General Public License as published by the Free Software
-# Foundation; either version 2 of the License, or (at your option) any later
-# version.
+# Koha is free software; you can redistribute it and/or modify it
+# under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 3 of the License, or
+# (at your option) any later version.
 #
-# Koha is distributed in the hope that it will be useful, but WITHOUT ANY
-# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
-# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+# Koha is distributed in the hope that it will be useful, but
+# WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+# GNU General Public License for more details.
 #
-# You should have received a copy of the GNU General Public License along with
-# Koha; if not, write to the Free Software Foundation, Inc.,
-# 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
+# You should have received a copy of the GNU General Public License
+# along with Koha; if not, see <http://www.gnu.org/licenses>.
 
 use Modern::Perl;
 use CGI qw ( -utf8 );
 use C4::Auth;
 use C4::Output;
 use C4::Context;
+use List::MoreUtils qw(any);
 
 my $query = CGI->new;
 my $admin = C4::Context->preference('KohaAdminEmailAddress');
@@ -36,4 +37,8 @@ $template->param (
     admin => $admin,
     errno => 401,
 );
-output_with_http_headers $query, $cookie, $template->output, 'html', '401 Unauthorized';
+my $status = '401 Unauthorized';
+if ( any { /(^psgi\.|^plack\.)/i } keys %ENV ) {
+    $status = '200 OK';
+}
+output_with_http_headers $query, $cookie, $template->output, 'html', $status;

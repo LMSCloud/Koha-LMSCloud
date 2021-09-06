@@ -24,16 +24,17 @@ use C4::Context;
 use C4::RotatingCollections;
 use C4::Items;
 
+use Koha::Items;
+
 use CGI qw ( -utf8 );
 
-my $query = new CGI;
+my $query = CGI->new;
 
 my ( $template, $loggedinuser, $cookie ) = get_template_and_user(
     {
         template_name   => "rotating_collections/addItems.tt",
         query           => $query,
         type            => "intranet",
-        authnotrequired => 0,
         flagsrequired   => { tools => 'rotating_collections' },
         debug           => 1,
     }
@@ -45,7 +46,8 @@ if ( defined $query->param('action') and
     my $colId      = $query->param('colId');
     my $barcode    = $query->param('barcode');
     my $removeItem = $query->param('removeItem');
-    my $itemnumber = GetItemnumberFromBarcode($barcode);
+    my $item       = Koha::Items->find({barcode => $barcode});
+    my $itemnumber = $item ? $item->itemnumber : undef;
 
     my ( $success, $errorCode, $errorMessage );
 

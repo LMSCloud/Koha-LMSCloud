@@ -1,15 +1,46 @@
+[% USE raw %]
+[% USE Koha %]
 [% USE Asset %]
 [% USE Branches %]
 [% SET footerjs = 1 %]
 [% INCLUDE 'doc-head-open.inc' %]
-<title>Koha &rsaquo; Catalog &rsaquo; Advanced search</title>
+<title>Advanced search &rsaquo; Catalog &rsaquo; Koha</title>
 [% INCLUDE 'doc-head-close.inc' %]
 </head>
+
+[%- BLOCK language_limit_select -%]
+<select name="limit" id="[% ln_id | html %]">
+    <option value="">No limit</option>
+    [% FOREACH ln_loo IN ln_loop %]
+        [% IF ( ln_loo.selected ) %]
+            <option value="[% ln_index | html %],rtrn:[% ln_loo.iso639_2_code | html %]" selected="selected">
+                [% ln_loo.language_description | html %]
+            </option>
+        [% ELSE %]
+            <option value="[% ln_index | html %],rtrn:[% ln_loo.iso639_2_code | html %]">
+                [% ln_loo.language_description | html %]
+            </option>
+        [% END %]
+    [% END %]
+</select>
+[%- END -%]
 
 <body id="catalog_advsearch" class="catalog">
 [% INCLUDE 'header.inc' %]
 [% INCLUDE 'adv-search.inc' %]
-<div id="breadcrumbs"><a href="/cgi-bin/koha/mainpage.pl">Home</a> &rsaquo; Advanced search</div>
+
+<nav id="breadcrumbs" aria-label="Breadcrumb" class="breadcrumb">
+    <ol>
+        <li>
+            <a href="/cgi-bin/koha/mainpage.pl">Home</a>
+        </li>
+        <li>
+            <a href="#" aria-current="page">
+                Advanced search
+            </a>
+        </li>
+    </ol>
+</nav>
 
 <div class="main container-fluid">
     <div class="row">
@@ -17,27 +48,31 @@
 
 <form action="search.pl" method="get">
 <div id="advanced-search">
+<input type="hidden" name="advsearch" value="1"/>
 <h1>Advanced search</h1>
 <p>
   <a href="/cgi-bin/koha/catalogue/itemsearch.pl">Go to item search</a>
+  [% IF searchid %]
+      <div id="previous_search_link"></div>
+  [% END %]
 </p>
 
 <!-- SEARCH BUTTONS -->
 <div id="toolbar" class="btn-toolbar">
     <fieldset class="action" id="submit1">
         <div class="btn-group">
-            <button class="btn btn-default btn-sm" type="submit" accesskey="s"><i class="fa fa-search"></i> Search</button>
+            <button class="btn btn-default" type="submit" accesskey="s"><i class="fa fa-search"></i> Search</button>
         </div>
         <div class="btn-group">
         [% IF ( expanded_options ) %]
-            <a href="/cgi-bin/koha/catalogue/search.pl?expanded_options=0" class="btn btn-sm btn-link"><i class="fa fa-search-minus"></i> Fewer options</a>
+            <a href="/cgi-bin/koha/catalogue/search.pl?expanded_options=0" class="btn btn-link"><i class="fa fa-search-minus"></i> Fewer options</a>
         </div>
         [% ELSE %]
-            <a href="/cgi-bin/koha/catalogue/search.pl?expanded_options=1" class="btn btn-sm btn-link"><i class="fa fa-search-plus"></i> More options</a>
+            <a href="/cgi-bin/koha/catalogue/search.pl?expanded_options=1" class="btn btn-link"><i class="fa fa-search-plus"></i> More options</a>
         </div>
         [% END %]
         <div class="btn-group">
-            <a href="/cgi-bin/koha/catalogue/search.pl?do=Clear&expanded_options=[% expanded_options %]" class="btn btn-sm btn-link"><i class="fa fa-trash"></i> Clear fields</a>
+            <a href="/cgi-bin/koha/catalogue/search.pl?do=Clear&expanded_options=[% expanded_options | uri %]" class="btn btn-link"><i class="fa fa-trash"></i> Clear fields</a>
         </div>
     </fieldset>
 </div>
@@ -50,7 +85,7 @@
 <fieldset>
         <legend>Select local databases</legend>
                 [% FOREACH local_servers_loo IN local_servers_loop %]
-[% IF ( local_servers_loo.checked ) %]<input type="checkbox" id="[% local_servers_loo.id %]" name="[% local_servers_loo.name %]" checked="checked" value="[% local_servers_loo.value %]" />[% ELSE %]<input type="checkbox" id="[% local_servers_loo.id %]" name="[% local_servers_loo.name %]" value="[% local_servers_loo.value %]" />[% END %]<label for="[% local_servers_loo.id %]"><img width="16" height="16" alt="[% local_servers_loo.id %]" src="[% themelang %]/img/[% local_servers_loo.icon %]" /> [% local_servers_loo.label %]</label>[% END %]
+[% IF ( local_servers_loo.checked ) %]<input type="checkbox" id="[% local_servers_loo.id | html %]" name="[% local_servers_loo.name | html %]" checked="checked" value="[% local_servers_loo.value | html %]" />[% ELSE %]<input type="checkbox" id="[% local_servers_loo.id | html %]" name="[% local_servers_loo.name | html %]" value="[% local_servers_loo.value | html %]" />[% END %]<label for="[% local_servers_loo.id | html %]"><img width="16" height="16" alt="[% local_servers_loo.id | html %]" src="[% themelang | html %]/img/[% local_servers_loo.icon | html %]" /> [% local_servers_loo.label | html %]</label>[% END %]
 </fieldset>
 <!-- /DATABASES -->
 [% END %]
@@ -60,8 +95,8 @@
 <fieldset id="databases">
     <legend>Select remote databases</legend>
                 [% FOREACH outer_servers_loo IN outer_servers_loop %]
-                [% IF ( outer_servers_loo.checked ) %]<input type="checkbox" id="[% outer_servers_loo.id %]" name="[% outer_servers_loo.name %]" checked="checked" value="[% outer_servers_loo.value %]" />[% ELSE %]<input type="checkbox" id="[% outer_servers_loo.id %]" name="[% outer_servers_loo.name %]" value="[% outer_servers_loo.value %]" />[% END %]
-<label for="[% outer_servers_loo.id %]"><img alt="[% outer_servers_loo.id %]" src="[% themelang %]/images/[% outer_servers_loo.icon %]" />[% outer_servers_loo.label %]</label>
+                [% IF ( outer_servers_loo.checked ) %]<input type="checkbox" id="[% outer_servers_loo.id | html %]" name="[% outer_servers_loo.name | html %]" checked="checked" value="[% outer_servers_loo.value | html %]" />[% ELSE %]<input type="checkbox" id="[% outer_servers_loo.id | html %]" name="[% outer_servers_loo.name | html %]" value="[% outer_servers_loo.value | html %]" />[% END %]
+<label for="[% outer_servers_loo.id | html %]"><img alt="[% outer_servers_loo.id | html %]" src="[% themelang | html %]/images/[% outer_servers_loo.icon | html %]" />[% outer_servers_loo.label | html %]</label>
                 [% END %]
     </fieldset>
 <!-- /REMOTE DATABASES -->
@@ -71,7 +106,11 @@
     <fieldset id="searchterms">
     <legend>Search for </legend>
     [% FOREACH search_box IN search_boxes_loop %]
-        [% IF ( search_boxes_label ) %]<div style="text-indent: 4.5em;">[% ELSE %]<div>[% END %]
+        [% IF ( search_boxes_label ) %]
+        <div class="search-term-row" style="text-indent: 4.5em;">
+        [% ELSE %]
+        <div class="search-term-row">
+        [% END %]
 			[% IF ( expanded_options ) %]
             [% IF ( search_box.boolean ) %]
                 <select name="op">
@@ -93,6 +132,20 @@
             [% END %]
 		</div>
     [% END %]
+    [% IF Koha.Preference('SearchEngine') == 'Elasticsearch' %]
+        [% IF ( expanded_options ) %]
+            <p>
+                [% IF Koha.Preference('ElasticsearchMARCFormat') == 'ARRAY' %]
+                    <label><input type="checkbox" name="whole_record" /> Search entire MARC record</label>
+                [% END %]
+                <span id="weight_search">
+                    <label><input type="checkbox" name="weight_search" checked="checked" /> Apply field weights to search</label>
+                </span>
+            <p>
+        [% ELSE %]
+            <input type="hidden" name="weight_search" value="1" />
+        [% END %]
+    [% END %]
     </fieldset>
 <!-- /BOOLEAN SEARCH OPTIONS -->
 
@@ -101,8 +154,8 @@
       <div id="advsearches" class="toptabs">
       <ul>
       [% FOREACH advsearchloo IN advancedsearchesloop %]
-        <li id="advsearch-tab-[% advsearchloo.advanced_search_type %]">
-           <a href="#advsearch-[% advsearchloo.advanced_search_type %]">
+        <li id="advsearch-tab-[% advsearchloo.advanced_search_type | html %]">
+           <a href="#advsearch-[% advsearchloo.advanced_search_type | uri %]">
            [% IF ( advsearchloo.advanced_search_type == 'itemtypes' ) %]Item type
            [% ELSIF ( advsearchloo.advanced_search_type == 'ccode' ) %]Collection
            [% ELSIF ( advsearchloo.advanced_search_type == 'loc' ) %]Shelving location
@@ -113,13 +166,13 @@
       [% END %]
       </ul>
     [% FOREACH advsearchloo IN advancedsearchesloop %]
-    <div id="advsearch-[% advsearchloo.advanced_search_type %]" class="advsearch">
+    <div id="advsearch-[% advsearchloo.advanced_search_type | html %]" class="advsearch">
     <h4>Limit to any of the following:</h4>
     <table>
         <tr>
     [% FOREACH itemtypeloo IN advsearchloo.code_loop %]
-        <td><input type="checkbox" id="[% itemtypeloo.ccl FILTER remove(',') %]-[% itemtypeloo.number %]" name="limit" value="mc-[% itemtypeloo.ccl %]:[% itemtypeloo.code %]"/><label for="[% itemtypeloo.ccl FILTER remove(',') %]-[% itemtypeloo.number %]">[% UNLESS ( noItemTypeImages ) %][% IF ( itemtypeloo.imageurl ) %]<img src="[% itemtypeloo.imageurl %]" alt="[% itemtypeloo.description %]" />[% END %]&nbsp;[% END %]
-        [% itemtypeloo.description %]</label></td>
+        <td><input type="checkbox" id="[% itemtypeloo.ccl FILTER remove(',') | html %]-[% itemtypeloo.number | html %]" name="limit" value="mc-[% itemtypeloo.ccl | html %]:[% itemtypeloo.code | html %]"/><label for="[% itemtypeloo.ccl FILTER remove(',') | html %]-[% itemtypeloo.number | html %]">[% UNLESS ( Koha.Preference('OpacNoItemTypeImages') ) %][% IF ( itemtypeloo.imageurl ) %]<img src="[% itemtypeloo.imageurl | html %]" alt="[% itemtypeloo.description | html %]" />[% END %]&nbsp;[% END %]
+        [% itemtypeloo.description | html %]</label></td>
         [% IF ( loop.last ) %]</tr>[% ELSE %][% UNLESS ( loop.count % 5 ) %]</tr><tr>[% END %][% END %]
     [% END %]
     </table>
@@ -138,18 +191,12 @@
 </fieldset>
 <fieldset id="language">
 <!-- LANGUAGE LIMIT -->
-		<p><label for="language-limit">Language: </label>                                        
-		<select name="limit" id="language-limit">
-        <option value="">No limit</option>
-		[% FOREACH search_languages_loo IN search_languages_loop %]
-		[% IF ( search_languages_loo.selected ) %]
-		<option value="ln,rtrn:[% search_languages_loo.iso639_2_code %]" selected="selected">[% search_languages_loo.language_description %]</option>
-		[% ELSE %]
-		<option value="ln,rtrn:[% search_languages_loo.iso639_2_code %]">[% search_languages_loo.language_description %]</option>
-		[% END %]
-		
-		[% END %]
-		</select></p><!-- <a href="">Show all languages</a>-->
+    <p>
+        <label for="language-limit">Language: </label>
+        [% PROCESS language_limit_select ln_loop=search_languages_loop ln_id='language-limit' ln_index='ln' %]
+        <label for="language-original-limit">Language of original: </label>
+        [% PROCESS language_limit_select ln_loop=search_languages_loop ln_id='language-original-limit' ln_index='language-original' %]
+    </p>
 <!-- /LANGUAGE LIMIT -->
 </fieldset>
 </fieldset>
@@ -190,7 +237,7 @@
             <option value="" selected="selected" class="menuheader">Any format</option>
             <option value="l-format:ta" >Regular print</option>
             <option value="l-format:tb" >Large print</option>
-            <option value="l-format:fk" >Braille</option>
+            <option value="l-format:tc or l-format:fb">Braille</option>
             <option value="" >-----------</option>
             <option value="l-format:sd" >CD audio</option>
             <option value="l-format:ss" >Cassette recording</option>
@@ -252,7 +299,7 @@
                     <option value=""> -- none -- </option>
                     [% FOREACH sg IN search_groups %]
                         [% UNLESS sg.branchcode %]
-                            <option value="[% sg.id %]">[% sg.title %]</option>
+                            <option value="[% sg.id | html %]">[% sg.title | html %]</option>
                         [% END %]
                     [% END %]
                 </select>
@@ -277,8 +324,9 @@
 </div>
 
 [% MACRO jsinclude BLOCK %]
-    [% Asset.js("lib/jquery/plugins/jquery.fixFloat.js") %]
-    <script type="text/JavaScript">
+    [% Asset.js("lib/hc-sticky.js") | $raw %]
+    [% Asset.js("js/browser.js") | $raw %]
+    <script>
         /**
          *  Function add_field();
          *  This function allows to display a new field to search.
@@ -290,10 +338,15 @@
             dad.appendChild(line.cloneNode(true));
             line.removeChild(ButtonPlus);
         }
+        var Sticky;
         $(document).ready(function() {
             $("input[name=q]:eq(0)").focus();
             $('#advsearches').tabs();
-            $('#toolbar').fixFloat();
+            Sticky = $("#toolbar");
+            Sticky.hcSticky({
+                stickTo: ".main",
+                stickyClass: "floating"
+            });
             $("#branchloop").on("change",function(){
                 if( this.value != ""){
                     document.getElementById("categoryloop").disabled=true;
@@ -301,6 +354,12 @@
                     document.getElementById("categoryloop").disabled=false;
                 }
             });
+
+            [% IF searchid %]
+                browser = KOHA.browser('[% searchid | html %]');
+                browser.show_back_link();
+            [% END %]
+
         });
     </script>
 [% END %]

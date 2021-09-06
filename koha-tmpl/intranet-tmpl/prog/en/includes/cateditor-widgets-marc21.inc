@@ -69,7 +69,7 @@
         <span title="Length of directory elements">4500</span>
     </div>
 </div>
-
+<!-- cateditor-widgets-marc21.inc -->
 <script>
 
 /**
@@ -85,7 +85,7 @@
  * single subfield, '@'.
  */
 
-require( [ 'widget' ], function( Widget ) {
+require( [ 'koha-backend', 'widget', 'text-marc' ], function( KohaBackend, Widget, TextMarc ) {
     Widget.Register( '000@', {
         makeTemplate: function() {
             return '     nam a22     7a 4500';
@@ -112,6 +112,65 @@ require( [ 'widget' ], function( Widget ) {
             this.bindFixed( '[name=f19]', 19, 20 );
         },
     } );
+
+    /* Check to see if there are any Control Number entries
+     *  in the authorised values table.
+     * If not, let's not show the widget
+     */
+    var reg001 = KohaBackend.GetAuthorisedValues( 'CONTROL_NUM_SEQUENCE');
+    if(reg001) {
+
+        Widget.Register( '001@', {
+            init: function() {
+                var $result = $(
+                    '<span class="subfield-widget">'
+                    + _("Control number: ")
+                    + '<span class="control-number-widget-contents"></span>'
+                    + '<button class="control-number-widget-assign">' + _("Assign next") + '</button>'
+                    + '<select class="control-number-widget-sequence"></select>'
+                    + '<button class="control-number-widget-override">' + _("Override") + '</button>'
+                    + '</span>'
+                );
+
+                return $result[0];
+            },
+            setControlNumber: function( text ) {
+                if ( text ) this.setText( text );
+                $( this.node ).find('.control-number-widget-contents')
+                    .html( text == '<empty>' ? ( '<span class="hint">' + _("unset") + '</span>' ) : text );
+                this.mark.changed();
+            },
+            postCreate: function( node, mark ) {
+                var widget = this;
+                this.setControlNumber( this.text );
+                $( this.node )
+                    .find('.control-number-widget-assign').click( function() {
+                        var sequence = $( widget.node ).find('.control-number-widget-sequence').val();
+                        $.post(
+                            '/cgi-bin/koha/svc/cataloguing/control_num_sequences/' + sequence
+                        ).done( function( result ) {
+                            if ( result.next_value ) widget.setControlNumber( result.next_value );
+                        } );
+                    } ).end()
+                    .find('.control-number-widget-override').click( function() {
+                        var result = prompt( _("Enter new control number") );
+
+                        if ( result ) widget.setControlNumber( result );
+                    } ).end();
+
+                var sequence_list = $.map( reg001 , function( authval ) {
+                    return authval.lib;
+                } );
+                sequence_list.sort();
+
+                $.each( sequence_list, function( undef, sequence ) {
+                    $( widget.node ).find('.control-number-widget-sequence').append( '<option>' + sequence + '</option>' );
+                } );
+
+                // TODO: Make Enter on select click "Assign"
+            }
+        } );
+        };
 
     Widget.Register( '005@', {
         init: function() {
@@ -163,20 +222,76 @@ require( [ 'widget' ], function( Widget ) {
 
             return $result[0];
         },
+        materialTypeMapping: {
+            a: 'MPS',
+            c: 'ER',
+            d: 'GL',
+            f: 'TM',
+            g: 'PG',
+            h: 'MF',
+            k: 'NG',
+            m: 'MP',
+            o: 'KT',
+            q: 'NM',
+            r: 'RI',
+            s: 'SR',
+            t: 'TC',
+            v: 'VR',
+            z: 'UN'
+        },
+        getMaterial: function () {
+            return this.materialTypeMapping[this.text.substring(0, 1)];
+        },
         postCreate: function( node, mark ) {
-            this.createFromXML( 'marc21/xml/007' );
+            this.createFromXML( 'marc21/xml/007' ).then(() => {
+                $(this.node).find('.material-select').on('change', (e) => {
+                    const keys = Object.keys(this.materialTypeMapping);
+                    const k = keys.filter(k => this.materialTypeMapping[k] === $(e.target).val());
+                    this.setFixed(0, 1, k, '+input');
+
+                    // FIXME There must be a better way to update display
+                    const n = $(this.node).find('[name="f00"]');
+                    n.triggerHandler('focus');
+                    n.triggerHandler('blur');
+                });
+            });
         }
     } );
 
     Widget.Register( '008@', {
         makeTemplate: function() {
             var now = new Date();
-            return Widget.PadNum( now.getYear() % 100, 2 ) + Widget.PadNum( now.getMonth() + 1, 2 ) + Widget.PadNum( now.getDate(), 2 ) + "b        xxu||||| |||| 00| 0 [% DefaultLanguageField008 %] d";
+            return Widget.PadNum( now.getYear() % 100, 2 ) + Widget.PadNum( now.getMonth() + 1, 2 ) + Widget.PadNum( now.getDate(), 2 ) + "b        [% DefaultCountryField008 | html %]||||| |||| 00| 0 [% DefaultLanguageField008 | html %] d";
         },
         init: function() {
             var $result = $( '<span class="subfield-widget fixed-widget">' + _("Fixed data:") + '<span class="hint widget-loading">' + _("Loading...") + '</span></span>' );
 
             return $result[0];
+        },
+        materialTypeMapping: {
+            a: {
+                a: 'BKS', c: 'BKS', d: 'BKS', m: 'BKS',
+                b: 'CR', i: 'CR', s: 'CR',
+            },
+            t: 'BKS',
+            c: 'MU', d: 'MU', i: 'MU', j: 'MU',
+            e: 'MP', f: 'MP',
+            g: 'VM', k: 'VM', o: 'VM', r: 'VM',
+            m: 'CF',
+            p: 'MX',
+        },
+        getMaterial: function () {
+            const record = TextMarc.TextToRecord(this.editor.cm.getValue());
+
+            const leader = record.leader();
+            const leader6 = leader.substring(6, 7);
+            let materialType = this.materialTypeMapping[leader6];
+            if (typeof materialType === 'object') {
+                const leader7 = leader.substring(7, 8);
+                materialType = materialType[leader7];
+            }
+
+            return materialType;
         },
         postCreate: function( node, mark ) {
             this.createFromXML( 'marc21/xml/008' );
@@ -185,3 +300,4 @@ require( [ 'widget' ], function( Widget ) {
 } );
 
 </script>
+<!-- / cateditor-widgets-marc21.inc -->

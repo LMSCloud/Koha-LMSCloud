@@ -1,84 +1,90 @@
+[% USE raw %]
 [% USE Koha %]
 [% USE KohaDates %]
+[% PROCESS 'member-display-address-style.inc' %]
 [% SET footerjs = 1 %]
 [% INCLUDE 'doc-head-open.inc' %]
-<title>Koha &rsaquo; Check duplicate patron</title>
+<title>Check duplicate patron &rsaquo; Koha</title>
 [% INCLUDE 'doc-head-close.inc' %]
 </head>
 
 <body id="pat_moremember-brief" class="pat">
     <div class="container-fluid">
         <div class="row">
-
             <div class="col-xs-12">
-	<h3>[% UNLESS ( I ) %]
-   [% title %] [% firstname %] [% END %] [% surname %] ([% cardnumber %])</h3>
+                <h3>[% INCLUDE 'patron-title.inc' %]</h3>
             </div>
         </div>
         <div class="row">
             <div class="col-xs-6">
                 <div id="patron-information">
 
-     [% UNLESS ( I ) %][% IF ( othernames ) %]&ldquo;[% othernames %]&rdquo;[% END %]
+        [% IF ( patron.othernames ) %]&ldquo;[% patron.othernames | html %]&rdquo;[% END %]
         <div class = "address">
             <ul>
-                [% IF Koha.Preference( 'AddressFormat' ) %]
-                    [% INCLUDE "member-display-address-style-${ Koha.Preference( 'AddressFormat' ) }.inc" %]
-                [% ELSE %]
-                    [% INCLUDE 'member-display-address-style-us.inc' %]
-                [% END %]
+                [% PROCESS 'display-address-style' %]
             </ul>
         </div>
-	<div class="rows">
-		<ol>
-            [% IF ( phone ) %]<li><span class="label">Primary phone: </span>[% phone %]</li>[% END %]
-            [% IF ( phonepro ) %]<li><span class="label">Secondary phone: </span>[% phonepro %]</li>[% END %]
-            [% IF ( mobile ) %]<li><span class="label">Other phone: </span>[% mobile %]</li>[% END %]
-            [% IF ( fax ) %]<li><span class="label">Fax: </span>[% fax %]</li>[% END %]
-            [% IF ( email ) %]<li class="email"><span class="label">Primary email:</span><a href="mailto:[% email %]">[% email %]</a></li>[% END %]
-            [% IF ( emailpro ) %]<li class="email"><span class="label">Secondary email: </span><a href="mailto:[% emailpro %]">[% emailpro %]</a></li>[% END %]
+    <div class="rows">
+        <ol>
+            [% IF ( patron.phone ) %]<li><span class="label">Primary phone: </span>[% patron.phone | html %]</li>[% END %]
+            [% IF ( patron.phonepro ) %]<li><span class="label">Secondary phone: </span>[% patron.phonepro | html %]</li>[% END %]
+            [% IF ( patron.mobile ) %]<li><span class="label">Other phone: </span>[% patron.mobile | html %]</li>[% END %]
+            [% IF ( patron.fax ) %]<li><span class="label">Fax: </span>[% patron.fax | html %]</li>[% END %]
+            [% IF ( patron.email ) %]<li class="email"><span class="label">Primary email:</span><a href="mailto:[% email | uri %]">[% patron.email | html %]</a></li>[% END %]
+            [% IF ( patron.emailpro ) %]<li class="email"><span class="label">Secondary email: </span><a href="mailto:[% emailpro | uri %]">[% patron.emailpro | html %]</a></li>[% END %]
             [% UNLESS ( I ) %]
-                [% IF ( inititals ) %]<li><span class="label">Initials: </span>[% initials %]</li>[% END %]
-                [% IF ( dateofbirth ) %]<li><span class="label">Date of birth:</span>[% dateofbirth | $KohaDates %]</li>[% END %]
-                [% IF ( sex ) %]<li><span class="label">Gender:</span>[% IF ( sex == 'F' ) %]Female[% ELSIF ( sex == 'M' ) %]Male[% ELSE %][% sex %][% END %]</li>[% END %][% END %]
+                [% IF ( patron.initials ) %]<li><span class="label">Initials: </span>[% patron.initials | html %]</li>[% END %]
+                [% IF ( patron.dateofbirth ) %]<li><span class="label">Date of birth:</span>[% patron.dateofbirth | $KohaDates %]</li>[% END %]
+                [% IF ( patron.sex ) %]<li><span class="label">Gender:</span>[% IF ( patron.sex == 'F' ) %]<span class="patronsex-female">Female</span>[% ELSIF ( patron.sex == 'M' ) %]<span class="patronsex-male">Male</span>[% ELSIF ( patron.sex == 'O' ) %]<span class="patronsex-other">Other</span>[% ELSE %][% patron.sex | html %][% END %]</li>[% END %]
             [% END %]
-    [% IF ( isguarantee ) %]
-        [% IF ( guaranteeloop ) %]
-            <li><span class="label">Guarantees:</span><ul>[% FOREACH guaranteeloo IN guaranteeloop %]<li><a href="/cgi-bin/koha/members/moremember.pl?borrowernumber=[% guaranteeloo.borrowernumber %]">[% guaranteeloo.name %]  </a></li>[% END %]</ul></li>
-        [% END %]
-    [% ELSE %]
-        [% IF ( guarantor.borrowernumber ) %]
-            <li><span class="label">Guarantor:</span><a href="/cgi-bin/koha/members/moremember.pl?borrowernumber=[% guarantor.borrowernumber %]">[% guarantor.surname %], [% guarantor.firstname %]</a></li>
-        [% END %]
-    [% END %]
-	</ol>
-	</div>
+
+            [% IF guarantees %]
+                <li>
+                    <span class="label">Guarantees:</span>
+                    <ul>
+                        [% FOREACH guarantee IN guarantees %]
+                            <li><a href="/cgi-bin/koha/members/moremember.pl?borrowernumber=[% guarantee.borrowernumber | uri %]">[% guarantee.firstname | html %] [% guarantee.surname | html %]</a></li>
+                        [% END %]
+                    </ul>
+                </li>
+            [% ELSIF guarantor_relationships %]
+                [% FOREACH gr IN guarantor_relationships %]
+                    <li>
+                        <span class="label">Guarantor:</span>
+                        [% SET guarantor = gr.guarantor %]
+                        <a href="/cgi-bin/koha/members/moremember.pl?borrowernumber=[% guarantor.id | uri %]">[% guarantor.firstname | html %] [% guarantor.surname | html %]</a>
+                    </li>
+                [% END %]
+            [% END %]
+        </ol>
     </div>
-    </div>
+</div>
+</div>
 
     <div class="col-xs-6">
-	<div id="patron-library-details">
-	<h3>Library use</h3>
-	<div class="rows">
-	<ol>
-    <li><span class="label">Card number: </span>[% cardnumber %]</li>
-	<li><span class="label">Borrowernumber: </span> [% borrowernumber %]</li>
-    <li><span class="label">Category: </span>[% categoryname %] ([% categorycode %])</li>
-    <li><span class="label">Registration date: </span>[% dateenrolled | $KohaDates %]</li>
-    <li><span class="label">Expiration date: </span>
-    [% IF ( was_renewed ) %]
-            <strong class="reregistrinfo">[% dateexpiry | $KohaDates %]</strong>
-    [% ELSE %]
-            [% dateexpiry | $KohaDates %]
-    [% END %]
-    </li>
-    <li><span class="label">Library: </span>[% branchname %]</li>
-
-    [% IF ( sort1 ) %]<li><span class="label">Sort field 1:</span>[% lib1 %]</li>[% END %]
-    [% IF ( sort2 ) %]<li><span class="label">Sort field 2:</span>[% lib2 %]</li>[% END %]
-	</ol>
-	</div>
-	</div>
+    <div id="patron-library-details">
+    <h3>Library use</h3>
+    <div class="rows">
+        <ol>
+            <li><span class="label">Card number: </span>[% patron.cardnumber | html %]</li>
+            <li><span class="label">Borrowernumber: </span> [% patron.borrowernumber | html %]</li>
+            <li><span class="label">Category: </span>[% patron.category.description | html %] ([% patron.category.categorycode | html %])</li>
+            <li><span class="label">Registration date: </span>[% patron.dateenrolled | $KohaDates %]</li>
+            <li><span class="label">Expiration date: </span>
+            [% IF ( was_renewed ) %]
+                <strong class="reregistrinfo">[% patron.dateexpiry | $KohaDates %]</strong>
+            [% ELSE %]
+                [% patron.dateexpiry | $KohaDates %]
+            [% END %]
+            </li>
+            <li><span class="label">Library: </span>[% patron.library.branchname | html %]</li>
+            [% IF ( patron.sort1 ) %]<li><span class="label">Sort field 1:</span>[% AuthorisedValues.GetByCode('Bsort1', patron.sort1) | html %]</li>[% END %]
+            [% IF ( patron.sort2 ) %]<li><span class="label">Sort field 2:</span>[% AuthorisedValues.GetByCode('Bsort2', patron.sort2) | html %]</li>[% END %]
+            [% UNLESS ( patron.autorenew_checkouts ) %]<li>Auto-renewal: Patron has opted out</li>[% END %]
+        </ol>
+    </div>
+    </div>
     </div>
 </div>
 <div class="row">

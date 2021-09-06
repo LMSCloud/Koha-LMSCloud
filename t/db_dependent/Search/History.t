@@ -9,7 +9,6 @@ use t::lib::Mocks;
 use t::lib::TestBuilder;
 
 use C4::Auth;
-use Koha::AuthUtils qw/hash_password/;
 use Koha::Database;
 
 use Test::More tests => 27;
@@ -363,15 +362,15 @@ sub delete_all {
 subtest 'LoadSearchHistoryToTheFirstLoggedUser working' => sub {
 plan tests =>2;
 
-my $query = new CGI;
+my $query = CGI->new;
 
 my $schema = Koha::Database->schema;
 my $builder = t::lib::TestBuilder->new;
 
 # Borrower Creation
-my $hash = hash_password('password');
 our $patron = $builder->build( { source => 'Borrower' } );
-Koha::Patrons->find( $patron->{borrowernumber} )->update_password( $patron->{userid}, $hash );
+t::lib::Mocks::mock_preference( 'RequireStrongPassword', 0 );
+Koha::Patrons->find( $patron->{borrowernumber} )->set_password({ password => 'password' });
 
 my $session = C4::Auth::get_session("");
 $session->flush;
@@ -389,10 +388,10 @@ sub myMockedget_from_session {
 
 }
 
-my $getfrom = new Test::MockModule( 'C4::Search::History' );
+my $getfrom = Test::MockModule->new( 'C4::Search::History' );
 $getfrom->mock( 'get_from_session', \&myMockedget_from_session );
 
-my $cgi = new Test::MockModule( 'CGI');
+my $cgi = Test::MockModule->new( 'CGI');
 $cgi->mock('cookie', sub {
    my ($self, $key) = @_;
   if (!ref($key) && $key eq 'CGISESSID'){
@@ -409,7 +408,7 @@ sub MockedCheckauth {
         borrowers         => 0,
         catalogue         => 1, circulate         => 0,
         coursereserves    => 0, editauthorities   => 0,
-        editcatalogue     => 0, management        => 0,
+        editcatalogue     => 0,
         parameters        => 0, permissions       => 0,
         plugins           => 0, reports           => 0,
         reserveforothers  => 0, serials           => 0,
@@ -426,7 +425,7 @@ sub MockedCheckauth {
 }
 
 # Mock checkauth
-my $auth = new Test::MockModule( 'C4::Auth' );
+my $auth = Test::MockModule->new( 'C4::Auth' );
 $auth->mock( 'checkauth', \&MockedCheckauth );
 
 $query->param('koha_login_context', 'opac');
@@ -442,7 +441,6 @@ my ( $template, $loggedinuser, $cookies ) = get_template_and_user(
         template_name   => "opac-user.tt",
         query           => $query,
         type            => "opac",
-        authnotrequired => 0,
         debug           => 1
     }
 );
@@ -468,7 +466,6 @@ $result = $schema->resultset('SearchHistory')->search()->count;
         template_name   => "opac-user.tt",
         query           => $query,
         type            => "opac",
-        authnotrequired => 0,
         debug           => 1
     }
 );

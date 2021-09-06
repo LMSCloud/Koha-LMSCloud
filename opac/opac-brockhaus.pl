@@ -18,19 +18,15 @@
 # along with Koha; if not, see <http://www.gnu.org/licenses>.
 
 use Modern::Perl;
-
-use utf8;
-
 use CGI;
 
 use C4::Auth qw(checkauth);
 use C4::Context;
 use C4::Debug;
-use C4::Output qw(:html :ajax pagination_bar);
 use C4::External::Brockhaus;
 use JSON;
 
-my $query = CGI->new();
+my $query = CGI->new;
 my ($userid, $cookie, $sessionID) = checkauth( $query, 1, {}, 'opac' );
 
 my $result = undef;

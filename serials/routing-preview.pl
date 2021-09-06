@@ -16,7 +16,7 @@
 # along with Koha; if not, see <http://www.gnu.org/licenses>.
 
 # Routing Preview.pl script used to view a routing list after creation
-# lets one print out routing slip and create (in this instance) the heirarchy
+# lets one print out routing slip and create (in this instance) the hierarchy
 # of reserves for the serial
 use Modern::Perl;
 use CGI qw ( -utf8 );
@@ -37,7 +37,7 @@ use Koha::Biblios;
 use Koha::Libraries;
 use Koha::Patrons;
 
-my $query = new CGI;
+my $query = CGI->new;
 my $subscriptionid = $query->param('subscriptionid');
 my $issue = $query->param('issue');
 my $routingid;
@@ -94,7 +94,16 @@ if($ok){
                     branchcode     => $branch
                 });
             } else {
-                AddReserve($branch,$routing->{borrowernumber},$biblionumber,undef,$routing->{ranking}, undef, undef, $notes,$title);
+                AddReserve(
+                    {
+                        branchcode     => $branch,
+                        borrowernumber => $routing->{borrowernumber},
+                        biblionumber   => $biblionumber,
+                        priority       => $routing->{ranking},
+                        notes          => $notes,
+                        title          => $title,
+                    }
+                );
         }
     }
 	}
@@ -103,7 +112,6 @@ if($ok){
 = get_template_and_user({template_name => "serials/routing-preview-slip.tt",
 				query => $query,
 				type => "intranet",
-				authnotrequired => 0,
 				flagsrequired => {serials => '*'},
 				debug => 1,
 				});
@@ -112,7 +120,6 @@ if($ok){
 = get_template_and_user({template_name => "serials/routing-preview.tt",
 				query => $query,
 				type => "intranet",
-				authnotrequired => 0,
 				flagsrequired => {serials => '*'},
 				debug => 1,
 				});

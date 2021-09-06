@@ -23,7 +23,6 @@ use t::lib::TestBuilder;
 
 use C4::Circulation;
 use C4::Items;
-use C4::Members;
 use C4::Biblio;
 use Koha::Library;
 use Koha::Patrons;
@@ -31,12 +30,9 @@ use MARC::Record;
 
 my $schema = Koha::Database->schema;
 $schema->storage->txn_begin;
+my $dbh = C4::Context->dbh;
 
 my $builder = t::lib::TestBuilder->new;
-
-my $dbh = C4::Context->dbh;
-$dbh->{AutoCommit} = 0;
-$dbh->{RaiseError} = 1;
 
 $dbh->do(q|DELETE FROM issues|);
 $dbh->do(q|DELETE FROM items|);
@@ -65,17 +61,18 @@ my %item_info = (
 
 my ($biblionumber1) = AddBiblio(MARC::Record->new, '');
 my $barcode1 = '0101';
-AddItem({ barcode => $barcode1, %item_info }, $biblionumber1);
+Koha::Item->new({ barcode => $barcode1, %item_info, biblionumber => $biblionumber1 })->store;
 my ($biblionumber2) = AddBiblio(MARC::Record->new, '');
 my $barcode2 = '0202';
-AddItem({ barcode => $barcode2, %item_info }, $biblionumber2);
+Koha::Item->new({ barcode => $barcode2, %item_info, biblionumber => $biblionumber2 })->store;
 
-my $borrowernumber1 = AddMember(categorycode => $categorycode, branchcode => $branchcode);
-my $borrowernumber2 = AddMember(categorycode => $categorycode, branchcode => $branchcode);
+my $borrowernumber1 = Koha::Patron->new({categorycode => $categorycode, branchcode => $branchcode})->store->borrowernumber;
+my $borrowernumber2 = Koha::Patron->new({categorycode => $categorycode, branchcode => $branchcode})->store->borrowernumber;
+# FIXME following code must be simplified to use the Koha::Patron objects
 my $borrower1 = Koha::Patrons->find( $borrowernumber1 )->unblessed;
 my $borrower2 = Koha::Patrons->find( $borrowernumber2 )->unblessed;
 
-my $module = new Test::MockModule('C4::Context');
+my $module = Test::MockModule->new('C4::Context');
 $module->mock('userenv', sub { { branch => $branchcode } });
 
 
@@ -125,6 +122,3 @@ $check_if_issued = C4::Circulation::CheckIfIssuedToPatron($borrowernumber2, $bib
 is( $check_if_issued, undef, 'CheckIfIssuedToPatron returns undef' );
 $check_if_issued = C4::Circulation::CheckIfIssuedToPatron($borrowernumber2, $biblionumber2);
 is( $check_if_issued, 1, 'CheckIfIssuedToPatron returns true' );
-
-$dbh->rollback();
-

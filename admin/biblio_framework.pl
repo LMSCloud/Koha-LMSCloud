@@ -28,7 +28,7 @@ use Koha::BiblioFramework;
 use Koha::BiblioFrameworks;
 use Koha::Caches;
 
-my $input         = new CGI;
+my $input         = CGI->new;
 my $frameworkcode = $input->param('frameworkcode') || q||;
 my $op            = $input->param('op') || q|list|;
 my $cache         = Koha::Caches->get_instance();
@@ -38,8 +38,7 @@ my ( $template, $borrowernumber, $cookie ) = get_template_and_user(
     {   template_name   => "admin/biblio_framework.tt",
         query           => $input,
         type            => "intranet",
-        authnotrequired => 0,
-        flagsrequired   => { parameters => 'parameters_remaining_permissions' },
+        flagsrequired   => { parameters => 'manage_marc_frameworks' },
         debug           => 1,
     }
 );

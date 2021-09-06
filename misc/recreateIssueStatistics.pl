@@ -4,28 +4,31 @@
 #
 # This file is part of Koha.
 #
-# Koha is free software; you can redistribute it and/or modify it under the
-# terms of the GNU General Public License as published by the Free Software
-# Foundation; either version 2 of the License, or (at your option) any later
-# version.
+# Koha is free software; you can redistribute it and/or modify it
+# under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 3 of the License, or
+# (at your option) any later version.
 #
-# Koha is distributed in the hope that it will be useful, but WITHOUT ANY
-# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
-# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+# Koha is distributed in the hope that it will be useful, but
+# WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+# GNU General Public License for more details.
 #
-# You should have received a copy of the GNU General Public License along
-# with Koha; if not, write to the Free Software Foundation, Inc.,
-# 51 Franklin Street, Suite 500, Boston, MA 02110-1335, USA
+# You should have received a copy of the GNU General Public License
+# along with Koha; if not, see <http://www.gnu.org/licenses>.
 
 
 # Re-create statistics from issues and old_issues tables
 
 use strict;
 use warnings;
+
+use Koha::Script;
 use C4::Context;
 use C4::Items;
 use Data::Dumper;
 use Getopt::Long;
+use Koha::Items;
 
 my $dbh = C4::Context->dbh;
 
@@ -73,7 +76,8 @@ if ($issues == 1) {
 		    my $insert = "INSERT INTO statistics (datetime, branch, value, type, other, itemnumber, itemtype, borrowernumber)
 					 VALUES(?, ?, ?, ?, ?, ?, ?, ?)";
 		    $substh = $dbh->prepare($insert);
-		    my $item = GetItem($hashref->{'itemnumber'});
+            my $item = Koha::Items->find($hashref->{'itemnumber'});
+            my $itemtype = $item->effective_itemtype;
 
 		    $substh->execute(
 			$hashref->{'issuedate'},
@@ -82,10 +86,10 @@ if ($issues == 1) {
 			'issue',
 			'',
 			$hashref->{'itemnumber'},
-			$item->{'itype'},
+            $itemtype,
 			$hashref->{'borrowernumber'}
 		    );
-		    print "date: $hashref->{'issuedate'} branchcode: $hashref->{'branchcode'} type: issue itemnumber: $hashref->{'itemnumber'} itype: $item->{'itype'} borrowernumber: $hashref->{'borrowernumber'}\n";
+            print "date: $hashref->{'issuedate'} branchcode: $hashref->{'branchcode'} type: issue itemnumber: $hashref->{'itemnumber'} itype: $itemtype borrowernumber: $hashref->{'borrowernumber'}\n";
 		    $count_issues++;
 		}
 
@@ -106,7 +110,8 @@ if ($issues == 1) {
 			my $insert = "INSERT INTO statistics (datetime, branch, value, type, other, itemnumber, itemtype, borrowernumber)
 					 VALUES(?, ?, ?, ?, ?, ?, ?, ?)";
 			$substh = $dbh->prepare($insert);
-			my $item = GetItem($hashref->{'itemnumber'});
+            my $item = Koha::Items->find($hashref->{'itemnumber'});
+            my $itemtype = $item->effective_itemtype;
 
 			$substh->execute(
 			    $hashref->{'lastreneweddate'},
@@ -115,10 +120,10 @@ if ($issues == 1) {
 			    'renew',
 			    '',
 			    $hashref->{'itemnumber'},
-			    $item->{'itype'},
+                $itemtype,
 			    $hashref->{'borrowernumber'}
 			    );
-			print "date: $hashref->{'lastreneweddate'} branchcode: $hashref->{'branchcode'} type: renew itemnumber: $hashref->{'itemnumber'} itype: $item->{'itype'} borrowernumber: $hashref->{'borrowernumber'}\n";
+            print "date: $hashref->{'lastreneweddate'} branchcode: $hashref->{'branchcode'} type: renew itemnumber: $hashref->{'itemnumber'} itype: $itemtype borrowernumber: $hashref->{'borrowernumber'}\n";
 			$count_renewals++;
 
 		    }
@@ -145,7 +150,8 @@ if ($returns == 1) {
 		my $insert = "INSERT INTO statistics (datetime, branch, value, type, other, itemnumber, itemtype, borrowernumber)
 				     VALUES(?, ?, ?, ?, ?, ?, ?, ?)";
 		$substh = $dbh->prepare($insert);
-		my $item = GetItem($hashref->{'itemnumber'});
+        my $item = Koha::Items->find($hashref->{'itemnumber'});
+        my $itemtype = $item->effective_itemtype;
 
 		$substh->execute(
 		    $hashref->{'returndate'},
@@ -154,10 +160,10 @@ if ($returns == 1) {
 		    'return',
 		    '',
 		    $hashref->{'itemnumber'},
-		    $item->{'itype'},
+            $itemtype,
 		    $hashref->{'borrowernumber'}
 		);
-		print "date: $hashref->{'returndate'} branchcode: $hashref->{'branchcode'} type: return itemnumber: $hashref->{'itemnumber'} itype: $item->{'itype'} borrowernumber: $hashref->{'borrowernumber'}\n";
+        print "date: $hashref->{'returndate'} branchcode: $hashref->{'branchcode'} type: return itemnumber: $hashref->{'itemnumber'} itype: $itemtype borrowernumber: $hashref->{'borrowernumber'}\n";
 		$count_returns++;
 	    }
 

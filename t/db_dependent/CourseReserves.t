@@ -34,8 +34,6 @@ BEGIN {
 my $schema = Koha::Database->schema;
 $schema->storage->txn_begin;
 my $builder = t::lib::TestBuilder->new;
-my $dbh = C4::Context->dbh;
-$dbh->{RaiseError} = 1;
 
 my $branchcode = $builder->build( { source => 'Branch' } )->{branchcode};
 my $itemtype = $builder->build(
@@ -50,13 +48,14 @@ foreach (1..10) {
 # Create the a record with an item
 my $record = MARC::Record->new;
 my ( $biblionumber, $biblioitemnumber ) = C4::Biblio::AddBiblio($record, '');
-my ( undef, undef, $itemnumber ) = C4::Items::AddItem(
-    {   homebranch    => $branchcode,
+my $itemnumber = Koha::Item->new(
+    {
+        biblionumber  => $biblionumber,
+        homebranch    => $branchcode,
         holdingbranch => $branchcode,
         itype         => $itemtype
     },
-    $biblionumber
-);
+)->store->itemnumber;
 
 my $course_id = ModCourse(
     course_name => "Test Course",

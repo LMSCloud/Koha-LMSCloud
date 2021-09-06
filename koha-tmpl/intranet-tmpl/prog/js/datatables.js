@@ -1,40 +1,69 @@
 // These default options are for translation but can be used
 // for any other datatables settings
-// MSG_DT_* variables comes from datatables.inc
 // To use it, write:
 //  $("#table_id").dataTable($.extend(true, {}, dataTableDefaults, {
 //      // other settings
 //  } ) );
 var dataTablesDefaults = {
-    "oLanguage": {
-        "oPaginate": {
-            "sFirst"    : window.MSG_DT_FIRST || "First",
-            "sLast"     : window.MSG_DT_LAST || "Last",
-            "sNext"     : window.MSG_DT_NEXT || "Next",
-            "sPrevious" : window.MSG_DT_PREVIOUS || "Previous"
+    "language": {
+        "paginate": {
+            "first"    : __('First'),
+            "last"     : __('Last'),
+            "next"     : __('Next'),
+            "previous" : __('Previous'),
         },
-        "sEmptyTable"       : window.MSG_DT_EMPTY_TABLE || "No data available in table",
-        "sInfo"             : window.MSG_DT_INFO || "Showing _START_ to _END_ of _TOTAL_ entries",
-        "sInfoEmpty"        : window.MSG_DT_INFO_EMPTY || "No entries to show",
-        "sInfoFiltered"     : window.MSG_DT_INFO_FILTERED || "(filtered from _MAX_ total entries)",
-        "sLengthMenu"       : window.MSG_DT_LENGTH_MENU || "Show _MENU_ entries",
-        "sLoadingRecords"   : window.MSG_DT_LOADING_RECORDS || "Loading...",
-        "sProcessing"       : window.MSG_DT_PROCESSING || "Processing...",
-        "sSearch"           : window.MSG_DT_SEARCH || "Search:",
-        "sZeroRecords"      : window.MSG_DT_ZERO_RECORDS || "No matching records found",
+        "emptyTable"       : __('No data available in table'),
+        "info"             : __('Showing _START_ to _END_ of _TOTAL_ entries'),
+        "infoEmpty"        : __('No entries to show'),
+        "infoFiltered"     : __('(filtered from _MAX_ total entries)'),
+        "lengthMenu"       : __('Show _MENU_ entries'),
+        "loadingRecords"   : __('Loading...'),
+        "processing"       : __('Processing...'),
+        "search"           : __('Search:'),
+        "zeroRecords"      : __('No matching records found'),
         buttons: {
-            "copyTitle"     : window.MSG_DT_COPY_TITLE || "Copy to clipboard",
-            "copyKeys"      : window.MSG_DT_COPY_KEYS || "Press <i>ctrl</i> or <i>⌘</i> + <i>C</i> to copy the table data<br>to your system clipboard.<br><br>To cancel, click this message or press escape.",
+            "copyTitle"     : __('Copy to clipboard'),
+            "copyKeys"      : __('Press <i>ctrl</i> or <i>⌘</i> + <i>C</i> to copy the table data<br>to your system clipboard.<br><br>To cancel, click this message or press escape.'),
             "copySuccess": {
-                _: window.MSG_DT_COPY_SUCCESS_X || "Copied %d rows to clipboard",
-                1: window.MSG_DT_COPY_SUCCESS_ONE || "Copied one row to clipboard"
+                _: __('Copied %d rows to clipboard'),
+                1: __('Copied one row to clipboard'),
             }
         }
     },
-    "dom": '<"top pager"ilpfB>tr<"bottom pager"ip>',
-    "buttons": [],
-    "aLengthMenu": [[10, 20, 50, 100, -1], [10, 20, 50, 100, window.MSG_DT_ALL || "All"]],
-    "iDisplayLength": 20
+    "dom": '<"top pager"<"table_entries"ilp><"table_controls"fB>>tr<"bottom pager"ip>',
+    "buttons": [{
+        fade: 100,
+        className: "dt_button_clear_filter",
+        titleAttr: __('Clear filter'),
+        enabled: false,
+        text: '<i class="fa fa-lg fa-remove"></i> <span class="dt-button-text">' + __('Clear filter') + '</span>',
+        available: function ( dt ) {
+            // The "clear filter" button is made available if this test returns true
+            if( dt.settings()[0].aanFeatures.f ){ // aanFeatures.f is null if there is no search form
+                return true;
+            }
+        },
+        action: function ( e, dt, node ) {
+            dt.search( "" ).draw("page");
+            node.addClass("disabled");
+        }
+    }],
+    "lengthMenu": [[10, 20, 50, 100, -1], [10, 20, 50, 100, __('All')]],
+    "pageLength": 20,
+    "fixedHeader": true,
+    initComplete: function( settings) {
+        var tableId = settings.nTable.id
+        // When the DataTables search function is triggered,
+        // enable or disable the "Clear filter" button based on
+        // the presence of a search string
+        $("#" + tableId ).on( 'search.dt', function ( e, settings ) {
+            if( settings.oPreviousSearch.sSearch == "" ){
+                $("#" + tableId + "_wrapper").find(".dt_button_clear_filter").addClass("disabled");
+            } else {
+                $("#" + tableId + "_wrapper").find(".dt_button_clear_filter").removeClass("disabled");
+            }
+        });
+    }
 };
 
 
@@ -184,108 +213,6 @@ function dt_overwrite_html_sorting_localeCompare() {
     };
 }
 
-$.fn.dataTableExt.oPagination.four_button = {
-    /*
-     * Function: oPagination.four_button.fnInit
-     * Purpose:  Initalise dom elements required for pagination with a list of the pages
-     * Returns:  -
-     * Inputs:   object:oSettings - dataTables settings object
-     *           node:nPaging - the DIV which contains this pagination control
-     *           function:fnCallbackDraw - draw function which must be called on update
-     */
-    "fnInit": function ( oSettings, nPaging, fnCallbackDraw )
-    {
-        nFirst = document.createElement( 'span' );
-        nPrevious = document.createElement( 'span' );
-        nNext = document.createElement( 'span' );
-        nLast = document.createElement( 'span' );
-
-        nFirst.appendChild( document.createTextNode( oSettings.oLanguage.oPaginate.sFirst ) );
-        nPrevious.appendChild( document.createTextNode( oSettings.oLanguage.oPaginate.sPrevious ) );
-        nNext.appendChild( document.createTextNode( oSettings.oLanguage.oPaginate.sNext ) );
-        nLast.appendChild( document.createTextNode( oSettings.oLanguage.oPaginate.sLast ) );
-
-        nFirst.className = "paginate_button first";
-        nPrevious.className = "paginate_button previous";
-        nNext.className="paginate_button next";
-        nLast.className = "paginate_button last";
-
-        nPaging.appendChild( nFirst );
-        nPaging.appendChild( nPrevious );
-        nPaging.appendChild( nNext );
-        nPaging.appendChild( nLast );
-
-        $(nFirst).click( function () {
-            oSettings.oApi._fnPageChange( oSettings, "first" );
-            fnCallbackDraw( oSettings );
-        } );
-
-        $(nPrevious).click( function() {
-            oSettings.oApi._fnPageChange( oSettings, "previous" );
-            fnCallbackDraw( oSettings );
-        } );
-
-        $(nNext).click( function() {
-            oSettings.oApi._fnPageChange( oSettings, "next" );
-            fnCallbackDraw( oSettings );
-        } );
-
-        $(nLast).click( function() {
-            oSettings.oApi._fnPageChange( oSettings, "last" );
-            fnCallbackDraw( oSettings );
-        } );
-
-        /* Disallow text selection */
-        $(nFirst).bind( 'selectstart', function () { return false; } );
-        $(nPrevious).bind( 'selectstart', function () { return false; } );
-        $(nNext).bind( 'selectstart', function () { return false; } );
-        $(nLast).bind( 'selectstart', function () { return false; } );
-    },
-
-    /*
-     * Function: oPagination.four_button.fnUpdate
-     * Purpose:  Update the list of page buttons shows
-     * Returns:  -
-     * Inputs:   object:oSettings - dataTables settings object
-     *           function:fnCallbackDraw - draw function which must be called on update
-     */
-    "fnUpdate": function ( oSettings, fnCallbackDraw )
-    {
-        if ( !oSettings.aanFeatures.p )
-        {
-            return;
-        }
-
-        /* Loop over each instance of the pager */
-        var an = oSettings.aanFeatures.p;
-        for ( var i=0, iLen=an.length ; i<iLen ; i++ )
-        {
-            var buttons = an[i].getElementsByTagName('span');
-            if ( oSettings._iDisplayStart === 0 )
-            {
-                buttons[0].className = "paginate_disabled_first";
-                buttons[1].className = "paginate_disabled_previous";
-            }
-            else
-            {
-                buttons[0].className = "paginate_enabled_first";
-                buttons[1].className = "paginate_enabled_previous";
-            }
-
-            if ( oSettings.fnDisplayEnd() == oSettings.fnRecordsDisplay() )
-            {
-                buttons[2].className = "paginate_disabled_next";
-                buttons[3].className = "paginate_disabled_last";
-            }
-            else
-            {
-                buttons[2].className = "paginate_enabled_next";
-                buttons[3].className = "paginate_enabled_last";
-            }
-        }
-    }
-};
-
 $.fn.dataTableExt.oSort['num-html-asc']  = function(a,b) {
     var x = a.replace( /<.*?>/g, "" );
     var y = b.replace( /<.*?>/g, "" );
@@ -371,7 +298,11 @@ jQuery.extend( jQuery.fn.dataTableExt.oSort, {
  */
 jQuery.extend( jQuery.fn.dataTableExt.oSort, {
     "title-string-pre": function ( a ) {
-        return a.match(/title="(.*?)"/)[1].toLowerCase();
+        var m = a.match(/title="(.*?)"/);
+        if ( null !== m && m.length ) {
+            return m[1].toLowerCase();
+        }
+        return "";
     },
 
     "title-string-asc": function ( a, b ) {
@@ -425,8 +356,9 @@ jQuery.extend( jQuery.fn.dataTableExt.oSort, {
      * from a configuration file (in English, "a," "an," and "the")
      */
 
-    if(CONFIG_EXCLUDE_ARTICLES_FROM_SORT){
-        var articles = CONFIG_EXCLUDE_ARTICLES_FROM_SORT.split(" ");
+    var config_exclude_articles_from_sort = __('a an the');
+    if (config_exclude_articles_from_sort){
+        var articles = config_exclude_articles_from_sort.split(" ");
         var rpattern = "";
         for(i=0;i<articles.length;i++){
             rpattern += "^" + articles[i] + " ";
@@ -554,8 +486,15 @@ function footer_column_sum( api, column_numbers ) {
 
         var total = 0;
         var cells = api.column( column_number, { page: 'current' } ).nodes().to$().find("span.total_amount");
+        var budgets_totaled = [];
+        $(cells).each(function(){ budgets_totaled.push( $(this).data('self_id') ); });
         $(cells).each(function(){
-            total += intVal( $(this).html() );
+            if( $(this).data('parent_id') && $.inArray( $(this).data('parent_id'), budgets_totaled) > -1 ){
+                return;
+            } else {
+                total += intVal( $(this).html() );
+            }
+
         });
         total /= 100; // Hard-coded decimal precision
 
@@ -563,3 +502,315 @@ function footer_column_sum( api, column_numbers ) {
         $( api.column( column_number ).footer() ).html(total.format_price());
     };
 }
+
+function filterDataTable( table, column, term ){
+    if( column ){
+        table.column( column ).search( term ).draw("page");
+    } else {
+        table.search( term ).draw("page");
+    }
+}
+
+jQuery.fn.dataTable.ext.errMode = function(settings, note, message) {
+    console.warn(message);
+};
+
+(function($) {
+
+    $.fn.api = function(options, columns_settings, add_filters, default_filters) {
+        var settings = null;
+
+        if ( add_filters ) {
+            $(this).find('thead tr').clone(true).appendTo( $(this).find('thead') );
+        }
+
+        if(options) {
+            if(!options.criteria || ['contains', 'starts_with', 'ends_with', 'exact'].indexOf(options.criteria.toLowerCase()) === -1) options.criteria = 'contains';
+            options.criteria = options.criteria.toLowerCase();
+            settings = $.extend(true, {}, dataTablesDefaults, {
+                        'deferRender': true,
+                        "paging": true,
+                        'serverSide': true,
+                        'searching': true,
+                        'pagingType': 'full_numbers',
+                        'processing': true,
+                        'language': {
+                            'emptyTable': (options.emptyTable) ? options.emptyTable : __("No data available in table")
+                        },
+                        'ajax': {
+                            'type': 'GET',
+                            'cache': true,
+                            'dataSrc': 'data',
+                            'beforeSend': function(xhr, settings) {
+                                this._xhr = xhr;
+                                if(options.embed) {
+                                    xhr.setRequestHeader('x-koha-embed', Array.isArray(options.embed)?options.embed.join(','):options.embed);
+                                }
+                                if(options.header_filter && options.query_parameters) {
+                                    xhr.setRequestHeader('x-koha-query', options.query_parameters);
+                                    delete options.query_parameters;
+                                }
+                            },
+                            'dataFilter': function(data, type) {
+                                var json = {data: JSON.parse(data)};
+                                if(total = this._xhr.getResponseHeader('x-total-count')) {
+                                    json.recordsTotal = total;
+                                    json.recordsFiltered = total;
+                                }
+                                if(total = this._xhr.getResponseHeader('x-base-total-count')) {
+                                    json.recordsTotal = total;
+                                }
+                                return JSON.stringify(json);
+                            },
+                            'data': function( data, settings ) {
+                                var length = data.length;
+                                var start  = data.start;
+
+                                var dataSet = {
+                                    _page: Math.floor(start/length) + 1,
+                                    _per_page: length
+                                };
+
+
+                                function build_query(col, value){
+                                    var parts = [];
+                                    var attributes = col.data.split(':');
+                                    for (var i=0;i<attributes.length;i++){
+                                        var part = {};
+                                        var attr = attributes[i];
+                                        part[!attr.includes('.')?'me.'+attr:attr] = options.criteria === 'exact'
+                                            ? value
+                                            : {like: (['contains', 'ends_with'].indexOf(options.criteria) !== -1?'%':'') + value + (['contains', 'starts_with'].indexOf(options.criteria) !== -1?'%':'')};
+                                        parts.push(part);
+                                    }
+                                    return parts;
+                                }
+
+                                var filter = data.search.value;
+                                // Build query for each column filter
+                                var and_query_parameters = settings.aoColumns
+                                .filter(function(col) {
+                                    return col.bSearchable && typeof col.data == 'string' && data.columns[col.idx].search.value != ''
+                                })
+                                .map(function(col) {
+                                    var value = data.columns[col.idx].search.value;
+                                    return build_query(col, value)
+                                })
+                                .map(function r(e){
+                                    return ($.isArray(e) ? $.map(e, r) : e);
+                                });
+
+                                // Build query for the global search filter
+                                var or_query_parameters = settings.aoColumns
+                                .filter(function(col) {
+                                    return col.bSearchable && typeof col.data == 'string' && data.columns[col.idx].search.value == '' && filter != ''
+                                })
+                                .map(function(col) {
+                                    var value = filter;
+                                    return build_query(col, value)
+                                })
+                                .map(function r(e){
+                                    return ($.isArray(e) ? $.map(e, r) : e);
+                                });
+
+                                if ( default_filters ) {
+                                    and_query_parameters.push(default_filters);
+                                }
+                                query_parameters = and_query_parameters;
+                                query_parameters.push(or_query_parameters);
+                                if(query_parameters.length) {
+                                    query_parameters = JSON.stringify(query_parameters.length === 1?query_parameters[0]:{"-and": query_parameters});
+                                    if(options.header_filter) {
+                                        options.query_parameters = query_parameters;
+                                    } else {
+                                        dataSet.q = query_parameters;
+                                        delete options.query_parameters;
+                                    }
+                                } else {
+                                    delete options.query_parameters;
+                                }
+
+                                dataSet._match = options.criteria;
+
+                                if(options.columns) {
+                                    var order = data.order;
+                                    var orderArray = new Array();
+                                    order.forEach(function (e,i) {
+                                        var order_col      = e.column;
+                                        var order_by       = options.columns[order_col].data;
+                                        order_by           = order_by.split(':');
+                                        var order_dir      = e.dir == 'asc' ? '+' : '-';
+                                        Array.prototype.push.apply(orderArray,order_by.map(x => order_dir + (!x.includes('.')?'me.'+x:x)));
+                                    });
+                                    dataSet._order_by = orderArray.filter((v, i, a) => a.indexOf(v) === i).join(',');
+                                }
+
+                                return dataSet;
+                            }
+                        }
+                    }, options);
+        }
+
+        var counter = 0;
+        var hidden_ids = [];
+        var included_ids = [];
+
+        $(columns_settings).each( function() {
+            var named_id = $( 'thead th[data-colname="' + this.columnname + '"]', this ).index( 'th' );
+            var used_id = settings.bKohaColumnsUseNames ? named_id : counter;
+            if ( used_id == -1 ) return;
+
+            if ( this['is_hidden'] == "1" ) {
+                hidden_ids.push( used_id );
+            }
+            if ( this['cannot_be_toggled'] == "0" ) {
+                included_ids.push( used_id );
+            }
+            counter++;
+        });
+
+        var exportColumns = ":visible:not(.noExport)";
+        if( settings.hasOwnProperty("exportColumns") ){
+            // A custom buttons configuration has been passed from the page
+            exportColumns = settings["exportColumns"];
+        }
+
+        var export_format = {
+            body: function ( data, row, column, node ) {
+                var newnode = $(node);
+
+                if ( newnode.find(".noExport").length > 0 ) {
+                    newnode = newnode.clone();
+                    newnode.find(".noExport").remove();
+                }
+
+                return newnode.text().replace( /\n/g, ' ' ).trim();
+            }
+        }
+
+        var export_buttons = [
+            {
+                extend: 'excelHtml5',
+                text: __("Excel"),
+                exportOptions: {
+                    columns: exportColumns,
+                    format:  export_format
+                },
+            },
+            {
+                extend: 'csvHtml5',
+                text: __("CSV"),
+                exportOptions: {
+                    columns: exportColumns,
+                    format:  export_format
+                },
+            },
+            {
+                extend: 'copyHtml5',
+                text: __("Copy"),
+                exportOptions: {
+                    columns: exportColumns,
+                    format:  export_format
+                },
+            },
+            {
+                extend: 'print',
+                text: __("Print"),
+                exportOptions: {
+                    columns: exportColumns,
+                    format:  export_format
+                },
+            }
+        ];
+
+        settings[ "buttons" ] = [
+            {
+                fade: 100,
+                className: "dt_button_clear_filter",
+                titleAttr: __("Clear filter"),
+                enabled: false,
+                text: '<i class="fa fa-lg fa-remove"></i> <span class="dt-button-text">' + __("Clear filter") + '</span>',
+                action: function ( e, dt, node, config ) {
+                    dt.search( "" ).draw("page");
+                    node.addClass("disabled");
+                }
+            }
+        ];
+
+        if( included_ids.length > 0 ){
+            settings[ "buttons" ].push(
+                {
+                    extend: 'colvis',
+                    fade: 100,
+                    columns: included_ids,
+                    className: "columns_controls",
+                    titleAttr: __("Columns settings"),
+                    text: '<i class="fa fa-lg fa-gear"></i> <span class="dt-button-text">' + __("Columns") + '</span>',
+                    exportOptions: {
+                        columns: exportColumns
+                    }
+                }
+            );
+        }
+
+        settings[ "buttons" ].push(
+            {
+                extend: 'collection',
+                autoClose: true,
+                fade: 100,
+                className: "export_controls",
+                titleAttr: __("Export or print"),
+                text: '<i class="fa fa-lg fa-download"></i> <span class="dt-button-text">' + __("Export") + '</span>',
+                buttons: export_buttons
+            }
+        );
+
+        $(".dt_button_clear_filter, .columns_controls, .export_controls").tooltip();
+
+        if ( add_filters ) {
+            settings['orderCellsTop'] = true;
+        }
+
+        var table = $(this).dataTable(settings);
+
+        table.DataTable().on("column-visibility.dt", function(){
+            if( typeof columnsInit == 'function' ){
+                // This function can be created separately and used to trigger
+                // an event after the DataTable has loaded AND column visibility
+                // has been updated according to the table's configuration
+                columnsInit();
+            }
+        }).columns( hidden_ids ).visible( false );
+
+        if ( add_filters ) {
+            var table_dt = table.DataTable();
+            $(this).find('thead tr:eq(1) th').each( function (i) {
+                var is_searchable = table_dt.settings()[0].aoColumns[i].bSearchable;
+                if ( is_searchable ) {
+                    var title = $(this).text();
+                    var existing_search = table_dt.column(i).search();
+                    if ( existing_search ) {
+                        $(this).html( '<input type="text" value="%s" style="width: 100%" />'.format(existing_search) );
+                    } else {
+                        var search_title = _("%s search").format(title);
+                        $(this).html( '<input type="text" placeholder="%s" style="width: 100%" />'.format(search_title) );
+                    }
+
+                    $( 'input', this ).on( 'keyup change', function () {
+                        if ( table_dt.column(i).search() !== this.value ) {
+                            table_dt
+                                .column(i)
+                                .search( this.value )
+                                .draw();
+                        }
+                    } );
+                } else {
+                    $(this).html('');
+                }
+            } );
+        }
+
+        return table;
+    };
+
+})(jQuery);

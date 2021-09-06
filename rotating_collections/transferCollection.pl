@@ -25,7 +25,7 @@ use C4::RotatingCollections;
 
 use CGI qw ( -utf8 );
 
-my $query = new CGI;
+my $query = CGI->new;
 
 my $colId    = $query->param('colId');
 my $toBranch = $query->param('toBranch');
@@ -35,26 +35,27 @@ my ( $template, $loggedinuser, $cookie ) = get_template_and_user(
         template_name   => "rotating_collections/transferCollection.tt",
         query           => $query,
         type            => "intranet",
-        authnotrequired => 0,
         flagsrequired   => { tools => 'rotating_collections' },
         debug           => 1,
     }
 );
 
 ## Transfer collection
-my ( $success, $errorCode, $errorMessage );
+my ( $success, $messages );
 if ($toBranch) {
-    ( $success, $errorCode, $errorMessage ) =
+    ( $success, $messages ) =
       TransferCollection( $colId, $toBranch );
 
     if ($success) {
-        $template->param( transferSuccess => 1 );
+        $template->param(
+            transferSuccess => 1,
+            messages        => $messages
+        );
     }
     else {
         $template->param(
             transferFailure => 1,
-            errorCode       => $errorCode,
-            errorMessage    => $errorMessage
+            messages        => $messages
         );
     }
 }

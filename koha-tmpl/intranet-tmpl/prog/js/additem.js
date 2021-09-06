@@ -1,3 +1,5 @@
+/* global __ */
+/* exported addItem checkCount showItem deleteItemBlock clearItemBlock check_additem */
 function addItem( node, unique_item_fields ) {
     var index = $(node).closest("div").attr('id');
     var current_qty = parseInt($("#quantity").val());
@@ -12,13 +14,12 @@ function addItem( node, unique_item_fields ) {
             if ( current_qty < max_qty - 1 )
                 cloneItemBlock(index, unique_item_fields);
             addItemInList(index, unique_item_fields);
-            $("#" + index).find("input[name='buttonPlus']").val( (window.MSG_ADDITEM_JS_UPDATEITEM ) );
+            $("#" + index).find("input[name='buttonPlus']").val( __("Update item") );
             $("#"+ index).find("input[name='buttonPlusMulti']").remove();
             $("#" + index).find("input[name='multiValue']").remove();
             $("#quantity").val(current_qty + 1).change();
         } else if ( current_qty >= max_qty ) {
-            alert(window.MSG_ADDITEM_JS_CANT_RECEIVE_MORE_ITEMS
-                || "You can't receive any more items.");
+            alert( __("You can't receive any more items") );
         }
     } else {
         if ( current_qty < max_qty )
@@ -36,26 +37,25 @@ function addMulti( count, node, unique_item_fields){
     $("#procModal").modal('show');
     $("#" + index).hide();
     for(var i=0;i<count;i++){
-       cloneItemBlock(index, unique_item_fields, function(cloneIndex){
+        cloneItemBlock(index, unique_item_fields, function(cloneIndex){
             addItemInList(cloneIndex,unique_item_fields, function(){
-                    if( ($("#items_list tbody tr").length-countItemsBefore)==(count)){
-                        $("#multiValue").val('');
-                        $('#'+index).appendTo('#outeritemblock');
-                        $('#'+index).show();
-                        $('#'+index + ' #add_multiple_copies' ).css("visibility","hidden");
-                        $("#procModal").modal('hide');
-                    }
+                if( ($("#items_list tbody tr").length-countItemsBefore)==(count)){
+                    $("#multiValue").val('');
+                    $('#'+index).appendTo('#outeritemblock');
+                    $('#'+index).show();
+                    $('#'+index + ' #add_multiple_copies' ).css("visibility","hidden");
+                    $("#procModal").modal('hide');
+                }
             });
-            $("#" + cloneIndex).find("input[name='buttonPlus']").val( (window.MSG_ADDITEM_JS_UPDATEITEM ) );
+            $("#" + cloneIndex).find("input[name='buttonPlus']").val( ( __("Update item") ) );
             $("#" + cloneIndex).find("input[name='buttonPlusMulti']").remove();
             $("#" + cloneIndex).find("input[name='multiValue']").remove();
             $("#" + cloneIndex).hide();
             current_qty++;
             $('#quantity').val( current_qty );
-       });
+        });
     }
 }
-
 
 function checkCount(node, unique_item_fields){
     var count = parseInt( $("#multiValue").val(), 10 );
@@ -87,14 +87,13 @@ function constructTrNode(index, unique_item_fields) {
         'stocknumber', 'ccode', 'itype', 'materials', 'itemnotes'];
 
     var result = "<tr idblock='" + index + "'>";
-    var edit_link = "<a href='#itemfieldset' style='text-decoration:none' onclick='showItem(\"" + index + "\");'>"
-        + (window.MSG_ADDITEM_JS_EDIT || "Edit") + "</a>";
+    var edit_link = "<a href='#itemfieldset' style='text-decoration:none' onclick='showItem(\"" + index + "\");' class='btn btn-default btn-xs'><i class='fa fa-pencil'></i> "
+        + ( __("Edit") ) + "</a>";
     var del_link = "<a style='cursor:pointer' "
-        + "onclick='deleteItemBlock(this, \"" + index + "\", \"" + unique_item_fields + "\");'>"
-        + (window.MSG_ADDITEM_JS_DELETE || "Delete") + "</a>";
-    result += "<td>" + edit_link + "</td>";
-    result += "<td>" + del_link + "</td>";
-    for(i in fields) {
+        + "onclick='deleteItemBlock(this, \"" + index + "\", \"" + unique_item_fields + "\");' class='btn btn-default btn-xs'><i class='fa fa-trash'></i> "
+        + ( __("Delete") ) + "</a>";
+    result += "<td class='actions'>" + edit_link + " " + del_link + "</td>";
+    for(var i in fields) {
         var field = fields[i];
         var field_elt = $("#" + index)
             .find("[name='kohafield'][value='items."+field+"']")
@@ -155,8 +154,8 @@ function cloneItemBlock(index, unique_item_fields, callback) {
     }
     var dont_copy_fields = new Array();
     if(unique_item_fields) {
-        var dont_copy_fields = unique_item_fields.split(' ');
-        for(i in dont_copy_fields) {
+        dont_copy_fields = unique_item_fields.split('|');
+        for(var i in dont_copy_fields) {
             dont_copy_fields[i] = "items." + dont_copy_fields[i];
         }
     }
@@ -167,7 +166,7 @@ function cloneItemBlock(index, unique_item_fields, callback) {
         data: {
             frameworkcode: 'ACQ'
         },
-        success: function(data, textStatus, jqXHR) {
+        success: function(data) {
             /* Create the item block */
             var random = Math.floor(Math.random()*100000); // get a random itemid.
             var clone = $("<div/>", { id: 'itemblock'+random });
@@ -179,15 +178,15 @@ function cloneItemBlock(index, unique_item_fields, callback) {
             });
             /* Add buttons + and Clear */
             var buttonPlus = "<fieldset class=\"action\">";
-                buttonPlus += '<input type="button" class="addItemControl" name="buttonPlus" style="cursor:pointer; margin:0 1em;" onclick="addItem(this,\'' + unique_item_fields + '\')" value="' + (window.MSG_ADDITEM_JS_ADDITEM || 'Add item')+ '" />';
-                buttonPlus += '<input type="button" class="addItemControl cancel" name="buttonClear" style="cursor:pointer;" onclick="clearItemBlock(this)" value="' + (window.MSG_ADDITEM_JS_CLEAR || 'Clear')+ '" />';
-                buttonPlus += '<input type="button" class="addItemControl" name="buttonPlusMulti" onclick="javascript:this.nextSibling.style.display=\'inline\'; return false;" style="cursor:pointer; margin:0 1em;" value="' + (window.MSG_ADDITEM_JS_ADDMULTI || 'Add multiple items')+ '" />';
-                buttonPlus += '<span id="add_multiple_copies" style="display:none">'
-                            +     '<input type="number" class="addItemControl" id="multiValue" name="multiValue" placeholder="'+window.MSG_ADDITEM_JS_MULTIVAL+'" />'
-                            +     '<input type="button" class="addItemControl" name=buttonAddMulti" style="cursor:pointer; margin:0 1em;" onclick="checkCount( this ,\'' + unique_item_fields + '\')" value="' + (window.MSG_ADDITEM_JS_SUBMITMULTI || 'Add') + '" />'
-                            +     '<div class="dialog message">' + window.MSG_ADDITEM_JS_MULTI_UNIQUE_NOTE + '</div>'
-                            + '</span>';
-                buttonPlus += "</fieldset>";
+            buttonPlus += '<input type="button" class="addItemControl" name="buttonPlus" style="cursor:pointer; margin:0 1em;" onclick="addItem(this,\'' + unique_item_fields + '\')" value="' + ( __("Add item") )+ '" />';
+            buttonPlus += '<input type="button" class="addItemControl cancel" name="buttonClear" style="cursor:pointer;" onclick="clearItemBlock(this)" value="' + __("Clear") + '" />';
+            buttonPlus += '<input type="button" class="addItemControl" name="buttonPlusMulti" onclick="javascript:this.nextSibling.style.display=\'inline\'; return false;" style="cursor:pointer; margin:0 1em;" value="' + __("Add multiple items") + '" />';
+            buttonPlus += '<span id="add_multiple_copies" style="display:none">'
+                +     '<input type="text" inputmode="numeric" pattern="[0-9]*" class="addItemControl" id="multiValue" name="multiValue" placeholder="' + __("Number of items to add") + '" />'
+                +     '<input type="button" class="addItemControl" name=buttonAddMulti" style="cursor:pointer; margin:0 1em;" onclick="checkCount( this ,\'' + unique_item_fields + '\')" value="' + __("Add") + '" />'
+                +     '<div class="dialog message">' + __("NOTE: Fields listed in the 'UniqueItemsFields' system preference will not be copied") + '</div>'
+                + '</span>';
+            buttonPlus += "</fieldset>";
             $(clone).append(buttonPlus);
             /* Copy values from the original block (input) */
             $(original).find("input[name='field_value']").each(function(){
@@ -228,7 +227,7 @@ function BindPluginEvents(data) {
     for(var i=0; i<events.length; i++) {
         window[events[i]]();
         if( i<events.length-1 && events[i]==events[i+1] ) { i++; }
-            // normally we find the function name twice
+        // normally we find the function name twice
     }
 }
 
@@ -248,11 +247,11 @@ function check_additem(unique_item_fields) {
     var data = new Object();
     data['field'] = new Array();
     data['value'] = new Array();
-    var array_fields = unique_item_fields.split(' ');
+    var array_fields = unique_item_fields.split('|');
     $(".order_error").empty(); // Clear error div
 
     // Check if a value is duplicated in form
-    for ( field in array_fields ) {
+    for ( var field in array_fields ) {
         var fieldname = array_fields[field];
         if (fieldname == '') {
             continue;
@@ -272,7 +271,7 @@ function check_additem(unique_item_fields) {
             if (sorted_arr[i + 1] == sorted_arr[i]) {
                 $(".order_error").append(
                     fieldname + " '" + sorted_arr[i] + "' "
-                    + (window.MSG_ADDITEM_JS_IS_DUPLICATE || "is duplicated")
+                    + __("is duplicated")
                     + "<br/>");
                 success = false;
             }
@@ -291,14 +290,13 @@ function check_additem(unique_item_fields) {
         dataType: 'json',
         data: data,
         success: function(data) {
-            for (field in data) {
+            for (var field in data) {
                 success = false;
                 for (var i=0; i < data[field].length; i++) {
                     var value = data[field][i];
                     $(".order_error").append(
                         field + " '" + value + "' "
-                        + (window.MSG_ADDITEM_JS_ALREADY_EXISTS_IN_DB
-                            || "already exists in database")
+                        + __("already exists in database")
                         + "<br />"
                     );
                 }

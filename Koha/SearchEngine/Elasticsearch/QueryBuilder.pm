@@ -48,6 +48,112 @@ use URI::Escape;
 
 use C4::Context;
 use Koha::Exceptions;
+use Koha::Caches;
+
+our %index_field_convert = (
+    'kw' => '',
+    'ab' => 'abstract',
+    'au' => 'author',
+    'lcn' => 'local-classification',
+    'callnum' => 'local-classification',
+    'record-type' => 'rtype',
+    'mc-rtype' => 'rtype',
+    'mus' => 'rtype',
+    'lc-card' => 'lc-card-number',
+    'sn' => 'local-number',
+    'biblionumber' => 'local-number',
+    'yr' => 'date-of-publication',
+    'pubdate' => 'date-of-publication',
+    'acqdate' => 'date-of-acquisition',
+    'date/time-last-modified' => 'date-time-last-modified',
+    'dtlm' => 'date-time-last-modified',
+    'diss' => 'dissertation-information',
+    'nb' => 'isbn',
+    'ns' => 'issn',
+    'music-number' => 'identifier-publisher-for-music',
+    'number-music-publisher' => 'identifier-publisher-for-music',
+    'music' => 'identifier-publisher-for-music',
+    'ident' => 'identifier-standard',
+    'cpn' => 'corporate-name',
+    'cfn' => 'conference-name',
+    'pn' => 'personal-name',
+    'pb' => 'publisher',
+    'pv' => 'provider',
+    'nt' => 'note',
+    'notes' => 'note',
+    'rcn' => 'record-control-number',
+    'su' => 'subject',
+    'su-to' => 'subject',
+    #'su-geo' => 'subject',
+    'su-ut' => 'subject',
+    'ti' => 'title',
+    'se' => 'title-series',
+    'ut' => 'title-uniform',
+    'an' => 'koha-auth-number',
+    'authority-number' => 'koha-auth-number',
+    'at' => 'authtype',
+    'he' => 'heading',
+    'rank' => 'relevance',
+    'phr' => 'st-phrase',
+    'wrdl' => 'st-word-list',
+    'rt' => 'right-truncation',
+    'rtrn' => 'right-truncation',
+    'ltrn' => 'left-truncation',
+    'rltrn' => 'left-and-right',
+    'mc-itemtype' => 'itemtype',
+    'mc-ccode' => 'ccode',
+    'branch' => 'homebranch',
+    'mc-loc' => 'location',
+    'loc' => 'location',
+    'stocknumber' => 'number-local-acquisition',
+    'inv' => 'number-local-acquisition',
+    'bc' => 'barcode',
+    'mc-itype' => 'itype',
+    'aub' => 'author-personal-bibliography',
+    'auo' => 'author-in-order',
+    'ff8-22' => 'ta',
+    'aud' => 'ta',
+    'audience' => 'ta',
+    'frequency-code' => 'ff8-18',
+    'illustration-code' => 'ff8-18-21',
+    'regularity-code' => 'ff8-19',
+    'type-of-serial' => 'ff8-21',
+    'format' => 'ff8-23',
+    'conference-code' => 'ff8-29',
+    'festschrift-indicator' => 'ff8-30',
+    'index-indicator' => 'ff8-31',
+    'fiction' => 'lf',
+    'fic' => 'lf',
+    'literature-code' => 'lf',
+    'biography' => 'bio',
+    'ff8-34' => 'bio',
+    'biography-code' => 'bio',
+    'l-format' => 'ff7-01-02',
+    'lex' => 'lexile-number',
+    'hi' => 'host-item-number',
+    'itu' => 'index-term-uncontrolled',
+    'itg' => 'index-term-genre',
+);
+my $field_name_pattern = '[\w\-]+';
+my $multi_field_pattern = "(?:\\.$field_name_pattern)*";
+
+=head2 get_index_field_convert
+
+    my @index_params = Koha::SearchEngine::Elasticsearch::QueryBuilder->get_index_field_convert();
+
+Converts zebra-style search index notation into elasticsearch-style.
+
+C<@indexes> is an array of index names, as presented to L<build_query_compat>,
+and it returns something that can be sent to L<build_query>.
+
+B<TODO>: this will pull from the elasticsearch mappings table to figure out
+types.
+
+=cut
+
+sub get_index_field_convert() {
+    return \%index_field_convert;
+}
 
 =head2 build_query
 
@@ -79,21 +185,29 @@ sub build_query {
 
     my $stemming         = C4::Context->preference("QueryStemming")        || 0;
     my $auto_truncation  = C4::Context->preference("QueryAutoTruncate")    || 0;
-    my $weight_fields    = C4::Context->preference("QueryWeightFields")    || 0;
     my $fuzzy_enabled    = C4::Context->preference("QueryFuzzy")           || 0;
 
     $query = '*' unless defined $query;
 
     my $res;
+    my $fields = $self->_search_fields({
+        is_opac => $options{is_opac},
+        weighted_fields => $options{weighted_fields},
+    });
+    if ($options{whole_record}) {
+        push @$fields, 'marc_data_array.*';
+    }
     $res->{query} = {
         query_string => {
             query            => $query,
             fuzziness        => $fuzzy_enabled ? 'auto' : '0',
             default_operator => 'AND',
-            default_field    => '_all',
+            fields           => $fields,
             lenient          => JSON::true,
+            analyze_wildcard => JSON::true,
         }
     };
+    $res->{query}->{query_string}->{type} = 'cross_fields' if C4::Context->preference('ElasticsearchCrossFields');
 
     if ( $options{sort} ) {
         foreach my $sort ( @{ $options{sort} } ) {
@@ -102,77 +216,35 @@ sub build_query {
               if $d && ( $d ne 'asc' && $d ne 'desc' );
             $d = 'asc' unless $d;
 
-            # TODO account for fields that don't have a 'phrase' type
-
             $f = $self->_sort_field($f);
-            push @{ $res->{sort} }, { "$f.phrase" => { order => $d } };
+            push @{ $res->{sort} }, { $f => { order => $d } };
         }
     }
 
     # See _convert_facets in Search.pm for how these get turned into
     # things that Koha can use.
+    my $size = C4::Context->preference('FacetMaxCount');
     $res->{aggregations} = {
-        author   => { terms => { field => "author__facet" } },
-        subject  => { terms => { field => "subject__facet" } },
-        itype    => { terms => { field => "itype__facet" } },
-        location => { terms => { field => "location__facet" } },
-        'su-geo' => { terms => { field => "su-geo__facet" } },
-        se       => { terms => { field => "se__facet" } },
-        ccode    => { terms => { field => "ccode__facet" } },
+        author         => { terms => { field => "author__facet" , size => $size } },
+        subject        => { terms => { field => "subject__facet", size => $size } },
+        itype          => { terms => { field => "itype__facet", size => $size} },
+        location       => { terms => { field => "location__facet", size => $size } },
+        'su-geo'       => { terms => { field => "su-geo__facet", size => $size} },
+        'title-series' => { terms => { field => "title-series__facet", size => $size } },
+        ccode          => { terms => { field => "ccode__facet", size => $size } },
+        ln             => { terms => { field => "ln__facet", size => $size } },
     };
 
     my $display_library_facets = C4::Context->preference('DisplayLibraryFacets');
     if (   $display_library_facets eq 'both'
         or $display_library_facets eq 'home' ) {
-        $res->{aggregations}{homebranch} = { terms => { field => "homebranch__facet" } };
+        $res->{aggregations}{homebranch} = { terms => { field => "homebranch__facet", size => $size } };
     }
     if (   $display_library_facets eq 'both'
         or $display_library_facets eq 'holding' ) {
-        $res->{aggregations}{holdingbranch} = { terms => { field => "holdingbranch__facet" } };
+        $res->{aggregations}{holdingbranch} = { terms => { field => "holdingbranch__facet", size => $size } };
     }
-    if ( my $ef = $options{expanded_facet} ) {
-        $res->{aggregations}{$ef}{terms}{size} = C4::Context->preference('FacetMaxCount');
-    };
     return $res;
-}
-
-=head2 build_browse_query
-
-    my $browse_query = $builder->build_browse_query($field, $query);
-
-This performs a "starts with" style query on a particular field. The field
-to be searched must have been indexed with an appropriate mapping as a
-"phrase" subfield, which pretty much everything has.
-
-=cut
-
-# XXX this isn't really a browse query like we want in the end
-sub build_browse_query {
-    my ( $self, $field, $query ) = @_;
-
-    my $fuzzy_enabled = C4::Context->preference("QueryFuzzy") || 0;
-
-    return { query => '*' } if !defined $query;
-
-    # TODO this should come from Koha::SearchEngine::Elasticsearch
-    my %field_whitelist = (
-        title  => 1,
-        author => 1,
-    );
-    $field = 'title' if !exists $field_whitelist{$field};
-    my $sort = $self->_sort_field($field);
-    my $res = {
-        query => {
-            match_phrase_prefix => {
-                "$field.phrase" => {
-                    query     => $query,
-                    operator  => 'or',
-                    fuzziness => $fuzzy_enabled ? 'auto' : '0',
-                }
-            }
-        },
-        sort => [ { "$sort.phrase" => { order => "asc" } } ],
-    };
 }
 
 =head2 build_query_compat
@@ -183,7 +255,7 @@ sub build_browse_query {
         $stopwords_removed, $query_type
       )
       = $builder->build_query_compat( \@operators, \@operands, \@indexes,
-        \@limits, \@sort_by, $scan, $lang );
+        \@limits, \@sort_by, $scan, $lang, $params );
 
 This handles a search using the same api as L<C4::Search::buildQuery> does.
 
@@ -200,54 +272,80 @@ sub build_query_compat {
         $lang, $params )
       = @_;
 
-#die Dumper ( $self, $operators, $operands, $indexes, $orig_limits, $sort_by, $scan, $lang );
-    my @sort_params  = $self->_convert_sort_fields(@$sort_by);
-    my @index_params = $self->_convert_index_fields(@$indexes);
-    my $limits       = $self->_fix_limit_special_cases($orig_limits);
-    if ( $params->{suppress} ) { push @$limits, "suppress:0"; }
+    my $query;
+    my $query_str = '';
+    my $search_param_query_str = '';
+    my $limits = ();
+    if ( $scan ) {
+        ($query, $query_str) = $self->_build_scan_query( $operands, $indexes );
+        $search_param_query_str = $query_str;
+    } else {
+        my @sort_params  = $self->_convert_sort_fields(@$sort_by);
+        my @index_params = $self->_convert_index_fields(@$indexes);
+        $limits       = $self->_fix_limit_special_cases($orig_limits);
+        if ( $params->{suppress} ) { push @$limits, "suppress:false"; }
+        # Merge the indexes in with the search terms and the operands so that
+        # each search thing is a handy unit.
+        unshift @$operators, undef;    # The first one can't have an op
+        my @search_params;
+        my $truncate = C4::Context->preference("QueryAutoTruncate") || 0;
+        my $ea = each_array( @$operands, @$operators, @index_params );
+        while ( my ( $oand, $otor, $index ) = $ea->() ) {
+            next if ( !defined($oand) || $oand eq '' );
+            $oand = $self->_clean_search_term($oand);
+            $oand = $self->_truncate_terms($oand) if ($truncate);
+            push @search_params, {
+                operand => $oand,      # the search terms
+                operator => defined($otor) ? uc $otor : undef,    # AND and so on
+                $index ? %$index : (),
+            };
+        }
 
-    # Merge the indexes in with the search terms and the operands so that
-    # each search thing is a handy unit.
-    unshift @$operators, undef;    # The first one can't have an op
-    my @search_params;
-    my $ea = each_array( @$operands, @$operators, @index_params );
-    while ( my ( $oand, $otor, $index ) = $ea->() ) {
-        next if ( !defined($oand) || $oand eq '' );
-        push @search_params, {
-            operand => $self->_clean_search_term($oand),      # the search terms
-            operator => defined($otor) ? uc $otor : undef,    # AND and so on
-            $index ? %$index : (),
-        };
+        # We build a string query from limits and the queries. An alternative
+        # would be to pass them separately into build_query and let it build
+        # them into a structured ES query itself. Maybe later, though that'd be
+        # more robust.
+        $search_param_query_str = join( ' ', $self->_create_query_string(@search_params) );
+        $query_str = join( ' AND ',
+            $search_param_query_str || (),
+            $self->_join_queries( $self->_convert_index_strings(@$limits) ) || () );
+
+        # If there's no query on the left, let's remove the junk left behind
+        $query_str =~ s/^ AND //;
+        my %options;
+        $options{sort} = \@sort_params;
+        $options{is_opac} = $params->{is_opac};
+        $options{weighted_fields} = $params->{weighted_fields};
+        $options{whole_record} = $params->{whole_record};
+        $query = $self->build_query( $query_str, %options );
     }
 
-    # We build a string query from limits and the queries. An alternative
-    # would be to pass them separately into build_query and let it build
-    # them into a structured ES query itself. Maybe later, though that'd be
-    # more robust.
-    my $query_str = join( ' AND ',
-        join( ' ', $self->_create_query_string(@search_params) ) || (),
-        $self->_join_queries( $self->_convert_index_strings(@$limits) ) || () );
-
-    # If there's no query on the left, let's remove the junk left behind
-    $query_str =~ s/^ AND //;
-    my %options;
-    $options{sort} = \@sort_params;
-    $options{expanded_facet} = $params->{expanded_facet};
-    my $query = $self->build_query( $query_str, %options );
-
-    #die Dumper($query);
     # We roughly emulate the CGI parameters of the zebra query builder
-    my $query_cgi;
-    $query_cgi = 'q=' . uri_escape_utf8( $operands->[0] ) if @$operands;
+    my $query_cgi = '';
+    shift @$operators; # Shift out the one we unshifted before
+    my $ea = each_array( @$operands, @$operators, @$indexes );
+    while ( my ( $oand, $otor, $index ) = $ea->() ) {
+        $query_cgi .= '&' if $query_cgi;
+        $query_cgi .= 'idx=' . uri_escape_utf8( $index // '') . '&q=' . uri_escape_utf8( $oand );
+        $query_cgi .= '&op=' . uri_escape_utf8( $otor ) if $otor;
+    }
+    $query_cgi .= '&scan=1' if ( $scan );
+
     my $simple_query;
     $simple_query = $operands->[0] if @$operands == 1;
-    my $query_desc   = $simple_query;
-    my $limit        = $self->_join_queries( $self->_convert_index_strings(@$limits));
+    my $query_desc;
+    if ( $simple_query ) {
+        $query_desc = $simple_query;
+    } else {
+        $query_desc = $search_param_query_str;
+    }
+    my $limit     = $self->_join_queries( $self->_convert_index_strings(@$limits));
     my $limit_cgi = ( $orig_limits and @$orig_limits )
       ? '&limit=' . join( '&limit=', map { uri_escape_utf8($_) } @$orig_limits )
       : '';
     my $limit_desc;
     $limit_desc = "$limit" if $limit;
+
     return (
         undef,  $query,     $simple_query, $query_cgi, $query_desc,
         $limit, $limit_cgi, $limit_desc,   undef,      undef
@@ -293,61 +391,104 @@ sub build_authorities_query {
 
     foreach my $s ( @{ $search->{searches} } ) {
         my ( $wh, $op, $val ) = @{$s}{qw(where operator value)};
-        $wh = '_all' if $wh eq '';
-        if ( $op eq 'is' || $op eq '=' ) {
+        if ( defined $op && ($op eq 'is' || $op eq '=' || $op eq 'exact') ) {
+            if ($wh) {
+                # Match the whole field, case insensitive, UTF normalized.
+                push @query_parts, { term => { "$wh.ci_raw" => $val } };
+            }
+            else {
+                # Match the whole field for all searchable fields, case insensitive,
+                # UTF normalized.
+                # Given that field data is "The quick brown fox"
+                # "The quick brown fox" and "the quick brown fox" will match
+                # but not "quick brown fox".
+                push @query_parts, {
+                    multi_match => {
+                        query => $val,
+                        fields => $self->_search_fields({ subfield => 'ci_raw' }),
+                    }
+                };
+            }
+        }
+        elsif ( defined $op && $op eq 'start') {
+            # Match the prefix within a field for all searchable fields.
+            # Given that field data is "The quick brown fox"
+            # "The quick bro" will match, but not "quick bro"
 
-            # look for something that matches a term completely
-            # note, '=' is about numerical vals. May need special handling.
-            # Also, we lowercase our search because the ES
-            # index lowercases its values, and term searches don't get the
-            # search analyzer applied to them.
-            push @query_parts, { term => {"$wh.phrase" => lc $val} };
-        }
-        elsif ( $op eq 'exact' ) {
-            # left and right truncation, otherwise an exact phrase
-            push @query_parts, { match_phrase => {"$wh.phrase" => lc $val} };
-        }
-        elsif ( $op eq 'start' ) {
-            # startswith search, uses lowercase untokenized version of heading
-            push @query_parts, { prefix => {"$wh.lc_raw" => lc $val} };
+            # Does not seems to be a multi prefix query
+            # so we need to create one
+            if ($wh) {
+                # Match prefix of the field.
+                push @query_parts, { prefix => {"$wh.ci_raw" => $val} };
+            }
+            else {
+                my @prefix_queries;
+                foreach my $field (@{$self->_search_fields()}) {
+                    push @prefix_queries, {
+                        prefix => { "$field.ci_raw" => $val }
+                    };
+                }
+                push @query_parts, {
+                    'bool' => {
+                        'should' => \@prefix_queries,
+                        'minimum_should_match' => 1
+                    }
+                };
+            }
         }
         else {
-            # regular wordlist stuff
-#            push @query_parts, { match => {$wh => { query => $val, operator => 'and' }} };
-            my @values = split(' ',$val);
-            foreach my $v (@values) {
-                push @query_parts, { wildcard => { "$wh.phrase" => "*" . lc $v . "*" } };
+            # Query all searchable fields.
+            # Given that field data is "The quick brown fox"
+            # a search containing any of the words will match, regardless
+            # of order.
+
+            my @tokens = $self->_split_query( $val );
+            foreach my $token ( @tokens ) {
+                $token = $self->_truncate_terms(
+                    $self->_clean_search_term( $token )
+                );
             }
+            my $query = $self->_join_queries( @tokens );
+            my $query_string = {
+                query            => $query,
+                lenient          => JSON::true,
+                analyze_wildcard => JSON::true,
+            };
+            if ($wh) {
+                $query_string->{default_field} = $wh;
+            }
+            else {
+                $query_string->{fields} = $self->_search_fields();
+            }
+            push @query_parts, { query_string => $query_string };
         }
     }
 
     # Merge the query parts appropriately
     # 'should' behaves like 'or'
     # 'must' behaves like 'and'
-    # Zebra results seem to match must so using that here
-    my $query = { query=>
-                 { bool =>
-                     { must => \@query_parts  }
-                 }
-             };
+    # Zebra behaviour seem to match must so using that here
+    my $elastic_query = {};
+    $elastic_query->{bool}->{must} = \@query_parts;
 
-    # We need to add '.phrase' to all the sort headings otherwise it'll sort
-    # based on the tokenised form.
-    my %s;
-    if ( exists $search->{sort} ) {
-        foreach my $k ( keys %{ $search->{sort} } ) {
-            my $f = $self->_sort_field($k);
-            $s{"$f.phrase"} = $search->{sort}{$k};
-        }
-        $search->{sort} = \%s;
+    # Filter by authtypecode if set
+    if ($search->{authtypecode}) {
+        $elastic_query->{bool}->{filter} = {
+            term => {
+                "authtype.raw" => $search->{authtypecode}
+            }
+        };
     }
 
-    # add the sort stuff
-    $query->{sort} = [ $search->{sort} ]  if exists $search->{sort};
+    my $query = {
+        query => $elastic_query
+    };
+
+    # Add the sort stuff
+    $query->{sort} = [ $search->{sort} ] if exists $search->{sort};
 
     return $query;
 }
-
 
 =head2 build_authorities_query_compat
 
@@ -378,9 +519,9 @@ Also ignored.
 
 =item operator
 
-What form of search to do. Options are: is (phrase, no trunction, whole field
-must match), = (number exact match), exact (phrase, but with left and right
-truncation). If left blank, then word list, right truncted, anywhere is used.
+What form of search to do. Options are: is (phrase, no truncation, whole field
+must match), = (number exact match), exact (phrase, no truncation, whole field
+must match). If left blank, then word list, right truncated, anywhere is used.
 
 =item value
 
@@ -406,13 +547,14 @@ appropriate search object.
 =cut
 
 our $koha_to_index_name = {
-    mainmainentry   => 'Heading-Main',
-    mainentry       => 'Heading',
-    match           => 'Match',
-    'match-heading' => 'Match-heading',
-    'see-from'      => 'Match-heading-see-from',
-    thesaurus       => 'Subject-heading-thesaurus',
-    all              => ''
+    mainmainentry   => 'heading-main',
+    mainentry       => 'heading',
+    match           => 'match',
+    'match-heading' => 'match-heading',
+    'see-from'      => 'match-heading-see-from',
+    thesaurus       => 'subject-heading-thesaurus',
+    any             => '',
+    all             => ''
 };
 
 sub build_authorities_query_compat {
@@ -423,17 +565,25 @@ sub build_authorities_query_compat {
     # This turns the old-style many-options argument form into a more
     # extensible hash form that is understood by L<build_authorities_query>.
     my @searches;
+    my $mappings = $self->get_elasticsearch_mappings();
 
+    # Convert to lower case
+    $marclist = [map(lc, @{$marclist})];
+    $orderby  = lc $orderby;
+
+    my @indexes;
     # Make sure everything exists
     foreach my $m (@$marclist) {
-        Koha::Exceptions::WrongParameter->throw("Invalid marclist field provided: $m")
-            unless exists $koha_to_index_name->{$m};
+
+        $m = exists $koha_to_index_name->{$m} ? $koha_to_index_name->{$m} : $m;
+        push @indexes, $m;
+        warn "Unknown search field $m in marclist" unless (defined $mappings->{data}->{properties}->{$m} || $m eq '' || $m eq 'match-heading');
     }
     for ( my $i = 0 ; $i < @$value ; $i++ ) {
         next unless $value->[$i]; #clean empty form values, ES doesn't like undefined searches
         push @searches,
           {
-            where    => $koha_to_index_name->{$marclist->[$i]},
+            where    => $indexes[$i],
             operator => $operator->[$i],
             value    => $value->[$i],
           };
@@ -441,11 +591,11 @@ sub build_authorities_query_compat {
 
     my %sort;
     my $sort_field =
-        ( $orderby =~ /^Heading/ ) ? 'Heading__sort'
-      : ( $orderby =~ /^Auth/ )    ? 'Local-Number'
+        ( $orderby =~ /^heading/ ) ? 'heading__sort'
+      : ( $orderby =~ /^auth/ )    ? 'local-number__sort'
       :                              undef;
     if ($sort_field) {
-        my $sort_order = ( $orderby =~ /Asc$/ ) ? 'asc' : 'desc';
+        my $sort_order = ( $orderby =~ /asc$/ ) ? 'asc' : 'desc';
         %sort = ( $sort_field => $sort_order, );
     }
     my %search = (
@@ -455,6 +605,70 @@ sub build_authorities_query_compat {
     $search{sort} = \%sort if %sort;
     my $query = $self->build_authorities_query( \%search );
     return $query;
+}
+
+=head2 _build_scan_query
+
+    my ($query, $query_str) = $builder->_build_scan_query(\@operands, \@indexes)
+
+This will build an aggregation scan query that can be issued to elasticsearch from
+the provided string input.
+
+=cut
+
+our %scan_field_convert = (
+    'ti' => 'title',
+    'au' => 'author',
+    'su' => 'subject',
+    'se' => 'title-series',
+    'pb' => 'publisher',
+);
+
+sub _build_scan_query {
+    my ( $self, $operands, $indexes ) = @_;
+
+    my $term = scalar( @$operands ) == 0 ? '' : $operands->[0];
+    my $index = scalar( @$indexes ) == 0 ? 'subject' : $indexes->[0];
+
+    my ( $f, $d ) = split( /,/, $index);
+    $index = $scan_field_convert{$f} || $f;
+
+    my $res;
+    $res->{query} = {
+        query_string => {
+            query => '*'
+        }
+    };
+    $res->{aggregations} = {
+        $index => {
+            terms => {
+                field => $index . '__facet',
+                order => { '_term' => 'asc' },
+                include => $self->_create_regex_filter($self->_clean_search_term($term)) . '.*'
+            }
+        }
+    };
+    return ($res, $term);
+}
+
+=head2 _create_regex_filter
+
+    my $filter = $builder->_create_regex_filter('term')
+
+This will create a regex filter that can be used with an aggregation query.
+
+=cut
+
+sub _create_regex_filter {
+    my ($self, $term) = @_;
+
+    my $result = '';
+    foreach my $c (split(//, quotemeta($term))) {
+        my $lc = lc($c);
+        my $uc = uc($c);
+        $result .= $lc ne $uc ? '[' . $lc . $uc . ']' : $c;
+    }
+    return $result;
 }
 
 =head2 _convert_sort_fields
@@ -473,13 +687,13 @@ sub _convert_sort_fields {
 
     # Turn the sorting into something we care about.
     my %sort_field_convert = (
-        acqdate     => 'acqdate',
+        acqdate     => 'date-of-acquisition',
         author      => 'author',
-        call_number => 'callnum',
+        call_number => 'cn-sort',
         popularity  => 'issues',
         relevance   => undef,       # default
         title       => 'title',
-        pubdate     => 'pubdate',
+        pubdate     => 'date-of-publication',
     );
     my %sort_order_convert =
       ( qw( desc desc ), qw( dsc desc ), qw( asc asc ), qw( az asc ), qw( za desc ) );
@@ -494,60 +708,30 @@ sub _convert_sort_fields {
     } @sort_by;
 }
 
-=head2 _convert_index_fields
-
-    my @index_params = $self->_convert_index_fields(@indexes);
-
-Converts zebra-style search index notation into elasticsearch-style.
-
-C<@indexes> is an array of index names, as presented to L<build_query_compat>,
-and it returns something that can be sent to L<build_query>.
-
-B<TODO>: this will pull from the elasticsearch mappings table to figure out
-types.
-
-=cut
-
-our %index_field_convert = (
-    'kw'      => '_all',
-    'ti'      => 'title',
-    'au'      => 'author',
-    'su'      => 'subject',
-    'nb'      => 'isbn',
-    'se'      => 'title-series',
-    'callnum' => 'callnum',
-    'itype'   => 'itype',
-    'ln'      => 'ln',
-    'branch'  => 'homebranch',
-    'fic'     => 'lf',
-    'mus'     => 'rtype',
-    'aud'     => 'ta',
-    'hi'      => 'Host-Item-Number',
-);
-
 sub _convert_index_fields {
     my ( $self, @indexes ) = @_;
 
     my %index_type_convert =
-      ( __default => undef, phr => 'phrase', rtrn => 'right-truncate' );
+      ( __default => undef, phr => 'phrase', rtrn => 'right-truncate', 'st-year' => 'st-year' );
 
     # Convert according to our table, drop anything that doesn't convert.
     # If a field starts with mc- we save it as it's used (and removed) later
     # when joining things, to indicate we make it an 'OR' join.
     # (Sorry, this got a bit ugly after special cases were found.)
-    grep { $_->{field} } map {
-        my ( $f, $t ) = split /,/;
+    map {
+        # Lower case all field names
+        my ( $f, $t ) = map(lc, split /,/);
         my $mc = '';
         if ($f =~ /^mc-/) {
             $mc = 'mc-';
             $f =~ s/^mc-//;
         }
         my $r = {
-            field => $index_field_convert{$f},
+            field => exists $index_field_convert{$f} ? $index_field_convert{$f} : $f,
             type  => $index_type_convert{ $t // '__default' }
         };
         $r->{field} = ($mc . $r->{field}) if $mc && $r->{field};
-        $r;
+        $r->{field} || $r->{type} ? $r : undef;
     } @indexes;
 }
 
@@ -576,8 +760,8 @@ sub _convert_index_strings {
             push @res, $s;
             next;
         }
-        push @res, $conv->{field} . ":"
-          . $self->_modify_string_by_type( %$conv, operand => $term );
+        push @res, ($conv->{field} ? $conv->{field} . ':' : '')
+            . $self->_modify_string_by_type( %$conv, operand => $term );
     }
     return @res;
 }
@@ -598,9 +782,21 @@ will have to wait for a real query parser.
 
 sub _convert_index_strings_freeform {
     my ( $self, $search ) = @_;
-    while ( my ( $zeb, $es ) = each %index_field_convert ) {
-        $search =~ s/\b$zeb(?:,[\w\-]*)?:/$es:/g;
-    }
+    # @TODO: Currenty will alter also fields contained within quotes:
+    # `searching for "stuff cn:123"` for example will become
+    # `searching for "stuff local-number:123"
+    #
+    # Fixing this is tricky, one possibility:
+    # https://stackoverflow.com/questions/19193876/perl-regex-to-match-a-string-that-is-not-enclosed-in-quotes
+    # Still not perfect, and will not handle escaped quotes within quotes and assumes balanced quotes.
+    #
+    # Another, not so elegant, solution could be to replace all quoted content with placeholders, and put
+    # them back when processing is done.
+
+    # Lower case field names
+    $search =~ s/($field_name_pattern)(?:,[\w-]*)?($multi_field_pattern):/\L$1\E$2:/og;
+    # Resolve possible field aliases
+    $search =~ s/($field_name_pattern)($multi_field_pattern):/(exists $index_field_convert{$1} ? $index_field_convert{$1} : $1)."$2:"/oge;
     return $search;
 }
 
@@ -622,7 +818,14 @@ sub _modify_string_by_type {
     return $str unless $str;    # Empty or undef, we can't use it.
 
     $str .= '*' if $type eq 'right-truncate';
-    $str = '"' . $str . '"' if $type eq 'phrase';
+    $str = '"' . $str . '"' if $type eq 'phrase' && $str !~ /^".*"$/;
+    if ($type eq 'st-year') {
+        if ($str =~ /^(.*)-(.*)$/) {
+            my $from = $1 || '*';
+            my $until = $2 || '*';
+            $str = "[$from TO $until]";
+        }
+    }
     return $str;
 }
 
@@ -650,16 +853,22 @@ sub _join_queries {
       map { s/^mc-//r } grep { defined($_) && $_ ne '' && $_ =~ /^mc-/ } @parts;
     return () unless @norm_parts + @mc_parts;
     return ( @norm_parts, @mc_parts )[0] if @norm_parts + @mc_parts == 1;
-    my $grouped_mc =
-      @mc_parts ? '(' . ( join ' OR ', map { "($_)" } @mc_parts ) . ')' : ();
 
-    # Handy trick: $x || () inside a join means that if $x ends up as an
-    # empty string, it gets replaced with (), which makes join ignore it.
-    # (bad effect: this'll also happen to '0', this hopefully doesn't matter
-    # in this case.)
-    join( ' AND ',
-        join( ' AND ', map { "($_)" } @norm_parts ) || (),
-        $grouped_mc || () );
+    # Group limits by field, so they can be OR'ed together
+    my %mc_limits;
+    foreach my $mc_part (@mc_parts) {
+        my ($field, $value) = split /:/, $mc_part, 2;
+        $mc_limits{$field} //= [];
+        push @{ $mc_limits{$field} }, $value;
+    }
+
+    @mc_parts = map {
+        sprintf('%s:(%s)', $_, join (' OR ', @{ $mc_limits{$_} }));
+    } sort keys %mc_limits;
+
+    @norm_parts = map { "($_)" } @norm_parts;
+
+    return join( ' AND ', @norm_parts, @mc_parts);
 }
 
 =head2 _make_phrases
@@ -695,6 +904,7 @@ sub _create_query_string {
         my $field = $_->{field}    ? $_->{field} . ':'    : '';
 
         my $oand = $self->_modify_string_by_type(%$_);
+        $oand = "($oand)" if $field && scalar(split(/\s+/, $oand)) > 1 && (!defined $_->{type} || $_->{type} ne 'st-year');
         "$otor($field$oand)";
     } @queries;
 }
@@ -712,15 +922,63 @@ to ensure those parts are correct.
 sub _clean_search_term {
     my ( $self, $term ) = @_;
 
-    my $auto_truncation = C4::Context->preference("QueryAutoTruncate") || 0;
+    # Lookahead for checking if we are inside quotes
+    my $lookahead = '(?=(?:[^\"]*+\"[^\"]*+\")*+[^\"]*+$)';
 
     # Some hardcoded searches (like with authorities) produce things like
     # 'an=123', when it ought to be 'an:123' for our purposes.
     $term =~ s/=/:/g;
+
     $term = $self->_convert_index_strings_freeform($term);
     $term =~ s/[{}]/"/g;
-    $term = $self->_truncate_terms($term) if ($auto_truncation);
+
+    # Remove unbalanced quotes
+    my $unquoted = $term;
+    my $count = ($unquoted =~ tr/"/ /);
+    if ($count % 2 == 1) {
+        $term = $unquoted;
+    }
+
+    # Remove unquoted colons that have whitespace on either side of them
+    $term =~ s/(:+)(\s+)$lookahead/$2/g;
+    $term =~ s/(\s+)(:+)$lookahead/$1/g;
+    $term =~ s/^://;
+
+    $term = $self->_query_regex_escape_process($term);
+
     return $term;
+}
+
+=head2 _query_regex_escape_process
+
+    my $query = $self->_query_regex_escape_process($query);
+
+Processes query in accordance with current "QueryRegexEscapeOptions" system preference setting.
+
+=cut
+
+sub _query_regex_escape_process {
+    my ($self, $query) = @_;
+    my $regex_escape_options = C4::Context->preference("QueryRegexEscapeOptions");
+    if ($regex_escape_options ne 'dont_escape') {
+        if ($regex_escape_options eq 'escape') {
+            # Will escape unescaped slashes (/) while preserving
+            # unescaped slashes within quotes
+            # @TODO: assumes quotes are always balanced and will
+            # not handle escaped qoutes properly, should perhaps be
+            # replaced with a more general parser solution
+            # so that this function is ever only provided with unqouted
+            # query parts
+            $query =~ s@(?:(?<!\\)((?:[\\]{2})*)(?=/))(?![^"]*"(?:[^"]*"[^"]*")*[^"]*$)@\\$1@g;
+        }
+        elsif($regex_escape_options eq 'unescape_escaped') {
+            # Will unescape escaped slashes (\/) and escape
+            # unescaped slashes (/) while preserving slashes within quotes
+            # The same limitatations as above apply for handling of quotes
+            $query =~ s@(?:(?<!\\)(?:((?:[\\]{2})*[\\])|((?:[\\]{2})*))(?=/))(?![^"]*"(?:[^"]*"[^"]*")*[^"]*$)@($1 ? substr($1, 0, -1) : ($2 . "\\"))@ge;
+        }
+    }
+    return $query;
 }
 
 =head2 _fix_limit_special_cases
@@ -750,13 +1008,21 @@ sub _fix_limit_special_cases {
         elsif ( $l =~ /^yr,st-numeric=/ ) {
             my ($date) = ( $l =~ /^yr,st-numeric=(.*)$/ );
             next unless defined($date);
+            $date = $self->_modify_string_by_type(type => 'st-year', operand => $date);
             push @new_lim, "copydate:$date";
         }
         elsif ( $l =~ /^available$/ ) {
-            push @new_lim, 'onloan:0';
+            push @new_lim, 'onloan:false';
         }
         else {
-            push @new_lim, $l;
+            my ( $field, $term ) = $l =~ /^\s*([\w,-]*?):(.*)/;
+            $field =~ s/,phr$//; #We are quoting all the limits as phrase, this prevents from quoting again later
+            if ( defined($field) && defined($term) ) {
+                push @new_lim, "$field:(\"$term\")";
+            }
+            else {
+                push @new_lim, $l;
+            }
         }
     }
     return \@new_lim;
@@ -766,16 +1032,24 @@ sub _fix_limit_special_cases {
 
     my $field = $self->_sort_field($field);
 
-Given a field name, this works out what the actual name of the version to sort
-on should be. Often it's the same, sometimes it involves sticking "__sort" on
-the end. Maybe it'll be something else in the future, who knows?
+Given a field name, this works out what the actual name of the field to sort
+on should be. A '__sort' suffix is added for fields with a sort version, and
+for text fields either '.phrase' (for sortable versions) or '.raw' is appended
+to avoid sorting on a tokenized value.
 
 =cut
 
 sub _sort_field {
     my ($self, $f) = @_;
-    if ($self->sort_fields()->{$f}) {
+
+    my $mappings = $self->get_elasticsearch_mappings();
+    my $textField = defined $mappings->{data}{properties}{$f}{type} && $mappings->{data}{properties}{$f}{type} eq 'text';
+    if (!defined $self->sort_fields()->{$f} || $self->sort_fields()->{$f}) {
         $f .= '__sort';
+    } else {
+        # We need to add '.raw' to text fields without a sort field,
+        # otherwise it'll sort based on the tokenised form.
+        $f .= '.raw' if $textField;
     }
     return $f;
 }
@@ -792,21 +1066,138 @@ operands and double quoted strings.
 sub _truncate_terms {
     my ( $self, $query ) = @_;
 
-    # '"donald duck" title:"the mouse" and peter" get split into
-    # ['', '"donald duck"', '', ' ', '', 'title:"the mouse"', '', ' ', 'and', ' ', 'pete']
-    my @tokens = split /((?:[\w\-.]+:)?"[^"]+"|\s+)/, $query;
+    my @tokens = $self->_split_query( $query );
 
     # Filter out empty tokens
     my @words = grep { $_ !~ /^\s*$/ } @tokens;
 
-    # Append '*' to words if needed, ie. if it's not surrounded by quotes, not
-    # terminated by '*' and not a keyword
+    # Append '*' to words if needed, ie. if it ends in a word character and is not a keyword
     my @terms = map {
         my $w = $_;
-        (/"$/ or /\*$/ or grep {lc($w) eq $_} qw/and or not/) ? $_ : "$_*";
+        (/\W$/ or grep {lc($w) eq $_} qw/and or not/) ? $_ : "$_*";
     } @words;
 
     return join ' ', @terms;
+}
+
+=head2 _split_query
+
+    my @token = $self->_split_query($query_str);
+
+Given a string query this function splits it to tokens taking into account
+any field prefixes and quoted strings.
+
+=cut
+
+my $tokenize_split_re = qr/((?:${field_name_pattern}${multi_field_pattern}:)?"[^"]+"|\s+)/;
+
+sub _split_query {
+    my ( $self, $query ) = @_;
+
+    # '"donald duck" title:"the mouse" and peter" get split into
+    # ['', '"donald duck"', '', ' ', '', 'title:"the mouse"', '', ' ', 'and', ' ', 'pete']
+    my @tokens = split $tokenize_split_re, $query;
+
+    # Filter out empty values
+    @tokens = grep( /\S/, @tokens );
+
+    return @tokens;
+}
+
+=head2 _search_fields
+    my $weighted_fields = $self->_search_fields({
+        is_opac => 0,
+        weighted_fields => 1,
+        subfield => 'raw'
+    });
+
+Generate a list of searchable fields to be used for Elasticsearch queries
+applied to multiple fields.
+
+Returns an arrayref of field names for either OPAC or staff interface, with
+possible weights and subfield appended to each field name depending on the
+options provided.
+
+=over 4
+
+=item C<$params>
+
+Hashref with options. The parameter C<is_opac> indicates whether the searchable
+fields for OPAC or staff interface should be retrieved. If C<weighted_fields> is set
+fields weights will be applied on returned fields. C<subfield> can be used to
+provide a subfield that will be appended to fields as "C<field_name>.C<subfield>".
+
+=back
+
+=cut
+
+sub _search_fields {
+    my ($self, $params) = @_;
+    $params //= {
+        is_opac => 0,
+        weighted_fields => 0,
+        whole_record => 0,
+        # This is a hack for authorities build_authorities_query
+        # can hopefully be removed in the future
+        subfield => undef,
+    };
+    my $cache = Koha::Caches->get_instance();
+    my $cache_key = 'elasticsearch_search_fields' . ($params->{is_opac} ? '_opac' : '_staff_client') . "_" . $self->index;
+    my $search_fields = $cache->get_from_cache($cache_key, { unsafe => 1 });
+    if (!$search_fields) {
+        # The reason we don't use Koha::SearchFields->search here is we don't
+        # want or need resultset wrapped as Koha::SearchField object.
+        # It does not make any sense in this context and would cause
+        # unnecessary overhead sice we are only querying for data
+        # Also would not work, or produce strange results, with the "columns"
+        # option.
+        my $schema = Koha::Database->schema;
+        my $result = $schema->resultset('SearchField')->search(
+            {
+                $params->{is_opac} ? (
+                    'opac' => 1,
+                ) : (
+                    'staff_client' => 1
+                ),
+                'type' => { '!=' => 'boolean' },
+                'search_marc_map.index_name' => $self->index,
+                'search_marc_map.marc_type' => C4::Context->preference('marcflavour'),
+                'search_marc_to_fields.search' => 1,
+            },
+            {
+                columns => [qw/name weight/],
+                collapse => 1,
+                join => {search_marc_to_fields => 'search_marc_map'},
+            }
+        );
+        my @search_fields;
+        while (my $search_field = $result->next) {
+            push @search_fields, [
+                lc $search_field->name,
+                $search_field->weight ? $search_field->weight : ()
+            ];
+        }
+        $search_fields = \@search_fields;
+        $cache->set_in_cache($cache_key, $search_fields);
+    }
+    if ($params->{subfield}) {
+        my $subfield = $params->{subfield};
+        $search_fields = [
+            map {
+                # Copy values to avoid mutating cached
+                # data (since unsafe is used)
+                my ($field, $weight) = @{$_};
+                ["${field}.${subfield}", $weight];
+            } @{$search_fields}
+        ];
+    }
+    if ($params->{weighted_fields}) {
+        return [map { join('^', @{$_}) } @{$search_fields}];
+    }
+    else {
+        # Exclude weight from field
+        return [map { $_->[0] } @{$search_fields}];
+    }
 }
 
 1;

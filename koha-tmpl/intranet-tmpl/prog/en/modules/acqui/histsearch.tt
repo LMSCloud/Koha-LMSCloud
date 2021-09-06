@@ -1,10 +1,11 @@
+[% USE raw %]
 [% USE Asset %]
 [% USE KohaDates %]
-[% USE ColumnsSettings %]
+[% USE TablesSettings %]
+[% USE Branches %]
 [% SET footerjs = 1 %]
 [% INCLUDE 'doc-head-open.inc' %]
-<title>Koha &rsaquo; Acquisitions &rsaquo; [% IF ( order_loop ) %]Orders search &rsaquo; Search results[% ELSE %]Order search[% END %]</title>
-[% Asset.css("css/datatables.css") %]
+<title>[% IF ( order_loop ) %]Orders search &rsaquo; Search results[% ELSE %]Order search[% END %] &rsaquo; Acquisitions &rsaquo; Koha</title>
 [% INCLUDE 'doc-head-close.inc' %]
 </head>
 
@@ -12,116 +13,49 @@
 [% INCLUDE 'header.inc' %]
 [% INCLUDE 'acquisitions-search.inc' %]
 
-<div id="breadcrumbs"><a href="/cgi-bin/koha/mainpage.pl">Home</a> &rsaquo; <a href="/cgi-bin/koha/acqui/acqui-home.pl">Acquisitions</a> &rsaquo; [% IF ( order_loop ) %]<a href="/cgi-bin/koha/acqui/histsearch.pl">Orders search</a> &rsaquo; Search results[% ELSE %]Order search[% END %]</div>
-
-<div id="doc3" class="yui-t2">
-   
-   <div id="bd">
-	<div id="yui-main">
-	<div class="yui-b">
-	
-[% UNLESS ( order_loop ) %]<form action="/cgi-bin/koha/acqui/histsearch.pl" method="post">
-<fieldset class="rows">
-    <legend>Search orders</legend>
-		<ol>
-		<li><label for="title">Title: </label> <input type="text" name="title" id="title" value="[% title %]" /></li>
-		<li><label for="author">Author: </label> <input type="text" name="author" id="author" value="[% author %]" /></li>
-        <li><label for="isbn">ISBN: </label> <input type="text" name="isbn" id="isbn" value="[% isbn %]" /></li>
-                [% IF (UNIMARC) %]
-        <li><label for="ean">EAN: </label> <input type="text" name="ean" id="ean" value="[% ean %]" /></li>
-                [% END %]
-		<li><label for="name">Vendor: </label> <input type="text" name="name" id="name" value="[% name %]" /></li>
-		<li><label for="basket">Basket: </label> <input type="text" name="basket" id="basket" value="[% basket %]" /></li>
-        <li><label for="basket_creators">Basket created by: </label>
-            <input autocomplete="off" id="find_patron" type="text" style="width:150px" class="noEnterSubmit" />
-            <div>
-                <div id="basket_creators" style="float:left;"></div>
-            </div>
-        </li>
-        <li><label for="booksellerinvoicenumber ">Bookseller invoice no: </label> <input type="text" name="booksellerinvoicenumber" id="booksellerinvoicenumber" value="[% booksellerinvoicenumber %]" /></li>
+<nav id="breadcrumbs" aria-label="Breadcrumb" class="breadcrumb">
+    <ol>
         <li>
-            <label for="basketgroupname">Basket group:</label>
-            <input type="text" name="basketgroupname" id="basketgroupname" value="[% basketgroupname %]" />
+            <a href="/cgi-bin/koha/mainpage.pl">Home</a>
         </li>
         <li>
-          <label for="ordernumber">Order line:</label>
-          <input type="text" name="ordernumber" id="ordernumber" value="[% ordernumber %]" />
-          [% IF search_children_too %]
-            <input type="checkbox" name="search_children_too" id="search_children_too" value="1" checked="checked" />
-          [% ELSE %]
-            <input type="checkbox" name="search_children_too" id="search_children_too" value="1" />
-          [% END %]
-          <label class="yesno" for="search_children_too">Display children too.</label>
+            <a href="/cgi-bin/koha/acqui/acqui-home.pl">Acquisitions</a>
         </li>
 
-        <li>
-            <label for="orderstatus">Order status: </label>
-            <select name="orderstatus" id="orderstatus">
-                [% IF orderstatus == "" %]
-                  <option value="">Any status except cancelled</option>
-                [% ELSE %]
-                  <option value="" selected="selected"></option>
-                [% END %]
-                [% IF orderstatus == "new" %]
-                  <option value="new" selected="selected">New</option>
-                [% ELSE %]
-                  <option value="new">New</option>
-                [% END %]
-                [% IF orderstatus == "ordered" %]
-                  <option value="ordered" selected="selected">Ordered</option>
-                [% ELSE %]
-                  <option value="ordered">Ordered</option>
-                [% END %]
-                [% IF orderstatus == "partial" %]
-                  <option value="partial" selected="selected">Partially received</option>
-                [% ELSE %]
-                  <option value="partial">Partially received</option>
-                [% END %]
-                [% IF orderstatus == "complete" %]
-                  <option value="complete" selected="selected">Received</option>
-                [% ELSE %]
-                  <option value="complete">Received</option>
-                [% END %]
-                [% IF orderstatus == "cancelled" %]
-                  <option value="cancelled" selected="selected">Cancelled</option>
-                [% ELSE %]
-                  <option value="cancelled">Cancelled</option>
-                [% END %]
-            </select>
-        </li>
-        <li>
-            <label for="fund">Fund: </label>
-            <select name="budget" id="fund">
-                <option value="">All funds</option>
-                [% FOREACH bp_loo IN bp_loop %]
-                    <optgroup label="[% bp_loo.budget_period_description %]">
-                    [% FOREACH h_loo IN bp_loo.hierarchy %]
-                      [% IF h_loo.budget_id == budget_id %]
-                        <option type="text" value="[% h_loo.budget_id %]" branchcode="[% h_loo.budget_branchcode %]" selected="selected">
-                      [% ELSE %]
-                        <option type="text" value="[% h_loo.budget_id %]" branchcode="[% h_loo.budget_branchcode %]">
-                      [% END %]
-                            [% h_loo.budget_display_name %]
-                        </option>
-                    [% END %]
-                    </optgroup>
-                [% END %]
-            </select>
-        </li>
+    [% IF ( order_loop ) %]
+    <li>
+        <a href="/cgi-bin/koha/acqui/histsearch.pl">Orders search</a>
+    </li>
+    <li>
+        <a href="#" aria-current="page">
+            Search results
+        </a>
+    </li>
+    [% ELSE %]
+    <li>
+        <a href="#" aria-current="page">
+            Order search
+        </a>
+    </li>
+    [% END %]
+    </ol>
+</nav>
 
-		<li><label for="from">From: </label> 
-        <input type="text" size="10" id="from" name="from" value="[% from_placed_on | $KohaDates %]" class="datepickerfrom" />
-				<div class="hint">[% INCLUDE 'date-format.inc' %]</div>
-		</li>
-		<li><label for="to">To: </label> 
-        <input type="text" size="10" id="to" name="to" value="[% to_placed_on | $KohaDates %]" class="datepickerto" />
-				<div class="hint">[% INCLUDE 'date-format.inc' %]</div>
-		</li>
-		</ol>
-	</fieldset>
-    <input type="hidden" name="do_search" value="1" />
-	<fieldset class="action"><input type="submit" value="Search" /></fieldset>
-	</form>[% END %]
+<div class="main container-fluid">
+    <div class="row">
+        <div class="col-sm-10 col-sm-push-2">
+            <main>
+                [% IF !order_loop && search_done %]
+                    <div class="dialog message">
+                        Your search returned no results.
+                    </div>
+                [% END %]
+
+                [% UNLESS ( order_loop ) %]
+                    [% PROCESS filter_form context => "main" %]
+                [% END %]
+
+
     [% IF ( order_loop ) %]<h1>Search results</h1>
 	<div id="acqui_histsearch">
         <table id="histsearcht">
@@ -131,14 +65,15 @@
                 <th>Status</th>
 				<th>Basket</th>
                 <th>Basket creator</th>
-				<th>Basket group</th>
+                <th>Basket group</th>
+                <th>Managing library</th>
                 <th>Invoice number</th>
                 <th class="anti-the">Summary</th>
 				<th>Vendor</th>
-                <th class="title-string">Placed on</th>
-                <th class="title-string">Received on</th>
+                <th>Placed on</th>
+                <th>Received on</th>
                 <th>Quantity received</th>
-                <th>Pending order</th>
+                <th>Quantity ordered</th>
 				<th>Unit cost</th>
                 <th>Fund</th>
 			</tr>
@@ -147,8 +82,8 @@
             [% FOREACH order IN order_loop %]
                 <tr>
                     <td>
-                        [% order.ordernumber %]
-                        [% IF order.ordernumber != order.parent_ordernumber %]([% order.parent_ordernumber %])[% END %]
+                        [% order.ordernumber | html %]
+                        [% IF order.ordernumber != order.parent_ordernumber %]([% order.parent_ordernumber | html %])[% END %]
                     </td>
                     <td>
                         [% SWITCH order.orderstatus %]
@@ -158,83 +93,95 @@
                             [% CASE 'complete' %]Received
                             [% CASE 'cancelled' %]Cancelled
                         [% END %]
+                        [% IF order.is_standing %](standing order)[% END %]
                     </td>
-                    <td>[% order.basketname %] (<a href="basket.pl?basketno=[% order.basketno %]">[% order.basketno %]</a>)</td>
-                    <td>[% order.authorisedbyname %]</td>
+                    <td><a href="basket.pl?basketno=[% order.basketno | uri %]">[% order.basketname | html %] ([% order.basketno | html %])</a></td>
+                    <td>[% order.authorisedbyname | html %]</td>
                     <td>
                         [% IF ( order.basketgroupid ) %]
-                            [% order.groupname %] (<a href="basketgroup.pl?op=add&booksellerid=[% order.id %]&basketgroupid=[% order.basketgroupid %]">[% order.basketgroupid %]</a>)
+                        <a href="basketgroup.pl?op=add&booksellerid=[% order.id | uri %]&basketgroupid=[% order.basketgroupid | uri %]">[% order.groupname | html %] ([% order.basketgroupid | html %])</a>
                         [% ELSE %]
                             &nbsp;
                         [% END %]
                     </td>
+                    <td>[% Branches.GetName(order.managing_library) | html %]</td>
                     <td>[% IF ( order.invoicenumber ) %]
-                            <a href="/cgi-bin/koha/acqui/parcel.pl?invoiceid=[% order.invoiceid %]">[% order.invoicenumber %]</a>
+                            <a href="/cgi-bin/koha/acqui/parcel.pl?invoiceid=[% order.invoiceid | uri %]">[% order.invoicenumber | html %]</a>
                         [% ELSE %]
                             &nbsp;
                         [% END %]
                     </td>
                     <td>
-                        <a href="/cgi-bin/koha/catalogue/detail.pl?biblionumber=[% order.biblionumber %]">[% order.title |html %]</a>
-                        <br />[% order.author %] <br /> [% order.isbn %]
+                        <a href="/cgi-bin/koha/catalogue/detail.pl?biblionumber=[% order.biblionumber | uri %]">[% order.title | html %]</a>
+                        <br />[% order.author | html %] <br /> [% order.isbn | html %]
                     </td>
-                    <td><a href="/cgi-bin/koha/acqui/supplier.pl?booksellerid=[% order.id %]">[% order.name %]</a></td>
-                    <td><span title="[% order.creationdate %]">[% order.creationdate | $KohaDates %]</span></td>
-                    <td>
-                        [% IF order.datereceived %]
-                            <span title="[% order.datereceived %]">[% order.datereceived | $KohaDates %]</span>
-                        [% ELSE %]
-                            <span title="0000-00-00"></span>
-                        [% END %]
+                    <td><a href="/cgi-bin/koha/acqui/supplier.pl?booksellerid=[% order.id | uri %]">[% order.name | html %]</a></td>
+                    <td data-order="[% order.creationdate | html %]">[% order.creationdate | $KohaDates %]</td>
+                    <td data-order="[% order.datereceived | html %]">
+                        [% order.datereceived | $KohaDates %]
                     </td>
-                    <td>[% order.quantityreceived %]</td>
-                    <td>[% order.quantity %]</td>
-                    <td>[% order.ecost %]</td>
-                    <td>[% order.budget_name %]</td>
+                    <td>[% order.quantityreceived | html %]</td>
+                    <td>[% order.quantity | html %]</td>
+                    <td>[% order.ecost | html %]</td>
+                    <td>[% order.budget_name | html %]</td>
                 </tr>
             [% END %]
             </tbody>
         </table>
     </div>
-    [% ELSIF search_done %]
-      There is no order for this search.
     [% END %]
 
-</div>
-</div>
-<div class="yui-b">
-[% INCLUDE 'acquisitions-menu.inc' %]
-</div>
+</main>
+</div> <!-- /.col-sm-10.col-sm-push-2 -->
+
+<div class="col-sm-2 col-sm-pull-10">
+    <aside>
+        [% IF ( order_loop ) %]
+            [% PROCESS filter_form context => "sidebar" %]
+        [% END %]
+        [% INCLUDE 'acquisitions-menu.inc' %]
+    </aside>
+</div> <!-- /.col-sm-2.col-sm-pull-10 -->
 </div>
 
 [% MACRO jsinclude BLOCK %]
-    [% Asset.js("js/acquisitions-menu.js") %]
+    [% Asset.js("js/acquisitions-menu.js") | $raw %]
 [% INCLUDE 'calendar.inc' %]
     [% INCLUDE 'datatables.inc' %]
     [% INCLUDE 'columns_settings.inc' %]
-    [% Asset.js("js/autocomplete/patrons.js") %]
-    <script type="text/javascript">
+    [% Asset.js("js/autocomplete/patrons.js") | $raw %]
+    <script>
         var MSG_REMOVE_PATRON = _("Remove");
         $(document).ready(function() {
-            var columns_settings = [% ColumnsSettings.GetColumns( 'acqui', 'histsearch', 'histsearcht', 'json' ) %];
+            var columns_settings = [% TablesSettings.GetColumns( 'acqui', 'histsearch', 'histsearcht', 'json' ) | $raw %];
             KohaTable("histsearcht", {
-                "aoColumnDefs": [
-                    { "sType": "anti-the", "aTargets" : [ "anti-the" ] },
-                    { "sType": "title-string", "aTargets" : [ "title-string" ] }
-                ],
-                "sPaginationType": "four_button"
+                "sPaginationType": "full"
             }, columns_settings );
 
-            [% UNLESS order_loop %]
-                patron_autocomplete({
-                    patron_container: $("#basket_creators"),
-                    input_autocomplete: $("#find_patron"),
-                    patron_input_name: 'created_by',
-                    field_to_retrieve: 'borrowernumber'
-                });
-            [% END %]
+            patron_autocomplete({
+                patron_container: $("#basket_creators"),
+                input_autocomplete: $("#find_patron"),
+                patron_input_name: 'created_by',
+                field_to_retrieve: 'borrowernumber'
+            });
         });
     </script>
+[% END %]
+
+[% BLOCK filter_form %]
+    <form action="/cgi-bin/koha/acqui/histsearch.pl" method="post">
+        [% IF ( context == "sidebar" ) %]
+            <fieldset class="brief">
+                <h4>Search orders</h4>
+        [% ELSE %]
+            <fieldset class="rows">
+                <legend>Search orders</legend>
+        [% END %]
+            [% INCLUDE 'filter-orders.inc' %]
+            <input type="hidden" name="do_search" value="1" />
+            <fieldset class="action"><input type="submit" value="Search" /></fieldset>
+        </fieldset>
+    </form>
 [% END %]
 
 [% INCLUDE 'intranet-bottom.inc' %]

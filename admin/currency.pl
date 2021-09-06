@@ -39,8 +39,7 @@ our ( $template, $loggedinuser, $cookie ) = get_template_and_user(
     {   template_name   => 'admin/currency.tt',
         query           => $input,
         type            => 'intranet',
-        authnotrequired => 0,
-        flagsrequired   => { parameters => 'parameters_remaining_permissions' },
+        flagsrequired   => { acquisition => 'currencies_manage' },
     }
 );
 

@@ -6,6 +6,7 @@
 
 
 # Copyright 2000-2002 Katipo Communications
+# Copyright 2021 LMSCloud GmbH
 #
 # This file is part of Koha.
 #
@@ -23,18 +24,21 @@
 # along with Koha; if not, see <http://www.gnu.org/licenses>.
 
 use Modern::Perl;
+use URI::Escape;
 
 use C4::Auth;
 use C4::Output;
 use CGI qw ( -utf8 );
 use C4::Members;
 use C4::Accounts;
-use C4::Members::Attributes qw(GetBorrowerAttributes);
 use C4::CashRegisterManagement qw(passCashRegisterCheck);
+use Koha::Cash::Registers;
 use Koha::Patrons;
 use Koha::Patron::Categories;
+use Koha::Items;
+use Koha::Token;
 
-my $input=new CGI;
+my $input=CGI->new;
 
 
 my ($template, $loggedinuser, $cookie) = get_template_and_user(
@@ -42,17 +46,21 @@ my ($template, $loggedinuser, $cookie) = get_template_and_user(
         template_name   => "members/boraccount.tt",
         query           => $input,
         type            => "intranet",
-        authnotrequired => 0,
         flagsrequired   => { borrowers     => 'edit_borrowers',
                              updatecharges => 'remaining_permissions'},
         debug           => 1,
     }
 );
 
+my $schema         = Koha::Database->new->schema;
 my $borrowernumber = $input->param('borrowernumber');
-my $action = $input->param('action') || '';
+my $payment_id     = $input->param('payment_id');
+my $change_given   = $input->param('change_given');
+my $action         = $input->param('action') || '';
+my @renew_results  = $input->param('renew_result');
 
-my $logged_in_user = Koha::Patrons->find( $loggedinuser ) or die "Not logged in";
+my $logged_in_user = Koha::Patrons->find( $loggedinuser );
+my $library_id = C4::Context->userenv->{'branch'};
 my $patron = Koha::Patrons->find( $borrowernumber );
 unless ( $patron ) {
     print $input->redirect("/cgi-bin/koha/circ/circulation.pl?borrowernumber=$borrowernumber");
@@ -63,6 +71,7 @@ output_and_exit_if_error( $input, $cookie, $template, { module => 'members', log
 
 my $branch = C4::Context->userenv->{'branch'};
 my $checkCashRegisterOk = passCashRegisterCheck($branch,$loggedinuser);
+my $registerid = $input->param('registerid');
 
 if ( $action eq 'reverse' ) {
   ReversePayment( scalar $input->param('accountlines_id') );
@@ -70,19 +79,110 @@ if ( $action eq 'reverse' ) {
 elsif ( $action eq 'void' ) {
     my $payment_id = scalar $input->param('accountlines_id');
     my $payment    = Koha::Account::Lines->find( $payment_id );
-    $payment->void();
+    $payment->void(
+        {
+            branch    => $library_id,
+            staff_id  => $logged_in_user->id,
+            interface => 'intranet',
+        }
+    );
 }
 
-if ( $patron->is_child ) {
-    my $patron_categories = Koha::Patron::Categories->search_limited({ category_type => 'A' }, {order_by => ['categorycode']});
-    $template->param( 'CATCODE_MULTI' => 1) if $patron_categories->count > 1;
-    $template->param( 'catcode' => $patron_categories->next->categorycode )  if $patron_categories->count == 1;
+if ( $action eq 'payout' ) {
+    my $payment_id       = scalar $input->param('accountlines_id');
+    my $amount           = scalar $input->param('amount');
+    my $payout_type = scalar $input->param('payout_type');
+    if ( $payment_id eq "" ) {
+        $schema->txn_do(
+            sub {
+                $patron->account->payout_amount(
+                     {
+                        payout_type   => $payout_type,
+                        branch        => $library_id,
+                        staff_id      => $logged_in_user->id,
+                        cash_register => $registerid,
+                        interface     => 'intranet',
+                        amount        => $amount
+                    }
+                );
+            }
+        );
+    } else {
+        my $payment = Koha::Account::Lines->find($payment_id);
+        $schema->txn_do(
+            sub {
+                my $payout = $payment->payout(
+                    {
+                        payout_type   => $payout_type,
+                        branch        => $library_id,
+                        staff_id      => $logged_in_user->id,
+                        cash_register => $registerid,
+                        interface     => 'intranet',
+                        amount        => $amount
+                    }
+                );
+            }
+        );
+    }
+}
+
+if ( $action eq 'refund' ) {
+    my $charge_id        = scalar $input->param('accountlines_id');
+    my $charge           = Koha::Account::Lines->find($charge_id);
+    my $amount           = scalar $input->param('amount');
+    my $refund_type = scalar $input->param('refund_type');
+    $schema->txn_do(
+        sub {
+
+            my $refund = $charge->reduce(
+                {
+                    reduction_type => 'REFUND',
+                    branch         => $library_id,
+                    staff_id       => $logged_in_user->id,
+                    interface      => 'intranet',
+                    amount         => $amount
+                }
+            );
+            unless ( $refund_type eq 'AC' ) {
+                my $payout = $refund->payout(
+                    {
+                        payout_type   => $refund_type,
+                        branch        => $library_id,
+                        staff_id      => $logged_in_user->id,
+                        cash_register => $registerid,
+                        interface     => 'intranet',
+                        amount        => $amount
+                    }
+                );
+            }
+        }
+    );
+}
+
+if ( $action eq 'discount' ) {
+    my $charge_id        = scalar $input->param('accountlines_id');
+    my $charge           = Koha::Account::Lines->find($charge_id);
+    my $amount           = scalar $input->param('amount');
+    $schema->txn_do(
+        sub {
+
+            my $discount = $charge->reduce(
+                {
+                    reduction_type => 'DISCOUNT',
+                    branch         => $library_id,
+                    staff_id       => $logged_in_user->id,
+                    interface      => 'intranet',
+                    amount         => $amount
+                }
+            );
+        }
+    );
 }
 
 #get account details
 my $total = $patron->account->balance;
 
-my $accts = Koha::Account::Lines->search(
+my @accountlines = Koha::Account::Lines->search(
     { borrowernumber => $patron->borrowernumber },
     { order_by       => { -desc => 'accountlines_id' } }
 );
@@ -92,50 +192,37 @@ if($total <= 0){
         $totalcredit = 1;
 }
 
-my $reverse_col = 0; # Flag whether we need to show the reverse column
-my @accountlines;
-while ( my $line = $accts->next ) {
-    # FIXME We should pass the $accts iterator to the template and do this formatting part there
-    my $accountline = $line->unblessed;
-    $accountline->{amount} += 0.00;
-    if ($accountline->{amount} <= 0 ) {
-        $accountline->{amountcredit} = 1;
+# Populate an arrayref with everything we need to display any
+# renew errors that occurred based on what we were passed
+my $renew_results_display = [];
+foreach my $renew_result(@renew_results) {
+    my ($itemnumber, $success, $info) = split(/,/, $renew_result);
+    my $item = Koha::Items->find($itemnumber);
+    if ($success) {
+        $info = uri_unescape($info);
     }
-    $accountline->{amountoutstanding} += 0.00;
-    if ( $accountline->{amountoutstanding} <= 0 ) {
-        $accountline->{amountoutstandingcredit} = 1;
-    }
-
-    $accountline->{amount} = sprintf '%.2f', $accountline->{amount};
-    $accountline->{amountoutstanding} = sprintf '%.2f', $accountline->{amountoutstanding};
-    if ($accountline->{accounttype} =~ /^Pay/) {
-        $accountline->{payment} = 1;
-        $reverse_col = 1;
-    }
-
-    if ( $accountline->{itemnumber} ) {
-        # Because we will not have access to the object from the template
-        $accountline->{item} = $line->item;
-    }
-    push @accountlines, $accountline;
+    push @{$renew_results_display}, {
+        item    => $item,
+        success => $success,
+        info    => $info
+    };
 }
 
-if (C4::Context->preference('ExtendedPatronAttributes')) {
-    my $attributes = GetBorrowerAttributes($borrowernumber);
-    $template->param(
-        ExtendedPatronAttributes => 1,
-        extendedattributes => $attributes
-    );
-}
+my $csrf_token = Koha::Token->new->generate_csrf({
+    session_id => scalar $input->cookie('CGISESSID'),
+});
 
 $template->param(
     patron              => $patron,
     finesview           => 1,
     total               => sprintf("%.2f",$total),
     totalcredit         => $totalcredit,
-    reverse_col         => $reverse_col,
     checkCashRegisterFailed => (! $checkCashRegisterOk),
     accounts            => \@accountlines,
+    payment_id          => $payment_id,
+    change_given        => $change_given,
+    renew_results       => $renew_results_display,
+    csrf_token          => $csrf_token,
 );
 
 output_html_with_http_headers $input, $cookie, $template->output;

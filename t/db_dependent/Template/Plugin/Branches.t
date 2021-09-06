@@ -16,10 +16,15 @@
 
 use Modern::Perl;
 
-use Test::More tests => 15;
+use Test::More tests => 3;
+use Test::MockModule;
 
 use C4::Context;
+use C4::Biblio qw(AddBiblio);
 use Koha::Database;
+
+use Clone qw(clone);
+use List::MoreUtils qw(any);
 
 use t::lib::TestBuilder;
 use t::lib::Mocks;
@@ -28,55 +33,163 @@ BEGIN {
     use_ok('Koha::Template::Plugin::Branches');
 }
 
-my $schema = Koha::Database->schema;
-$schema->storage->txn_begin;
+my $schema  = Koha::Database->schema;
 my $builder = t::lib::TestBuilder->new;
-my $library = $builder->build({
-    source => 'Branch',
-    value => {
-        branchcode => 'MYLIBRARY',
-    }
-});
-my $another_library = $builder->build({
-    source => 'Branch',
-    value => {
-        branchcode => 'ANOTHERLIB',
-    }
-});
 
-my $plugin = Koha::Template::Plugin::Branches->new();
-ok($plugin, "initialized Branches plugin");
+subtest 'all() tests' => sub {
 
-my $name = $plugin->GetName($library->{branchcode});
-is($name, $library->{branchname}, 'retrieved expected name for library');
+    plan tests => 18;
 
-$name = $plugin->GetName('__ANY__');
-is($name, '', 'received empty string as name of the "__ANY__" placeholder library code');
+    $schema->storage->txn_begin;
 
-$name = $plugin->GetName(undef);
-is($name, '', 'received empty string as name of NULL/undefined library code');
+    my $library = $builder->build({
+        source => 'Branch',
+        value => {
+            branchcode => 'MYLIBRARY',
+            branchname => 'My sweet library'
+        }
+    });
+    my $another_library = $builder->build({
+        source => 'Branch',
+        value => {
+            branchcode => 'ANOTHERLIB',
+        }
+    });
 
-$library = $plugin->GetLoggedInBranchcode();
-is($library, '', 'no active library if there is no active user session');
+    my $plugin = Koha::Template::Plugin::Branches->new();
+    ok($plugin, "initialized Branches plugin");
 
-C4::Context->_new_userenv('DUMMY_SESSION_ID');
-C4::Context->set_userenv(123, 'userid', 'usercnum', 'First name', 'Surname', 'MYLIBRARY', 'My Library', 0);
-$library = $plugin->GetLoggedInBranchcode();
-is($library, 'MYLIBRARY', 'GetLoggedInBranchcode() returns active library');
+    my $name = $plugin->GetName($library->{branchcode});
+    is($name, $library->{branchname}, 'retrieved expected name for library');
 
-t::lib::Mocks::mock_preference( 'IndependentBranches', 0 );
-my $libraries = $plugin->all();
-ok( scalar(@$libraries) > 1, 'If IndependentBranches is not set, all libraries should be returned' );
-is( grep ( { $_->{branchcode} eq 'MYLIBRARY'  and $_->{selected} == 1 } @$libraries ),       1, 'Without selected parameter, my library should be preselected' );
-is( grep ( { $_->{branchcode} eq 'ANOTHERLIB' and not exists $_->{selected} } @$libraries ), 1, 'Without selected parameter, other library should not be preselected' );
-$libraries = $plugin->all( { selected => 'ANOTHERLIB' } );
-is( grep ( { $_->{branchcode} eq 'MYLIBRARY'  and not exists $_->{selected} } @$libraries ), 1, 'With selected parameter, my library should not be preselected' );
-is( grep ( { $_->{branchcode} eq 'ANOTHERLIB' and $_->{selected} == 1 } @$libraries ),       1, 'With selected parameter, other library should be preselected' );
-$libraries = $plugin->all( { selected => '' } );
-is( grep ( { exists $_->{selected} } @$libraries ), 0, 'With selected parameter set to an empty string, no library should be preselected' );
+    $name = $plugin->GetName('__ANY__');
+    is($name, '', 'received empty string as name of the "__ANY__" placeholder library code');
 
-t::lib::Mocks::mock_preference( 'IndependentBranches', 1 );
-$libraries = $plugin->all();
-is( scalar(@$libraries), 1, 'If IndependentBranches is set, only 1 library should be returned' );
-$libraries = $plugin->all( { unfiltered => 1 } );
-ok( scalar(@$libraries) > 1, 'If IndependentBranches is set, all libraries should be returned if the unfiltered flag is set' );
+    $name = $plugin->GetName(undef);
+    is($name, '', 'received empty string as name of NULL/undefined library code');
+
+    is($plugin->GetLoggedInBranchcode(), '', 'no active library code if there is no active user session');
+    is($plugin->GetLoggedInBranchname(), '', 'no active library name if there is no active user session');
+
+    t::lib::Mocks::mock_userenv({ branchcode => 'MYLIBRARY', branchname => 'My sweet library' });
+    is($plugin->GetLoggedInBranchcode(), 'MYLIBRARY', 'GetLoggedInBranchcode() returns active library code');
+    is($plugin->GetLoggedInBranchname(), 'My sweet library', 'GetLoggedInBranchname() returns active library name');
+
+    t::lib::Mocks::mock_preference( 'IndependentBranches', 0 );
+    my $libraries = $plugin->all();
+    ok( scalar(@$libraries) > 1, 'If IndependentBranches is not set, all libraries should be returned' );
+    is( grep ( { $_->{branchcode} eq 'MYLIBRARY'  and $_->{selected} == 1 } @$libraries ),       1, 'Without selected parameter, my library should be preselected' );
+    is( grep ( { $_->{branchcode} eq 'ANOTHERLIB' and not exists $_->{selected} } @$libraries ), 1, 'Without selected parameter, other library should not be preselected' );
+    $libraries = $plugin->all( { selected => 'ANOTHERLIB' } );
+    is( grep ( { $_->{branchcode} eq 'MYLIBRARY'  and not exists $_->{selected} } @$libraries ), 1, 'With selected parameter, my library should not be preselected' );
+    is( grep ( { $_->{branchcode} eq 'ANOTHERLIB' and $_->{selected} == 1 } @$libraries ),       1, 'With selected parameter, other library should be preselected' );
+    $libraries = $plugin->all( { selected => '' } );
+    is( grep ( { exists $_->{selected} } @$libraries ), 0, 'With selected parameter set to an empty string, no library should be preselected' );
+
+    my $total = @{$plugin->all};
+    my $pickupable = @{$plugin->all( { search_params => { pickup_location => 1 } }) };
+    my $yet_another_library = $builder->build({
+        source => 'Branch',
+        value => {
+            branchcode => 'CANTPICKUP',
+            pickup_location => 0,
+        }
+    });
+    is(@{$plugin->all( { search_params => { pickup_location => 1 } }) }, $pickupable,
+       'Adding a new library with pickups'
+       .' disabled does not increase the amount returned by ->pickup_locations');
+    is(@{$plugin->all}, $total+1, 'However, adding a new library increases'
+       .' the total amount gotten with ->all');
+
+    t::lib::Mocks::mock_preference( 'IndependentBranches', 1 );
+    $libraries = $plugin->all();
+    is( scalar(@$libraries), 1, 'If IndependentBranches is set, only 1 library should be returned' );
+    $libraries = $plugin->all( { unfiltered => 1 } );
+    ok( scalar(@$libraries) > 1, 'If IndependentBranches is set, all libraries should be returned if the unfiltered flag is set' );
+
+    $schema->storage->txn_rollback;
+};
+
+subtest 'pickup_locations() tests' => sub {
+
+    plan tests => 8;
+
+    $schema->storage->txn_begin;
+
+    Koha::Libraries->search->update({ pickup_location => 0 });
+
+    my $library_1 = $builder->build_object({ class => 'Koha::Libraries', value => { pickup_location => 1 } });
+    my $library_2 = $builder->build_object({ class => 'Koha::Libraries', value => { pickup_location => 1 } });
+    my $library_3 = $builder->build_object({ class => 'Koha::Libraries', value => { pickup_location => 1 } });
+
+    my $plugin           = Koha::Template::Plugin::Branches->new();
+    my $pickup_locations = $plugin->pickup_locations();
+
+    is( scalar @{$pickup_locations}, 3, 'Libraries count is correct' );
+
+    $pickup_locations = $plugin->pickup_locations({ search_params => { item => undef }});
+    is( scalar @{$pickup_locations}, 3, 'item parameter not a ref, fallback to general search' );
+
+    $pickup_locations = $plugin->pickup_locations({ search_params => { biblio => undef }});
+    is( scalar @{$pickup_locations}, 3, 'biblio parameter not a ref, fallback to general search' );
+
+    my $item_class = Test::MockModule->new('Koha::Item');
+    $item_class->mock(
+        'pickup_locations',
+        sub {
+            return Koha::Libraries->search(
+                { branchcode => $library_1->branchcode } );
+        }
+    );
+
+    my $item   = $builder->build_sample_item();
+    my $patron = $builder->build_object({ class => 'Koha::Patrons' });
+
+    $pickup_locations = $plugin->pickup_locations(
+        { search_params => { item => $item, patron => Koha::Patron->new } } );
+
+    is( scalar @{$pickup_locations}, 1, 'Only the library returned by $item->pickup_locations is returned' );
+    is( $pickup_locations->[0]->{branchcode}, $library_1->branchcode, 'Not cheating' );
+
+    my $biblio_class = Test::MockModule->new('Koha::Biblio');
+    $biblio_class->mock(
+        'pickup_locations',
+        sub {
+            return Koha::Libraries->search(
+                { branchcode => $library_2->branchcode } );
+        }
+    );
+
+    my $biblio = $builder->build_sample_biblio();
+
+    $pickup_locations = $plugin->pickup_locations(
+        { search_params => { biblio => $biblio, patron => Koha::Patron->new } } );
+
+    is( scalar @{$pickup_locations}, 1, 'Only the library returned by $biblio->pickup_locations is returned' );
+    is( $pickup_locations->[0]->{branchcode}, $library_2->branchcode, 'Not cheating' );
+
+    subtest 'selected tests' => sub {
+
+        plan tests => 4;
+
+        t::lib::Mocks::mock_userenv({ branchcode => $library_2->branchcode });
+
+        $pickup_locations = $plugin->pickup_locations();
+
+        is( scalar @{$pickup_locations}, 3, 'Libraries count is correct' );
+        foreach my $pickup_location (@{ $pickup_locations }) {
+            next unless exists $pickup_location->{selected} and $pickup_location->{selected} == 1;
+            is( $pickup_location->{branchcode}, $library_2->branchcode, 'The right library is marked as selected' );
+        }
+
+        $pickup_locations = $plugin->pickup_locations({ selected => $library_3->branchcode });
+
+        is( scalar @{$pickup_locations}, 3, 'Libraries count is correct' );
+        foreach my $pickup_location (@{ $pickup_locations }) {
+            next unless exists $pickup_location->{selected} and $pickup_location->{selected} == 1;
+            is( $pickup_location->{branchcode}, $library_3->branchcode, 'The right library is marked as selected' );
+        }
+    };
+
+    $schema->storage->txn_rollback;
+};

@@ -25,17 +25,17 @@ use CGI qw ( -utf8 );
 
 use C4::Auth qw(get_template_and_user);
 use C4::Output qw(output_html_with_http_headers);
-use C4::Items qw(GetItem GetItemnumberFromBarcode);
 use C4::Creators;
 use C4::Labels;
 
-my $cgi = new CGI;
+use Koha::Items;
+
+my $cgi = CGI->new;
 my ( $template, $loggedinuser, $cookie ) = get_template_and_user(
     {
         template_name   => "labels/label-edit-batch.tt",
         query           => $cgi,
         type            => "intranet",
-        authnotrequired => 0,
         flagsrequired   => { catalogue => 1 },
         debug           => 1,
     }
@@ -61,6 +61,7 @@ my @item_numbers;
 my $number_list;
 my $number_type = $cgi->param('number_type') || "barcode";
 my $batch_id = $cgi->param('element_id') || $cgi->param('batch_id') || 0;
+my $description = $cgi->param('description') || '';
 @label_ids = $cgi->multi_param('label_id') if $cgi->param('label_id');
 @item_numbers = $cgi->multi_param('item_number') if $cgi->param('item_number');
 $number_list = $cgi->param('number_list') if $cgi->param('number_list');
@@ -86,18 +87,18 @@ elsif ($op eq 'add') {
         my @numbers_list = split /\n/, $number_list; # Entries are effectively passed in as a <cr> separated list
         foreach my $number (@numbers_list) {
             $number =~ s/\r$//; # strip any naughty return chars
-            if( $number_type eq "itemnumber" && GetItem($number) ) {
+            if( $number_type eq "itemnumber" && Koha::Items->find($number) ) {
                 push @item_numbers, $number;
             }
             elsif ($number_type eq "barcode" ) {  # we must test in case an invalid barcode is passed in; we effectively disgard them atm
-                if( my $item_number = GetItemnumberFromBarcode($number) ){
-                    push @item_numbers, $item_number;
-                }
+                my $item = Koha::Items->find({barcode => $number});
+                push @item_numbers, $item->itemnumber if $item;
             }
         }
     }
     if ($batch_id != 0) {$batch = C4::Labels::Batch->retrieve(batch_id => $batch_id);}
     if ($batch_id == 0 || $batch == -2) {$batch = C4::Labels::Batch->new(branch_code => $branch_code);}
+    $template->param( description => $batch->{description} );
     if ($branch_code){
         foreach my $item_number (@item_numbers) {
             $err = $batch->add_item($item_number);
@@ -122,6 +123,7 @@ elsif ($op eq 'de_duplicate') {
 }
 else { # edit
     $batch = C4::Labels::Batch->retrieve(batch_id => $batch_id);
+    $template->param( description => $batch->{description} );
 }
 
 my $items = $batch->get_attr('items');

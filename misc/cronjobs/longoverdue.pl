@@ -33,13 +33,18 @@ BEGIN {
     use FindBin;
     eval { require "$FindBin::Bin/../kohalib.pl" };
 }
+
+use Getopt::Long;
+use Pod::Usage;
+
+use C4::Circulation qw/LostItem MarkIssueReturned/;
 use C4::Context;
 use C4::Items;
-use C4::Circulation qw/LostItem MarkIssueReturned/;
-use Getopt::Long;
 use C4::Log;
-use Pod::Usage;
+use Koha::ItemTypes;
+use Koha::Patron::Categories;
 use Koha::Patrons;
+use Koha::Script -cron;
 
 my  $lost;  #  key=lost value,  value=num days.
 my ($charge, $verbose, $confirm, $quiet);
@@ -47,23 +52,31 @@ my $endrange = 366;
 my $mark_returned;
 my $borrower_category = [];
 my $skip_borrower_category = [];
+my $itemtype = [];
+my $skip_itemtype = [];
 my $help=0;
 my $man=0;
 my $list_categories = 0;
+my $list_itemtypes = 0;
+my @skip_lost_values;
 
 GetOptions(
-    'lost=s%'         => \$lost,
-    'c|charge=s'      => \$charge,
-    'confirm'         => \$confirm,
+    'l|lost=s%'         => \$lost,
+    'c|charge=s'        => \$charge,
+    'confirm'           => \$confirm,
     'v|verbose'         => \$verbose,
-    'quiet'           => \$quiet,
-    'maxdays=s'       => \$endrange,
-    'mark-returned'   => \$mark_returned,
+    'quiet'             => \$quiet,
+    'maxdays=s'         => \$endrange,
+    'mark-returned'     => \$mark_returned,
     'h|help'            => \$help,
-    'man|manual'      => \$man,
-    'category=s'      => $borrower_category,
-    'skip-category=s' => $skip_borrower_category,
-    'list-categories' => \$list_categories,
+    'man|manual'        => \$man,
+    'category=s'        => $borrower_category,
+    'skip-category=s'   => $skip_borrower_category,
+    'list-categories'   => \$list_categories,
+    'itemtype=s'        => $itemtype,
+    'skip-itemtype=s'   => $skip_itemtype,
+    'list-itemtypes'    => \$list_itemtypes,
+    'skip-lost-value=s' => \@skip_lost_values,
 );
 
 if ( $man ) {
@@ -80,15 +93,30 @@ if ( $help ) {
 
 if ( scalar @$borrower_category && scalar @$skip_borrower_category) {
     pod2usage( -verbose => 1,
-               -message => "The options --category and --skip-category are mually exclusive.\n"
+               -message => "The options --category and --skip-category are mutually exclusive.\n"
+                           . "Use one or the other.",
+               -exitval => 1
+            );
+}
+
+if ( scalar @$itemtype && scalar @$skip_itemtype) {
+    pod2usage( -verbose => 1,
+               -message => "The options --itemtype and --skip-itemtype are mutually exclusive.\n"
                            . "Use one or the other.",
                -exitval => 1
             );
 }
 
 if ( $list_categories ) {
-    my @categories = sort map { uc $_->[0] } @{ C4::Context->dbh->selectall_arrayref(q|SELECT categorycode FROM categories|) };
-    print "\nBorrowrer Categories: " . join( " ", @categories ) . "\n\n";
+
+    my @categories = Koha::Patron::Categories->search()->get_column('categorycode');
+    print "\nBorrower Categories: " . join( " ", @categories ) . "\n\n";
+    exit 0;
+}
+
+if ( $list_itemtypes ) {
+    my @itemtypes = Koha::ItemTypes->search()->get_column('itemtype');
+    print "\nItemtypes: " . join( " ", @itemtypes ) . "\n\n";
     exit 0;
 }
 
@@ -98,6 +126,7 @@ if ( $list_categories ) {
    longoverdue.pl --lost | -l DAYS=LOST_CODE [ --charge | -c CHARGE_CODE ] [ --verbose | -v ] [ --quiet ]
                   [ --maxdays MAX_DAYS ] [ --mark-returned ] [ --category BORROWER_CATEGORY ] ...
                   [ --skip-category BORROWER_CATEGORY ] ...
+                  [ --skip-lost-value LOST_VALUE [ --skip-lost-value LOST_VALUE ] ]
                   [ --commit ]
 
 
@@ -161,6 +190,28 @@ May not be used with B<--category>
 List borrower categories available for use by B<--category> or
 B<--skip-category>, and exit.
 
+=item B<--itemtype>
+
+Act on the listed itemtype code.
+Exclude all others. This may be specified multiple times to include multiple itemtypes.
+May not be used with B<--skip-itemtype>
+
+=item B<--skip-itemtype>
+
+Act on all available itemtype codes, except those listed.
+This may be specified multiple times, to exclude multiple itemtypes.
+May not be used with B<--itemtype>
+
+=item B<--skip-lost-value>
+
+Act on all available lost values, except those listed.
+This may be specified multiple times, to exclude multiple lost values.
+
+=item B<--list-itemtypes>
+
+List itemtypes available for use by B<--itemtype> or
+B<--skip-itemtype>, and exit.
+
 =item B<--help | -h>
 
 Display short help message an exit.
@@ -204,6 +255,12 @@ near-term release, so this script is not intended to have a long lifetime.
 # FIXME: do checks on --lost ranges to make sure the authorized values exist.
 # FIXME: do checks on --lost ranges to make sure don't go past endrange.
 #
+
+unless ( scalar @skip_lost_values ) {
+    my $preference = C4::Context->preference( 'DefaultLongOverdueSkipLostStatuses' );
+    @skip_lost_values = split( ',', $preference );
+}
+
 if ( ! defined($lost) ) {
     my $longoverdue_value = C4::Context->preference('DefaultLongOverdueLostValue');
     my $longoverdue_days = C4::Context->preference('DefaultLongOverdueDays');
@@ -213,7 +270,7 @@ if ( ! defined($lost) ) {
     else {
         pod2usage( {
                 -exitval => 1,
-                -msg => q|ERROR: No --lost (-l) option defined|,
+                -msg => q|ERROR: No --lost (-l) option or system preferences DefaultLongOverdueLostValue/DefaultLongOverdueDays defined|,
         } );
     }
 }
@@ -233,32 +290,43 @@ cronlogaction();
 # In my opinion, this line is safe SQL to have outside the API. --atz
 our $bounds_sth = C4::Context->dbh->prepare("SELECT DATE_SUB(CURDATE(), INTERVAL ? DAY)");
 
-sub bounds ($) {
+sub bounds {
     $bounds_sth->execute(shift);
     return $bounds_sth->fetchrow;
 }
 
 # FIXME - This sql should be inside the API.
 sub longoverdue_sth {
+    my ( $params ) = @_;
+    my $skip_lost_values = $params->{skip_lost_values};
+
+    my $skip_lost_values_sql = q{};
+    if ( @$skip_lost_values ) {
+        my $values = join( ',', map { qq{'$_'} } @$skip_lost_values );
+        $skip_lost_values_sql = "AND itemlost NOT IN ( $values )"
+    }
+
     my $query = "
-    SELECT items.itemnumber, borrowernumber, date_due
+    SELECT items.itemnumber, borrowernumber, date_due, itemlost
       FROM issues, items
      WHERE items.itemnumber = issues.itemnumber
       AND  DATE_SUB(CURDATE(), INTERVAL ? DAY)  > date_due
       AND  DATE_SUB(CURDATE(), INTERVAL ? DAY) <= date_due
       AND  itemlost <> ?
+      $skip_lost_values_sql
      ORDER BY date_due
     ";
     return C4::Context->dbh->prepare($query);
 }
 
 my $dbh = C4::Context->dbh;
-my @available_categories = map { uc $_->[0] } @{ $dbh->selectall_arrayref(q|SELECT categorycode FROM categories|) };
+
+my @available_categories = Koha::Patron::Categories->search()->get_column('categorycode');
 $borrower_category = [ map { uc $_ } @$borrower_category ];
 $skip_borrower_category = [ map { uc $_} @$skip_borrower_category ];
 my %category_to_process;
 for my $cat ( @$borrower_category ) {
-    unless ( grep { /^$cat$/ } @available_categories ) {
+    unless ( grep { $_ eq $cat } @available_categories ) {
         pod2usage(
             '-exitval' => 1,
             '-message' => "The category $cat does not exist in the database",
@@ -268,7 +336,7 @@ for my $cat ( @$borrower_category ) {
 }
 if ( @$skip_borrower_category ) {
     for my $cat ( @$skip_borrower_category ) {
-        unless ( grep { /^$cat$/ } @available_categories ) {
+        unless ( grep { $_ eq $cat } @available_categories ) {
             pod2usage(
                 '-exitval' => 1,
                 '-message' => "The category $cat does not exist in the database",
@@ -281,6 +349,34 @@ if ( @$skip_borrower_category ) {
 
 my $filter_borrower_categories = ( scalar @$borrower_category || scalar @$skip_borrower_category );
 
+my @available_itemtypes = Koha::ItemTypes->search()->get_column('itemtype');
+$itemtype = [ map { uc $_ } @$itemtype ];
+$skip_itemtype = [ map { uc $_} @$skip_itemtype ];
+my %itemtype_to_process;
+for my $it ( @$itemtype ) {
+    unless ( grep { $_ eq $it } @available_itemtypes ) {
+        pod2usage(
+            '-exitval' => 1,
+            '-message' => "The itemtype $it does not exist in the database",
+        );
+    }
+    $itemtype_to_process{$it} = 1;
+}
+if ( @$skip_itemtype ) {
+    for my $it ( @$skip_itemtype ) {
+        unless ( grep { $_ eq $it } @available_itemtypes ) {
+            pod2usage(
+                '-exitval' => 1,
+                '-message' => "The itemtype $it does not exist in the database",
+            );
+        }
+    }
+    %itemtype_to_process = map { $_ => 1 } @available_itemtypes;
+    %itemtype_to_process = ( %itemtype_to_process, map { $_ => 0 } @$skip_itemtype );
+}
+
+my $filter_itemtypes = ( scalar @$itemtype || scalar @$skip_itemtype );
+
 my $count;
 my @report;
 my $total = 0;
@@ -289,7 +385,7 @@ my $i = 0;
 # FIXME - The item is only marked returned if you supply --charge .
 #         We need a better way to handle this.
 #
-my $sth_items = longoverdue_sth();
+my $sth_items = longoverdue_sth({ skip_lost_values => \@skip_lost_values });
 
 foreach my $startrange (sort keys %$lost) {
     if( my $lostvalue = $lost->{$startrange} ) {
@@ -306,14 +402,19 @@ foreach my $startrange (sort keys %$lost) {
                 my $category = uc Koha::Patrons->find( $row->{borrowernumber} )->categorycode();
                 next ITEM unless ( $category_to_process{ $category } );
             }
+            if ($filter_itemtypes) {
+                my $it = uc Koha::Items->find( $row->{itemnumber} )->effective_itemtype();
+                next ITEM unless ( $itemtype_to_process{$it} );
+            }
             printf ("Due %s: item %5s from borrower %5s to lost: %s\n", $row->{date_due}, $row->{itemnumber}, $row->{borrowernumber}, $lostvalue) if($verbose);
             if($confirm) {
-                ModItem({ itemlost => $lostvalue }, $row->{'biblionumber'}, $row->{'itemnumber'});
+                Koha::Items->find( $row->{itemnumber} )->itemlost($lostvalue)
+                  ->store;
                 if ( $charge && $charge eq $lostvalue ) {
                     LostItem( $row->{'itemnumber'}, 'cronjob', $mark_returned );
                 } elsif ( $mark_returned ) {
                     my $patron = Koha::Patrons->find( $row->{borrowernumber} );
-                    MarkIssueReturned($row->{borrowernumber},$row->{itemnumber},undef,undef,$patron->privacy)
+                    MarkIssueReturned($row->{borrowernumber},$row->{itemnumber},undef,$patron->privacy)
                 }
             }
             $count++;
@@ -332,10 +433,10 @@ foreach my $startrange (sort keys %$lost) {
     $endrange = $startrange;
 }
 
-sub summarize ($$) {
+sub summarize {
     my $arg = shift;    # ref to array
     my $got_items = shift || 0;     # print "count" line for items
-    my @report = @$arg or return undef;
+    my @report = @$arg or return;
     my $i = 0;
     for my $range (@report) {
         printf "\nRange %s\nDue %3s - %3s days ago (%s to %s), lost => %s\n", ++$i,

@@ -54,14 +54,15 @@ use C4::Acquisition qw/GetBasket NewBasket ModBasketHeader/;
 use C4::Contract qw/GetContracts/;
 
 use Koha::Acquisition::Booksellers;
+use Koha::Acquisition::Baskets;
+use Koha::AdditionalFields;
 
-my $input = new CGI;
+my $input = CGI->new;
 my ( $template, $loggedinuser, $cookie ) = get_template_and_user(
     {
         template_name   => "acqui/basketheader.tt",
         query           => $input,
         type            => "intranet",
-        authnotrequired => 0,
        flagsrequired   => { acquisition => 'order_manage' },
         debug           => 1,
     }
@@ -73,6 +74,8 @@ my $basketno = $input->param('basketno');
 my $basket;
 my $op = $input->param('op');
 my $is_an_edit = $input->param('is_an_edit');
+
+$template->param( available_additional_fields => [ Koha::AdditionalFields->search( { tablename => 'aqbasket' } ) ] );
 
 if ( $op eq 'add_form' ) {
     my @contractloop;
@@ -94,6 +97,11 @@ if ( $op eq 'add_form' ) {
             }
         }
         $template->param( is_an_edit => 1);
+        $template->param(
+            additional_field_values => { map {
+                $_->field->id => $_->value
+            } Koha::Acquisition::Baskets->find($basketno)->additional_field_values->as_list },
+        );
     } else {
     #new basket
         my $basket;
@@ -122,6 +130,7 @@ if ( $op eq 'add_form' ) {
                     basketno => $basketno,
                     booksellers => \@booksellers,
                     is_standing => $basket->{is_standing},
+                    create_items => $basket->{create_items},
     );
 
     my $billingplace = $basket->{'billingplace'} || C4::Context->userenv->{"branch"};
@@ -148,7 +157,7 @@ if ( $op eq 'add_form' ) {
         );
     } else { #New basket
         $basketno = NewBasket(
-            $booksellerid,
+            scalar $input->param('basketbooksellerid'),
             $loggedinuser,
             scalar $input->param('basketname'),
             scalar $input->param('basketnote'),
@@ -160,6 +169,18 @@ if ( $op eq 'add_form' ) {
             scalar $input->param('create_items')
         );
     }
+
+    my @additional_fields;
+    my $basket_fields = Koha::AdditionalFields->search({ tablename => 'aqbasket' });
+    while ( my $field = $basket_fields->next ) {
+        my $value = $input->param('additional_field_' . $field->id);
+        push @additional_fields, {
+            id => $field->id,
+            value => $value,
+        };
+    }
+    Koha::Acquisition::Baskets->find($basketno)->set_additional_fields(\@additional_fields);
+
     print $input->redirect('basket.pl?basketno='.$basketno);
     exit 0;
 }

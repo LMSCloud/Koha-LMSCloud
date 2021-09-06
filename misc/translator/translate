@@ -29,6 +29,8 @@ use LangInstaller;
 use Getopt::Long;
 use Pod::Usage;
 
+use Koha::Caches;
+
 
 my $verbose     = 0;
 my $pref        = 0;
@@ -52,14 +54,13 @@ usage() if $#ARGV != 1 && $#ARGV != 0;
 
 my ($cmd, $lang) = @ARGV;
 $cmd = lc $cmd;
-if ( $cmd =~ /create|install|update/ ) {
+if ( $cmd =~ /^(install|compress|uncompress)$/ ) {
     my $installer = LangInstaller->new( $lang, $pref, $verbose );
-    if ( $cmd ne 'create' and $lang and not grep( /^$lang$/, @{ $installer->{langs} } ) ) {
+    if ( $lang and not grep( {$_ eq $lang} @{ $installer->{langs} } ) ) {
         print "Unsupported language: $lang\n";
         exit;
     }
     if ( $all ) {
-        usage() if $cmd eq 'create';
         for my $lang ( @{$installer->{langs}} ) {
             $installer->set_lang( $lang );
             $installer->$cmd(\@files);
@@ -68,8 +69,20 @@ if ( $cmd =~ /create|install|update/ ) {
     else {
         $installer->$cmd(\@files);
     }
-}
-else {
+
+    Koha::Caches->get_instance()->flush_all;
+} elsif ($cmd eq 'create' or $cmd eq 'update') {
+    my $command = "gulp po:$cmd";
+    $command .= " --silent" if (!$verbose);
+    $command .= " --lang $lang" if ($lang);
+
+    if ($verbose) {
+        print STDERR "Deprecation notice: PO creation and update are now gulp tasks. See docs/development/internationalization.md\n";
+        print STDERR "Running `$command`\n";
+    }
+
+    system($command);
+} else {
     usage();
 }
 
@@ -81,18 +94,17 @@ translate - Handle templates and preferences translation
 
 =head1 SYNOPSYS
 
-  translate create fr-FR
-  translate update fr-FR
   translate install fr-FR
   translate install fr-FR -f search -f memberentry
   translate -p install fr-FR
-  translate install
+  translate compress [fr-FR]
+  translate uncompress [fr-FR]
 
 =head1 DESCRIPTION
 
 In Koha, three categories of information are translated based on standard GNU
 .po files: opac templates pages, intranet templates and system preferences. The
-script is a wrapper. It allows to quickly create/update/install .po files for a
+script is a wrapper. It allows to quickly install .po files for a
 given language or for all available languages.
 
 =head1 USAGE
@@ -100,38 +112,6 @@ given language or for all available languages.
 Use the -v or --verbose parameter to make translator more verbose.
 
 =over
-
-=item translate create F<lang>
-
-Create 3 .po files in F</misc/translator/po> subdirectory: (1) from opac pages
-templates, (2) intranet templates, and (3) from preferences. English 'en'
-version of templates and preferences are used as references.
-
-=over
-
-=item F<lang>-opac-{theme}.po
-
-Contains extracted text from english (en) OPAC templates found in
-<KOHA_ROOT>/koha-tmpl/opac-tmpl/{theme}/en/ directory.
-
-=item F<lang>-intranet.po
-
-Contains extracted text from english (en) intranet templates found in
-<KOHA_ROOT>/koha-tmpl/intranet-tmpl/prog/en/ directory.
-
-=item F<lang>-pref.po
-
-Contains extracted text from english (en) preferences. They are found in files
-located in <KOHA_ROOT>/koha-tmpl/intranet-tmpl/prog/en/admin/preferences
-directory.
-
-=back
-
-=item translate [-p] update F<lang>
-
-Update .po files in F<po> directory, named F<lang>-*.po. Without F<lang>, all
-available languages are updated. With -p option, only preferences .po file is
-updated.
 
 =item translate [-p|-f] install F<lang>
 
@@ -142,6 +122,17 @@ updated.
 
 With -f parameter (repeatable) you can specify specific files to translate. For
 example, -f search will translate all templates containing 'search'.
+
+=item translate compress F<lang>
+
+Compress .po files in F<po> directory, named F<lang>-*.po. Without F<lang>, files
+from all available languages are compressed.
+
+=item translate uncompress F<lang>
+
+Uncompress .po.gz files in F<po> directory, named F<lang>-*.po.gz. Without F<lang>,
+files from all available languages are uncompressed.
+
 
 =back
 

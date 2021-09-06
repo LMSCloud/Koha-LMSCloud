@@ -3,14 +3,23 @@
 [% USE KohaDates %]
 [% SET footerjs = 1 %]
 [% INCLUDE 'doc-head-open.inc' %]
-<title>Koha &rsaquo; About Koha</title>
+<title>About Koha &rsaquo; Koha</title>
 [% INCLUDE 'doc-head-close.inc' %]
 </head>
 <body id="about_about" class="about">
 [% INCLUDE 'header.inc' %]
+[% PROCESS 'about-team.inc' %]
 
-<div id="breadcrumbs"><a href="/cgi-bin/koha/mainpage.pl">Home</a> &rsaquo; About Koha</div>
-
+<nav id="breadcrumbs" aria-label="Breadcrumb" class="breadcrumb">
+    <ol>
+        <li>
+            <a href="/cgi-bin/koha/mainpage.pl">Home</a>
+        </li>
+        <li>
+            <a href="#" aria-current="page">About Koha</a>
+        </li>
+    </ol>
+</nav>
 
 <div class="main container-fluid">
     <div class="row">
@@ -33,56 +42,67 @@
 
         <table>
             <caption>Server information</caption>
-            <tr><th scope="row">Koha version: </th><td>[% kohaVersion |html %]</td></tr>
-            <tr><th scope="row">OS version ('uname -a'): </th><td>[% osVersion |html %]</td></tr>
-            <tr><th scope="row">Perl interpreter: </th><td>[% perlPath |html %]</td></tr>
-            <tr><th scope="row">Perl version: </th><td>[% perlVersion |html %]</td></tr>
+            <tr><th scope="row">Koha version: </th><td>[% kohaVersion | html %]</td></tr>
+            <tr><th scope="row">OS version ('uname -a'): </th><td>[% osVersion | html %]</td></tr>
+            <tr><th scope="row">Perl interpreter: </th><td>[% perlPath | html %]</td></tr>
+            <tr><th scope="row">Perl version: </th><td>[% perlVersion | html %]</td></tr>
             <tr><th scope="row">Perl @INC: </th><td>
                 [% FOREACH perlIncPat IN perlIncPath %]
-                    [% perlIncPat.perlinc |html %] <br />
+                    [% perlIncPat.perlinc | html %] <br />
                 [% END %]
             </td></tr>
-            <tr><th scope="row">MySQL version: </th><td>[% mysqlVersion |html %]</td></tr>
-            <tr><th scope="row">Apache version: </th><td>[% apacheVersion |html %]</td></tr>
+            <tr><th scope="row">MySQL version: </th><td>[% mysqlVersion | html %]</td></tr>
+            <tr><th scope="row">Apache version: </th><td>[% apacheVersion | html %]</td></tr>
           [% IF (is_psgi) %]
-            <tr><th scope="row">PSGI: </th><td>[% psgi_server |html %]</td></tr>
+            <tr><th scope="row">PSGI: </th><td>[% psgi_server | html %]</td></tr>
           [% END %]
           [% IF Koha.Preference('SearchEngine') == 'Elasticsearch' %]
             <tr>
                 <th scope="row">Elasticsearch: </th>
             [% IF elasticsearch_fatal_config_error %]
-                <td><span class="status_warn">[% elasticsearch_fatal_config_error %]</span></td>
+                <td><span class="bg-warning">[% elasticsearch_fatal_config_error | html %]</span></td>
             [% ELSE %]
-                <td>
+                [% IF elasticsearch_status.running %]
+                    <td class="bg-success">
+                [% ELSE %]
+                    <td>
+                [% END %]
+                    Version:
+                    <span>[% elasticsearch_status.version | html %]</span>
+                    |
                     Nodes:
-                    <span>[% elasticsearch_status.nodes.join(' / ') %]</span>
+                    <span>[% elasticsearch_status.nodes.join(' / ') | html %]</span>
                     |
                     Status:
                 [% IF elasticsearch_status.running %]
-                    <span class="status_ok">running</span>
+                    <span>running</span>
                     |
                     Indices:
                   [% FOREACH index IN elasticsearch_status.indexes %]
-                      [% index.index_name %] (count: <emph>[% index.count %]</emph>)[% UNLESS loop.last %], [% END %]
+                      [% index.index_name | html %] (count: <emph>[% index.count | html %]</emph>)[% UNLESS loop.last %], [% END %]
                   [% END %]
                 [% ELSE %]
-                    <span class="status_warn">not running</span>
+                    <span class="bg-warning">not running</span>
                 [% END %]
                 </td>
             [% END %]
             </tr>
           [% END %]
             <tr><th scope="row">Memcached: </th>
-                <td>
+                [% IF memcached_running AND is_memcached_still_active AND where_is_memcached_config == 'config_only' %]
+                    <td class="bg-success">
+                [% ELSE %]
+                    <td>
+                [% END %]
                     Servers: [% IF memcached_servers %]<span>[% memcached_servers | html %]</span>
                              [% ELSE %]<span>undefined</span>[% END %] |
                     Namespace: [% IF memcached_namespace %]<span>[% memcached_namespace | html %]</span>
                                [% ELSE %]<span>undefined</span>[% END %] |
                     Status: [% IF memcached_servers %]
                                 [% IF memcached_running and is_memcached_still_active %]
-                                    <span class="status_ok">running</span>.
+                                    <span class="bg-success">running</span>.
                                 [% ELSE %]
-                                    <span class="status_warn">not running</span>.
+                                    <span class="bg-warning">not running</span>.
                                     [% IF is_psgi %]
                                         <span>Remember memcached needs to be started before Plack.</span>
                                     [% END %]
@@ -93,45 +113,57 @@
                     Config read from:
                     [% SWITCH where_is_memcached_config %]
                         [% CASE 'config_only' %]
-                            <span class="status_ok">koha-conf.xml</span>
+                            <span class="bg-success">koha-conf.xml</span>
                         [% CASE 'ENV_only' %]
-                            <span class="status_warn">ENV</span> Note that the right place to define the memcached config is in your $KOHA_CONF file
+                            <span class="bg-warning">ENV</span> Note that the right place to define the memcached config is in your $KOHA_CONF file
                         [% CASE 'both' %]
-                            <span class="status_warn">ENV and koha-conf.xml</span> Note that the right place to define the memcached config is in your $KOHA_CONF file. To avoid any misunderstanding you should not export the memcached config from ENV.
+                            <span class="bg-warning">ENV and koha-conf.xml</span> Note that the right place to define the memcached config is in your $KOHA_CONF file. To avoid any misunderstanding you should not export the memcached config from ENV.
                         [% CASE # nowhere %]
-                            <span class="status_warn">Nowhere</span> Note that the right place to define the memcached config is in your $KOHA_CONF file. Currently you do not have a valid memcached configuration defined.
+                            <span class="bg-warning">Nowhere</span> Note that the right place to define the memcached config is in your $KOHA_CONF file. Currently you do not have a valid memcached configuration defined.
                     [% END %]
-                  [% IF effective_caching_method != 'Cache::Memcached::Fast' %]
-                    | Effective caching method: [% effective_caching_method %]
+                  [% IF effective_caching_method != 'Cache::Memcached::Fast::Safe' %]
+                    | Effective caching method: [% effective_caching_method | html %]
                   [% END %]
                 </td>
             </tr>
-            <tr><th scope="row">Zebra version: </th><td>[% zebraVersion |html %]</td></tr>
+            <tr><th scope="row">Zebra version: </th><td>[% zebraVersion | html %]</td></tr>
+            <tr><th scope="row">Zebra status: </th>
             [% IF (errZebraConnection == 10000) %]
-            <tr><th scope="row"><b>Error</b> </th><td>Zebra server seems not to be available. Is it started?</td></tr>
+            <td class="bg-danger"><strong>Zebra server seems not to be available. Is it started?</strong></td>
             [% ELSIF (errZebraConnection) %]
-            <tr><th scope="row"><b>Warning</b> </th><td>Error message from Zebra: [% ( errZebraConnection ) %] </td></tr>
+            <td class="bg-warning"><strong>Error message from Zebra: [% ( errZebraConnection ) | html %]</strong></td>
+            [% ELSE %]
+            <td class="bg-success">Running</td>
             [% END %]
-            <tr>
-              <th scope="row">Date and time: </th>
-              <td>[% current_date_and_time | $KohaDates with_hours => 1 %]</td>
             </tr>
             <tr>
-              [% timezone_config_class = (time_zone.config_invalid) ? 'status_warn' : '' %]
-              [% timezone_env_class    = (time_zone.env_invalid)    ? 'status_warn' : '' %]
+                <th scope="row">Message broker: </th>
+                [% IF warnConnectBroker %]
+                <td class="bg-warning"><strong>Using SQL polling</strong></td>
+                [% ELSE %]
+                <td class="bg-success">Using RabbitMQ</td>
+                [% END %]
+            </tr>
+            <tr>
+              <th scope="row">Date and time: </th>
+              <td>[% current_date_and_time | $KohaDates  with_hours => 1 %]</td>
+            </tr>
+            <tr>
+              [% timezone_config_class = (time_zone.config_invalid) ? 'bg-warning' : '' %]
+              [% timezone_env_class    = (time_zone.env_invalid)    ? 'bg-warning' : '' %]
               <th scope="row">Time zone: </th>
-              <td>Used: <span>[% time_zone.actual %]</span>
+              <td>Used: <span>[% time_zone.actual | html %]</span>
                           [% IF time_zone.actual_bad_tz_fallback %]
                              <span>(This is a fallback value due to a bad configuration)</span>
                           [% END %]
                            |
                   Config: [% IF time_zone.config != '' %]
-                            <span class="[% timezone_config_class %]">[% time_zone.config %]</span>
+                            <span class="[% timezone_config_class | html %]">[% time_zone.config | html %]</span>
                           [% ELSE %]
                             <span>Undefined</span>
                           [% END %] |
                   Environment (TZ):  [% IF time_zone.environment != '' %]
-                          <span class="[% timezone_env_class %]">[% time_zone.environment %]</span>
+                          <span class="[% timezone_env_class | html %]">[% time_zone.environment | html %]</span>
                         [% ELSE %]
                           <span>Undefined</span>
                         [% END %]
@@ -167,13 +199,13 @@
                     [% END %]
                     [% END %]
                     [% IF ( ro.name ) %]
-                    [% ro.name %] <span style="font-weight:normal; font-size:smaller"> ([%ro.reqversion %])</span>
+                    [% ro.name | html %] <span style="font-weight:normal; font-size:smaller"> ([% ro.reqversion | html %][% IF ro.maxversion %] - [% ro.maxversion | html %][% END %][% IF ro.excversion %][% FOR v IN ro.excversion %], ![% v | html %][% END %][% END %])</span>
                     [% END %]
                     </th>
                     [% IF ( ro.name == '' ) %]
                     <td>
                     [% ELSIF ( ro.version ) %]
-                    <td>[% ro.version %]
+                    <td>[% ro.version | html %]
                     [% ELSE %]
                     <td style="font-weight:bold">Not Installed [% END %]</td>
                     [% END %]
@@ -183,7 +215,7 @@
         </div>
 
         <div id="sysinfo">
-    [% IF warnPrefBiblioAddsAuthorities || warnPrefEasyAnalyticalRecords || warnPrefAnonymousPatron || warnPrefAnonymousPatron_PatronDoesNotExist || warnNoActiveCurrency || QueryParserError || warnIsRootUser || xml_config_warnings.size || AutoSelfCheckPatronDoesNotHaveSelfCheckPerm || AutoSelfCheckPatronHasTooManyPerm || warnStatisticsFieldsError || warnNoTemplateCaching || warnILLConfiguration || has_ai_issues || oauth2_missing_deps %]
+    [% IF warnPrefBiblioAddsAuthorities || warnPrefEasyAnalyticalRecords || warnPrefAnonymousPatronOPACPrivacy || warnPrefAnonymousPatronAnonSuggestions || warnPrefAnonymousPatronOPACPrivacy_PatronDoesNotExist || warnPrefAnonymousPatronAnonSuggestions_PatronDoesNotExist || warnPrefKohaAdminEmailAddress || warnPrefOpacHiddenItems || invalid_yesno.count || warnNoActiveCurrency || warnIsRootUser || xml_config_warnings.size || AutoSelfCheckPatronDoesNotHaveSelfCheckPerm || AutoSelfCheckPatronHasTooManyPerm || warnStatisticsFieldsError || warnNoTemplateCaching || warnILLConfiguration || has_ai_issues || oauth2_missing_deps || bad_yaml_prefs || warnRelationships || log4perl_errors || config_bcrypt_settings_no_set || warnHiddenBiblionumbers.size || warnConnectBroker %]
         [% IF (warnIsRootUser) %]
             <h2>Warning regarding current user</h2>
             <p>You are logged in as the database administrative user. This is not recommended because some parts of Koha will not function as expected when using this account.</p>
@@ -203,109 +235,180 @@
             [% IF ai_patrons %]
                 <h4>Patrons</h4>
                 <p>The following ids exist in both tables [% "borrowers" | $HtmlTags tag="strong" %] and [% "deletedborrowers" | $HtmlTags tag="strong" %]:</p>
-                <p>[% FOR p IN ai_patrons %][% p.borrowernumber %][% UNLESS loop.last %], [% END %][% END %]</p>
+                <p>[% FOR p IN ai_patrons %][% p.borrowernumber | html %][% UNLESS loop.last %], [% END %][% END %]</p>
             [% END %]
             [% IF ai_biblios %]
-                <h4>Biblios</h4>
+                <h4>Bibliographic records</h4>
                 <p>The following ids exist in both tables [% "biblio" | $HtmlTags tag="strong" %] and [% "deletedbiblio" | $HtmlTags tag="strong" %]:</p>
-                <p>[% FOR b IN ai_biblios %][% b.biblionumber %][% UNLESS loop.last %], [% END %][% END %]</p>
+                <p>[% FOR b IN ai_biblios %][% b.biblionumber | html %][% UNLESS loop.last %], [% END %][% END %]</p>
             [% END %]
             [% IF ai_items %]
                 <h4>Items</h4>
                 <p>The following ids exist in both tables [% "items" | $HtmlTags tag="strong" %] and [% "deleteditems" | $HtmlTags tag="strong" %]:</p>
-                <p>[% FOR i IN ai_items %][% i.itemnumber %][% UNLESS loop.last %], [% END %][% END %]</p>
+                <p>[% FOR i IN ai_items %][% i.itemnumber | html %][% UNLESS loop.last %], [% END %][% END %]</p>
             [% END %]
             [% IF ai_checkouts %]
                 <h4>Checkouts</h4>
                 <p>The following ids exist in both tables [% "issues" | $HtmlTags tag="strong" %] and [% "old_issues" | $HtmlTags tag="strong" %]:</p>
-                <p>[% FOR c IN ai_checkouts %][% c.issue_id %][% UNLESS loop.last %], [% END %][% END %]</p>
+                <p>[% FOR c IN ai_checkouts %][% c.issue_id | html %][% UNLESS loop.last %], [% END %][% END %]</p>
             [% END %]
             [% IF ai_holds %]
                 <h4>Holds</h4>
-                <p>The following ids exist in both tables [% "holds" | $HtmlTags tag="strong" %] and [% "old_reserves" | $HtmlTags tag="strong" %]:</p>
-                <p>[% FOR h IN ai_holds %][% h.reserve_id %][% UNLESS loop.last %], [% END %][% END %]</p>
+                <p>The following ids exist in both tables [% "reserves" | $HtmlTags tag="strong" %] and [% "old_reserves" | $HtmlTags tag="strong" %]:</p>
+                <p>[% FOR h IN ai_holds %][% h.reserve_id | html %][% UNLESS loop.last %], [% END %][% END %]</p>
             [% END %]
             <br/>
         [% END %]
 
-        [% IF warnPrefBiblioAddsAuthorities || warnPrefEasyAnalyticalRecords || warnPrefAnonymousPatron || warnPrefAnonymousPatron_PatronDoesNotExist || warnNoActiveCurrency || QueryParserError || AutoSelfCheckPatronDoesNotHaveSelfCheckPerm || AutoSelfCheckPatronHasTooManyPerm || warnStatisticsFieldsError || warnNoTemplateCaching || warnILLConfiguration || oauth2_missing_deps %]
+        [% IF warnRelationships %]
+            <h2>Patron relationship problems</h2>
+            [% IF bad_relationships_count %]
+                <p>Your database contained guarantee/guarantor pairs with no defined relationship. They have been set the value '_bad_data' in the [% "borrower_relationships.relationship" | $HtmlTags tag="strong" %] column. Fix them manually by recreating those relationships, or have your system's administrator correct the values.</p>
+            [% END %]
+
+            [% IF wrong_relationships %]
+                <p>The following values have been used for guarantee/guarantor relationships, but do not exist in the 'borrowerRelationship' system preference:</p>
+                <ul>
+                    [% FOR rel IN wrong_relationships %]
+                        <li>[% rel.0 | html %]</li>
+                    [% END %]
+                </ul>
+                <p>If the relationship is one you want, please add it to the 'borrowerRelationship' system preference, otherwise have your system's administrator correct the values in [% "borrower_relationships.relationship" | $HtmlTags tag="strong" %] in the database.</p>
+            [% END %]
+        [% END %]
+
+        [% IF log4perl_errors %]
+            <h2>Logging system does not behave correctly</h2>
+            [% FOR e IN log4perl_errors %]
+                [% SWITCH e %]
+                    [% CASE 'missing_config_entry' %]There is no 'log4perl_conf' entry in the config file.
+                    [% CASE 'cannot_read_config_file' %]The log4perl config file cannot be opened.
+                    [% CASE 'logfile_not_writable' %]One of the logfiles listed in the config file is not writable.
+                    [% CASE 'cannot_init_module' %]The Koha::Logger module cannot be initiated correctly (check the log file).
+                    [% CASE %]Unknown error "[% e | html %]"
+                [% END %]
+            [% END %]
+        [% END %]
+
+        [% IF warnConnectBroker %]
+            <h2>Impossible to connect to the message broker</h2>
+            There is an error when trying to connect to the message broker (RabbitMQ), check the Koha log files.
+            <br/>
+            Maybe it is not installed and configured correctly?
+            <br/>
+            Contact your system administrator.
+        [% END %]
+
+        [% IF warnPrefBiblioAddsAuthorities || warnPrefEasyAnalyticalRecords || warnPrefAnonymousPatronOPACPrivacy || warnPrefAnonymousPatronAnonSuggestions || warnPrefAnonymousPatronOPACPrivacy_PatronDoesNotExist || warnPrefAnonymousPatronAnonSuggestions_PatronDoesNotExist || warnPrefKohaAdminEmailAddress || warnPrefOpacHiddenItems || invalid_yesno.count || warnNoActiveCurrency || AutoSelfCheckPatronDoesNotHaveSelfCheckPerm || AutoSelfCheckPatronHasTooManyPerm || warnStatisticsFieldsError || warnNoTemplateCaching || warnILLConfiguration || oauth2_missing_deps || bad_yaml_prefs || warnIssuingRules || config_bcrypt_settings_no_set || warnHiddenBiblionumbers.size %]
             <h2>Warnings regarding the system configuration</h2>
             <table>
                 <caption>Preferences and parameters</caption>
                 [% IF (warnPrefBiblioAddsAuthorities) %]
-                <tr><th scope="row"><b>Warning</b> </th><td>System preference 'AutoCreateAuthorities' set, but needs 'BiblioAddsAuthorities' set as well.</td></tr>
+                <tr><th scope="row"><strong>Warning</strong> </th><td>System preference 'AutoCreateAuthorities' set, but needs 'BiblioAddsAuthorities' set as well.</td></tr>
                 [% END %]
                 [% IF (warnPrefEasyAnalyticalRecords) %]
-                <tr><th scope="row"><b>Warning</b> </th><td>System preference 'EasyAnalyticalRecords' set, but UseControlNumber preference is set to 'Use'. Set it to 'Don't use' or else the 'Show analytics' links in the staff client and the OPAC will be broken.</td></tr>
+                <tr><th scope="row"><strong>Warning</strong> </th><td>System preference 'EasyAnalyticalRecords' set, but UseControlNumber preference is set to 'Use'. Set it to 'Don't use' or else the 'Show analytics' links in the staff interface and the OPAC will be broken.</td></tr>
                 [% END %]
-                [% IF warnPrefAnonymousPatron %]
-                    <tr><th scope="row"><b>Warning</b> </th><td>System preference 'OPACPrivacy' set, but AnonymousPatron preference is set to '0'. Set it to a valid borrower number if you want that this feature works correctly.</td></tr>
+                [% IF warnPrefAnonymousPatronOPACPrivacy %]
+                    <tr><th scope="row"><strong class="error">Error</strong> </th><td>System preference 'OPACPrivacy' set, but AnonymousPatron preference is set to '0'. Set it to a valid borrower number or checkins for these patrons will fail.</td></tr>
                 [% END %]
-                [% IF warnPrefAnonymousPatron_PatronDoesNotExist %]
-                    <tr><th scope="row"><b>Warning</b> </th><td>Some patrons have requested a privacy on returning item but the AnonymousPatron pref is not set correctly. Set it to a valid borrower number if you want that this feature works correctly.</td></tr>
+                [% IF warnPrefAnonymousPatronAnonSuggestions %]
+                    <tr><th scope="row"><strong>Warning</strong> </th><td>System preference 'AnonSuggestions' set, but AnonymousPatron preference is set to '0'. Set it to a valid borrower number if you want that this feature works correctly.</td></tr>
+                [% END %]
+                [% IF warnPrefAnonymousPatronOPACPrivacy_PatronDoesNotExist %]
+                    <tr><th scope="row"><strong class="error">Error</strong> </th><td>Some patrons have requested a privacy on returning item but the AnonymousPatron pref is not set correctly. Set it to a valid borrower number or checkins for these patrons will fail.</td></tr>
+                [% END %]
+                [% IF warnPrefAnonymousPatronAnonSuggestions_PatronDoesNotExist %]
+                    <tr><th scope="row"><strong>Warning</strong> </th><td>System preference 'AnonSuggestions' set, but AnonymousPatron preference is not set correctly. Set it to a valid borrower number if you want that this feature works correctly.</td></tr>
+                [% END %]
+                [% IF warnPrefKohaAdminEmailAddress %]
+                    <tr><th scope="row"><strong>Warning</strong> </th><td>System preference 'KohaAdminEmailAddress' does not contain a valid email address. Emails will not be sent.</td></tr>
+                [% END %]
+                [% IF warnPrefOpacHiddenItems %]
+                    <tr><th scope="row"><strong>Warning</strong> </th><td>System preference 'OpacHiddenItems' generates a warning and will produce unexpected behaviors: [% warnPrefOpacHiddenItems | html %]</th></tr>
+                [% END %]
+                [% IF invalid_yesno.count %]
+                    [% FOR p IN invalid_yesno %]
+                        <tr><th scope="row"><strong>Warning</strong> </th><td>System preference '[% p.variable | html %]' must be '0' or '1', but is [% IF p.value.defined %]'[% p.value | html%]'[% ELSE %]NULL[% END %].</td></tr>
+                    [% END %]
                 [% END %]
                 [% IF warnNoActiveCurrency %]
-                    <tr><th scope="row"><b>Warning</b> </th><td>No active currency is defined. Please go to <a href="/cgi-bin/koha/admin/currency.pl">Administration &gt; Currencies and exchange rates</a> and mark one currency as active.</td></tr>
+                    <tr><th scope="row"><strong>Warning</strong> </th><td>No active currency is defined. Please go to <a href="/cgi-bin/koha/admin/currency.pl">Administration &gt; Currencies and exchange rates</a> and mark one currency as active.</td></tr>
                 [% END %]
                 [% IF warnStatisticsFieldsError %]
-                    <tr><th scope="row"><b>Warning</b> </th><td>System preference 'StatisticsFields' contains field names not belonging to the items database table: [% warnStatisticsFieldsError %] </td></tr>
-                [% END %]
-                [% IF QueryParserError %]
-                    <tr><th scope="row"><b>Warning</b> </th><td>
-                        You have set UseQueryParser but there was a problem inititializing QueryParser.
-                    [% IF QueryParserError.fallback %]
-                        The 'queryparser_config' entry is missing in your configuration file.
-                        The following configuration file was used without success: [% QueryParserError.file %].
-                    [% ELSE %]
-                        The following configuration file was used without success: [% QueryParserError.file %].
-                    [% END %]
-                        </td>
-                    </tr>
+                    <tr><th scope="row"><strong>Warning</strong> </th><td>System preference 'StatisticsFields' contains field names not belonging to the items database table: [% warnStatisticsFieldsError | html %] </td></tr>
                 [% END %]
                 [% IF AutoSelfCheckPatronDoesNotHaveSelfCheckPerm %]
-                    <tr><th scope="row"><b>Warning</b> </th><td>
+                    <tr><th scope="row"><strong>Warning</strong> </th><td>
                     The patron used for the self checkout module at the OPAC does not have the self_check => self_checkout_module permission.
                     </td></tr>
                 [% END %]
                 [% IF AutoSelfCheckPatronHasTooManyPerm %]
-                    <tr><th scope="row"><b>Warning</b> </th><td>
+                    <tr><th scope="row"><strong>Warning</strong> </th><td>
                     The patron used for the self checkout module at the OPAC has too many permissions. They should only have self_check => self_checkout_module.
                     </td></tr>
                 [% END %]
                 [% IF warnNoTemplateCaching %]
-                    <tr><th scope="row"><b>Warning</b> </th><td>
+                    <tr><th scope="row"><strong>Warning</strong> </th><td>
                     You are missing the &lt;template_cache_dir&gt; entry in your koha-conf.xml file.
                     That will bring a performance boost to enable it.
                     </td></tr>
                 [% END %]
                 [% IF warnILLConfiguration %]
                   [% IF no_ill_backends %]
-                    <tr><th scope="row"><b>Warning</b> </th><td>
+                    <tr><th scope="row"><strong>Warning</strong> </th><td>
                     The ILL module is enabled, but there are no backends available.
                     </td></tr>
                   [% END %]
                   [% IF ill_partner_code_not_defined %]
-                    <tr><th scope="row"><b>Warning</b> </th><td>
+                    <tr><th scope="row"><strong>Warning</strong> </th><td>
                     The ILL module is enabled, but no 'partner_code' defined in koha-conf.xml. Falling back to the hardcoded 'ILLLIBS'.
                     </td></tr>
                   [%END %]
+                  [% IF ill_branch_not_defined %]
+                    <tr><th scope="row"><strong>Warning</strong> </th><td>
+                    The ILL module is enabled, but no 'branch' block is defined in koha-conf.xml. You must define this block before use.
+                    </td></tr>
+                  [%END %]
                   [% IF ill_partner_code_doesnt_exist %]
-                    <tr><th scope="row"><b>Warning</b> </th><td>
-                    The ILL module is enabled, but the configured 'partner_code' ([% ill_partner_code_doesnt_exist %]) is not defined on the system.
+                    <tr><th scope="row"><strong>Warning</strong> </th><td>
+                    The ILL module is enabled, but the configured 'partner_code' ([% ill_partner_code_doesnt_exist | html %]) is not defined on the system.
                     </td></tr>
                   [% END %]
                 [% END %]
                 [% IF oauth2_missing_deps %]
-                    <tr><th scope="row"><b>Warning</b> </th><td>
+                    <tr><th scope="row"><strong>Warning</strong> </th><td>
                     System preference 'RESTOAuth2ClientCredentials' is set, but the required Net::OAuth2::AuthorizationServer dependency is missing. The feature is disabled.
                     </td></tr>
                 [% END %]
-                [% IF warnNoTemplateCaching %]
-                    <tr><th scope="row"><b>Warning</b> </th><td>
-                    You are missing the &lt;template_cache_dir&gt; entry in your koha-conf.xml file.
-                    That will bring a performance boost to enable it.
+                [% IF bad_yaml_prefs %]
+                    <tr><th scope="row"><strong>Warning</strong> </th><td>
+                    Some system preferences have badly formatted YAML content: [% bad_yaml_prefs.join(', ') | html %]
                     </td></tr>
                 [% END %]
+                [% IF config_bcrypt_settings_no_set %]
+                    <tr><th scope="row"><strong>Warning</strong> </th><td>
+                    System preference 'Pseudonymization' is set, but there is not 'bcrypt_settings' entry defined in the $KOHA_CONF file.
+                    </td></tr>
+                [% END %]
+                [% IF config_bcrypt_settings_no_set %]
+                    <tr><th scope="row"><strong>Warning</strong> </th><td>
+                    System preference 'Pseudonymization' is set, but there is not 'bcrypt_settings' entry defined in the $KOHA_CONF file.
+                    </td></tr>
+                [% END %]
+                [% IF warnHiddenBiblionumbers.size %]
+                    <tr><th scope="row"><strong>Warning</strong> </th><td>
+                    [% FOR w IN warnHiddenBiblionumbers %]
+                        Biblio framework "[% w.frameworkcode | html %]" has the biblionumber field hidden at the interface [% w.interface | html %]<br/>
+                    [% END %]
+                    </td></tr>
+                [% END %]
+                [% IF Koha.Preference('SearchEngine') == 'Elasticsearch' && elasticsearch_status.version.substr(0,1) < 6 %]
+                    <tr><th scope="row"><strong>Deprecation warning</strong></th><td>
+                            Elasticsearch version 5.x is not supported in Koha 20.11 and greater. Please upgrade your Elasticsearch cluster
+                    </td></tr>
+                [% END %]
+
             </table>
         [% END %]
 
@@ -313,108 +416,60 @@
             <table>
                 <caption>XML configuration file</caption>
             [% FOREACH config_entry IN xml_config_warnings %]
-                [% IF config_entry.error == 'zebra_bib_index_mode_warn' %]
+                [% IF config_entry.error == 'zebra_bib_index_mode_is_grs1' %]
                 <tr>
-                    <th scope="row"><b>Warning</b></th>
-                    <td>The &lt;zebra_bib_index_mode&gt; entry is missing in your configuration file.
-                        It should be set to 'dom' or 'grs1' (deprecated).
-                        It will default to 'dom'.
-                    </td>
-                </tr>
-                [% ELSIF config_entry.error == 'zebra_bib_mode_seems_grs1' %]
-                <tr>
-                    <th scope="row"><b>Info</b></th>
-                    <td>Your configuration file still seems to be set up for 'grs1'.</td>
-                </tr>
-                [% ELSIF config_entry.error == 'zebra_bib_mode_seems_dom' %]
-                <tr>
-                    <th scope="row"><b>Info</b></th>
-                    <td>Your configuration file seems to be set up for 'dom'.</td>
-                </tr>
-                [% ELSIF config_entry.error == 'zebra_auth_index_mode_warn' %]
-                <tr>
-                    <th scope="row"><b>Warning</b></th>
-                    <td>The &lt;zebra_auth_index_mode&gt; entry is missing in your configuration file.
-                        It should be set to 'dom' or 'grs1' (deprecated).
-                        It will default to 'dom'.
-                    </td>
-                </tr>
-                [% ELSIF config_entry.error == 'zebra_auth_mode_seems_grs1' %]
-                <tr>
-                    <th scope="row"><b>Info</b></th>
-                    <td>Your configuration file still seems to be set up for 'grs1'.</td>
-                </tr>
-                [% ELSIF config_entry.error == 'zebra_auth_mode_seems_dom' %]
-                <tr>
-                    <th scope="row"><b>Info</b></th>
-                    <td>Your configuration file seems to be set up for 'dom'.</td>
-                </tr>
-                [% ELSIF config_entry.error == 'zebra_bib_grs_warn' %]
-                <tr>
-                    <th scope="row"><b>Warning</b></th>
-                    <td>The &lt;zebra_bib_index_mode&gt; entry is set to 'grs1'.
-                        GRS-1 support is now deprecated and will be removed in future releases.
+                    <th scope="row"><strong>Warning</strong></th>
+                    <td>The &lt;zebra_bib_index_mode&gt; entry set to 'grs1', which is no longer supported.
                         Please use DOM instead. To switch follow this page of wiki:
                         <a href="https://wiki.koha-community.org/wiki/Switching_to_dom_indexing">Switching to dom indexing</a>
                     </td>
                 </tr>
-                [% ELSIF config_entry.error == 'zebra_bib_index_mode_mismatch_warn' %]
+                [% ELSIF config_entry.error == 'zebra_auth_index_mode_is_grs1' %]
                 <tr>
-                    <th scope="row"><b>Warning</b></th>
-                    <td>The &lt;zebra_bib_index_mode&gt; entry is set to 'dom', but your system still appears to be set up for 'grs1' indexing.</td>
-                </tr>
-                [% ELSIF config_entry.error == 'zebra_auth_grs_warn' %]
-                <tr>
-                    <th scope="row"><b>Warning</b></th>
-                    <td>The &lt;zebra_auth_index_mode&gt; entry is set to 'grs1'.
-                        GRS-1 support is now deprecated and will be removed in future releases.
+                    <th scope="row"><strong>Warning</strong></th>
+                    <td>The &lt;zebra_auth_index_mode&gt; entry set to 'grs1', which is no longer supported.
                         Please use DOM instead. To switch follow this page of wiki:
                         <a href="https://wiki.koha-community.org/wiki/Switching_to_dom_indexing">Switching to dom indexing</a>
-                    </td>
-                </tr>
-                [% ELSIF config_entry.error == 'zebra_auth_index_mode_mismatch_warn' %]
-                <tr>
-                    <th scope="row"><b>Warning</b></th>
-                    <td>The &lt;zebra_auth_index_mode&gt; entry is set to 'dom', but your system still appears to be set up for 'grs1' indexing.</td>
-                </tr>
-                [% ELSIF config_entry.error == 'queryparser_entry_missing' %]
-                <tr>
-                    <th scope="row"><b>Warning</b></th>
-                    <td>You have set UseQueryParser but the 'queryparser_config' entry is missing in your configuration
-                        file. [% config_entry.file %] is used as a fallback.
                     </td>
                 </tr>
                 [% ELSIF config_entry.error == 'use_zebra_facets_entry_missing' %]
                 <tr>
-                    <th scope="row"><b>Warning</b></th>
+                    <th scope="row"><strong>Warning</strong></th>
                     <td>The &lt;use_zebra_facets&gt; entry is missing in your configuration file. Falling back
-                        to legacy facet calculation.
-                    </td>
-                </tr>
-                [% ELSIF config_entry.error == 'use_zebra_facets_needs_dom' %]
-                <tr>
-                    <th scope="row"><b>Warning</b></th>
-                    <td>You have set &lt;use_zebra_facets&gt; but the &lt;zebra_bib_index_mode&gt; is not set to 'dom'. Falling back
                         to legacy facet calculation.
                     </td>
                 </tr>
                 [% ELSIF config_entry.error == 'log4perl_entry_missing' %]
                 <tr>
-                    <th scope="row"><b>Warning</b></th>
+                    <th scope="row"><strong>Warning</strong></th>
                     <td>You are missing the &lt;log4perl_conf&gt; entry in your koha-conf.xml file. Please
                         add it, pointing to the log4perl.conf file for your Koha instance.
                     </td>
                 </tr>
+                [% ELSIF config_entry.error == 'lockdir_entry_missing' %]
+                <tr>
+                    <th scope="row"><strong>Warning</strong></th>
+                    <td>You are missing the &lt;lockdir&gt; entry in your koha-conf.xml file. Please
+                        add it, pointing to your Koha instance's lock dir.
+                    </td>
+                </tr>
+                [% ELSIF config_entry.error == 'lockdir_not_writable' %]
+                <tr>
+                    <th scope="row"><strong>Warning</strong></th>
+                    <td>The configured &lt;lockdir&gt; entry in your koha-conf.xml file points to a
+                        non-writable directory ([% config_entry.lockdir | html %]).
+                    </td>
+                </tr>
                 [% ELSIF config_entry.error == 'uploadpath_entry_missing' %]
                 <tr>
-                    <th scope="row"><b>Warning</b></th>
+                    <th scope="row"><strong>Warning</strong></th>
                     <td>You are missing the &lt;upload_path&gt; entry in your koha-conf.xml file. Please
                         add it, pointing to the configured file upload directory for your Koha instance.
                     </td>
                 </tr>
                 [% ELSIF config_entry.error == 'uploadpath_and_opacbaseurl_entry_missing' %]
                 <tr>
-                    <th scope="row"><b>Warning</b></th>
+                    <th scope="row"><strong>Warning</strong></th>
                     <td>You are missing the &lt;upload_path&gt; entry in your koha-conf.xml file. Please
                         add it, pointing to the configured file upload directory for your Koha instance.
                         Also note that you need to properly set the OPACBaseURL preference for the file upload plugin to work.
@@ -422,16 +477,32 @@
                 </tr>
                 [% ELSIF config_entry.error == 'tmp_path_missing' %]
                 <tr>
-                    <th scope="row"><b>Warning</b></th>
+                    <th scope="row"><strong>Warning</strong></th>
                     <td>You are missing the &lt;tmp_path&gt; entry in your koha-conf.xml file. Please
                         add it, pointing to the configured temporary directory for your Koha instance.
-                        The effective temporary directory is '[% config_entry.effective_tmp_dir %]'.
+                        The effective temporary directory is '[% config_entry.effective_tmp_dir | html %]'.
                     </td>
                 </tr>
                 [% END %]
             [% END %]
             </table>
         [% END %]
+
+        [% IF warnIssuingRules %]
+            <table>
+                <caption>Issuing rules</caption>
+                [% FOREACH unit IN ir_units %]
+                <tr>
+                    <th scope="row"><strong>Warning</strong></th>
+                    <td>The [% unit.branchcode || 'branchcode=default' | html %], [% unit.categorycode || 'categorycode=default' | html %], [% unit.itemtype || 'itemtype=default' | html %]
+                        issuingrule will fallback to 'days' for 'lengthunit' as it is incorrectly defined as
+                        [% unit.rule_value | html %].
+                    </td>
+                </tr>
+                [% END %]
+            </table>
+        [% END %]
+
     [% ELSE %]
         <p>No warnings.</p>
     [% END %]
@@ -453,426 +524,45 @@
                 <li><a href="http://www.ashs.school.nz/">Albany Senior High School</a>, Auckland, New Zealand (OPAC 'star-ratings' sponsorship)</li>
             </ul>
 
-            <h2>Koha <span style="color:red" title="Koha version numbering has jumped from 3.22 to 16.05 (yy.mm) as from May 2016">18.05</span> release team</h2>
-            <ul>
-                <li><strong>Release manager:</strong>
-                    <a href="https://www.openhub.net/p/koha/contributors/6618545125093">Jonathan Druart</a>
-                </li>
-                <li><strong>Release manager assistant:</strong>
-                    <a href="https://www.openhub.net/p/koha/contributors/6620692886191">Nick Clemens</a>
-                </li>
-                <li><strong>Documentation Team:</strong>
-                    <ul>
-                    <li>Lee Jamison</li>
-                    <li>David Nind</li>
-                    <li>Caroline Cyr La Rose</li>
-                    </ul>
-                </li>
-                <li><strong>Translation manager:</strong>
-                    <a href="https://www.openhub.net/p/koha/contributors/6618544839606">Bernardo González Kriegel</a></li>
-                <li><strong>Quality assurance manager:</strong>
-                    <a href="https://www.openhub.net/p/koha/contributors/6618544670742">Katrin Fischer</a>
-                </li>
-                <li><strong>Quality assurance team:</strong>
-                    <ul>
-                        <li><a href="https://www.openhub.net/p/koha/contributors/6618544730094">Tomás Cohen Arazi</a></li>
-                        <li>Alex Arnaud</li>
-                        <li><a href="https://www.openhub.net/p/koha/contributors/6620692886191">Nick Clemens</a></li>
-                        <li><a href="https://www.openhub.net/p/koha/contributors/6620692261494">Kyle Hall</a></li>
-                        <li><a href="https://www.openhub.net/p/koha/contributors/6620692419690">Julian Maurice</a></li>
-                        <li>Josef Moravec</li>
-                        <li><a href="https://www.openhub.net/p/koha/contributors/6618544727712">Marcel de Rooy</a></li>
-                    </ul>
-                </li>
-                <li><strong>Release maintainers:</strong>
-                    <ul>
-                        <li><a href="https://www.openhub.net/p/koha/contributors/6620692886191">Nick Clemens</a> (17.11)</li>
-                        <li><a href="https://www.openhub.net/p/koha/contributors/6620692831733">Fridolin Somers</a> (17.05)</li>
-                        <li><a href="https://www.openhub.net/p/koha/contributors/6618544609030">Chris Cormack</a> (16.11)</li>
-                    </ul>
-                </li>
-                <li><strong>Packaging manager:</strong>
-                    <a href="https://www.openhub.net/p/koha/contributors/6620692605913">Mirko Tietgen</a>
-                </li>
-                <li><strong>Jenkins maintainer:</strong>
-                    <a href="https://www.openhub.net/p/koha/contributors/6618544730094">Tomás Cohen Arazi</a>
-                </li>
-                <li><strong>Bug wranglers:</strong>
-                    <ul>
-                        <li>Alex Buckley</li>
-                        <li>Claire Gravely</li>
-                        <li>Jon Knight</li>
-                        <li><a href="https://www.openhub.net/p/koha/contributors/6618545408147">Marc Véron</a></li>
-                    </ul>
-                </li>
-            </ul>
+            <h2>Koha release teams</h2>
+            [% IF maintenance_team %]
+                <div class="row">
+                    <div class="col-md-6">
+                        <h3>Koha [% short_version | html %] release team</h3>
+                        [% IF development_version %]
+                            <p>You are running a development version of Koha</p>
+                        [% ELSE %]
+                            [% INCLUDE team t=release_team v='release' %]
+                        [% END %]
+                    </div>
+
+                    <div class="col-md-6">
+                        <h3>Current maintenance team</h3>
+                        [% INCLUDE team t=maintenance_team v=short_version %]
+                    </div>
+                </div>
+            [% ELSE %]
+                <div class="dialog alert">
+                    Could not read the teams.yaml file. Please make sure &lt;docdir&gt; is correctly defined in koha-conf.xml.
+                </div>
+            [% END %]
 
             <h2>Koha development team</h2>
-            <ul>
-                <li>Jacek Ablewicz</li>
-                <li>Md. Aftabuddin</li>
-                <li>Jon Aker</li>
-                <li>Chloe Alabaster</li>
-                <li>Edward Allen</li>
-                <li>Francisco M. Marzoa Alonso</li>
-                <li>Morgane Alonso</li>
-                <li>Joseph Alway</li>
-                <li>Cindy Murdock Ames</li>
-                <li>Aleisha Amohia</li>
-                <li>Roman Amor</li>
-                <li>Roch D'Amour</li>
-                <li>Richard Anderson</li>
-                <li><a href="https://www.openhub.net/p/koha/contributors/6620692181851">Nahuel Angelinetti</a></li>
-                <li>Nuño López Ansótegui</li>
-                <li>Dimitris Antonakis</li>
-                <li><a href="https://www.openhub.net/p/koha/contributors/6618544730094">Tomás Cohen Arazi (3.18 - 3.22 Release Manager; 3.12 Release Maintainer; 16.05 - 17.11 QA Team Member)</a></li>
-                <li><a href="https://www.openhub.net/p/koha/contributors/6620692124662">Andrew Arensburger (the small and great C4::Context module)</a></li>
-                <li>Alex Arnaud</li>
-                <li>Petter Goksøyr Åsen</li>
-                <li><a href="https://www.openhub.net/p/koha/contributors/6618544614259">Joe Atzberger</a></li>
-                <li>Philippe Audet-Fortin</li>
-                <li>Héctor Eduardo Castro Avalos</li>
-                <li>Larry Baerveldt</li>
-                <li>Marc Balmer</li>
-                <li>Edmund Balnaves</li>
-                <li>Al Banks</li>
-                <li>Daniel Banzli</li>
-                <li>Stefano Bargioni</li>
-                <li>Daniel Barker</li>
-                <li>Greg Barniskis</li>
-                <li>Benedykt P. Barszcz (Polish for 2.0)</li>
-                <li>D Ruth Bavousett (3.12 Translation Manager)</li>
-                <li>Maxime Beaulieu</li>
-                <li>Zoe Bennett</li>
-                <li>Natalie Bennison</li>
-                <li>John Beppu</li>
-                <li>Pablo Bianchi</li>
-                <li>Chad Billman</li>
-                <li>David Birmingham</li>
-                <li>Florian Bischof</li>
-                <li>Oliver Bock</li>
-                <li>Gaetan Boisson</li>
-                <li>David Bourgault</li>
-                <li>Rebecca Blundell</li>
-                <li>Danny Bouman</li>
-                <li>Christopher Brannon (3.20 QA Team Member)</li>
-                <li>Stan Brinkerhoff</li>
-                <li>Isaac Brodsky</li>
-                <li>Ivan Brown</li>
-                <li>Roger Buck</li>
-                <li>Alex Buckley</li>
-                <li>Michael Andrew Cabus</li>
-                <li>Steven Callender</li>
-                <li><a href="https://www.openhub.net/p/koha/contributors/6620692376789">Jared Camins-Esakov (3.12 Release Manager; 3.6 Release Maintainer)</a></li>
-                <li>Colin Campbell (3.4 QA Manager)</li>
-                <li>Fernando Canizo</li>
-                <li>Barry Cannon</li>
-                <li>Frédérick Capovilla</li>
-                <li>DeAndre Carroll</li>
-                <li>Chris Catalfo (new plugin MARC editor)</li>
-                <li>Marc Chantreux</li>
-                <li>Jerome Charaoui</li>
-                <li><a href="https://www.openhub.net/p/koha/contributors/6618544614260">Galen Charlton (3.2, 3.14, and 3.16 Release Manager; 3.16 Release Maintainer; 3.18 QA Team Member; 16.05 Packaging Manager)</a></li>
-                <li>Francois Charbonnier</li>
-                <li>Evonne Cheung</li>
-                <li>Andrew Chilton</li>
-                <li>Pongtawat Chippimolchai</li>
-                <li>Barton Chittenden</li>
-                <li>Koha SAB CINECA</li>
-                <li>Nick Clemens (16.11 - 17.11 QA Team Member)</li>
-                <li>Garry Collum</li>
-                <li>David Cook</li>
-                <li>John Copeland</li>
-                <li>Charlotte Cordwell</li>
-                <li><a href="https://www.openhub.net/p/koha/contributors/6618544609030">Chris Cormack (1.x, 3.4 and 3.6 Release Manager; 3.8, 3.10, 3.18 and 3.20 Release Maintainer; 3.2 Translation Manager; 3.14 QA Team Member; 17.05 Documentation Manager; 17.11 Documentation Team Member)</a></li>
-                <li>Jeremy Crabtree</li>
-                <li>Bonnie Crawford</li>
-                <li>Samuel Crosby</li>
-                <li>Christophe Croullebois</li>
-                <li>Olivier Crouzet</li>
-                <li>Nate Curulla</li>
-                <li>Vincent Danjean</li>
-                <li>Hugh Davenport</li>
-                <li>Elliott Davis (3.12 QA Team Member)</li>
-                <li>Doug Dearden</li>
-                <li>Kip DeGraaf</li>
-                <li>Stéphane Delaune</li>
-                <li><a href="https://www.openhub.net/p/koha/contributors/6620692210484">Frédéric Demians (3.4 - 3.10 Translation Manager; 3.20, 16.05 Release Maintainer)</a></li>
-                <li>Connor Dewar</li>
-                <li>Srikanth Dhondi</li>
-                <li>Leire Diez</li>
-                <li>Yarik</li>
-                <li>Rocio Dressler</li>
-                <li><a href="https://www.openhub.net/p/koha/contributors/6618545125093">Jonathan Druart (3.8 - 17.05 QA Team Member; 17.11 Release Manager)</a></li>
-                <li>Serhij Dubyk</li>
-                <li>Yohann Dufour</li>
-                <li>Thomas Dukleth (MARC Frameworks Maintenance)</li>
-                <li>Frederic Durand</li>
-                <li>Sebastiaan Durand</li>
-                <li>Rachel Dustin</li>
-                <li>Ecole des Mines de Saint Etienne, Philippe Jaillon (OAI-PMH support)</li>
-                <li>Stephen Edwards</li>
-                <li>Dani Elder</li>
-                <li>Gus Ellerm</li>
-                <li>Andrew Elwell</li>
-                <li>Brian Engard</li>
-                <li><a href="https://www.openhub.net/p/koha/contributors/6618544646984">Nicole C. Engard (3.0 - 16.11 Documentation Manager)</a></li>
-                <li><a href="https://www.openhub.net/p/koha/contributors/6618544677502">Magnus Enger</a></li>
-                <li>Esiee School (Jérome Vizcaino, Michel Lerenard, Pierre Cauchois)</li>
-                <li>Jason Etheridge</li>
-                <li>Shaun Evans</li>
-                <li>Pat Eyler (Kaitiaki from 2002 to 2004)</li>
-                <li>Charles Farmer</li>
-                <li><a href="https://www.openhub.net/p/koha/contributors/6618544609865">Antoine Farnault</a></li>
-                <li>Arslan Farooq</li>
-                <li>Vitor Fernandes</li>
-                <li><a href="https://www.openhub.net/p/koha/contributors/6618544609053">Joshua Ferraro (3.0 Release Manager and Translation Manager)</a></li>
-                <li>Julian Fiol</li>
-                <li><a href="https://www.openhub.net/p/koha/contributors/6618544670742">Katrin Fischer (3.12 - 16.11 QA Manager, 16.11 Release Maintainer, 17.11 Documentation Team Member)</a></li>
-                <li>Connor Fraser</li>
-                <li>Clay Fouts</li>
-                <li>Brendon Ford</li>
-                <li>Claudia Forsman</li>
-                <li>Jessica Freeman</li>
-                <li>Corey Fuimaono</li>
-                <li>Marco Gaiarin</li>
-                <li>Pierrick Le Gall</li>
-                <li><a href="https://www.openhub.net/p/koha/contributors/6618544661344">Brendan A. Gallagher (3.14 - 3.22 QA Team Member; 16.05 - 17.05 Release Manager; 17.11 QA Team Member)</a></li>
-                <li>Joachim Ganseman</li>
-                <li>Tumer Garip</li>
-                <li>Russel Garlick</li>
-                <li>Mark Gavillet</li>
-                <li>Claire Gravely</li>
-                <li>Daniel Kahn Gillmor</li>
-                <li>David Goldfein</li>
-                <li><a href="https://www.openhub.net/p/koha/contributors/6618544839606">Bernardo González Kriegel (3.14 - 17.11 Translation Manager; 3.10 Release Maintainer)</a></li>
-                <li>Caitlin Goodger</li>
-                <li>Isobel Graham</li>
-                <li>Claire Gravely</li>
-                <li>Briana Greally</li>
-                <li>Daniel Grobani</li>
-                <li>Victor Grousset</li>
-                <li>Isabel Grubi</li>
-                <li>David Gustafsson</li>
-                <li>Amit Gupta</li>
-                <li>Indranil Das Gupta (17.11 Documentation Team Member)</li>
-                <li>Michael Hafen</li>
-                <li>Margaret Hade</li>
-                <li>Christopher Hall (3.8 Release Maintainer)</li>
-                <li><a href="https://www.openhub.net/p/koha/contributors/6620692261494">Kyle Hall (3.8 Release Maintainer; 3.14 - 17.11 QA Team Member; 16.11 - 17.05 Release Manager)</a></li>
-                <li>Sean Hamlin</li>
-                <li>Tim Hannah</li>
-                <li>Mike Hansen</li>
-                <li>Brian Harrington</li>
-                <li>Brandon Haveman</li>
-                <li>Rochelle Healy</li>
-                <li>Emma Heath</li>
-                <li>Friedrich zur Hellen</li>
-                <li>Kate Henderson</li>
-                <li>Michaes Herman</li>
-                <li>Claire Hernandez</li>
-                <li>Wolfgang Heymans</li>
-                <li><a href="https://www.openhub.net/p/koha/contributors/6618544614261">Ryan Higgins</a></li>
-                <li>Morag Hills</li>
-                <li>Sèbastien Hinderer</li>
-                <li>Kristina D.C. Hoeppner</li>
-                <li>Stefan Berndtsson</li>
-                <li>Stephanie Hogan</li>
-                <li>Karl Holten</li>
-                <li>Daniel Holth</li>
-                <li>Andrew Hooper</li>
-                <li>Luke Honiss</li>
-                <li>Alexandra Horsman</li>
-                <li>Tom Houlker</li>
-                <li>Matthew Hunt</li>
-                <li>Christopher Hyde</li>
-                <li>Andrew Isherwood</li>
-                <li>Rolando Isidoro</li>
-                <li>Te Rauhina Jackson</li>
-                <li>Cory Jaeger</li>
-                <li>Lee Jamison</li>
-                <li>Srdjan Jankovic</li>
-                <li>Philippe Jaillon</li>
-                <li><a href="https://www.openhub.net/accounts/kohaaloha">Mason James (3.10 - 3.14 QA Team Member, 3.16, 16.05 Release Maintainer)</a></li>
-                <li>Karen Jen</li>
-                <li>Mike Johnson</li>
-                <li>Donovan Jones</li>
-                <li>Andreas Jonsson</li>
-                <li>Bart Jorgensen</li>
-                <li>Janusz Kaczmarek</li>
-                <li>Koustubha Kale</li>
-                <li>Pasi Kallinen</li>
-                <li>Dimitris Kamenopoulos</li>
-                <li>Peter Crellan Kelly</li>
-                <li>Jorgia Kelsey</li>
-                <li>Olli-Antti Kivilahti</li>
-                <li>Attila Kinali</li>
-                <li>Chris Kirby</li>
-                <li>Ulrich Kleiber</li>
-                <li>Jon Knight</li>
-                <li>Rafal Kopaczka</li>
-                <li>Piotr Kowalski</li>
-                <li>David Kuhn</li>
-                <li>Joonas Kylmälä</li>
-                <li><a href="https://www.openhub.net/p/koha/contributors/6618544614275">Henri-Damien Laurent (3.0 Release Maintainer)</a></li>
-                <li>Arnaud Laurin</li>
-                <li>Nicolas Legrand</li>
-                <li>Sonia Lemaire</li>
-                <li><a href="https://www.openhub.net/p/koha/contributors/6618544609147">Owen Leonard (3.0+ Interface Design)</a></li>
-                <li>Ambrose Li (translation tool)</li>
-                <li>Gynn Lomax</li>
-                <li>Peter Lorimer</li>
-                <li>Robert Lyon (Corporate Serials)</li>
-                <li>Ere Maijala</li>
-                <li>Sherryn Mak</li>
-                <li>Merllisia Manueli</li>
-                <li>Florent Mara</li>
-                <li>Francois Marier</li>
-                <li>Patricio Marrone</li>
-                <li>Jose Martin</li>
-                <li>Alberto Martinez</li>
-                <li>Jesse Maseto</li>
-                <li>Frère Sébastien Marie</li>
-                <li>Ricardo Dias Marques</li>
-                <li>Julian Maurice (3.18, 17.05 - 17.11 QA Team Member; 3.22 Release Maintainer)</li>
-                <li>Remi Mayrand-Provencher</li>
-                <li>Brig C. McCoy</li>
-                <li>Grace McKenzie</li>
-                <li>Tim McMahon</li>
-                <li>Dorian Meid (German translation)</li>
-                <li>Meenakshi. R</li>
-                <li>Melia Meggs</li>
-                <li>Holger Meißner</li>
-                <li>Karl Menzies</li>
-                <li>Matthias Meusburger</li>
-                <li>Sophie Meynieux</li>
-                <li>Janet McGowan</li>
-                <li>Alan Millar</li>
-                <li>Jono Mingard</li>
-                <li><a href="https://www.openhub.net/p/koha/contributors/6618544607803">Andrew Moore</a></li>
-                <li>Francesca Moore</li>
-                <li>Josef Moravec</li>
-                <li>Sharon Moreland</li>
-                <li>Nicolas Morin</li>
-                <li>Mike Mylonas</li>
-                <li>Natasha ?? [Catalyst Academy]</li>
-                <li>Nadia Nicolaides</li>
-                <li>Nazlı</li>
-                <li>Joy Nelson</li>
-                <li><a href="https://www.openhub.net/p/koha/contributors/6618544615991">Chris Nighswonger (3.2 - 3.6 Release Maintainer)</a></li>
-                <li>Brian Norris</li>
-                <li>Duy Tinh Nguyen</li>
-                <li>Simith D'Oliveira</li>
-                <li>Albert Oller</li>
-                <li>Eric Olsen</li>
-                <li>H. Passini</li>
-                <li>Priya Patel</li>
-                <li>Aliki Pavlidou</li>
-                <li>Dobrica Pavlinusic</li>
-                <li>Maxime Pelletier</li>
-                <li>Shari Perkins</li>
-                <li>Martin Persson</li>
-                <li>Dominic Pichette</li>
-                <li>Fred Pierre</li>
-                <li>Eric Phetteplace (phette23)</li>
-                <li>Genevieve Plantin</li>
-                <li>Simon Pouchol</li>
-                <li>Polytechnic University</li>
-                <li>Pongtawat</li>
-                <li><a href="https://www.openhub.net/p/koha/contributors/6618544612249">Paul Poulain (2.0, 2.2, 3.8, 3.10 Release Manager; 2.2 Release Maintainer; 3.12 - 16.05 QA Team Member)</a></li>
-                <li>Karam Qubsi</li>
-                <li>Romina Racca</li>
-                <li><a href="https://www.openhub.net/p/koha/contributors/6620692116417">MJ Ray (2.0 Release Maintainer)</a></li>
-                <li><a href="https://www.openhub.net/p/koha/contributors/6618544650708">Liz Rea</a> (3.6, 3.18 Release Maintainer)</li>
-                <li>Thatcher Rea</li>
-                <li>Allen Reinmeyer</li>
-                <li>Serge Renaux</li>
-                <li><a href="https://www.openhub.net/p/koha/contributors/6618544785220">Martin Renvoize (3.16 - 17.11 QA Team Member)</a></li>
-                <li>Francesco Rivetti</li>
-                <li>Abby Robertson</li>
-                <li>Waylon Robertson</li>
-                <li>Benjamin Rokseth</li>
-                <li><a href="https://www.openhub.net/p/koha/contributors/6618544727712">Marcel de Rooy (3.8 - 17.11 QA Team Member)</a></li>
-                <li>Andreas Roussos</li>
-                <li>Salvador Zaragoza Rubio</li>
-                <li>Mathieu Saby</li>
-                <li>Eivin Giske Skaaren</li>
-                <li>Brice Sanchez</li>
-                <li>Jane Sandberg</li>
-                <li>Sam Sanders</li>
-                <li>Rodrigo Santellan</li>
-                <li>Viktor Sarge</li>
-                <li>Alex Sassmannshausen (17.11 QA Team Member)</li>
-                <li>Adrien Saurat</li>
-                <li>Zoe Schoeler</li>
-                <li>Dan Scott</li>
-                <li><a href="https://www.openhub.net/p/koha/contributors/6618544619438">Robin Sheat (3.2 - 3.22 Packaging Manager)</a></li>
-                <li>Maksim Sen</li>
-                <li>Juhani Seppälä</li>
-                <li>John Seymour</li>
-                <li>Juan Romay Sieira</li>
-                <li>Zach Sim</li>
-                <li>Radek Šiman</li>
-                <li>Silvia Simonetti</li>
-                <li>Savitra Sirohi</li>
-                <li>Pawel Skuza (Polish for 1.2)</li>
-                <li>Emma Smith</li>
-                <li>Grace Smyth</li>
-                <li><a href="https://www.openhub.net/p/koha/contributors/6620692831733">Fridolin Somers (3.14 Release Maintainer, 17.05 QA Team Member, 17.05 Release Maintainer)</a></li>
-                <li>Southeastern University</li>
-                <li>Martin Stenberg</li>
-                <li>Glen Stewart</li>
-                <li>Will Stokes</li>
-                <li>Simon Story</li>
-                <li>David Strainchamps</li>
-                <li>Ed Summers (Some code and Perl packages like MARC::Record)</li>
-                <li>Daniel Sweeney</li>
-                <li>Zeno Tajoli</li>
-                <li>Lari Taskula</li>
-                <li>Samanta Tello</li>
-                <li>Adam Thick</li>
-                <li><a href="https://www.openhub.net/p/koha/contributors/6618544609107">Finlay Thompson</a></li>
-                <li>Peggy Thrasher</li>
-                <li>Fabio Tiana</li>
-                <li>Mirko Tietgen (16.11 - 17.11 Packaging Manager)</li>
-                <li>Mark Tompsett</li>
-                <li><a href="https://www.openhub.net/p/koha/contributors/6620692101577">Steve Tonnesen (early MARC work, Virtual Bookshelves concept, KohaCD)</a></li>
-                <li>Bruno Toumi</li>
-                <li>Andrei V. Toutoukine</li>
-                <li>Duncan Tyler</li>
-                <li>Kathryn Tyree</li>
-                <li>Darrell Ulm</li>
-                <li>Universidad ORT Uruguay (Ernesto Silva, Andres Tarallo)</li>
-                <li>Eric Vantillard </li>
-                <li>Oleg Vasylenko</li>
-                <li><a href="https://www.openhub.net/p/koha/contributors/6618545408147">Marc Véron</a></li>
-                <li>Justin Vos</li>
-                <li>Aleksa Vujicic</li>
-                <li>Reed Wade</li>
-                <li>Stacey Walker</li>
-                <li>Ian Walls (3.6 - 3.10 QA Manager)</li>
-                <li><a href="https://www.openhub.net/accounts/janewagner">Jane Wagner</a></li>
-                <li>Ward van Wanrooij</li>
-                <li>Jenny Way</li>
-                <li><a href="https://www.openhub.net/accounts/pianohacker">Jesse Weaver (16.05, 16.11 QA Team Member)</a></li>
-                <li>Chris Weeks</li>
-                <li>Stefan Weil</li>
-                <li>Aaron Wells</li>
-                <li>Rick Welykochy</li>
-                <li>Piotr Wejman</li>
-                <li>Ron Wickersham</li>
-                <li>Brett Wilkins</li>
-                <li><a href="https://www.openhub.net/p/koha/contributors/6620692127299">Olwen Williams (Database design and data extraction for Koha 1.0)</a></li>
-                <li>Robert Williams</li>
-                <li>James Winter</li>
-                <li>Lars Wirzenius</li>
-                <li>Baptiste Wojtkowski</li>
-                <li>Thomas Wright</li>
-                <li>Jen Zajac</li>
-                <li>Kenza Zaki</li>
-            </ul>
-            <h3>Contributing companies and institutions</h3>
-            <ul>
+            [% IF contributors.size %]
+                <ul class="columns-4">
+                    [% FOREACH contributor IN contributors %]
+                    <li>[% INCLUDE person p=contributor %][% INCLUDE contributions p=contributor %]</li>
+                    [% END %]
+                </ul>
+            [% ELSE %]
+                <div class="dialog alert">
+                    Could not read the contributors.yaml file. Please make sure &lt;docdir&gt; is correctly defined in koha-conf.xml.
+                </div>
+            [% END %]
+            <hr>
+
+            <h2>Contributing companies and institutions</h2>
+            <ul class="columns-4">
                 <li>Allen Ginsberg Library, USA</li>
                 <li>Alingsås Public Library, Sweden</li>
                 <li>American Numismatic Society, USA</li>
@@ -880,10 +570,12 @@
                 <li>Athens County Public Libraries, USA</li>
                 <li>BdP de la Meuse, France</li>
                 <li>BibLibre, France</li>
+                <li>Biblioteca Provincial Fr. Mamerto Esquiú (Provincia Franciscana de la Asunción), Argentina</li>
                 <li>Bibliotheksservice-Zentrum Baden-Württemberg (BSZ), Germany</li>
                 <li>Briar Cliff University, USA</li>
+                <li>Brimbank City Council, Australia</li>
                 <li>Brooklyn Law School Library, USA</li>
-                <li>Bibliothèque universitaire des langues et civilisations (<a href="http://www.bulac.fr/">BULAC</a>), France</li>
+                <li>Bibliothèque Universitaire des Langues et Civilisations (<a href="https://www.bulac.fr">BULAC</a>), France</li>
                 <li>ByWater Solutions, USA</li>
                 <li>California College of the Arts, USA</li>
                 <li>Camden County, USA</li>
@@ -896,9 +588,14 @@
                 <li>Coeur d'Alene Public Library, USA</li>
                 <li>Corpus Christi Public Libraries, USA</li>
                 <li>C &amp; P Bibliography Services, USA</li>
+                <li>Devinim, Turkey</li>
                 <li>Do Space, USA</li>
                 <li>DoverNet, USA</li>
+                <li>doXulting</li>
+                <li>Duchesne County Library, USA</li>
                 <li>Escuela de Orientacion Lacaniana, Argentina</li>
+                <li>Fenway Library Organization, USA</li>
+                <li>Fargo Public Library, USA</li>
                 <li>Farmington Public Library, USA</li>
                 <li>FIT</li>
                 <li>Foundations Bible College &amp; Seminary, USA</li>
@@ -907,18 +604,22 @@
                 <li>Halland County Library, Sweden</li>
                 <li>Harrison Carmel Public Library, USA</li>
                 <li>Hauraki District Libraries, New Zealand</li>
+                <li>Higher Education Libraries of Massachusetts, USA</li>
                 <li>Hochschule für Gesundheit (hsg), Germany</li>
                 <li>Hotchkiss School, USA</li>
                 <li>Katipo Communications, New Zealand</li>
                 <li>KEEP SOLUTIONS, Portugal</li>
                 <li>KohaAloha, New Zealand</li>
+                <li>Koha-Suomi Oy, Finland</li>
                 <li>LibLime, USA</li>
                 <li>Library of the Józef Piłsudski Institute of America, USA</li>
                 <li>Libriotech, Norway</li>
                 <li>Los Gatos Public Library, USA</li>
+                <li>Lund University Library, Sweden</li>
                 <li>MassCat, USA</li>
                 <li>Middletown Township Public Library, USA</li>
-                <li>Nelsonville Public Library, Ohio, USA</li>
+                <li>National Library of Finland, Finland</li>
+                <li>Newcastle City Council, United Kingdom</li>
                 <li>New Zealand Central Agencies Library, New Zealand</li>
                 <li>New Zealand Ministry of Education Library, New Zealand</li>
                 <li>North Central Regional Library (NCRL), USA</li>
@@ -927,6 +628,7 @@
                 <li>Orex Digital, Spain</li>
                 <li>Oslo Public Library, Norway</li>
                 <li>Plano Independent School, USA</li>
+                <li>Plant and Food Research Limited, New Zealand</li>
                 <li>Prosentient Systems, Australia</li>
                 <li>PTFS, Maryland, USA</li>
                 <li>PTFS Europe Ltd, United Kingdom</li>
@@ -934,16 +636,21 @@
                 <li>Rolling Hills Consolidated Libraries, USA</li>
                 <li>Round Rock Public Library, USA</li>
                 <li>SAN-Ouest Provence, France</li>
+                <li>Sefton Council, United Kingdom</li>
                 <li>software.coop, United Kingdom</li>
                 <li>South-East Kansas Library System (SEKLS), USA</li>
+                <li>South Taranaki District Council, New Zealand</li>
                 <li>Stockholm University Library, Sweden</li>
                 <li>SWITCH Library Consortium, USA</li>
                 <li>Talking Tech, Global</li>
                 <li>Tamil, France</li>
+                <li>Theke Solutions, Argentina</li>
                 <li>Tulong Aklatan, Philippines</li>
+                <li>Uintah Library System, USA</li>
                 <li>Universidad de El Salvador, El Salvador</li>
                 <li>Universidad Empresarial Siglo 21, Argentina</li>
                 <li>Universidad Nacional de Córdoba, Argentina</li>
+                <li>Universidad ORT Uruguay</li>
                 <li>Université d'Aix-Marseille, France</li>
                 <li>Université de Lyon 3, France</li>
                 <li>Université de Rennes 2, France</li>
@@ -951,8 +658,9 @@
                 <li>University of the Arts London, United Kingdom</li>
                 <li>Vaara-kirjastot, Finland</li>
                 <li>Vanier College, Canada</li>
-                <li>Ville de Victoriaville, Canada</li>
                 <li>Vermont Organization of Koha Automated Libraries (VOKAL), USA</li>
+                <li>Ville de Victoriaville, Canada</li>
+                <li>Virginia Tech, USA</li>
                 <li>Washoe County Library System, USA</li>
                 <li>Xercode, Spain</li>
             </ul>
@@ -976,8 +684,13 @@
             </p>
             <h2>jQuery and jQueryUI</h2>
             <p><a href="http://jquery.com/">jQuery</a> and <a href="http://jqueryui.com/">jQueryUI</a> are licensed under the <a href="http://github.com/jquery/jquery/blob/master/MIT-LICENSE.txt">MIT license</a></p>
+
             <h2>Bootstrap</h2>
             <p><a href="https://getbootstrap.com/">Bootstrap</a> code and <a href="http://glyphicons.com">Glyphicons Free</a> licensed under the <a href="https://github.com/twbs/bootstrap/blob/master/LICENSE">MIT license</a>.</p>
+
+            <h2>Bootstrap Icons</h2>
+            <p><a href="https://icons.getbootstrap.com/">Bootstrap Icons</a> licensed under the <a href="https://github.com/twbs/icons/blob/main/LICENSE.md">MIT license</a>.</p>
+
             <h2>YUI</h2>
             <p>
             <a href="http://yuilibrary.com/license/">BSD License</a>
@@ -995,29 +708,10 @@
                   by the Bridge Consortium of Carleton College and St. Olaf College.</li>
               </ul>
 
-            <h2>The Noun Project icons</h2>
-                <ul>
-                    <li>All images come from <a href="https://thenounproject.com/">The Noun Project</a> collection</li>
-                    <li>
-                        Circulation ("<a href="https://thenounproject.com/icon/743/">fair-trade</a>") symbol by Edward Boatman ; Patrons
-                        ("<a href="https://thenounproject.com/term/childrens-library/739/">children's library</a>") symbol by Edward Boatman, Saul Tannenbaum,
-                        Stephen Kennedy, Nikki Snow, Brooke Hamilton ; Search ("<a href="https://thenounproject.com/term/magnifying-glass/907/">magnifying
-                        glass</a>") symbol by Philipp Süß ; Lists ("<a href="https://thenounproject.com/term/folder/650/">folder</a>") symbol by Jack
-                        Biesek, Gladys Brenner, Margaret Faye, Healther Merrifield, Kate
-                        Keating, Wendy Olmstead, Todd Pierce, Jamie Cowgill, Jim Bolek ;
-                        Course reserves ("<a href="https://thenounproject.com/term/stack-of-books/11494/">stack of books</a>") symbol by Jeremy J. Bristol;
-                        Cataloging ("<a href="https://thenounproject.com/term/tag/888732/">price tag</a>") symbol by the Noun Project ; Authorities
-                        ("<a href="https://thenounproject.com/term/link/1690/">link</a>") symbol by Matthew Exton ; Serials ("<a href="https://thenounproject.com/term/newspaper/1233/">newspaper</a>") symbol by John
-                        Caserta ; Acquisitions ("<a href="https://thenounproject.com/term/gift/970853/">gift</a>") symbol by David Goodger ; Reports
-                        ("<a href="https://thenounproject.com/term/pie-chart/805/">pie chart</a>") symbol by Scott Lewis ; Administration ("<a href="https://thenounproject.com/term/gears/1063/">gears</a>") symbol by
-                        Jeremy Minnick ; Tools ("<a href="https://thenounproject.com/term/wrench/234/">wrench</a>") symbol by National Park Service ; Interlibrary loan ("<a href="https://thenounproject.com/term/exchange/1265396">exchange</a>") symbol by Iconstock.
-                    </li>
-                </ul>
+            <h2>jQuery Bar Rating Plugin</h2>
+              <p>jQuery Bar Rating Plugin v1.22 by <a href="http://antenna.io/demo/jquery-bar-rating/examples/">Antenna.io</a> is licensed under the <a href="http://en.wikipedia.org/wiki/MIT_License">MIT License</a>.</p>
 
-            <h2>jQuery Star Rating Plugin</h2>
-              <p>jQuery Star Rating Plugin v3.14 by <a href="http://www.fyneworks.com/">Fyneworks.com</a> is licensed under the <a href="http://en.wikipedia.org/wiki/MIT_License">MIT License</a> and the <a href="http://creativecommons.org/licenses/GPL/2.0/">GPL License</a>.</p>
-
-            <p>Copyright &copy; 2008 <a href="http://www.fyneworks.com/">Fyneworks.com</a></p>
+            <p>Copyright &copy; 2012-2016 <a href="http://antenna.io">Kazik Pietruszewski</a></p>
 
             <h2>jQuery insertAtCaret Plugin</h2>
             <p>jQuery insertAtCaret Plugin v1.0 by the phpMyAdmin devel team is licensed under the <a href="http://www.gnu.org/licenses/gpl.html">GPL License</a>.</p>
@@ -1052,7 +746,7 @@
             <p>The <a href="http://jqueryvalidation.org/">jQuery Validation Plugin</a> written and maintained by Jörn Zaefferer is licensed under the <a href="http://opensource.org/licenses/mit-license.php">MIT License</a>.</p>
 
             <h2>TinyMCE WYSIWYG editor</h2>
-            <p>The <a href="http://www.tinymce.com/">TinyMCE WYSIWYG editor v3.5.8 </a> by Moxiecode (Ephox) is licensed under the <a href="http://www.gnu.org/licenses/old-licenses/lgpl-2.1.txt">LGPL v2.1</a>.</p>
+            <p>The <a href="http://www.tinymce.com/">TinyMCE WYSIWYG editor v5.0.16 </a> by Moxiecode (Ephox) is licensed under the <a href="http://www.gnu.org/licenses/old-licenses/lgpl-2.1.txt">LGPL v2.1</a>.</p>
 
             <h2>Font Awesome</h2>
             <p><a href="http://fontawesome.io">Font Awesome</a> by Dave Gandy is licensed under the <a href="http://scripts.sil.org/OFL">SIL OFL 1.1</a> and the <a href="http://opensource.org/licenses/mit-license.html">MIT License</a>.</p>
@@ -1069,6 +763,9 @@
             <h2>OAI xslt stylesheet</h2>
             <p>The included OAI.xslt file by the <a href="http://dspace.org/">DSpace project</a> is licensed under a <a href="http://www.dspace.org/license/">BSD License</a>.</p>
 
+            <h2>OpenAPI 2.0 schema</h2>
+            <p>The included <a href="https://github.com/OAI/OpenAPI-Specification/blob/master/schemas/v2.0/schema.json">api/swagger-v2-schema.json</a> file is licensed under the <a href="https://github.com/OAI/OpenAPI-Specification/tree/master/schemas/v2.0">Apache License, Version 2.0</a>, by the <a href="https://www.openapis.org/about">OpenAPI Initiative (OAI)</a>.</p>
+
             <h2>Select2</h2>
             <p>The <a href="http://select2.github.io/select2/">Select2</a> library is licensed under <a href="https://github.com/select2/select2/blob/stable/3.5/LICENSE">the Apache License, Version 2.0 (the "Apache License") or the GNU General Public License version 2 (the "GPL License")</a>.</p>
 
@@ -1083,6 +780,40 @@
 
             <h2>JSZip</h2>
             <p>The <a href="https://stuk.github.io/jszip/">JSZip</a> JavaScript library is licensed under both the <a href="https://github.com/Stuk/jszip/blob/master/LICENSE.markdown">MIT and GPLv3 Licenses</a>.</p>
+
+            <h2>D3.js</h2>
+            <p><a href="https://d3js.org/">D3.js v3.5.17</a> is a JavaScript library for manipulating documents based on data. It is under the <a href="https://github.com/d3/d3/blob/master/LICENSE">BSD 3-clause Licence</a></p>
+
+            <h2>C3.js</h2>
+            <p><a href="http://c3js.org/">C3.js v0.4.11</a> is a D3-based reusable chart library under the <a href="https://opensource.org/licenses/mit-license.php">MIT licence</a></p>
+
+            <h2>Font Face Observer</h2>
+            <p><a href="https://github.com/bramstein/fontfaceobserver">Font Face Observer</a> is a JavaScript library by Bram Stein licensed under the <a href="https://github.com/bramstein/fontfaceobserver/blob/master/LICENSE">BSD License</a>.</p>
+
+            <h2>Noto fonts</h2>
+            <p><a href="https://github.com/googlei18n/noto-fonts">Noto</a> by Google is a family of fonts licensed under the <a href="http://scripts.sil.org/OFL">SIL Open Font License (OFL) v1.1</a>.</p>
+
+            <h2>HC Sticky</h2>
+            <p><a href="http://somewebmedia.com/hc-sticky/">HC Sticky</a> by Some Web Media is a JavaScript library that makes any element on your page visible while you scroll, licensed under the <a href="https://github.com/somewebmedia/hc-sticky/blob/master/LICENSE">MIT license</a>.</p>
+
+            <h2>kjua</h2>
+            <p><a href="https://larsjung.de/kjua/">kjua</a> by Lars Jung is a JavaScript library that generates QR codes, licensed under the <a href="https://github.com/lrsjng/kjua/blob/master/README.md">MIT license</a>.</p>
+
+            <h2>Verovio</h2>
+            <p><a href="https://www.verovio.org/index.xhtml">Verovio is developed by the Swiss RISM Office with the support of the Swiss National Science Foundation, licensed under the <a href="http://www.gnu.org/licenses/lgpl-3.0.html">LGPL v3.0</a>.</p>
+
+            <h2>jquery.cookie</h2>
+            <p><a href="https://github.com/carhartl/jquery-cookie">jquery.cookie</a> by Klaus Hartl is a jQuery plugin for setting, reading, and deleting browser cookies, licensed under the <a href="https://github.com/carhartl/jquery-cookie/blob/master/MIT-LICENSE.txt">MIT license</a>.</p>
+
+            <h2>JavaScript Cookie</h2>
+            <p><a href="https://github.com/js-cookie/js-cookie">JavaScript Cookie</a> is a "simple, lightweight JavaScript API for handling cookies," licensed under the <a href="https://github.com/js-cookie/js-cookie/blob/master/LICENSE">MIT license</a>.</p>
+
+            <h2>Moment.js</h2>
+            <p><a href="https://momentjs.com/">Moment.js</a> licensed under the <a href="https://github.com/moment/moment/blob/develop/LICENSE">MIT license</a>.</p>
+
+            <h2>Chocolat.js</h2>
+            <p><a href="http://chocolat.insipi.de">Chocolat.js</a> licensed under the <a href="https://github.com/nicolas-t/Chocolat/blob/master/LICENSE">GPL v3 license</a>.</p>
+
         </div>
 
         <div id="translations">
@@ -1105,7 +836,7 @@
 <li>Fran&ccedil;ais (French) <a href="http://www.koha-fr.org/content/lassociation-kohala">Kohala</a>, Pascale Nalon (ENSMP), and many more </li>
 <li>Galego (Galician) Ignacio Javier</li>
 <li>Deutsch (German) Friedrich zur Hellen, Robert Hillig, Katrin Fischer, Beda Szukics, Mirko Tietgen and Marc Véron</li>
-<li>&#949;&#955;&#955;&#951;&#957;&#953;&#954;&#940; (Greek, Modern [1453- ]) Georgia Katsarou, Panoraia Gaitanou and Kiriaki Roditi</li>
+<li>&#949;&#955;&#955;&#951;&#957;&#953;&#954;&#940; (Greek, Modern [1453- ]) Koha Hellenic Users' Group (Georgia Katsarou, Dimitris Antonakis, Eugenios Papadopoulos), Theodoros Theodoropoulos, Panoraia Gaitanou and Kiriaki Roditi</li>
 <li>&#1506;&#1489;&#1512;&#1497;&#1514; (Hebrew)</li>
 <li>&#2361;&#2367;&#2344;&#2381;&#2342;&#2368; (Hindi)</li>
 <li>Magyar (Hungarian)Agnes Imecs</li>
@@ -1148,10 +879,10 @@
         </tr>
         </thead>
         [% FOREACH tabl IN table2 %]
-            <tr class="[% loop.parity %]">
+            <tr class="[% loop.parity | html %]">
                 [% FOREACH ro IN tabl.row2 %]
-                     <td>[% ro.date %]</td>
-                     <td>[% ro.desc|html %]</td>
+                     <td>[% ro.date | html %]</td>
+                     <td>[% ro.desc | html %]</td>
                 [% END %]
             </tr>
         [% END %]
@@ -1168,7 +899,7 @@
 </div>
 
 [% MACRO jsinclude BLOCK %]
-    <script type="text/javascript">
+    <script>
          $(document).ready(function() {
             $('#abouttabs').tabs();
          });

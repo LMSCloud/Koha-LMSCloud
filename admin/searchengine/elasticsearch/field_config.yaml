@@ -1,0 +1,73 @@
+---
+# General field configuration
+general:
+  properties:
+    marc_data:
+      store: true
+      type: text
+      analyzer: keyword
+      index: false
+    marc_data_array:
+      type: object
+      dynamic: true
+    marc_format:
+      store: true
+      type: text
+      analyzer: keyword
+      index: false
+
+# Search fields
+search:
+  boolean:
+    type: boolean
+    null_value: false
+  integer:
+    type: integer
+    null_value: 0
+    ignore_malformed: true
+  year:
+    type: short
+  stdno:
+    type: text
+    analyzer: analyzer_stdno
+    search_analyzer: analyzer_stdno
+    fields:
+      phrase:
+        type: text
+        analyzer: analyzer_phrase
+        search_analyzer: analyzer_phrase
+      raw:
+        type: keyword
+  default:
+    type: text
+    analyzer: analyzer_standard
+    search_analyzer: analyzer_standard
+    fields:
+      phrase:
+        type: text
+        analyzer: analyzer_phrase
+        search_analyzer: analyzer_phrase
+      raw:
+        type: keyword
+        normalizer: nfkc_cf_normalizer
+      ci_raw:
+        type: keyword
+        normalizer: icu_folding_normalizer
+# Facets
+facet:
+  default:
+    type: keyword
+    normalizer: facet_normalizer
+# Suggestible
+suggestible:
+  default:
+    type: completion
+    analyzer: simple
+    max_input_length: 100
+    search_analyzer: simple
+# Sort
+sort:
+  default:
+    type: icu_collation_keyword
+    index: false
+    numeric: true

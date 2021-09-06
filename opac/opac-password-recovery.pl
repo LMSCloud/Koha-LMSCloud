@@ -10,10 +10,10 @@ use C4::Context;
 use Koha::Patron::Password::Recovery
   qw(SendPasswordRecoveryEmail ValidateBorrowernumber GetValidLinkInfo CompletePasswordRecovery DeleteExpiredPasswordRecovery);
 use Koha::Patrons;
-use Koha::AuthUtils qw(hash_password);
-use Koha::Patrons;
-my $query = new CGI;
+my $query = CGI->new;
 use HTML::Entities;
+use Try::Tiny;
+use List::Util qw/any/;
 
 my ( $template, $dummy, $cookie ) = get_template_and_user(
     {
@@ -26,7 +26,7 @@ my ( $template, $dummy, $cookie ) = get_template_and_user(
 );
 
 my $email          = $query->param('email') // q{};
-my $password       = $query->param('password');
+my $password       = $query->param('newPassword');
 my $repeatPassword = $query->param('repeatPassword');
 my $id             = $query->param('id');
 my $uniqueKey      = $query->param('uniqueKey');
@@ -41,8 +41,7 @@ my $errNoBorrowerFound;
 my $errNoBorrowerEmail;
 my $errMultipleAccountsForEmail;
 my $errAlreadyStartRecovery;
-my $errTooManyEmailFound;
-my $errBadEmail;
+my $errResetForbidden;
 
 #new password form error
 my $errLinkNotValid;
@@ -51,14 +50,13 @@ if ( $query->param('sendEmail') || $query->param('resendEmail') ) {
 
     #try with the main email
     my $borrower;
-    my $search_results = [];
-
+    my $search_results;
     # Find the borrower by userid, card number, or email
     if ($username) {
-        $search_results = Koha::Patrons->search( { -or => { userid => $username, cardnumber => $username } } );
+        $search_results = Koha::Patrons->search( { -or => { userid => $username, cardnumber => $username }, login_attempts => { '!=', Koha::Patron::ADMINISTRATIVE_LOCKOUT } } );
     }
     elsif ($email) {
-        $search_results = Koha::Patrons->search( { -or => { email => $email, emailpro => $email, B_email  => $email } } );
+        $search_results = Koha::Patrons->search( { -or => { email => $email, emailpro => $email, B_email  => $email }, login_attempts => { '!=', Koha::Patron::ADMINISTRATIVE_LOCKOUT } } );
     }
 
     if ( !defined $search_results || $search_results->count < 1) {
@@ -74,36 +72,45 @@ if ( $query->param('sendEmail') || $query->param('resendEmail') ) {
         $errMultipleAccountsForEmail = 1;
     }
     elsif ( $borrower = $search_results->next() ) {    # One matching borrower
-        my @emails = grep { $_ } ( $borrower->email, $borrower->emailpro, $borrower->B_email );
 
-        my $firstNonEmptyEmail;
-        $firstNonEmptyEmail = $emails[0] if @emails;
+        if ( $borrower->category->effective_reset_password ) {
 
-        # Is the given email one of the borrower's ?
-        if ( $email && !( grep /^$email$/i, @emails ) ) {
-            $hasError    = 1;
-            $errNoBorrowerFound = 1;
-        }
+            my @emails = grep { $_ } ( $borrower->email, $borrower->emailpro, $borrower->B_email );
 
-        # If there is no given email, and there is no email on record
-        elsif ( !$email && !$firstNonEmptyEmail ) {
-            $hasError           = 1;
-            $errNoBorrowerEmail = 1;
-        }
+            my $firstNonEmptyEmail;
+            $firstNonEmptyEmail = $emails[0] if @emails;
 
-# Check if a password reset already issued for this borrower AND we are not asking for a new email
-        elsif ( not $query->param('resendEmail') ) {
-            if ( ValidateBorrowernumber( $borrower->borrowernumber ) ) {
-                $hasError                = 1;
-                $errAlreadyStartRecovery = 1;
+            # Is the given email one of the borrower's ?
+            if ( $email && !( any { lc($_) eq lc($email) } @emails ) ) {
+                $hasError    = 1;
+                $errNoBorrowerFound = 1;
             }
-            else {
-                DeleteExpiredPasswordRecovery( $borrower->borrowernumber );
+
+            # If there is no given email, and there is no email on record
+            elsif ( !$email && !$firstNonEmptyEmail ) {
+                $hasError           = 1;
+                $errNoBorrowerEmail = 1;
+            }
+
+            # Check if a password reset already issued for this
+            # borrower AND we are not asking for a new email
+            elsif ( not $query->param('resendEmail') ) {
+                if ( ValidateBorrowernumber( $borrower->borrowernumber ) ) {
+                    $hasError                = 1;
+                    $errAlreadyStartRecovery = 1;
+                }
+                else {
+                    DeleteExpiredPasswordRecovery( $borrower->borrowernumber );
+                }
+            }
+            # Set the $email, if we don't have one.
+            if ( !$hasError && !$email ) {
+                $email = $firstNonEmptyEmail;
             }
         }
-        # Set the $email, if we don't have one.
-        if ( !$hasError && !$email ) {
-            $email = $firstNonEmptyEmail;
+        else {
+            $hasError          = 1;
+            $errResetForbidden = 1;
         }
     }
     else {    # 0 matching borrower
@@ -114,11 +121,10 @@ if ( $query->param('sendEmail') || $query->param('resendEmail') ) {
         $template->param(
             hasError                => 1,
             errNoBorrowerFound      => $errNoBorrowerFound,
-            errTooManyEmailFound    => $errTooManyEmailFound,
             errAlreadyStartRecovery => $errAlreadyStartRecovery,
-            errBadEmail             => $errBadEmail,
             errNoBorrowerEmail      => $errNoBorrowerEmail,
             errMultipleAccountsForEmail => $errMultipleAccountsForEmail,
+            errResetForbidden       => $errResetForbidden,
             password_recovery       => 1,
             email                   => HTML::Entities::encode($email),
             username                => $username
@@ -142,24 +148,36 @@ elsif ( $query->param('passwordReset') ) {
     ( $borrower_number, $username ) = GetValidLinkInfo($uniqueKey);
 
     my $error;
+    my $min_password_length = C4::Context->preference('minPasswordPreference');
+    my $require_strong_password = C4::Context->preference('RequireStrongPassword');
     if ( not $borrower_number ) {
         $error = 'errLinkNotValid';
     } elsif ( $password ne $repeatPassword ) {
         $error = 'errPassNotMatch';
     } else {
-        my ( $is_valid, $err) = Koha::AuthUtils::is_password_valid( $password );
-        unless ( $is_valid ) {
-            $error = 'password_too_short' if $err eq 'too_short';
-            $error = 'password_too_weak' if $err eq 'too_weak';
-            $error = 'password_has_whitespaces' if $err eq 'has_whitespaces';
-        } else {
-            Koha::Patrons->find($borrower_number)->update_password( $username, hash_password($password) );
+        my $borrower = Koha::Patrons->find($borrower_number);
+        $min_password_length = $borrower->category->effective_min_password_length;
+        $require_strong_password = $borrower->category->effective_require_strong_password;
+        try {
+            $borrower->set_password({ password => $password });
+
             CompletePasswordRecovery($uniqueKey);
             $template->param(
                 password_reset_done => 1,
                 username            => $username
             );
         }
+        catch {
+            if ( $_->isa('Koha::Exceptions::Password::TooShort') ) {
+                $error = 'password_too_short';
+            }
+            elsif ( $_->isa('Koha::Exceptions::Password::WhitespaceCharacters') ) {
+                $error = 'password_has_whitespaces';
+            }
+            elsif ( $_->isa('Koha::Exceptions::Password::TooWeak') ) {
+                $error = 'password_too_weak';
+            }
+        };
     }
     if ( $error ) {
         $template->param(
@@ -168,6 +186,8 @@ elsif ( $query->param('passwordReset') ) {
             uniqueKey    => $uniqueKey,
             hasError     => 1,
             $error       => 1,
+            minPasswordLength => $min_password_length,
+            RequireStrongPassword => $require_strong_password
         );
     }
 }
@@ -179,6 +199,8 @@ elsif ($uniqueKey) {    #reset password form
         $errLinkNotValid = 1;
     }
 
+    my $borrower = Koha::Patrons->find($borrower_number);
+
     $template->param(
         new_password    => 1,
         email           => $email,
@@ -186,6 +208,8 @@ elsif ($uniqueKey) {    #reset password form
         username        => $username,
         errLinkNotValid => $errLinkNotValid,
         hasError        => ( $errLinkNotValid ? 1 : 0 ),
+        minPasswordLength => $borrower->category->effective_min_password_length,
+        RequireStrongPassword => $borrower->category->effective_require_strong_password
     );
 }
 else {    #password recovery form (to send email)

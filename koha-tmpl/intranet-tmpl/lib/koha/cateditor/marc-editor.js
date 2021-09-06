@@ -135,36 +135,40 @@ define( [ 'marc-record', 'koha-backend', 'preferences', 'text-marc', 'widget' ],
             return [];
         }
     }
+    var _editorKeys = {};
 
-    var _editorKeys = {
-        'Alt-C': function( cm ) {
+    _editorKeys[insert_copyright] =  function( cm ) {
             cm.replaceRange( '©', cm.getCursor() );
-        },
+        }
 
-        'Alt-P': function( cm ) {
+    _editorKeys[insert_copyright_sound] = function( cm ) {
             cm.replaceRange( '℗', cm.getCursor() );
-        },
+        }
 
-        Enter: function( cm ) {
+    _editorKeys[new_line] = function( cm ) {
             var cursor = cm.getCursor();
             cm.replaceRange( '\n', { line: cursor.line }, null, 'marcAware' );
             cm.setCursor( { line: cursor.line + 1, ch: 0 } );
-        },
+        }
 
-        'Shift-Enter': function( cm ) {
+    _editorKeys[line_break] =  function( cm ) {
             var cur = cm.getCursor();
 
             cm.replaceRange( "\n", cur, null );
-        },
+        }
 
-        'Ctrl-X': function( cm ) {
+    _editorKeys[delete_field] =  function( cm ) {
             // Delete line (or cut)
             if ( cm.somethingSelected() ) return true;
+            var curLine = cm.getLine( cm.getCursor().line );
+
+            $("#clipboard").prepend('<option>'+curLine+'</option>');
+            $("#clipboard option:first-child").prop('selected', true);
 
             cm.execCommand('deleteLine');
-        },
+        }
 
-        'Shift-Ctrl-L': function( cm ) {
+    _editorKeys[link_authorities] =  function( cm ) {
             // Launch the auth search popup
             var field = cm.marceditor.getCurrentField();
 
@@ -184,20 +188,64 @@ define( [ 'marc-record', 'koha-backend', 'preferences', 'text-marc', 'widget' ],
                 if( subfields[i].code == '9' ) continue;
                 mainstring += subfields[i].text+' ';
             }
-            newin=window.open("../authorities/auth_finder.pl?source=biblio&authtypecode="+authtype+"&index="+index+"&value_mainstr="+encodeURI(mainmainstring)+"&value_main="+encodeURI(mainstring), "_blank",'width=700,height=550,toolbar=false,scrollbars=yes');
+            newin=window.open("../authorities/auth_finder.pl?source=biblio&authtypecode="+authtype+"&index="+index+"&value_mainstr="+encodeURIComponent(mainmainstring)+"&value_main="+encodeURIComponent(mainstring), "_blank",'width=700,height=550,toolbar=false,scrollbars=yes');
 
-        },
+        }
 
-        'Shift-Ctrl-X': function( cm ) {
+    _editorKeys[delete_subfield] = function( cm ) {
             // Delete subfield
             var field = cm.marceditor.getCurrentField();
             if ( !field ) return;
 
-            var subfield = field.getSubfieldAt( cm.getCursor().ch );
-            if ( subfield ) subfield.delete();
-        },
+            var curCursor = cm.getCursor();
+            var subfield = field.getSubfieldAt( curCursor.ch );
+            var subfieldText= cm.getRange({line:curCursor.line,ch:subfield.start},{line:curCursor.line,ch:subfield.end});
+            if ( subfield ) {
+                $("#clipboard").prepend('<option>'+subfieldText+'</option>');
+                $("#clipboard option:first-child").prop('selected', true);
+                subfield.delete();
+            }
+        }
 
-        Tab: function( cm ) {
+    _editorKeys[copy_line] = function( cm ) {
+            // Copy line
+            if ( cm.somethingSelected() ) return true;
+            var curLine = cm.getLine( cm.getCursor().line );
+            $("#clipboard").prepend('<option>'+curLine+'</option>');
+            $("#clipboard option:first-child").prop('selected', true);
+        }
+
+    _editorKeys[copy_subfield] = function( cm ) {
+            // Copy subfield
+            var field = cm.marceditor.getCurrentField();
+            if ( !field ) return;
+
+            var curCursor = cm.getCursor();
+            var subfield = field.getSubfieldAt( curCursor.ch );
+            var subfieldText= cm.getRange({line:curCursor.line,ch:subfield.start},{line:curCursor.line,ch:subfield.end});
+            if ( subfield ) {
+                $("#clipboard").prepend('<option>'+subfieldText+'</option>');
+                $("#clipboard option:first-child").prop('selected', true);
+            }
+        }
+
+    _editorKeys[paste_line] = function( cm ) {
+            // Paste line from "clipboard"
+            if ( cm.somethingSelected() ) return true;
+            var cBoard = document.getElementById("clipboard");
+            var strUser = cBoard.options[cBoard.selectedIndex].text;
+            cm.replaceRange( strUser, cm.getCursor(), null );
+        }
+
+    _editorKeys[insert_line] = function( cm ) {
+            // Copy line and insert below
+            if ( cm.somethingSelected() ) return true;
+            var curLine = cm.getLine( cm.getCursor().line );
+            cm.execCommand('newlineAndIndent');
+            cm.replaceRange( curLine, cm.getCursor(), null );
+        }
+
+     _editorKeys[next_position] =  function( cm ) {
             // Move through parts of tag/fixed fields
             var positions = getTabPositions( cm.marceditor );
             var cur = cm.getCursor();
@@ -210,9 +258,9 @@ define( [ 'marc-record', 'koha-backend', 'preferences', 'text-marc', 'widget' ],
             }
 
             cm.setCursor( { line: cur.line + 1, ch: 0 } );
-        },
+        }
 
-        'Shift-Tab': function( cm ) {
+    _editorKeys[prev_position] = function( cm ) {
             // Move backwards through parts of tag/fixed fields
             var positions = getTabPositions( cm.marceditor );
             var cur = cm.getCursor();
@@ -233,15 +281,18 @@ define( [ 'marc-record', 'koha-backend', 'preferences', 'text-marc', 'widget' ],
             } else {
                 cm.setCursor( { line: cur.line - 1, ch: 0 } );
             }
-        },
+        }
 
-        'Ctrl-D': function( cm ) {
-            // Insert subfield delimiter
-            var cur = cm.getCursor();
+    _editorKeys[insert_delimiter] = function(cm){
+        var cur = cm.getCursor();
 
-            cm.replaceRange( "‡", cur, null );
-        },
-    };
+        cm.replaceRange( "‡", cur, null );
+    }
+
+    _editorKeys[toggle_keyboard] = function( cm ) {
+       let keyboard = $(cm.getInputField()).getkeyboard();
+       keyboard.isVisible()?keyboard.close():keyboard.reveal();
+    }
 
     // The objects below are part of a field/subfield manipulation API, accessed through the base
     // editor object.
@@ -478,6 +529,8 @@ define( [ 'marc-record', 'koha-backend', 'preferences', 'text-marc', 'widget' ],
     } );
 
     function MARCEditor( options ) {
+        this.frameworkcode = '';
+
         this.cm = CodeMirror(
             options.position,
             {
@@ -493,6 +546,79 @@ define( [ 'marc-record', 'koha-backend', 'preferences', 'text-marc', 'widget' ],
                 }
             }
         );
+        var inf = this.cm.getInputField();
+        var self = this;
+        var kb = $(inf).keyboard({
+            //keyBinding: "mousedown touchstart",
+            usePreview: false,
+            lockInput: false,
+            autoAccept: true,
+            autoAcceptOnEsc: true,
+            userClosed: true,
+            //alwaysOpen: true,
+            openOn : '',
+            position: {
+              of: $("#statusbar"), // optional - null (attach to input/textarea) or a jQuery object (attach elsewhere)
+              my: 'center top',
+              at: 'center bottom',
+              at2: 'center bottom' // used when "usePreview" is false (centers keyboard at bottom of the input/textarea)
+            },
+            beforeInsert: function(evnt, keyboard, elem, txt) {
+              var position = self.cm.getCursor();
+              if (txt === "\b") {
+                self.cm.execCommand("delCharBefore");
+              }
+              if (txt === "\b" && position.ch === 0 && position.line !== 0) {
+                elem.value = self.cm.getLine(position.line) || "";
+                txt = "";
+              }
+              return txt;
+            },
+            visible: function() {
+                $('#set-keyboard-layout').removeClass('hide');
+            },
+            hidden: function(e, keyboard, el, accepted) {
+                inf.focus();
+                $('#set-keyboard-layout').addClass('hide');
+            }
+          }).getkeyboard();
+
+
+        Object.keys($.keyboard.layouts).forEach(function(layout) {
+            var div = $('#keyboard-layout .layouts').append('<div class="layout" data-layout="'+layout+'" data-name="'+($.keyboard.layouts[layout].name||layout)+'" >'+($.keyboard.layouts[layout].name||layout)+'</div>')
+            if(kb.layout == layout) {
+                div.addClass('active');
+            }
+        });
+        $('#keyboard-layout')
+            .on('show.bs.modal', function() {
+                kb.close();
+                $('#keyboard-layout .filter').focus();
+                $('#set-keyboard-layout').removeClass('hide');
+            })
+            .on('hide.bs.modal', function() {
+                !kb.isVisible() && kb.reveal();
+            });
+        $('#keyboard-layout .layout').click(function(event) {
+            $('#keyboard-layout .layout').removeClass('active');
+            $(this).addClass('active');
+            var layout = $(this).data().layout;
+            kb.redraw(layout);
+            $('#keyboard-layout').modal('hide');
+            $('#keyboard-layout .filter').val('');
+            $('#keyboard-layout .layout').show();
+        });
+        $('#keyboard-layout .filter').keyup(function() {
+            var val = $(this).val();
+            if(!val||!val.length) return $('#keyboard-layout .layout').show();
+            var filter = new RegExp(val, 'i');
+            $('#keyboard-layout .layout').hide();
+            $('#keyboard-layout .layout').each(function() {
+                var name = $(this).data().name;
+                if(filter.test(name)) $(this).show();
+            })
+        });
+
         this.cm.marceditor = this;
 
         this.cm.on( 'beforeChange', editorBeforeChange );
@@ -535,9 +661,40 @@ define( [ 'marc-record', 'koha-backend', 'preferences', 'text-marc', 'widget' ],
             this.cm.refresh();
         },
 
+        setFrameworkCode: function( code, updateFields, callback ) {
+            this.frameworkcode = code;
+            $( 'a.change-framework i.selected' ).addClass( 'hidden' );
+            $( 'a.change-framework i.unselected' ).removeClass( 'hidden' );
+            $( 'a.change-framework[data-frameworkcode="' + code + '"] i.unselected' ).addClass( 'hidden' );
+            $( 'a.change-framework[data-frameworkcode="' + code + '"] i.selected' ).removeClass( 'hidden ');
+            var cm = this.cm;
+            KohaBackend.InitFramework( code, function ( error ) {
+                cm.setOption( 'mode', {
+                    name: 'marc',
+                    nonRepeatableTags: KohaBackend.GetTagsBy( code, 'repeatable', '0' ),
+                    nonRepeatableSubfields: KohaBackend.GetSubfieldsBy( code, 'repeatable', '0' )
+                });
+                if ( updateFields ) {
+                    var record = TextMARC.TextToRecord( cm.getValue() );
+                    KohaBackend.FillRecord( code, record );
+                    cm.setValue( TextMARC.RecordToText(record) );
+                }
+                callback( error );
+            } );
+        },
+
         displayRecord: function( record ) {
             this.cm.setValue( TextMARC.RecordToText(record) );
             this.modified = false;
+            this.setFrameworkCode(
+                typeof record.frameworkcode !== 'undefined' ? record.frameworkcode : '',
+                false,
+                function ( error ) {
+                    if ( typeof error !== 'undefined' ) {
+                        humanMsg.displayAlert( _(error), { className: 'humanError' } );
+                    }
+                }
+            );
         },
 
         getRecord: function() {
@@ -553,6 +710,7 @@ define( [ 'marc-record', 'koha-backend', 'preferences', 'text-marc', 'widget' ],
 
             this.textMode = false;
 
+            record.frameworkcode = this.frameworkcode;
             return record;
         },
 
@@ -654,7 +812,8 @@ define( [ 'marc-record', 'koha-backend', 'preferences', 'text-marc', 'widget' ],
         createFieldOrdered: function( tag ) {
             var line, contents;
 
-            for ( line = 0; (contents = this.cm.getLine(line)); line++ ) {
+            for ( line = 0; line <= this.cm.lastLine(); line++ ) {
+                contents = this.cm.getLine(line);
                 if ( contents && contents.substr(0, 3) > tag ) break;
             }
 

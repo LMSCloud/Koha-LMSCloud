@@ -7,6 +7,7 @@ use C4::Letters;
 use Koha::Database;
 use Koha::Acquisition::Booksellers;
 use Koha::Acquisition::Orders;
+use Koha::Patrons;
 
 use t::lib::TestBuilder;
 
@@ -40,7 +41,6 @@ my $budgetid = C4::Budgets::AddBudget(
 );
 my $budget = C4::Budgets::GetBudget($budgetid);
 
-my @ordernumbers;
 my ( $biblionumber, $biblioitemnumber ) = C4::Biblio::AddBiblio( MARC::Record->new, '' );
 
 my $order = Koha::Acquisition::Order->new(
@@ -65,7 +65,7 @@ my $invoiceid = AddInvoice(
     unknown       => "unknown"
 );
 
-my $borrowernumber = C4::Members::AddMember(
+my $borrowernumber = Koha::Patron->new({
     cardnumber => 'TESTCARD',
     firstname =>  'TESTFN',
     surname => 'TESTSN',
@@ -74,7 +74,7 @@ my $borrowernumber = C4::Members::AddMember(
     dateofbirth => '',
     dateexpiry => '9999-12-31',
     userid => 'TESTUSERID'
-);
+})->store->borrowernumber;
 
 C4::Acquisition::ModOrderUsers( $ordernumber, $borrowernumber );
 

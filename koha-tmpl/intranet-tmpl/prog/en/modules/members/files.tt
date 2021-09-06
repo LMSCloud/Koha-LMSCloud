@@ -1,3 +1,4 @@
+[% USE raw %]
 [% USE Asset %]
 [% USE KohaDates %]
 [% USE Branches %]
@@ -12,12 +13,27 @@
 [% INCLUDE 'header.inc' %]
 [% PROCESS 'patron-search.inc' %]
 
-<div id="breadcrumbs"><a href="/cgi-bin/koha/mainpage.pl">Home</a> &rsaquo; <a href="/cgi-bin/koha/members/members-home.pl">Patrons</a>  &rsaquo; Files for [% INCLUDE 'patron-title.inc' %]</div>
+<nav id="breadcrumbs" aria-label="Breadcrumb" class="breadcrumb">
+    <ol>
+        <li>
+            <a href="/cgi-bin/koha/mainpage.pl">Home</a>
+        </li>
+        <li>
+            <a href="/cgi-bin/koha/members/members-home.pl">Patrons</a>
+        </li>
+        <li>
+            <a href="#" aria-current="page">
+                Files for [% INCLUDE 'patron-title.inc' %]
+            </a>
+        </li>
+    </ol>
+</nav>
 
-<div id="doc3" class="yui-t2">
-    <div id="bd">
-        <div id="yui-main">
-            <div class="yui-b">
+<div class="main container-fluid">
+    <div class="row">
+        <div class="col-sm-10 col-sm-push-2">
+            <main>
+
                 [% INCLUDE 'members-toolbar.inc' %]
 
                 <h1>Files</h1>
@@ -44,11 +60,11 @@
                     <tbody>
                         [% FOREACH f IN files %]
                             <tr>
-                                 <td><a href="?borrowernumber=[% patron.borrowernumber %]&amp;op=download&amp;file_id=[% f.file_id %]">[% f.file_name %]</a></td>
-                                 <td>[% f.file_type %]</td>
-                                 <td>[% f.file_description %]</td>
+                                 <td><a href="?borrowernumber=[% patron.borrowernumber | uri %]&amp;op=download&amp;file_id=[% f.file_id | uri %]">[% f.file_name | html %]</a></td>
+                                 <td>[% f.file_type | html %]</td>
+                                 <td>[% f.file_description | html %]</td>
                                  <td>[% f.date_uploaded | $KohaDates %]</td>
-                                 [% IF CAN_user_borrowers_edit_borrowers %]<td><a class="btn btn-default btn-xs confirmdelete" href="?borrowernumber=[% patron.borrowernumber %]&amp;op=delete&amp;file_id=[% f.file_id %]"><i class="fa fa-trash"></i> Delete</a></td>[% END %]
+                                 [% IF CAN_user_borrowers_edit_borrowers %]<td><a class="btn btn-default btn-xs confirmdelete" href="?borrowernumber=[% patron.borrowernumber | html %]&amp;op=delete&amp;file_id=[% f.file_id | html %]"><i class="fa fa-trash"></i> Delete</a></td>[% END %]
                             </tr>
                         [% END %]
                     </tbody>
@@ -64,7 +80,7 @@
                         <legend>Upload new file</legend>
                         <ol>
                         <li><input type="hidden" name="op" value="upload" />
-                        <input type="hidden" name="borrowernumber" value="[% patron.borrowernumber %]" />
+                        <input type="hidden" name="borrowernumber" value="[% patron.borrowernumber | html %]" />
                         <input type="hidden" name="MAX_FILE_SIZE" value="2000000" />
 
                         <label for="description">Description:</label>
@@ -77,17 +93,20 @@
                     </fieldset>
                 </form>
 
-            </div>
-        </div>
+            </main>
+        </div> <!-- /.col-sm-10.col-sm-push-2 -->
 
-        <div class="yui-b">
-            [% INCLUDE 'circ-menu.inc' %]
-        </div>
-    </div>
+        <div class="col-sm-2 col-sm-pull-10">
+            <aside>
+                [% INCLUDE 'circ-menu.inc' %]
+            </aside>
+        </div> <!-- /.col-sm-2.col-sm-pull-10 -->
+     </div> <!-- /.row -->
 
 [% MACRO jsinclude BLOCK %]
-    [% Asset.js("js/members-menu.js") %]
-    <script type="text/javascript">
+    [% INCLUDE 'str/members-menu.inc' %]
+    [% Asset.js("js/members-menu.js") | $raw %]
+    <script>
         $(document).ready(function(){
             $(".confirmdelete").on("click", function(){
                 $(this).parents('tr').addClass("warn");

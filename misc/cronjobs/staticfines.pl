@@ -37,6 +37,7 @@ BEGIN {
 
 use Date::Calc qw/Date_to_Days/;
 
+use Koha::Script -cron;
 use C4::Context;
 use C4::Circulation;
 use C4::Overdues;
@@ -47,6 +48,7 @@ use C4::Log;
 use Getopt::Long;
 use List::MoreUtils qw/none/;
 use Koha::DateUtils;
+use Koha::Patrons;
 
 my $help    = 0;
 my $verbose = 0;
@@ -75,7 +77,6 @@ my $usage = << 'ENDUSAGE';
 This script calculates and charges overdue fines to patron accounts.
 
 If the Koha System Preference 'finesMode' is set to 'production', the fines are charged to the patron accounts.
-If set to 'test', the fines are calculated but not applied.
 
 Please note that the fines won't be applied on a holiday.
 
@@ -157,16 +158,16 @@ for ( my $i = 0 ; $i < scalar(@$data) ; $i++ ) {
         print STDERR "ERROR in Getoverdues line $i: issues.borrowernumber IS NULL.  Repair 'issues' table now!  Skipping record.\n";
         next;    # Note: this doesn't solve everything.  After NULL borrowernumber, multiple issues w/ real borrowernumbers can pile up.
     }
-    my $borrower = BorType( $data->[$i]->{'borrowernumber'} );
+    my $patron = Koha::Patrons->find( $data->[$i]->{'borrowernumber'} );
 
     # Skipping borrowers that are not in @categories
-    $bigdebug and warn "Skipping borrower from category " . $borrower->{categorycode} if none { $borrower->{categorycode} eq $_ } @categories;
-    next if none { $borrower->{categorycode} eq $_ } @categories;
+    $bigdebug and warn "Skipping borrower from category " . $patron->categorycode if none { $patron->categorycode eq $_ } @categories;
+    next if none { $patron->categorycode eq $_ } @categories;
 
     my $branchcode =
-        ( $useborrowerlibrary )           ? $borrower->{branchcode}
+        ( $useborrowerlibrary )           ? $patron->branchcode
       : ( $control eq 'ItemHomeLibrary' ) ? $data->[$i]->{homebranch}
-      : ( $control eq 'PatronLibrary' )   ? $borrower->{branchcode}
+      : ( $control eq 'PatronLibrary' )   ? $patron->branchcode
       :                                     $data->[$i]->{branchcode};
     # In final case, CircControl must be PickupLibrary. (branchcode comes from issues table here).
 
@@ -188,16 +189,16 @@ for ( my $i = 0 ; $i < scalar(@$data) ; $i++ ) {
     ( $datedue_days <= $today_days ) or next;    # or it's not overdue, right?
 
     $overdueItemsCounted++;
-    my ( $amount, $type, $unitcounttotal, $unitcount ) = CalcFine(
+    my ( $amount, $unitcounttotal, $unitcount ) = CalcFine(
         $data->[$i],
-        $borrower->{'categorycode'},
+        $patron->categorycode,
         $branchcode,
         $datedue,
         $today,
     );
 
     # Reassign fine's amount if specified in command-line
-    $amount = $catamounts{$borrower->{'categorycode'}} if (defined $catamounts{$borrower->{'categorycode'}});
+    $amount = $catamounts{$patron->categorycode} if (defined $catamounts{$patron->categorycode});
 
     # We check if there is already a fine for the given borrower
     my $fine = GetFine(undef, $data->[$i]->{'borrowernumber'});
@@ -205,9 +206,6 @@ for ( my $i = 0 ; $i < scalar(@$data) ; $i++ ) {
         $debug and warn "There is already a fine for borrower " . $data->[$i]->{'borrowernumber'} . ". Nothing to do here. Skipping this borrower";
         next;
     }
-
-    # FIXME: $type NEVER gets populated by anything.
-    ( defined $type ) or $type = '';
 
     # Don't update the fine if today is a holiday.
     # This ensures that dropbox mode will remove the correct amount of fine.
@@ -229,14 +227,13 @@ for ( my $i = 0 ; $i < scalar(@$data) ; $i++ ) {
             $sth4->execute($itemnumber);
             my $title = $sth4->fetchrow;
 
-            my $nextaccntno = C4::Accounts::getnextacctno($borrowernumber);
             my $desc        = "staticfine";
             my $query       = "INSERT INTO accountlines
-                        (borrowernumber,itemnumber,date,amount,description,accounttype,amountoutstanding,lastincrement,accountno)
-                                VALUES (?,?,now(),?,?,'F',?,?,?)";
+                        (borrowernumber,itemnumber,date,amount,description,debit_type_code,status,amountoutstanding)
+                                VALUES (?,?,now(),?,?,'OVERDUE','RETURNED',?)";
             my $sth2 = $dbh->prepare($query);
-            $bigdebug and warn "query: $query\nw/ args: $borrowernumber, $itemnumber, $amount, $desc, $amount, $amount, $nextaccntno\n";
-            $sth2->execute( $borrowernumber, $itemnumber, $amount, $desc, $amount, $amount, $nextaccntno );
+            $bigdebug and warn "query: $query\nw/ args: $borrowernumber, $itemnumber, $amount, $desc, $amount\n";
+            $sth2->execute( $borrowernumber, $itemnumber, $amount, $desc, $amount );
 
         }
     }

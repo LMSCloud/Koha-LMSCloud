@@ -45,21 +45,28 @@ use C4::Auth;
 use C4::Context;
 use C4::Output;
 use CGI qw ( -utf8 );
-use MARC::Record;
 use C4::Biblio;
 use C4::Items;
 use C4::Reserves;
 use C4::Acquisition;
 use C4::Serials;    # uses getsubscriptionfrom biblionumber
 use C4::Koha;
-use Koha::IssuingRules;
-use Koha::Items;
+use Koha::CirculationRules;
 use Koha::ItemTypes;
 use Koha::Patrons;
 use Koha::RecordProcessor;
 use Koha::Biblios;
 
 my $query = CGI->new();
+my $biblionumber = $query->param('biblionumber');
+my $biblio;
+$biblio = Koha::Biblios->find( $biblionumber, { prefetch => [ 'metadata', 'items' ] } ) if $biblionumber;
+if( !$biblio ) {
+    print $query->redirect('/cgi-bin/koha/errors/404.pl');
+    exit;
+}
+
+#open template
 my ( $template, $loggedinuser, $cookie ) = get_template_and_user(
     {
         template_name   => "opac-ISBDdetail.tt",
@@ -70,8 +77,30 @@ my ( $template, $loggedinuser, $cookie ) = get_template_and_user(
     }
 );
 
-my $biblionumber = $query->param('biblionumber');
-$biblionumber = int($biblionumber);
+my $patron = Koha::Patrons->find($loggedinuser);
+
+my $opachiddenitems_rules = C4::Context->yaml_preference('OpacHiddenItems');
+
+unless ( $patron and $patron->category->override_hidden_items ) {
+    # only skip this check if there's a logged in user
+    # and its category overrides OpacHiddenItems
+    if ( $biblio->hidden_in_opac({ rules => $opachiddenitems_rules }) ) {
+        print $query->redirect('/cgi-bin/koha/errors/404.pl'); # escape early
+        exit;
+    }
+}
+
+my $record      = $biblio->metadata->record;
+my $marcflavour = C4::Context->preference("marcflavour");
+
+my $record_processor = Koha::RecordProcessor->new({
+    filters => 'ViewPolicy',
+    options => {
+        interface => 'opac',
+        frameworkcode => $biblio->frameworkcode
+    }
+});
+$record_processor->process($record);
 
 # get biblionumbers stored in the cart
 if(my $cart_list = $query->cookie("bib_list")){
@@ -81,60 +110,27 @@ if(my $cart_list = $query->cookie("bib_list")){
     }
 }
 
-my $marcflavour      = C4::Context->preference("marcflavour");
-
-my @items = GetItemsInfo($biblionumber);
-if (scalar @items >= 1) {
-    my @hiddenitems = GetHiddenItemnumbers(@items);
-
-    if (scalar @hiddenitems == scalar @items ) {
-        print $query->redirect("/cgi-bin/koha/errors/404.pl"); # escape early
-        exit;
-    }
-}
-
-my $record = GetMarcBiblio({
-    biblionumber => $biblionumber,
-    embed_items  => 1 });
-if ( ! $record ) {
-    print $query->redirect("/cgi-bin/koha/errors/404.pl");
-    exit;
-}
-
-my $biblio = Koha::Biblios->find( $biblionumber );
-
-my $framework = GetFrameworkCode( $biblionumber );
-my $record_processor = Koha::RecordProcessor->new({
-    filters => 'ViewPolicy',
-    options => {
-        interface => 'opac',
-        frameworkcode => $framework
-    }
-});
-$record_processor->process($record);
-
 # some useful variables for enhanced content;
 # in each case, we're grabbing the first value we find in
 # the record and normalizing it
-my $upc = GetNormalizedUPC($record,$marcflavour);
-my $ean = GetNormalizedEAN($record,$marcflavour);
-my $oclc = GetNormalizedOCLCNumber($record,$marcflavour);
-my $isbn = GetNormalizedISBN(undef,$record,$marcflavour);
+my $upc  = GetNormalizedUPC( $record, $marcflavour );
+my $ean  = GetNormalizedEAN( $record, $marcflavour );
+my $oclc = GetNormalizedOCLCNumber( $record, $marcflavour );
+my $isbn = GetNormalizedISBN( undef, $record, $marcflavour );
 my $content_identifier_exists;
 if ( $isbn or $ean or $oclc or $upc ) {
     $content_identifier_exists = 1;
 }
 $template->param(
-    normalized_upc => $upc,
-    normalized_ean => $ean,
-    normalized_oclc => $oclc,
-    normalized_isbn => $isbn,
+    normalized_upc            => $upc,
+    normalized_ean            => $ean,
+    normalized_oclc           => $oclc,
+    normalized_isbn           => $isbn,
     content_identifier_exists => $content_identifier_exists,
 );
 
 #coping with subscriptions
 my $subscriptionsnumber = CountSubscriptionFromBiblionumber($biblionumber);
-my $dbh = C4::Context->dbh;
 my $dat                 = TransformMarcToKoha( $record );
 
 my @subscriptions       = SearchSubscriptions({ biblionumber => $biblionumber, orderby => 'title' });
@@ -165,22 +161,20 @@ my $allow_onshelf_holds;
 my $res = GetISBDView({
     'record'    => $record,
     'template'  => 'opac',
-    'framework' => $framework
+    'framework' => $biblio->frameworkcode
 });
 
-my $itemtypes = { map { $_->{itemtype} => $_ } @{ Koha::ItemTypes->search_with_localization->unblessed } };
-my $patron = Koha::Patrons->find( $loggedinuser );
-for my $itm (@items) {
-    my $item = Koha::Items->find( $itm->{itemnumber} );
+my $items = $biblio->items;
+while ( my $item = $items->next ) {
     $norequests = 0
       if $norequests
-        && !$itm->{'withdrawn'}
-        && !$itm->{'itemlost'}
-        && ($itm->{'itemnotforloan'}<0 || not $itm->{'itemnotforloan'})
-        && !$itemtypes->{$itm->{'itype'}}->{notforloan}
-        && $itm->{'itemnumber'};
+        && !$item->withdrawn
+        && !$item->itemlost
+        && ($item->notforloan < 0 || not $item->notforloan )
+        && !Koha::ItemTypes->find($item->effective_itemtype)->notforloan
+        && $item->itemnumber;
 
-    $allow_onshelf_holds = Koha::IssuingRules->get_onshelfholds_policy( { item => $item, patron => $patron } )
+    $allow_onshelf_holds = Koha::CirculationRules->get_onshelfholds_policy( { item => $item, patron => $patron } )
       unless $allow_onshelf_holds;
 }
 
@@ -215,6 +209,16 @@ if (my $search_for_title = C4::Context->preference('OPACSearchForTitleIn')){
         }
     );
     $template->param('OPACSearchForTitleIn' => $search_for_title);
+}
+
+if( C4::Context->preference('ArticleRequests') ) {
+    my $itemtype = Koha::ItemTypes->find($biblio->itemtype);
+    my $artreqpossible = $patron
+        ? $biblio->can_article_request( $patron )
+        : $itemtype
+        ? $itemtype->may_article_request
+        : q{};
+    $template->param( artreqpossible => $artreqpossible );
 }
 
 output_html_with_http_headers $query, $cookie, $template->output;

@@ -30,10 +30,11 @@ use open OUT => ':encoding(UTF-8)', ':std';
 use Getopt::Long;
 use Pod::Usage;
 
+use Koha::Script;
 use C4::Context;
 my $dbh = C4::Context->dbh;
 
-my ( $help, $cmd, $filename, $override, $compare_add, $compare_del, $compare_upd, $ignore_opt, $partial );
+my ( $help, $cmd, $filename, $compare_add, $compare_del, $compare_upd, $ignore_opt, $partial );
 GetOptions(
     'help'    => \$help,
     'cmd:s'   => \$cmd,

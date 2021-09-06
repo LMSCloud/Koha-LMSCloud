@@ -60,8 +60,6 @@ if this order comes from a suggestion.
 =item breedingid
 the item's id in the breeding reservoir
 
-=item close
-
 =back
 
 =cut
@@ -84,7 +82,7 @@ use C4::Members;
 use C4::Search qw/FindDuplicate/;
 
 #needed for z3950 import:
-use C4::ImportBatch qw/GetImportRecordMarc SetImportRecordStatus/;
+use C4::ImportBatch qw/GetImportRecordMarc SetImportRecordStatus SetMatchedBiblionumber/;
 
 use Koha::Acquisition::Booksellers;
 use Koha::Acquisition::Currencies;
@@ -94,8 +92,9 @@ use Koha::MarcSubfieldStructures;
 use Koha::ItemTypes;
 use Koha::Patrons;
 use Koha::RecordProcessor;
+use Koha::Subscriptions;
 
-our $input           = new CGI;
+our $input           = CGI->new;
 my $booksellerid    = $input->param('booksellerid');	# FIXME: else ERROR!
 my $budget_id       = $input->param('budget_id') || 0;
 my $title           = $input->param('title');
@@ -105,21 +104,17 @@ my $ordernumber          = $input->param('ordernumber') || '';
 our $biblionumber    = $input->param('biblionumber');
 our $basketno        = $input->param('basketno');
 my $suggestionid    = $input->param('suggestionid');
-my $close           = $input->param('close');
 my $uncertainprice  = $input->param('uncertainprice');
 my $import_batch_id = $input->param('import_batch_id'); # if this is filled, we come from a staged file, and we will return here after saving the order !
 my $from_subscriptionid  = $input->param('from_subscriptionid');
 my $data;
 my $new = 'no';
 
-my $budget_name;
-
 our ( $template, $loggedinuser, $cookie, $userflags ) = get_template_and_user(
     {
         template_name   => "acqui/neworderempty.tt",
         query           => $input,
         type            => "intranet",
-        authnotrequired => 0,
         flagsrequired   => { acquisition => 'order_manage' },
         debug           => 1,
     }
@@ -136,6 +131,19 @@ our $basket = GetBasket($basketno);
 my $basketobj = Koha::Acquisition::Baskets->find( $basketno );
 $booksellerid = $basket->{booksellerid} unless $booksellerid;
 my $bookseller = Koha::Acquisition::Booksellers->find( $booksellerid );
+
+output_and_exit( $input, $cookie, $template, 'unknown_basket') unless $basketobj;
+output_and_exit( $input, $cookie, $template, 'unknown_vendor') unless $bookseller;
+
+$template->param(
+    ordernumber  => $ordernumber,
+    basketno     => $basketno,
+    basket       => $basket,
+    booksellerid => $basket->{'booksellerid'},
+    name         => $bookseller->name,
+);
+output_and_exit( $input, $cookie, $template, 'order_cannot_be_edited' )
+    if $ordernumber and $basketobj->closedate;
 
 my $contract = GetContract({
     contractnumber => $basket->{contractnumber}
@@ -164,19 +172,22 @@ if ( $ordernumber eq '' and defined $params->{'breedingid'}){
         exit;
     }
     #from this point: add a new record
-        my $bibitemnum;
-        $params->{'frameworkcode'} or $params->{'frameworkcode'} = "";
-        ( $biblionumber, $bibitemnum ) = AddBiblio( $marcrecord, $params->{'frameworkcode'} );
-        # get the price if there is one.
-        $listprice = GetMarcPrice($marcrecord, $marcflavour);
-        SetImportRecordStatus($params->{'breedingid'}, 'imported');
+    C4::Acquisition::FillWithDefaultValues($marcrecord, {only_mandatory => 1});
+    my $bibitemnum;
+    $params->{'frameworkcode'} or $params->{'frameworkcode'} = "";
+    ( $biblionumber, $bibitemnum ) = AddBiblio( $marcrecord, $params->{'frameworkcode'} );
+    # get the price if there is one.
+    $listprice = GetMarcPrice($marcrecord, $marcflavour);
+    SetImportRecordStatus($params->{'breedingid'}, 'imported');
+
+    SetMatchedBiblionumber( $params->{breedingid}, $biblionumber );
 }
 
 
 
 my ( @order_user_ids, @order_users, @catalog_details );
 our $tagslib = GetMarcStructure(1, 'ACQ', { unsafe => 1 } );
-my ( $itemnumber_tag, $itemnumber_subtag ) = GetMarcFromKohaField( 'items.itemnumber', 'ACQ' );
+my ( $itemnumber_tag, $itemnumber_subtag ) = GetMarcFromKohaField( 'items.itemnumber' );
 if ( not $ordernumber ) {    # create order
     $new = 'yes';
 
@@ -230,14 +241,16 @@ if ( not $ordernumber ) {    # create order
                     }
                 }
 
-                if ( $value eq '' ) {
+                if ( $value ) {
 
-                    # get today date & replace <<YYYY>>, <<MM>>, <<DD>> if provided in the default value
+                    # get today date & replace <<YYYY>>, <<YY>>, <<MM>>, <<DD>> if provided in the default value
                     my $today_dt = dt_from_string;
                     my $year     = $today_dt->strftime('%Y');
+                    my $shortyear = $today_dt->strftime('%y');
                     my $month    = $today_dt->strftime('%m');
                     my $day      = $today_dt->strftime('%d');
                     $value =~ s/<<YYYY>>/$year/g;
+                    $value =~ s/<<YY>>/$shortyear/g;
                     $value =~ s/<<MM>>/$month/g;
                     $value =~ s/<<DD>>/$day/g;
 
@@ -260,7 +273,6 @@ if ( not $ordernumber ) {    # create order
 }
 else {    #modify order
     $data   = GetOrder($ordernumber);
-    $biblionumber = $data->{'biblionumber'};
     $budget_id = $data->{'budget_id'};
 
     $template->param(
@@ -277,6 +289,7 @@ else {    #modify order
         push @order_users, $order_patron if $order_patron;
     }
 }
+$biblionumber = $data->{biblionumber};
 
 # We can have:
 # - no ordernumber but a biblionumber: from a subscription, from an existing record
@@ -293,7 +306,7 @@ if ( not $ordernumber or $biblionumber ) {
                 next if IsMarcStructureInternal($mss);
                 next if $mss->{tab} == -1;
                 # We only need to display the values
-                my $value = join '; ', map { $_->subfield( $subfield ) } @fields;
+                my $value = join '; ', map { $tag < 10 ? $_->data : $_->subfield( $subfield ) } @fields;
                 if ( $value ) {
                     push @catalog_details, {
                         tag => $tag,
@@ -324,9 +337,6 @@ my $budget_loop = [];
 my $budgets = GetBudgetHierarchy;
 foreach my $r (@{$budgets}) {
     next unless (CanUserUseBudget($patron, $r, $userflags));
-    if (!defined $r->{budget_amount} || $r->{budget_amount} <0) {
-        next;
-    }
     push @{$budget_loop}, {
         b_id  => $r->{budget_id},
         b_txt => $r->{budget_name},
@@ -338,11 +348,6 @@ foreach my $r (@{$budgets}) {
     };
 }
 
-if ($close) {
-    $budget_id      =  $data->{'budget_id'};
-    $budget_name    =   $budget->{'budget_name'};
-
-}
 
 $template->param( sort1 => $data->{'sort1'} );
 $template->param( sort2 => $data->{'sort2'} );
@@ -364,17 +369,29 @@ my @itemtypes;
 @itemtypes = Koha::ItemTypes->search unless C4::Context->preference('item-level_itypes');
 
 if ( defined $from_subscriptionid ) {
-    my $lastOrderReceived = GetLastOrderReceivedFromSubscriptionid $from_subscriptionid;
-    if ( defined $lastOrderReceived ) {
+    # Get the last received order for this subscription
+    my $lastOrderReceived = Koha::Acquisition::Orders->search(
+        {
+            subscriptionid => $from_subscriptionid,
+            datereceived   => { '!=' => undef }
+        },
+        {
+            order_by =>
+              [ { -desc => 'datereceived' }, { -desc => 'ordernumber' } ]
+        }
+    );
+    if ( $lastOrderReceived->count ) {
+        $lastOrderReceived = $lastOrderReceived->next->unblessed; # FIXME We should send the object to the template
         $budget_id              = $lastOrderReceived->{budgetid};
         $data->{listprice}      = $lastOrderReceived->{listprice};
         $data->{uncertainprice} = $lastOrderReceived->{uncertainprice};
         $data->{tax_rate}       = $lastOrderReceived->{tax_rate_on_ordering};
         $data->{discount}       = $lastOrderReceived->{discount};
         $data->{rrp}            = $lastOrderReceived->{rrp};
+        $data->{replacementprice} = $lastOrderReceived->{replacementprice};
         $data->{ecost}          = $lastOrderReceived->{ecost};
         $data->{quantity}       = $lastOrderReceived->{quantity};
-        $data->{unitprice}      = $lastOrderReceived->{unitprice};
+        $data->{unitprice}       = $lastOrderReceived->{unitprice};
         $data->{order_internalnote} = $lastOrderReceived->{order_internalnote};
         $data->{order_vendornote}   = $lastOrderReceived->{order_vendornote};
         $data->{sort1}          = $lastOrderReceived->{sort1};
@@ -383,35 +400,31 @@ if ( defined $from_subscriptionid ) {
         $basket = GetBasket( $input->param('basketno') );
     }
 
-    $template->param( subscriptionid => $from_subscriptionid );
+    my $subscription = Koha::Subscriptions->find($from_subscriptionid);
+    $template->param(
+        subscriptionid => $from_subscriptionid,
+        subscription   => $subscription,
+    );
 }
 
 # Find the items.barcode subfield for barcode validations
-my (undef, $barcode_subfield) = GetMarcFromKohaField('items.barcode', '');
+my (undef, $barcode_subfield) = GetMarcFromKohaField( 'items.barcode' );
 
-# fill template
-$template->param(
-    close        => $close,
-    budget_id    => $budget_id,
-    budget_name  => $budget_name
-) if ($close);
 
-# get option values for gist syspref
+# get option values for TaxRates syspref
 my @gst_values = map {
     option => $_ + 0.0
-}, split( '\|', C4::Context->preference("gist") );
+}, split( '\|', C4::Context->preference("TaxRates") );
 
 my $quantity = $input->param('rr_quantity_to_order') ?
       $input->param('rr_quantity_to_order') :
       $data->{'quantity'};
 $quantity //= 0;
 
+# fill template
 $template->param(
     existing         => $biblionumber,
-    ordernumber           => $ordernumber,
     # basket informations
-    basketno             => $basketno,
-    basket               => $basket,
     basketname           => $basket->{'basketname'},
     basketnote           => $basket->{'note'},
     booksellerid         => $basket->{'booksellerid'},
@@ -436,7 +449,6 @@ $template->param(
     order_vendornote     => $data->{'order_vendornote'},
     listincgst       => $bookseller->listincgst,
     invoiceincgst    => $bookseller->invoiceincgst,
-    name             => $bookseller->name,
     cur_active_sym   => $active_currency->symbol,
     cur_active       => $active_currency->currency,
     currencies       => \@currencies,
@@ -455,6 +467,7 @@ $template->param(
     quantity         => $quantity,
     quantityrec      => $quantity,
     rrp              => $data->{'rrp'},
+    replacementprice => $data->{'replacementprice'},
     gst_values       => \@gst_values,
     tax_rate         => $data->{tax_rate_on_ordering} ? $data->{tax_rate_on_ordering}+0.0 : $bookseller->tax_rate ? $bookseller->tax_rate+0.0 : 0,
     listprice        => sprintf( "%.2f", $data->{listprice} || $data->{price} || $listprice),
@@ -490,7 +503,7 @@ sub MARCfindbreeding {
     # remove the - in isbn, koha store isbn without any -
     if ($marc) {
         my $record = MARC::Record->new_from_usmarc($marc);
-        my ($isbnfield,$isbnsubfield) = GetMarcFromKohaField('biblioitems.isbn','');
+        my ($isbnfield,$isbnsubfield) = GetMarcFromKohaField( 'biblioitems.isbn' );
         if ( $record->field($isbnfield) ) {
             foreach my $field ( $record->field($isbnfield) ) {
                 foreach my $subfield ( $field->subfield($isbnsubfield) ) {
@@ -522,7 +535,7 @@ sub MARCfindbreeding {
             if (    C4::Context->preference("z3950NormalizeAuthor")
                 and C4::Context->preference("z3950AuthorAuthFields") )
             {
-                my ( $tag, $subfield ) = GetMarcFromKohaField("biblio.author", '');
+                my ( $tag, $subfield ) = GetMarcFromKohaField( "biblio.author" );
 
                 my $auth_fields =
                 C4::Context->preference("z3950AuthorAuthFields");
@@ -581,7 +594,6 @@ sub Load_Duplicate {
         template_name   => "acqui/neworderempty_duplicate.tt",
         query           => $input,
         type            => "intranet",
-        authnotrequired => 0,
         flagsrequired   => { acquisition => 'order_manage' },
 #        debug           => 1,
     }

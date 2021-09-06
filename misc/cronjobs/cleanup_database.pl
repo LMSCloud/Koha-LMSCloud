@@ -23,6 +23,7 @@ use constant DEFAULT_ZEBRAQ_PURGEDAYS             => 30;
 use constant DEFAULT_MAIL_PURGEDAYS               => 180;
 use constant DEFAULT_IMPORT_PURGEDAYS             => 60;
 use constant DEFAULT_LOGS_PURGEDAYS               => 180;
+use constant DEFAULT_MESSAGES_PURGEDAYS           => 365;
 use constant DEFAULT_SEARCHHISTORY_PURGEDAYS      => 30;
 use constant DEFAULT_SHARE_INVITATION_EXPIRY_DAYS => 14;
 use constant DEFAULT_DEBARMENTS_PURGEDAYS         => 30;
@@ -34,6 +35,7 @@ BEGIN {
     eval { require "$FindBin::Bin/../kohalib.pl" };
 }
 
+use Koha::Script -cron;
 use C4::Context;
 use C4::Search;
 use C4::Search::History;
@@ -41,13 +43,23 @@ use Getopt::Long;
 use C4::Log;
 use C4::Accounts;
 use Koha::UploadedFiles;
+use Koha::Old::Biblios;
+use Koha::Old::Items;
+use Koha::Old::Biblioitems;
+use Koha::Old::Checkouts;
+use Koha::Old::Holds;
+use Koha::Old::Patrons;
+use Koha::Item::Transfers;
+use Koha::PseudonymizedTransactions;
+use Koha::Patron::Messages;
 
 sub usage {
     print STDERR <<USAGE;
-Usage: $0 [-h|--help] [--sessions] [--sessdays DAYS] [-v|--verbose] [--zebraqueue DAYS] [-m|--mail] [--merged] [--import DAYS] [--logs DAYS] [--searchhistory DAYS] [--restrictions DAYS] [--all-restrictions] [--fees DAYS] [--temp-uploads] [--temp-uploads-days DAYS] [--uploads-missing 0|1 ]
+Usage: $0 [-h|--help] [--confirm] [--sessions] [--sessdays DAYS] [-v|--verbose] [--zebraqueue DAYS] [-m|--mail] [--merged] [--import DAYS] [--logs DAYS] [--searchhistory DAYS] [--restrictions DAYS] [--all-restrictions] [--fees DAYS] [--temp-uploads] [--temp-uploads-days DAYS] [--uploads-missing 0|1 ] [--statistics DAYS] [--deleted-catalog DAYS] [--deleted-patrons DAYS] [--old-issues DAYS] [--old-reserves DAYS] [--transfers DAYS] [--labels DAYS] [--cards DAYS]
 
    -h --help          prints this help message, and exits, ignoring all
                       other options
+   --confirm          Confirmation flag, the script will be running in dry-run mode is not set.
    --sessions         purge the sessions table.  If you use this while users 
                       are logged into Koha, they will have to reconnect.
    --sessdays DAYS    purge only sessions older than DAYS days.
@@ -58,6 +70,8 @@ Usage: $0 [-h|--help] [--sessions] [--sessdays DAYS] [-v|--verbose] [--zebraqueu
    -m --mail DAYS     purge items from the mail queue that are older than DAYS days.
                       Defaults to 30 days if no days specified.
    --merged           purged completed entries from need_merge_authorities.
+   --messages DAYS    purge entries from messages table older than DAYS days.
+                      Defaults to 365 days if no days specified.
    --import DAYS      purge records from import tables older than DAYS days.
                       Defaults to 60 days if no days specified.
    --z3950            purge records from import tables that are the result
@@ -82,11 +96,26 @@ Usage: $0 [-h|--help] [--sessions] [--sessdays DAYS] [-v|--verbose] [--zebraqueu
    --temp-uploads-days DAYS Override the corresponding preference value.
    --uploads-missing FLAG Delete upload records for missing files when FLAG is true, count them otherwise
    --oauth-tokens     Delete expired OAuth2 tokens
+   --statistics DAYS       Purge statistics entries more than DAYS days old.
+                           This table is used to build reports, make sure you are aware of the consequences of this before using it!
+   --deleted-catalog  DAYS Purge catalog records deleted more then DAYS days ago
+                           (from tables deleteditems, deletedbiblioitems, deletedbiblio_metadata and deletedbiblio).
+   --deleted-patrons DAYS  Purge patrons deleted more than DAYS days ago.
+   --old-issues DAYS       Purge checkouts (old_issues) returned more than DAYS days ago.
+   --old-reserves DAYS     Purge reserves (old_reserves) more than DAYS old.
+   --transfers DAYS        Purge transfers completed more than DAYS day ago.
+   --pseudo-transactions DAYS   Purge the pseudonymized transactions that have been originally created more than DAYS days ago
+                                DAYS is optional and can be replaced by:
+                                    --pseudo-transactions-from YYYY-MM-DD and/or --pseudo-transactions-to YYYY-MM-DD
+   --labels DAYS           Purge item label batches last added to more than DAYS days ago.
+   --cards DAY             Purge card creator batches last added to more than DAYS days ago.
+
 USAGE
     exit $_[0];
 }
 
 my $help;
+my $confirm;
 my $sessions;
 my $sess_days;
 my $verbose;
@@ -108,9 +137,21 @@ my $temp_uploads;
 my $temp_uploads_days;
 my $uploads_missing;
 my $oauth_tokens;
+my $pStatistics;
+my $pDeletedCatalog;
+my $pDeletedPatrons;
+my $pOldIssues;
+my $pOldReserves;
+my $pTransfers;
+my ( $pPseudoTransactions, $pPseudoTransactionsFrom, $pPseudoTransactionsTo );
+my $pMessages;
+my $lock_days = C4::Context->preference('LockExpiredDelay');
+my $labels;
+my $cards;
 
 GetOptions(
     'h|help'            => \$help,
+    'confirm'           => \$confirm,
     'sessions'          => \$sessions,
     'sessdays:i'        => \$sess_days,
     'v|verbose'         => \$verbose,
@@ -120,6 +161,7 @@ GetOptions(
     'import:i'          => \$pImport,
     'z3950'             => \$pZ3950,
     'logs:i'            => \$pLogs,
+    'messages:i'        => \$pMessages,
     'fees:i'            => \$fees_days,
     'searchhistory:i'   => \$pSearchhistory,
     'list-invites:i'    => \$pListShareInvites,
@@ -132,6 +174,17 @@ GetOptions(
     'temp-uploads-days:i' => \$temp_uploads_days,
     'uploads-missing:i' => \$uploads_missing,
     'oauth-tokens'      => \$oauth_tokens,
+    'statistics:i'      => \$pStatistics,
+    'deleted-catalog:i' => \$pDeletedCatalog,
+    'deleted-patrons:i' => \$pDeletedPatrons,
+    'old-issues:i'      => \$pOldIssues,
+    'old-reserves:i'    => \$pOldReserves,
+    'transfers:i'       => \$pTransfers,
+    'pseudo-transactions:i'      => \$pPseudoTransactions,
+    'pseudo-transactions-from:s' => \$pPseudoTransactionsFrom,
+    'pseudo-transactions-to:s'   => \$pPseudoTransactionsTo,
+    'labels'            => \$labels,
+    'cards'             => \$cards,
 ) || usage(1);
 
 # Use default values
@@ -143,6 +196,7 @@ $mail              = DEFAULT_MAIL_PURGEDAYS               if defined($mail)     
 $pSearchhistory    = DEFAULT_SEARCHHISTORY_PURGEDAYS      if defined($pSearchhistory)    && $pSearchhistory == 0;
 $pListShareInvites = DEFAULT_SHARE_INVITATION_EXPIRY_DAYS if defined($pListShareInvites) && $pListShareInvites == 0;
 $pDebarments       = DEFAULT_DEBARMENTS_PURGEDAYS         if defined($pDebarments)       && $pDebarments == 0;
+$pMessages         = DEFAULT_MESSAGES_PURGEDAYS           if defined($pMessages)         && $pMessages == 0;
 
 if ($help) {
     usage(0);
@@ -166,6 +220,19 @@ unless ( $sessions
     || $temp_uploads
     || defined $uploads_missing
     || $oauth_tokens
+    || $pStatistics
+    || $pDeletedCatalog
+    || $pDeletedPatrons
+    || $pOldIssues
+    || $pOldReserves
+    || $pTransfers
+    || defined $pPseudoTransactions
+    || $pPseudoTransactionsFrom
+    || $pPseudoTransactionsTo
+    || $pMessages
+    || defined $lock_days && $lock_days ne q{}
+    || $labels
+    || $cards
 ) {
     print "You did not specify any cleanup work for the script to do.\n\n";
     usage(1);
@@ -176,35 +243,38 @@ if ($pDebarments && $allDebarments) {
     usage(1);
 }
 
-cronlogaction();
+say "Confirm flag not passed, running in dry-run mode..." unless $confirm;
+
+cronlogaction() unless $confirm;
 
 my $dbh = C4::Context->dbh();
 my $sth;
 my $sth2;
-my $count;
 
 if ( $sessions && !$sess_days ) {
     if ($verbose) {
-        print "Session purge triggered.\n";
+        say "Session purge triggered.";
         $sth = $dbh->prepare(q{ SELECT COUNT(*) FROM sessions });
         $sth->execute() or die $dbh->errstr;
         my @count_arr = $sth->fetchrow_array;
-        print "$count_arr[0] entries will be deleted.\n";
+        say $confirm ? "$count_arr[0] entries will be deleted." : "$count_arr[0] entries would be deleted.";
     }
-    $sth = $dbh->prepare(q{ TRUNCATE sessions });
-    $sth->execute() or die $dbh->errstr;
+    if ( $confirm ) {
+        $sth = $dbh->prepare(q{ TRUNCATE sessions });
+        $sth->execute() or die $dbh->errstr;
+    }
     if ($verbose) {
         print "Done with session purge.\n";
     }
 }
 elsif ( $sessions && $sess_days > 0 ) {
     print "Session purge triggered with days>$sess_days.\n" if $verbose;
-    RemoveOldSessions();
+    RemoveOldSessions() if $confirm;
     print "Done with session purge with days>$sess_days.\n" if $verbose;
 }
 
 if ($zebraqueue_days) {
-    $count = 0;
+    my $count = 0;
     print "Zebraqueue purge triggered for $zebraqueue_days days.\n" if $verbose;
     $sth = $dbh->prepare(
         q{
@@ -213,16 +283,24 @@ if ($zebraqueue_days) {
             WHERE done=1 AND time < date_sub(curdate(), INTERVAL ? DAY)
         }
     );
-    $sth->execute($zebraqueue_days) or die $dbh->errstr;
+    if ( $confirm ) {
+        $sth->execute($zebraqueue_days) or die $dbh->errstr;
+    }
     $sth2 = $dbh->prepare(q{ DELETE FROM zebraqueue WHERE id=? });
     while ( my $record = $sth->fetchrow_hashref ) {
-        $sth2->execute( $record->{id} ) or die $dbh->errstr;
+        if ( $confirm ) {
+            $sth2->execute( $record->{id} ) or die $dbh->errstr;
+        }
         $count++;
     }
-    print "$count records were deleted.\nDone with zebraqueue purge.\n" if $verbose;
+    if ( $verbose ) {
+        say $confirm ? "$count records were deleted." : "$count records would have been deleted.";
+        say "Done with zebraqueue purge.";
+    }
 }
 
 if ($mail) {
+    my $count = 0;
     print "Mail queue purge triggered for $mail days.\n" if $verbose;
     $sth = $dbh->prepare(
         q{
@@ -230,28 +308,34 @@ if ($mail) {
             WHERE time_queued < date_sub(curdate(), INTERVAL ? DAY)
         }
     );
-    $sth->execute($mail) or die $dbh->errstr;
-    $count = $sth->rows;
-    $sth->finish;
-    print "$count messages were deleted from the mail queue.\nDone with message_queue purge.\n" if $verbose;
+    if ( $confirm ) {
+        $sth->execute($mail) or die $dbh->errstr;
+        $count = $sth->rows;
+    }
+    if ( $verbose ) {
+        say $confirm ? "$count messages were deleted from the mail queue." : "Message from message_queue would have been deleted";
+        say "Done with message_queue purge.";
+    }
 }
 
 if ($purge_merged) {
     print "Purging completed entries from need_merge_authorities.\n" if $verbose;
-    $sth = $dbh->prepare(q{ DELETE FROM need_merge_authorities WHERE done=1 });
-    $sth->execute() or die $dbh->errstr;
+    if ( $confirm ) {
+        $sth = $dbh->prepare(q{ DELETE FROM need_merge_authorities WHERE done=1 });
+        $sth->execute() or die $dbh->errstr;
+    }
     print "Done with purging need_merge_authorities.\n" if $verbose;
 }
 
 if ($pImport) {
     print "Purging records from import tables.\n" if $verbose;
-    PurgeImportTables();
+    PurgeImportTables() if $confirm;
     print "Done with purging import tables.\n" if $verbose;
 }
 
 if ($pZ3950) {
     print "Purging Z39.50 records from import tables.\n" if $verbose;
-    PurgeZ3950();
+    PurgeZ3950() if $confirm;
     print "Done with purging Z39.50 records from import tables.\n" if $verbose;
 }
 
@@ -263,19 +347,34 @@ if ($pLogs) {
             WHERE timestamp < date_sub(curdate(), INTERVAL ? DAY)
         }
     );
-    $sth->execute($pLogs) or die $dbh->errstr;
+    if ( $confirm ) {
+        $sth->execute($pLogs) or die $dbh->errstr;
+    }
     print "Done with purging action_logs.\n" if $verbose;
+}
+
+if ($pMessages) {
+    print "Purging messages older than $pMessages days.\n" if $verbose;
+    my $messages = Koha::Patron::Messages->filter_by_last_update(
+        { timestamp_column_name => 'message_date', days => $pMessages } );
+    my $count = $messages->count;
+    $messages->delete if $confirm;
+    if ( $verbose ) {
+        say $confirm
+          ? sprintf( "Done with purging %d messages", $count )
+          : sprintf( "%d messages would have been removed", $count );
+    }
 }
 
 if ($fees_days) {
     print "Purging records from accountlines.\n" if $verbose;
-    purge_zero_balance_fees( $fees_days );
+    purge_zero_balance_fees( $fees_days ) if $confirm;
     print "Done purging records from accountlines.\n" if $verbose;
 }
 
 if ($pSearchhistory) {
     print "Purging records older than $pSearchhistory from search_history.\n" if $verbose;
-    C4::Search::History::delete({ interval => $pSearchhistory });
+    C4::Search::History::delete({ interval => $pSearchhistory }) if $confirm;
     print "Done with purging search_history.\n" if $verbose;
 }
 
@@ -288,60 +387,260 @@ if ($pListShareInvites) {
             AND (sharedate + INTERVAL ? DAY) < NOW()
         }
     );
-    $sth->execute($pListShareInvites);
+    if ( $confirm ) {
+        $sth->execute($pListShareInvites);
+    }
     print "Done with purging unaccepted list share invites.\n" if $verbose;
 }
 
 if ($pDebarments) {
     print "Expired patrons restrictions purge triggered for $pDebarments days.\n" if $verbose;
-    $count = PurgeDebarments($pDebarments);
-    print "$count restrictions were deleted.\nDone with restrictions purge.\n" if $verbose;
+    my $count = PurgeDebarments($pDebarments, $confirm);
+    if ( $verbose ) {
+        say $confirm ? "$count restrictions were deleted." : "$count restrictions would have been deleted";
+        say "Done with restrictions purge.";
+    }
 }
 
 if($allDebarments) {
     print "All expired patrons restrictions purge triggered.\n" if $verbose;
-    $count = PurgeDebarments(0);
-    print "$count restrictions were deleted.\nDone with all restrictions purge.\n" if $verbose;
+    my $count = PurgeDebarments(0, $confirm);
+    if ( $verbose ) {
+        say $confirm ? "$count restrictions were deleted." : "$count restrictions would have been deleted";
+        say "Done with all restrictions purge.";
+    }
 }
 
+# Lock expired patrons?
+if( defined $lock_days && $lock_days ne q{} ) {
+    say "Start locking expired patrons" if $verbose;
+    my $expired_patrons = Koha::Patrons->filter_by_expiration_date({ days => $lock_days })->search({ login_attempts => { '!=' => -1 } });
+    my $count = $expired_patrons->count;
+    $expired_patrons->lock({ remove => 1 }) if $confirm;
+    if( $verbose ) {
+        say $confirm ? sprintf("Locked %d patrons", $count) : sprintf("Found %d patrons", $count);
+    }
+}
+
+# Handle unsubscribe requests from GDPR consent form, depends on UnsubscribeReflectionDelay preference
+say "Start lock unsubscribed, anonymize and delete" if $verbose;
+my $unsubscribed_patrons = Koha::Patrons->search_unsubscribed;
+my $count = $unsubscribed_patrons->count;
+$unsubscribed_patrons->lock( { expire => 1, remove => 1 } ) if $confirm;
+say $confirm ? sprintf("Locked %d patrons", $count) : sprintf("%d patrons would have been locked", $count) if $verbose;
+
+# Anonymize patron data, depending on PatronAnonymizeDelay
+my $anonymize_candidates = Koha::Patrons->search_anonymize_candidates( { locked => 1 } );
+$count = $anonymize_candidates->count;
+$anonymize_candidates->anonymize if $confirm;
+say $confirm ? sprintf("Anonymized %d patrons", $count) : sprintf("%d patrons would have been anonymized", $count) if $verbose;
+
+# Remove patron data, depending on PatronRemovalDelay (will raise an exception if problem encountered
+my $anonymized_patrons = Koha::Patrons->search_anonymized;
+$count = $anonymized_patrons->count;
+if ( $confirm ) {
+    $anonymized_patrons->delete( { move => 1 } );
+    if ($@) {
+        warn $@;
+    }
+}
+if ($verbose) {
+    say $confirm ? sprintf("Deleted %d patrons", $count) : sprintf("%d patrons would have been deleted", $count);
+}
+
+# FIXME The output for dry-run mode needs to be improved
+# But non trivial changes to C4::Members need to be done before.
 if( $pExpSelfReg ) {
-    DeleteExpiredSelfRegs();
+    if ( $confirm ) {
+        DeleteExpiredSelfRegs();
+    } elsif ( $verbose ) {
+        say "self-registered borrowers may be deleted";
+    }
 }
 if( $pUnvSelfReg ) {
-    DeleteUnverifiedSelfRegs( $pUnvSelfReg );
+    if ( $confirm ) {
+        DeleteUnverifiedSelfRegs( $pUnvSelfReg );
+    } elsif ( $verbose ) {
+        say "unverified self-registrations may be deleted";
+    }
 }
 
 if ($special_holidays_days) {
-    DeleteSpecialHolidays( abs($special_holidays_days) );
+    if ( $confirm ) {
+        DeleteSpecialHolidays( abs($special_holidays_days) );
+    } elsif ( $verbose ) {
+        say "self-registered borrowers may be deleted";
+    }
 }
 
 if( $temp_uploads ) {
     # Delete temporary uploads, governed by a pref (unless you override)
     print "Purging temporary uploads.\n" if $verbose;
-    Koha::UploadedFiles->delete_temporary({
-        defined($temp_uploads_days)
-            ? ( override_pref => $temp_uploads_days )
-            : ()
-    });
+    if ( $confirm ) {
+        Koha::UploadedFiles->delete_temporary({
+            defined($temp_uploads_days)
+                ? ( override_pref => $temp_uploads_days )
+                : ()
+        });
+    }
     print "Done purging temporary uploads.\n" if $verbose;
 }
 
 if( defined $uploads_missing ) {
     print "Looking for missing uploads\n" if $verbose;
-    my $keep = $uploads_missing == 1 ? 0 : 1;
-    my $count = Koha::UploadedFiles->delete_missing({ keep_record => $keep });
-    if( $keep ) {
-        print "Counted $count missing uploaded files\n";
+    if ( $confirm ) {
+        my $keep = $uploads_missing == 1 ? 0 : 1;
+        my $count = Koha::UploadedFiles->delete_missing({ keep_record => $keep });
+        if( $keep ) {
+            print "Counted $count missing uploaded files\n";
+        } else {
+            print "Removed $count records for missing uploads\n";
+        }
     } else {
-        print "Removed $count records for missing uploads\n";
+        # FIXME need to create a filter_by_missing method (then call ->delete) instead of delete_missing
+        say "Dry-run mode cannot guess how many uploads would have been deleted";
     }
 }
 
 if ($oauth_tokens) {
     require Koha::OAuthAccessTokens;
 
-    my $count = int Koha::OAuthAccessTokens->search({ expires => { '<=', time } })->delete;
-    say "Removed $count expired OAuth2 tokens" if $verbose;
+    my $tokens = Koha::OAuthAccessTokens->search({ expires => { '<=', time } });
+    my $count = $tokens->count;
+    $tokens->delete if $confirm;
+    if ( $verbose ) {
+        say $confirm
+          ? sprintf( "Removed %d expired OAuth2 tokens", $count )
+          : sprintf( "%d expired OAuth tokens would have been removed", $count );
+    }
+}
+
+if ($pStatistics) {
+    print "Purging statistics older than $pStatistics days.\n" if $verbose;
+    my $statistics = Koha::Statistics->filter_by_last_update(
+        { timestamp_column_name => 'datetime', days => $pStatistics } );
+    my $count = $statistics->count;
+    $statistics->delete if $confirm;
+    if ( $verbose ) {
+        say $confirm
+          ? sprintf( "Done with purging %d statistics", $count )
+          : sprintf( "%d statistics would have been removed", $count );
+    }
+}
+
+if ($pDeletedCatalog) {
+    print "Purging deleted catalog older than $pDeletedCatalog days.\n"
+      if $verbose;
+    my $old_items = Koha::Old::Items->filter_by_last_update( { days => $pDeletedCatalog } );
+    my $old_biblioitems = Koha::Old::Biblioitems->filter_by_last_update( { days => $pDeletedCatalog } );
+    my $old_biblios = Koha::Old::Biblios->filter_by_last_update( { days => $pDeletedCatalog } );
+    my ( $c_i, $c_bi, $c_b ) =
+      ( $old_items->count, $old_biblioitems->count, $old_biblios->count );
+    if ($confirm) {
+        $old_items->delete;
+        $old_biblioitems->delete;
+        $old_biblios->delete;
+    }
+    if ($verbose) {
+        say sprintf(
+            $confirm
+            ? "Done with purging deleted catalog (%d items, %d biblioitems, %d biblios)."
+            : "Deleted catalog would have been removed (%d items, %d biblioitems, %d biblios).",
+        $c_i, $c_bi, $c_b);
+    }
+}
+
+if ($pDeletedPatrons) {
+    print "Purging deleted patrons older than $pDeletedPatrons days.\n" if $verbose;
+    my $old_patrons = Koha::Old::Patrons->filter_by_last_update(
+        { timestamp_column_name => 'updated_on', days => $pDeletedPatrons } );
+    my $count = $old_patrons->count;
+    $old_patrons->delete if $confirm;
+    if ($verbose) {
+        say $confirm
+          ? sprintf "Done with purging %d deleted patrons.", $count
+          : sprintf "%d deleted patrons would have been purged.", $count;
+    }
+}
+
+if ($pOldIssues) {
+    print "Purging old checkouts older than $pOldIssues days.\n" if $verbose;
+    my $old_checkouts = Koha::Old::Checkouts->filter_by_last_update( { days => $pOldIssues } );
+    my $count = $old_checkouts->count;
+    $old_checkouts->delete if $confirm;
+    if ($verbose) {
+        say $confirm
+          ? sprintf "Done with purging %d old checkouts.", $count
+          : sprintf "%d old checkouts would have been purged.", $count;
+    }
+}
+
+if ($pOldReserves) {
+    print "Purging old reserves older than $pOldReserves days.\n" if $verbose;
+    my $old_reserves = Koha::Old::Holds->filter_by_last_update( { days => $pOldReserves } );
+    my $count = $old_reserves->count;
+    $old_reserves->delete if $verbose;
+    if ($verbose) {
+        say $confirm
+          ? sprintf "Done with purging %d old reserves.", $count
+          : sprintf "%d old reserves would have been purged.", $count;
+    }
+}
+
+if ($pTransfers) {
+    print "Purging arrived item transfers older than $pTransfers days.\n" if $verbose;
+    my $transfers = Koha::Item::Transfers->filter_by_last_update(
+        {
+            timestamp_column_name => 'datearrived',
+            days => $pTransfers,
+        }
+    );
+    my $count = $transfers->count;
+    $transfers->delete if $verbose;
+    if ($verbose) {
+        say $confirm
+          ? sprintf "Done with purging %d transfers.", $count
+          : sprintf "%d transfers would have been purged.", $count;
+    }
+}
+
+if (defined $pPseudoTransactions or $pPseudoTransactionsFrom or $pPseudoTransactionsTo ) {
+    print "Purging pseudonymized transactions\n" if $verbose;
+    my $anonymized_transactions = Koha::PseudonymizedTransactions->filter_by_last_update(
+        {
+            timestamp_column_name => 'datetime',
+            ( defined $pPseudoTransactions  ? ( days => $pPseudoTransactions     ) : () ),
+            ( $pPseudoTransactionsFrom      ? ( from => $pPseudoTransactionsFrom ) : () ),
+            ( $pPseudoTransactionsTo        ? ( to   => $pPseudoTransactionsTo   ) : () ),
+        }
+    );
+    my $count = $anonymized_transactions->count;
+    $anonymized_transactions->delete if $confirm;
+    if ($verbose) {
+        say $confirm
+          ? sprintf "Done with purging %d pseudonymized transactions.", $count
+          : sprintf "%d pseudonymized transactions would have been purged.", $count;
+    }
+}
+
+if ($labels) {
+    print "Purging item label batches last added to more than $labels days ago.\n" if $verbose;
+    my $count = PurgeCreatorBatches($labels, 'labels', $confirm);
+    if ($verbose) {
+        say $confirm
+          ? sprintf "Done with purging %d item label batches last added to more than %d days ago.\n", $count, $labels
+          : sprintf "%d item label batches would have been purged.", $count;
+    }
+}
+
+if ($cards) {
+    print "Purging card creator batches last added to more than $cards days ago.\n" if $verbose;
+    my $count = PurgeCreatorBatches($labels, 'patroncards', $confirm);
+    if ($verbose) {
+        say $confirm
+          ? sprintf "Done with purging %d card creator batches last added to more than %d days ago.\n", $count, $labels
+          : sprintf "%d card creator batches would have been purged.", $count;
+    }
 }
 
 exit(0);
@@ -354,7 +653,7 @@ sub RemoveOldSessions {
     $sth->execute or die $dbh->errstr;
     $sth->bind_columns( \$id, \$a_session );
     $sth2  = $dbh->prepare(q{ DELETE FROM sessions WHERE id=? });
-    $count = 0;
+    my $count = 0;
 
     while ( $sth->fetch ) {
         $lasttime = 0;
@@ -415,8 +714,8 @@ sub PurgeZ3950 {
 
 sub PurgeDebarments {
     require Koha::Patron::Debarments;
-    my $days = shift;
-    $count = 0;
+    my ( $days, $doit ) = @_;
+    my $count = 0;
     $sth   = $dbh->prepare(
         q{
             SELECT borrower_debarment_id
@@ -426,7 +725,34 @@ sub PurgeDebarments {
     );
     $sth->execute($days) or die $dbh->errstr;
     while ( my ($borrower_debarment_id) = $sth->fetchrow_array ) {
-        Koha::Patron::Debarments::DelDebarment($borrower_debarment_id);
+        Koha::Patron::Debarments::DelDebarment($borrower_debarment_id) if $doit;
+        $count++;
+    }
+    return $count;
+}
+
+sub PurgeCreatorBatches {
+    require C4::Labels::Batch;
+    my ( $days, $creator, $doit ) = @_;
+    my $count = 0;
+    $sth = $dbh->prepare(
+        q{
+            SELECT batch_id, branch_code FROM creator_batches
+            WHERE batch_id in
+                (SELECT batch_id
+                FROM (SELECT batch_id
+                        FROM creator_batches
+                        WHERE creator=?
+                        GROUP BY batch_id
+                        HAVING max(timestamp) <= date_sub(curdate(),interval ? day)) a)
+        }
+    );
+    $sth->execute( $creator, $days ) or die $dbh->errstr;
+    while ( my ( $batch_id, $branch_code ) = $sth->fetchrow_array ) {
+        C4::Labels::Batch::delete(
+            batch_id    => $batch_id,
+            branch_code => $branch_code
+        ) if $doit;
         $count++;
     }
     return $count;

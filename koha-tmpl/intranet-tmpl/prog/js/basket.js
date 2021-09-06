@@ -1,3 +1,6 @@
+/* global __ getContextBiblioNumbers */
+/* exported readCookie readCookieValue SelectAll addMultiple selRecord delSingleRecord delBasket quit sendBasket downloadBasket printBasket showMore showLess openBiblio addSelToShelf vShelfAdd */
+
 //////////////////////////////////////////////////////////////////////////////
 // BASIC FUNCTIONS FOR COOKIE MANAGEMENT //
 //////////////////////////////////////////////////////////////////////////////
@@ -7,16 +10,17 @@ var CGIBIN = "/cgi-bin/koha/";
 var nameCookie = "intranet_bib_list";
 var nameParam = "bib_list";
 var valCookie = readCookie(nameCookie);
+var basketcount;
 
 if(valCookie){
     var arrayRecords = valCookie.split("/");
     if(arrayRecords.length > 0){
-        var basketcount = arrayRecords.length-1;
+        basketcount = arrayRecords.length-1;
     } else {
-        var basketcount = "";
+        basketcount = "";
     }
 } else {
-        var basketcount = "";
+    basketcount = "";
 }
 
 function writeCookie(name, val, wd) {
@@ -37,7 +41,6 @@ function readCookieValue (str, val_beg) {
 
 function readCookie(name, wd) {
     var str_name = name + "=";
-    var str_len = str_name.length;
     var str_cookie = "";
     if (wd) {
         str_cookie = parent.opener.document.cookie;
@@ -45,13 +48,13 @@ function readCookie(name, wd) {
     else {
         str_cookie = parent.document.cookie;
     }
-        // fixed - getting the part of the basket that is bib_list
-        var cookie_parts = str_cookie.split(";");
-            for(var i=0;i < cookie_parts.length;i++) {
-	            var c = cookie_parts[i];
-                    while (c.charAt(0)==' ') c = c.substring(1,c.length);
-                if(c.indexOf(str_name) === 0) return c.substring(str_name.length,c.length);
-            }
+    // fixed - getting the part of the basket that is bib_list
+    var cookie_parts = str_cookie.split(";");
+    for(var i=0;i < cookie_parts.length;i++) {
+        var c = cookie_parts[i];
+        while (c.charAt(0)==' ') c = c.substring(1,c.length);
+        if(c.indexOf(str_name) === 0) return c.substring(str_name.length,c.length);
+    }
     return null;
 }
 
@@ -59,9 +62,9 @@ function delCookie(name) {
     var exp = new Date();
     exp.setTime(exp.getTime()-1);
     if(parent.opener){
-	parent.opener.document.cookie = name + "=null; path=/; expires=" + exp.toGMTString();
+        parent.opener.document.cookie = name + "=null; path=/; expires=" + exp.toGMTString();
     } else {
-	document.cookie = name + "=null; path=/; expires=" + exp.toGMTString();
+        document.cookie = name + "=null; path=/; expires=" + exp.toGMTString();
     }
 }
 
@@ -85,7 +88,7 @@ function openBasket() {
         if (window.focus) { basket.focus(); }
     }
     else {
-        showCartUpdate(MSG_BASKET_EMPTY);
+        showCartUpdate( __("Your cart is currently empty") );
     }
 }
 
@@ -113,7 +116,7 @@ function addRecord(val, selection,NoMsgAlert) {
                 return 0;
             }
             if (! NoMsgAlert ) {
-                showCartUpdate(MSG_RECORD_IN_BASKET);
+                showCartUpdate( __("This item is already in your cart") );
             }
         }
         else {
@@ -130,25 +133,25 @@ function addRecord(val, selection,NoMsgAlert) {
             return 1;
         }
         if (! NoMsgAlert ) {
-            showCartUpdate(MSG_RECORD_ADDED);
+            showCartUpdate( __("This item has been added to your cart") );
             updateLink(val,"add");
         }
     }
 }
 
 function AllAreChecked(s){
-	if (! s.length)	{ return false;}
-	var l = s.length;
-	for (var i=0; i < l; i++) {
-		if(! s[i].checked) { return false; }
-	}
-	return true;
+    if (! s.length){ return false;}
+    var l = s.length;
+    for (var i=0; i < l; i++) {
+        if(! s[i].checked) { return false; }
+    }
+    return true;
 }
 
 function SelectAll(){
     if(document.bookbag_form.biblionumber.length > 0) {
-		var checky = AllAreChecked(document.bookbag_form.biblionumber);
-		var l = document.bookbag_form.biblionumber.length;
+        var checky = AllAreChecked(document.bookbag_form.biblionumber);
+        var l = document.bookbag_form.biblionumber.length;
         for (var i=0; i < l; i++) {
             document.bookbag_form.biblionumber[i].checked = (checky) ? false : true;
         }
@@ -157,8 +160,9 @@ function SelectAll(){
 
 function addMultiple(biblist){
     var c_value = "";
+    var i = 0;
     if( biblist && biblist.length > 0 ) {
-        for (var i=0; i < biblist.length; i++) {
+        for ( i=0; i < biblist.length; i++ ) {
             if (biblist[i].checked) {
                 c_value = c_value + biblist[i].value + "/";
             }
@@ -166,12 +170,12 @@ function addMultiple(biblist){
     } else {
         var bibnums = getContextBiblioNumbers();
         if ( bibnums.length > 0 ) {
-            for ( var i = 0 ; i < bibnums.length ; i++ ) {
+            for ( i = 0 ; i < bibnums.length ; i++ ) {
                 c_value = c_value + bibnums[i] + "/";
             }
         } else {
             if(document.bookbag_form.biblionumber.length > 0) {
-                for (var i=0; i < document.bookbag_form.biblionumber.length; i++) {
+                for ( i=0; i < document.bookbag_form.biblionumber.length; i++ ) {
                     if (document.bookbag_form.biblionumber[i].checked) {
                         c_value = c_value + document.bookbag_form.biblionumber[i].value + "/";
                     }
@@ -184,8 +188,9 @@ function addMultiple(biblist){
     addSelRecords(c_value);
 }
 
-function addSelRecords(valSel) { // function for adding a selection of biblios to the basket
-                                                // from the results list
+/* function for adding a selection of biblios to the basket
+   from the results list */
+function addSelRecords(valSel) {
     var arrayRecords = valSel.split("/");
     var i = 0;
     var nbAdd = 0;
@@ -200,35 +205,35 @@ function addSelRecords(valSel) { // function for adding a selection of biblios t
     var msg = "";
     if (nbAdd) {
         if (i > nbAdd) {
-            msg = MSG_NRECORDS_ADDED.format(nbAdd);
+            msg = __("%s item(s) added to your cart").format(nbAdd);
             msg += "<br/>";
-            msg += MSG_NRECORDS_IN_BASKET.format((i-nbAdd));
+            msg += __("%s already in your cart").format((i-nbAdd));
         }
         else {
-            msg = MSG_NRECORDS_ADDED.format(nbAdd);
+            msg = __("%s item(s) added to your cart").format(nbAdd);
         }
     }
     else {
         if (i < 1) {
-            msg = MSG_NO_RECORD_SELECTED;
+            msg = __("No item was selected");
         }
         else {
-            msg = MSG_NO_RECORD_ADDED;
+            msg = __("No item was added to your cart (already in your cart)!");
         }
     }
-	showCartUpdate(msg);
+    showCartUpdate(msg);
 }
 
 function showCartUpdate(msg){
-	// set body of popup window
-	$("#cartDetails").html(msg);
-	showCart();
+    // set body of popup window
+    $("#cartDetails").html(msg);
+    showCart();
     setTimeout(hideCart,2000);
 }
 
 function showListsUpdate(msg){
-       // set body of popup window
-       alert(msg);
+    // set body of popup window
+    alert(msg);
 }
 
 function selRecord(num, status) {
@@ -252,14 +257,14 @@ function delSingleRecord(biblionumber){
     writeCookie( nameCookie, valCookie );
     updateBasket( arrayRecords.length-1 );
     updateLink(biblionumber,"del");
-    showCartUpdate(MSG_RECORD_REMOVED);
+    showCartUpdate(__("The item has been removed from your cart"));
 }
 
 function delSelRecords() {
     var recordsSel = 0;
     var end = 0;
     var valCookie = readCookie(nameCookie, 1);
-
+    var s;
     if (valCookie) {
         var str = document.myform.records.value;
         if (str.length > 0){
@@ -268,7 +273,7 @@ function delSelRecords() {
             while (!end){
                 s = str.indexOf("/");
                 if (s>0){
-                    num = str.substring(0, s);
+                    var num = str.substring(0, s);
                     str = delRecord(num,str);
                     str2 = delRecord(num,str2);
                     updateLink(num,"del",top.opener);
@@ -279,7 +284,7 @@ function delSelRecords() {
 
             if (str2.length === 0) { // equivalent to emptying the basket
                 var rep = false;
-                rep = confirm(MSG_CONFIRM_DEL_BASKET);
+                rep = confirm(__("Are you sure you want to empty your cart?"));
                 if (rep) {
                     delCookie(nameCookie);
                     document.location = "about:blank";
@@ -303,7 +308,7 @@ function delSelRecords() {
         document.location = CGIBIN + "basket/basket.pl?" + strCookie;
     }
     else {
-        alert(MSG_NO_RECORD_SELECTED);
+        alert(__("No item was selected"));
     }
 }
 
@@ -329,10 +334,9 @@ function delRecord (n, s) {
     return s;
 }
 
-
 function delBasket(context,rep) {
     if (rep === undefined){
-        rep = confirm(MSG_CONFIRM_DEL_BASKET);
+        rep = confirm(__("Are you sure you want to empty your cart?"));
     }
     if (rep) {
         if(context == "popup"){
@@ -348,11 +352,10 @@ function delBasket(context,rep) {
     }
 }
 
-
 function quit() {
     if (document.myform.records.value) {
         var rep = false;
-        rep = confirm(MSG_CONFIRM_DEL_RECORDS);
+        rep = confirm(__("Are you sure you want to remove the selected items?"));
         if (rep) {
             delSelRecords();
         }
@@ -368,7 +371,7 @@ function sendBasket() {
     var loc = CGIBIN + "basket/sendbasket.pl?" + strCookie;
 
     var optWin="scrollbars=no,resizable=no,height=400,width=650,top=50,left=100";
-    var win_form = open(loc,"win_form",optWin);
+    open(loc,"win_form",optWin);
 }
 
 function downloadBasket() {
@@ -407,14 +410,13 @@ function showLess() {
 }
 
 function updateBasket(updated_value,target) {
-	if(target){
-	target.$('#basketcount').html(" <span>("+updated_value+")</span>");
-    target.$('#cartDetails').html(MSG_IN_YOUR_CART.format(updated_value));
-	} else {
-	$('#basketcount').html(" <span>("+updated_value+")</span>");
-    $('#cartDetails').html(MSG_IN_YOUR_CART.format(updated_value));
-	}
-	var basketcount = updated_value;
+    if(target){
+        target.$('#basketcount').html(" <span>("+updated_value+")</span>");
+        target.$('#cartDetails').html(__("Items in your cart: %s").format(updated_value));
+    } else {
+        $('#basketcount').html(" <span>("+updated_value+")</span>");
+        $('#cartDetails').html(__("Items in your cart: %s").format(updated_value));
+    }
 }
 
 function openBiblio(openerURL) {
@@ -424,10 +426,10 @@ function openBiblio(openerURL) {
 
 function addSelToShelf() {
     var items = document.getElementById('records').value;
-	if(items){
-    document.location = "/cgi-bin/koha/virtualshelves/addbybiblionumber.pl?biblionumber="+items;
-	} else {
-        alert(MSG_NO_RECORD_SELECTED);
+    if(items){
+        document.location = "/cgi-bin/koha/virtualshelves/addbybiblionumber.pl?biblionumber="+items;
+    } else {
+        alert(__("No item was selected"));
     }
 }
 
@@ -435,37 +437,43 @@ function addSelToShelf() {
 
 function vShelfAdd(biblist) {
     var bibs = new Array;
+    var i;
     if( biblist && biblist.length > 0 ) {
-        for (var i=0; i < biblist.length; i++) {
+        for ( i=0; i < biblist.length; i++ ) {
             if (biblist[i].checked) {
                 bibs.push("biblionumber=" +  biblist[i].value);
             }
         }
-        if (bibs.length === 0) { showListsUpdate(MSG_NO_RECORD_SELECTED); }
+        if (bibs.length === 0) { showListsUpdate(__("No item was selected")); }
         return bibs.join("&");
     } else {
         var bibnums = getContextBiblioNumbers();
         if ( bibnums.length > 0 ) {
-            for ( var i = 0 ; i < bibnums.length ; i++ ) {
+            for ( i = 0 ; i < bibnums.length ; i++ ) {
                 bibs.push("biblionumber=" + bibnums[i]);
             }
             return bibs.join("&");
+        } else {
+            showListsUpdate(__("No item was selected"));
         }
     }
 }
 
 function showCart(){
-		var position = $("#cartmenulink").offset();
-        var toolbarh = $(".floating").outerHeight();
-        var scrolld = $(window).scrollTop();
-		var top = position.top + $("#cartmenulink").outerHeight();
-        if( scrolld > top ){
-            top = scrolld + toolbarh + 15;
-        }
-        var left = position.left;
-		$("#cartDetails").css("position","absolute").css("top",top);
-		$("#cartDetails").css("position","absolute").css("left",left);
-		$("#cartDetails").fadeIn("fast");
+    var position = $("#cartmenulink").offset();
+    var toolbarh = $(".floating").outerHeight();
+    var scrolld = $(window).scrollTop();
+    var top = position.top + $("#cartmenulink").outerHeight();
+    if( scrolld > top ){
+        top = scrolld + toolbarh + 15;
+    }
+    var left = position.left;
+    $("#cartDetails")
+        .css("position","absolute")
+        .css("top",top)
+        .css("left",left)
+        .css("z-index",1000);
+    $("#cartDetails").fadeIn("fast");
 }
 
 function hideCart(){
@@ -477,25 +485,42 @@ function updateLink(val, op, target){
     var cartR = target ? target.$("#cartR" + val) : $("#cartR" + val);
 
     if(op == "add"){
-        cart.html(MSG_ITEM_IN_CART).addClass("incart");
+        if( cart.hasClass("btn") ){
+            /* Cart link is a button with an icon */
+            cart.html("<i class=\"fa fa-shopping-cart\"></i> " + __("Add to cart")).addClass("incart");
+            cart.hide();
+        } else {
+            cart.html( __("In your cart") ).addClass("incart");
+        }
         cartR.show();
     } else {
-        cart.html(MSG_ITEM_NOT_IN_CART).removeClass("incart").addClass("addtocart");
+        if (cart.hasClass("btn")) {
+            cart.html("<i class=\"fa fa-shopping-cart\"></i> " + __("Add to cart")).addClass("addtocart");
+            cart.show();
+        } else {
+            cart.html(__("Add to cart")).addClass("addtocart");
+        }
         cartR.hide();
     }
 }
 
 function updateAllLinks(target){
-    if(target){
-        target.$("a.incart").html(MSG_ITEM_NOT_IN_CART).removeClass("incart").addClass("addtocart");
-        target.$(".cartRemove").hide();
+    var cart = target ? target.$("a.incart") : $("a.incart");
+    var cartR = target ? target.$(".cartRemove") : $(".cartRemove");
+    if( cart.hasClass("btn") ){
+        /* Cart link is a button with an icon */
+        cart.html("<i class=\"fa fa-shopping-cart\"></i> " + __("Add to cart")).addClass("incart");
+        cartR.hide();
     } else {
-        $("a.incart").html(MSG_ITEM_NOT_IN_CART).removeClass("incart").addClass("addtocart");
-        $(".cartRemove").hide();
+        cart.html( __("In your cart") ).addClass("incart");
     }
+    cart.show();
 }
 
 $(document).ready(function(){
-	$("#cartmenulink").click(function(){ openBasket(); return false; });
-	if(basketcount){ updateBasket(basketcount); }
+    $("#cartmenulink").click(function( e ){
+        e.preventDefault();
+        openBasket();
+    });
+    if(basketcount){ updateBasket(basketcount); }
 });

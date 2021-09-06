@@ -1,10 +1,12 @@
+[% USE raw %]
 [% USE Asset %]
 [% USE Branches %]
 [% SET footerjs = 1 %]
 [% PROCESS 'permissions.inc' %]
 [% INCLUDE 'doc-head-open.inc' %]
-<title>Koha &rsaquo; Patrons &rsaquo; Set permissions for [% patron.surname %], [% patron.firstname %]</title>
-[% Asset.css("css/treeview/jquery.treeview.css") %]
+<title>
+    Set permissions for [% patron.surname | html %], [% patron.firstname | html %] &rsaquo; Patrons &rsaquo; Koha
+</title>
 [% INCLUDE 'doc-head-close.inc' %]
 </head>
 
@@ -12,99 +14,176 @@
 [% INCLUDE 'header.inc' %]
 [% PROCESS 'patron-search.inc' %]
 
-<div id="breadcrumbs"><a href="/cgi-bin/koha/mainpage.pl">Home</a> &rsaquo; <a href="/cgi-bin/koha/members/members-home.pl">Patrons</a>  &rsaquo; Set permissions for [% patron.surname %], [% patron.firstname %]</div>
+<nav id="breadcrumbs" aria-label="Breadcrumb" class="breadcrumb">
+    <ol>
+        <li>
+            <a href="/cgi-bin/koha/mainpage.pl">Home</a>
+        </li>
+        <li>
+            <a href="/cgi-bin/koha/members/members-home.pl">Patrons</a>
+        </li>
+        <li>
+            <a href="#" aria-current="page">
+                Set permissions for [% patron.surname | html %], [% patron.firstname | html %]
+            </a>
+        </li>
+    </ol>
+</nav>
 
-<div id="doc3" class="yui-t2">
-   
-   <div id="bd">
-	<div id="yui-main">
-	<div class="yui-b">
+<div class="main container-fluid">
+    <div class="row">
+        <div class="col-sm-10 col-sm-push-2">
+            <main>
+
 [% INCLUDE 'members-toolbar.inc' %]
 
-<form method="post" action="/cgi-bin/koha/members/member-flags.pl">
-    <input type="hidden" name="csrf_token" value="[% csrf_token %]" />
-    <input type="hidden" name="member" id="borrowernumber" value="[% patron.borrowernumber %]" />
+<form id="flag_form" method="post" action="/cgi-bin/koha/members/member-flags.pl">
+    <input type="hidden" name="csrf_token" value="[% csrf_token | html %]" />
+    <input type="hidden" name="member" id="borrowernumber" value="[% patron.borrowernumber | html %]" />
     <input type="hidden" name="newflags" value="1" />
-    <h1>Set permissions for [% patron.surname %], [% patron.firstname %]</h1>
-    <!-- <ul id="permissionstree"><li class="root">All privileges<ul> -->
-    <ul id="permissionstree" class="treeview-grey">
-        <!-- <li class="folder-close">One level down<ul> -->
-    [% FOREACH loo IN loop %]
-        [% IF ( loo.expand ) %]
-        <li class="open">
-        [% ELSE %]
-        <li>
-        [% END %]
-			[% IF ( loo.checked ) %]
-          [% IF disable_superlibrarian_privs && loo.bit == 0 %]
-              <input type="checkbox" disabled="disabled" class="flag parent superlib" id="flag-[% loo.bit %]_disabled" name="flag" value="[% loo.flag %]" checked="checked" title="The system preference ProtectSuperlibrarianPrivileges is enabled" />
-              <input type="hidden" id="flag-[% loo.bit %]" name="flag" value="[% loo.flag %]" >
-          [% ELSE %]
-              <input type="checkbox" class="flag parent" id="flag-[% loo.bit %]" name="flag" value="[% loo.flag %]" checked="checked" />
-          [% END %]
-			[% ELSE %]
-          [% IF disable_superlibrarian_privs && loo.bit == 0 %]
-              <input type="checkbox" disabled="disabled" class="flag parent" id="flag-[% loo.bit %]_disabled" name="flag" value="[% loo.flag %]" title="The system preference ProtectSuperlibrarianPrivileges is enabled" />
-          [% ELSE %]
-              <input type="checkbox" class="flag parent" id="flag-[% loo.bit %]" name="flag" value="[% loo.flag %]" />
-          [% END %]
-			[% END %]
-                <label class="permissioncode" for="flag-[% loo.bit %]">[% loo.flag %]</label>
-                <span class="permissiondesc">[% PROCESS main_permissions name=loo.flag %]</span>
-            [% IF ( loo.sub_perm_loop ) %]
-                <ul id="flag-[% loo.bit %]-children">
-                    [% FOREACH sub_perm_loo IN loo.sub_perm_loop %]
-                        <li>
-			            [% IF ( sub_perm_loo.checked ) %]
-                            <input type="checkbox" class="flag child" id="[% sub_perm_loo.id %]" name="flag" value="[% sub_perm_loo.perm %]" checked="checked" />
-			            [% ELSE %]
-                            <input type="checkbox" class="flag child" id="[% sub_perm_loo.id %]" name="flag" value="[% sub_perm_loo.perm %]" />
-			            [% END %]
-                    <label class="permissioncode" for="[% sub_perm_loo.id %]">[% sub_perm_loo.code %]</label>
-                             <span class="permissiondesc">[% PROCESS sub_permissions name=sub_perm_loo.code %]</span>
-                        </li>
+    <h1>Set permissions for [% patron.surname | html %], [% patron.firstname | html %]</h1>
+
+    <div id="permissionstree">
+        <div id="permissions_toolbar" class="btn-toolbar">
+            <button type="submit" class="btn btn-default"><i class="fa fa-save"></i> Save</button>
+            <a class="btn btn-default" href="/cgi-bin/koha/members/moremember.pl?borrowernumber=[% patron.borrowernumber | html %]"><i class="fa fa-remove"></i> Cancel</a>
+            <a class="toggleall toggleall_on btn btn-link" href="#"><i class="fa fa-plus-square-o"></i> Show all</a>
+            <a class="toggleall toggleall_off btn btn-link" href="#"><i class="fa fa-minus-square-o"></i> Hide all</a>
+            <a id="CheckAllFlags" class="btn btn-link" href="#">
+                <i class="fa fa-check"></i> Select all
+            </a>
+            <a id="UncheckAllFlags" class="btn btn-link" href="#">
+                <i class="fa fa-remove"></i> Clear all
+            </a>
+            <div class="btn-group pull-right">
+                Filter: <input type="text" name="permissions_filter" id="permissions_filter" size="20" />
+                <a href="#" id="clear_filter" style="display:none"><i class="fa fa-remove"></i></a>
+            </div>
+        </div>
+        <div class="permissions">
+            [% FOREACH loo IN loop %]
+                [% IF ( loo.expand ) %]
+                    <div id="parent-flag-[% loo.flag | html %]" class="open parent">
+                [% ELSE %]
+                    <div id="parent-flag-[% loo.flag | html %]" class="parent">
+                [% END %]
+                [% IF ( loo.checked ) %]
+                    [% IF disable_superlibrarian_privs && loo.bit == 0 %]
+                        <input type="checkbox" disabled="disabled" data-bit="[% loo.bit | html %]" id="flag-[% loo.bit | html %]_disabled" class="parent flag superlib" name="flag" value="[% loo.flag | html %]" checked="checked" title="The system preference ProtectSuperlibrarianPrivileges is enabled" />
+                        <input type="hidden" id="flag-[% loo.bit | html %]" name="flag" value="[% loo.flag | html %]" >
+                    [% ELSE %]
+                          <input type="checkbox" data-bit="[% loo.bit | html %]" id="flag-[% loo.bit | html %]" class="parent flag" name="flag" value="[% loo.flag | html %]" checked="checked" />
                     [% END %]
-                </ul>
-                </li>
-            [% ELSE %]
-                </li>
-			[% END %]
-    [% END %]
-        <!-- </ul></li> -->
-    <!-- </ul></li></ul> -->
-    </ul>
-
-<fieldset class="action"><input type="submit" value="Save" /> <a class="cancel" href="/cgi-bin/koha/members/moremember.pl?borrowernumber=[% patron.borrowernumber %]">Cancel</a></fieldset>
-
+                [% ELSE %]
+                    [% IF disable_superlibrarian_privs && loo.bit == 0 %]
+                        <input type="checkbox" disabled="disabled" class="flag parent" data-bit="[% loo.bit | html %]" id="flag-[% loo.bit | html %]_disabled" name="flag" value="[% loo.flag | html %]" title="The system preference ProtectSuperlibrarianPrivileges is enabled" />
+                    [% ELSE %]
+                        <input type="checkbox" class="flag parent" data-bit="[% loo.bit | html %]" id="flag-[% loo.bit | html %]" name="flag" value="[% loo.flag | html %]" />
+                    [% END %]
+                [% END # /IF loo.checked %]
+                    <label class="permissiondesc" for="flag-[% loo.bit | html %]">
+                        [% PROCESS main_permissions name=loo.flag %]
+                    </label>
+                    [% IF ( loo.flag == "superlibrarian" ) %]<div class="hint superlibrarian-hint">This permission grants access to all areas. If selected, specific sub-permissions cannot be selected.</div>[% END %]
+                [% IF ( loo.sub_perm_loop ) %]
+                    <a class="toggle-[% loo.bit | html %] togglechildren_off" href="#" data-bit="[% loo.bit | html %]"><i class="fa fa-minus-square-o"></i> Hide details</a>
+                    <a class="toggle-[% loo.bit | html %] togglechildren_on" href="#" data-bit="[% loo.bit | html %]"><i class="fa fa-plus-square-o"></i> Show details</a>
+                    <div class="children" id="flag-[% loo.bit | html %]-children">
+                        [% FOREACH sub_perm_loo IN loo.sub_perm_loop %]
+                            <div class="child-flags">
+                                [% IF ( sub_perm_loo.checked ) %]
+                                    <input type="checkbox" id="[% sub_perm_loo.id | html %]" class="child flag" name="flag" value="[% sub_perm_loo.perm | html %]" checked="checked" />
+                                [% ELSE %]
+                                    <input type="checkbox" id="[% sub_perm_loo.id | html %]" class="child flag" name="flag" value="[% sub_perm_loo.perm | html %]" />
+                                [% END %]
+                                <label class="permissiondesc" for="[% sub_perm_loo.id | html %]">
+                                    [% PROCESS sub_permissions name=sub_perm_loo.code %]
+                                </label>
+                            </div>
+                        [% END %]
+                    </div> <!-- /#flag-[% loo.bit | html %]-children -->
+                [% END # /IF loo.sub_perm_loop %]
+                </div> <!-- /.parent -->
+            [% END # /FOREACH loo %]
+        </div>
+    </div> <!-- /#permissionstree -->
 </form>
-</div>
-</div>
 
-<div class="yui-b">
-[% INCLUDE 'circ-menu.inc' %]
-</div>
-</div>
+            </main>
+        </div> <!-- /.col-sm-10.col-sm-push-2 -->
+
+        <div class="col-sm-2 col-sm-pull-10">
+            <aside>
+                [% INCLUDE 'circ-menu.inc' %]
+            </aside>
+        </div> <!-- /.col-sm-2.col-sm-pull-10 -->
+    </div> <!-- /.row -->
 
 [% MACRO jsinclude BLOCK %]
-    [% Asset.js("js/members-menu.js") %]
-    [% Asset.js("lib/jquery/plugins/jquery.treeview.pack.js") %]
-    <!-- set up tree -->
-    <script type="text/javascript">
+    [% INCLUDE 'str/members-menu.inc' %]
+    [% Asset.js("js/members-menu.js") | $raw %]
+    [% Asset.js("lib/hc-sticky.js") | $raw %]
+    <script>
+        var Sticky;
         $(document).ready(function() {
-            $("#permissionstree").treeview({animated: "fast", collapsed: true});
+
+            $("#CheckAllFlags").on("click",function(){
+                $(".flag").attr("disabled", false);
+                $(".flag").prop("checked", true);
+                $("#flag-0").prop("checked", false);
+                return false;
+            });
+            $("#UncheckAllFlags").on("click",function(){
+                $(".flag").attr("disabled", false);
+                $(".flag").prop("checked", false);
+                return false;
+            });
+            $(".flag").change(function(){
+                if(!$(this).is(':checked')){
+                    $("input#flag-0").prop("checked", false);
+                }
+            });
+
+            Sticky = $("#permissions_toolbar");
+            Sticky.hcSticky({
+                stickTo: "#permissionstree",
+                stickyClass: "floating"
+            });
+
+            $(".open div").show();
+
+            $("#permissions_filter").on("keyup", function(){
+                $("#clear_filter").css("display","inline-block");
+                $("a[class^=toggle-]").hide();
+                var string = $(this).val();
+                var divs = $("div[id!='parent-flag-superlibrarian']", ".permissions");
+                if( string != "" && string.length > 3 ){
+                    divs.each(function(){
+                        if ( $(this).text().search(new RegExp( string, "i")) < 0 ) {
+                            $(this).hide();
+                        } else {
+                            $(this).show();
+                        }
+                    });
+                } else {
+                    divs.show();
+                }
+            });
+
+            $("#clear_filter").on("click", function(){
+                $(".togglechildren_off").show();
+                $("#permissions_filter").val("");
+                $("div", "#permissionstree").show();
+                $(this).css("display","none");
+            });
 
             // Enforce Superlibrarian Privilege Mutual Exclusivity
             if( $('input[id="flag-0"]:checked').length || $(".superlib:checked").length ){
                 if ($('input[name="flag"]:checked').length > 1){
-                    alert(_("Inconsistency detected! The superlibrarian privilege is mutually exclusive of other privileges, as it includes them all. This patron's privileges will now be reset to include only superlibrarian."));
+                    alert(_("Inconsistency detected!") + "\n\n" + _("The superlibrarian privilege is mutually exclusive of other privileges, as it includes them all.") + "\n\n" + _("This patron's privileges will now be reset to include only superlibrarian."));
                 }
 
-                $('input[name="flag"]').each(function() {
-                    if($(this).attr('id') != "flag-0" && !$(this).hasClass('superlib') ){
-                        $(this).prop('disabled', true);
-                        $(this).prop('checked', false);
-                    }
-                });
+                setLibrarian();
             }
 
             $('input#flag-0').click(function() {
@@ -123,69 +202,69 @@
                 }
             });
 
-            $(".flag").on("change",function(){
-                if( $(this).hasClass("parent") ){
-                    toggleChildren(this);
+
+            $(".toggleall_off, .toggleall_on").on('click', function(e) {
+                e.preventDefault();
+                if( $(this).hasClass("toggleall_on")){
+                    $(".children,.togglechildren_off").show();
+                    $(".togglechildren_on").hide();
                 } else {
-                    toggleParent(this);
+                    $(".children,.togglechildren_off").hide();
+                    $(".togglechildren_on").show();
                 }
             });
 
+            $(".togglechildren_off, .togglechildren_on").on('click', function(e) {
+                e.preventDefault();
+                var bit = $(this).data("bit");
+                $("#flag-" + bit + "-children").toggle();
+                $(".toggle-" + bit).toggle();
+            });
+
+            $(".togglechildren_off, .togglechildren_on").hover( function(){
+                $(this).parent().addClass("permission-highlight");
+            }, function(){
+                $(this).parent().removeClass("permission-highlight");
+            });
+
+            $(".flag").on("change",function(e){
+                e.preventDefault();
+                if( $(this).hasClass("child") ){
+                    if( $(this).prop("checked") ){
+                        // If this is the last of all the child boxes to be checked the parent should be checked too
+                        var unchecked = 0;
+                        $(this).closest(".children").find(".child").each(function(){
+                            if( !$(this).prop("checked") ){
+                                // There are still unchecked checkboxes in this group
+                                unchecked = 1;
+                            }
+                        });
+                        if( unchecked === 0 ){
+                            $(this).closest(".parent").find(".flag.parent").prop("checked", true);
+                        }
+                    } else {
+                        $(this).closest(".parent").find(".flag.parent").prop("checked", false);
+                    }
+                } else {
+                    var bit = $(this).data("bit");
+                    if( $(this).is(":checked") ){
+                        $("#flag-" + bit + "-children").show().find(".flag").prop("checked", true);
+                        $(".toggle-" + bit + ".togglechildren_on").hide();
+                        $(".toggle-" + bit + ".togglechildren_off").show();
+                    } else {
+                        $("#flag-" + bit + "-children").show().find(".flag").prop("checked", false);
+                    }
+                }
+            });
         });
 
-        // manage checking/unchecking parent permissions
-        var originalChildStates = {}; /* keep track of subpermission checkbox values
-                                         so that user can recover from accidentally
-                                         toggling a parent/module permission */
-        function selectChildren(parentInput) {
-            var childListId = parentInput.id + '-children';
-            var list = document.getElementById(childListId);
-            var children = [];
-            if (list) {
-                var inputs = list.getElementsByTagName('input');
-                for (var i = 0; i < inputs.length; i++) {
-                    if (inputs[i].type == 'checkbox') {
-                        children.push(inputs[i]);
-                    }
+        function setLibrarian(){
+            $('input[name="flag"]').each(function() {
+                if($(this).attr('id') != "flag-0" && !$(this).hasClass('superlib') ){
+                    $(this).prop('disabled', true);
+                    $(this).prop('checked', false);
                 }
-            }
-            return children;
-        }
-
-        function toggleChildren(parentInput) {
-            var children = selectChildren(parentInput);
-            if (children.length == 0) {
-                return;
-            }
-            var checked = parentInput.checked;
-            if (checked && parentInput.parentNode.className == 'expandable') {
-                /* expand the tree */
-                $(".hitarea", parentInput.parentNode).click();
-            }
-            for (var i = 0; i < children.length; i++) {
-                if (checked) {
-                    originalChildStates[children[i].id] = children[i].checked;
-                    children[i].checked = checked;
-                } else {
-                    if (children[i].id in originalChildStates) {
-                        children[i].checked = originalChildStates[children[i].id];
-                    } else {
-                        children[i].checked = checked;
-                    }
-                }
-            }
-        }
-
-        function toggleParent(childInput) {
-            originalChildStates[childInput.id] = childInput.checked;
-            if (childInput.checked) {
-                return;
-            }
-            var parentId = childInput.parentNode.parentNode.id.replace(/-children$/, '');;
-            var parentInput = document.getElementById(parentId);
-            if (parentInput) {
-                parentInput.checked = false;
-            }
+            });
         }
 
     </script>

@@ -35,7 +35,7 @@ use vars qw( $charset_in $charset_out );
 
 ###############################################################################
 
-sub find_translation ($) {
+sub find_translation {
     my($s) = @_;
     my $key = $s;
     if ($s =~ /\S/s) {
@@ -56,14 +56,15 @@ sub find_translation ($) {
     }
 }
 
-sub text_replace_tag ($$) {
+sub text_replace_tag {
     my($t, $attr) = @_;
     my $it;
+    my @ttvar;
 
     # value [tag=input], meta
-    my $tag = lc($1) if $t =~ /^<(\S+)/s;
+    my $tag = ($t =~ /^<(\S+)/s) ? lc($1) : undef;
     my $translated_p = 0;
-    for my $a ('alt', 'content', 'title', 'value', 'label', 'placeholder') {
+    for my $a ('alt', 'content', 'title', 'value', 'label', 'placeholder', 'aria-label') {
     if ($attr->{$a}) {
         next if $a eq 'label' && $tag ne 'optgroup';
         next if $a eq 'content' && $tag ne 'meta';
@@ -71,12 +72,27 @@ sub text_replace_tag ($$) {
 
         my($key, $val, $val_orig, $order) = @{$attr->{$a}}; #FIXME
         if ($val =~ /\S/s) {
-        my $s = find_translation($val);
-        if ($attr->{$a}->[1] ne $s) { #FIXME
-            $attr->{$a}->[1] = $s; # FIXME
-            $attr->{$a}->[2] = ($s =~ /"/s)? "'$s'": "\"$s\""; #FIXME
-            $translated_p = 1;
-        }
+            # for selected attributes replace '[%..%]' with '%s' and remember matches
+            if ( $a =~ /title|value|alt|content|placeholder|aria-label/ ) {
+                while ( $val =~ s/(\[\%.*?\%\])/\%s/ ) {
+                    my $var = $1;
+                    push @ttvar, $1;
+                }
+            }
+            # find translation for transformed attributes
+            my $s = find_translation($val);
+            # replace '%s' with original content (in order) on translated string, this is fragile!
+            if ( $a =~ /title|value|alt|content|placeholder|aria-label/ and @ttvar ) {
+                while ( @ttvar ) {
+                    my $var = shift @ttvar;
+                    $s =~ s/\%s/$var/;
+                }
+            }
+            if ($attr->{$a}->[1] ne $s) { #FIXME
+                $attr->{$a}->[1] = $s; # FIXME
+                $attr->{$a}->[2] = ($s =~ /"/s)? "'$s'": "\"$s\""; #FIXME
+                $translated_p = 1;
+            }
         }
     }
     }
@@ -91,6 +107,7 @@ sub text_replace_tag ($$) {
                          
               } sort {
                   $attr->{$a}->[3] <=> $attr->{$b}->[3] #FIXME
+                      || $a cmp $b # Sort attributes BZ 22236
               } keys %$attr);
         $it .= '>';
     }
@@ -100,10 +117,10 @@ sub text_replace_tag ($$) {
     return $it;
 }
 
-sub text_replace (**) {
+sub text_replace {
     my($h, $output) = @_;
     for (;;) {
-    my $s = TmplTokenizer::next_token $h;
+    my $s = TmplTokenizer::next_token($h);
     last unless defined $s;
     my($kind, $t, $attr) = ($s->type, $s->string, $s->attributes);
     if ($kind eq C4::TmplTokenType::TEXT) {
@@ -121,7 +138,7 @@ sub text_replace (**) {
         for my $t (@{$s->js_data}) {
         # FIXME for this whole block
         if ($t->[0]) {
-            printf $output "%s%s%s", $t->[2], find_translation $t->[3],
+            printf $output "%s%s%s", $t->[2], find_translation($t->[3]),
                 $t->[2];
         } else {
             print $output $t->[1];
@@ -161,14 +178,14 @@ sub listfiles {
             }
         }
     } else {
-        warn_normal "$dir: $!", undef;
+        warn_normal("$dir: $!", undef);
     }
     return @it;
 }
 
 ###############################################################################
 
-sub mkdir_recursive ($) {
+sub mkdir_recursive {
     my($dir) = @_;
     local($`, $&, $', $1);
     $dir = $` if $dir ne /^\/+$/ && $dir =~ /\/+$/;
@@ -177,21 +194,19 @@ sub mkdir_recursive ($) {
     if (!-d $dir) {
     print STDERR "Making directory $dir...\n" unless $quiet;
     # creates with rwxrwxr-x permissions
-    mkdir($dir, 0775) || warn_normal "$dir: $!", undef;
+    mkdir($dir, 0775) || warn_normal("$dir: $!", undef);
     }
 }
 
 ###############################################################################
 
-sub usage ($) {
+sub usage {
     my($exitcode) = @_;
     my $h = $exitcode? *STDERR: *STDOUT;
     print $h <<EOF;
-Usage: $0 create [OPTION]
-  or:  $0 update [OPTION]
-  or:  $0 install [OPTION]
+Usage: $0 install [OPTION]
   or:  $0 --help
-Create or update PO files from templates, or install translated templates.
+Install translated templates.
 
   -i, --input=SOURCE          Get or update strings from SOURCE directory(s).
                               On create or update can have multiple values.
@@ -213,7 +228,6 @@ Create or update PO files from templates, or install translated templates.
       --help                  Display this help and exit
   -q, --quiet                 no output to screen (except for errors)
 
-The -o option is ignored for the "create" and "update" actions.
 Try `perldoc $0` for perhaps more information.
 EOF
     exit($exitcode);
@@ -221,7 +235,7 @@ EOF
 
 ###############################################################################
 
-sub usage_error (;$) {
+sub usage_error {
     for my $msg (split(/\n/, $_[0])) {
     print STDERR "$msg\n";
     }
@@ -243,16 +257,10 @@ GetOptions(
     'quiet|q'               => \$quiet,
     'pedantic-warnings|pedantic'    => sub { $pedantic_p = 1 },
     'help'              => \&usage,
-) || usage_error;
+) || usage_error();
 
-VerboseWarnings::set_application_name $0;
-VerboseWarnings::set_pedantic_mode $pedantic_p;
-
-# keep the buggy Locale::PO quiet if it says stupid things
-$SIG{__WARN__} = sub {
-    my($s) = @_;
-    print STDERR $s unless $s =~ /^Strange line in [^:]+: #~/s
-    };
+VerboseWarnings::set_application_name($0);
+VerboseWarnings::set_pedantic_mode($pedantic_p);
 
 my $action = shift or usage_error('You must specify an ACTION.');
 usage_error('You must at least specify input and string list filenames.')
@@ -285,12 +293,12 @@ for my $in_dir ( @in_dirs ) {
 }
 
 # restores the string list from file
-$href = Locale::PO->load_file_ashash($str_file);
+$href = Locale::PO->load_file_ashash($str_file, 'utf-8');
 
 # guess the charsets. HTML::Templates defaults to iso-8859-1
 if (defined $href) {
     die "$str_file: PO file is corrupted, or not a PO file\n" unless defined $href->{'""'};
-    $charset_out = TmplTokenizer::charset_canon $2 if $href->{'""'}->msgstr =~ /\bcharset=(["']?)([^;\s"'\\]+)\1/;
+    $charset_out = TmplTokenizer::charset_canon($2) if $href->{'""'}->msgstr =~ /\bcharset=(["']?)([^;\s"'\\]+)\1/;
     $charset_in = $charset_out;
 #     for my $msgid (keys %$href) {
 #   if ($msgid =~ /\bcharset=(["']?)([^;\s"'\\]+)\1/) {
@@ -309,108 +317,27 @@ if (defined $href) {
         next if $id_count == $str_count ||
                 $msg->{msgstr} eq '""' ||
                 grep { /fuzzy/ } @{$msg->{_flags}};
-        warn_normal
+        warn_normal(
             "unconsistent %s count: ($id_count/$str_count):\n" .
             "  line:   " . $msg->{loaded_line_number} . "\n" .
             "  msgid:  " . $msg->{msgid} . "\n" .
-            "  msgstr: " . $msg->{msgstr} . "\n", undef;
+            "  msgstr: " . $msg->{msgstr} . "\n", undef);
     }
 }
 
 # set our charset in to UTF-8
 if (!defined $charset_in) {
-    $charset_in = TmplTokenizer::charset_canon 'UTF-8';
-    warn "Warning: Can't determine original templates' charset, defaulting to $charset_in\n";
+    $charset_in = TmplTokenizer::charset_canon('UTF-8');
+    warn "Warning: Can't determine original templates' charset, defaulting to $charset_in\n" unless ( $quiet );
 }
 # set our charset out to UTF-8
 if (!defined $charset_out) {
-    $charset_out = TmplTokenizer::charset_canon 'UTF-8';
-    warn "Warning: Charset Out defaulting to $charset_out\n";
+    $charset_out = TmplTokenizer::charset_canon('UTF-8');
+    warn "Warning: Charset Out defaulting to $charset_out\n" unless ( $quiet );
 }
-my $xgettext = './xgettext.pl'; # actual text extractor script
 my $st;
 
-if ($action eq 'create')  {
-    # updates the list. As the list is empty, every entry will be added
-    if (!-s $str_file) {
-    warn "Removing empty file $str_file\n";
-    unlink $str_file || die "$str_file: $!\n";
-    }
-    die "$str_file: Output file already exists\n" if -f $str_file;
-    my($tmph1, $tmpfile1) = tmpnam();
-    my($tmph2, $tmpfile2) = tmpnam();
-    close $tmph2; # We just want a name
-    # Generate the temporary file that acts as <MODULE>/POTFILES.in
-    for my $input (@in_files) {
-    print $tmph1 "$input\n";
-    }
-    close $tmph1;
-    warn "I $charset_in O $charset_out";
-    # Generate the specified po file ($str_file)
-    $st = system ($xgettext, '-s', '-f', $tmpfile1, '-o', $tmpfile2,
-            (defined $charset_in? ('-I', $charset_in): ()),
-            (defined $charset_out? ('-O', $charset_out): ())
-    );
-    # Run msgmerge so that the pot file looks like a real pot file
-    # We need to help msgmerge a bit by pre-creating a dummy po file that has
-    # the headers and the "" msgid & msgstr. It will fill in the rest.
-    if ($st == 0) {
-    # Merge the temporary "pot file" with the specified po file ($str_file)
-    # FIXME: msgmerge(1) is a Unix dependency
-    # FIXME: need to check the return value
-    unless (-f $str_file) {
-        local(*INPUT, *OUTPUT);
-        open(INPUT, "<$tmpfile2");
-        open(OUTPUT, ">$str_file");
-        while (<INPUT>) {
-        print OUTPUT;
-        last if /^\n/s;
-        }
-        close INPUT;
-        close OUTPUT;
-    }
-    $st = system("msgmerge ".($quiet?'-q':'')." -s $str_file $tmpfile2 -o - | msgattrib --no-obsolete -o $str_file");
-    } else {
-    error_normal "Text extraction failed: $xgettext: $!\n", undef;
-    error_additional "Will not run msgmerge\n", undef;
-    }
-    unlink $tmpfile1 || warn_normal "$tmpfile1: unlink failed: $!\n", undef;
-    unlink $tmpfile2 || warn_normal "$tmpfile2: unlink failed: $!\n", undef;
-
-} elsif ($action eq 'update') {
-    my($tmph1, $tmpfile1) = tmpnam();
-    my($tmph2, $tmpfile2) = tmpnam();
-    close $tmph2; # We just want a name
-    # Generate the temporary file that acts as <MODULE>/POTFILES.in
-    for my $input (@in_files) {
-    print $tmph1 "$input\n";
-    }
-    close $tmph1;
-    # Generate the temporary file that acts as <MODULE>/<LANG>.pot
-    $st = system($xgettext, '-s', '-f', $tmpfile1, '-o', $tmpfile2,
-        '--po-mode',
-        (defined $charset_in? ('-I', $charset_in): ()),
-        (defined $charset_out? ('-O', $charset_out): ()));
-    if ($st == 0) {
-        # Merge the temporary "pot file" with the specified po file ($str_file)
-        # FIXME: msgmerge(1) is a Unix dependency
-        # FIXME: need to check the return value
-        if ( @filenames ) {
-            my ($tmph3, $tmpfile3) = tmpnam();
-            $st = system("msgcat $str_file $tmpfile2 > $tmpfile3");
-            $st = system("msgmerge ".($quiet?'-q':'')." -s $str_file $tmpfile3 -o - | msgattrib --no-obsolete -o $str_file")
-                unless $st;
-        } else {
-            $st = system("msgmerge ".($quiet?'-q':'')." -s $str_file $tmpfile2 -o - | msgattrib --no-obsolete -o $str_file");
-        }
-    } else {
-        error_normal "Text extraction failed: $xgettext: $!\n", undef;
-        error_additional "Will not run msgmerge\n", undef;
-    }
-    unlink $tmpfile1 || warn_normal "$tmpfile1: unlink failed: $!\n", undef;
-    unlink $tmpfile2 || warn_normal "$tmpfile2: unlink failed: $!\n", undef;
-
-} elsif ($action eq 'install') {
+if ($action eq 'install') {
     if(!defined($out_dir)) {
     usage_error("You must specify an output directory when using the install method.");
     }
@@ -431,8 +358,8 @@ if ($action eq 'create')  {
     -d $out_dir || die "$out_dir: The directory does not exist\n";
 
     # Try to open the file, because Locale::PO doesn't check :-/
-    open(INPUT, "<$str_file") || die "$str_file: $!\n";
-    close INPUT;
+    open(my $fh, '<', $str_file) || die "$str_file: $!\n";
+    close $fh;
 
     # creates the new tmpl file using the new translation
     for my $input (@in_files) {
@@ -440,17 +367,17 @@ if ($action eq 'create')  {
             unless substr($input, 0, length($in_dir) + 1) eq "$in_dir/";
 
         my $target = $out_dir . substr($input, length($in_dir));
-        my $targetdir = $` if $target =~ /[^\/]+$/s;
+        my $targetdir = ($target =~ /[^\/]+$/s) ? $` : undef;
 
         if (!defined $type || $input =~ /\.(?:$type)$/) {
             my $h = TmplTokenizer->new( $input );
             $h->set_allow_cformat( 1 );
-            VerboseWarnings::set_input_file_name $input;
+            VerboseWarnings::set_input_file_name($input);
             mkdir_recursive($targetdir) unless -d $targetdir;
             print STDERR "Creating $target...\n" unless $quiet;
-            open( OUTPUT, ">$target" ) || die "$target: $!\n";
-            text_replace( $h, *OUTPUT );
-            close OUTPUT;
+            open( my $fh, ">:encoding(UTF-8)", "$target" ) || die "$target: $!\n";
+            text_replace( $h, $fh );
+            close $fh;
         } else {
         # just copying the file
             mkdir_recursive($targetdir) unless -d $targetdir;
@@ -538,14 +465,6 @@ translation, it can be suppressed with the %0.0s notation.
 Using the PO format also means translators can add their
 own comments in the translation files, if necessary.
 
-=item -
-
-Create, update, and install actions are all based on the
-same scanner module. This ensures that update and install
-have the same idea of what is a translatable string;
-attribute names in tags, for example, will not be
-accidentally translated.
-
 =back
 
 =head1 NOTES
@@ -553,21 +472,7 @@ accidentally translated.
 Anchors are represented by an <AI<n>> notation.
 The meaning of this non-standard notation might not be obvious.
 
-The create action calls xgettext.pl to do the actual work;
-the update action calls xgettext.pl, msgmerge(1) and msgattrib(1)
-to do the actual work.
-
 =head1 BUGS
-
-xgettext.pl must be present in the current directory; both
-msgmerge(1) and msgattrib(1) must also be present in the search path.
-The script currently does not check carefully whether these
-dependent commands are present.
-
-Locale::PO(3) has a lot of bugs. It can neither parse nor
-generate GNU PO files properly; a couple of workarounds have
-been written in TmplTokenizer and more is likely to be needed
-(e.g., to get rid of the "Strange line" warning for #~).
 
 This script may not work in Windows.
 
@@ -576,12 +481,7 @@ tested very much.
 
 =head1 SEE ALSO
 
-xgettext.pl,
 TmplTokenizer.pm,
-msgmerge(1),
 Locale::PO(3),
-translator_doc.txt
-
-http://www.saas.nsw.edu.au/koha_wiki/index.php?page=DifficultTerms
 
 =cut

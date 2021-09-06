@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 
-<!DOCTYPE stylesheet [<!ENTITY nbsp "&#160;" >]>
+<!DOCTYPE stylesheet>
   
 <xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform"
   xmlns="http://www.w3.org/1999/xhtml"
@@ -43,6 +43,9 @@
         </xsl:if>
         <xsl:if test="starts-with(@tag, '24') and not(/marc:record/marc:datafield[@tag='100'])">
           <span class="titlemain"><xsl:value-of select="."/></span><br/>
+        </xsl:if>
+        <xsl:if test="@tag='250'">
+          <xsl:value-of select="."/>
         </xsl:if>
         <xsl:if test="@tag='260'">
           <xsl:value-of select="."/>

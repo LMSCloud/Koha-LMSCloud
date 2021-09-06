@@ -1,19 +1,19 @@
 <div class="gradient">
-<h1 id="logo"><a href="/cgi-bin/koha/mainpage.pl">[% LibraryName %]</a></h1>
+<h1 id="logo"><a href="/cgi-bin/koha/mainpage.pl">[% LibraryName | html %]</a></h1>
 <!-- Begin Authorities Resident Search Box -->
 <div id="header_search" class="residentsearch">
     <div id="mainmain_heading" class="residentsearch">
-    <p class="tip">Enter main heading ($a only):</p>
     <form action="/cgi-bin/koha/authorities/authorities-home.pl" method="get">
+        <label class="tip" for="value_mainentry">Enter main heading ($a only):</label>
         <input type="hidden" name="op" value="do_search" />
         <input type="hidden" name="type" value="intranet" />
-        <select name="authtypecode">
+        <select name="authtypecode" id="authtype_main_heading_a">
         [% IF (marcflavour == 'UNIMARC' ) %]<option value="">All authority types</option>[% END %]
         [% FOREACH authority_type IN authority_types %]
             [% IF authority_type.authtypecode == authtypecode %]
-            <option value="[% authority_type.authtypecode%]" selected="selected">[% authority_type.authtypetext %]</option>
+            <option value="[% authority_type.authtypecode | html %]" selected="selected">[% authority_type.authtypetext | html %]</option>
             [% ELSE %]
-            <option value="[% authority_type.authtypecode %]">[% authority_type.authtypetext %]</option>
+            <option value="[% authority_type.authtypecode | html %]">[% authority_type.authtypetext | html %]</option>
             [% END %]
         [% END %]
         </select>
@@ -31,13 +31,13 @@
             [% ELSE %]
             <option value="start">starts with</option>
             [% END %]
-            [% IF ( operator == 'is' ) %]
-            <option value="is" selected="selected">is exactly</option>
+            [% IF ( operator == 'exact' ) %]
+            <option value="exact" selected="selected">is exactly</option>
             [% ELSE %]
-            <option value="is">is exactly</option>
+            <option value="exact">is exactly</option>
             [% END %]
         </select>
-        <input id="value_mainentry" type="text" name="value" value="[% value | html%]" class="head-searchbox" />
+        <input id="value_mainentry" type="text" name="value" value="[% value | html %]" class="head-searchbox" />
         <select name="orderby">
             [% IF ( orderby == 'HeadingAsc' ) %]
             <option value="HeadingAsc" selected="selected">Heading A-Z</option>
@@ -59,17 +59,17 @@
     </form>
     </div>
     <div id="main_heading" class="residentsearch">
-    <p class="tip">Enter main heading:</p>
     <form action="/cgi-bin/koha/authorities/authorities-home.pl" method="get">
+        <label class="tip" for="value_mainheading">Enter main heading:</label>
         <input type="hidden" name="op" value="do_search" />
         <input type="hidden" name="type" value="intranet" />
-        <select name="authtypecode">
+        <select name="authtypecode" id="authtype_main_heading">
         [% IF (marcflavour == 'UNIMARC' ) %]<option value="">All authority types</option>[% END %]
         [% FOREACH authority_type IN authority_types %]
             [% IF authority_type.authtypecode == authtypecode %]
-            <option value="[% authority_type.authtypecode %]" selected="selected">[% authority_type.authtypetext %]</option>
+            <option value="[% authority_type.authtypecode | html %]" selected="selected">[% authority_type.authtypetext | html %]</option>
             [% ELSE %]
-            <option value="[% authority_type.authtypecode %]">[% authority_type.authtypetext %]</option>
+            <option value="[% authority_type.authtypecode | html %]">[% authority_type.authtypetext | html %]</option>
             [% END %]
         [% END %]
         </select>
@@ -87,13 +87,13 @@
             [% ELSE %]
             <option value="start">starts with</option>
             [% END %]
-            [% IF ( operator == 'is' ) %]
-            <option value="is" selected="selected">is exactly</option>
+            [% IF ( operator == 'exact' ) %]
+            <option value="exact" selected="selected">is exactly</option>
             [% ELSE %]
-            <option value="is">is exactly</option>
+            <option value="exact">is exactly</option>
             [% END %]
         </select>
-        <input id="value_mainentry" type="text" name="value" value="[% value | html%]" class="head-searchbox" />
+        <input id="value_mainheading" type="text" name="value" value="[% value | html %]" class="head-searchbox" />
         <select name="orderby">
             [% IF ( orderby == 'HeadingAsc' ) %]
             <option value="HeadingAsc" selected="selected">Heading A-Z</option>
@@ -115,17 +115,17 @@
     </form>
     </div>
     <div id="matchheading_search" class="residentsearch">
-    <p class="tip">Enter any heading:</p>
     <form action="/cgi-bin/koha/authorities/authorities-home.pl" method="get">
+        <label class="tip" for="value_matchheading">Enter any heading:</label>
         <input type="hidden" name="op" value="do_search" />
         <input type="hidden" name="type" value="intranet" />
-        <select name="authtypecode">
+        <select name="authtypecode" id="authtype_all_headings">
         [% IF (marcflavour == 'UNIMARC' ) %]<option value="">All authority types</option>[% END %]
         [% FOREACH authority_type IN authority_types %]
             [% IF authority_type.authtypecode == authtypecode %]
-            <option value="[% authority_type.authtypecode %]" selected="selected">[% authority_type.authtypetext %]</option>
+            <option value="[% authority_type.authtypecode | html %]" selected="selected">[% authority_type.authtypetext | html %]</option>
             [% ELSE %]
-            <option value="[% authority_type.authtypecode %]">[% authority_type.authtypetext %]</option>
+            <option value="[% authority_type.authtypecode | html %]">[% authority_type.authtypetext | html %]</option>
             [% END %]
         [% END %]
         </select>
@@ -141,10 +141,10 @@
             [% ELSE %]
             <option value="start">starts with</option>
             [% END %]
-            [% IF ( operator == 'is' ) %]
-            <option value="is" selected="selected">is exactly</option>
+            [% IF ( operator == 'exact' ) %]
+            <option value="exact" selected="selected">is exactly</option>
             [% ELSE %]
-            <option value="is">is exactly</option>
+            <option value="exact">is exactly</option>
             [% END %]
         </select>
         <input id="value_matchheading" type="text" name="value" value="[% value | html %]" class="head-searchbox" />
@@ -169,17 +169,17 @@
     </form>
     </div>
     <div id="entire_record" class="residentsearch">
-    <p class="tip">Enter any authority field:</p>
     <form action="/cgi-bin/koha/authorities/authorities-home.pl" method="get">
+        <label class="tip" for="value_anywhere">Enter any authority field:</label>
         <input type="hidden" name="op" value="do_search" />
         <input type="hidden" name="type" value="intranet" />
-        <select name="authtypecode">
+        <select name="authtypecode" id="authtype_entire_record">
         [% IF (marcflavour == 'UNIMARC' ) %]<option value="">All authority types</option>[% END %]
         [% FOREACH authority_type IN authority_types %]
             [% IF authority_type.authtypecode == authtypecode %]
-            <option value="[% authority_type.authtypecode %]" selected="selected">[% authority_type.authtypetext %]</option>
+            <option value="[% authority_type.authtypecode | html %]" selected="selected">[% authority_type.authtypetext | html %]</option>
             [% ELSE %]
-            <option value="[% authority_type.authtypecode %]">[% authority_type.authtypetext %]</option>
+            <option value="[% authority_type.authtypecode | html %]">[% authority_type.authtypetext | html %]</option>
             [% END %]
         [% END %]
         </select>
@@ -197,10 +197,10 @@
             [% ELSE %]
             <option value="start">starts with</option>
             [% END %]
-            [% IF ( operator == 'is' ) %]
-            <option value="is" selected="selected">is exactly</option>
+            [% IF ( operator == 'exact' ) %]
+            <option value="exact" selected="selected">is exactly</option>
             [% ELSE %]
-            <option value="is">is exactly</option>
+            <option value="exact">is exactly</option>
             [% END %]
         </select>
         <input id="value_anywhere" type="text" name="value" value="[% value | html %]" class="head-searchbox" />

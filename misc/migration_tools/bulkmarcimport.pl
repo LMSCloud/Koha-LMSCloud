@@ -16,7 +16,9 @@ use MARC::File::XML;
 use MARC::Record;
 use MARC::Batch;
 use MARC::Charset;
+use Encode;
 
+use Koha::Script;
 use C4::Context;
 use C4::Biblio;
 use C4::Koha;
@@ -25,7 +27,7 @@ use C4::Charset;
 use C4::Items;
 use C4::MarcModificationTemplates;
 
-use YAML;
+use YAML::XS;
 use Unicode::Normalize;
 use Time::HiRes qw(gettimeofday);
 use Getopt::Long;
@@ -139,15 +141,16 @@ if($marc_mod_template ne '') {
     if($marc_mod_template_id < 0) {
         die "Can't located MARC modification template '$marc_mod_template'\n";
     } else {
-        print "Records will be modified using MARC modofication template: $marc_mod_template\n" if $verbose;
+        print "Records will be modified using MARC modification template: $marc_mod_template\n" if $verbose;
     }
 }
 
 my $dbh = C4::Context->dbh;
 my $heading_fields=get_heading_fields();
 
+my $idmapfh;
 if (defined $idmapfl) {
-  open(IDMAP,">$idmapfl") or die "cannot open $idmapfl \n";
+  open($idmapfh, '>', $idmapfl) or die "cannot open $idmapfl \n";
 }
 
 if ((not defined $sourcesubfield) && (not defined $sourcetag)){
@@ -158,15 +161,8 @@ if ((not defined $sourcesubfield) && (not defined $sourcetag)){
 
 # Disable logging for the biblios and authorities import operation. It would unnecessarily
 # slow the import
-
-# Disable the syspref cache so we can change logging settings
-C4::Context->disable_syspref_cache();
-# Save current CataloguingLog and AuthoritiesLog sysprefs values
-my $CataloguingLog = C4::Context->preference( 'CataloguingLog' );
-my $AuthoritiesLog = C4::Context->preference( 'AuthoritiesLog' );
-# Disable logging for both
-C4::Context->set_preference( 'CataloguingLog', 0 );
-C4::Context->set_preference( 'AuthoritiesLog', 0 );
+$ENV{OVERRIDE_SYSPREF_CataloguingLog} = 0;
+$ENV{OVERRIDE_SYSPREF_AuthoritiesLog} = 0;
 
 if ($fk_off) {
 	$dbh->do("SET FOREIGN_KEY_CHECKS = 0");
@@ -176,9 +172,12 @@ if ($fk_off) {
 if ($delete) {
 	if ($biblios){
     	print "deleting biblios\n";
-    	$dbh->do("truncate biblio");
-    	$dbh->do("truncate biblioitems");
-    	$dbh->do("truncate items");
+        $dbh->do("DELETE FROM biblio");
+        $dbh->do("ALTER TABLE biblio AUTO_INCREMENT = 1");
+        $dbh->do("DELETE FROM biblioitems");
+        $dbh->do("ALTER TABLE biblioitems AUTO_INCREMENT = 1");
+        $dbh->do("DELETE FROM items");
+        $dbh->do("ALTER TABLE items AUTO_INCREMENT = 1");
 	}
 	else {
     	print "deleting authorities\n";
@@ -194,6 +193,17 @@ if ($test_parameter) {
 }
 
 my $marcFlavour = C4::Context->preference('marcflavour') || 'MARC21';
+
+# The definition of $searcher must be before MARC::Batch->new
+my $searcher = Koha::SearchEngine::Search->new(
+    {
+        index => (
+              $authorities
+            ? $Koha::SearchEngine::AUTHORITIES_INDEX
+            : $Koha::SearchEngine::BIBLIOS_INDEX
+        )
+    }
+);
 
 print "Characteristic MARC flavour: $marcFlavour\n" if $verbose;
 my $starttime = gettimeofday;
@@ -236,30 +246,21 @@ if ($authorities){
 }
 else {
    ( $tagid, $subfieldid ) =
-            GetMarcFromKohaField( "biblio.biblionumber", $framework );
+            GetMarcFromKohaField( "biblio.biblionumber" );
 	$tagid||="001";
 }
 
 # the SQL query to search on isbn
 my $sth_isbn = $dbh->prepare("SELECT biblionumber,biblioitemnumber FROM biblioitems WHERE isbn=?");
 
-$dbh->{AutoCommit} = 0;
 my $loghandle;
 if ($logfile){
    $loghandle= IO::File->new($logfile, $writemode) ;
    print $loghandle "id;operation;status\n";
 }
 
-my $searcher = Koha::SearchEngine::Search->new(
-    {
-        index => (
-              $authorities
-            ? $Koha::SearchEngine::AUTHORITIES_INDEX
-            : $Koha::SearchEngine::BIBLIOS_INDEX
-        )
-    }
-);
-
+my $schema = Koha::Database->schema;
+$schema->txn_begin;
 RECORD: while (  ) {
     my $record;
     # get records
@@ -343,6 +344,7 @@ RECORD: while (  ) {
                             push @subfields, map { ( $_->[0] =~ /[a-z]/ ? $_->[1] : () ) } $field->subfields();
                         }
                         $yamlhash->{$originalid}->{'subfields'} = \@subfields;
+                        $yamlhash->{$originalid}->{'updated'} = 0;
                     }
                     next;
                 }
@@ -397,17 +399,6 @@ RECORD: while (  ) {
 					printlog({id=>$originalid||$id||$authid, op=>"edit",status=>"ok"}) if ($logfile);
 				}
             }  
-            elsif (defined $authid) {
-            ## An authid is defined but no authority in database : add
-                eval { ( $authid ) = AddAuthority($record,$authid, $authtypecode) };
-                if ($@){
-                    warn "Problem with authority $authid Cannot Add ".$@;
-					printlog({id=>$originalid||$id||$authid, op=>"insert",status=>"ERROR"}) if ($logfile);
-                }
-   				else{
-					printlog({id=>$originalid||$id||$authid, op=>"insert",status=>"ok"}) if ($logfile);
-				}
-            }
 	        else {
             ## True insert in database
                 eval { ( $authid ) = AddAuthority($record,"", $authtypecode) };
@@ -426,6 +417,7 @@ RECORD: while (  ) {
                 push @subfields, map { ( $_->[0] =~ /[a-z]/ ? $_->[1] : () ) } $field->subfields();
             }
             $yamlhash->{$originalid}->{'subfields'} = \@subfields;
+            $yamlhash->{$originalid}->{'updated'} = 1;
             }
         }
         else {
@@ -441,11 +433,11 @@ RECORD: while (  ) {
 			 	if ($sourcetag < "010"){
 					if ($record->field($sourcetag)){
 					  my $source = $record->field($sourcetag)->data();
-					  printf(IDMAP "%s|%s\n",$source,$biblionumber);
+                      printf($idmapfh "%s|%s\n",$source,$biblionumber);
 					}
 			    } else {
 					my $source=$record->subfield($sourcetag,$sourcesubfield);
-					printf(IDMAP "%s|%s\n",$source,$biblionumber);
+                    printf($idmapfh "%s|%s\n",$source,$biblionumber);
 			  }
 			}
 					# create biblio, unless we already have it ( either match or isbn )
@@ -454,7 +446,7 @@ RECORD: while (  ) {
                     $biblioitemnumber = Koha::Biblios->find( $biblionumber )->biblioitem->biblioitemnumber;
                 };
                 if ($update) {
-                    eval { ModBiblio( $record, $biblionumber, GetFrameworkCode($biblionumber) ) };
+                    eval { ModBiblio( $record, $biblionumber, $framework ) };
                     if ($@) {
                         warn "ERROR: Edit biblio $biblionumber failed: $@\n";
                         printlog( { id => $id || $originalid || $biblionumber, op => "update", status => "ERROR" } ) if ($logfile);
@@ -467,7 +459,7 @@ RECORD: while (  ) {
                 }
             } else {
                 if ($insert) {
-                    eval { ( $biblionumber, $biblioitemnumber ) = AddBiblio( $record, '', { defer_marc_save => 1 } ) };
+                    eval { ( $biblionumber, $biblioitemnumber ) = AddBiblio( $record, $framework, { defer_marc_save => 1 } ) };
                     if ($@) {
                         warn "ERROR: Adding biblio $biblionumber failed: $@\n";
                         printlog( { id => $id || $originalid || $biblionumber, op => "insert", status => "ERROR" } ) if ($logfile);
@@ -489,7 +481,7 @@ RECORD: while (  ) {
             C4::Biblio::_strip_item_fields($clone_record, '');
             # This sets the marc fields if there was an error, and also calls
             # defer_marc_save.
-            ModBiblioMarc( $clone_record, $biblionumber, $framework );
+            ModBiblioMarc( $clone_record, $biblionumber );
             if ( $error_adding ) {
                 warn "ERROR: Adding items to bib $biblionumber failed: $error_adding";
 				printlog({id=>$id||$originalid||$biblionumber, op=>"insertitem",status=>"ERROR"}) if ($logfile);
@@ -502,7 +494,7 @@ RECORD: while (  ) {
 			}
             if ($dedup_barcode && grep { exists $_->{error_code} && $_->{error_code} eq 'duplicate_barcode' } @$errors_ref) {
                 # Find the record called 'barcode'
-                my ($tag, $sub) = C4::Biblio::GetMarcFromKohaField('items.barcode', $framework);
+                my ($tag, $sub) = C4::Biblio::GetMarcFromKohaField( 'items.barcode' );
                 # Now remove any items that didn't have a duplicate_barcode error,
                 # erase the barcodes on items that did, and re-add those items.
                 my %dupes;
@@ -535,7 +527,7 @@ RECORD: while (  ) {
                     printlog({id=>$id||$originalid||$biblionumber, op=>"insertitem",status=>"ERROR"}) if ($logfile);
                     # if we failed because of an exception, assume that
                     # the MARC columns in biblioitems were not set.
-                    ModBiblioMarc( $record, $biblionumber, $framework );
+                    ModBiblioMarc( $record, $biblionumber );
                     next RECORD;
                 } else {
                     printlog({id=>$id||$originalid||$biblionumber, op=>"insertitem",status=>"ok"}) if ($logfile);
@@ -547,23 +539,23 @@ RECORD: while (  ) {
             }
             $yamlhash->{$originalid} = $biblionumber if ($yamlfile);
         }
-        $dbh->commit() if (0 == $i % $commitnum);
+        if ( 0 == $i % $commitnum ) {
+            $schema->txn_commit;
+            $schema->txn_begin;
+        }
     }
     print $record->as_formatted()."\n" if ($verbose//0)==2;
     last if $i == $number;
 }
-$dbh->commit();
-$dbh->{AutoCommit} = 1;
-
+$schema->txn_commit;
 
 if ($fk_off) {
 	$dbh->do("SET FOREIGN_KEY_CHECKS = 1");
 }
 
-# Restore CataloguingLog
-C4::Context->set_preference( 'CataloguingLog', $CataloguingLog );
-# Restore AuthoritiesLog
-C4::Context->set_preference( 'AuthoritiesLog', $AuthoritiesLog );
+# Restore CataloguingLog and AuthoritiesLog
+delete $ENV{OVERRIDE_SYSPREF_CataloguingLog};
+delete $ENV{OVERRIDE_SYSPREF_AuthoritiesLog};
 
 my $timeneeded = gettimeofday - $starttime;
 print "\n$i MARC records done in $timeneeded seconds\n";
@@ -574,7 +566,7 @@ if ($logfile){
 }
 if ($yamlfile) {
     open my $yamlfileout, q{>}, "$yamlfile" or die "cannot open $yamlfile \n";
-    print $yamlfileout Dump($yamlhash);
+    print $yamlfileout Encode::decode_utf8(YAML::XS::Dump($yamlhash));
 }
 exit 0;
 
@@ -601,14 +593,7 @@ sub build_query {
 	  my $string = build_simplequery($matchingpoint,$record);
 	  push @searchstrings,$string if (length($string)>0);
         }
-    my $QParser;
-    $QParser = C4::Context->queryparser if (C4::Context->preference('UseQueryParser'));
-    my $op;
-    if ($QParser) {
-        $op = '&&';
-    } else {
-        $op = 'and';
-    }
+    my $op = 'and';
     return join(" $op ",@searchstrings);
 }
 sub build_simplequery {
@@ -624,14 +609,7 @@ sub build_simplequery {
 		  }
         }
     }
-    my $QParser;
-    $QParser = C4::Context->queryparser if (C4::Context->preference('UseQueryParser'));
-    my $op;
-    if ($QParser) {
-        $op = '&&';
-    } else {
-        $op = 'and';
-    }
+    my $op = 'and';
     return join(" $op ",@searchstrings);
 }
 sub report_item_errors {
@@ -654,9 +632,9 @@ sub printlog{
 sub get_heading_fields{
     my $headingfields;
     if ($authtypes){
-        $headingfields=YAML::LoadFile($authtypes);
+        $headingfields = YAML::XS::LoadFile($authtypes);
         $headingfields={C4::Context->preference('marcflavour')=>$headingfields};
-        $debug && warn YAML::Dump($headingfields);
+        $debug && warn Encode::decode_utf8(YAML::XS::Dump($headingfields));
     }
     unless ($headingfields){
         $headingfields=$dbh->selectall_hashref("SELECT auth_tag_to_report, authtypecode from auth_types",'auth_tag_to_report',{Slice=>{}});

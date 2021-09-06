@@ -4,7 +4,7 @@
 
 <div id="search-facets">
     <form method="get" action="/cgi-bin/koha/opac-topissues.pl">
-    <h4><a href="#" class="menu-collapse-toggle">Refine your search</a></h4>
+    <h2><a href="#" class="menu-collapse-toggle">Refine your search</a></h2>
             <ul class="menu-collapse">
                 <li><label for="limit">Show the top </label>
                             <select name="limit" id="limit">
@@ -33,11 +33,11 @@
                             <option value="">All item types</option>
                             [% FOREACH itemtype IN ItemTypes.Get() %]
                                 [% IF itemtype.itemtype == selected_itemtype %]
-                                    <option value="[% itemtype.itemtype %]" selected="selected">
+                                    <option value="[% itemtype.itemtype | html %]" selected="selected">
                                 [% ELSE %]
-                                    <option value="[% itemtype.itemtype %]">
+                                    <option value="[% itemtype.itemtype | html %]">
                                 [% END %]
-                                    [% itemtype.translated_description %]
+                                    [% itemtype.translated_description | html %]
                                 </option>
                             [% END %]
                         </select>
@@ -51,11 +51,11 @@
                             <option value="">All collections</option>
                             [% FOREACH ccode IN AuthorisedValues.Get('CCODE', 1) %]
                                 [% IF ccode.authorised_value == selected_ccode %]
-                                    <option value="[% ccode.authorised_value %]" selected="selected">
+                                    <option value="[% ccode.authorised_value | html %]" selected="selected">
                                 [% ELSE %]
-                                    <option value="[% ccode.authorised_value %]">
+                                    <option value="[% ccode.authorised_value | html %]">
                                 [% END %]
-                                    [% ccode.lib %]
+                                    [% ccode.lib | html %]
                                 </option>
                             [% END %]
                         </select>
@@ -87,7 +87,7 @@
                             </select></li>
                 <li>
                     <input type="hidden" name="do_it" value="1" />
-                    <input type="submit" class="btn" value="Submit" />
+                    <input type="submit" class="btn btn-primary" value="Submit" />
                 </li>
             </ul>
     </form>

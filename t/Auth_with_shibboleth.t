@@ -22,23 +22,30 @@ use Module::Load::Conditional qw/check_install/;
 use Test::More;
 use Test::MockModule;
 use Test::Warn;
+use File::Temp qw(tempdir);
 
-use CGI;
+use utf8;
+use CGI qw(-utf8 );
 use C4::Context;
 
 BEGIN {
     if ( check_install( module => 'Test::DBIx::Class' ) ) {
-        plan tests => 11;
-    } else {
-        plan skip_all => "Need Test::DBIx::Class"
+        plan tests => 17;
+    }
+    else {
+        plan skip_all => "Need Test::DBIx::Class";
     }
 }
 
-use Test::DBIx::Class;
+use Test::DBIx::Class {
+    schema_class => 'Koha::Schema',
+    connect_info => [ 'dbi:SQLite:dbname=:memory:', '', '' ]
+};
 
 # Mock Variables
 my $matchpoint = 'userid';
 my $autocreate = 0;
+my $sync = 0;
 my %mapping    = (
     'userid'       => { 'is' => 'uid' },
     'surname'      => { 'is' => 'sn' },
@@ -56,20 +63,25 @@ $ENV{'city'} = undef;
 
 # Setup Mocks
 ## Mock Context
-my $context = new Test::MockModule('C4::Context');
+my $context = Test::MockModule->new('C4::Context');
 
 ### Mock ->config
 $context->mock( 'config', \&mockedConfig );
 
 ### Mock ->preference
 my $OPACBaseURL = "testopac.com";
+my $staffClientBaseURL = "teststaff.com";
 $context->mock( 'preference', \&mockedPref );
 
 ### Mock ->tz
 $context->mock( 'timezone', sub { return 'local'; } );
 
+### Mock ->interface
+my $interface = 'opac';
+$context->mock( 'interface', \&mockedInterface );
+
 ## Mock Database
-my $database = new Test::MockModule('Koha::Database');
+my $database = Test::MockModule->new('Koha::Database');
 
 ### Mock ->schema
 $database->mock( 'schema', \&mockedSchema );
@@ -114,18 +126,49 @@ subtest "shib_ok tests" => sub {
 #is(logout_shib($query),"https://".$opac."/Shibboleth.sso/Logout?return="."https://".$opac,"logout_shib");
 
 ## login_shib_url
-my $query_string = 'language=en-GB';
-$ENV{QUERY_STRING} = $query_string;
-$ENV{SCRIPT_NAME}  = '/cgi-bin/koha/opac-user.pl';
-my $query = CGI->new($query_string);
-is(
-    login_shib_url($query),
-    'https://testopac.com'
-      . '/Shibboleth.sso/Login?target='
-      . 'https://testopac.com/cgi-bin/koha/opac-user.pl' . '%3F'
-      . $query_string,
-    "login shib url"
-);
+subtest "login_shib_url tests" => sub {
+    plan tests => 2;
+
+    my $string = 'language=en-GB&param="heh❤"';
+    my $query_string = Encode::encode('UTF-8', $string);
+    my $query_string_uri_escaped = URI::Escape::uri_escape_utf8('?'.$string);
+
+    local $ENV{REQUEST_METHOD} = 'GET';
+    local $ENV{QUERY_STRING}   = $query_string;
+    local $ENV{SCRIPT_NAME}    = '/cgi-bin/koha/opac-user.pl';
+    my $query = CGI->new($query_string);
+    is(
+        login_shib_url($query),
+        'https://testopac.com'
+          . '/Shibboleth.sso/Login?target='
+          . 'https://testopac.com/cgi-bin/koha/opac-user.pl'
+          . $query_string_uri_escaped,
+        "login shib url"
+    );
+
+    my $post_params = 'user=bob&password=wideopen';
+    local $ENV{REQUEST_METHOD} = 'POST';
+    local $ENV{CONTENT_LENGTH} = length($post_params);
+
+    my $dir = tempdir( CLEANUP => 1 );
+    my $infile = "$dir/in.txt";
+    open my $fh_write, '>', $infile or die "Could not open '$infile' $!";
+    print $fh_write $post_params;
+    close $fh_write;
+
+    open my $fh_read, '<', $infile or die "Could not open '$infile' $!";
+
+    $query = CGI->new($fh_read);
+    is(
+        login_shib_url($query),
+        'https://testopac.com'
+          . '/Shibboleth.sso/Login?target='
+          . 'https://testopac.com/cgi-bin/koha/opac-user.pl',
+        "login shib url"
+    );
+
+    close $fh_read;
+};
 
 ## get_login_shib
 subtest "get_login_shib tests" => sub {
@@ -156,7 +199,7 @@ subtest "get_login_shib tests" => sub {
 
 ## checkpw_shib
 subtest "checkpw_shib tests" => sub {
-    plan tests => 18;
+    plan tests => 24;
 
     my $shib_login;
     my ( $retval, $retcard, $retuserid );
@@ -164,8 +207,10 @@ subtest "checkpw_shib tests" => sub {
     # Setup Mock Database Data
     fixtures_ok [
         'Borrower' => [
-            [qw/cardnumber userid surname address city/],
-            [qw/testcardnumber test1234 renvoize myaddress johnston/],
+            [qw/cardnumber userid surname address city email/],
+            [qw/testcardnumber test1234 renvoize myaddress johnston  /],
+            [qw/testcardnumber1 test12345 clamp1 myaddress quechee kid@clamp.io/],
+            [qw/testcardnumber2 test123456 clamp2 myaddress quechee kid@clamp.io/],
         ],
         'Category' => [ [qw/categorycode default_privacy/], [qw/S never/], ]
       ],
@@ -192,6 +237,29 @@ subtest "checkpw_shib tests" => sub {
     [], "bad user with no debug";
     is( $retval, "0", "user not authenticated" );
 
+    # duplicated matchpoint
+    $matchpoint = 'email';
+    $mapping{'email'} = { is => 'email' };
+    $shib_login = 'kid@clamp.io';
+    warnings_are {
+        ( $retval, $retcard, $retuserid ) = checkpw_shib($shib_login);
+    }
+    [], "bad user with no debug";
+    is( $retval, "0", "user not authenticated if duplicated matchpoint" );
+    $C4::Auth_with_shibboleth::debug = '1';
+    warnings_are {
+        ( $retval, $retcard, $retuserid ) = checkpw_shib($shib_login);
+    }
+    [
+        q/checkpw_shib/,
+        q/koha borrower field to match: email/,
+        q/shibboleth attribute to match: email/,
+        q/User Shibboleth-authenticated as: kid@clamp.io/,
+        q/There are several users with email of kid@clamp.io, matchpoints must be unique/
+    ], "duplicated matchpoint warned with debug";
+    $C4::Auth_with_shibboleth::debug = '0';
+    reset_config();
+
     # autocreate user
     $autocreate  = 1;
     $shib_login  = 'test4321';
@@ -213,6 +281,22 @@ subtest "checkpw_shib tests" => sub {
       [qw/pika 2017 Address City/],
       'Found $new_users surname';
     $autocreate = 0;
+
+    # sync user
+    $sync = 1;
+    $ENV{'city'} = 'AnotherCity';
+    warnings_are {
+        ( $retval, $retcard, $retuserid ) = checkpw_shib($shib_login);
+    }
+    [], "good user with sync";
+
+    ok my $sync_user = ResultSet('Borrower')
+      ->search( { 'userid' => 'test4321' }, { rows => 1 } ), "sync user found";
+
+    is_fields [qw/surname dateexpiry address city/], $sync_user->next,
+      [qw/pika 2017 Address AnotherCity/],
+      'Found $sync_user synced city';
+    $sync = 0;
 
     # debug on
     $C4::Auth_with_shibboleth::debug = '1';
@@ -250,15 +334,17 @@ subtest "checkpw_shib tests" => sub {
 
 };
 
-## _get_uri
+## _get_uri - opac
 $OPACBaseURL = "testopac.com";
 is( C4::Auth_with_shibboleth::_get_uri(),
     "https://testopac.com", "https opac uri returned" );
 
 $OPACBaseURL = "http://testopac.com";
 my $result;
-warning_like { $result = C4::Auth_with_shibboleth::_get_uri() }
-[qr/Shibboleth requires OPACBaseURL to use the https protocol!/],
+warnings_are { $result = C4::Auth_with_shibboleth::_get_uri() }[
+    "shibboleth interface: $interface",
+"Shibboleth requires OPACBaseURL/staffClientBaseURL to use the https protocol!"
+],
   "improper protocol - received expected warning";
 is( $result, "https://testopac.com", "https opac uri returned" );
 
@@ -267,10 +353,34 @@ is( C4::Auth_with_shibboleth::_get_uri(),
     "https://testopac.com", "https opac uri returned" );
 
 $OPACBaseURL = undef;
-warning_like { $result = C4::Auth_with_shibboleth::_get_uri() }
-[qr/OPACBaseURL not set!/],
+warnings_are { $result = C4::Auth_with_shibboleth::_get_uri() }
+[ "shibboleth interface: $interface", "OPACBaseURL not set!" ],
   "undefined OPACBaseURL - received expected warning";
-is( $result, "https://", "https opac uri returned" );
+is( $result, "https://", "https $interface uri returned" );
+
+## _get_uri - intranet
+$interface = 'intranet';
+$staffClientBaseURL = "teststaff.com";
+is( C4::Auth_with_shibboleth::_get_uri(),
+    "https://teststaff.com", "https $interface uri returned" );
+
+$staffClientBaseURL = "http://teststaff.com";
+warnings_are { $result = C4::Auth_with_shibboleth::_get_uri() }[
+    "shibboleth interface: $interface",
+"Shibboleth requires OPACBaseURL/staffClientBaseURL to use the https protocol!"
+],
+  "improper protocol - received expected warning";
+is( $result, "https://teststaff.com", "https $interface uri returned" );
+
+$staffClientBaseURL = "https://teststaff.com";
+is( C4::Auth_with_shibboleth::_get_uri(),
+    "https://teststaff.com", "https $interface uri returned" );
+
+$staffClientBaseURL = undef;
+warnings_are { $result = C4::Auth_with_shibboleth::_get_uri() }
+[ "shibboleth interface: $interface", "staffClientBaseURL not set!" ],
+  "undefined staffClientBaseURL - received expected warning";
+is( $result, "https://", "https $interface uri returned" );
 
 ## _get_shib_config
 # Internal helper function, covered in tests above
@@ -280,6 +390,7 @@ sub mockedConfig {
 
     my %shibboleth = (
         'autocreate' => $autocreate,
+        'sync'       => $sync,
         'matchpoint' => $matchpoint,
         'mapping'    => \%mapping
     );
@@ -295,7 +406,15 @@ sub mockedPref {
         $return = $OPACBaseURL;
     }
 
+    if ( $param eq 'staffClientBaseURL' ) {
+        $return = $staffClientBaseURL;
+    }
+
     return $return;
+}
+
+sub mockedInterface {
+    return $interface;
 }
 
 sub mockedSchema {
@@ -306,6 +425,7 @@ sub mockedSchema {
 sub reset_config {
     $matchpoint = 'userid';
     $autocreate = 0;
+    $sync = 0;
     %mapping    = (
         'userid'       => { 'is' => 'uid' },
         'surname'      => { 'is' => 'sn' },

@@ -25,6 +25,7 @@ use Modern::Perl;
 use CGI qw ( -utf8 );
 use DateTime::TimeZone;
 use File::Spec;
+use File::Slurp;
 use List::MoreUtils qw/ any /;
 use LWP::Simple;
 use Module::Load::Conditional qw(can_load);
@@ -32,35 +33,40 @@ use XML::Simple;
 use Config;
 use Search::Elasticsearch;
 use Try::Tiny;
+use YAML::XS;
+use Encode;
 
 use C4::Output;
 use C4::Auth;
 use C4::Context;
-use C4::Installer;
+use C4::Installer::PerlModules;
 
 use Koha;
 use Koha::DateUtils qw(dt_from_string output_pref);
 use Koha::Acquisition::Currencies;
+use Koha::BackgroundJob;
+use Koha::BiblioFrameworks;
+use Koha::Email;
 use Koha::Patron::Categories;
 use Koha::Patrons;
 use Koha::Caches;
 use Koha::Config::SysPrefs;
 use Koha::Illrequest::Config;
 use Koha::SearchEngine::Elasticsearch;
-use Koha::UploadedFiles;
+use Koha::Logger;
+use Koha::Filter::MARC::ViewPolicy;
 
 use C4::Members::Statistics;
 
 
 #use Smart::Comments '####';
 
-my $query = new CGI;
+my $query = CGI->new;
 my ( $template, $loggedinuser, $cookie ) = get_template_and_user(
     {
         template_name   => "about.tt",
         query           => $query,
         type            => "intranet",
-        authnotrequired => 0,
         flagsrequired   => { catalogue => 1 },
         debug           => 1,
     }
@@ -92,6 +98,24 @@ my $time_zone = {
     environment            => $env_timezone,
     environment_invalid    => $env_invalid
 };
+
+{ # Logger checks
+    my $log4perl_config = C4::Context->config("log4perl_conf");
+    my @log4perl_errors;
+    if ( ! $log4perl_config ) {
+        push @log4perl_errors, 'missing_config_entry'
+    }
+    else {
+        my @lines = read_file($log4perl_config) or push @log4perl_errors, 'cannot_read_config_file';
+        for my $line ( @lines ) {
+            next unless $line =~ m|log4perl.appender.\w+.filename=(.*)|;
+            push @log4perl_errors, 'logfile_not_writable' unless -w $1;
+        }
+    }
+    eval {Koha::Logger->get};
+    push @log4perl_errors, 'cannot_init_module' and warn $@ if $@;
+    $template->param( log4perl_errors => @log4perl_errors );
+}
 
 $template->param(
     time_zone              => $time_zone,
@@ -159,13 +183,35 @@ my $warnPrefBiblioAddsAuthorities = ( $prefAutoCreateAuthorities && ( !$prefBibl
 my $prefEasyAnalyticalRecords  = C4::Context->preference('EasyAnalyticalRecords');
 my $prefUseControlNumber  = C4::Context->preference('UseControlNumber');
 my $warnPrefEasyAnalyticalRecords  = ( $prefEasyAnalyticalRecords  && $prefUseControlNumber );
-my $warnPrefAnonymousPatron = (
+
+my $AnonymousPatron = C4::Context->preference('AnonymousPatron');
+my $warnPrefAnonymousPatronOPACPrivacy = (
     C4::Context->preference('OPACPrivacy')
-        and not C4::Context->preference('AnonymousPatron')
+        and not $AnonymousPatron
+);
+my $warnPrefAnonymousPatronAnonSuggestions = (
+    C4::Context->preference('AnonSuggestions')
+        and not $AnonymousPatron
 );
 
-my $anonymous_patron = Koha::Patrons->find( C4::Context->preference('AnonymousPatron') );
-my $warnPrefAnonymousPatron_PatronDoesNotExist = ( not $anonymous_patron and Koha::Patrons->search({ privacy => 2 })->count );
+my $anonymous_patron = Koha::Patrons->find( $AnonymousPatron );
+my $warnPrefAnonymousPatronAnonSuggestions_PatronDoesNotExist = ( $AnonymousPatron && C4::Context->preference('AnonSuggestions') && not $anonymous_patron );
+
+my $warnPrefAnonymousPatronOPACPrivacy_PatronDoesNotExist = ( not $anonymous_patron and Koha::Patrons->search({ privacy => 2 })->count );
+
+my $warnPrefKohaAdminEmailAddress = not Email::Valid->address(C4::Context->preference('KohaAdminEmailAddress'));
+
+my $c = Koha::Items->filter_by_visible_in_opac->count;
+my @warnings = C4::Context->dbh->selectrow_array('SHOW WARNINGS');
+my $warnPrefOpacHiddenItems = $warnings[2];
+
+my $invalid_yesno = Koha::Config::SysPrefs->search(
+    {
+        type  => 'YesNo',
+        value => { -or => { 'is' => undef, -not_in => [ "1", "0" ] } }
+    }
+);
+$template->param( invalid_yesno => $invalid_yesno );
 
 my $errZebraConnection = C4::Context->Zconn("biblioserver",0)->errcode();
 
@@ -175,69 +221,23 @@ my $warnNoActiveCurrency = (! defined Koha::Acquisition::Currencies->get_active)
 
 my @xml_config_warnings;
 
-my $context = new C4::Context;
-
-if ( ! defined C4::Context->config('zebra_bib_index_mode') ) {
-    push @xml_config_warnings, {
-        error => 'zebra_bib_index_mode_warn'
-    };
-    if ($context->{'server'}->{'biblioserver'}->{'config'} !~ /zebra-biblios-dom.cfg/) {
-        push @xml_config_warnings, {
-            error => 'zebra_bib_mode_seems_grs1'
-        };
-    }
-    else {
-        push @xml_config_warnings, {
-            error => 'zebra_bib_mode_seems_dom'
-        };
-    }
-} else {
-    push @xml_config_warnings, { error => 'zebra_bib_grs_warn' }
-        if C4::Context->config('zebra_bib_index_mode') eq 'grs1';
+if (    C4::Context->config('zebra_bib_index_mode')
+    and C4::Context->config('zebra_bib_index_mode') eq 'grs1' )
+{
+    push @xml_config_warnings, { error => 'zebra_bib_index_mode_is_grs1' };
 }
 
-if ( (C4::Context->config('zebra_bib_index_mode') eq 'dom') &&
-     ($context->{'server'}->{'biblioserver'}->{'config'} !~ /zebra-biblios-dom.cfg/) ) {
-
-    push @xml_config_warnings, {
-        error => 'zebra_bib_index_mode_mismatch_warn'
-    };
+if (    C4::Context->config('zebra_auth_index_mode')
+    and C4::Context->config('zebra_auth_index_mode') eq 'grs1' )
+{
+    push @xml_config_warnings, { error => 'zebra_auth_index_mode_is_grs1' };
 }
 
-if ( (C4::Context->config('zebra_bib_index_mode') eq 'grs1') &&
-     ($context->{'server'}->{'biblioserver'}->{'config'} =~ /zebra-biblios-dom.cfg/) ) {
-
-    push @xml_config_warnings, {
-        error => 'zebra_bib_index_mode_mismatch_warn'
-    };
-}
-
-if ( ! defined C4::Context->config('zebra_auth_index_mode') ) {
-    push @xml_config_warnings, {
-        error => 'zebra_auth_index_mode_warn'
-    };
-    if ($context->{'server'}->{'authorityserver'}->{'config'} !~ /zebra-authorities-dom.cfg/) {
-        push @xml_config_warnings, {
-            error => 'zebra_auth_mode_seems_grs1'
-        };
-    }
-    else {
-        push @xml_config_warnings, {
-            error => 'zebra_auth_mode_seems_dom'
-        };
-    }
-} else {
-    push @xml_config_warnings, { error => 'zebra_auth_grs_warn' }
-        if C4::Context->config('zebra_auth_index_mode') eq 'grs1';
-}
-
-if ( (C4::Context->config('zebra_auth_index_mode') eq 'dom') && ($context->{'server'}->{'authorityserver'}->{'config'} !~ /zebra-authorities-dom.cfg/) ) {
-    push @xml_config_warnings, {
-        error => 'zebra_auth_index_mode_mismatch_warn'
-    };
-}
-
-if ( (C4::Context->config('zebra_auth_index_mode') eq 'grs1') && ($context->{'server'}->{'authorityserver'}->{'config'} =~ /zebra-authorities-dom.cfg/) ) {
+my $authorityserver = C4::Context->zebraconfig('authorityserver');
+if( (   C4::Context->config('zebra_auth_index_mode')
+    and C4::Context->config('zebra_auth_index_mode') eq 'dom' )
+    && ( $authorityserver->{config} !~ /zebra-authorities-dom.cfg/ ) )
+{
     push @xml_config_warnings, {
         error => 'zebra_auth_index_mode_mismatch_warn'
     };
@@ -246,6 +246,20 @@ if ( (C4::Context->config('zebra_auth_index_mode') eq 'grs1') && ($context->{'se
 if ( ! defined C4::Context->config('log4perl_conf') ) {
     push @xml_config_warnings, {
         error => 'log4perl_entry_missing'
+    }
+}
+
+if ( ! defined C4::Context->config('lockdir') ) {
+    push @xml_config_warnings, {
+        error => 'lockdir_entry_missing'
+    }
+}
+else {
+    unless ( -w C4::Context->config('lockdir') ) {
+        push @xml_config_warnings, {
+            error   => 'lockdir_not_writable',
+            lockdir => C4::Context->config('lockdir')
+        }
     }
 }
 
@@ -263,53 +277,16 @@ if ( ! defined C4::Context->config('upload_path') ) {
 }
 
 if ( ! C4::Context->config('tmp_path') ) {
-    my $temporary_directory = Koha::UploadedFile->temporary_directory;
+    my $temporary_directory = C4::Context::temporary_directory;
     push @xml_config_warnings, {
         error             => 'tmp_path_missing',
         effective_tmp_dir => $temporary_directory,
     }
 }
 
-# Test QueryParser configuration sanity
-if ( C4::Context->preference( 'UseQueryParser' ) ) {
-    # Get the QueryParser configuration file name
-    my $queryparser_file          = C4::Context->config( 'queryparser_config' );
-    my $queryparser_fallback_file = '/etc/koha/searchengine/queryparser.yaml';
-    # Check QueryParser is functional
-    my $QParser = C4::Context->queryparser();
-    my $queryparser_error = {};
-    if ( ! defined $QParser || ref($QParser) ne 'Koha::QueryParser::Driver::PQF' ) {
-        # Error initializing the QueryParser object
-        # Get the used queryparser.yaml file path to report the user
-        $queryparser_error->{ fallback } = ( defined $queryparser_file ) ? 0 : 1;
-        $queryparser_error->{ file }     = ( defined $queryparser_file )
-                                                ? $queryparser_file
-                                                : $queryparser_fallback_file;
-        # Report error data to the template
-        $template->param( QueryParserError => $queryparser_error );
-    } else {
-        # Check for an absent queryparser_config entry in koha-conf.xml
-        if ( ! defined $queryparser_file ) {
-            # Not an error but a warning for the missing entry in koha-conf-xml
-            push @xml_config_warnings, {
-                    error => 'queryparser_entry_missing',
-                    file  => $queryparser_fallback_file
-            };
-        }
-    }
-}
-
 # Test Zebra facets configuration
 if ( !defined C4::Context->config('use_zebra_facets') ) {
     push @xml_config_warnings, { error => 'use_zebra_facets_entry_missing' };
-} else {
-    if ( C4::Context->config('use_zebra_facets') &&
-         C4::Context->config('zebra_bib_index_mode') ) {
-        # use_zebra_facets works with DOM
-        push @xml_config_warnings, {
-            error => 'use_zebra_facets_needs_dom'
-        } if C4::Context->config('zebra_bib_index_mode') ne 'dom' ;
-    }
 }
 
 # ILL module checks
@@ -336,6 +313,13 @@ if ( C4::Context->preference('ILLModule') ) {
     if ( !$ill_config_from_file->{partner_code} ) {
         # partner code not defined
         $template->param( ill_partner_code_not_defined => 1 );
+        $warnILLConfiguration = 1;
+    }
+
+
+    if ( !$ill_config_from_file->{branch} ) {
+        # branch not defined
+        $template->param( ill_branch_not_defined => 1 );
         $warnILLConfiguration = 1;
     }
 
@@ -369,6 +353,7 @@ if ( C4::Context->preference('SearchEngine') eq 'Elasticsearch' ) {
         #       fetch the list of available indexes (e.g. plugins, etc)
         $es_status->{nodes} = $es_conf->{nodes};
         my $es = Search::Elasticsearch->new({ nodes => $es_conf->{nodes} });
+        my $es_status->{version} = $es->info->{version}->{number};
 
         foreach my $index ( @indexes ) {
             my $count;
@@ -435,6 +420,31 @@ if (  C4::Context->preference('WebBasedSelfCheck')
     );
 }
 
+# Test YAML system preferences
+# FIXME: This is list of current YAML formatted prefs, should by type of preference
+my @yaml_prefs = (
+    "UpdateNotForLoanStatusOnCheckin",
+    "OpacHiddenItems",
+    "BibtexExportAdditionalFields",
+    "RisExportAdditionalFields",
+    "UpdateItemWhenLostFromHoldList",
+    "MarcFieldsToOrder",
+    "MarcItemFieldsToOrder",
+    "UpdateitemLocationOnCheckin",
+    "ItemsDeniedRenewal"
+);
+my @bad_yaml_prefs;
+foreach my $syspref (@yaml_prefs) {
+    my $yaml = C4::Context->preference( $syspref );
+    if ( $yaml ) {
+        eval { YAML::XS::Load( Encode::encode_utf8("$yaml\n\n") ); };
+        if ($@) {
+            push @bad_yaml_prefs, $syspref;
+        }
+    }
+}
+$template->param( 'bad_yaml_prefs' => \@bad_yaml_prefs ) if @bad_yaml_prefs;
+
 {
     my $dbh       = C4::Context->dbh;
     my $patrons = $dbh->selectall_arrayref(
@@ -468,6 +478,100 @@ if (  C4::Context->preference('WebBasedSelfCheck')
         );
     }
 }
+
+# Circ rule warnings
+{
+    my $dbh   = C4::Context->dbh;
+    my $units = Koha::CirculationRules->search({ rule_name => 'lengthunit', rule_value => { -not_in => ['days', 'hours'] } });
+
+    if ( $units->count ) {
+        $template->param(
+            warnIssuingRules => 1,
+            ir_units         => $units,
+        );
+    }
+}
+
+# Guarantor relationships warnings
+{
+    my $dbh   = C4::Context->dbh;
+    my ($bad_relationships_count) = $dbh->selectall_arrayref(q{
+        SELECT COUNT(*) FROM borrower_relationships WHERE relationship='_bad_data'
+    });
+
+    $bad_relationships_count = $bad_relationships_count->[0]->[0];
+
+    my $existing_relationships = $dbh->selectall_arrayref(q{
+          SELECT DISTINCT(relationship) FROM borrower_relationships WHERE relationship IS NOT NULL
+    });
+
+    my %valid_relationships = map { $_ => 1 } split( /,|\|/, C4::Context->preference('borrowerRelationship') );
+    $valid_relationships{ _bad_data } = 1; # we handle this case in another way
+
+    my $wrong_relationships = [ grep { !$valid_relationships{ $_->[0] } } @{$existing_relationships} ];
+    if ( @$wrong_relationships or $bad_relationships_count ) {
+
+        $template->param(
+            warnRelationships => 1,
+        );
+
+        if ( $wrong_relationships ) {
+            $template->param(
+                wrong_relationships => $wrong_relationships
+            );
+        }
+        if ($bad_relationships_count) {
+            $template->param(
+                bad_relationships_count => $bad_relationships_count,
+            );
+        }
+    }
+}
+
+{
+    # Test 'bcrypt_settings' config for Pseudonymization
+    $template->param( config_bcrypt_settings_no_set => 1 )
+      if C4::Context->preference('Pseudonymization')
+      and not C4::Context->config('bcrypt_settings');
+}
+
+{
+    my @frameworkcodes = Koha::BiblioFrameworks->search->get_column('frameworkcode');
+    my @hidden_biblionumbers;
+    push @frameworkcodes, ""; # it's not in the biblio_frameworks table!
+    for my $frameworkcode ( @frameworkcodes ) {
+        my $shouldhidemarc_opac = Koha::Filter::MARC::ViewPolicy->should_hide_marc(
+            {
+                frameworkcode => $frameworkcode,
+                interface     => "opac"
+            }
+        );
+        push @hidden_biblionumbers, { frameworkcode => $frameworkcode, interface => 'opac' }
+          if $shouldhidemarc_opac->{biblionumber};
+
+        my $shouldhidemarc_intranet = Koha::Filter::MARC::ViewPolicy->should_hide_marc(
+            {
+                frameworkcode => $frameworkcode,
+                interface     => "intranet"
+            }
+        );
+        push @hidden_biblionumbers, { frameworkcode => $frameworkcode, interface => 'intranet' }
+          if $shouldhidemarc_intranet->{biblionumber};
+    }
+    $template->param( warnHiddenBiblionumbers => \@hidden_biblionumbers );
+}
+
+{
+    # BackgroundJob - test connection to message broker
+    eval {
+        Koha::BackgroundJob->connect;
+    };
+    if ( $@ ) {
+        warn $@;
+        $template->param( warnConnectBroker => $@ );
+    }
+}
+
 my %versions = C4::Context::get_versions();
 
 $template->param(
@@ -483,8 +587,12 @@ $template->param(
     prefAutoCreateAuthorities => $prefAutoCreateAuthorities,
     warnPrefBiblioAddsAuthorities => $warnPrefBiblioAddsAuthorities,
     warnPrefEasyAnalyticalRecords  => $warnPrefEasyAnalyticalRecords,
-    warnPrefAnonymousPatron => $warnPrefAnonymousPatron,
-    warnPrefAnonymousPatron_PatronDoesNotExist => $warnPrefAnonymousPatron_PatronDoesNotExist,
+    warnPrefAnonymousPatronOPACPrivacy        => $warnPrefAnonymousPatronOPACPrivacy,
+    warnPrefAnonymousPatronAnonSuggestions    => $warnPrefAnonymousPatronAnonSuggestions,
+    warnPrefAnonymousPatronOPACPrivacy_PatronDoesNotExist     => $warnPrefAnonymousPatronOPACPrivacy_PatronDoesNotExist,
+    warnPrefAnonymousPatronAnonSuggestions_PatronDoesNotExist => $warnPrefAnonymousPatronAnonSuggestions_PatronDoesNotExist,
+    warnPrefKohaAdminEmailAddress => $warnPrefKohaAdminEmailAddress,
+    warnPrefOpacHiddenItems => $warnPrefOpacHiddenItems,
     errZebraConnection => $errZebraConnection,
     warnIsRootUser => $warnIsRootUser,
     warnNoActiveCurrency => $warnNoActiveCurrency,
@@ -514,6 +622,8 @@ foreach my $pm_type(@pm_types) {
                 current => ($pm_type eq 'current_pm' ? 1 : 0),
                 require => $stats->{'required'},
                 reqversion => $stats->{'min_ver'},
+                maxversion => $stats->{'max_ver'},
+                excversion => $stats->{'exc_ver'}
             }
         );
     }
@@ -544,9 +654,7 @@ $template->param( table => $table );
 
 
 ## ------------------------------------------
-## Koha time line code
-
-#get file location
+## Koha contributions
 my $docdir;
 if ( defined C4::Context->config('docdir') ) {
     $docdir = C4::Context->config('docdir');
@@ -556,6 +664,76 @@ if ( defined C4::Context->config('docdir') ) {
     $docdir = C4::Context->config('intranetdir') . '/docs';
 }
 
+## Release teams
+my $teams =
+  -e "$docdir" . "/teams.yaml"
+  ? YAML::XS::LoadFile( "$docdir" . "/teams.yaml" )
+  : {};
+my $dev_team = (sort {$b <=> $a} (keys %{$teams->{team}}))[0];
+my $short_version = substr($versions{'kohaVersion'},0,5);
+my $minor = substr($versions{'kohaVersion'},3,2);
+my $development_version = ( $minor eq '05' || $minor eq '11' ) ? 0 : 1;
+$template->param( short_version => $short_version );
+$template->param( development_version => $development_version );
+
+## Contributors
+my $contributors =
+  -e "$docdir" . "/contributors.yaml"
+  ? YAML::XS::LoadFile( "$docdir" . "/contributors.yaml" )
+  : {};
+delete $contributors->{_others_};
+for my $version ( sort { $a <=> $b } keys %{$teams->{team}} ) {
+    for my $role ( keys %{ $teams->{team}->{$version} } ) {
+        my $normalized_role = "$role";
+        $normalized_role =~ s/s$//;
+        if ( ref( $teams->{team}->{$version}->{$role} ) eq 'ARRAY' ) {
+            for my $contributor ( @{ $teams->{team}->{$version}->{$role} } ) {
+                my $name = $contributor->{name};
+                # Add role to contributors
+                push @{ $contributors->{$name}->{roles}->{$normalized_role} },
+                  $version;
+                # Add openhub to teams
+                if ( exists( $contributors->{$name}->{openhub} ) ) {
+                    $contributor->{openhub} = $contributors->{$name}->{openhub};
+                }
+            }
+        }
+        elsif ( $role ne 'release_date' ) {
+            my $name = $teams->{team}->{$version}->{$role}->{name};
+            # Add role to contributors
+            push @{ $contributors->{$name}->{roles}->{$normalized_role} },
+              $version;
+            # Add openhub to teams
+            if ( exists( $contributors->{$name}->{openhub} ) ) {
+                $teams->{team}->{$version}->{$role}->{openhub} =
+                  $contributors->{$name}->{openhub};
+            }
+        }
+        else {
+            $teams->{team}->{$version}->{$role} = DateTime->from_epoch( epoch => $teams->{team}->{$version}->{$role});
+        }
+    }
+}
+
+## Create last name ordered array of people from contributors
+my @people = map {
+    { name => $_, ( $contributors->{$_} ? %{ $contributors->{$_} } : () ) }
+} sort {
+  my ($alast) = $a =~ /(\S+)$/;
+  my ($blast) = $b =~ /(\S+)$/;
+  my $cmp = lc($alast||"") cmp lc($blast||"");
+  return $cmp if $cmp;
+
+  my ($a2last) = $a =~ /(\S+)\s\S+$/;
+  my ($b2last) = $b =~ /(\S+)\s\S+$/;
+  lc($a2last||"") cmp lc($b2last||"");
+} keys %$contributors;
+
+$template->param( contributors => \@people );
+$template->param( maintenance_team => $teams->{team}->{$dev_team} );
+$template->param( release_team => $teams->{team}->{$short_version} );
+
+## Timeline
 if ( open( my $file, "<:encoding(UTF-8)", "$docdir" . "/history.txt" ) ) {
 
     my $i = 0;

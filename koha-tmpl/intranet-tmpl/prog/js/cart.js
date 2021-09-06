@@ -1,8 +1,9 @@
+/* global __ dataTablesDefaults showMore showLess delSelRecords addSelToShelf sendBasket printBasket delBasket openBiblio selRecord */
 
 function placeHold () {
     var checkedItems = $("input:checkbox:checked");
     if ($(checkedItems).size() === 0) {
-        alert(MSG_NO_RECORD_SELECTED);
+        alert( __("No item was selected") );
         return false;
     }
 
@@ -28,7 +29,7 @@ function placeHold () {
 function batchDelete(){
     var checkedItems = $("input:checkbox:checked");
     if ($(checkedItems).size() === 0) {
-        alert(MSG_NO_RECORD_SELECTED);
+        alert( __("No item was selected") );
         return false;
     }
     var newloc;
@@ -48,7 +49,7 @@ function batchDelete(){
 function batchModify(){
     var checkedItems = $("input:checkbox:checked");
     if ($(checkedItems).size() === 0) {
-        alert(MSG_NO_RECORD_SELECTED);
+        alert( __("No item was selected") );
         return false;
     }
     var newloc;
@@ -66,28 +67,23 @@ function batchModify(){
 
 $(document).ready(function(){
     $("#items-popover").popover();
-    $("#CheckAll").click(function(){
-    var checked = [];
-    $("#bookbag_form").checkCheckboxes("*", true).each(
-        function() {
-            selRecord(this.value,true);
-            $(this).change();
-        }
-    );
-        return false;
+
+    $("#CheckAll").click(function (e) {
+        e.preventDefault();
+        $(".select_record").each(function () {
+            $(this).prop("checked", true).change();
+        });
     });
-    $("#CheckNone").click(function(){
-    var checked = [];
-    $("#bookbag_form").unCheckCheckboxes("*",true).each(
-        function() {
-            selRecord(this.value,false);
-            $(this).change();
-        }
-    );
-        return false;
+
+    $("#CheckNone").click(function (e) {
+        e.preventDefault();
+        $(".select_record").each(function () {
+            $(this).prop("checked", false).change();
+        });
     });
+
     $(".holdsep").text("| ");
-    $(".hold").text(_("Place hold"));
+    $(".hold").text( __("Place hold") );
     $("#downloadcartc").empty();
 
     $("#itemst").dataTable($.extend(true, {}, dataTablesDefaults, {
@@ -148,7 +144,7 @@ $(document).ready(function(){
         e.preventDefault();
         delBasket('popup');
     });
-    $(".open_title").on("click",function(e){
+    $(".title").on("click",function(e){
         e.preventDefault();
         openBiblio( this.href );
     });

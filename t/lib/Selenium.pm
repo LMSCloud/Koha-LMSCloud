@@ -19,6 +19,7 @@ package t::lib::Selenium;
 use Modern::Perl;
 use Carp qw( croak );
 use JSON qw( from_json );
+use File::Slurp qw( write_file );
 
 use C4::Context;
 
@@ -28,12 +29,8 @@ __PACKAGE__->mk_accessors(qw(login password base_url opac_base_url selenium_addr
 sub capture {
     my ( $class, $driver ) = @_;
 
-    my $lutim_server = q|https://framapic.org|; # Thanks Framasoft!
     $driver->capture_screenshot('selenium_failure.png');
-    my $from_json = from_json qx{curl -s -F "format=json" -F "file=\@selenium_failure.png" -F "delete-day=1" $lutim_server};
-    if ( $from_json ) {
-        print STDERR "\nSCREENSHOT: $lutim_server/" . $from_json->{msg}->{short} . "\n";
-    }
+
 }
 
 sub new {
@@ -49,7 +46,17 @@ sub new {
     $self->{driver} = Selenium::Remote::Driver->new(
         port               => $self->{selenium_port},
         remote_server_addr => $self->{selenium_addr},
-        error_handler => sub {
+    );
+    bless $self, $class;
+    $self->add_error_handler;
+    $self->driver->set_implicit_wait_timeout(5000);
+    return $self;
+}
+
+sub add_error_handler {
+    my ( $self ) = @_;
+    $self->{driver}->error_handler(
+        sub {
             my ( $driver, $selenium_error ) = @_;
             print STDERR "\nSTRACE:";
             my $i = 1;
@@ -57,11 +64,16 @@ sub new {
                 print STDERR "\t" . $call_details[1]. ":" . $call_details[2] . " in " . $call_details[3]."\n";
             }
             print STDERR "\n";
-            $class->capture( $driver );
+            $self->capture( $driver );
+            $driver->quit();
             croak $selenium_error;
         }
     );
-    return bless $self, $class;
+}
+
+sub remove_error_handler {
+    my ( $self ) = @_;
+    $self->{driver}->error_handler( sub {} );
 }
 
 sub config {
@@ -84,8 +96,8 @@ sub auth {
 
     $self->driver->get($mainpage);
     $self->fill_form( { userid => $login, password => $password } );
-    my $login_button = $self->driver->find_element('//input[@id="submit"]');
-    $login_button->submit();
+    my $login_button = $self->driver->find_element('//input[@id="submit-button"]');
+    $login_button->click();
 }
 
 sub opac_auth {
@@ -93,12 +105,12 @@ sub opac_auth {
 
     $login ||= $self->login;
     $password ||= $self->password;
-    my $mainpage = $self->base_url . 'opac-main.pl';
+    my $mainpage = $self->opac_base_url . 'opac-main.pl';
 
+    $self->driver->get($mainpage . q|?logout.x=1|); # Logout before, to make sure we will see the login form
     $self->driver->get($mainpage);
     $self->fill_form( { userid => $login, password => $password } );
-    my $login_button = $self->driver->find_element('//input[@id="submit"]');
-    $login_button->submit();
+    $self->submit_form;
 }
 
 sub fill_form {
@@ -118,7 +130,7 @@ sub submit_form {
     my ( $self ) = @_;
 
     my $default_submit_selector = '//fieldset[@class="action"]/input[@type="submit"]';
-    $self->click_when_visible( $default_submit_selector );
+    $self->driver->find_element($default_submit_selector)->click
 }
 
 sub click {
@@ -150,20 +162,68 @@ sub click {
     if ( exists $params->{id} ) {
         $xpath_selector .= '//*[@id="'.$params->{id}.'"]';
     }
-    $self->click_when_visible( $xpath_selector );
+    $self->driver->find_element($xpath_selector)->click
+}
+
+sub wait_for_element_visible {
+    my ( $self, $xpath_selector ) = @_;
+
+    my ($visible, $elt);
+    $self->remove_error_handler;
+    my $max_retries = $self->max_retries;
+    my $i;
+    while ( not $visible ) {
+        $elt = eval {$self->driver->find_element($xpath_selector) };
+        $visible = $elt && $elt->is_displayed;
+        $self->driver->pause(1000) unless $visible;
+
+        die "Cannot wait more for element '$xpath_selector' to be visible"
+            if $max_retries <= ++$i
+    }
+    $self->add_error_handler;
+    return $elt;
+}
+
+sub show_all_entries {
+    my ( $self, $xpath_selector ) = @_;
+
+    $self->driver->find_element( $xpath_selector
+          . '//div[@class="dataTables_length"]/label/select/option[@value="-1"]'
+    )->click;
+    my ($all_displayed, $i);
+    my $max_retries = $self->max_retries;
+    while ( not $all_displayed ) {
+        my $dt_infos = $self->driver->get_text(
+            $xpath_selector . '//div[@class="dataTables_info"]' );
+
+        if ( $dt_infos =~ m|Showing 1 to (\d+) of (\d+) entries| ) {
+            $all_displayed = 1 if $1 == $2;
+        }
+
+        $self->driver->pause(1000) unless $all_displayed;
+
+        die "Cannot show all entries from table $xpath_selector"
+            if $max_retries <= ++$i
+    }
 }
 
 sub click_when_visible {
     my ( $self, $xpath_selector ) = @_;
-    $self->driver->set_implicit_wait_timeout(20000);
-    my ($visible, $elt);
-    while ( not $visible ) {
-        $elt = $self->driver->find_element($xpath_selector);
-        $visible = $elt->is_displayed;
-        $self->driver->pause(1000) unless $visible;
+
+    my $elt = $self->wait_for_element_visible( $xpath_selector );
+
+    my $clicked;
+    $self->remove_error_handler;
+    while ( not $clicked ) {
+        eval { $self->driver->find_element($xpath_selector)->click };
+        $clicked = !$@;
+        $self->driver->pause(1000) unless $clicked;
     }
-    $elt->click;
+    $self->add_error_handler;
+    $elt->click unless $clicked; # finally Raise the error
 }
+
+sub max_retries { 10 }
 
 =head1 NAME
 
@@ -182,6 +242,7 @@ t::lib::Selenium - Selenium helper module
 
 The goal of this module is to group the different actions we need
 when we use automation test using Selenium
+
 =head1 METHODS
 
 =head2 new
@@ -239,6 +300,21 @@ when we use automation test using Selenium
 
 Capture a screenshot and upload it using the excellent lut.im service provided by framasoft
 The url of the image will be printed on STDERR (it should be better to return it instead)
+
+=head2 add_error_handler
+    $c->add_error_handler
+
+Add our specific error handler to the driver.
+It will displayed a trace as well as capture a screenshot of the current screen.
+So only case you should need it is after you called remove_error_handler
+
+=head2 remove_error_handler
+    $c->remove_error_handler
+
+Do *not* call this method if you are not aware of what it will do!
+It will remove any kinds of error raised by the driver.
+It can be useful in some cases, for instance if you want to make sure something will not happen and that could make the driver exploses otherwise.
+You certainly should call it for only one statement then must call add_error_handler right after.
 
 =head1 AUTHORS
 

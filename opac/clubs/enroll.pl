@@ -25,14 +25,13 @@ use C4::Auth;
 use C4::Output;
 use Koha::Clubs;
 
-my $cgi = new CGI;
+my $cgi = CGI->new;
 
 my ( $template, $loggedinuser, $cookie ) = get_template_and_user(
     {
         template_name   => "clubs/enroll.tt",
         query           => $cgi,
         type            => "opac",
-        authnotrequired => 0,
     }
 );
 
@@ -46,4 +45,4 @@ $template->param(
     borrowernumber => $borrowernumber,
 );
 
-output_html_with_http_headers( $cgi, $cookie, $template->output );
+output_html_with_http_headers( $cgi, $cookie, $template->output, undef, { force_no_caching => 1 } );

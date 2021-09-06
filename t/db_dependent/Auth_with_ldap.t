@@ -117,6 +117,8 @@ $builder->build(
     }
 );
 
+my $patron = Koha::Patrons->find($borrower->{borrowernumber});
+
 # C4::Auth_with_ldap needs several stuff set first ^^^
 use_ok('C4::Auth_with_ldap');
 can_ok(
@@ -204,21 +206,17 @@ subtest 'checkpw_ldap tests' => sub {
 
         C4::Auth_with_ldap::checkpw_ldap( $dbh, 'hola', password => 'hey' );
         ok(
-            @{
-                C4::Members::Attributes::GetBorrowerAttributes(
-                    $borrower->{borrowernumber}
-                )
-            },
+            Koha::Patrons->find($borrower->{borrowernumber})->extended_attributes->count,
             'Extended attributes are not deleted'
         );
 
-        is( C4::Members::Attributes::GetBorrowerAttributeValue($borrower->{borrowernumber}, $attr_type2->{code}), 'BAR', 'Mapped attribute is BAR' );
+        is( $patron->get_extended_attribute( $attr_type2->{code} )->attribute, 'BAR', 'Mapped attribute is BAR' );
         $auth->unmock('update_local');
         $auth->unmock('ldap_entry_2_hash');
 
         $update               = 0;
         $desired_count_result = 0;    # user auth problem
-        Koha::Patrons->find( $borrower->{borrowernumber} )->delete;
+        $patron->delete;
         reload_ldap_module();
         is(
             C4::Auth_with_ldap::checkpw_ldap( $dbh, 'hola', password => 'hey' ),
@@ -392,7 +390,8 @@ sub mockedC4Config {
     if ( ref $class eq 'HASH' ) {
         return $class->{$param};
     }
-    return;
+
+    return C4::Context::_common_config($param, 'config');
 }
 
 # Function that mocks the call to Net::LDAP

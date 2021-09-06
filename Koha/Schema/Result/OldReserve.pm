@@ -28,11 +28,15 @@ __PACKAGE__->table("old_reserves");
   data_type: 'integer'
   is_nullable: 0
 
+primary key
+
 =head2 borrowernumber
 
   data_type: 'integer'
   is_foreign_key: 1
   is_nullable: 1
+
+foreign key from the borrowers table defining which patron this hold is for
 
 =head2 reservedate
 
@@ -40,11 +44,15 @@ __PACKAGE__->table("old_reserves");
   datetime_undef_if_invalid: 1
   is_nullable: 1
 
+the date the hold was places
+
 =head2 biblionumber
 
   data_type: 'integer'
   is_foreign_key: 1
   is_nullable: 1
+
+foreign key from the biblio table defining which bib record this hold is on
 
 =head2 branchcode
 
@@ -52,11 +60,22 @@ __PACKAGE__->table("old_reserves");
   is_nullable: 1
   size: 10
 
+foreign key from the branches table defining which branch the patron wishes to pick this hold up at
+
+=head2 desk_id
+
+  data_type: 'integer'
+  is_nullable: 1
+
+foreign key from the desks table defining which desk the patron should pick this hold up at
+
 =head2 notificationdate
 
   data_type: 'date'
   datetime_undef_if_invalid: 1
   is_nullable: 1
+
+currently unused
 
 =head2 reminderdate
 
@@ -64,27 +83,46 @@ __PACKAGE__->table("old_reserves");
   datetime_undef_if_invalid: 1
   is_nullable: 1
 
+currently unused
+
 =head2 cancellationdate
 
   data_type: 'date'
   datetime_undef_if_invalid: 1
   is_nullable: 1
 
+the date this hold was cancelled
+
+=head2 cancellation_reason
+
+  data_type: 'varchar'
+  is_nullable: 1
+  size: 80
+
+optional authorised value CANCELLATION_REASON
+
 =head2 reservenotes
 
   data_type: 'longtext'
   is_nullable: 1
 
+notes related to this hold
+
 =head2 priority
 
   data_type: 'smallint'
-  is_nullable: 1
+  default_value: 1
+  is_nullable: 0
+
+where in the queue the patron sits
 
 =head2 found
 
   data_type: 'varchar'
   is_nullable: 1
   size: 1
+
+a one letter code defining what the status is of the hold is after it has been confirmed
 
 =head2 timestamp
 
@@ -93,11 +131,15 @@ __PACKAGE__->table("old_reserves");
   default_value: current_timestamp
   is_nullable: 0
 
+the date and time this hold was last updated
+
 =head2 itemnumber
 
   data_type: 'integer'
   is_foreign_key: 1
   is_nullable: 1
+
+foreign key from the items table defining the specific item the patron has placed on hold or the item this hold was filled with
 
 =head2 waitingdate
 
@@ -105,11 +147,15 @@ __PACKAGE__->table("old_reserves");
   datetime_undef_if_invalid: 1
   is_nullable: 1
 
+the date the item was marked as waiting for the patron at the library
+
 =head2 expirationdate
 
   data_type: 'date'
   datetime_undef_if_invalid: 1
   is_nullable: 1
+
+the date the hold expires (usually the date entered by the patron to say they don't need the hold after a certain date)
 
 =head2 lowestPriority
 
@@ -118,11 +164,15 @@ __PACKAGE__->table("old_reserves");
   default_value: 0
   is_nullable: 0
 
+has this hold been pinned to the lowest priority in the holds queue (1 for yes, 0 for no)
+
 =head2 suspend
 
   data_type: 'tinyint'
   default_value: 0
   is_nullable: 0
+
+in this hold suspended (1 for yes, 0 for no)
 
 =head2 suspend_until
 
@@ -130,12 +180,32 @@ __PACKAGE__->table("old_reserves");
   datetime_undef_if_invalid: 1
   is_nullable: 1
 
+the date this hold is suspended until (NULL for infinitely)
+
 =head2 itemtype
 
   data_type: 'varchar'
   is_foreign_key: 1
   is_nullable: 1
   size: 10
+
+If record level hold, the optional itemtype of the item the patron is requesting
+
+=head2 item_level_hold
+
+  data_type: 'tinyint'
+  default_value: 0
+  is_nullable: 0
+
+Is the hpld placed at item level
+
+=head2 non_priority
+
+  data_type: 'tinyint'
+  default_value: 0
+  is_nullable: 0
+
+Is this a non priority hold
 
 =cut
 
@@ -150,16 +220,20 @@ __PACKAGE__->add_columns(
   { data_type => "integer", is_foreign_key => 1, is_nullable => 1 },
   "branchcode",
   { data_type => "varchar", is_nullable => 1, size => 10 },
+  "desk_id",
+  { data_type => "integer", is_nullable => 1 },
   "notificationdate",
   { data_type => "date", datetime_undef_if_invalid => 1, is_nullable => 1 },
   "reminderdate",
   { data_type => "date", datetime_undef_if_invalid => 1, is_nullable => 1 },
   "cancellationdate",
   { data_type => "date", datetime_undef_if_invalid => 1, is_nullable => 1 },
+  "cancellation_reason",
+  { data_type => "varchar", is_nullable => 1, size => 80 },
   "reservenotes",
   { data_type => "longtext", is_nullable => 1 },
   "priority",
-  { data_type => "smallint", is_nullable => 1 },
+  { data_type => "smallint", default_value => 1, is_nullable => 0 },
   "found",
   { data_type => "varchar", is_nullable => 1, size => 1 },
   "timestamp",
@@ -192,6 +266,10 @@ __PACKAGE__->add_columns(
   },
   "itemtype",
   { data_type => "varchar", is_foreign_key => 1, is_nullable => 1, size => 10 },
+  "item_level_hold",
+  { data_type => "tinyint", default_value => 0, is_nullable => 0 },
+  "non_priority",
+  { data_type => "tinyint", default_value => 0, is_nullable => 0 },
 );
 
 =head1 PRIMARY KEY
@@ -289,9 +367,45 @@ __PACKAGE__->belongs_to(
 );
 
 
-# Created by DBIx::Class::Schema::Loader v0.07042 @ 2018-11-26 12:41:49
-# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:0CngU43eEmgbCTzEa24LZA
+# Created by DBIx::Class::Schema::Loader v0.07049 @ 2021-01-21 13:39:29
+# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:aVQsdX811LswCsWyBqkSbQ
 
+__PACKAGE__->belongs_to(
+  "item",
+  "Koha::Schema::Result::Item",
+  { itemnumber => "itemnumber" },
+  {
+    is_deferrable => 1,
+    join_type     => "LEFT",
+    on_delete     => "CASCADE",
+    on_update     => "CASCADE",
+  },
+);
 
-# You can replace this text with custom code or comments, and it will be preserved on regeneration
+__PACKAGE__->belongs_to(
+  "biblio",
+  "Koha::Schema::Result::Biblio",
+  { biblionumber => "biblionumber" },
+  {
+    is_deferrable => 1,
+    join_type     => "LEFT",
+    on_delete     => "CASCADE",
+    on_update     => "CASCADE",
+  },
+);
+
+__PACKAGE__->add_columns(
+    '+item_level_hold' => { is_boolean => 1 },
+    '+lowestPriority'  => { is_boolean => 1 },
+    '+suspend'         => { is_boolean => 1 },
+    '+non_priority'    => { is_boolean => 1 }
+);
+
+sub koha_object_class {
+    'Koha::Old::Hold';
+}
+sub koha_objects_class {
+    'Koha::Old::Holds';
+}
+
 1;

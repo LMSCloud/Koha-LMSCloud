@@ -35,7 +35,7 @@ use Modern::Perl;
 
 use CGI qw ( -utf8 );
 
-use C4::Auth qw(get_template_and_user checkpw);
+use C4::Auth qw(get_template_and_user checkpw in_iprange);
 use C4::Koha;
 use C4::Circulation;
 use C4::Reserves;
@@ -45,12 +45,13 @@ use C4::Biblio;
 use C4::Items;
 use Koha::DateUtils qw( dt_from_string );
 use Koha::Acquisition::Currencies;
+use Koha::Items;
 use Koha::Patrons;
 use Koha::Patron::Images;
 use Koha::Patron::Messages;
 use Koha::Token;
 
-my $query = new CGI;
+my $query = CGI->new;
 
 unless (C4::Context->preference('WebBasedSelfCheck')) {
     # redirect to OPAC home if self-check is not enabled
@@ -58,7 +59,13 @@ unless (C4::Context->preference('WebBasedSelfCheck')) {
     exit;
 }
 
-if (C4::Context->preference('AutoSelfCheckAllowed')) 
+unless ( in_iprange(C4::Context->preference('SelfCheckAllowByIPRanges')) ) {
+    # redirect to OPAC home if self-checkout not permitted from current IP
+    print $query->redirect("/cgi-bin/koha/opac-main.pl");
+    exit;
+}
+
+if (C4::Context->preference('AutoSelfCheckAllowed'))
 {
     my $AutoSelfCheckID = C4::Context->preference('AutoSelfCheckID');
     my $AutoSelfCheckPass = C4::Context->preference('AutoSelfCheckPass');
@@ -71,7 +78,6 @@ $query->param(-name=>'sco_user_login',-values=>[1]);
 my ( $template, $loggedinuser, $cookie ) = get_template_and_user(
     {
         template_name   => "sco/sco-main.tt",
-        authnotrequired => 0,
         flagsrequired   => { self_check => "self_checkout_module" },
         query           => $query,
         type            => "opac",
@@ -86,25 +92,27 @@ if (C4::Context->preference('SelfCheckTimeout')) {
 }
 $template->param( SelfCheckTimeout => $selfchecktimeout );
 
-# Checks policy laid out by AllowSelfCheckReturns, defaults to 'on' if preference is undefined
+# Checks policy laid out by SCOAllowCheckin, defaults to 'on' if preference is undefined
 my $allowselfcheckreturns = 1;
-if (defined C4::Context->preference('AllowSelfCheckReturns')) {
-    $allowselfcheckreturns = C4::Context->preference('AllowSelfCheckReturns');
+if (defined C4::Context->preference('SCOAllowCheckin')) {
+    $allowselfcheckreturns = C4::Context->preference('SCOAllowCheckin');
 }
 
 my $issuerid = $loggedinuser;
-my ($op, $patronid, $patronlogin, $patronpw, $barcode, $confirmed) = (
+my ($op, $patronid, $patronlogin, $patronpw, $barcode, $confirmed, $newissues) = (
     $query->param("op")         || '',
     $query->param("patronid")   || '',
     $query->param("patronlogin")|| '',
     $query->param("patronpw")   || '',
     $query->param("barcode")    || '',
     $query->param("confirmed")  || '',
+    $query->param("newissues")  || '',
 );
 
+my @newissueslist = split /,/, $newissues;
 my $issuenoconfirm = 1; #don't need to confirm on issue.
 my $issuer   = Koha::Patrons->find( $issuerid )->unblessed;
-my $item     = GetItem(undef,$barcode);
+my $item     = Koha::Items->find({ barcode => $barcode });
 if (C4::Context->preference('SelfCheckoutByLogin') && !$patronid) {
     my $dbh = C4::Context->dbh;
     my $resval;
@@ -123,12 +131,26 @@ my $return_only = 0;
 #warn "issuer cardnumber: " .   $issuer->{cardnumber};
 #warn "patron cardnumber: " . $borrower->{cardnumber};
 if ($op eq "logout") {
+    $template->param( loggedout => 1 );
     $query->param( patronid => undef, patronlogin => undef, patronpw => undef );
 }
 elsif ( $op eq "returnbook" && $allowselfcheckreturns ) {
-    my ($doreturn) = AddReturn( $barcode, $branch );
+    my $success        = 0;
+    my $human_required = 0;
+    if ( C4::Context->preference("CircConfirmItemParts") ) {
+        my $item = Koha::Items->find( { barcode => $barcode } );
+        if ( defined($item)
+            && $item->materials )
+        {
+            $human_required = 1;
+        }
+    }
+
+    ($success) = AddReturn( $barcode, $branch )
+      unless $human_required;
+    $template->param( returned => $success );
 }
-elsif ( $patron and $op eq "checkout" ) {
+elsif ( $patron && ( $op eq 'checkout' ) ) {
     my $impossible  = {};
     my $needconfirm = {};
     ( $impossible, $needconfirm ) = CanBookBeIssued(
@@ -140,7 +162,7 @@ elsif ( $patron and $op eq "checkout" ) {
     );
     my $issue_error;
     if ( $confirm_required = scalar keys %$needconfirm ) {
-        for my $error ( qw( UNKNOWN_BARCODE max_loans_allowed ISSUED_TO_ANOTHER NO_MORE_RENEWALS NOT_FOR_LOAN DEBT WTHDRAWN RESTRICTED RESERVED ITEMNOTSAMEBRANCH EXPIRED DEBARRED CARD_LOST GNA INVALID_DATE UNKNOWN_BARCODE TOO_MANY DEBT_GUARANTEES USERBLOCKEDOVERDUE PATRON_CANT PREVISSUE NOT_FOR_LOAN_FORCING ITEM_LOST) ) {
+        for my $error ( qw( UNKNOWN_BARCODE max_loans_allowed ISSUED_TO_ANOTHER NO_MORE_RENEWALS NOT_FOR_LOAN DEBT WTHDRAWN RESTRICTED RESERVED ITEMNOTSAMEBRANCH EXPIRED DEBARRED CARD_LOST GNA INVALID_DATE UNKNOWN_BARCODE TOO_MANY DEBT_GUARANTEES DEBT_GUARANTORS USERBLOCKEDOVERDUE PATRON_CANT PREVISSUE NOT_FOR_LOAN_FORCING ITEM_LOST ADDITIONAL_MATERIALS ) ) {
             if ( $needconfirm->{$error} ) {
                 $issue_error = $error;
                 $confirmed = 0;
@@ -153,11 +175,12 @@ elsif ( $patron and $op eq "checkout" ) {
     if (scalar keys %$impossible) {
 
         my $issue_error = (keys %$impossible)[0]; # FIXME This is wrong, we assume only one error and keys are not ordered
+        my $title = ( $item ) ? $item->biblio->title : '';
 
         $template->param(
             impossible                => $issue_error,
             "circ_error_$issue_error" => 1,
-            title                     => $item->{title},
+            title                     => $title,
             hide_main                 => 1,
         );
         if ($issue_error eq 'DEBT') {
@@ -171,20 +194,14 @@ elsif ( $patron and $op eq "checkout" ) {
                 barcode    => $barcode,
             );
         }
-    } elsif ( $needconfirm->{RENEW_ISSUE} ) {
-        if ($confirmed) {
-            #warn "renewing";
-            AddRenewal( $borrower->{borrowernumber}, $item->{itemnumber} );
-        } else {
-            #warn "renew confirmation";
-            $template->param(
+    } elsif ( $needconfirm->{RENEW_ISSUE} ){
+        $template->param(
                 renew               => 1,
                 barcode             => $barcode,
                 confirm             => 1,
                 confirm_renew_issue => 1,
                 hide_main           => 1,
-            );
-        }
+        );
     } elsif ( $confirm_required && !$confirmed ) {
         #warn "failed confirmation";
         $template->param(
@@ -214,7 +231,10 @@ elsif ( $patron and $op eq "checkout" ) {
                     }
                 )->count;
             }
+
             AddIssue( $borrower, $barcode );
+            $template->param( issued => 1 );
+            push @newissueslist, $barcode;
 
             if ( $hold_existed ) {
                 my $dtf = Koha::Database->new->schema->storage->datetime_parser;
@@ -223,10 +243,10 @@ elsif ( $patron and $op eq "checkout" ) {
                     # Note that this should not be needed but since we do not have proper exception handling here we do it this way
                     patron_has_hold_fee => Koha::Account::Lines->search(
                         {
-                            borrowernumber => $borrower->{borrowernumber},
-                            accounttype    => 'Res',
-                            description    => 'Reserve Charge - ' . $item->biblio->title,
-                            date           => $dtf->format_date(dt_from_string)
+                            borrowernumber  => $borrower->{borrowernumber},
+                            debit_type_code => 'RESERVE',
+                            description     => $item->biblio->title,
+                            date            => $dtf->format_date(dt_from_string)
                         }
                       )->count,
                 );
@@ -235,7 +255,7 @@ elsif ( $patron and $op eq "checkout" ) {
             $confirm_required = 1;
             #warn "issue confirmation";
             $template->param(
-                confirm    => "Issuing title: " . $item->{title},
+                confirm    => "Issuing title: " . $item->biblio->title,
                 barcode    => $barcode,
                 hide_main  => 1,
                 inputfocus => 'confirm',
@@ -243,6 +263,16 @@ elsif ( $patron and $op eq "checkout" ) {
         }
     }
 } # $op
+
+if ( $patron && ( $op eq 'renew' ) ) {
+    my ($status,$renewerror) = CanBookBeRenewed( $borrower->{borrowernumber}, $item->itemnumber );
+    if ($status) {
+        #warn "renewing";
+        AddRenewal( $borrower->{borrowernumber}, $item->itemnumber, undef, undef, undef, undef, 1 );
+        push @newissueslist, $barcode;
+        $template->param( renewed => 1 );
+    }
+}
 
 if ($borrower) {
 #   warn "issuer's  branchcode: " .   $issuer->{branchcode};
@@ -262,16 +292,40 @@ if ($borrower) {
         push @checkouts, $checkout;
     }
 
+    my $show_priority;
+    for ( C4::Context->preference("OPACShowHoldQueueDetails") ) {
+        m/priority/ and $show_priority = 1;
+    }
+
+    my $account = $patron->account;
+    my $total = $account->balance;
+    my $accountlines = $account->lines;
+
+    my $holds = $patron->holds;
+    my $waiting_holds_count = 0;
+
+    while(my $hold = $holds->next) {
+        $waiting_holds_count++ if $hold->is_waiting;
+    }
+
     $template->param(
         validuser => 1,
         borrowername => $borrowername,
         issues_count => scalar(@checkouts),
         ISSUES => \@checkouts,
+        HOLDS => $holds,
+        newissues => join(',',@newissueslist),
         patronid => $patronid,
         patronlogin => $patronlogin,
         patronpw => $patronpw,
+        waiting_holds_count => $waiting_holds_count,
         noitemlinks => 1 ,
         borrowernumber => $borrower->{'borrowernumber'},
+        SuspendHoldsOpac => C4::Context->preference('SuspendHoldsOpac'),
+        AutoResumeSuspendedHolds => C4::Context->preference('AutoResumeSuspendedHolds'),
+        howpriority   => $show_priority,
+        ACCOUNT_LINES => $accountlines,
+        total => $total,
     );
 
     my $patron_messages = Koha::Patron::Messages->search(

@@ -18,7 +18,7 @@
 
 use Modern::Perl;
 
-use Test::More tests => 144;
+use Test::More tests => 153;
 use Test::MockModule;
 use Test::Warn;
 use MARC::Record;
@@ -26,6 +26,9 @@ use MARC::Record;
 use Koha::Database;
 use C4::Biblio;
 use C4::OAI::Sets;
+
+use t::lib::TestBuilder;
+use t::lib::Mocks;
 
 my $schema  = Koha::Database->new->schema;
 $schema->storage->txn_begin;
@@ -36,7 +39,7 @@ $dbh->do('DELETE FROM oai_sets_descriptions');
 $dbh->do('DELETE FROM oai_sets_mappings');
 $dbh->do('DELETE FROM oai_sets_biblios');
 
-
+my $builder = t::lib::TestBuilder->new;
 # ---------- Testing AddOAISet ------------------
 ok (!defined(AddOAISet), 'AddOAISet without argument is undef');
 
@@ -347,15 +350,19 @@ is ($mappings->{$set2_id}->[0]->{operator}, 'equal', 'operator field is "equal"'
 is ($mappings->{$set2_id}->[0]->{marcvalue}, 'myOtherMarcValue', 'marcvalue field is "myOtherMarcValue"');
 
 
-# ---------- Testing AddOAISetsBiblios ----------
+# ---------- Testing AddOAISetsBiblios with OAI-PMH:AutoUpdateSets disabled ----------
 ok (!defined(AddOAISetsBiblios), 'AddOAISetsBiblios without argument is undef');
 ok (!defined(AddOAISetsBiblios(my $arg=[])), 'AddOAISetsBiblios with a no HASH argument is undef');
 ok (defined(AddOAISetsBiblios($arg={})), 'AddOAISetsBiblios with a HASH argument is def');
 
+t::lib::Mocks::mock_preference( 'OAI-PMH:AutoUpdateSets', 0 );
+
 # Create a biblio instance for testing
-my $biblionumber1 = create_helper_biblio('Moffat, Steven');
+my $biblio_1 = $builder->build_sample_biblio({ author => 'Moffat, Steven' });
+my $biblionumber1 = $biblio_1->biblionumber;
 isa_ok(\$biblionumber1, 'SCALAR', '$biblionumber1 is a SCALAR');
-my $biblionumber2 = create_helper_biblio('Moffat, Steven');
+my $biblio_2 = $builder->build_sample_biblio({ author => 'Moffat, Steven' });
+my $biblionumber2 = $biblio_2->biblionumber;
 isa_ok(\$biblionumber2, 'SCALAR', '$biblionumber2 is a SCALAR');
 
 my $oai_sets_biblios = {
@@ -390,6 +397,29 @@ $sth->execute($set2_id);
 $count = $sth->rows;
 is ($count, '0', '$set_id2 has 0 biblio');
 
+# ---------- Testing AddOAISetsBiblios with OAI-PMH:AutoUpdateSets enabled ----------
+
+t::lib::Mocks::mock_preference( 'OAI-PMH:AutoUpdateSets', 1 );
+
+my $biblio_3 = $builder->build_sample_biblio({ author => 'Moffat, Steven' });
+my $biblionumber3 = $biblio_3->biblionumber;
+isa_ok(\$biblionumber3, 'SCALAR', '$biblionumber3 is a SCALAR');
+
+$sth = $dbh->prepare("SELECT count(*) FROM oai_sets_biblios");
+$sth->execute;
+$bibliosCount = $sth->fetchrow_array;
+is ($bibliosCount, 3, 'There are 3 biblios in oai_sets_biblios');
+
+#testing biblio for set1_id
+$sth = $dbh->prepare("SELECT * FROM oai_sets_biblios WHERE set_id = ?");
+$sth->execute($set1_id);
+$count = $sth->rows;
+is ($count, '3', '$set_id1 has 3 biblio');
+
+$sth->execute($set1_id);
+$line = ${ $sth->fetchall_arrayref( {} ) }[2];
+is($line->{set_id}, $set1_id, "set_id is good");
+is($line->{biblionumber}, $biblionumber3, "biblionumber is good");
 
 # ---------- Testing GetOAISetsBiblio -----------
 $oai_sets = GetOAISetsBiblio($biblionumber1);
@@ -517,7 +547,8 @@ ModOAISetMappings($setVH_id, $mappingsVH);
 
 
 #Create a biblio notice corresponding at one of mappings
-my $biblionumberVH = create_helper_biblio('Victor Hugo');
+my $biblio_VH = $builder->build_sample_biblio({ author => 'Victor Hugo' });
+my $biblionumberVH = $biblio_VH->biblionumber;
 
 #Update
 my $record = GetMarcBiblio({ biblionumber => $biblionumberVH });
@@ -529,6 +560,59 @@ is($oai_setsVH->[0]->{id}, $setVH_id, 'id is ok');
 is($oai_setsVH->[0]->{spec}, $setVH->{spec}, 'id is ok');
 is($oai_setsVH->[0]->{name}, $setVH->{name}, 'id is ok');
 
+subtest 'OAI-PMH:AutoUpdateSetsEmbedItemData' => sub {
+
+    plan tests => 6;
+
+    t::lib::Mocks::mock_preference( 'OAI-PMH:AutoUpdateSetsEmbedItemData', 0 );
+
+    #Create a set
+    my $setFIC = {
+        'spec' => 'Set where collection code is FIC',
+        'name' => 'FIC'
+    };
+    my $setFIC_id = AddOAISet($setFIC);
+
+    #Create mappings : 'ccode' should be 'FIC'
+    my $mappingsFIC;
+    $mappingsFIC = [
+        {
+            marcfield    => '952',
+            marcsubfield => '8',
+            operator     => 'equal',
+            marcvalue    => 'FIC'
+        }
+    ];
+    ModOAISetMappings( $setFIC_id, $mappingsFIC );
+
+    # Create biblio with 'FIC' item
+    my $biblio_FIC = $builder->build_sample_biblio();
+    my $item       = $builder->build_sample_item(
+        {
+            biblionumber => $biblio_FIC->biblionumber,
+            ccode        => 'FIC'
+        }
+    );
+
+    #Update
+    my $recordFIC = GetMarcBiblio( { biblionumber => $biblio_FIC->biblionumber } );
+    UpdateOAISetsBiblio( $biblio_FIC->biblionumber, $recordFIC );
+
+    #is biblio attached to setFIC ?
+    my $oai_setsFIC = GetOAISetsBiblio( $biblio_FIC->biblionumber );
+    is( $oai_setsFIC->[0]->{id},   undef, 'id is ok' );
+    is( $oai_setsFIC->[0]->{spec}, undef, 'id is ok' );
+    is( $oai_setsFIC->[0]->{name}, undef, 'id is ok' );
+
+    t::lib::Mocks::mock_preference( 'OAI-PMH:AutoUpdateSetsEmbedItemData', 1 );
+    UpdateOAISetsBiblio( $biblio_FIC->biblionumber, $recordFIC );
+
+    #is biblio attached to setFIC ?
+    $oai_setsFIC = GetOAISetsBiblio( $biblio_FIC->biblionumber );
+    is( $oai_setsFIC->[0]->{id},   $setFIC_id,      'id is ok' );
+    is( $oai_setsFIC->[0]->{spec}, $setFIC->{spec}, 'id is ok' );
+    is( $oai_setsFIC->[0]->{name}, $setFIC->{name}, 'id is ok' );
+};
 
 # ---------- Testing CalcOAISetsBiblio ----------
 ok (!defined(CalcOAISetsBiblio), 'CalcOAISetsBiblio without argument is undef');
@@ -572,7 +656,8 @@ ModOAISetMappings($setNotVH_id, $mappingsNotVH);
 
 
 #Create a biblio notice corresponding at one of mappings
-my $biblionumberNotVH = create_helper_biblio('Sponge, Bob');
+my $biblio_NotVH = $builder->build_sample_biblio({ author => 'Sponge, Bob' });
+my $biblionumberNotVH = $biblio_NotVH->biblionumber;
 
 #Update
 $record = GetMarcBiblio({ biblionumber => $biblionumberNotVH });
@@ -581,35 +666,75 @@ UpdateOAISetsBiblio($biblionumberNotVH, $record);
 my @setsNotEq = CalcOAISetsBiblio($record);
 is_deeply(@setsNotEq, $setNotVH_id, 'The $record only belongs to $setNotVH');
 
+# ---------- Testing CalcOAISetsBiblio with repeated field ----------
 
-
-# ---------- Subs --------------------------------
-
-
-# Helper method to set up a Biblio.
-sub create_helper_biblio {
-    my $author = shift;
-
-    return unless (defined($author));
-
-    my $marcflavour = C4::Context->preference('marcflavour');
-    my $bib = MARC::Record->new();
-    my $title = 'Silence in the library';
-
-    if ($marcflavour eq 'UNIMARC' ){
-        $bib->append_fields(
-            MARC::Field->new('200', ' ', ' ', f => $author),
-            MARC::Field->new('200', ' ', ' ', a => $title),
-        );
-    }
-    else{
-        $bib->append_fields(
-            MARC::Field->new('100', ' ', ' ', a => $author),
-            MARC::Field->new('245', ' ', ' ', a => $title),
-        );
-    }
-    my ($biblionumber)= AddBiblio($bib, '');
-    return $biblionumber;
+# Delete all existing sets to avoid false positives
+my $all_sets = GetOAISets;
+foreach my $set ( @$all_sets ) {
+    DelOAISet( $set->{'id'} );
 }
+
+# Create a MARC record with a repeated field 374
+my $record_rep = MARC::Record->new;
+$record_rep->add_fields(
+    [ '001', '1234' ],
+    [ '100', ' ', ' ', a => 'N., N.' ],
+    [ '374', ' ', ' ', a => 'A' ],
+    [ '374', ' ', ' ', a => 'B', a => 'C' ]
+);
+
+# Create a set
+my $setRep = {
+    'spec' => 'Set where 374a equals a given letter',
+    'name' => 'Rep'
+};
+my $setRep_id = AddOAISet($setRep);
+# Create a mapping : 374$a should be "A"
+my $mappingRepA = [
+    {
+        marcfield => '374',
+        marcsubfield => 'a',
+        operator => 'equal',
+        marcvalue => 'A',
+    },
+];
+# Add the mapping to the set
+ModOAISetMappings($setRep_id, $mappingRepA);
+
+# Get a list of set ids the record belongs to
+my @setsRepA = CalcOAISetsBiblio($record_rep);
+is_deeply(\@setsRepA, [$setRep_id], 'The $record belongs to $setRep_id (matching on first field, first subfield)');
+
+# Create another mapping : 374$a should now be "B"
+my $mappingRepB = [
+    {
+        marcfield => '374',
+        marcsubfield => 'a',
+        operator => 'equal',
+        marcvalue => 'B',
+    },
+];
+# Replace the first mapping with the second one
+ModOAISetMappings($setRep_id, $mappingRepB);
+
+# Get a list of set ids the record belongs to
+my @setsRepB = CalcOAISetsBiblio($record_rep);
+is_deeply(\@setsRepB, [$setRep_id], 'The $record belongs to $setRep_id (matching on second field, first subfield)');
+
+# Create another mapping : 374$a should now be "C"
+my $mappingRepC = [
+    {
+        marcfield => '374',
+        marcsubfield => 'a',
+        operator => 'equal',
+        marcvalue => 'C',
+    },
+];
+# Replace the first mapping with the second one
+ModOAISetMappings($setRep_id, $mappingRepC);
+
+# Get a list of set ids the record belongs to
+my @setsRepC = CalcOAISetsBiblio($record_rep);
+is_deeply(\@setsRepC, [$setRep_id], 'The $record belongs to $setRep_id (matching on second field, second subfield)');
 
 $schema->storage->txn_rollback;

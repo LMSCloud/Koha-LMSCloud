@@ -23,6 +23,8 @@ use XML::LibXML;
 use XML::LibXML::XPathContext;
 use Digest::MD5 qw();
 use POSIX qw(strftime);
+use Text::CSV_XS;
+use List::MoreUtils qw(indexes);
 
 use C4::Context;
 use C4::Debug;
@@ -345,6 +347,8 @@ sub _export_table_ods
                 $data = $hashRef->{$_->{name}};
                 if ($_->{type} eq 'float' && !defined($data)) {
                     $data = '0';
+                } elsif ($_->{type} eq 'string' && !defined($data)) {
+                    $data = q{};
                 } elsif ($_->{type} eq 'string' && (!$data && $data ne '0')) {
                     $data = '#';
                 }
@@ -415,6 +419,8 @@ sub _export_table_excel
                 $data = $hashRef->{$_->{name}};
                 if ($_->{type} eq 'Number' && !defined($data)) {
                     $data = '0';
+                } elsif ($_->{type} eq 'String' && !defined($data)) {
+                    $data = q{};
                 } elsif ($_->{type} eq 'String' && (!$data && $data ne '0')) {
                     $data = '#';
                 }
@@ -844,37 +850,18 @@ sub _import_table
 # Insert/Update the row from the spreadsheet in the database
 sub _processRow_DB
 {
-    my ($dbh, $db_scheme, $table, $fields, $dataStr, $updateStr, $dataFields, $dataFieldsHash, $PKArray, $fieldsPK, $fields2Delete) = @_;
+    my ($dbh, $table, $fields, $dataStr, $updateStr, $dataFields, $dataFieldsHash, $PKArray, $fieldsPK, $fields2Delete) = @_;
 
     my $ok = 0;
     my $query;
-    if ($db_scheme eq 'mysql') {
-        $query = 'INSERT INTO ' . $table . ' (' . $fields . ') VALUES (' . $dataStr . ') ON DUPLICATE KEY UPDATE ' . $updateStr;
-    } else {
-        $query = 'INSERT INTO ' . $table . ' (' . $fields . ') VALUES (' . $dataStr . ')';
-    }
+    $query = 'INSERT INTO ' . $table . ' (' . $fields . ') VALUES (' . $dataStr . ') ON DUPLICATE KEY UPDATE ' . $updateStr;
     eval {
         my $sth = $dbh->prepare($query);
-        if ($db_scheme eq 'mysql') {
-            $sth->execute((@$dataFields, @$dataFields));
-        } else {
-            $sth->execute(@$dataFields);
-        }
+        $sth->execute((@$dataFields, @$dataFields));
     };
     if ($@) {
-        unless ($db_scheme eq 'mysql') {
-            $query = 'UPDATE ' . $table . ' SET ' . $updateStr . ' WHERE ';
-            map {$query .= $_ . '=? AND ';} @$PKArray;
-            $query = substr($query, 0, -4);
-            eval {
-                my $sth2 = $dbh->prepare($query);
-                my @dataPK = ();
-                map {push @dataPK, $dataFieldsHash->{$_};} @$PKArray;
-                $sth2->execute((@$dataFields, @dataPK));
-            };
-            $ok = 1 unless ($@);
-        }
-        $debug and warn "Error _processRows_Table $@\n";
+        warn $@;
+        $debug and warn "Error _processRow_DB $@\n";
     } else {
         $ok = 1;
     }
@@ -899,7 +886,6 @@ sub _processRows_Table
     my $dataStr = '';
     my $updateStr = '';
     my $j = 0;
-    my $db_scheme = C4::Context->config("db_scheme");
     my $ok = 0;
     my @fieldsPK = @$PKArray;
     shift @fieldsPK;
@@ -920,7 +906,9 @@ sub _processRows_Table
                 # Get data from row
                 my ($dataFields, $dataFieldsR) = _getDataFields($frameworkcode, $nodeR, \@fields, $format);
                 if (scalar(@fields) == scalar(@$dataFieldsR)) {
-                    $ok = _processRow_DB($dbh, $db_scheme, $table, $fields, $dataStr, $updateStr, $dataFieldsR, $dataFields, $PKArray, \@fieldsPK, $fields2Delete);
+                    $ok = _processRow_DB($dbh, $table, $fields, $dataStr, $updateStr, $dataFieldsR, $dataFields, $PKArray, \@fieldsPK, $fields2Delete);
+                } else {
+                    warn "$j don't match number of fields " . scalar(@fields) . ' vs ' . scalar(@$dataFieldsR) . "($dataStr)";
                 }
             }
             $j++;
@@ -943,80 +931,66 @@ sub _import_table_csv
     my $numFields = @$fields;
     my $fieldsNameRead = 0;
     my @arrData;
-    my ($fieldsStr, $dataStr, $updateStr);
-    my $db_scheme = C4::Context->config("db_scheme");
+    my ($fieldsStr, $dataStr, $updateStr, @empty_indexes);
     my @fieldsPK = @$PKArray;
     shift @fieldsPK;
     my $ok = 0;
-    my $numRow = 0;
     my $pos = 0;
-    while (<$dom>) {
-        $row = $_;
-        # Check whether the line has an unfinished field, i.e., a field with CR/LF in its data
-        if ($row =~ /,"[^"]*[\r\n]+$/ || $row =~ /^[^"]+[\r\n]+$/) {
-            $row =~ s/[\r\n]+$//;
-            $partialRow .= $row;
-            next;
-        }
-        if ($partialRow) {
-            $row = $partialRow . $row;
-            $partialRow = '';
-        }
-        # Line OK, process it
-        if ($row =~ /(?:".*?",?)+/) {
-            @arrData = split('","', $row);
-            $arrData[0] = substr($arrData[0], 1) if ($arrData[0] =~ /^"/);
-            $arrData[$#arrData] =~ s/[\r\n]+$//;
-            chop $arrData[$#arrData] if ($arrData[$#arrData] =~ /"$/);
-            if (@arrData) {
-                if ($arrData[0] eq '#-#' && $arrData[$#arrData] eq '#-#') {
-                    # Change of table with separators #-#
-                    return 1;
-                } elsif ($fieldsNameRead && $arrData[0] eq 'tagfield') {
-                    # Change of table because we begin with field name with former field names read
-                    seek($dom, $pos, 0);
-                    return 1;
-                }
-                if (scalar(@$fields) == scalar(@arrData)) {
-                    if (!$fieldsNameRead) {
-                        # New table, we read the field names
-                        $fieldsNameRead = 1;
-                        for (my $i=0; $i < @arrData; $i++) {
-                            if ($arrData[$i] ne $fields->[$i]) {
-                                $fieldsNameRead = 0;
-                                last;
-                            }
-                        }
-                        if ($fieldsNameRead) {
-                            $fieldsStr = join(',', @$fields);
-                            $dataStr = '';
-                            map { $dataStr .= '?,';} @$fields;
-                            chop($dataStr) if ($dataStr);
-                            $updateStr = '';
-                            map { $updateStr .= $_ . '=?,';} @$fields;
-                            chop($updateStr) if ($updateStr);
-                        }
-                    } else {
-                        # Read data
-                        my $j = 0;
-                        my %dataFields = ();
-                        for (@arrData) {
-                            if ($fields->[$j] eq 'frameworkcode' && $_ ne $frameworkcode) {
-                                $dataFields{$fields->[$j]} = $frameworkcode;
-                                $arrData[$j] = $frameworkcode;
-                            } else {
-                                $dataFields{$fields->[$j]} = $_;
-                            }
-                            $j++
-                        }
-                        $ok = _processRow_DB($dbh, $db_scheme, $table, $fieldsStr, $dataStr, $updateStr, \@arrData, \%dataFields, $PKArray, \@fieldsPK, $fields2Delete);
-                    }
-                }
-                $pos = tell($dom);
+    my $csv = Text::CSV_XS->new ({ binary => 1 });
+    while ( my $row = $csv->getline($dom) ) {
+        my @fields = @$row;
+        @arrData = @fields;
+        next if scalar @arrData == grep { $_ eq '' } @arrData; # Emtpy lines
+        #$arrData[0] = substr($arrData[0], 1) if ($arrData[0] =~ /^"/);
+        #$arrData[$#arrData] =~ s/[\r\n]+$//;
+        #chop $arrData[$#arrData] if ($arrData[$#arrData] =~ /"$/);
+        if (@arrData) {
+            if ($arrData[0] eq '#-#' && $arrData[$#arrData] eq '#-#') {
+                # Change of table with separators #-#
+                return 1;
+            } elsif ($fieldsNameRead && $arrData[0] eq 'tagfield') {
+                # Change of table because we begin with field name with former field names read
+                seek($dom, $pos, 0);
+                return 1;
             }
-            @arrData = ();
+            if (!$fieldsNameRead) {
+                # New table, we read the field names
+                $fieldsNameRead = 1;
+                $fields = [@arrData];
+                my $non_empty_fields = [ grep { $_ ne '' } @$fields ];
+                @empty_indexes = indexes { $_ eq '' } @$fields;
+                $fieldsStr = join(',', @$non_empty_fields);
+                $dataStr = '';
+                map { $dataStr .= '?,';} @$non_empty_fields;
+                chop($dataStr) if ($dataStr);
+                $updateStr = '';
+                map { $updateStr .= $_ . '=?,';} @$non_empty_fields;
+                chop($updateStr) if ($updateStr);
+            } else {
+                # Read data
+                my $j = 0;
+                my %dataFields = ();
+                my @values;
+                for my $value (@arrData) {
+                    if ( grep { $_ == $j } @empty_indexes ) {
+                        # empty field
+                    } elsif ($fields->[$j] eq 'frameworkcode' && $value ne $frameworkcode) {
+                        $dataFields{$fields->[$j]} = $frameworkcode;
+                        push @values, $frameworkcode;
+                    } elsif ($fields->[$j] eq 'isurl' && defined $value && $value eq q{}) {
+                        $dataFields{$fields->[$j]} = undef;
+                        push @values, undef;
+                    } else {
+                        $dataFields{$fields->[$j]} = $value;
+                        push @values, $value;
+                    }
+                    $j++
+                }
+                $ok = _processRow_DB($dbh, $table, $fieldsStr, $dataStr, $updateStr, \@values, \%dataFields, $PKArray, \@fieldsPK, $fields2Delete);
+            }
+            $pos = tell($dom);
         }
-        $numRow++;
+        @arrData = ();
     }
     return $ok;
 }#_import_table_csv
@@ -1110,7 +1084,7 @@ sub _getDataFields
             if ($format && $format eq 'ods') {
                 ($data, $repeated) = _getDataNodeODS($node2) if ($repeated <= 0);
                 $repeated--;
-                $ok = 1 if (defined($data));
+                $ok = 1;
             } else {
                 if ($node2->nodeType == 1 && $node2->nodeName  =~ /(?:ss:)?Cell/) {
                     my @nodes3 = $node2->getElementsByTagNameNS('urn:schemas-microsoft-com:office:spreadsheet', 'Data');
@@ -1121,8 +1095,14 @@ sub _getDataFields
                 }
             }
             if ($ok) {
+                $data //= '';
                 $data = '' if ($data eq '#');
-                $data = $frameworkcode if ($fields->[$i] eq 'frameworkcode');
+                if ( $fields->[$i] eq 'frameworkcode' ) {
+                    $data = $frameworkcode;
+                }
+                elsif ( $fields->[$i] eq 'isurl' ) {
+                    $data = undef if defined $data && $data eq q{};
+                }
                 $dataFields->{$fields->[$i]} = $data;
                 push @dataFieldsA, $data;
                 $i++;

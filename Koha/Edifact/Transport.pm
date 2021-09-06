@@ -28,8 +28,8 @@ use Net::SFTP::Foreign;
 use File::Slurp;
 use File::Copy;
 use File::Basename qw( fileparse );
-use File::Spec;
 use Koha::Database;
+use Koha::DateUtils;
 use Encode qw( from_to );
 
 sub new {
@@ -40,8 +40,8 @@ sub new {
     my $self     = {
         account     => $acct,
         schema      => $schema,
-        working_dir => File::Spec->tmpdir(),    #temporary work directory
-        transfer_date => DateTime->now( time_zone => 'local' ),
+        working_dir => C4::Context::temporary_directory,    #temporary work directory
+        transfer_date => dt_from_string(),
     };
 
     bless $self, $class;
@@ -51,9 +51,9 @@ sub new {
 sub working_directory {
     my ( $self, $new_value ) = @_;
     if ($new_value) {
-        $self->{working_directory} = $new_value;
+        $self->{working_dir} = $new_value;
     }
-    return $self->{working_directory};
+    return $self->{working_dir};
 }
 
 sub download_messages {
@@ -183,6 +183,15 @@ sub sftp_download {
 sub ingest {
     my ( $self, $msg_hash, @downloaded_files ) = @_;
     foreach my $f (@downloaded_files) {
+
+        # Check file has not been downloaded already
+        my $existing_file = $self->{schema}->resultset('EdifactMessage')
+          ->find( { filename => $f, } );
+        if ($existing_file) {
+            carp "skipping ingest of $f : filename exists";
+            next;
+        }
+
         $msg_hash->{filename} = $f;
         my $file_content =
           read_file( "$self->{working_dir}/$f", binmode => ':raw' );

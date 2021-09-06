@@ -28,7 +28,7 @@ use C4::Utils::DataTables::Members qw( search );
 use Koha::DateUtils qw( output_pref dt_from_string );
 use Koha::Patrons;
 
-my $input = new CGI;
+my $input = CGI->new;
 
 exit unless $input->param('template_path');
 
@@ -36,7 +36,6 @@ my ($template, $user, $cookie) = get_template_and_user({
     template_name   => scalar $input->param('template_path'),
     query           => $input,
     type            => "intranet",
-    authnotrequired => 0,
     flagsrequired   => { borrowers => 'edit_borrowers' }
 });
 
@@ -89,6 +88,7 @@ if ( $searchmember
         patrons              => [ $member->unblessed ],
     } if $member;
 }
+
 
 if ( $chargessince ) {
     eval {
@@ -165,33 +165,10 @@ $results = C4::Utils::DataTables::Members::search(
         patronlistid => $patronlistid,
         issuecountstart => $issuecountstart,
         issuecountend => $issuecountend,
-        return_borrower_attributes => $return_borrower_attributes
+        return_borrower_attributes => $return_borrower_attributes,
+        ( $has_permission ? ( has_permission => $has_permission ) : () ),
     }
 ) unless $results;
-
-# It is not recommanded to use the has_permission param if you use the pagination
-# The filter is done AFTER requested the data
-if ($has_permission) {
-    my ( $permission, $subpermission ) = split /\./, $has_permission;
-    my @patrons_with_permission;
-    for my $patron ( @{ $results->{patrons} } ) {
-        my $perms = haspermission( $patron->{userid} );
-        if (   $perms->{superlibrarian} == 1
-            or $perms->{$permission} == 1 )
-        {
-            push @patrons_with_permission, $patron;
-            next;
-        }
-
-        if ($subpermission) {
-            my $subperms = get_user_subpermissions( $patron->{userid} );
-            push @patrons_with_permission, $patron
-              if $subperms->{$permission}->{$subpermission};
-        }
-    }
-    $results->{patrons} = \@patrons_with_permission;
-    $results->{iTotalDisplayRecords} = scalar( @patrons_with_permission );
-}
 
 $template->param(
     sEcho => $sEcho,
@@ -239,10 +216,15 @@ terms of the GNU General Public License as published by the Free Software
 Foundation; either version 2 of the License, or (at your option) any later
 version.
 
-Koha is distributed in the hope that it will be useful, but WITHOUT ANY
-WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
-A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+Koha is free software; you can redistribute it and/or modify it
+under the terms of the GNU General Public License as published by
+the Free Software Foundation; either version 3 of the License, or
+(at your option) any later version.
 
-You should have received a copy of the GNU General Public License along
-with Koha; if not, write to the Free Software Foundation, Inc.,
-51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+Koha is distributed in the hope that it will be useful, but
+WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with Koha; if not, see <http://www.gnu.org/licenses>.

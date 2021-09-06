@@ -1,7 +1,8 @@
 [% USE Koha %]
+[% USE raw %]
 [% SET footerjs = 1 %]
 [% INCLUDE 'doc-head-open.inc' %]
-<title>Koha &rsaquo; Serials  &rsaquo; Routing slip preview</title>
+<title>Routing slip preview &rsaquo; Serials &rsaquo; Koha</title>
 [% INCLUDE 'doc-head-close.inc' %]
 <style media="print">
      #ser_routing-preview-slip { min-width:0; width:auto; }
@@ -13,32 +14,32 @@
 
 <table>
     <tr>
-        <td colspan="2"><h3>[% libraryname %]</h3></td>
+        <td colspan="2"><h3>[% libraryname | html %]</h3></td>
     </tr>
     <tr>
-        <td colspan="2"><b>Title:</b> [% title |html %]<br />[% issue %]</td>
+        <td colspan="2"><strong>Title:</strong> [% title | html %]<br />[% issue | html %]</td>
     </tr>
     <tr>
-        <td><b>Name</b></td>
-        <td><b>Date due</b></td>
+        <td><strong>Name</strong></td>
+        <td><strong>Date due</strong></td>
     </tr>
     [% FOREACH memberloo IN memberloop %]
     <tr>
-        <td>[% memberloo.name %]</td>
+        <td>[% memberloo.name | html %]</td>
         <td>&nbsp;</td>
     </tr>
     [% END %]
 </table>
 
 <div id="routingnotes">
-    <p id="generalroutingnote">[% Koha.Preference('RoutingListNote') %]</p>
+    <p id="generalroutingnote">[% Koha.Preference('RoutingListNote') | $raw %]</p>
     <p id="routingnote">[% routingnotes | html %]</p>
 </div>
 
     <div id="closewindow" class="noprint"><a class="btn btn-default btn-default" id="print_slip" href="#"><i class="fa fa-print"></i> Print</a> <a class="btn btn-default btn-default close" href="#">Close</a></div>
 
 [% MACRO jsinclude BLOCK %]
-    <script type="text/javascript">
+    <script>
         $(document).ready(function(){
             $("#print_slip").on("click",function(e){
                 e.preventDefault();

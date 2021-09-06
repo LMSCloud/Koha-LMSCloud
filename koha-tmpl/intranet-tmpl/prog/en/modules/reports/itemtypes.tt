@@ -1,12 +1,12 @@
+[% USE raw %]
 [% USE Asset %]
 [% USE Branches %]
 [% USE ItemTypes %]
 [% SET footerjs = 1 %]
 [% INCLUDE 'doc-head-open.inc' %]
-<title>Koha &rsaquo; Reports &rsaquo; Catalog by item types</title>
+<title>Catalog by item types &rsaquo; Reports &rsaquo; Koha</title>
 [% INCLUDE 'doc-head-close.inc' %]
 [% IF ( do_it ) %]
-[% Asset.css("css/datatables.css") %]
 [% END %]
 </head>
 
@@ -14,17 +14,42 @@
 [% INCLUDE 'header.inc' %]
 [% INCLUDE 'cat-search.inc' %]
 
-<div id="breadcrumbs"><a href="/cgi-bin/koha/mainpage.pl">Home</a> &rsaquo; <a href="/cgi-bin/koha/reports/reports-home.pl">Reports</a>[% IF ( do_it ) %] &rsaquo; <a href="/cgi-bin/koha/reports/manager.pl?report_name=itemtypes">Catalog by item type</a> &rsaquo; Results[% ELSE %] &rsaquo; Catalog by item type[% END %]</div>
+<nav id="breadcrumbs" aria-label="Breadcrumb" class="breadcrumb">
+    <ol>
+        <li>
+            <a href="/cgi-bin/koha/mainpage.pl">Home</a>
+        </li>
+        <li>
+            <a href="/cgi-bin/koha/reports/reports-home.pl">Reports</a>
+        </li>
+        [% IF ( do_it ) %]
+            <li>
+                <a href="/cgi-bin/koha/reports/manager.pl?report_name=itemtypes">Catalog by item type</a>
+            </li>
+            <li>
+                <a href="#" aria-current="page">
+                    Results
+                </a>
+            </li>
+        [% ELSE %]
+            <li>
+                <a href="#" aria-current="page">
+                    Catalog by item type
+                </a>
+            </li>
+        [% END %]
+    </ol>
+</nav>
 
-<div id="doc3" class="yui-t2">
-   
-   <div id="bd">
-	<div id="yui-main">
-	<div class="yui-b">
+<div class="main container-fluid">
+    <div class="row">
+        <div class="col-sm-10 col-sm-push-2">
+            <main>
+
 
 [% IF ( do_it ) %]
 [% FOREACH mainloo IN mainloop %]
-    <h1>Reports on item types [% IF branch %] held at [% Branches.GetName( branch ) %][% END %]</h1>
+    <h1>Reports on item types [% IF branch %] held at [% Branches.GetName( branch ) | html %][% END %]</h1>
 	<table id="itemtypest">
 		<thead>
 		<tr>
@@ -35,14 +60,14 @@
 		<tfoot>
 			<tr>
 				<th>TOTAL</th>
-				<th>[% mainloo.total %]</th>
+				<th>[% mainloo.total | html %]</th>
 			</tr>
 		</tfoot>
 		<tbody>
 			[% FOREACH loopitemtyp IN mainloo.loopitemtype %]
 				<tr>
-                    <td>[% ItemTypes.GetDescription( loopitemtyp.itemtype ) %]</td>
-					<td>[% loopitemtyp.count %]</td>
+                    <td>[% ItemTypes.GetDescription( loopitemtyp.itemtype ) | html %]</td>
+					<td>[% loopitemtyp.count | html %]</td>
 				</tr>
 			[% END %]
 		</tbody>
@@ -55,7 +80,7 @@
             <ol>
               <li>
                 <label for="value">Select a library:</label>
-                <select name="value" size="1" id="value">
+                <select name="value" id="value">
                   <option value=""></option>
                   [% PROCESS options_for_libraries libraries => Branches.all() %]
                 </select>
@@ -64,23 +89,26 @@
             </ol>
           </fieldset>
           <fieldset class="action"><input type="submit" value="Submit" />
-            <input type="hidden" name="report_name" value="[% report_name %]" />
+            <input type="hidden" name="report_name" value="[% report_name | html %]" />
             <input type="hidden" name="do_it" value="1" />
           </fieldset>
         </form>
 [% END %]
 
-</div>
-</div>
-<div class="yui-b">
-[% INCLUDE 'reports-menu.inc' %]
-</div>
-</div>
+            </main>
+        </div> <!-- /.col-sm-10.col-sm-push-2 -->
+
+        <div class="col-sm-2 col-sm-pull-10">
+            <aside>
+                [% INCLUDE 'reports-menu.inc' %]
+            </aside>
+        </div> <!-- /.col-sm-2.col-sm-pull-10 -->
+     </div> <!-- /.row -->
 
 [% MACRO jsinclude BLOCK %]
     [% IF ( do_it ) %]
         [% INCLUDE 'datatables.inc' %]
-        <script type="text/javascript">
+        <script>
             $(document).ready(function(){
                 $("#itemtypest").dataTable($.extend(true, {}, dataTablesDefaults, {
                     "sDom": 't',

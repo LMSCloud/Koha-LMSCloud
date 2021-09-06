@@ -29,11 +29,15 @@ __PACKAGE__->table("aqorders");
   is_auto_increment: 1
   is_nullable: 0
 
+primary key and unique identifier assigned by Koha to each line
+
 =head2 biblionumber
 
   data_type: 'integer'
   is_foreign_key: 1
   is_nullable: 1
+
+links the order to the biblio being ordered (biblio.biblionumber)
 
 =head2 entrydate
 
@@ -41,10 +45,14 @@ __PACKAGE__->table("aqorders");
   datetime_undef_if_invalid: 1
   is_nullable: 1
 
+the date the bib was added to the basket
+
 =head2 quantity
 
   data_type: 'smallint'
   is_nullable: 1
+
+the quantity ordered
 
 =head2 currency
 
@@ -53,11 +61,15 @@ __PACKAGE__->table("aqorders");
   is_nullable: 1
   size: 10
 
+the currency used for the purchase
+
 =head2 listprice
 
   data_type: 'decimal'
   is_nullable: 1
   size: [28,6]
+
+the vendor price for this line item
 
 =head2 datereceived
 
@@ -65,11 +77,15 @@ __PACKAGE__->table("aqorders");
   datetime_undef_if_invalid: 1
   is_nullable: 1
 
+the date this order was received
+
 =head2 invoiceid
 
   data_type: 'integer'
   is_foreign_key: 1
   is_nullable: 1
+
+id of invoice
 
 =head2 freight
 
@@ -77,11 +93,15 @@ __PACKAGE__->table("aqorders");
   is_nullable: 1
   size: [28,6]
 
+shipping costs (not used)
+
 =head2 unitprice
 
   data_type: 'decimal'
   is_nullable: 1
   size: [28,6]
+
+the actual cost entered when receiving this line item
 
 =head2 unitprice_tax_excluded
 
@@ -89,11 +109,15 @@ __PACKAGE__->table("aqorders");
   is_nullable: 1
   size: [28,6]
 
+the unit price excluding tax (on receiving)
+
 =head2 unitprice_tax_included
 
   data_type: 'decimal'
   is_nullable: 1
   size: [28,6]
+
+the unit price including tax (on receiving)
 
 =head2 quantityreceived
 
@@ -101,37 +125,59 @@ __PACKAGE__->table("aqorders");
   default_value: 0
   is_nullable: 0
 
+the quantity that have been received so far
+
+=head2 created_by
+
+  data_type: 'integer'
+  is_foreign_key: 1
+  is_nullable: 1
+
+the borrowernumber of order line's creator
+
 =head2 datecancellationprinted
 
   data_type: 'date'
   datetime_undef_if_invalid: 1
   is_nullable: 1
 
+the date the line item was deleted
+
 =head2 cancellationreason
 
   data_type: 'mediumtext'
   is_nullable: 1
+
+reason of cancellation
 
 =head2 order_internalnote
 
   data_type: 'longtext'
   is_nullable: 1
 
+notes related to this order line, made for staff
+
 =head2 order_vendornote
 
   data_type: 'longtext'
   is_nullable: 1
+
+notes related to this order line, made for vendor
 
 =head2 purchaseordernumber
 
   data_type: 'longtext'
   is_nullable: 1
 
+not used? always NULL
+
 =head2 basketno
 
   data_type: 'integer'
   is_foreign_key: 1
   is_nullable: 1
+
+links this order line to a specific basket (aqbasket.basketno)
 
 =head2 timestamp
 
@@ -140,11 +186,23 @@ __PACKAGE__->table("aqorders");
   default_value: current_timestamp
   is_nullable: 0
 
+the date and time this order line was last modified
+
 =head2 rrp
 
   data_type: 'decimal'
   is_nullable: 1
   size: [13,2]
+
+the retail cost for this line item
+
+=head2 replacementprice
+
+  data_type: 'decimal'
+  is_nullable: 1
+  size: [28,6]
+
+the replacement cost for this line item
 
 =head2 rrp_tax_excluded
 
@@ -152,11 +210,15 @@ __PACKAGE__->table("aqorders");
   is_nullable: 1
   size: [28,6]
 
+the replacement cost excluding tax
+
 =head2 rrp_tax_included
 
   data_type: 'decimal'
   is_nullable: 1
   size: [28,6]
+
+the replacement cost including tax
 
 =head2 ecost
 
@@ -164,11 +226,15 @@ __PACKAGE__->table("aqorders");
   is_nullable: 1
   size: [13,2]
 
+the replacement cost for this line item
+
 =head2 ecost_tax_excluded
 
   data_type: 'decimal'
   is_nullable: 1
   size: [28,6]
+
+the estimated cost excluding tax
 
 =head2 ecost_tax_included
 
@@ -176,11 +242,15 @@ __PACKAGE__->table("aqorders");
   is_nullable: 1
   size: [28,6]
 
+the estimated cost including tax
+
 =head2 tax_rate_bak
 
   data_type: 'decimal'
   is_nullable: 1
   size: [6,4]
+
+the tax rate for this line item (%)
 
 =head2 tax_rate_on_ordering
 
@@ -188,11 +258,15 @@ __PACKAGE__->table("aqorders");
   is_nullable: 1
   size: [6,4]
 
+the tax rate on ordering for this line item (%)
+
 =head2 tax_rate_on_receiving
 
   data_type: 'decimal'
   is_nullable: 1
   size: [6,4]
+
+the tax rate on receiving for this line item (%)
 
 =head2 tax_value_bak
 
@@ -200,11 +274,15 @@ __PACKAGE__->table("aqorders");
   is_nullable: 1
   size: [28,6]
 
+the tax value for this line item
+
 =head2 tax_value_on_ordering
 
   data_type: 'decimal'
   is_nullable: 1
   size: [28,6]
+
+the tax value on ordering for this line item
 
 =head2 tax_value_on_receiving
 
@@ -212,11 +290,15 @@ __PACKAGE__->table("aqorders");
   is_nullable: 1
   size: [28,6]
 
+the tax value on receiving for this line item
+
 =head2 discount
 
   data_type: 'float'
   is_nullable: 1
   size: [6,4]
+
+the discount for this line item (%)
 
 =head2 budget_id
 
@@ -224,11 +306,15 @@ __PACKAGE__->table("aqorders");
   is_foreign_key: 1
   is_nullable: 0
 
+the fund this order goes against (aqbudgets.budget_id)
+
 =head2 budgetdate
 
   data_type: 'date'
   datetime_undef_if_invalid: 1
   is_nullable: 1
+
+not used? always NULL
 
 =head2 sort1
 
@@ -236,11 +322,15 @@ __PACKAGE__->table("aqorders");
   is_nullable: 1
   size: 80
 
+statistical field
+
 =head2 sort2
 
   data_type: 'varchar'
   is_nullable: 1
   size: 80
+
+second statistical field
 
 =head2 sort1_authcat
 
@@ -259,17 +349,7 @@ __PACKAGE__->table("aqorders");
   data_type: 'tinyint'
   is_nullable: 1
 
-=head2 claims_count
-
-  data_type: 'integer'
-  default_value: 0
-  is_nullable: 1
-
-=head2 claimed_date
-
-  data_type: 'date'
-  datetime_undef_if_invalid: 1
-  is_nullable: 1
+was this price uncertain (1 for yes, 0 for no)
 
 =head2 subscriptionid
 
@@ -277,10 +357,14 @@ __PACKAGE__->table("aqorders");
   is_foreign_key: 1
   is_nullable: 1
 
+links this order line to a subscription (subscription.subscriptionid)
+
 =head2 parent_ordernumber
 
   data_type: 'integer'
   is_nullable: 1
+
+ordernumber of parent order line, or same as ordernumber if no parent
 
 =head2 orderstatus
 
@@ -289,11 +373,15 @@ __PACKAGE__->table("aqorders");
   is_nullable: 1
   size: 16
 
+the current status for this line item. Can be 'new', 'ordered', 'partial', 'complete' or 'cancelled'
+
 =head2 line_item_id
 
   data_type: 'varchar'
   is_nullable: 1
   size: 35
+
+Supplier's article id for Edifact orderline
 
 =head2 suppliers_reference_number
 
@@ -301,16 +389,22 @@ __PACKAGE__->table("aqorders");
   is_nullable: 1
   size: 35
 
+Suppliers unique edifact quote ref
+
 =head2 suppliers_reference_qualifier
 
   data_type: 'varchar'
   is_nullable: 1
   size: 3
 
+Type of number above usually 'QLI'
+
 =head2 suppliers_report
 
   data_type: 'mediumtext'
   is_nullable: 1
+
+reports received from suppliers
 
 =cut
 
@@ -341,6 +435,8 @@ __PACKAGE__->add_columns(
   { data_type => "decimal", is_nullable => 1, size => [28, 6] },
   "quantityreceived",
   { data_type => "smallint", default_value => 0, is_nullable => 0 },
+  "created_by",
+  { data_type => "integer", is_foreign_key => 1, is_nullable => 1 },
   "datecancellationprinted",
   { data_type => "date", datetime_undef_if_invalid => 1, is_nullable => 1 },
   "cancellationreason",
@@ -362,6 +458,8 @@ __PACKAGE__->add_columns(
   },
   "rrp",
   { data_type => "decimal", is_nullable => 1, size => [13, 2] },
+  "replacementprice",
+  { data_type => "decimal", is_nullable => 1, size => [28, 6] },
   "rrp_tax_excluded",
   { data_type => "decimal", is_nullable => 1, size => [28, 6] },
   "rrp_tax_included",
@@ -400,10 +498,6 @@ __PACKAGE__->add_columns(
   { data_type => "varchar", is_nullable => 1, size => 10 },
   "uncertainprice",
   { data_type => "tinyint", is_nullable => 1 },
-  "claims_count",
-  { data_type => "integer", default_value => 0, is_nullable => 1 },
-  "claimed_date",
-  { data_type => "date", datetime_undef_if_invalid => 1, is_nullable => 1 },
   "subscriptionid",
   { data_type => "integer", is_foreign_key => 1, is_nullable => 1 },
   "parent_ordernumber",
@@ -450,6 +544,21 @@ Related object: L<Koha::Schema::Result::AqorderUser>
 __PACKAGE__->has_many(
   "aqorder_users",
   "Koha::Schema::Result::AqorderUser",
+  { "foreign.ordernumber" => "self.ordernumber" },
+  { cascade_copy => 0, cascade_delete => 0 },
+);
+
+=head2 aqorders_claims
+
+Type: has_many
+
+Related object: L<Koha::Schema::Result::AqordersClaim>
+
+=cut
+
+__PACKAGE__->has_many(
+  "aqorders_claims",
+  "Koha::Schema::Result::AqordersClaim",
   { "foreign.ordernumber" => "self.ordernumber" },
   { cascade_copy => 0, cascade_delete => 0 },
 );
@@ -554,6 +663,26 @@ __PACKAGE__->belongs_to(
   { is_deferrable => 1, on_delete => "CASCADE", on_update => "CASCADE" },
 );
 
+=head2 created_by
+
+Type: belongs_to
+
+Related object: L<Koha::Schema::Result::Borrower>
+
+=cut
+
+__PACKAGE__->belongs_to(
+  "created_by",
+  "Koha::Schema::Result::Borrower",
+  { borrowernumber => "created_by" },
+  {
+    is_deferrable => 1,
+    join_type     => "LEFT",
+    on_delete     => "SET NULL",
+    on_update     => "CASCADE",
+  },
+);
+
 =head2 currency
 
 Type: belongs_to
@@ -625,14 +754,74 @@ Composing rels: L</aqorder_users> -> borrowernumber
 __PACKAGE__->many_to_many("borrowernumbers", "aqorder_users", "borrowernumber");
 
 
-# Created by DBIx::Class::Schema::Loader v0.07042 @ 2018-02-16 17:54:53
-# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:K0GnMGYtZUQ1WCesHKIxHw
+# Created by DBIx::Class::Schema::Loader v0.07049 @ 2021-01-21 13:39:29
+# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:c1YBLkG64bdFakf4/cGjXA
+
+__PACKAGE__->belongs_to(
+  "basket",
+  "Koha::Schema::Result::Aqbasket",
+  { "foreign.basketno" => "self.basketno" },
+  {
+    is_deferrable => 1,
+    join_type     => "LEFT",
+    on_delete     => "CASCADE",
+    on_update     => "CASCADE",
+  },
+);
+
+__PACKAGE__->belongs_to(
+  "biblio",
+  "Koha::Schema::Result::Biblio",
+  { 'foreign.biblionumber' => "self.biblionumber" },
+  {
+    is_deferrable => 1,
+    join_type     => "LEFT",
+    on_delete     => "SET NULL",
+    on_update     => "CASCADE",
+  },
+);
+
+__PACKAGE__->belongs_to(
+  "fund",
+  "Koha::Schema::Result::Aqbudget",
+  { "foreign.budget_id" => "self.budget_id" },
+  { is_deferrable => 1, on_delete => "CASCADE", on_update => "CASCADE" },
+);
+
+__PACKAGE__->belongs_to(
+  "invoice",
+  "Koha::Schema::Result::Aqinvoice",
+  { "foreign.invoiceid" => "self.invoiceid" },
+  {
+    is_deferrable => 1,
+    join_type     => "LEFT",
+    on_delete     => "SET NULL",
+    on_update     => "CASCADE",
+  },
+);
+
+__PACKAGE__->belongs_to(
+  "subscription",
+  "Koha::Schema::Result::Subscription",
+  { "foreign.subscriptionid" => "self.subscriptionid" },
+  {
+    is_deferrable => 1,
+    join_type     => "LEFT",
+    on_delete     => "CASCADE",
+    on_update     => "CASCADE",
+  },
+);
 
 sub koha_objects_class {
     'Koha::Acquisition::Orders';
 }
+
 sub koha_object_class {
     'Koha::Acquisition::Order';
 }
+
+__PACKAGE__->add_columns(
+    '+uncertainprice' => { is_boolean => 1 }
+);
 
 1;

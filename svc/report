@@ -22,6 +22,7 @@ use Modern::Perl;
 
 use C4::Auth;
 use C4::Reports::Guided;
+use Koha::Reports;
 use JSON;
 use CGI qw ( -utf8 );
 
@@ -33,17 +34,18 @@ my $report_id = $query->param('id');
 my $report_name = $query->param('name');
 my $report_annotation = $query->param('annotated');
 
-my $report_rec = get_saved_report( $report_name ? { 'name' => $report_name } : { 'id' => $report_id } );
-if (!$report_rec) { die "There is no such report.\n"; }
+my $report_recs = Koha::Reports->search( $report_name ? { 'report_name' => $report_name } : { 'id' => $report_id } );
+if (!$report_recs || $report_recs->count == 0 ) { die "There is no such report.\n"; }
+my $report_rec = $report_recs->next();
 
 my @sql_params  = $query->multi_param('sql_params');
+my @param_names  = $query->multi_param('param_names');
 
 my ( $template, $loggedinuser, $cookie ) = get_template_and_user(
     {
         template_name   => "intranet-main.tt",
         query           => $query,
         type            => "intranet",
-        authnotrequired => 0,
         flagsrequired   => { catalogue => 1, },
     }
 );
@@ -52,20 +54,19 @@ my $cache = Koha::Caches->get_instance();
 my $cache_active = $cache->is_cache_active;
 my ($cache_key, $json_text);
 if ($cache_active) {
-    $cache_key = "intranet:report:".($report_name ? "name:$report_name:" : "id:$report_id:")
-    . join( '-', @sql_params );
+    $cache_key = "intranet:report:".($report_name ? "report_name:$report_name:" : "id:$report_id:")
+    . join( '-', @sql_params )
+      . join( '_'. @param_names );
     $json_text = $cache->get_from_cache($cache_key);
 }
 
 unless ($json_text) {
     my $offset = 0;
     my $limit  = C4::Context->preference("SvcMaxReportRows") || 10;
-    my $sql = $report_rec->{savedsql};
 
-    # convert SQL parameters to placeholders
-    $sql =~ s/(<<.*?>>)/\?/g;
+    my ( $sql, undef ) = $report_rec->prep_report( \@param_names, \@sql_params );
 
-    my ( $sth, $errors ) = execute_query( $sql, $offset, $limit, \@sql_params, $report_id );
+    my ( $sth, $errors ) = execute_query( $sql, $offset, $limit, undef, $report_id );
     if ($sth) {
         my $lines;
         if ($report_annotation) {
@@ -77,7 +78,7 @@ unless ($json_text) {
         $json_text = encode_json($lines);
 
         if ($cache_active) {
-            $cache->set_in_cache( $cache_key, $json_text, { expiry => $report_rec->{cache_expiry} } );
+            $cache->set_in_cache( $cache_key, $json_text, { expiry => $report_rec->cache_expiry } );
         }
     }
     else {

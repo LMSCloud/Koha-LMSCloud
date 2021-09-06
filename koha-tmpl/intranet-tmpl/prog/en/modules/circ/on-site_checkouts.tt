@@ -1,3 +1,4 @@
+[% USE raw %]
 [% USE Asset %]
 [% USE Koha %]
 [% USE Branches %]
@@ -5,49 +6,70 @@
 [% USE AuthorisedValues %]
 [% SET footerjs = 1 %]
 [% INCLUDE 'doc-head-open.inc' %]
-<title>Koha &rsaquo; Circulation &rsaquo; Pending on-site checkouts</title>
+<title>Pending on-site checkouts &rsaquo; Circulation &rsaquo; Koha</title>
 [% INCLUDE 'doc-head-close.inc' %]
-[% Asset.css("css/datatables.css") %]
 </head>
 
 <body id="circ_stats" class="circ">
 [% INCLUDE 'header.inc' %]
 [% INCLUDE 'circ-search.inc' %]
 
-<div id="breadcrumbs"><a href="/cgi-bin/koha/mainpage.pl">Home</a> &rsaquo; <a href="/cgi-bin/koha/circ/circulation-home.pl">Circulation</a>  &rsaquo; Pending on-site checkouts</div>
+<nav id="breadcrumbs" aria-label="Breadcrumb" class="breadcrumb">
+    <ol>
+        <li>
+            <a href="/cgi-bin/koha/mainpage.pl">Home</a>
+        </li>
+        <li>
+            <a href="/cgi-bin/koha/circ/circulation-home.pl">Circulation</a>
+        </li>
+        <li>
+            <a href="#" aria-current="page">
+                Pending on-site checkouts
+            </a>
+        </li>
+    </ol>
+</nav>
 
-<div id="doc3" class="yui-t2">
-  <div id="bd">
-    <div id="yui-main">
-      <div class="yui-b">
+<div class="main container-fluid">
+    <div class="row">
+        <div class="col-sm-12">
+            <main>
+                <div class="row">
+
+                [% IF Koha.Preference('CircSidebar') %]
+                    <div class="col-sm-10 col-sm-push-2">
+                [% ELSE %]
+                    <div class="col-md-10 col-md-offset-1 col-lg-8 col-lg-offset-2">
+                [% END %]
+
         <h1>Pending on-site checkouts</h1>
         [% IF pending_onsite_checkouts %]
           <table id="pending_onsite_checkout">
             <thead>
               <tr>
-                <th>Date</th><th>Patron</th><th>Title</th><th>Callnumber</th><th>Barcode</th><th>Library</th><th>Location</th>
+                <th>Date</th><th>Patron</th><th>Title</th><th>Call number</th><th>Barcode</th><th>Library</th><th>Location</th>
               </tr>
             </thead>
             <tbody>
               [% FOREACH item IN pending_onsite_checkouts %]
                 <tr>
-                  <td>
+                  <td data-order="[% item.date_due | html %]">
                     [% IF item.is_overdue %]<span class="overdue">[% END %]
-                    <span title="[% item.date_due %]">[% item.date_due | $KohaDates %]</span>
+                    [% item.date_due | $KohaDates %]
                     [% IF item.is_overdue %]</span>[% END %]
                   </td>
                   <td>
-                    <a href="/cgi-bin/koha/members/moremember.pl?borrowernumber=[% item.borrowernumber %]">[%item.firstname %] [% item.surname %]</a>
+                    <a href="/cgi-bin/koha/members/moremember.pl?borrowernumber=[% item.borrowernumber | uri %]">[% item.firstname | html %] [% item.surname | html %]</a>
                   </td>
                   <td>
-                    <a href="/cgi-bin/koha/catalogue/detail.pl?biblionumber=[% item.biblionumber %]"><strong>[% item.title |html %]</strong></a>[% IF ( item.author ) %], by [% item.author %][% END %][% IF ( item.itemnotes ) %]- <span class="circ-hlt">[% item.itemnotes %]</span>[% END %]
+                    <a href="/cgi-bin/koha/catalogue/detail.pl?biblionumber=[% item.biblionumber | uri %]"><strong>[% item.title | html %]</strong></a>[% IF ( item.author ) %], by [% item.author | html %][% END %][% IF ( item.itemnotes ) %]- <span class="circ-hlt">[% item.itemnotes | $raw %]</span>[% END %]
                   </td>
-                  <td>[% item.itemcallnumber %]</td>
+                  <td>[% item.itemcallnumber | html %]</td>
                   <td>
-                    <a href="/cgi-bin/koha/catalogue/moredetail.pl?biblionumber=[% item.biblionumber %]&amp;itemnumber=[% item.itemnumber %]#item[% item.itemnumber %]">[% item.barcode %]</a>
+                    <a href="/cgi-bin/koha/catalogue/moredetail.pl?biblionumber=[% item.biblionumber | uri %]&amp;itemnumber=[% item.itemnumber | uri %]#item[% item.itemnumber | uri %]">[% item.barcode | html %]</a>
                   </td>
-                  <td>[% Branches.GetName(item.branchcode) %]</td>
-                  <td>[% AuthorisedValues.GetByCode( 'LOC', item.location )%]</td>
+                  <td>[% Branches.GetName(item.branchcode) | html %]</td>
+                  <td>[% AuthorisedValues.GetDescriptionByKohaField( kohafield => 'items.location', authorised_value => item.location ) | html %]</td>
                 </tr>
               [% END %]
             </tbody>
@@ -55,32 +77,27 @@
         [% ELSE %]
           <h3>No pending on-site checkout.</h3>
         [% END %]
-      </div>
-    </div>
-    <div class="yui-b">
-      [% IF Koha.Preference('CircSidebar') %][% INCLUDE 'circ-nav.inc' %][% END %]
-    </div>
-  </div>
+
+                    [% IF Koha.Preference('CircSidebar') %]
+                            </div> <!-- /.col-sm-10.col-sm-push-2 -->
+                            <div class="col-sm-2 col-sm-pull-10">
+                                <aside>
+                                    [% INCLUDE 'circ-nav.inc' %]
+                                </aside>
+                            </div> <!-- /.col-sm-2.col-sm-pull-10 -->
+                        </div> <!-- /.row -->
+                    [% END %]
+
+            </main>
+        </div> <!-- /.col-sm-12 -->
+    </div> <!-- /.row -->
 
 [% MACRO jsinclude BLOCK %]
     [% INCLUDE 'datatables.inc' %]
-    <script type="text/javascript">
+    <script>
         $(document).ready(function(){
             if ( $("#pending_onsite_checkout").length ) {
-                $("#pending_onsite_checkout").dataTable($.extend(true, {}, dataTablesDefaults, {
-                    "aLengthMenu": [[10, 20, 50, 100, -1], [10, 20, 50, 100, "All"]],
-                    "aoColumns": [
-                        { "sType": "title-string" },
-                        { "sType": "html" },
-                        { "sType": "html" },
-                        null,
-                        { "sType": "html" },
-                        null,
-                        null,
-                    ],
-                    'bAutoWidth': false,
-                    "sPaginationType": "four_button"
-                }));
+                $("#pending_onsite_checkout").dataTable($.extend(true, {}, dataTablesDefaults));
             }
         });
     </script>

@@ -28,7 +28,7 @@ use C4::Letters;
 use Koha::ArticleRequests;
 use Koha::Patrons;
 
-my $cgi = new CGI;
+my $cgi = CGI->new;
 
 my $id = $cgi->param('id');
 
@@ -37,7 +37,6 @@ my ( $template, $loggedinuser, $cookie ) = get_template_and_user(
         template_name   => "circ/printslip.tt",
         query           => $cgi,
         type            => "intranet",
-        authnotrequired => 0,
         flagsrequired   => { circulate => "circulate_remaining_permissions" },
     }
 );

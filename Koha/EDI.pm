@@ -27,12 +27,13 @@ use Business::ISBN;
 use DateTime;
 use C4::Context;
 use Koha::Database;
-use C4::Acquisition qw( NewBasket CloseBasket ModOrder);
+use Koha::DateUtils;
+use C4::Acquisition qw( NewBasket ModOrder);
 use C4::Suggestions qw( ModSuggestion );
-use C4::Items qw(AddItem);
-use C4::Biblio qw( AddBiblio TransformKohaToMarc GetMarcBiblio );
+use C4::Biblio qw( AddBiblio TransformKohaToMarc GetMarcBiblio GetFrameworkCode GetMarcFromKohaField );
 use Koha::Edifact::Order;
 use Koha::Edifact;
+use C4::Log qw(logaction);
 use Log::Log4perl;
 use Text::Unidecode;
 use Koha::Plugins::Handler;
@@ -175,7 +176,7 @@ sub process_ordrsp {
                             ordernumber             => $ordernumber,
                             cancellationreason      => $reason,
                             orderstatus             => 'cancelled',
-                            datecancellationprinted => DateTime->now()->ymd(),
+                            datecancellationprinted => dt_from_string()->ymd(),
                         }
                     );
                 }
@@ -211,12 +212,30 @@ sub process_invoice {
     my $logger = Log::Log4perl->get_logger();
     my $vendor_acct;
 
-    my $plugin = $invoice_message->edi_acct()->plugin();
+    my $plugin_class = $invoice_message->edi_acct()->plugin();
+
+    # Plugin has its own invoice processor, only run it and not the standard invoice processor below
+    if ( $plugin_class ) {
+        my $plugin = $plugin_class->new();
+        if ( $plugin->can('edifact_process_invoice') ) {
+            Koha::Plugins::Handler->run(
+                {
+                    class  => $plugin_class,
+                    method => 'edifact_process_invoice',
+                    params => {
+                        invoice => $invoice_message,
+                    }
+                }
+            );
+            return;
+        }
+    }
+
     my $edi_plugin;
-    if ( $plugin ) {
+    if ( $plugin_class ) {
         $edi_plugin = Koha::Plugins::Handler->run(
             {
-                class  => $plugin,
+                class  => $plugin_class,
                 method => 'edifact',
                 params => {
                     invoice_message => $invoice_message,
@@ -297,40 +316,57 @@ sub process_invoice {
                             }
                         );
                     }
+                    # If quantity_invoiced is present use it in preference
+                    my $quantity = $line->quantity_invoiced;
+                    if (!$quantity) {
+                        $quantity = $line->quantity;
+                    }
 
-                    my $price = _get_invoiced_price($line);
+                    my ( $price, $price_excl_tax ) = _get_invoiced_price($line, $quantity);
+                    my $tax_rate = $line->tax_rate;
+                    if ($tax_rate && $tax_rate->{rate} != 0) {
+                       $tax_rate->{rate} /= 100;
+                    }
 
-                    if ( $order->quantity > $line->quantity ) {
+                    if ( $order->quantity > $quantity ) {
                         my $ordered = $order->quantity;
 
                         # part receipt
                         $order->orderstatus('partial');
-                        $order->quantity( $ordered - $line->quantity );
+                        $order->quantity( $ordered - $quantity );
                         $order->update;
                         my $received_order = $order->copy(
                             {
-                                ordernumber      => undef,
-                                quantity         => $line->quantity,
-                                quantityreceived => $line->quantity,
-                                orderstatus      => 'complete',
-                                unitprice        => $price,
-                                invoiceid        => $invoiceid,
-                                datereceived     => $msg_date,
+                                ordernumber            => undef,
+                                quantity               => $quantity,
+                                quantityreceived       => $quantity,
+                                orderstatus            => 'complete',
+                                unitprice              => $price,
+                                unitprice_tax_included => $price,
+                                unitprice_tax_excluded => $price_excl_tax,
+                                invoiceid              => $invoiceid,
+                                datereceived           => $msg_date,
+                                tax_rate_on_receiving  => $tax_rate->{rate},
+                                tax_value_on_receiving => $quantity * $price_excl_tax * $tax_rate->{rate},
                             }
                         );
                         transfer_items( $schema, $line, $order,
-                            $received_order );
+                            $received_order, $quantity );
                         receipt_items( $schema, $line,
-                            $received_order->ordernumber );
+                            $received_order->ordernumber, $quantity );
                     }
                     else {    # simple receipt all copies on order
-                        $order->quantityreceived( $line->quantity );
+                        $order->quantityreceived( $quantity );
                         $order->datereceived($msg_date);
                         $order->invoiceid($invoiceid);
                         $order->unitprice($price);
+                        $order->unitprice_tax_excluded($price_excl_tax);
+                        $order->unitprice_tax_included($price);
+                        $order->tax_rate_on_receiving($tax_rate->{rate});
+                        $order->tax_value_on_receiving( $quantity * $price_excl_tax * $tax_rate->{rate});
                         $order->orderstatus('complete');
                         $order->update;
-                        receipt_items( $schema, $line, $ordernumber );
+                        receipt_items( $schema, $line, $ordernumber, $quantity );
                     }
                 }
                 else {
@@ -351,21 +387,33 @@ sub process_invoice {
 }
 
 sub _get_invoiced_price {
-    my $line  = shift;
-    my $price = $line->price_net;
-    if ( !defined $price ) {  # no net price so generate it from lineitem amount
-        $price = $line->amt_lineitem;
-        if ( $price and $line->quantity > 1 ) {
-            $price /= $line->quantity;    # div line cost by qty
+    my $line       = shift;
+    my $qty        = shift;
+    my $line_total = $line->amt_total;
+    my $excl_tax   = $line->amt_lineitem;
+
+    # If no tax some suppliers omit the total owed
+    # If no total given calculate from cost exclusive of tax
+    # + tax amount (if present, sometimes omitted if 0 )
+    if ( !defined $line_total ) {
+        my $x = $line->amt_taxoncharge;
+        if ( !defined $x ) {
+            $x = 0;
         }
+        $line_total = $excl_tax + $x;
     }
-    return $price;
+
+    # invoices give amounts per orderline, Koha requires that we store
+    # them per item
+    if ( $qty != 1 ) {
+        return ( $line_total / $qty, $excl_tax / $qty );
+    }
+    return ( $line_total, $excl_tax );    # return as is for most common case
 }
 
 sub receipt_items {
-    my ( $schema, $inv_line, $ordernumber ) = @_;
+    my ( $schema, $inv_line, $ordernumber, $quantity ) = @_;
     my $logger   = Log::Log4perl->get_logger();
-    my $quantity = $inv_line->quantity;
 
     # itemnumber is not a foreign key ??? makes this a bit cumbersome
     my @item_links = $schema->resultset('AqordersItem')->search(
@@ -388,6 +436,23 @@ sub receipt_items {
         }
         push @{ $branch_map{$b} }, $item;
     }
+
+    # Handling for 'AcqItemSetSubfieldsWhenReceived'
+    my @affects;
+    my $biblionumber;
+    my $itemfield;
+    if ( C4::Context->preference('AcqCreateItem') eq 'ordering' ) {
+        @affects = split q{\|},
+          C4::Context->preference("AcqItemSetSubfieldsWhenReceived");
+        if (@affects) {
+            my $order = Koha::Acquisition::Orders->find($ordernumber);
+            $biblionumber = $order->biblionumber;
+            my $frameworkcode = GetFrameworkCode($biblionumber);
+            ($itemfield) = GetMarcFromKohaField( 'items.itemnumber',
+                $frameworkcode );
+        }
+    }
+
     my $gir_occurrence = 0;
     while ( $gir_occurrence < $quantity ) {
         my $branch = $inv_line->girfield( 'branch', $gir_occurrence );
@@ -410,6 +475,18 @@ sub receipt_items {
                 }
             }
 
+            # Handling for 'AcqItemSetSubfieldsWhenReceived'
+            if (@affects) {
+                my $item_marc = C4::Items::GetMarcItem( $biblionumber, $item->itemnumber );
+                for my $affect (@affects) {
+                    my ( $sf, $v ) = split q{=}, $affect, 2;
+                    foreach ( $item_marc->field($itemfield) ) {
+                        $_->update( $sf => $v );
+                    }
+                }
+                C4::Items::ModItemFromMarc( $item_marc, $biblionumber, $item->itemnumber );
+            }
+
             $item->update;
         }
         else {
@@ -422,10 +499,9 @@ sub receipt_items {
 }
 
 sub transfer_items {
-    my ( $schema, $inv_line, $order_from, $order_to ) = @_;
+    my ( $schema, $inv_line, $order_from, $order_to, $quantity ) = @_;
 
     # Transfer x items from the orig order to a completed partial order
-    my $quantity = $inv_line->quantity;
     my $gocc     = 0;
     my %mapped_by_branch;
     while ( $gocc < $quantity ) {
@@ -541,13 +617,24 @@ sub process_quote {
         for my $b (@added_baskets) {
             create_edi_order(
                 {
-
+                    ean      => $messages->[0]->buyer_ean,
                     basketno => $b,
                 }
             );
-            CloseBasket($b);
+            Koha::Acquisition::Baskets->find($b)->close;
+            # Log the approval
+            if (C4::Context->preference("AcquisitionLog")) {
+                my $approved = Koha::Acquisition::Baskets->find( $b );
+                logaction(
+                    'ACQUISITIONS',
+                    'APPROVE_BASKET',
+                    $b,
+                    to_json($approved->unblessed)
+                );
+            }
         }
     }
+
 
     return;
 }
@@ -558,6 +645,8 @@ sub quote_item {
     my $schema = Koha::Database->new()->schema();
     my $logger = Log::Log4perl->get_logger();
 
+    # $basketno is the return from AddBasket in the calling routine
+    # So this call should not fail unless that has
     my $basket = Koha::Acquisition::Baskets->find( $basketno );
     unless ( $basket ) {
         $logger->error('Skipping order creation no valid basketno');
@@ -589,24 +678,37 @@ sub quote_item {
         }
         $order_quantity = 1;    # attempts to create an orderline for each gir
     }
+    my $price  = $item->price_info;
+    # Howells do not send an info price but do have a gross price
+    if (!$price) {
+        $price = $item->price_gross;
+    }
     my $vendor = Koha::Acquisition::Booksellers->find( $quote->vendor_id );
+
+    # NB quote will not include tax info it only contains the list price
+    my $ecost = _discounted_price( $vendor->discount, $price, $item->price_info_inclusive );
 
     # database definitions should set some of these defaults but dont
     my $order_hash = {
         biblionumber       => $bib->{biblionumber},
-        entrydate          => DateTime->now( time_zone => 'local' )->ymd(),
+        entrydate          => dt_from_string()->ymd(),
         basketno           => $basketno,
-        listprice          => $item->price,
+        listprice          => $price,
         quantity           => $order_quantity,
         quantityreceived   => 0,
         order_vendornote   => q{},
-        order_internalnote => $order_note,
-        rrp                => $item->price,
-        ecost => _discounted_price( $quote->vendor->discount, $item->price ),
-        uncertainprice => 0,
-        sort1          => q{},
-        sort2          => q{},
-        currency       => $vendor->listprice(),
+        order_internalnote => q{},
+        replacementprice   => $price,
+        rrp_tax_included   => $price,
+        rrp_tax_excluded   => $price,
+        rrp                => $price,
+        ecost              => $ecost,
+        ecost_tax_included => $ecost,
+        ecost_tax_excluded => $ecost,
+        uncertainprice     => 0,
+        sort1              => q{},
+        sort2              => q{},
+        currency           => $vendor->listprice(),
     };
 
     # suppliers references
@@ -634,7 +736,9 @@ sub quote_item {
             $txt .= $si;
             ++$occ;
         }
-        $order_hash->{order_vendornote} = $txt;
+    }
+    if ($order_note) {
+        $order_hash->{order_vendornote} = $order_note;
     }
 
     if ( $item->internal_notes() ) {
@@ -685,9 +789,10 @@ sub quote_item {
 
             my $created = 0;
             while ( $created < $order_quantity ) {
-                my $itemnumber;
-                ( $bib->{biblionumber}, $bib->{biblioitemnumber}, $itemnumber )
-                  = AddItem( $item_hash, $bib->{biblionumber} );
+                $item_hash->{biblionumber} = $bib->{biblionumber};
+                $item_hash->{biblioitemnumber} = $bib->{biblioitemnumber};
+                my $kitem = Koha::Item->new( $item_hash )->store;
+                my $itemnumber = $kitem->itemnumber;
                 $logger->trace("Added item:$itemnumber");
                 $schema->resultset('AqordersItem')->create(
                     {
@@ -776,9 +881,10 @@ sub quote_item {
                         $item_hash->{homebranch} = $new_item->{homebranch};
                     }
 
-                    my $itemnumber;
-                    ( undef, undef, $itemnumber ) =
-                      AddItem( $item_hash, $bib->{biblionumber} );
+                    $item_hash->{biblionumber} = $bib->{biblionumber};
+                    $item_hash->{biblioitemnumber} = $bib->{biblioitemnumber};
+                    my $kitem = Koha::Item->new( $item_hash )->store;
+                    my $itemnumber = $kitem->itemnumber;
                     $logger->trace("New item $itemnumber added");
                     $schema->resultset('AqordersItem')->create(
                         {
@@ -786,6 +892,22 @@ sub quote_item {
                             itemnumber  => $itemnumber,
                         }
                     );
+
+                    my $lrp =
+                      $item->girfield( 'library_rotation_plan', $occurrence );
+                    if ($lrp) {
+                        my $rota =
+                          Koha::StockRotationRotas->find( { title => $lrp },
+                            { key => 'stockrotationrotas_title' } );
+                        if ($rota) {
+                            $rota->add_item($itemnumber);
+                            $logger->trace("Item added to rota $rota->id");
+                        }
+                        else {
+                            $logger->error(
+                                "No rota found matching $lrp in orderline");
+                        }
+                    }
                 }
 
                 ++$occurrence;
@@ -808,13 +930,15 @@ sub quote_item {
                     );
                 }
 
-                if ( $basket->effective_create_item eq 'ordering' ) {
+                # Do not use the basket level value as it is always NULL
+                # See calling subs call to AddBasket
+                if ( C4::Context->preference('AcqCreateItem') eq 'ordering' ) {
                     my $new_item = {
                         notforloan       => -1,
                         cn_sort          => q{},
                         cn_source        => 'ddc',
-                        price            => $item->price,
-                        replacementprice => $item->price,
+                        price            => $price,
+                        replacementprice => $price,
                         itype =>
                           $item->girfield( 'stock_category', $occurrence ),
                         location =>
@@ -827,9 +951,10 @@ sub quote_item {
                           $item->girfield( 'branch', $occurrence ),
                         homebranch => $item->girfield( 'branch', $occurrence ),
                     };
-                    my $itemnumber;
-                    ( undef, undef, $itemnumber ) =
-                      AddItem( $new_item, $bib->{biblionumber} );
+                    $new_item->{biblionumber} = $bib->{biblionumber};
+                    $new_item->{biblioitemnumber} = $bib->{biblioitemnumber};
+                    my $kitem = Koha::Item->new( $new_item )->store;
+                    my $itemnumber = $kitem->itemnumber;
                     $logger->trace("New item $itemnumber added");
                     $schema->resultset('AqordersItem')->create(
                         {
@@ -837,6 +962,22 @@ sub quote_item {
                             itemnumber  => $itemnumber,
                         }
                     );
+
+                    my $lrp =
+                      $item->girfield( 'library_rotation_plan', $occurrence );
+                    if ($lrp) {
+                        my $rota =
+                          Koha::StockRotationRotas->find( { title => $lrp },
+                            { key => 'stockrotationrotas_title' } );
+                        if ($rota) {
+                            $rota->add_item($itemnumber);
+                            $logger->trace("Item added to rota $rota->id");
+                        }
+                        else {
+                            $logger->error(
+                                "No rota found matching $lrp in orderline");
+                        }
+                    }
                 }
 
                 ++$occurrence;
@@ -858,7 +999,13 @@ sub get_edifact_ean {
 
 # We should not need to have a routine to do this here
 sub _discounted_price {
-    my ( $discount, $price ) = @_;
+    my ( $discount, $price, $discounted_price ) = @_;
+    if (defined $discounted_price) {
+        return $discounted_price;
+    }
+    if (!$price) {
+        return 0;
+    }
     return $price - ( ( $discount * $price ) / 100 );
 }
 
@@ -892,7 +1039,7 @@ sub _check_for_existing_bib {
         $isbn =~ s/\-//xmsg;
         if ( $isbn =~ m/(\d{13})/xms ) {
             my $b_isbn = Business::ISBN->new($1);
-            if ( $b_isbn && $b_isbn->is_valid ) {
+            if ( $b_isbn && $b_isbn->is_valid && $b_isbn->as_isbn10 ) {
                 $search_isbn = $b_isbn->as_isbn10->as_string( [] );
             }
 
@@ -1092,7 +1239,7 @@ Koha::EDI
 
 =head2 receipt_items
 
-    receipt_items( schema_obj, invoice_line, ordernumber)
+    receipt_items( schema_obj, invoice_line, ordernumber, $quantity)
 
     receipts the items recorded on this invoice line
 
@@ -1100,7 +1247,7 @@ Koha::EDI
 
 =head2 transfer_items
 
-    transfer_items(schema, invoice_line, originating_order, receiving_order)
+    transfer_items(schema, invoice_line, originating_order, receiving_order, $quantity)
 
     Transfer the items covered by this invoice line from their original
     order to another order recording the partial fulfillment of the original
@@ -1153,16 +1300,19 @@ Koha::EDI
 
 =head2 _get_invoiced_price
 
-      _get_invoiced_price(line_object)
+      (price, price_tax_excluded) = _get_invoiced_price(line_object, $quantity)
 
-      Returns the net price or an equivalent calculated from line cost / qty
+      Returns an array of unitprice and unitprice_tax_excluded derived from the lineitem
+      monetary fields
 
 =head2 _discounted_price
 
-      ecost = _discounted_price(discount, item_price)
+      ecost = _discounted_price(discount, item_price, discounted_price)
 
       utility subroutine to return a price calculated from the
       vendors discount and quoted price
+      if invoice has a field containing discounted price that is returned
+      instead of recalculating
 
 =head2 _check_for_existing_bib
 

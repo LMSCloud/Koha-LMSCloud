@@ -1,12 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<!DOCTYPE stylesheet [<!ENTITY nbsp "&#160;" >]>
+<!DOCTYPE stylesheet>
 
 <xsl:stylesheet version="1.0"
   xmlns:marc="http://www.loc.gov/MARC21/slim"
-  xmlns:items="http://www.koha-community.org/items"
   xmlns:xsl="http://www.w3.org/1999/XSL/Transform"
-  exclude-result-prefixes="marc items">
+  xmlns:str="http://exslt.org/strings"
+  exclude-result-prefixes="marc str">
 
 <xsl:import href="UNIMARCslimUtils.xsl"/>
 <xsl:output method = "html" indent="yes" omit-xml-declaration = "yes" encoding="UTF-8"/>
@@ -18,14 +18,14 @@
   <xsl:variable name="leader" select="marc:leader"/>
   <xsl:variable name="leader6" select="substring($leader,7,1)"/>
   <xsl:variable name="leader7" select="substring($leader,8,1)"/>
-  <xsl:variable name="biblionumber" select="marc:datafield[@tag=090]/marc:subfield[@code='a']"/>
+  <xsl:variable name="biblionumber" select="marc:controlfield[@tag=001]"/>
   <xsl:variable name="DisplayOPACiconsXSLT" select="marc:sysprefs/marc:syspref[@name='DisplayOPACiconsXSLT']"/>
   <xsl:variable name="OPACURLOpenInNewWindow" select="marc:sysprefs/marc:syspref[@name='OPACURLOpenInNewWindow']"/>
   <xsl:variable name="URLLinkText" select="marc:sysprefs/marc:syspref[@name='URLLinkText']"/>
 
   <xsl:if test="marc:datafield[@tag=200]">
     <xsl:for-each select="marc:datafield[@tag=200]">
-      <h1 class="title">
+      <h2 class="title">
         <xsl:call-template name="addClassRtl" />
         <xsl:for-each select="marc:subfield">
           <xsl:choose>
@@ -62,7 +62,7 @@
             </xsl:otherwise>
           </xsl:choose>
         </xsl:for-each>
-      </h1>
+      </h2>
     </xsl:for-each>
   </xsl:if>
 
@@ -163,7 +163,7 @@
   </xsl:if>
 
   <xsl:if test="marc:datafield[@tag=102]">
-	  <span class="results_summary country">
+    <span class="results_summary country">
       <span class="label">Country: </span>
       <xsl:for-each select="marc:datafield[@tag=102]">
         <xsl:for-each select="marc:subfield">
@@ -192,7 +192,8 @@
 
   <!-- Build ISBN -->
   <xsl:if test="marc:datafield[@tag=010]/marc:subfield[@code='a']">
-    <span class="results_summary isbn"><span class="label">ISBN: </span>
+    <span class="results_summary isbn">
+      <span class="label">ISBN: </span>
       <xsl:for-each select="marc:datafield[@tag=010]/marc:subfield[@code='a']">
         <span property="isbn">
           <xsl:value-of select="."/>
@@ -211,7 +212,8 @@
 
   <!-- Build ISSN -->
   <xsl:if test="marc:datafield[@tag=011]/marc:subfield[@code='a']">
-    <span class="results_summary issn"><span class="label">ISSN: </span>
+    <span class="results_summary issn">
+      <span class="label">ISSN: </span>
       <xsl:for-each select="marc:datafield[@tag=011]/marc:subfield[@code='a']">
         <span property="issn">
           <xsl:value-of select="."/>
@@ -236,7 +238,7 @@
 
   <xsl:if test="marc:datafield[@tag=676]">
     <span class="results_summary dewey">
-    <span class="label">Dewey: </span>
+      <span class="label">Dewey: </span>
       <xsl:for-each select="marc:datafield[@tag=676]">
         <xsl:value-of select="marc:subfield[@code='a']"/>
         <xsl:if test="marc:subfield[@code='v']">
@@ -256,7 +258,7 @@
 
   <xsl:if test="marc:datafield[@tag=686]">
     <span class="results_summary classification">
-    <span class="label">Classification: </span>
+      <span class="label">Classification: </span>
       <xsl:for-each select="marc:datafield[@tag=686]">
         <xsl:value-of select="marc:subfield[@code='a']"/>
         <xsl:if test="marc:subfield[@code='b']">
@@ -442,6 +444,106 @@
       </xsl:for-each>
     </span>
   </xsl:if>
+
+  <!-- OpenURL -->
+  <xsl:variable name="OPACShowOpenURL" select="marc:sysprefs/marc:syspref[@name='OPACShowOpenURL']" />
+  <xsl:variable name="OpenURLImageLocation" select="marc:sysprefs/marc:syspref[@name='OpenURLImageLocation']" />
+  <xsl:variable name="OpenURLText" select="marc:sysprefs/marc:syspref[@name='OpenURLText']" />
+  <xsl:variable name="OpenURLResolverURL" select="marc:variables/marc:variable[@name='OpenURLResolverURL']" />
+
+  <xsl:if test="$OPACShowOpenURL = 1 and $OpenURLResolverURL != ''">
+    <xsl:variable name="openurltext">
+      <xsl:choose>
+        <xsl:when test="$OpenURLText != ''">
+          <xsl:value-of select="$OpenURLText" />
+        </xsl:when>
+        <xsl:otherwise>
+          <xsl:text>OpenURL</xsl:text>
+        </xsl:otherwise>
+      </xsl:choose>
+    </xsl:variable>
+
+    <span class="results_summary"><a>
+      <xsl:attribute name="href">
+        <xsl:value-of select="$OpenURLResolverURL" />
+      </xsl:attribute>
+      <xsl:attribute name="title">
+        <xsl:value-of select="$openurltext" />
+      </xsl:attribute>
+      <xsl:attribute name="class">
+        <xsl:text>OpenURL</xsl:text>
+      </xsl:attribute>
+      <xsl:if test="$OPACURLOpenInNewWindow='1'">
+        <xsl:attribute name="target">
+          <xsl:text>_blank</xsl:text>
+        </xsl:attribute>
+      </xsl:if>
+      <xsl:choose>
+        <xsl:when test="$OpenURLImageLocation != ''">
+          <img>
+            <xsl:attribute name="src">
+              <xsl:value-of select="$OpenURLImageLocation" />
+            </xsl:attribute>
+          </img>
+        </xsl:when>
+        <xsl:otherwise>
+          <xsl:value-of select="$openurltext" />
+        </xsl:otherwise>
+      </xsl:choose>
+    </a></span>
+  </xsl:if>
+  <!-- End of OpenURL -->
+
+  <xsl:variable name="OPACShowMusicalInscripts" select="marc:sysprefs/marc:syspref[@name='OPACShowMusicalInscripts']" />
+  <xsl:variable name="OPACPlayMusicalInscripts" select="marc:sysprefs/marc:syspref[@name='OPACPlayMusicalInscripts']" />
+
+  <xsl:if test="$OPACShowMusicalInscripts and marc:datafield[@tag=036]">
+      <xsl:for-each select="marc:datafield[@tag=031]">
+
+        <span class="results_summary musical_inscripts">
+            <xsl:if test="marc:subfield[@code='u']">
+                <span class="uri">
+                    <a>
+                        <xsl:attribute name="href">
+                            <xsl:value-of select="marc:subfield[@code='u']"/>
+                        </xsl:attribute>
+                        <xsl:text>Audio file</xsl:text>
+                    </a>
+                </span>
+            </xsl:if>
+            <xsl:if test="marc:subfield[@code='2'] and marc:subfield[@code='2']/text() = 'pe' and marc:subfield[@code='g'] and marc:subfield[@code='n'] and marc:subfield[@code='o'] and marc:subfield[@code='p']">
+                <div class="inscript" data-system="pae">
+                    <xsl:attribute name="data-clef">
+                        <xsl:value-of select="marc:subfield[@code='g']"/>
+                    </xsl:attribute>
+                    <xsl:attribute name="data-keysig">
+                        <xsl:value-of select="marc:subfield[@code='n']"/>
+                    </xsl:attribute>
+                    <xsl:attribute name="data-timesig">
+                        <xsl:value-of select="marc:subfield[@code='o']"/>
+                    </xsl:attribute>
+                    <xsl:attribute name="data-notation">
+                        <xsl:value-of select="marc:subfield[@code='p']"/>
+                    </xsl:attribute>
+                </div>
+                <xsl:if test="$OPACPlayMusicalInscripts = 1">
+                    <div class="audio_controls">
+                        <button class="btn play_btn">
+                            <i id="carticon" class="fa fa-play"></i>
+                            <xsl:text> Play this sample</xsl:text>
+                        </button>
+                    </div>
+                </xsl:if>
+            </xsl:if>
+        </span>
+    </xsl:for-each>
+    <xsl:if test="$OPACPlayMusicalInscripts = 1">
+        <div class="results_summary">
+            <span class="inscript_audio hide"></span>
+        </div>
+    </xsl:if>
+  </xsl:if>
+
 </xsl:template>
 
     <xsl:template name="nameABCDQ">

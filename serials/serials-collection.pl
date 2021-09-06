@@ -27,13 +27,14 @@ use C4::Serials;
 use C4::Letters;
 use C4::Output;
 use C4::Context;
+use Koha::Serial::Items;
 
 use Koha::DateUtils qw( dt_from_string );
 
 use List::MoreUtils qw/uniq/;
 
 
-my $query = new CGI;
+my $query = CGI->new;
 my $op = $query->param('op') || q{};
 my $nbissues=$query->param('nbissues');
 my $date_received_today = $query->param('date_received_today') || 0;
@@ -43,7 +44,6 @@ my ($template, $loggedinuser, $cookie)
   = get_template_and_user({template_name => "serials/serials-collection.tt",
                             query => $query,
                             type => "intranet",
-                            authnotrequired => 0,
                             flagsrequired => {serials => '*'},
                             debug => 1,
                             });
@@ -59,7 +59,7 @@ if($op eq 'gennext' && @subscriptionid){
     my $subscriptionid = $subscriptionid[0];
     my $sth = $dbh->prepare("
         SELECT publisheddate, publisheddatetext, serialid, serialseq,
-            planneddate
+            planneddate, notes, routingnotes
         FROM serial
         WHERE status = 1 AND subscriptionid = ?
     ");
@@ -77,18 +77,20 @@ if($op eq 'gennext' && @subscriptionid){
             require C4::Serials::Numberpattern;
             my $subscription = GetSubscription($subscriptionid);
             my $pattern = C4::Serials::Numberpattern::GetSubscriptionNumberpattern($subscription->{numberpattern});
+            my $frequency = C4::Serials::Frequency::GetSubscriptionFrequency($subscription->{periodicity});
             my $expected = GetNextExpected($subscriptionid);
             my (
                  $newserialseq,  $newlastvalue1, $newlastvalue2, $newlastvalue3,
                  $newinnerloop1, $newinnerloop2, $newinnerloop3
-            ) = GetNextSeq($subscription, $pattern, $expected->{publisheddate});
+            ) = GetNextSeq($subscription, $pattern, $frequency, $expected->{publisheddate});
 
              ## We generate the next publication date
-             my $nextpublisheddate = GetNextDate($subscription, $expected->{publisheddate}, 1);
+             my $nextpublisheddate = GetNextDate($subscription, $expected->{publisheddate}, $frequency, 1);
              my $planneddate = $date_received_today ? dt_from_string : $nextpublisheddate;
              ## Creating the new issue
              NewIssue( $newserialseq, $subscriptionid, $subscription->{'biblionumber'},
-                     1, $planneddate, $nextpublisheddate );
+                     1, $planneddate, $nextpublisheddate, undef,
+                     $issue->{notes}, $issue->{routingnotes} );
 
              ## Updating the subscription seq status
              my $squery = "UPDATE subscription SET lastvalue1=?, lastvalue2=?, lastvalue3=?, innerloop1=?, innerloop2=?, innerloop3=?
@@ -107,6 +109,34 @@ if($op eq 'gennext' && @subscriptionid){
     exit;
 }
 
+my $countitems = 0;
+my @serialsid = $query->multi_param('serialid');
+my $subscriptionid = $subscriptionid[0];
+
+if($op eq 'delete_confirm'){
+    foreach my $serialid (@serialsid){
+        $countitems += Koha::Serial::Items->search({serialid => $serialid})->count();
+    }
+}elsif($op eq 'delete_confirmed'){
+    if($query->param('delitems') eq "Yes"){
+        my @itemnumbers;
+        foreach my $serialid (@serialsid){
+            my @ids = Koha::Serial::Items->search({serialid => $serialid})->get_column('itemnumber');
+            push(@itemnumbers, @ids);
+        }
+        my $items = Koha::Items->search({ itemnumber => \@itemnumbers });
+        while ( my $item = $items->next ) {
+            my $error = $item->safe_delete;
+            $template->param(error_delitem => 1)
+                if $error eq '1';
+        }
+    }
+    for my $serialid (@serialsid){
+        my $serial = Koha::Serials->find($serialid);
+        ModSerialStatus($serialid, $serial->serialseq, $serial->planneddate, $serial->publisheddate, $serial->publisheddatetext, 6, "");
+    }
+}
+
 my $subscriptioncount;
 my ($location, $callnumber);
 if (@subscriptionid){
@@ -116,10 +146,6 @@ if (@subscriptionid){
     my $subs= GetSubscription($subscriptionid);
     next unless $subs;
     $closed = 1 if $subs->{closed};
-
-    $subs->{opacnote}     =~ s/\n/\<br\/\>/g;
-    $subs->{missinglist}  =~ s/\n/\<br\/\>/g;
-    $subs->{recievedlist} =~ s/\n/\<br\/\>/g;
 
     ##these are display information
     $subs->{'abouttoexpire'}=abouttoexpire($subs->{'subscriptionid'});
@@ -182,6 +208,11 @@ $template->param(
           callnumber	       => $callnumber,
           uc(C4::Context->preference("marcflavour")) => 1,
           serialsadditems   => $subscriptiondescs->[0]{'serialsadditems'},
+          delete => ($op eq 'delete_confirm'),
+          subscriptionid => $subscriptionid,
+          countitems => $countitems,
+          serialnumber => scalar @serialsid,
+          serialsid => \@serialsid,
           );
 
 output_html_with_http_headers $query, $cookie, $template->output;

@@ -1,27 +1,50 @@
+[% USE raw %]
 [% USE Asset %]
 [% USE Koha %]
-[% USE ColumnsSettings %]
+[% USE TablesSettings %]
 [% USE Branches %]
 [% USE Letters %]
 [% USE Categories %]
 [% SET footerjs = 1 %]
+[% PROCESS 'patronfields.inc' %]
 [% INCLUDE 'doc-head-open.inc' %]
-<title>Koha &rsaquo; Patrons [% IF ( searching ) %]&rsaquo; Search results[% END %]</title>
+<title>Patrons[% IF ( searching ) %] &rsaquo; Search results[% END %] &rsaquo; Koha</title>
 [% INCLUDE 'doc-head-close.inc' %]
-[% Asset.css("css/datatables.css") %]
 </head>
 
 <body id="pat_member" class="pat">
 [% INCLUDE 'header.inc' %]
-[% PROCESS 'patron-search.inc' %]
+[% INCLUDE 'patron-search.inc' %]
 
-<div id="breadcrumbs"><a href="/cgi-bin/koha/mainpage.pl">Home</a> &rsaquo; [% IF ( searching ) %]<a href="/cgi-bin/koha/members/members-home.pl">Patrons</a>  &rsaquo; Search results[% ELSE %]Patrons[% END %]</div>
+<nav id="breadcrumbs" aria-label="Breadcrumb" class="breadcrumb">
+    <ol>
+        <li>
+            <a href="/cgi-bin/koha/mainpage.pl">Home</a>
+        </li>
+        [% IF ( searching ) %]
+            <li>
+                <a href="/cgi-bin/koha/members/members-home.pl">Patrons</a>
+            </li>
+            <li>
+                <a href="#" aria-current="page">
+                    Search results
+                </a>
+            </li>
+        [% ELSE %]
+            <li>
+                <a href="#" aria-current="page">
+                    Patrons
+                </a>
+            </li>
+        [% END %]
+    </ol>
+</nav>
 
-<div id="doc3" class="yui-t2">
-  <div id="bd">
-    <div id="yui-main">
-      <div class="yui-b">
-        <div class="yui-g">
+<div class="main container-fluid">
+    <div class="row">
+        <div class="col-sm-10 col-sm-push-2">
+            <main>
+
           [% IF CAN_user_tools_manage_patron_lists %]
             <div id="patron_list_dialog" class="dialog alert">
               Added <span class="patrons-length"></span> patrons to <a></a>.
@@ -35,34 +58,27 @@
             </div>
           [% END %]
 
-          [% IF Koha.Preference( 'NorwegianPatronDBEnable' ) == 1 %]
-            [% SET nl_search_form_title='Search the Norwegian national patron database' %]
-            [% INCLUDE 'nl-search-form.tt' %]
-          [% END %]
-
           [% INCLUDE 'patron-toolbar.inc' %]
           [% INCLUDE 'noadd-warnings.inc' %]
 
           <div class="browse">
             Browse by last name:
             [% FOREACH letter IN alphabet.split(' ') %]
-                <a href="#" class="filterByLetter">[% letter %]</a>
+                <a href="#" class="filterByLetter">[% letter | html %]</a>
             [% END %]
           </div>
 
           [% IF CAN_user_borrowers_edit_borrowers && pending_borrower_modifications %]
             <div class="pending-info" id="patron_updates_pending">
               <a href="/cgi-bin/koha/members/members-update.pl">Patrons requesting modifications</a>:
-              <span class="number_box"><a href="/cgi-bin/koha/members/members-update.pl">[% pending_borrower_modifications %]</a></span>
+              <span class="number_box"><a href="/cgi-bin/koha/members/members-update.pl">[% pending_borrower_modifications | html %]</a></span>
             </div>
           [% END %]
 
           <div id="searchresults">
-            <div id="searchheader">
-              <h3>Patrons found for: <span id="searchpattern">[% IF searchmember %] for '[% searchmember | html %]'[% END %]</span></h3>
-            </div>
+            <h3>Patrons found for: <span id="searchpattern">[% IF searchmember %] for '[% searchmember | html %]'[% END %]</span></h3>
             [% IF CAN_user_tools_manage_patron_lists || CAN_user_borrowers_edit_borrowers || (CAN_user_circulate_send_adhoc_notices && Koha.Preference('AdhocNoticesLetterCodes') ) %]
-              <div id="searchheader">
+              <div class="searchheader fh-fixedHeader" id="searchheader">
                   <div>
                       <a href="#" id="select_all"><i class="fa fa-check"></i> Select all</a>
                       |
@@ -76,7 +92,7 @@
                               [% IF patron_lists %]
                                   <optgroup label="Patron lists:">
                                       [% FOREACH pl IN patron_lists %]
-                                          <option value="[% pl.patron_list_id %]">[% pl.name |html %]</option>
+                                          <option value="[% pl.patron_list_id | html %]">[% pl.name | html %]</option>
                                       [% END %]
                                   </optgroup>
                               [% END %]
@@ -127,226 +143,186 @@
               <tbody></tbody>
             </table>
           </div>
-        </div>
-      </div>
-    </div>
-    <div class="yui-b">
-      <form method="get" id="searchform">
-        <input type="hidden" id="firstletter_filter" value="" />
-        <fieldset class="brief">
-          <h3>Filters</h3>
-          <ol>
-            <li>
-              <label for="searchmember_filter">Search:</label>
-              <input type="text" id="searchmember_filter" value="[% searchmember %]"/>
-            </li>
-            <li>
-              <label for="searchfieldstype_filter">Search fields:</label>
-              <select name="searchfieldstype" id="searchfieldstype_filter">
-                [% IF searchfieldstype == "standard" %]
-                  <option selected="selected" value='standard'>Standard</option>
-                [% ELSE %]
-                  <option value='standard'>Standard</option>
-                [% END %]
-                [% IF searchfieldstype == "surname" %]
-                  <option selected="selected" value='surname'>Surname</option>
-                [% ELSE %]
-                  <option value='surname'>Surname</option>
-                [% END %]
-                [% IF searchfieldstype == "email" %]
-                  <option selected="selected" value='email'>Email</option>
-                [% ELSE %]
-                  <option value='email'>Email</option>
-                [% END %]
-                [% IF searchfieldstype == "borrowernumber" %]
-                  <option selected="selected" value='borrowernumber'>Borrower number</option>
-                [% ELSE %]
-                  <option value='borrowernumber'>Borrower number</option>
-                [% END %]
-                [% IF searchfieldstype == "userid" %]
-                  <option selected="selected" value='userid'>Username</option>
-                [% ELSE %]
-                  <option value='userid'>Username</option>
-                [% END %]
-                [% IF searchfieldstype == "phone" %]
-                  <option selected="selected" value='phone'>Phone number</option>
-                [% ELSE %]
-                  <option value='phone'>Phone number</option>
-                [% END %]
-                [% IF searchfieldstype == "address" %]
-                  <option selected="selected" value='address'>Street address</option>
-                [% ELSE %]
-                  <option value='address'>Street address</option>
-                [% END %]
-                [% IF searchfieldstype == "city" %]
-                  <option selected="selected" value='city'>City</option>
-                [% ELSE %]
-                  <option value='city'>City</option>
-                [% END %]
-                [% IF searchfieldstype == "dateofbirth" %]
-                  <option selected="selected" value='dateofbirth'>Date of birth</option>
-                [% ELSE %]
-                  <option value='dateofbirth'>Date of birth</option>
-                [% END %]
-                [% IF searchfieldstype == "sort1" %]
-                  <option selected="selected" value='sort1'>Sort field 1</option>
-                [% ELSE %]
-                  <option value='sort1'>Sort field 1</option>
-                [% END %]
-                [% IF searchfieldstype == "sort2" %]
-                  <option selected="selected" value='sort2'>Sort field 2</option>
-                [% ELSE %]
-                  <option value='sort2'>Sort field 2</option>
-                [% END %]
-              </select>
-            </li>
-            <li>
-              <label for="searchtype_filter">Search type:</label>
-              <select name="searchtype" id="searchtype_filter">
-                [% IF searchtype == "start_with" %]
-                  <option value='start_with' selected="selected">Starts with</option>
-                  <option value="contain">Contains</option>
-                [% ELSE %]
-                  <option value='start_with'>Starts with</option>
-                  <option value="contain" selected="selected">Contains</option>
-                [% END %]
-              </select>
-            </li>
-            <li>
-              <label for="categorycode_filter">Category:</label>
-              [% SET categories = Categories.all() %]
-              <select id="categorycode_filter">
-                <option value="">Any</option>
-                [% FOREACH cat IN categories %]
-                  [% IF cat.categorycode == categorycode_filter %]
-                    <option selected="selected" value="[% cat.categorycode %]">[% cat.description |html %]</option>
-                  [% ELSE %]
-                    <option value="[% cat.categorycode %]">[% cat.description |html %]</option>
-                  [% END %]
-                [% END %]
-              </select>
-            </li>
-            <li>
-              <label for="branchcode_filter">Library:</label>
-              [% SET branches = Branches.all( selected => branchcode_filter, only_from_group => 1, restrict => 'NoMobileStations' ) %]
-              <select id="branchcode_filter">
-                [% IF branches.size != 1 %]
-                  <option value="">Any</option>
-                [% END %]
-                [% PROCESS options_for_libraries libraries => branches %]
-              </select>
-            </li>
-            <li>
-                <span>&#160;
-            <li>
-            <li>
-              <label for="agerangestart_filter">Patron age: </label>
-                from&#160;
-                <input type="number" name="agerangestart_filter" id="agerangestart_filter" value="[% agerangestart %]" step="any" min="0" class="agerange-input" />
-                to&#160;
-                <input type="number" name="agerangeend_filter" id="agerangeend_filter" value="[% agerangeend %]" step="any" min="0" class="agerange-input" />
-            </li>
-            <li>
-              <label for="issuecountstart_filter">Number of loans: </label>
-                from&#160;
-                <input type="number" name="issuecountstart_filter" id="issuecountstart_filter" value="[% issuecountstart %]" step="any" min="0" class="issuecount-input" />
-                to&#160;
-                <input type="number" name="issuecountend_filter" id="issuecountend_filter" value="[% issuecountend %]" step="any" min="0" class="issuecount-input" />
-            </li>
-            <li>
-              <label for="chargesfrom_filter">Open charges amount:</label>
-                from&#160;
-                <input type="number" name="chargesfrom_filter" id="chargesfrom_filter" value="[% chargesfrom %]" step="any" min="0" class="charges-input" />
-                to&#160; 
-                <input type="number" name="chargesto_filter" id="chargesto_filter" value="[% chargesto %]" step="any" min="0" class="charges-input" />
-            </li>
-            <li>
-              <label for="chargessince_filter">Open charges since:</label>
-              <input type="text" size="10" id="chargessince_filter" name="chargessince_filter" value="[% chargessince %]" />
-            </li>
-            <li>
-              <label for="accountexpiresfrom_filter">Account expires/expired: </label>
-              from&#160;<input type="text" size="10" id="accountexpiresfrom_filter" name="accountexpiresfrom_filter" value="[% accountexpiresfrom %]" /><br />
-              to&#160;<input type="text" size="10" id="accountexpiresto_filter" name="accountexpiresto_filter" value="[% accountexpiresto %]" />
-            </li>
-            <li>
-              <label for="debarreduntilfrom_filter">Debarred until: </label>
-              from&#160;<input type="text" size="10" id="debarreduntilfrom_filter" name="debarreduntilfrom_filter" value="[% debarreduntilfrom %]" /><br />
-              to&#160;<input type="text" size="10" id="debarreduntilto_filter" name="debarreduntilto_filter" value="[% debarreduntilto %]" />
-            </li>
-            <li>
-              <label for="inactivesince_filter">Inactive since:</label>
-              <input type="text" size="10" id="inactivesince_filter" name="inactivesince_filter" value="[% inactivesince %]" />
-            </li>
-            <li>
-              <label for="lastlettercode_filter">Last letter: </label>
-              [% SET letters = Letters.all( selected => lastlettercode) %]
-              <select id="lastlettercode_filter">
-                [% IF letters.size != 1 %]
-                  <option value="">Any</option>
-                [% END %]
-                [% FOREACH b IN letters %]
-                  [% IF b.selected %]
-                    <option selected="selected" value="[% b.code %]">[% b.name %]</option>
-                  [% ELSE %]
-                    <option value="[% b.code %]">[% b.name %]</option>
-                  [% END %]
-                [% END %]
-              </select>
-            </li>
-            <li>
-              <label for="overduelevel_filter">Checkouts overdue level: </label>
-              <select id="overduelevel_filter">
-                <option value="">Not selected</option>
-                [% levels = ['1','2','3','4','5'] %]
-                [% FOREACH b IN levels %]
-                  [% IF b == overduelevel %]
-                    <option selected="selected" value="[% b %]">Level [% b %]</option>
-                  [% ELSE %]
-                    <option value="[% b %]">Level [% b %]</option>
-                  [% END %]
-                [% END %]
-              </select>
-            </li>
-            <li>
-                <label for="validemailavailable_filter">Email Address: </label>
-                <select id="validemailavailable_filter">
-                    <option value="">Not selected</option>
-                    [% IF ( validemailavailable == 'yes' ) %]
-                        <option value="yes" selected="selected">Email available</option>
-                    [% ELSE %]
-                        <option value="yes">Email available</option>
-                    [% END %]
-                    [% IF ( validemailavailable == 'no' ) %]
-                        <option value="no" selected="selected">Email not available</option>
-                    [% ELSE %]
-                        <option value="no">Email not available</option>
-                    [% END %]
-               </select>
-            </li>
-            <li>
-                <label for="patronlistid_filter">Patron list: </label>
-                <select id="patronlistid_filter">
-                    <option value="">Not selected</option>
-                    [% FOREACH p IN patron_lists %]
-                      [% IF p.patron_list_id == patronlistid %]
-                        <option selected="selected" value="[% p.patron_list_id %]">[% p.name %]</option>
-                      [% ELSE %]
-                        <option value="[% p.patron_list_id %]">[% p.name %]</option>
-                      [% END %]
-                    [% END %]
-                </select>
-            </li>
-          </ol>
-          <fieldset class="action">
-            <input type="submit" value="Search" />
-            <input type="button" value="Clear" id="clear_search" />
-          </fieldset>
-        </fieldset>
-      </form>
-    </div>
-  </div>
-</div>
+
+            </main>
+        </div> <!-- /.col-sm-10.col-sm-push-2 -->
+
+        <div class="col-sm-2 col-sm-pull-10">
+            <aside>
+                <form method="get" id="searchform">
+                  <input type="hidden" id="firstletter_filter" value="" />
+                  <fieldset class="brief">
+                    <h3>Search patrons</h3>
+                    <ol>
+                      <li>
+                        <label for="searchmember_filter">Search for:</label>
+                        <input type="text" id="searchmember_filter" value="[% searchmember | html %]"/>
+                      </li>
+                      <li>
+                        <label for="searchfieldstype_filter">Search field:</label>
+                        <select name="searchfieldstype" id="searchfieldstype_filter">
+                            [% pref_fields = Koha.Preference('DefaultPatronSearchFields').split(',') %]
+                            [% default_fields = [ 'standard', 'surname', 'cardnumber', 'email', 'borrowernumber', 'userid', 'phone', 'address', 'city', 'dateofbirth', 'sort1', 'sort2' ] %]
+                            [% search_options = default_fields.merge(pref_fields).unique %]
+                            [% FOREACH s_o IN search_options %]
+                                [% display_name = PROCESS patron_fields name=s_o %]
+                                [% NEXT IF !display_name %]
+                                [% IF searchfieldstype == s_o %]
+                                    <option selected="selected" value=[% s_o | html %]>[% display_name | $raw %]</option>
+                                [% ELSE %]
+                                    <option value=[% s_o | html %]>[% display_name | $raw %]</option>
+                                [% END %]
+                            [% END %]
+                        </select>
+                      </li>
+                      <li>
+                        <label for="searchtype_filter">Search type:</label>
+                        <select name="searchtype" id="searchtype_filter">
+                          [% IF searchtype == "start_with" %]
+                            <option value='start_with' selected="selected">Starts with</option>
+                            <option value="contain">Contains</option>
+                          [% ELSE %]
+                            <option value='start_with'>Starts with</option>
+                            <option value="contain" selected="selected">Contains</option>
+                          [% END %]
+                        </select>
+                      </li>
+                      <li>
+                        <label for="categorycode_filter">Patron category:</label>
+                        [% SET categories = Categories.all() %]
+                        <select id="categorycode_filter">
+                          <option value="">Any</option>
+                          [% FOREACH cat IN categories %]
+                            [% IF cat.categorycode == categorycode_filter %]
+                    <option selected="selected" value="[% cat.categorycode | html %]">[% cat.description | html %]</option>
+                            [% ELSE %]
+                    <option value="[% cat.categorycode | html %]">[% cat.description | html %]</option>
+
+                            [% END %]
+                          [% END %]
+                        </select>
+                      </li>
+                      <li>
+                        <label for="branchcode_filter">Library:</label>
+                        [% SET branches = Branches.all( selected => branchcode_filter, only_from_group => 1 ) %]
+                        <select id="branchcode_filter">
+                          [% IF branches.size != 1 %]
+                            <option value="">Any</option>
+                          [% END %]
+                          [% PROCESS options_for_libraries libraries => branches %]
+                        </select>
+                      </li>
+                      <li>
+                        <span>&#160;
+                      <li>
+                      <li>
+                        <label for="agerangestart_filter">Patron age: </label>
+                          from&#160;
+                          <input type="number" name="agerangestart_filter" id="agerangestart_filter" value="[% agerangestart %]" step="any" min="0" class="agerange-input" />
+                          to&#160;
+                          <input type="number" name="agerangeend_filter" id="agerangeend_filter" value="[% agerangeend %]" step="any" min="0" class="agerange-input" />
+                      </li>
+                      <li>
+                        <label for="issuecountstart_filter">Number of loans: </label>
+                          from&#160;
+                          <input type="number" name="issuecountstart_filter" id="issuecountstart_filter" value="[% issuecountstart %]" step="any" min="0" class="issuecount-input" />
+                          to&#160;
+                          <input type="number" name="issuecountend_filter" id="issuecountend_filter" value="[% issuecountend %]" step="any" min="0" class="issuecount-input" />
+                      </li>
+                      <li>
+                        <label for="chargesfrom_filter">Open charges amount:</label>
+                          from&#160;
+                          <input type="number" name="chargesfrom_filter" id="chargesfrom_filter" value="[% chargesfrom %]" step="any" min="0" class="charges-input" />
+                          to&#160; 
+                          <input type="number" name="chargesto_filter" id="chargesto_filter" value="[% chargesto %]" step="any" min="0" class="charges-input" />
+                      </li>
+                      <li>
+                        <label for="chargessince_filter">Open charges since:</label>
+                        <input type="text" size="10" id="chargessince_filter" name="chargessince_filter" value="[% chargessince %]" />
+                      </li>
+                      <li>
+                        <label for="accountexpiresfrom_filter">Account expires/expired: </label>
+                        from&#160;<input type="text" size="10" id="accountexpiresfrom_filter" name="accountexpiresfrom_filter" value="[% accountexpiresfrom %]" /><br />
+                        to&#160;<input type="text" size="10" id="accountexpiresto_filter" name="accountexpiresto_filter" value="[% accountexpiresto %]" />
+                      </li>
+                      <li>
+                        <label for="debarreduntilfrom_filter">Debarred until: </label>
+                        from&#160;<input type="text" size="10" id="debarreduntilfrom_filter" name="debarreduntilfrom_filter" value="[% debarreduntilfrom %]" /><br />
+                        to&#160;<input type="text" size="10" id="debarreduntilto_filter" name="debarreduntilto_filter" value="[% debarreduntilto %]" />
+                      </li>
+                      <li>
+                        <label for="inactivesince_filter">Inactive since:</label>
+                        <input type="text" size="10" id="inactivesince_filter" name="inactivesince_filter" value="[% inactivesince %]" />
+                      </li>
+                      <li>
+                        <label for="lastlettercode_filter">Last letter: </label>
+                        [% SET letters = Letters.all( selected => lastlettercode) %]
+                        <select id="lastlettercode_filter">
+                          [% IF letters.size != 1 %]
+                            <option value="">Any</option>
+                          [% END %]
+                          [% FOREACH b IN letters %]
+                            [% IF b.selected %]
+                              <option selected="selected" value="[% b.code %]">[% b.name %]</option>
+                            [% ELSE %]
+                              <option value="[% b.code %]">[% b.name %]</option>
+                            [% END %]
+                          [% END %]
+                        </select>
+                      </li>
+                      <li>
+                        <label for="overduelevel_filter">Checkouts overdue level: </label>
+                        <select id="overduelevel_filter">
+                          <option value="">Not selected</option>
+                          [% levels = ['1','2','3','4','5'] %]
+                          [% FOREACH b IN levels %]
+                            [% IF b == overduelevel %]
+                              <option selected="selected" value="[% b %]">Level [% b %]</option>
+                            [% ELSE %]
+                              <option value="[% b %]">Level [% b %]</option>
+                            [% END %]
+                          [% END %]
+                        </select>
+                      </li>
+                      <li>
+                        <label for="validemailavailable_filter">Email Address: </label>
+                        <select id="validemailavailable_filter">
+                            <option value="">Not selected</option>
+                            [% IF ( validemailavailable == 'yes' ) %]
+                                <option value="yes" selected="selected">Email available</option>
+                            [% ELSE %]
+                                <option value="yes">Email available</option>
+                            [% END %]
+                            [% IF ( validemailavailable == 'no' ) %]
+                                <option value="no" selected="selected">Email not available</option>
+                            [% ELSE %]
+                                <option value="no">Email not available</option>
+                            [% END %]
+                       </select>
+                      </li>
+                      <li>
+                        <label for="patronlistid_filter">Patron list: </label>
+                        <select id="patronlistid_filter">
+                            <option value="">Not selected</option>
+                            [% FOREACH p IN patron_lists %]
+                              [% IF p.patron_list_id == patronlistid %]
+                                <option selected="selected" value="[% p.patron_list_id %]">[% p.name %]</option>
+                              [% ELSE %]
+                                <option value="[% p.patron_list_id %]">[% p.name %]</option>
+                              [% END %]
+                            [% END %]
+                        </select>
+                      </li>
+                    </ol>
+                    <fieldset class="action">
+                      <input type="submit" value="Search" />
+                      <input type="button" value="Clear" id="clear_search" />
+                    </fieldset>
+                  </fieldset>
+                </form>
+            </aside>
+        </div> <!-- /.col-sm-2.col-sm-pull-10 -->
+    </div> <!-- /.row -->
 
 <!-- Modal to send adhoc notices -->
 <div class="modal fade" id="selectAdhocNoticeLetter" tabindex="-1" role="dialog" aria-labelledby="selectAdhocNoticeLetter_label" aria-hidden="true">
@@ -396,8 +372,10 @@
 [% MACRO jsinclude BLOCK %]
     [% INCLUDE 'datatables.inc' %]
     [% INCLUDE 'columns_settings.inc' %]
-    [% Asset.js("js/members-menu.js") %]
-    <script type="text/javascript">
+    [% INCLUDE 'str/members-menu.inc' %]
+    [% Asset.js("lib/hc-sticky.js") | $raw %]
+    [% Asset.js("js/members-menu.js") | $raw %]
+    <script>
         $(document).ready(function() {
             $('#merge-patrons').prop('disabled', true);
             $('#memberresultst').on('change', 'input.selection', function() {
@@ -677,6 +655,7 @@
                 selectOtherMonths: true
             });
             $("#searchform").on("submit", filter);
+
         });
 
         var dtMemberResults;
@@ -686,16 +665,16 @@
                 $("#searchmember_filter").val("[% searchmember | html %]");
             [% END %]
             [% IF searchfieldstype %]
-                $("searchfieldstype_filter").val("[% searchfieldstype %]");
+                $("searchfieldstype_filter").val("[% searchfieldstype | html %]");
             [% END %]
             [% IF searchtype %]
-                $("#searchtype_filter").val("[% searchtype %]");
+                $("#searchtype_filter").val("[% searchtype | html %]");
             [% END %]
             [% IF categorycode %]
-                $("#categorycode_filter").val("[% categorycode_filter %]");
+                $("#categorycode_filter").val("[% categorycode_filter | html %]");
             [% END %]
             [% IF branchcode %]
-                $("#branchcode_filter").val("[% branchcode_filter %]");
+                $("#branchcode_filter").val("[% branchcode_filter | html %]");
             [% END %]
             [% IF lastlettercode %]
                 $("#lastlettercode_filter").val("[% lastlettercode %]");
@@ -709,7 +688,7 @@
 
             // Build the aLengthMenu
             var aLengthMenu = [
-                [%PatronsPerPage %], 10, 20, 50, 100, -1
+                [% PatronsPerPage | html %], 10, 20, 50, 100, -1
             ];
             jQuery.unique(aLengthMenu);
             aLengthMenu.sort(function( a, b ){
@@ -732,7 +711,7 @@
             });
 
             // Apply DataTables on the results table
-            var columns_settings = [% ColumnsSettings.GetColumns( 'members', 'member', 'memberresultst', 'json' ) %];
+            var columns_settings = [% TablesSettings.GetColumns( 'members', 'member', 'memberresultst', 'json' ) | $raw %];
             [% UNLESS CAN_user_borrowers_edit_borrowers OR CAN_user_tools_manage_patron_lists %]
                 [%# Remove the first column if we do not display the checkbox %]
                 columns_settings.splice(0, 1);
@@ -814,8 +793,14 @@
                         'name': 'name_sorton',
                         'value': 'borrowers.surname borrowers.firstname'
                     },{
-                        'name': 'dateofbirth',
+                        'name': 'cardnumber_sorton',
+                        'value': 'borrowers.cardnumber',
+                    },{
+                        'name': 'dateofbirth_sorton',
                         'value': 'borrowers.dateofbirth',
+                    },{
+                        'name': 'dateexpiry_sorton',
+                        'value': 'borrowers.dateexpiry',
                     },{
                         'name': 'category_sorton',
                         'value': 'categories.description',
@@ -861,23 +846,24 @@
                     { 'mDataProp': 'dt_borrowernotes' },
                     { 'mDataProp': 'dt_action', 'bSortable': false, 'sClass': 'actions' }
                 ],
-                'fnRowCallback': function(nRow, aData, iDisplayIndex, iDisplayIndexFull) {
-                    /* Center text for 6th column */
-                    $("td:eq(5)", nRow).css("text-align", "center");
-
-                    return nRow;
-                },
                 'bFilter': false,
                 'bAutoWidth': false,
-                [% IF CAN_user_tools_manage_patron_lists %]
+                [% IF CAN_user_borrowers_edit_borrowers || CAN_user_tools_manage_patron_lists %]
                     'aaSorting': [[2, 'asc']],
                 [% ELSE %]
                     'aaSorting': [[1, 'asc']],
                 [% END %]
                 "aLengthMenu": [aLengthMenu, aLengthMenuLabel],
                 'sPaginationType': 'full_numbers',
-                "iDisplayLength": [% PatronsPerPage %],
+                "iDisplayLength": [% PatronsPerPage | html %],
                 "bProcessing": true,
+                "initComplete": function(settings, json) {
+                    Sticky = $("#searchheader");
+                    Sticky.hcSticky({
+                        stickTo: "#searchresults",
+                        stickyClass: "floating"
+                    });
+                }
             }, columns_settings);
             update_searched();
         });

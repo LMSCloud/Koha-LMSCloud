@@ -27,7 +27,7 @@ use Koha::Item::Transfers;
 
 use t::lib::TestBuilder;
 
-use Test::More tests => 24;
+use Test::More tests => 22;
 use Test::Deep;
 
 BEGIN {
@@ -38,7 +38,6 @@ can_ok(
     qw(
       CreateBranchTransferLimit
       DeleteBranchTransferLimits
-      DeleteTransfer
       GetTransfers
       GetTransfersFromTo
       )
@@ -69,38 +68,85 @@ $record->append_fields(
     MARC::Field->new( '952', '0', '0', a => $branchcode_1 ) );
 my ( $biblionumber, $biblioitemnumber ) = C4::Biblio::AddBiblio( $record, '', );
 
-my @sampleitem1 = C4::Items::AddItem(
-    {   barcode        => 1,
+my $item_id1 = Koha::Item->new(
+    {
+        biblionumber   => $biblionumber,
+        barcode        => 1,
         itemcallnumber => 'callnumber1',
         homebranch     => $branchcode_1,
         holdingbranch  => $branchcode_1,
         itype          => $itemtype
     },
-    $biblionumber
-);
-my $item_id1    = $sampleitem1[2];
-my @sampleitem2 = C4::Items::AddItem(
-    {   barcode        => 2,
+)->store->itemnumber;
+my $item_id2 = Koha::Item->new(
+    {
+        biblionumber   => $biblionumber,
+        barcode        => 2,
         itemcallnumber => 'callnumber2',
         homebranch     => $branchcode_1,
         holdingbranch  => $branchcode_1,
         itype          => $itemtype
     },
-    $biblionumber
-);
-my $item_id2 = $sampleitem2[2];
+)->store->itemnumber;
+my $item_id3 = Koha::Item->new(
+    {
+        biblionumber   => $biblionumber,
+        barcode        => 3,
+        itemcallnumber => 'callnumber3',
+        homebranch     => $branchcode_1,
+        holdingbranch  => $branchcode_1,
+        itype          => $itemtype
+    },
+)->store->itemnumber;
+my $item_id4 = Koha::Item->new(
+    {
+        biblionumber   => $biblionumber,
+        barcode        => 4,
+        itemcallnumber => 'callnumber4',
+        homebranch     => $branchcode_1,
+        holdingbranch  => $branchcode_1,
+        itype          => $itemtype
+    },
+)->store->itemnumber;
 
 #Add transfers
+my $trigger = 'Manual';
 ModItemTransfer(
     $item_id1,
     $branchcode_1,
-    $branchcode_2
+    $branchcode_2,
+    $trigger
 );
+
+my $item_obj = Koha::Items->find({ itemnumber => $item_id1 });
+is( $item_obj->holdingbranch, $branchcode_1, "Item should be held at branch that initiates transfer");
+
 ModItemTransfer(
     $item_id2,
     $branchcode_1,
-    $branchcode_2
+    $branchcode_2,
+    $trigger
 );
+
+# Add an "unsent" transfer for tests
+ModItemTransfer(
+    $item_id3,
+    $branchcode_1,
+    $branchcode_2,
+    $trigger
+);
+my $transfer_requested = Koha::Item::Transfers->search( { itemnumber => $item_id3 }, { rows => 1 })->single;
+$transfer_requested->set({ daterequested => dt_from_string, datesent => undef })->store;
+
+# Add a "cancelled" transfer for tests
+ModItemTransfer(
+    $item_id4,
+    $branchcode_1,
+    $branchcode_2,
+    $trigger
+);
+my $transfer_cancelled = Koha::Item::Transfers->search( { itemnumber => $item_id4 }, { rows => 1 })->single;
+$transfer_cancelled->set( { daterequested => dt_from_string, datesent => undef, datecancelled => dt_from_string } )->store;
 
 #Begin Tests
 #Test CreateBranchTransferLimit
@@ -126,7 +172,7 @@ is(CreateBranchTransferLimit(undef,$branchcode_2),undef,
 my @transfers = GetTransfers($item_id1);
 cmp_deeply(
     \@transfers,
-    [ re('^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$'), $branchcode_1, $branchcode_2, re('[0-9]*') ],
+    [ re('^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$'), $branchcode_1, $branchcode_2, re('[0-9]*'), re('^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$'), 'Manual' ],
     "Transfers of the item1"
 );    #NOTE: Only the first transfer is returned
 @transfers = GetTransfers;
@@ -176,12 +222,6 @@ is(
 is(C4::Circulation::DeleteBranchTransferLimits(),undef,"Without parameters DeleteBranchTransferLimit returns undef");
 is(C4::Circulation::DeleteBranchTransferLimits('B'),'0E0',"With a wrong id DeleteBranchTransferLimit returns 0E0");
 
-#Test DeleteTransfer
-is( C4::Circulation::DeleteTransfer($item_id1),
-    1, "A the item1's transfer has been deleted" );
-is(C4::Circulation::DeleteTransfer(),undef,"Without itemid DeleteTransfer returns undef");
-is(C4::Circulation::DeleteTransfer(-1),'0E0',"with a wrong itemid DeleteTranfer returns 0E0");
-
 #Test TransferSlip
 is( C4::Circulation::TransferSlip($branchcode_1, undef, 5, $branchcode_2),
     undef, "No tranferslip if invalid or undef itemnumber or barcode" );
@@ -197,17 +237,19 @@ $dbh->do("DELETE FROM branchtransfers");
 ModItemTransfer(
     $item_id1,
     $branchcode_1,
-    $branchcode_2
+    $branchcode_2,
+    $trigger
 );
 my $transfer = Koha::Item::Transfers->search()->next();
 ModItemTransfer(
     $item_id1,
     $branchcode_1,
-    $branchcode_2
+    $branchcode_2,
+    $trigger
 );
 $transfer->{_result}->discard_changes;
-ok( $transfer->datearrived, 'Date arrived is set when new transfer is initiated' );
-is( $transfer->comments, "Canceled, new transfer from $branchcode_1 to $branchcode_2 created", 'Transfer comment is set as expected when new transfer is initiated' );
+ok( $transfer->datecancelled, 'Date cancelled is set when new transfer is initiated' );
+is( $transfer->cancellation_reason, "Manual", 'Cancellation reason is set correctly when new transfer is initiated' );
 
 $schema->storage->txn_rollback;
 

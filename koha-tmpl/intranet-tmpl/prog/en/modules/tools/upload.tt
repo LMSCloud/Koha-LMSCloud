@@ -1,38 +1,46 @@
+[% USE raw %]
 [% USE Asset %]
 [% USE Koha %]
+[% USE TablesSettings %]
 [% SET footerjs = 1 %]
 [% INCLUDE 'doc-head-open.inc' %]
 [% IF plugin %]
     <title>Upload plugin</title>
 [% ELSE %]
-    <title>Koha &rsaquo; Tools &rsaquo; Upload</title>
+    <title>Upload &rsaquo; Tools &rsaquo; Koha</title>
 [% END %]
 [% INCLUDE 'doc-head-close.inc' %]
-[% Asset.css("css/datatables.css") %]
 
 [% BLOCK plugin_pars %]
     [% IF plugin %]
         <input type="hidden" name="plugin" value="1" />
-        <input type="hidden" name="index" value="[% index %]" />
+        <input type="hidden" name="index" value="[% index | html %]" />
     [% END %]
 [% END %]
 
 [% BLOCK breadcrumbs %]
-    <div id="breadcrumbs">
-        <a href="/cgi-bin/koha/mainpage.pl">Home</a>
-        &rsaquo;
-        <a href="/cgi-bin/koha/tools/tools-home.pl">Tools</a>
-        &rsaquo;
-        <a href="/cgi-bin/koha/tools/upload.pl">Upload</a>
-        &rsaquo;
-        <span id="lastbreadcrumb">
-        [% IF mode=='new' || mode =='deleted'%]
-            Add new upload or search
-        [% ELSE %]
-            Results
-        [% END %]
-        </span>
-    </div>
+    <nav id="breadcrumbs" aria-label="Breadcrumb" class="breadcrumb">
+        <ol>
+            <li>
+                <a href="/cgi-bin/koha/mainpage.pl">Home</a>
+            </li>
+            <li>
+                <a href="/cgi-bin/koha/tools/tools-home.pl">Tools</a>
+            </li>
+            <li>
+                <a href="/cgi-bin/koha/tools/upload.pl">Upload</a>
+            </li>
+            <li>
+                <a href="#" aria-current="page">
+                    [% IF mode=='new' || mode =='deleted'%]
+                        Add new upload or search
+                    [% ELSE %]
+                        Results
+                    [% END %]
+                </a>
+            </li>
+        </ol>
+    </nav>
 [% END %]
 
 [% BLOCK form_new %]
@@ -55,7 +63,7 @@
                     <option value=""></option>
                 [% END %]
                 [% FOREACH cat IN uploadcategories %]
-                    <option value="[% cat.code %]">[% cat.name %]</option>
+                    <option value="[% cat.code | html %]">[% cat.name | html %]</option>
                 [% END %]
                 </select>
             </li>
@@ -65,7 +73,14 @@
             [% IF uploadcategories %]
                 <div class="hint">Note: For temporary uploads do not select a category.</div>
             [% ELSE %]
-                <div class="hint">Note: No upload categories are defined. Add values to the UPLOAD authorized value category otherwise all uploads will be marked as temporary.</div>
+                <div class="hint">
+                    Note: No upload categories are defined.
+                    [% IF ( CAN_user_parameters_manage_auth_values ) -%]
+                        Add values to the <a href="/cgi-bin/koha/admin/authorised_values.pl?searchfield=UPLOAD">UPLOAD authorized value category</a> otherwise all uploads will be marked as temporary.
+                    [% ELSE -%]
+                        An administrator must add values to the UPLOAD authorized value category otherwise all uploads will be marked as temporary.
+                    [% END %]
+                </div>
             [% END %]
             </li>
         [% END %]
@@ -92,6 +107,31 @@
             <div id="fileuploadfailed"></div>
         </div>
     </form>
+[% END %]
+
+[% BLOCK form_browse %]
+    [% IF uploadcategories %]
+    <form method="post" id="browsefile" action="/cgi-bin/koha/tools/upload.pl" enctype="multipart/form-data">
+        [% PROCESS plugin_pars %]
+        <input type="hidden" name="op" value="browse"/>
+        <fieldset class="rows">
+        <legend>Search uploads by category</legend>
+        <ol>
+            <li>
+                <label for="browsecategory">Category: </label>
+                <select id="browsecategory" name="browsecategory">
+                [% FOREACH cat IN uploadcategories %]
+                    <option value="[% cat.code | html %]">[% cat.name | html %]</option>
+                [% END %]
+                </select>
+            </li>
+        </ol>
+        <fieldset class="action">
+            <button id="browsebutton" class="submit">Search</button>
+        </fieldset>
+        </fieldset>
+    </form>
+    [% END %]
 [% END %]
 
 [% BLOCK form_search %]
@@ -159,27 +199,33 @@
         <th>Category</th>
         [% IF !plugin %]<th>Public</th>[% END %]
         [% IF !plugin %]<th>Temporary</th>[% END %]
-        <th class="nosort">Actions</th>
+        <th class="NoSort noExport">Actions</th>
     </tr>
     </thead>
     <tbody>
     [% FOREACH record IN uploads %]
     <tr>
-        <td>[% record.filename %]</td>
-        <td>[% record.filesize %]</td>
-        <td>[% record.hashvalue %]</td>
-        <td>[% record.uploadcategorycode %]</td>
+        <td>[% record.filename | html %]</td>
+        <td>[% record.filesize | html %]</td>
+        <td>[% record.hashvalue | html %]</td>
+        <td>[% record.uploadcategorycode | html %]</td>
         [% IF !plugin %]
-            <td>[% IF record.public %]Yes[% ELSE %]No[% END %]</td>
+            <td>
+                [% IF record.public %]
+                    <a href="[% Koha.Preference('OPACBaseURL') | url %]/cgi-bin/koha/opac-retrieve-file.pl?id=[% record.hashvalue | uri %]" class="get-file" data-toggle="tooltip"><i class="fa fa-link" aria-hidden="true"></i> Yes</a>
+                [% ELSE %]
+                    No
+                [% END %]
+            </td>
             <td>[% IF record.permanent %]No[% ELSE %]Yes[% END %]</td>
         [% END %]
         <td class="actions">
             [% IF plugin %]
-                <button class="btn btn-default btn-xs choose_entry" data-record-hashvalue="[% record.hashvalue %]"><i class="fa fa-plus"></i> Choose</button>
+                <button class="btn btn-default btn-xs choose_entry" data-record-hashvalue="[% record.hashvalue | html %]"><i class="fa fa-plus"></i> Choose</button>
             [% END %]
-            <button class="btn btn-default btn-xs download_entry" data-record-id="[% record.id %]"><i class="fa fa-download"></i> Download</button>
+            <button class="btn btn-default btn-xs download_entry" data-record-id="[% record.id | html %]"><i class="fa fa-download"></i> Download</button>
             [% IF record.owner == owner || CAN_user_tools_upload_manage %]
-                <button class="btn btn-default btn-xs delete_entry" data-record-id="[% record.id %]"><i class="fa fa-trash"></i> Delete</button>
+                <button class="btn btn-default btn-xs delete_entry" data-record-id="[% record.id | html %]"><i class="fa fa-trash"></i> Delete</button>
             [% END %]
         </td>
    </tr>
@@ -188,10 +234,10 @@
    </table>
 [% END %]
 
-<style type="text/css">
+<style>
     #fileuploadstatus,#fileuploadfailed { display : none; }
     #fileuploadstatus { margin:.4em; }
-    #fileuploadprogress { width:150px;height:10px;border:1px solid #666;background:url('[% interface %]/[% theme %]/img/progress.png') -300px 0px no-repeat; }
+    #fileuploadprogress { width:150px;height:10px;border:1px solid #666;background:url('[% interface | html %]/[% theme | html %]/img/progress.png') -300px 0px no-repeat; }
 </style>
 
 
@@ -199,21 +245,21 @@
 
 [% IF ( plugin ) %]
     <body id="tools_upload" class="tools">
-        <div class="yui-t7">
-            <div id="bd">
-                <div class="yui-g">
+        <div class="main container-fluid">
+            <div class="row">
+                <div class="col-sm-12">
+                    <main>
 [% ELSE %]
     <body id="tools_upload" class="tools">
     [% INCLUDE 'header.inc' %]
     [% INCLUDE 'cat-search.inc' %]
     [% PROCESS breadcrumbs %]
-    <div id="doc3" class="yui-t2">
-        <div id="bd">
-            <div id="yui-main">
-                <div class="yui-b">
+
+    <div class="main container-fluid">
+        <div class="row">
+            <div class="col-sm-10 col-sm-push-2">
+                <main>
 [% END %]
-
-
 
 <h1>Upload</h1>
 <div class="dialog alert" id="myalerts" style="display:none;"></div>
@@ -221,6 +267,7 @@
 [% PROCESS submitter %]
 [% IF mode == 'new' || mode == 'deleted' %]
     [% PROCESS form_new %]
+    [% PROCESS form_browse %]
     [% PROCESS form_search %]
     [% PROCESS closer %]
 [% ELSIF mode == 'report' %]
@@ -235,34 +282,29 @@
     [% END %]
 [% END %]
 
-</div>
-
 [% IF !plugin %]
-</div>
-    <div class="yui-b noprint">
-        [% INCLUDE 'tools-menu.inc' %]
-    </div>
+            </main>
+        </div> <!-- /.col-sm-10.col-sm-push-2 -->
+
+        <div class="col-sm-2 col-sm-pull-10">
+            <aside>
+                [% INCLUDE 'tools-menu.inc' %]
+            </aside>
+        </div> <!-- /.col-sm-2.col-sm-pull-10 -->
+     </div> <!-- /.row -->
+[% ELSE %]
+            </main>
+        </div> <!-- .col-sm-12 -->
+     </div> <!-- /.row -->
 [% END %]
 
-</div>
 
 [% MACRO jsinclude BLOCK %]
-    [% Asset.js("js/tools-menu.js") %]
+    [% Asset.js("js/tools-menu.js") | $raw %]
     [% INCLUDE 'datatables.inc' %]
-    <script type="text/javascript">
-        var errMESSAGES = [
-            "Error 0: Not in use",
-            _("This file already exists (in this category)."),
-            _("File could not be created. Check permissions."),
-            _("Your koha-conf.xml does not contain a valid upload_path."),
-            _("No temporary directory found."),
-            _("File could not be read."),
-            _("File has been deleted."),
-            _("File or upload record could not be deleted."),
-        ];
-    </script>
-    [% Asset.js("js/file-upload.js") %]
-    <script type="text/javascript">
+    [% Asset.js("js/file-upload.js") | $raw %]
+    [% INCLUDE 'columns_settings.inc' %]
+    <script>
         function StartUpload() {
             if( $('#fileToUpload').prop('files').length == 0 ) return;
             $('#fileToUpload').prop('disabled',true);
@@ -318,12 +360,41 @@
             var str = '';
             for( var file in err ) {
                 str= str + '<p>' + file + ': ' +
-                    errMESSAGES[ err[file].code ] + '</p>';
+                    errMESSAGES( err[file].code ) + '</p>';
             }
             if( str ) {
                 $('#myalerts').html(str);
                 $('#myalerts').show();
             }
+        }
+        function errMESSAGES(code) {
+            var rv;
+            switch(code) {
+                case 'UPLERR_ALREADY_EXISTS':
+                    rv = _("This file already exists (in this category).");
+                    break;
+                case 'UPLERR_CANNOT_WRITE':
+                    rv = _("File could not be created. Check permissions.");
+                    break;
+                case 'UPLERR_NO_ROOT_DIR':
+                    rv = _("Your koha-conf.xml does not contain a valid upload_path.");
+                    break;
+                case 'UPLERR_NO_TEMP_DIR':
+                    rv = _("No temporary directory found.");
+                    break;
+                case 'UPLERR_FILE_NOT_READ':
+                    rv = _("File could not be read.");
+                    break;
+                case 'UPL_FILE_DELETED': // An alert, no error
+                    rv = _("File has been deleted.");
+                    break;
+                case 'UPLERR_FILE_NOT_DELETED':
+                    rv = _("File or upload record could not be deleted.");
+                    break;
+                default:
+                    rv = code;
+            }
+            return rv;
         }
         function CheckSearch() {
             if( $("#term").val()=="" ) {
@@ -346,27 +417,22 @@
         }
         function ClearField() {
             [% IF plugin %]
-                $(window.opener.document).find('#[% index %]').val( '' );
+                $(window.opener.document).find('#[% index | html %]').val( '' );
             [% END %]
         }
         function Choose(hashval) {
-            var res = '[% Koha.Preference('OPACBaseURL') %]';
+            var res = '[% Koha.Preference('OPACBaseURL') | html %]';
             res = res.replace( /\/$/, '');
             res = res + '/cgi-bin/koha/opac-retrieve-file.pl?id=' + hashval;
             [% IF index %]
-                $(window.opener.document).find('#[% index %]').val( res );
+                $(window.opener.document).find('#[% index | html %]').val( res );
             [% END %]
             window.close();
         }
         $(document).ready(function() {
-            $("#uploadresults").dataTable($.extend(true, {}, dataTablesDefaults, {
-                "aoColumnDefs": [
-                    { 'bSortable': false, 'aTargets': [ 'nosort' ] }
-                ],
-                "sPaginationType": "four_button"
-            }));
+            KohaTable("uploadresults",{});
             [% IF msg %]
-                ShowAlerts( [% msg %] );
+                ShowAlerts( [% msg | html %] );
             [% END %]
             $("#fileuploadcancel").hide();
             $("#public_cb").click(function() {
@@ -383,17 +449,17 @@
             $("#searchbutton").on("click",function(){
                 return CheckSearch();
             });
-            $(".choose_entry").on("click",function(e){
+            $("#uploadresults tbody").on("click",".choose_entry",function(e){
                 e.preventDefault();
                 var record_hashvalue = $(this).data("record-hashvalue");
                 Choose( record_hashvalue );
             });
-            $(".download_entry").on("click",function(e){
+            $("#uploadresults tbody").on("click",".download_entry",function(e){
                 e.preventDefault();
                 var record_id = $(this).data("record-id");
                 SubmitMe( 'download', record_id );
             });
-            $(".delete_entry").on("click",function(e){
+            $("#uploadresults tbody").on("click",".delete_entry",function(e){
                 e.preventDefault();
                 var record_id = $(this).data("record-id");
                 DeleteEntry( record_id );
@@ -402,6 +468,22 @@
                 e.preventDefault();
                 SubmitMe('new');
             });
+
+            if ( window.isSecureContext ) {
+                $(".get-file").on("click", function(e){
+                    e.preventDefault();
+                    if( navigator.clipboard && navigator.clipboard.writeText){
+                        navigator.clipboard.writeText( $(this).attr("href") );
+                        $(this).attr("data-original-title", _( "Link copied to the clipboard" ) )
+                            .tooltip("show");
+                    }
+                });
+                $(".get-file").tooltip({
+                    delay: { "show": 100, "hide": 500 }
+                }).on("hidden.bs.tooltip", function(){
+                    $(this).attr("data-original-title", _( "Copy link to this file" ) );
+                });
+            }
         });
     </script>
 [% END %]

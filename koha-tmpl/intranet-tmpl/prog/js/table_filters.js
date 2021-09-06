@@ -23,7 +23,7 @@ function activate_filters(id) {
     }
 
     $('#' + id + '_activate_filters')
-        .html('<i class="fa fa-filter"></i> ' + _("Deactivate filters") )
+        .html('<i class="fa fa-filter"></i> ' + __('Deactivate filters') )
         .unbind('click')
         .click(function() {
             deactivate_filters(id);
@@ -41,7 +41,7 @@ function deactivate_filters(id) {
     filters_row.hide();
 
     $('#' + id + '_activate_filters')
-        .html('<i class="fa fa-filter"></i> ' + _("Activate filters") )
+        .html('<i class="fa fa-filter"></i> ' + __('Activate filters') )
         .unbind('click')
         .click(function() {
             activate_filters(id);

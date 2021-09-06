@@ -28,7 +28,6 @@ use C4::Budgets;
 use C4::Search;
 use C4::Members;
 use C4::Debug;
-
 use Koha::DateUtils qw( dt_from_string );
 use Koha::AuthorisedValues;
 use Koha::Acquisition::Currencies;
@@ -40,7 +39,7 @@ use URI::Escape;
 sub Init{
     my $suggestion= shift @_;
     # "Managed by" is used only when a suggestion is being edited (not when created)
-    if ($suggestion->{'suggesteddate'} eq "0000-00-00" ||$suggestion->{'suggesteddate'} eq "") {
+    if ($suggestion->{'suggesteddate'} eq "") {
         # new suggestion
         $suggestion->{suggesteddate} = dt_from_string;
         $suggestion->{'suggestedby'} = C4::Context->userenv->{"number"} unless ($suggestion->{'suggestedby'});
@@ -62,8 +61,9 @@ sub GetCriteriumDesc{
         }
         return ($criteriumvalue eq 'ASKED'?"Pending":ucfirst(lc( $criteriumvalue))) if ($displayby =~/status/i);
     }
-    return Koha::Libraries->find($criteriumvalue)->branchname
-        if $displayby =~ /branchcode/;
+    if ( $displayby =~ /branchcode/ ) {
+        return $criteriumvalue ? Koha::Libraries->find($criteriumvalue)->branchname : "__ANY__";
+    }
     if ( $displayby =~ /itemtype/ ) {
         my $av = Koha::AuthorisedValues->search({ category => 'SUGGEST_FORMAT', authorised_value => $criteriumvalue });
         return $av->count ? $av->next->lib : 'Unknown';
@@ -84,17 +84,21 @@ my $input           = CGI->new;
 my $redirect  = $input->param('redirect');
 my $suggestedbyme   = (defined $input->param('suggestedbyme')? $input->param('suggestedbyme'):1);
 my $op              = $input->param('op')||'else';
-my @editsuggestions = $input->multi_param('edit_field');
+my @editsuggestions = $input->multi_param('suggestionid');
 my $suggestedby     = $input->param('suggestedby');
 my $returnsuggestedby = $input->param('returnsuggestedby');
 my $returnsuggested = $input->param('returnsuggested');
 my $managedby       = $input->param('managedby');
 my $displayby       = $input->param('displayby') || '';
 my $tabcode         = $input->param('tabcode');
+my $save_confirmed  = $input->param('save_confirmed') || 0;
+my $notify          = $input->param('notify');
+my $filter_archived = $input->param('filter_archived');
+
 my $reasonsloop     = GetAuthorisedValues("SUGGEST");
 
 # filter informations which are not suggestion related.
-my $suggestion_ref  = $input->Vars;
+my $suggestion_ref  = { %{$input->Vars} }; # Copying, otherwise $input will be modified
 
 # get only the columns of Suggestion
 my $schema = Koha::Database->new()->schema;
@@ -102,76 +106,144 @@ my $columns = ' '.join(' ', $schema->source('Suggestion')->columns).' ';
 my $suggestion_only = { map { $columns =~ / $_ / ? ($_ => $suggestion_ref->{$_}) : () } keys %$suggestion_ref };
 $suggestion_only->{STATUS} = $suggestion_ref->{STATUS};
 
-delete $$suggestion_ref{$_} foreach qw( suggestedbyme op displayby tabcode edit_field );
+delete $$suggestion_ref{$_} foreach qw( suggestedbyme op displayby tabcode notify filter_archived );
 foreach (keys %$suggestion_ref){
-    delete $$suggestion_ref{$_} if (!$$suggestion_ref{$_} && ($op eq 'else' || $op eq 'change'));
+    delete $$suggestion_ref{$_} if (!$$suggestion_ref{$_} && ($op eq 'else' ));
 }
 my ( $template, $borrowernumber, $cookie, $userflags ) = get_template_and_user(
         {
             template_name   => "suggestion/suggestion.tt",
             query           => $input,
             type            => "intranet",
-            flagsrequired   => { catalogue => 1 },
+            flagsrequired   => { suggestions => 'suggestions_manage' },
         }
     );
 
 $borrowernumber = $input->param('borrowernumber') if ( $input->param('borrowernumber') );
 $template->param('borrowernumber' => $borrowernumber);
+my $branchfilter = $input->param('branchcode') || C4::Context->userenv->{'branch'};
 
 #########################################
 ##  Operations
 ##
+
 if ( $op =~ /save/i ) {
-    $suggestion_only->{suggesteddate} = dt_from_string( $suggestion_only->{suggesteddate} )
-        if $suggestion_only->{suggesteddate};
+    my @messages;
+    my $biblio = MarcRecordFromNewSuggestion({
+            title => $suggestion_only->{title},
+            author => $suggestion_only->{author},
+            itemtype => $suggestion_only->{itemtype},
+    });
 
-    if ( $suggestion_only->{"STATUS"} ) {
-        if ( my $tmpstatus = lc( $suggestion_only->{"STATUS"} ) =~ /ACCEPTED|REJECTED/i ) {
-            $suggestion_only->{ lc( $suggestion_only->{"STATUS"}) . "date" } = dt_from_string;
-            $suggestion_only->{ lc( $suggestion_only->{"STATUS"}) . "by" }   = C4::Context->userenv->{number};
+    my $manager = Koha::Patrons->find( $suggestion_only->{managedby} );
+    if ( $manager && not $manager->has_permission({suggestions => 'suggestions_manage'})) {
+        push @messages, { type => 'error', code => 'manager_not_enough_permissions' };
+        $template->param(
+            messages => \@messages,
+        );
+        delete $suggestion_ref->{suggesteddate};
+        delete $suggestion_ref->{manageddate};
+        delete $suggestion_ref->{managedby};
+        Init($suggestion_ref);
+    }
+    elsif ( !$suggestion_only->{suggestionid} && ( my ($duplicatebiblionumber, $duplicatetitle) = FindDuplicate($biblio) ) && !$save_confirmed ) {
+        push @messages, { type => 'error', code => 'biblio_exists', id => $duplicatebiblionumber, title => $duplicatetitle };
+        $template->param(
+            messages => \@messages,
+            need_confirm => 1
+        );
+        delete $suggestion_ref->{suggesteddate};
+        delete $suggestion_ref->{manageddate};
+        Init($suggestion_ref);
+    }
+    else {
+
+        for my $date_key ( qw( suggesteddate manageddate accepteddate rejecteddate ) ) {
+            $suggestion_only->{$date_key} = dt_from_string( $suggestion_only->{$date_key} )
+                if $suggestion_only->{$date_key};
         }
-        $suggestion_only->{manageddate} = dt_from_string;
-        $suggestion_only->{"managedby"}   = C4::Context->userenv->{number};
-    }
 
-    my $otherreason = $input->param('other_reason');
-    if ($suggestion_only->{reason} eq 'other' && $otherreason) {
-        $suggestion_only->{reason} = $otherreason;
-    }
-
-    if ( $suggestion_only->{'suggestionid'} > 0 ) {
-        &ModSuggestion($suggestion_only);
-    } else {
-        ###FIXME:Search here if suggestion already exists.
-        my $suggestions_loop =
-            SearchSuggestion( $suggestion_only );
-        if (@$suggestions_loop>=1){
-            #some suggestion are answering the request Donot Add
-            my @messages;
-            for my $suggestion ( @$suggestions_loop ) {
-                push @messages, { type => 'error', code => 'already_exists', id => $suggestion->{suggestionid} };
+        if ( $suggestion_only->{"STATUS"} ) {
+            if ( my $tmpstatus = lc( $suggestion_only->{"STATUS"} ) =~ /ACCEPTED|REJECTED/i ) {
+                $suggestion_only->{ lc( $suggestion_only->{"STATUS"}) . "date" } = dt_from_string;
+                $suggestion_only->{ lc( $suggestion_only->{"STATUS"}) . "by" }   = C4::Context->userenv->{number};
             }
-            $template->param( messages => \@messages );
-        } 
-        else {    
-            ## Adding some informations related to suggestion
-            &NewSuggestion($suggestion_only);
+            $suggestion_only->{manageddate} = dt_from_string;
+            $suggestion_only->{"managedby"} ||= C4::Context->userenv->{number};
         }
-        # empty fields, to avoid filter in "SearchSuggestion"
-    }  
-    map{delete $$suggestion_ref{$_}} keys %$suggestion_ref;
-    $op = 'else';
 
-    if( $redirect eq 'purchase_suggestions' ) {
-        print $input->redirect("/cgi-bin/koha/members/purchase-suggestions.pl?borrowernumber=$borrowernumber");
+        my $otherreason = $input->param('other_reason');
+        if ($suggestion_only->{reason} eq 'other' && $otherreason) {
+            $suggestion_only->{reason} = $otherreason;
+        }
+
+        if ( $suggestion_only->{'suggestionid'} > 0 ) {
+
+            $suggestion_only->{lastmodificationdate} = dt_from_string;
+            $suggestion_only->{lastmodificationby}   = C4::Context->userenv->{number};
+
+            &ModSuggestion($suggestion_only);
+
+            if ( $notify ) {
+                my $patron = Koha::Patrons->find( $suggestion_only->{managedby} );
+                my $email_address = $patron->notice_email_address;
+                if ($patron->notice_email_address) {
+                    my $library = $patron->library;
+                    my $admin_email_address = $library->branchemail
+                      || C4::Context->preference('KohaAdminEmailAddress');
+
+                    my $letter = C4::Letters::GetPreparedLetter(
+                        module      => 'suggestions',
+                        letter_code => 'NOTIFY_MANAGER',
+                        branchcode  => $patron->branchcode,
+                        lang        => $patron->lang,
+                        tables      => {
+                            suggestions => $suggestion_only->{suggestionid},
+                            branches    => $patron->branchcode,
+                            borrowers   => $patron->borrowernumber,
+                        },
+                    );
+                    C4::Letters::EnqueueLetter(
+                        {
+                            letter                 => $letter,
+                            borrowernumber         => $patron->borrowernumber,
+                            message_transport_type => 'email',
+                            from_address           => $admin_email_address,
+                        }
+                    );
+                }
+            }
+        } else {
+            ###FIXME:Search here if suggestion already exists.
+            my $suggestions_loop =
+                SearchSuggestion( $suggestion_only );
+            if (@$suggestions_loop>=1){
+                #some suggestion are answering the request Donot Add
+                my @messages;
+                for my $suggestion ( @$suggestions_loop ) {
+                    push @messages, { type => 'error', code => 'already_exists', id => $suggestion->{suggestionid} };
+                }
+                $template->param( messages => \@messages );
+            }
+            else {
+                ## Adding some informations related to suggestion
+                &NewSuggestion($suggestion_only);
+            }
+            # empty fields, to avoid filter in "SearchSuggestion"
+        }
+        map{delete $$suggestion_ref{$_} unless $_ eq 'branchcode' } keys %$suggestion_ref;
+        $op = 'else';
+
+        if( $redirect eq 'purchase_suggestions' ) {
+            print $input->redirect("/cgi-bin/koha/members/purchase-suggestions.pl?borrowernumber=$borrowernumber");
+        }
     }
-
 }
 elsif ($op=~/add/) {
-    #Adds suggestion  
+    #Adds suggestion
     Init($suggestion_ref);
     $op ='save';
-} 
+}
 elsif ($op=~/edit/) {
     #Edit suggestion  
     $suggestion_ref=&GetSuggestion($$suggestion_ref{'suggestionid'});
@@ -187,51 +259,74 @@ elsif ($op=~/edit/) {
     Init($suggestion_ref);
     $op ='save';
 }  
-elsif ($op eq "change" ) {
+elsif ($op eq "update_status" ) {
+
+    my $suggestion;
     # set accepted/rejected/managed informations if applicable
     # ie= if the librarian has chosen some action on the suggestions
-    if ($suggestion_only->{"STATUS"} eq "ACCEPTED"){
-        $suggestion_only->{accepteddate} = dt_from_string;
-        $suggestion_only->{"acceptedby"}=C4::Context->userenv->{number};
-    } elsif ($suggestion_only->{"STATUS"} eq "REJECTED"){
-        $suggestion_only->{rejecteddate} = dt_from_string;
-        $suggestion_only->{"rejectedby"}=C4::Context->userenv->{number};
+    my $STATUS      = $input->param('STATUS');
+    my $accepted_by = $input->param('acceptedby');
+    if ( $STATUS eq "ACCEPTED" ) {
+        $suggestion = {
+            accepteddate => dt_from_string,
+            acceptedby => C4::Context->userenv->{number},
+        };
     }
-    if ($suggestion_only->{"STATUS"}){
-        $suggestion_only->{manageddate} = dt_from_string;
-        $suggestion_only->{"managedby"}=C4::Context->userenv->{number};
+    elsif ( $STATUS eq "REJECTED" ) {
+        $suggestion = {
+            rejecteddate => dt_from_string,
+            rejectedby   => C4::Context->userenv->{number},
+        };
     }
-    if ( my $reason = $$suggestion_ref{"reason$tabcode"}){
+    if ($STATUS) {
+        $suggestion->{manageddate} = dt_from_string;
+        $suggestion->{managedby}   = C4::Context->userenv->{number};
+        $suggestion->{STATUS}      = $STATUS;
+    }
+    if ( my $reason = $input->param("reason") ) {
         if ( $reason eq "other" ) {
-            $reason = $$suggestion_ref{"other_reason$tabcode"};
+            $reason = $input->param("other_reason");
         }
-        $suggestion_only->{reason}=$reason;
+        $suggestion->{reason} = $reason;
     }
 
     foreach my $suggestionid (@editsuggestions) {
         next unless $suggestionid;
-        $suggestion_only->{'suggestionid'}=$suggestionid;
-        &ModSuggestion($suggestion_only);
+        $suggestion->{suggestionid} = $suggestionid;
+        &ModSuggestion($suggestion);
     }
-    my $params = '';
-    foreach my $key (
-        qw(
-        displayby branchcode title author isbn publishercode copyrightdate
-        collectiontitle suggestedby suggesteddate_from suggesteddate_to
-        manageddate_from manageddate_to accepteddate_from
-        accepteddate_to budgetid
-        )
-      )
-    {
-        $params .= $key . '=' . uri_escape($input->param($key)) . '&'
-          if defined($input->param($key));
-    }
-    print $input->redirect("/cgi-bin/koha/suggestion/suggestion.pl?$params");
+    redirect_with_params($input);
 }elsif ($op eq "delete" ) {
     foreach my $delete_field (@editsuggestions) {
         &DelSuggestion( $borrowernumber, $delete_field,'intranet' );
     }
-    $op = 'else';
+    redirect_with_params($input);
+}
+elsif ($op eq "archive" ) {
+    Koha::Suggestions->find($_)->update({ archived => 1 }) for @editsuggestions;
+
+    redirect_with_params($input);
+}
+elsif ($op eq "unarchive" ) {
+    Koha::Suggestions->find($_)->update({ archived => 0 }) for @editsuggestions;
+
+    redirect_with_params($input);
+}
+elsif ( $op eq 'update_itemtype' ) {
+    my $new_itemtype = $input->param('suggestion_itemtype');
+    foreach my $suggestionid (@editsuggestions) {
+        next unless $suggestionid;
+        &ModSuggestion({ suggestionid => $suggestionid, itemtype => $new_itemtype });
+    }
+    redirect_with_params($input);
+}
+elsif ( $op eq 'update_manager' ) {
+    my $managedby = $input->param('suggestion_managedby');
+    foreach my $suggestionid (@editsuggestions) {
+        next unless $suggestionid;
+        &ModSuggestion({ suggestionid => $suggestionid, managedby => $managedby });
+    }
+    redirect_with_params($input);
 }
 elsif ( $op eq 'show' ) {
     $suggestion_ref=&GetSuggestion($$suggestion_ref{'suggestionid'});
@@ -241,9 +336,8 @@ elsif ( $op eq 'show' ) {
 }
 if ($op=~/else/) {
     $op='else';
-    
+
     $displayby||="STATUS";
-    delete $$suggestion_ref{'branchcode'} if($displayby eq "branchcode");
     # distinct values of display by
     my $criteria_list=GetDistinctValues("suggestions.".$displayby);
     my (@criteria_dv, $criteria_has_empty);
@@ -257,6 +351,14 @@ if ($op=~/else/) {
     # aggregate null and empty values under empty value
     push @criteria_dv, '' if $criteria_has_empty;
 
+    # Hack to not modify GetDistinctValues for this specific case
+    if (   $displayby eq 'branchcode'
+        && C4::Context->preference('IndependentBranches')
+        && not C4::Context->IsSuperLibrarian )
+    {
+        @criteria_dv = ( C4::Context->userenv->{'branch'} );
+    }
+
     my @allsuggestions;
     foreach my $criteriumvalue ( @criteria_dv ) {
         # By default, display suggestions from current working branch
@@ -265,10 +367,10 @@ if ($op=~/else/) {
         }
         my $definedvalue = defined $$suggestion_ref{$displayby} && $$suggestion_ref{$displayby} ne "";
 
-        next if ( $definedvalue && $$suggestion_ref{$displayby} ne $criteriumvalue );
+        next if ( $definedvalue && $$suggestion_ref{$displayby} ne $criteriumvalue ) and ($displayby ne 'branchcode' && $branchfilter ne '__ANY__' );
         $$suggestion_ref{$displayby} = $criteriumvalue;
 
-        my $suggestions = &SearchSuggestion($suggestion_ref);
+        my $suggestions = &SearchSuggestion({ %$suggestion_ref, archived => $filter_archived });
         foreach my $suggestion (@$suggestions) {
             if ($suggestion->{budgetid}){
                 my $bud = GetBudget( $suggestion->{budgetid} );
@@ -281,7 +383,7 @@ if ($op=~/else/) {
                             "suggestionscount"=>scalar(@$suggestions),             
                             'suggestions_loop'=>$suggestions,
                             'reasonsloop'     => $reasonsloop,
-                            };
+                            } if @$suggestions;
 
         delete $$suggestion_ref{$displayby} unless $definedvalue;
     }
@@ -293,25 +395,13 @@ if ($op=~/else/) {
     );
 }
 
-foreach my $element ( qw(managedby suggestedby acceptedby) ) {
-#    $debug || warn $$suggestion_ref{$element};
-    if ($$suggestion_ref{$element}){
-        my $patron = Koha::Patrons->find( $$suggestion_ref{$element} );
-        my $category = $patron->category;
-        $template->param(
-            $element."_borrowernumber"=>$patron->borrowernumber,
-            $element."_firstname"=>$patron->firstname,
-            $element."_surname"=>$patron->surname,
-            $element."_cardnumber"=>$patron->cardnumber,
-            $element."_branchcode"=>$patron->branchcode,
-            $element."_description"=>$category->description,
-            $element."_category_type"=>$category->category_type,
-        );
-    }
-}
 $template->param(
-    %$suggestion_ref,  
-    "op_$op"                => 1,
+    "${_}_patron" => scalar Koha::Patrons->find( $suggestion_ref->{$_} ) )
+  for qw(managedby suggestedby acceptedby lastmodificationby);
+
+$template->param(
+    %$suggestion_ref,
+    filter_archived => $filter_archived,
     "op"             =>$op,
 );
 
@@ -319,8 +409,6 @@ if(defined($returnsuggested) and $returnsuggested ne "noone")
 {
     print $input->redirect("/cgi-bin/koha/members/moremember.pl?borrowernumber=".$returnsuggested."#suggestions");
 }
-
-my $branchfilter = ($displayby ne "branchcode") ? $input->param('branchcode') : C4::Context->userenv->{'branch'};
 
 $template->param(
     branchfilter => $branchfilter,
@@ -331,15 +419,8 @@ $template->param( returnsuggestedby => $returnsuggestedby );
 my $patron_reason_loop = GetAuthorisedValues("OPAC_SUG");
 $template->param(patron_reason_loop=>$patron_reason_loop);
 
-#Budgets management
-my $budgets = [];
-if ($branchfilter) {
-    my $searchbudgets = { budget_branchcode => $branchfilter };
-    $budgets = GetBudgets($searchbudgets);
-} else {
-    $budgets = GetBudgets(undef);
-}
-
+# Budgets for filtering
+my $budgets = GetBudgets;
 my @budgets_loop;
 foreach my $budget ( @{$budgets} ) {
     next unless (CanUserUseBudget($borrowernumber, $budget, $userflags));
@@ -358,6 +439,23 @@ foreach my $budgper( @{C4::Budgets::GetBudgetPeriods( { budget_period_active => 
 }
 
 $template->param( budgetsloop => \@budgets_loop, activebudgets => $active_budgets);
+
+# Budgets for suggestion add or edition
+my $sugg_budget_loop = [];
+my $sugg_budgets     = GetBudgetHierarchy();
+foreach my $r ( @{$sugg_budgets} ) {
+    next unless ( CanUserUseBudget( $borrowernumber, $r, $userflags ) );
+    my $selected = ( $$suggestion_ref{budgetid} && $r->{budget_id} eq $$suggestion_ref{budgetid} ) ? 1 : 0;
+    push @{$sugg_budget_loop},
+      {
+        b_id     => $r->{budget_id},
+        b_txt    => $r->{budget_name},
+        b_active => $r->{budget_period_active},
+        selected => $selected,
+      };
+}
+@{$sugg_budget_loop} = sort { uc( $a->{b_txt} ) cmp uc( $b->{b_txt} ) } @{$sugg_budget_loop};
+$template->param( sugg_budgets => $sugg_budget_loop);
 
 if( $suggestion_ref->{STATUS} ) {
     $template->param(
@@ -396,3 +494,21 @@ $template->param(
     SuggestionStatuses       => GetAuthorisedValues('SUGGEST_STATUS'),
 );
 output_html_with_http_headers $input, $cookie, $template->output;
+
+sub redirect_with_params {
+    my ( $input ) = @_;
+    my $params = '';
+    foreach my $key (
+        qw(
+        displayby branchcode title author isbn publishercode copyrightdate
+        collectiontitle suggestedby suggesteddate_from suggesteddate_to
+        manageddate_from manageddate_to accepteddate_from
+        accepteddate_to budgetid filter_archived
+        )
+      )
+    {
+        $params .= $key . '=' . uri_escape(scalar $input->param($key)) . '&'
+          if defined($input->param($key));
+    }
+    print $input->redirect("/cgi-bin/koha/suggestion/suggestion.pl?$params");
+}

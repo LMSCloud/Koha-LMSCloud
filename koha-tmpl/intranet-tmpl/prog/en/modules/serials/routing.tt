@@ -1,46 +1,73 @@
+[% USE KohaDates %]
 [% SET footerjs = 1 %]
 [% INCLUDE 'doc-head-open.inc' %]
-<title>Koha &rsaquo; Serials &rsaquo; [% title |html %] &rsaquo; [% IF ( op ) %]Create routing list[% ELSE %]Edit routing list[% END %]</title>
+<title>[% IF ( op ) %]Create routing list[% ELSE %]Edit routing list[% END %] &rsaquo; [% title | html %] &rsaquo; Serials &rsaquo; Koha</title>
 [% INCLUDE 'doc-head-close.inc' %]
 </head>
 <body id="ser_routing" class="ser">
 [% INCLUDE 'header.inc' %]
 [% INCLUDE 'serials-search.inc' %]
 
-<div id="breadcrumbs">
-    <a href="/cgi-bin/koha/mainpage.pl">Home</a>
-    &rsaquo; <a href="/cgi-bin/koha/serials/serials-home.pl">Serials</a>
-    [% UNLESS blocking_error %]
-        &rsaquo; <a href="/cgi-bin/koha/serials/subscription-detail.pl?subscriptionid=[% subscriptionid | uri %]"><i>[% title | html %]</i></a>
-        &rsaquo; [% IF ( op ) %]Create routing list[% ELSE %]Edit routing list[% END %]
-    [% END %]
-</div>
+<nav id="breadcrumbs" aria-label="Breadcrumb" class="breadcrumb">
+    <ol>
+        <li>
+            <a href="/cgi-bin/koha/mainpage.pl">Home</a>
+        </li>
 
-<div id="doc3" class="yui-t2">
-   
-   <div id="bd">
-	<div id="yui-main">
-	<div class="yui-b">
+        [% IF blocking_error %]
+            <li>
+                <a href="#" aria-current="page">
+                    Serials
+                </a>
+            </li>
 
+        [% ELSE %]
+            <li>
+                <a href="/cgi-bin/koha/serials/serials-home.pl">Serials</a>
+            </li>
+            <li>
+                <a href="/cgi-bin/koha/serials/subscription-detail.pl?subscriptionid=[% subscriptionid | uri %]"><em>[% title | html %]</em></a>
+            </li>
+            <li>
+                <a href="#" aria-current="page">
+                    [% IF ( op ) %]
+                        Create routing list
+                    [% ELSE %]
+                        Edit routing list
+                    [% END %]
+                </a>
+            </li>
+        [% END %]
+    </ol>
+</nav>
+
+<div class="main container-fluid">
+    <div class="row">
+        <div class="col-sm-10 col-sm-push-2">
+            <main>
 [% INCLUDE 'blocking_errors.inc' %]
 
 [% IF ( op ) %]
-<h1>Create routing list for <i>[% title |html %]</i></h1>
+<h1>Create routing list for <em>[% title | html %]</em></h1>
 [% ELSE %]
-<h1>Edit routing list for <i>[% title |html %]</i></h1>
+<h1>Edit routing list for <em>[% title | html %]</em></h1>
 [% END %]
 
 <form method="post" action="routing.pl">
 <input type="hidden" name="op" value="save" />
-<input type="hidden" name="subscriptionid" value="[% subscriptionid %]" />
+<input type="hidden" name="subscriptionid" value="[% subscriptionid | html %]" />
 <fieldset class="rows">
 	<ol>
 		<li><label for="date_selected">Issue: </label>
 <select name="date_selected" id="date_selected">
-[% FOREACH date IN dates %]
-[% IF ( date.selected ) %]<option value="[% date.serialseq %] ([% date.publisheddate %])" selected="selected">[% date.serialseq %] ([% date.publisheddate %])</option>[% ELSE %]<option value="[% date.serialseq %] ([% date.publisheddate %])">[% date.serialseq %] ([% date.publisheddate %])</option>[% END %]
+    [% FOREACH date IN dates %]
+        [% IF ( date.selected ) %]
+            <option value="[% date.serialseq | html %] ([% date.publisheddate | html %])" selected="selected">[% date.serialseq | html %] ([% date.publisheddate | $KohaDates %])</option>
+        [% ELSE %]
+            <option value="[% date.serialseq | html %] ([% date.publisheddate | html %])">[% date.serialseq | html %] ([% date.publisheddate | $KohaDates %])</option>
+        [% END %]
 [% END %]
-</select> [% issue %]</li>
+</select> [% issue | html %]</li>
 
 <li>
     <span class="label">Recipients:</span>
@@ -52,20 +79,21 @@
             </tr>
             [% USE m_loop = iterator(memberloop) %]
             [% FOREACH member IN m_loop %]
-            <tr><td>[% member.name %]</td>
+            <tr><td>[% member.name | html %]</td>
                 <td>
-                    <select name="itemrank" class="itemrank" data-subscriptionid="[% subscriptionid %]" data-routingid="[% member.routingid %]">
+                    <select name="itemrank" class="itemrank" data-subscriptionid="[% subscriptionid | html %]" data-routingid="[% member.routingid | html %]">
                     [% rankings = [1 .. m_loop.size] %]
+                    [% SET cur_rank = loop.count() %]
                     [% FOREACH r IN rankings %]
-                        [% IF r == member.ranking %]
-                          <option selected="selected" value="[% r %]">[% r %]</option>
+                        [% IF r == cur_rank %]
+                          <option selected="selected" value="[% r | html %]">[% r | html %]</option>
                         [% ELSE %]
-                          <option value="[% r %]">[% r %]</option>
+                          <option value="[% r | html %]">[% r | html %]</option>
                         [% END %]
                     [% END %]
                     </select>
                 </td>
-                <td><a class="btn btn-default btn-xs" href="/cgi-bin/koha/serials/routing.pl?routingid=[% member.routingid %]&amp;subscriptionid=[% subscriptionid %]&amp;op=delete"><i class="fa fa-trash"></i> Delete</a></td>
+                <td><a class="btn btn-default btn-xs" href="/cgi-bin/koha/serials/routing.pl?routingid=[% member.routingid | html %]&amp;subscriptionid=[% subscriptionid | html %]&amp;op=delete"><i class="fa fa-trash"></i> Delete</a></td>
             </tr>
             [% END %]
         </table>
@@ -74,29 +102,29 @@
     <p style="margin-left:10em;">
         <a href="#" id="add_recipients"><i class="fa fa-plus"></i> Add recipients</a>
         [% IF memberloop %]
-            <a href="/cgi-bin/koha/serials/routing.pl?subscriptionid=[% subscriptionid %]&amp;op=delete"><i class="fa fa-trash"></i> Delete all</a>
+            <a href="/cgi-bin/koha/serials/routing.pl?subscriptionid=[% subscriptionid | uri %]&amp;op=delete"><i class="fa fa-trash"></i> Delete all</a>
         [% END %]
     </p>
 </li>
 
-	<li><label for="notes">Notes:</label><textarea name="notes" id="notes" rows="3" cols="50">[% routingnotes %]</textarea></li>
+	<li><label for="notes">Notes:</label><textarea name="notes" id="notes" rows="3" cols="50">[% routingnotes | html %]</textarea></li>
 	</ol>
 
 </fieldset>
 <fieldset class="action"><input type="submit" name="submit" value="Save" /></fieldset>
 </form>
 
+            </main>
+        </div> <!-- /.col-sm-10.col-sm-push-2 -->
 
-</div>
-</div>
-
-<div class="yui-b">
-[% INCLUDE 'serials-menu.inc' %]
-</div>
-</div>
-
+        <div class="col-sm-2 col-sm-pull-10">
+            <aside>
+                [% INCLUDE 'serials-menu.inc' %]
+            </aside>
+        </div> <!-- /.col-sm-2.col-sm-pull-10 -->
+     </div> <!-- /.row -->
 [% MACRO jsinclude BLOCK %]
-    <script type="text/javascript">
+    <script>
         $(document).ready(function(){
             $("#add_recipients").on("click",function(e){
                 e.preventDefault();
@@ -122,7 +150,7 @@
         }
 
         function add_user(borrowernumber) {
-            var myurl = "routing.pl?subscriptionid="+[% subscriptionid %]+"&borrowernumber="+borrowernumber+"&op=add";
+            var myurl = "routing.pl?subscriptionid="+[% subscriptionid | html %]+"&borrowernumber="+borrowernumber+"&op=add";
             window.location.href = myurl;
         }
     </script>

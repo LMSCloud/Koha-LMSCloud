@@ -1,0 +1,82 @@
+---
+#
+#  Copyright 2020 Koha Development Team
+#
+#  This file is part of Koha.
+#
+# Koha is free software; you can redistribute it and/or modify it
+# under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 3 of the License, or
+# (at your option) any later version.
+#
+# Koha is distributed in the hope that it will be useful, but
+# WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with Koha; if not, see <http://www.gnu.org/licenses>.
+
+description:
+  - "A set of default item types."
+
+tables:
+  - itemtypes:
+      translatable: [ description ]
+      multiline: []
+      rows:
+        - itemtype: BK
+          description: "Books"
+          rentalcharge: 0
+          notforloan: 0
+          imageurl: "bridge/book.png"
+          summary: ""
+
+        - itemtype: MX
+          description: "Mixed Materials"
+          rentalcharge: 5
+          notforloan: 0
+          imageurl: "bridge/kit.png"
+          summary: ""
+
+        - itemtype: CF
+          description: "Computer Files"
+          rentalcharge: 5
+          notforloan: 0
+          imageurl: "bridge/computer_file.png"
+          summary: ""
+
+        - itemtype: MP
+          description: "Maps"
+          rentalcharge: 5
+          notforloan: 0
+          imageurl: "bridge/map.png"
+          summary: ""
+
+        - itemtype: VM
+          description: "Visual Materials"
+          rentalcharge: 5
+          notforloan: 1
+          imageurl: "bridge/dvd.png"
+          summary: ""
+
+        - itemtype: MU
+          description: "Music"
+          rentalcharge: 5
+          notforloan: 0
+          imageurl: "bridge/sound.png"
+          summary: ""
+
+        - itemtype: CR
+          description: "Continuing Resources"
+          rentalcharge: 5
+          notforloan: 0
+          imageurl: "bridge/periodical.png"
+          summary: ""
+
+        - itemtype: REF
+          description: "Reference"
+          rentalcharge: 0
+          notforloan: 1
+          imageurl: "bridge/reference.png"
+          summary: ""

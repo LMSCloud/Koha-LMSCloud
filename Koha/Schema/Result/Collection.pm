@@ -52,6 +52,8 @@ __PACKAGE__->table("collections");
   is_nullable: 1
   size: 10
 
+'branchcode for branch where item should be held.'
+
 =cut
 
 __PACKAGE__->add_columns(
@@ -116,9 +118,24 @@ __PACKAGE__->belongs_to(
   },
 );
 
+=head2 collections_trackings
 
-# Created by DBIx::Class::Schema::Loader v0.07042 @ 2018-02-16 17:54:53
-# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:Nx6GPmSO3ckjDmF7dz0DKA
+Type: has_many
+
+Related object: L<Koha::Schema::Result::CollectionsTracking>
+
+=cut
+
+__PACKAGE__->has_many(
+  "collections_trackings",
+  "Koha::Schema::Result::CollectionsTracking",
+  { "foreign.colId" => "self.colId" },
+  { cascade_copy => 0, cascade_delete => 0 },
+);
+
+
+# Created by DBIx::Class::Schema::Loader v0.07049 @ 2021-04-29 07:54:20
+# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:le+rc9BRLaPAApAZSZrKRg
 
 
 # You can replace this text with custom content, and it will be preserved on regeneration

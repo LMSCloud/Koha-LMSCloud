@@ -116,13 +116,13 @@ __PACKAGE__->add_unique_constraint("pseudo_key", ["cash_register_id", "manager_i
 
 Type: belongs_to
 
-Related object: L<Koha::Schema::Result::CashRegister>
+Related object: L<Koha::Schema::Result::CashRegisterDefinition>
 
 =cut
 
 __PACKAGE__->belongs_to(
   "cash_register",
-  "Koha::Schema::Result::CashRegister",
+  "Koha::Schema::Result::CashRegisterDefinition",
   { id => "cash_register_id" },
   { is_deferrable => 1, on_delete => "CASCADE", on_update => "CASCADE" },
 );

@@ -32,7 +32,7 @@ use Koha::CsvProfiles;
 use Koha::RecordProcessor;
 
 use utf8;
-my $query = new CGI;
+my $query = CGI->new();
 
 my ( $template, $borrowernumber, $cookie ) = get_template_and_user (
     {
@@ -49,6 +49,13 @@ my $dbh     = C4::Context->dbh;
 
 if ($bib_list && $format) {
 
+    my $borcat = q{};
+    if ( C4::Context->preference('OpacHiddenItemsExceptions') ) {
+        # we need to fetch the borrower info here, so we can pass the category
+        my $borrower = Koha::Patrons->find( { borrowernumber => $borrowernumber } );
+        $borcat = $borrower ? $borrower->categorycode : $borcat;
+    }
+
     my @bibs = split( /\//, $bib_list );
 
     my $marcflavour = C4::Context->preference('marcflavour');
@@ -58,6 +65,12 @@ if ($bib_list && $format) {
 
     # CSV   
     if ($format =~ /^\d+$/) {
+
+        my $csv_profile = Koha::CsvProfiles->find($format);
+        if ( not $csv_profile or $csv_profile->staff_only ) {
+            print $query->redirect('/cgi-bin/koha/errors/404.pl');
+            exit;
+        }
 
         $output = marc2csv(\@bibs, $format);
 
@@ -70,7 +83,9 @@ if ($bib_list && $format) {
 
             my $record = GetMarcBiblio({
                 biblionumber => $biblio,
-                embed_items  => 1 });
+                embed_items  => 1,
+                opac         => 1,
+                borcat       => $borcat });
             my $framework = &GetFrameworkCode( $biblio );
             $record_processor->options({
                 interface => 'opac',
@@ -81,7 +96,9 @@ if ($bib_list && $format) {
             next unless $record;
 
             if ($format eq 'iso2709') {
-                $output .= $record->as_usmarc();
+                #NOTE: If we don't explicitly UTF-8 encode the output,
+                #the browser will guess the encoding, and it won't always choose UTF-8.
+                $output .= encode("UTF-8", $record->as_usmarc()) // q{};
             }
             elsif ($format eq 'ris') {
                 $output .= marc2ris($record);
@@ -113,7 +130,17 @@ if ($bib_list && $format) {
     print $output;
 
 } else { 
-    $template->param(csv_profiles => [ Koha::CsvProfiles->search({ type => 'marc', used_for => 'export_records' }) ]);
+    $template->param(
+        csv_profiles => [
+            Koha::CsvProfiles->search(
+                {
+                    type       => 'marc',
+                    used_for   => 'export_records',
+                    staff_only => 0
+                }
+            )
+        ]
+    );
     $template->param(bib_list => $bib_list); 
     output_html_with_http_headers $query, $cookie, $template->output;
 }

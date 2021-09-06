@@ -4,18 +4,18 @@ package Koha::ArticleRequest;
 #
 # This file is part of Koha.
 #
-# Koha is free software; you can redistribute it and/or modify it under the
-# terms of the GNU General Public License as published by the Free Software
-# Foundation; either version 3 of the License, or (at your option) any later
-# version.
+# Koha is free software; you can redistribute it and/or modify it
+# under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 3 of the License, or
+# (at your option) any later version.
 #
-# Koha is distributed in the hope that it will be useful, but WITHOUT ANY
-# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
-# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+# Koha is distributed in the hope that it will be useful, but
+# WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+# GNU General Public License for more details.
 #
-# You should have received a copy of the GNU General Public License along
-# with Koha; if not, write to the Free Software Foundation, Inc.,
-# 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+# You should have received a copy of the GNU General Public License
+# along with Koha; if not, see <http://www.gnu.org/licenses>.
 
 use Modern::Perl;
 
@@ -26,7 +26,6 @@ use Koha::Patrons;
 use Koha::Biblios;
 use Koha::Items;
 use Koha::Libraries;
-use Koha::ArticleRequest::Status;
 use Koha::DateUtils qw(dt_from_string);
 
 use base qw(Koha::Object);
@@ -189,23 +188,18 @@ sub branch {
 
 =head3 store
 
-Override the default store behavior so that new opan requests
+Override the default store behavior so that new opac requests
 will have notifications sent.
 
 =cut
 
 sub store {
     my ($self) = @_;
-
-    if ( $self->in_storage() ) {
-        my $now = dt_from_string();
-        $self->updated_on($now);
-
-        return $self->SUPER::store();
-    }
-    else {
-        $self->open();
-        return $self->SUPER::store();
+    if ( $self->in_storage ) {
+        return $self->SUPER::store;
+    } else {
+        $self->created_on( dt_from_string() );
+        return $self->open;
     }
 }
 

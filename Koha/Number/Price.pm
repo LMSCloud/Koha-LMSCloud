@@ -19,7 +19,7 @@ package Koha::Number::Price;
 
 use Modern::Perl;
 
-use Number::Format qw( format_price );
+use Number::Format;
 use C4::Context;
 use Koha::Acquisition::Currencies;
 
@@ -40,11 +40,10 @@ sub format {
     return unless defined $self->value;
 
     my $format_params = $self->_format_params( $params );
-
     # To avoid the system to crash, we will not format big number
     # We divide per 100 because we want to keep the default DECIMAL_DIGITS (2)
     # error - round() overflow. Try smaller precision or use Math::BigFloat
-    return $self->value if $self->value > Number::Format::MAX_INT/100;
+    return $self->value if abs($self->value) > Number::Format::MAX_INT/100;
 
     return Number::Format->new(%$format_params)->format_price($self->value);
 }
@@ -105,6 +104,11 @@ sub round {
     return unless defined $self->value;
 
     my $format_params = $self->_format_params;
+
+    # To avoid the system to crash, we will not format big number
+    # We divide per 100 because we want to keep the default DECIMAL_DIGITS (2)
+    # error - round() overflow. Try smaller precision or use Math::BigFloat
+    return $self->value if $self->value > Number::Format::MAX_INT/100;
 
     return Number::Format->new(%$format_params)->round($self->value);
 }

@@ -2,7 +2,7 @@
 [% USE KohaDates %]
 [% SET footerjs = 1 %]
 [% INCLUDE 'doc-head-open.inc' %]
-<title>Koha &rsaquo; Serials &rsaquo; Check expiration</title>
+<title>Check expiration &rsaquo; Serials &rsaquo; Koha</title>
 [% INCLUDE 'doc-head-close.inc' %]
 </head>
 
@@ -10,13 +10,26 @@
 [% INCLUDE 'header.inc' %]
 [% INCLUDE 'serials-search.inc' %]
 
-<div id="breadcrumbs"><a href="/cgi-bin/koha/mainpage.pl">Home</a> &rsaquo; <a href="/cgi-bin/koha/serials/serials-home.pl">Serials</a> &rsaquo; Check expiration </div>
+<nav id="breadcrumbs" aria-label="Breadcrumb" class="breadcrumb">
+    <ol>
+        <li>
+            <a href="/cgi-bin/koha/mainpage.pl">Home</a>
+        </li>
+        <li>
+            <a href="/cgi-bin/koha/serials/serials-home.pl">Serials</a>
+        </li>
+        <li>
+            <a href="#" aria-current="page">
+                Check expiration
+            </a>
+        </li>
+    </ol>
+</nav>
 
-<div id="doc3" class="yui-t2">
-   
-   <div id="bd">
-	<div id="yui-main">
-	<div class="yui-b">
+<div class="main container-fluid">
+    <div class="row">
+        <div class="col-sm-10 col-sm-push-2">
+            <main>
 
 <h1>Check expiration</h1>
 
@@ -25,6 +38,7 @@
     <legend>Filter results:</legend>
     
          <ol>
+        <ol>
         <li><label for="title">Title:</label>
         <input id="title" type="text" name="title" size="15" value="[% title | html %]" /></li>
 
@@ -44,22 +58,31 @@
         <span class="required">Required</span>
 			<div class="hint">[% INCLUDE 'date-format.inc' %]</div></li>
 			</ol>
-        
+
+        <li>
+            <label for="showhistoricexpired">Include expirations before today:</label>
+            [% IF showhistoricexpired %]
+                <input id="showhistoricexpired" type="checkbox" name="showhistoricexpired" checked="checked" />
+            [% ELSE %]
+                <input id="showhistoricexpired" type="checkbox" name="showhistoricexpired" />
+            [% END %]
+        </li>
+        </ol>
 </fieldset>
 <fieldset class="action"><input type="submit" value="Search" /></fieldset>
 </form>
 
 [% IF ( subscriptions_loop ) %]
 <p>
-    <b>[% numsubscription %]</b> subscription(s)
+    <strong>[% numsubscription | html %]</strong> subscription(s)
         [% IF ( title ) %]
         with title matching <span class="title">[% title | html %]</class>
         [% IF ( issn ) %]and [% END %]
     [% END %]
     [% IF ( issn ) %]
-        with ISSN matching <b>[% issn | html %]</b>
+        with ISSN matching <strong>[% issn | html %]</strong>
     [% END %]
-        will expire before <b>[% date | $KohaDates %]</b>
+        will expire before <strong>[% date | $KohaDates %]</strong>
 </p>
 
 <div class="checkexpiration-table_table_controls">
@@ -81,38 +104,38 @@
             <th>OPAC note</th>
             <th>Nonpublic note</th>
             <th>Expiration date</th>
-            <th>Actions</th>
+            <th class="noExport">Actions</th>
         </tr>
     [% FOREACH subscriptions_loo IN subscriptions_loop %]
         <tr>
             <td style="text-align:center;vertical-align:middle">
-                <input type="checkbox" value="[% subscriptions_loo.subscriptionid %]" name="subscriptionid" />
+                <input type="checkbox" value="[% subscriptions_loo.subscriptionid | html %]" name="subscriptionid" />
             </td>
             <td>
-                [% subscriptions_loo.issn %]
+                [% subscriptions_loo.issn | html %]
             </td>
             <td><a href="/cgi-bin/koha/serials/subscription-detail.pl?subscriptionid=[% subscriptions_loo.subscriptionid |url %]">[% IF ( subscriptions_loo.title ) %]
-                    [% subscriptions_loo.title |html %]
+                    [% subscriptions_loo.title | html %]
                 [% ELSE %]
                     |
                 [% END %]
                 </a>
             </td>
             [% IF can_change_library %]<td>
-                [% Branches.GetName( subscriptions_loo.branchcode ) %]
+                [% Branches.GetName( subscriptions_loo.branchcode ) | html %]
             </td>[% END %]
             <td>
-                [% subscriptions_loo.notes %]
+                [% subscriptions_loo.notes | html %]
             </td>
             <td>
-                [% subscriptions_loo.internalnotes %]
+                [% subscriptions_loo.internalnotes | html %]
             </td>
             <td>
                 [% subscriptions_loo.expirationdate | $KohaDates %]
             </td>
             <td class="actions">
-                <a href="/cgi-bin/koha/serials/subscription-add.pl?op=modify&amp;subscriptionid=[% subscriptions_loo.subscriptionid %]" class="btn btn-default btn-xs"><i class="fa fa-pencil"></i> Edit</a>
-                <a href="/cgi-bin/koha/serials/subscription-renew.pl?subscriptionid=[% subscriptions_loo.subscriptionid %]" data-subscriptionid="[% subscriptions_loo.subscriptionid %]" class="btn btn-default btn-xs renew_subscription"><i class="fa fa-refresh"></i> Renew</a>
+                <a href="/cgi-bin/koha/serials/subscription-add.pl?op=modify&amp;subscriptionid=[% subscriptions_loo.subscriptionid | uri %]" class="btn btn-default btn-xs"><i class="fa fa-pencil"></i> Edit</a>
+                <a href="/cgi-bin/koha/serials/subscription-renew.pl?subscriptionid=[% subscriptions_loo.subscriptionid | uri %]" data-subscriptionid="[% subscriptions_loo.subscriptionid | html %]" class="btn btn-default btn-xs renew_subscription"><i class="fa fa-refresh"></i> Renew</a>
             </td>
         </tr>
     [% END %]
@@ -121,17 +144,19 @@
     <p>No results for your query</p>
 [% END %]
 
-</div>
-</div>
+            </main>
+        </div> <!-- /.col-sm-10.col-sm-push-2 -->
 
-<div class="yui-b">
-[% INCLUDE 'serials-menu.inc' %]
-</div>
-</div>
+        <div class="col-sm-2 col-sm-pull-10">
+            <aside>
+                [% INCLUDE 'serials-menu.inc' %]
+            </aside>
+        </div> <!-- /.col-sm-2.col-sm-pull-10 -->
+     </div> <!-- /.row -->
 
 [% MACRO jsinclude BLOCK %]
     [% INCLUDE 'calendar.inc' %]
-    <script type="text/javascript" language="JavaScript">
+    <script>
         $(document).ready(function(){
             $(".renew_subscription").on("click",function(e){
                 e.preventDefault();

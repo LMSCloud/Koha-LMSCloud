@@ -32,7 +32,7 @@ use C4::Output;
 sub plugin_javascript {
     my ( $dbh, $record, $tagslib, $field_number, $tabloop ) = @_;
     my $res           = "
-        <script type='text/javascript'>
+        <script>
             function Clic$field_number(i) {
                 var defaultvalue;
                 try {
@@ -65,7 +65,6 @@ sub plugin {
             template_name => "cataloguing/value_builder/unimarc_field_100.tt",
             query         => $input,
             type          => "intranet",
-            authnotrequired => 0,
             flagsrequired   => { editcatalogue => '*' },
             debug           => 1,
         }

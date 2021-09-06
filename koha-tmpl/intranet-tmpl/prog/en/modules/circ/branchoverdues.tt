@@ -1,30 +1,45 @@
 [% USE Branches %]
 [% USE Koha %]
 [% INCLUDE 'doc-head-open.inc' %]
-<title>Koha &rsaquo; Circulation &rsaquo; Overdues at [% LoginBranchname %]</title>
+<title>Overdues at [% Branches.GetLoggedInBranchname | html %] &rsaquo; Circulation &rsaquo; Koha</title>
 [% INCLUDE 'doc-head-close.inc' %]
 </head>
 <body id="circ_branchoverdues" class="circ">
 [% INCLUDE 'header.inc' %]
 [% INCLUDE 'circ-search.inc' %]
 
-<div id="breadcrumbs"><a href="/cgi-bin/koha/mainpage.pl">Home</a> &rsaquo; <a href="/cgi-bin/koha/circ/circulation-home.pl">Circulation</a> &rsaquo; Overdues at [% LoginBranchname %]</div>
+<nav id="breadcrumbs" aria-label="Breadcrumb" class="breadcrumb">
+    <ol>
+        <li>
+            <a href="/cgi-bin/koha/mainpage.pl">Home</a>
+        </li>
+        <li>
+            <a href="/cgi-bin/koha/circ/circulation-home.pl">Circulation</a>
+        </li>
+        <li>
+            <a href="#" aria-current="page">
+                Overdues at [% Branches.GetLoggedInBranchname | html %]
+            </a>
+        </li>
+    </ol>
+</nav>
 
-[% IF Koha.Preference('CircSidebar') %]<div id="doc3" class="yui-t2">[% ELSE %]<div id="doc" class="yui-t7">[% END %]
+<div class="main container-fluid">
+    <div class="row">
+        [% IF Koha.Preference('CircSidebar') %]
+            <div class="col-sm-10 col-sm-push-2">
+        [% ELSE %]
+            <div class="col-md-10 col-md-offset-1 col-lg-8 col-lg-offset-2">
+        [% END %]
+            <main>
 
-   <div id="bd">
-	<div id="yui-main">
-        [% IF Koha.Preference('CircSidebar') %]<div class="yui-b">[% END %]
-	<div class="yui-g">
-
-
-<h1>Circulation: Overdues at [% LoginBranchname %]</h1>
+<h1>Circulation: Overdues at [% Branches.GetLoggedInBranchname | html %]</h1>
 
 <form name="selectlocation" action="branchoverdues.pl" method="post">
     <label for="location">Shelving location selected: </label><select id="location" name="location">
         <option value="">All shelving locations</option>
         [% FOREACH locationsloo IN locationsloop %]
-            [% IF ( locationsloo.selected ) %]<option value="[% locationsloo.authorised_value %]" selected="selected">[% locationsloo.lib %]</option>[% ELSE %]<option value="[% locationsloo.authorised_value %]">[% locationsloo.lib %]</option>[% END %]
+            [% IF ( locationsloo.selected ) %]<option value="[% locationsloo.authorised_value | html %]" selected="selected">[% locationsloo.lib | html %]</option>[% ELSE %]<option value="[% locationsloo.authorised_value | html %]">[% locationsloo.lib | html %]</option>[% END %]
         [% END %]
     </select>
     <input type="submit" name="location" class="submit" value="OK" />
@@ -41,21 +56,21 @@
             [% FOREACH overduesloo IN overduesloop %]
                 <tr>
                     <td>
-                        [% overduesloo.date_due %]
+                        [% overduesloo.date_due | html %]
                     </td>
                     <td>
-                    [% INCLUDE 'biblio-default-view.inc' biblionumber = overduesloo.biblionumber %][% overduesloo.title |html %] [% IF ( overduesloo.subtitle ) %][% overduesloo.subtitle %][% END %]</a> [% IF ( overduesloo.author ) %] by [% overduesloo.author %][% END %]
+                        [% INCLUDE 'biblio-title.inc' biblio=overduesloo link = 1 %] [% IF ( overduesloo.author ) %] by [% overduesloo.author | html %][% END %]
 
-                            <br />Barcode : [% overduesloo.barcode %]
+                            <br />Barcode : [% overduesloo.barcode | html %]
                     </td>
                     <td>
-                        <a href="/cgi-bin/koha/members/moremember.pl?borrowernumber=[% overduesloo.borrowernumber %]">[% overduesloo.borrowersurname %], [% overduesloo.borrowerfirstname %]</a>
-                        <br />[% overduesloo.cardnumber %]
-                        <br />[% overduesloo.borrowerphone %]<br />
-                    [% IF ( overduesloo.borroweremail ) %]<a href="mailto:[% overduesloo.borroweremail %]?subject=Overdue: [% overduesloo.title |html %]">
-                    [% overduesloo.borroweremail %]</a>[% END %]
+                        <a href="/cgi-bin/koha/members/moremember.pl?borrowernumber=[% overduesloo.borrowernumber | uri %]">[% overduesloo.borrowersurname | html %], [% overduesloo.borrowerfirstname | html %]</a>
+                        <br />[% overduesloo.cardnumber | html %]
+                        <br />[% overduesloo.borrowerphone | html %]<br />
+                    [% IF ( overduesloo.borroweremail ) %]<a href="mailto:[% overduesloo.borroweremail | uri %]?subject=Overdue: [% overduesloo.title | uri %]">
+                    [% overduesloo.borroweremail | html %]</a>[% END %]
                     </td>
-                    <td>[% Branches.GetName( overduesloo.homebranch ) %] [% overduesloo.itemcallnumber %]
+                    <td>[% Branches.GetName( overduesloo.homebranch ) | html %] [% overduesloo.itemcallnumber | html %]
                     </td>
                 </tr>
             [% END %]
@@ -78,28 +93,28 @@
                     <tr>
                         <td>
                             <p>
-                            [% todayoverduesloo.date_due %]
+                            [% todayoverduesloo.date_due | html %]
                             </p>
                         </td>
                         <td>
                             <p>
-                                <a href="/cgi-bin/koha/catalogue/MARCdetail.pl?biblionumber=[% todayoverduesloo.biblionumber %]">[% todayoverduesloo.title |html %]</a>
-                                &nbsp; (<b>[% todayoverduesloo.description %]</b>)
-                                <br />Barcode : [% todayoverduesloo.barcode %]
+                                <a href="/cgi-bin/koha/catalogue/MARCdetail.pl?biblionumber=[% todayoverduesloo.biblionumber | uri %]">[% todayoverduesloo.title | html %]</a>
+                                &nbsp; (<strong>[% todayoverduesloo.description | html %]</strong>)
+                                <br />Barcode : [% todayoverduesloo.barcode | html %]
                             </p>
                         </td>
                         <td>
-                            <p><a href="/cgi-bin/koha/members/moremember.pl?borrowernumber=[% todayoverduesloo.borrowernumber %]">[% todayoverduesloo.borrowersurname %] &nbsp; [% todayoverduesloo.borrowerfirstname %]</a>
-                            <br />[% todayoverduesloo.cardnumber %]<br />
-                            <br />[% todayoverduesloo.borrowerphone %]<br />
-                        [% IF ( todayoverduesloo.borroweremail ) %]<a href="mailto:[% todayoverduesloo.borroweremail %]?subject=Overdue: [% todayoverduesloo.title |html %]">
-                        [% todayoverduesloo.borroweremail %]</a>[% END %]
+                            <p><a href="/cgi-bin/koha/members/moremember.pl?borrowernumber=[% todayoverduesloo.borrowernumber | uri %]">[% todayoverduesloo.borrowersurname | html %] &nbsp; [% todayoverduesloo.borrowerfirstname | html %]</a>
+                            <br />[% todayoverduesloo.cardnumber | html %]<br />
+                            <br />[% todayoverduesloo.borrowerphone | html %]<br />
+                        [% IF ( todayoverduesloo.borroweremail ) %]<a href="mailto:[% todayoverduesloo.borroweremail | uri %]?subject=Overdue: [% todayoverduesloo.title | uri %]">
+                        [% todayoverduesloo.borroweremail | html %]</a>[% END %]
                             </p>
                         </td>
-                        <td><p>[% Branches.GetName( todayoverduesloo.homebranch ) %] [% todayoverduesloo.itemcallnumber %]</p>
+                        <td><p>[% Branches.GetName( todayoverduesloo.homebranch ) | html %] [% todayoverduesloo.itemcallnumber | html %]</p>
                         </td>
                         <td>
-                        <a href="branchoverdues.pl?action=remove&amp;borrowernumber=[% todayoverduesloo.borrowernumber %]&amp;itemnumber=[% todayoverduesloo.itemnumber %]&amp;method=phone&amp;location=[% todayoverduesloo.location %]">Cancel notification</a>
+                        <a href="branchoverdues.pl?action=remove&amp;borrowernumber=[% todayoverduesloo.borrowernumber | uri %]&amp;itemnumber=[% todayoverduesloo.itemnumber | uri %]&amp;method=phone&amp;location=[% todayoverduesloo.location | uri %]">Cancel notification</a>
                         </td>
                     </tr>
                 [% END %]
@@ -107,13 +122,16 @@
         </div>
     [% END %]
 
-</div>
-</div>
-[% IF Koha.Preference('CircSidebar') %]
-</div>
-<div class="yui-b noprint">
-    [% INCLUDE 'circ-nav.inc' %]
-</div>
-[% END %]
-</div>
+                </main>
+            </div> <!-- /.col-sm-10.col-sm-push-2 -->
+
+            [% IF Koha.Preference('CircSidebar') %]
+                <div class="col-sm-2 col-sm-pull-10">
+                    <aside>
+                        [% INCLUDE 'circ-nav.inc' %]
+                    </aside>
+                </div> <!-- /.col-sm-2.col-sm-pull-10 -->
+            [% END %]
+        </div> <!-- /.row -->
+
 [% INCLUDE 'intranet-bottom.inc' %]

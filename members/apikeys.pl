@@ -28,13 +28,12 @@ use Koha::ApiKeys;
 use Koha::Patrons;
 use Koha::Token;
 
-my $cgi = new CGI;
+my $cgi = CGI->new;
 
 my ( $template, $loggedinuser, $cookie ) = get_template_and_user(
     {   template_name   => 'members/apikeys.tt',
         query           => $cgi,
         type            => 'intranet',
-        authnotrequired => 0,
         flagsrequired   => { borrowers => 'edit_borrowers' },
     }
 );
@@ -60,11 +59,11 @@ if ( $op eq 'generate' or
      $op eq 'revoke' or
      $op eq 'activate' ) {
 
-    die "Wrong CSRF token"
-    unless Koha::Token->new->check_csrf({
-        session_id => scalar $cgi->cookie('CGISESSID'),
-        token      => scalar $cgi->param('csrf_token'),
-    });
+    output_and_exit( $cgi, $cookie, $template, 'wrong_csrf_token' )
+        unless Koha::Token->new->check_csrf({
+            session_id => scalar $cgi->cookie('CGISESSID'),
+            token      => scalar $cgi->param('csrf_token'),
+        });
 }
 
 if ($op) {

@@ -61,7 +61,7 @@ use Koha::Acquisition::Currencies;
 
 my $dbh = C4::Context->dbh;
 
-my $input       = new CGI;
+my $input       = CGI->new;
 
 my $searchfield          = $input->param('searchfield') // '';
 my $budget_period_id     = $input->param('budget_period_id');
@@ -82,7 +82,6 @@ my ($template, $borrowernumber, $cookie, $staff_flags ) = get_template_and_user(
         template_name   => "admin/aqbudgetperiods.tt",
         query           => $input,
         type            => "intranet",
-        authnotrequired => 0,
         flagsrequired   => { acquisition => 'period_manage' },
         debug           => 1,
     }
@@ -159,7 +158,7 @@ elsif ( $op eq 'delete_confirmed' ) {
 
 # display the form for duplicating
 elsif ( $op eq 'duplicate_form'){
-    my $budgetperiod = GetBudgetPeriod($budget_period_id, $input);
+    my $budgetperiod = GetBudgetPeriod($budget_period_id);
     $template->param(
         'duplicate_form' => '1',
         'budget_period_id' => $budget_period_id,

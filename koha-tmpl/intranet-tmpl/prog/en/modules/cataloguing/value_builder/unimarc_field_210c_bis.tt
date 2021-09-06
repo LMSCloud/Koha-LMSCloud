@@ -1,8 +1,8 @@
 [% SET footerjs = 1 %]
 [% INCLUDE 'doc-head-open.inc' %]
-<title>Koha &rsaquo; UNIMARC field 210c builder</title>
+<title>UNIMARC field 210c builder &rsaquo; Koha</title>
 [% INCLUDE 'doc-head-close.inc' %]
-<style type="text/css">
+<style>
     #custom-doc { width:37.85em;*width:36.93em;min-width:492px; margin:auto; text-align:left; }
 </style>
 </head>
@@ -25,10 +25,10 @@
     </div>
 
 [% MACRO jsinclude BLOCK %]
-    <script type="text/javascript">
+    <script>
         function report() {
             var doc   = opener.document;
-            var field = doc.getElementById("[% index %]");
+            var field = doc.getElementById("[% index | html %]");
             field.value =  document.f_pop.findvalue.value;
 
             window.close();

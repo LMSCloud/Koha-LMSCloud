@@ -33,7 +33,9 @@ use C4::Biblio;
 use C4::Items;
 use C4::Suggestions;
 use Koha::Biblios;
+use Koha::Acquisition::Baskets;
 use Koha::Acquisition::Booksellers;
+use Koha::Acquisition::Orders;
 use Koha::Libraries;
 use C4::Letters qw/SendAlerts/;
 use Date::Calc qw/Add_Delta_Days/;
@@ -41,6 +43,8 @@ use Koha::Database;
 use Koha::EDI qw( create_edi_order get_edifact_ean );
 use Koha::CsvProfiles;
 use Koha::Patrons;
+
+use Koha::AdditionalFields;
 
 =head1 NAME
 
@@ -70,7 +74,7 @@ the supplier this script have to display the basket.
 
 =cut
 
-our $query        = new CGI;
+our $query        = CGI->new;
 our $basketno     = $query->param('basketno');
 our $ean          = $query->param('ean');
 our $booksellerid = $query->param('booksellerid');
@@ -81,11 +85,12 @@ our ( $template, $loggedinuser, $cookie, $userflags ) = get_template_and_user(
         template_name   => "acqui/basket.tt",
         query           => $query,
         type            => "intranet",
-        authnotrequired => 0,
         flagsrequired   => { acquisition => 'order_manage' },
         debug           => 1,
     }
 );
+
+my $logged_in_patron = Koha::Patrons->find( $loggedinuser );
 
 our $basket = GetBasket($basketno);
 $booksellerid = $basket->{booksellerid} unless $booksellerid;
@@ -119,45 +124,42 @@ $template->param( skip_confirm_reopen => 1) if $confirm_pref eq '2';
 my @messages;
 
 if ( $op eq 'delete_confirm' ) {
-    my $basketno = $query->param('basketno');
-    my $delbiblio = $query->param('delbiblio');
-    my @orders = GetOrders($basketno);
-#Delete all orders included in that basket, and all items received.
-    foreach my $myorder (@orders){
-        DelOrder($myorder->{biblionumber},$myorder->{ordernumber});
-    }
-# if $delbiblio = 1, delete the records if possible
-    if ((defined $delbiblio)and ($delbiblio ==1)){
-        my @cannotdelbiblios ;
-        foreach my $myorder (@orders){
-            my $biblionumber = $myorder->{'biblionumber'};
-            my $biblio = Koha::Biblios->find( $biblionumber );
-            my $countbiblio = CountBiblioInOrders($biblionumber);
-            my $ordernumber = $myorder->{'ordernumber'};
-            my $cnt_subscriptions = $biblio->subscriptions->count;
-            my $itemcount = $biblio->items->count;
-            my $error;
-            if ($countbiblio == 0 && $itemcount == 0 && not $cnt_subscriptions ) {
-                $error = DelBiblio($myorder->{biblionumber}) }
-            else {
-                push @cannotdelbiblios, {biblionumber=> ($myorder->{biblionumber}),
-                                         title=> $myorder->{'title'},
-                                         author=> $myorder->{'author'},
-                                         countbiblio=> $countbiblio,
-                                         itemcount=>$itemcount,
-                                         subscriptions => $cnt_subscriptions};
-            }
-            if ($error) {
-                push @cannotdelbiblios, {biblionumber=> ($myorder->{biblionumber}),
-                                         title=> $myorder->{'title'},
-                                         author=> $myorder->{'author'},
-                                         othererror=> $error};
-            }
+
+    output_and_exit( $query, $cookie, $template, 'insufficient_permission' )
+      unless $logged_in_patron->has_permission( { acquisition => 'delete_baskets' } );
+
+    my $basketno   = $query->param('basketno');
+    my $delbiblio  = $query->param('delbiblio');
+    my $basket_obj = Koha::Acquisition::Baskets->find($basketno);
+
+    my $orders = $basket_obj->orders;
+
+    my @cannotdelbiblios;
+
+    while ( my $order = $orders->next ) {
+        # cancel the order
+        $order->cancel({ delete_biblio => $delbiblio });
+        my @messages = @{ $order->messages };
+
+        if ( scalar @messages > 0 ) {
+
+            my $biblio = $order->biblio;
+
+            push @cannotdelbiblios, {
+                biblionumber  => $biblio->id,
+                title         => $biblio->title // '',
+                author        => $biblio->author // '',
+                countbiblio   => $biblio->active_orders->count,
+                itemcount     => $biblio->items->count,
+                subscriptions => $biblio->subscriptions->count,
+            };
         }
-        $template->param( cannotdelbiblios => \@cannotdelbiblios );
     }
- # delete the basket
-    DelBasket($basketno,);
+
+    $template->param( cannotdelbiblios => \@cannotdelbiblios );
+
+    # delete the basket
+    $basket_obj->delete;
     $template->param(
         delete_confirmed => 1,
         booksellername => $bookseller->name,
@@ -189,14 +191,16 @@ if ( $op eq 'delete_confirm' ) {
 } elsif ($op eq 'close') {
     my $confirm = $query->param('confirm') || $confirm_pref eq '2';
     if ($confirm) {
-        my $basketno = $query->param('basketno');
-        my $booksellerid = $query->param('booksellerid');
-        $basketno =~ /^\d+$/ and CloseBasket($basketno);
+
+        # close the basket
+        # FIXME: we should fetch the object at the beginning of this script
+        #        and get rid of the hash that is passed around
+        Koha::Acquisition::Baskets->find($basketno)->close;
+
         # if requested, create basket group, close it and attach the basket
         if (scalar $query->param('createbasketgroup')) {
             my $branchcode;
-            if(C4::Context->userenv and C4::Context->userenv->{'branch'}
-              and C4::Context->userenv->{'branch'} ne "NO_LIBRARY_SET") {
+            if(C4::Context->userenv and C4::Context->userenv->{'branch'}) {
                 $branchcode = C4::Context->userenv->{'branch'};
             }
             my $basketgroupid = NewBasketgroup( { name => $basket->{basketname},
@@ -346,9 +350,9 @@ if ( $op eq 'list' ) {
         push @books_loop, $line;
 
         $foot{$$line{tax_rate}}{tax_rate} = $$line{tax_rate};
-        $foot{$$line{tax_rate}}{tax_value} += $$line{tax_value};
+        $foot{$$line{tax_rate}}{tax_value} += get_rounded_price($$line{tax_value});
         $total_tax_value += $$line{tax_value};
-        $foot{$$line{tax_rate}}{quantity}  += $$line{quantity};
+        $foot{$$line{tax_rate}}{quantity}  += get_rounded_price($$line{quantity});
         $total_quantity += $$line{quantity};
         $foot{$$line{tax_rate}}{total_tax_excluded} += $$line{total_tax_excluded};
         $total_tax_excluded += $$line{total_tax_excluded};
@@ -376,9 +380,6 @@ if ( $op eq 'list' ) {
     my $budgets = GetBudgetHierarchy;
     my $has_budgets = 0;
     foreach my $r (@{$budgets}) {
-        if (!defined $r->{budget_amount} || $r->{budget_amount} == 0) {
-            next;
-        }
         next unless (CanUserUseBudget($loggedinuser, $r, $userflags));
 
         $has_budgets = 1;
@@ -425,10 +426,14 @@ if ( $op eq 'list' ) {
         #
         # (The template has another implicit restriction that the order cannot be closed if there
         # are any orders with uncertain prices.)
-        unclosable           => @orders ? $basket->{is_standing} : 1,
+        unclosable           => @orders || @cancelledorders ? $basket->{is_standing} : 1,
         has_budgets          => $has_budgets,
         duplinbatch          => $duplinbatch,
         csv_profiles         => [ Koha::CsvProfiles->search({ type => 'sql', used_for => 'export_basket' }) ],
+        available_additional_fields => [ Koha::AdditionalFields->search( { tablename => 'aqbasket' } ) ],
+        additional_field_values => { map {
+            $_->field->name => $_->value
+        } Koha::Acquisition::Baskets->find($basketno)->additional_field_values->as_list },
     );
 }
 
@@ -451,14 +456,16 @@ sub get_order_infos {
     $line{basketno}       = $basketno;
     $line{budget_name}    = $budget->{budget_name};
 
-    $line{total_tax_included} = $line{ecost_tax_included} * $line{quantity};
-    $line{total_tax_excluded} = $line{ecost_tax_excluded} * $line{quantity};
+    # If we have an actual cost that should be the total, otherwise use the ecost
+    $line{unitprice_tax_included} += 0;
+    $line{unitprice_tax_excluded} += 0;
+    my $cost_tax_included = $line{unitprice_tax_included} || $line{ecost_tax_included};
+    my $cost_tax_excluded = $line{unitprice_tax_excluded} || $line{ecost_tax_excluded};
+    $line{total_tax_included} = get_rounded_price($cost_tax_included) * $line{quantity};
+    $line{total_tax_excluded} = get_rounded_price($cost_tax_excluded) * $line{quantity};
     $line{tax_value} = $line{tax_value_on_ordering};
     $line{tax_rate} = $line{tax_rate_on_ordering};
 
-    if ( $line{uncertainprice} ) {
-        $line{rrp_tax_excluded} .= ' (Uncertain)';
-    }
     if ( $line{'title'} ) {
         my $volume      = $order->{'volume'};
         my $seriestitle = $order->{'seriestitle'};
@@ -469,17 +476,19 @@ sub get_order_infos {
     my $biblionumber = $order->{'biblionumber'};
     if ( $biblionumber ) { # The biblio still exists
         my $biblio = Koha::Biblios->find( $biblionumber );
-        my $countbiblio = CountBiblioInOrders($biblionumber);
+        my $countbiblio = $biblio->active_orders->count;
+
         my $ordernumber = $order->{'ordernumber'};
         my $cnt_subscriptions = $biblio->subscriptions->count;
         my $itemcount   = $biblio->items->count;
         my $holds_count = $biblio->holds->count;
-        my @items = GetItemnumbersFromOrder( $ordernumber );
-        my $itemholds  = $biblio->holds->search({ itemnumber => { -in => \@items } })->count;
+        my $order = Koha::Acquisition::Orders->find($ordernumber); # FIXME We should certainly do that at the beginning of this sub
+        my $items = $order->items;
+        my $itemholds  = $biblio->holds->search({ itemnumber => { -in => [ $items->get_column('itemnumber') ] } })->count;
 
         # if the biblio is not in other orders and if there is no items elsewhere and no subscriptions and no holds we can then show the link "Delete order and Biblio" see bug 5680
-        $line{can_del_bib}          = 1 if $countbiblio <= 1 && $itemcount == scalar @items && !($cnt_subscriptions) && !($holds_count);
-        $line{items}                = ($itemcount) - (scalar @items);
+        $line{can_del_bib}          = 1 if $countbiblio <= 1 && $itemcount == $items->count && !($cnt_subscriptions) && !($holds_count);
+        $line{items}                = $itemcount - $items->count;
         $line{left_item}            = 1 if $line{items} >= 1;
         $line{left_biblio}          = 1 if $countbiblio > 1;
         $line{biblios}              = $countbiblio - 1;
@@ -489,6 +498,7 @@ sub get_order_infos {
         $line{left_holds_on_order}  = 1 if $line{left_holds}==1 && ($line{items} == 0 || $itemholds );
         $line{holds}                = $holds_count;
         $line{holds_on_order}       = $itemholds?$itemholds:$holds_count if $line{left_holds_on_order};
+        $line{order_object}         = $order;
     }
 
 
@@ -517,24 +527,23 @@ sub get_order_infos {
 sub edi_close_and_order {
     my $confirm = $query->param('confirm') || $confirm_pref eq '2';
     if ($confirm) {
-            my $edi_params = {
-                basketno => $basketno,
-                ean    => $ean,
-            };
-            if ( $basket->{branch} ) {
-                $edi_params->{branchcode} = $basket->{branch};
-            }
-            if ( create_edi_order($edi_params) ) {
-                #$template->param( edifile => 1 );
-            }
-        CloseBasket($basketno);
+        my $edi_params = {
+            basketno => $basketno,
+            ean    => $ean,
+        };
+        if ( $basket->{branch} ) {
+            $edi_params->{branchcode} = $basket->{branch};
+        }
+        if ( create_edi_order($edi_params) ) {
+            #$template->param( edifile => 1 );
+        }
+        Koha::Acquisition::Baskets->find($basketno)->close;
 
         # if requested, create basket group, close it and attach the basket
         if ( scalar $query->param('createbasketgroup') ) {
             my $branchcode;
             if (    C4::Context->userenv
-                and C4::Context->userenv->{'branch'}
-                and C4::Context->userenv->{'branch'} ne "NO_LIBRARY_SET" )
+                and C4::Context->userenv->{'branch'} )
             {
                 $branchcode = C4::Context->userenv->{'branch'};
             }
@@ -549,8 +558,8 @@ sub edi_close_and_order {
             );
             ModBasket(
                 {
-                    basketno      => $basketno,
-                    basketgroupid => $basketgroupid
+                    basketno       => $basketno,
+                    basketgroupid  => $basketgroupid
                 }
             );
             print $query->redirect(

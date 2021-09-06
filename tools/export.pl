@@ -32,14 +32,19 @@ use Koha::Exporter::Record;
 use Koha::ItemTypes;
 use Koha::Libraries;
 
-my $query = new CGI;
+my $query = CGI->new;
 
 my $dont_export_items = $query->param("dont_export_item") || 0;
 my $record_type       = $query->param("record_type");
 my $op                = $query->param("op") || '';
 my $output_format     = $query->param("format") || $query->param("output_format") || 'iso2709';
 my $backupdir         = C4::Context->config('backupdir');
-my $filename          = $query->param("filename") || ( $output_format eq 'csv' ? 'koha.csv' : 'koha.mrc' );
+my $filename;
+if ( $record_type eq 'auths' ) {
+    $filename = $query->param("filename_auth") || ( $output_format eq 'xml' ? 'koha.xml' : 'koha.mrc' );
+} else {
+    $filename = $query->param("filename") || ( $output_format eq 'csv' ? 'koha.csv' : 'koha.mrc' );
+}
 $filename =~ s/(\r|\n)//;
 
 my $dbh = C4::Context->dbh;
@@ -61,7 +66,6 @@ my ( $template, $loggedinuser, $cookie, $flags ) = get_template_and_user(
         template_name   => "tools/export.tt",
         query           => $query,
         type            => "intranet",
-        authnotrequired => 0,
         flagsrequired   => { tools => 'export_catalog' },
         debug           => 1,
     }
@@ -75,7 +79,7 @@ if ( $op eq 'export' ) {
     if ( $filename ) {
         my $mimetype = $query->uploadInfo($filename)->{'Content-Type'};
         my @valid_mimetypes = qw( application/octet-stream text/csv text/plain application/vnd.ms-excel );
-        unless ( grep { /^$mimetype$/ } @valid_mimetypes ) {
+        unless ( grep { $_ eq $mimetype } @valid_mimetypes ) {
             push @messages, { type => 'alert', code => 'invalid_mimetype' };
             $op = '';
         }
@@ -88,8 +92,6 @@ if ( $op eq "export" ) {
     my @biblionumbers      = $query->multi_param("biblionumbers");
     my @itemnumbers        = $query->multi_param("itemnumbers");
     my $strip_items_not_from_libraries =  $query->param('strip_items_not_from_libraries');
-    my @sql_params;
-    my $sql_query;
 
     my $libraries = Koha::Libraries->search_filtered({ -or => [ mobilebranch => undef, mobilebranch => '' ] }, { order_by => 'branchname' })->unblessed;
     my $only_export_items_for_branches = $strip_items_not_from_libraries ? \@branch : undef;

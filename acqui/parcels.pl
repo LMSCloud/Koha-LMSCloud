@@ -92,7 +92,6 @@ our ( $template, $loggedinuser, $cookie, $flags ) = get_template_and_user(
     {   template_name   => 'acqui/parcels.tt',
         query           => $input,
         type            => 'intranet',
-        authnotrequired => 0,
         flagsrequired   => { acquisition => 'order_receive' },
         debug           => 1,
     }
@@ -182,9 +181,6 @@ my $budget_loop = [];
 my $budgets = GetBudgetHierarchy;
 foreach my $r (@{$budgets}) {
     next unless (CanUserUseBudget($loggedinuser, $r, $flags));
-    if (!defined $r->{budget_amount} || $r->{budget_amount} == 0) {
-        next;
-    }
     push @{$budget_loop}, {
         b_id  => $r->{budget_id},
         b_txt => $r->{budget_name},
@@ -205,7 +201,7 @@ $template->param(
     name                     => $bookseller->name,
     shipmentdate_today       => dt_from_string,
     booksellerid             => $booksellerid,
-    GST                      => C4::Context->preference('gist'),
+    GST                      => C4::Context->preference('TaxRates'),
     budgets                  => $budget_loop,
 );
 

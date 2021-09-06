@@ -34,7 +34,6 @@ use Modern::Perl;
 use CGI qw ( -utf8 escape );
 use C4::Auth qw{ checkauth get_session get_template_and_user };
 use C4::Context;
-use C4::Members;
 use C4::Output;
 use Koha::Patrons;
 
@@ -82,12 +81,11 @@ sub loginfailed {
             template_name   => 'opac-user.tt',
             query           => $cgi_query,
             type            => 'opac',
-            authnotrequired => 0,
         }
     );
     $template->param( 'invalidGoogleOpenIDConnectLogin' => $reason );
     $template->param( 'loginprompt'                     => 1 );
-    output_html_with_http_headers $cgi_query, $cookie, $template->output;
+    output_html_with_http_headers $cgi_query, $cookie, $template->output, undef, { force_no_caching => 1 };
     return;
 }
 
@@ -186,7 +184,6 @@ elsif ( defined $query->param('code') ) {
                 my $auto_registration = C4::Context->preference('GoogleOpenIDConnectAutoRegister') // q{0};
                 my $borrower = Koha::Patrons->find( { email => $email } );
                 if (! $borrower && $auto_registration==1) {
-                    my $cardnumber = fixup_cardnumber();
                     my $firstname = $claims_json->{'given_name'} // q{};
                     my $surname = $claims_json->{'family_name'} // q{};
                     my $delimiter = $firstname ? q{.} : q{};
@@ -197,8 +194,8 @@ elsif ( defined $query->param('code') ) {
                     my $library = Koha::Libraries->find( $branchcode );
                     if (defined $patron_category && defined $library) {
                         my $password = undef;
-                        my $borrowernumber = C4::Members::AddMember(
-                            cardnumber   => $cardnumber,
+                        # TODO errors handling!
+                        my $borrower = Koha::Patron->new({
                             firstname    => $firstname,
                             surname      => $surname,
                             email        => $email,
@@ -206,9 +203,7 @@ elsif ( defined $query->param('code') ) {
                             branchcode   => $branchcode,
                             userid       => $userid,
                             password     => $password
-                        );
-                        $borrower = Koha::Patrons->find( {
-                            borrowernumber => $borrowernumber } );
+                        })->store;
                     } else {
                         $error_feedback = 'The GoogleOpenIDConnectDefaultBranch or GoogleOpenIDConnectDefaultCategory system preferences are not configured properly. Please contact the library with this error message.';
                     }

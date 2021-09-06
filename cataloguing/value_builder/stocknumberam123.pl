@@ -43,7 +43,7 @@ In this case, a stocknumber has this form : "PREFIX 0009678570".
 my $builder = sub {
     my ( $params ) = @_;
     my $res="
-    <script type='text/javascript'>
+    <script>
         function Blur$params->{id}() {
                 var code = document.getElementById('$params->{id}');
                 var url = '../cataloguing/plugin_launcher.pl?plugin_name=stocknumberam123.pl&code=' + code.value;
@@ -69,7 +69,6 @@ my $launcher = sub {
         template_name   => "cataloguing/value_builder/ajax.tt",
         query           => $input,
         type            => "intranet",
-        authnotrequired => 0,
         flagsrequired   => {editcatalogue => '*'},
         debug           => 1,
     });
@@ -86,7 +85,7 @@ my $launcher = sub {
             );
         }
     # If a prefix is submited, we look for the highest stocknumber with this prefix, and return it incremented
-    } elsif ( $code =~ m/^[A-Z]+$/ ) {
+    } elsif ( $code =~ m/^[a-zA-Z]+$/ ) {
         my $sth = $dbh->prepare("SELECT MAX(CAST(SUBSTRING_INDEX(stocknumber,' ',-1) AS SIGNED)) FROM items WHERE stocknumber LIKE ?");
         $sth->execute($code.' %');
         

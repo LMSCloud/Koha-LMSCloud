@@ -17,8 +17,9 @@
 
 use Modern::Perl;
 
-use Test::More tests => 3;
+use Test::More tests => 4;
 use Test::MockModule;
+use t::lib::Mocks;
 
 use String::Random;
 
@@ -37,12 +38,12 @@ subtest "Koha::Template::Plugin::Koha::Version tests" => sub {
     my $development;
 
     # Mock Koha::version()
-    my $koha = new Test::MockModule('Koha');
+    my $koha = Test::MockModule->new('Koha');
     $koha->mock( 'version', sub {
         return "$major.$minor.$maintenance.$development";
     });
 
-    my $rnd = new String::Random;
+    my $rnd = String::Random->new;
     # development version test
     $major       = $rnd->randregex('\d');
     $minor       = $rnd->randregex('\d\d');
@@ -76,3 +77,14 @@ subtest "Koha::Template::Plugin::Koha::Version tests" => sub {
 
 };
 
+subtest "Koha::Template::Plugin::Koha::ArePluginsEnabled tests" => sub {
+
+    plan tests => 2;
+
+    t::lib::Mocks::mock_config( 'enable_plugins', 1 );
+    is(Koha::Template::Plugin::Koha::ArePluginsEnabled(), 1, "Correct ArePluginsEnabled is yes");
+
+    t::lib::Mocks::mock_config( 'enable_plugins', 0 );
+    is(Koha::Template::Plugin::Koha::ArePluginsEnabled(), 0, "Correct ArePluginsEnabled is no");
+
+};

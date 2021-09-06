@@ -30,72 +30,71 @@ use Koha::Patrons;
 use Koha::Plugins;
 use Koha::DateUtils;
 
-my $query = new CGI;
+my $query = CGI->new;
 my ( $template, $borrowernumber, $cookie ) = get_template_and_user(
     {
         template_name   => "opac-account.tt",
         query           => $query,
         type            => "opac",
-        authnotrequired => 0,
         debug           => 1,
     }
 );
 
 my $patron = Koha::Patrons->find( $borrowernumber );
-my $category = $patron->category;
-my $borrower= $patron->unblessed;
-$borrower->{description} = $category->description;
-$borrower->{category_type} = $category->category_type;
-$template->param( BORROWER_INFO => $borrower );
+my $account = $patron->account;
+my $accountlines = $account->lines->search({ amountoutstanding => { '>=' => 0 }});
+my $total_outstanding = $accountlines->total_outstanding;
+my $outstanding_credits = $account->outstanding_credits;
 
-my $paymentsMinimumPatronAge = C4::Context->preference('PaymentsMinimumPatronAge');    #  minimum age in years for payment permission in OPAC
-if ( !defined $paymentsMinimumPatronAge ) {
-    $paymentsMinimumPatronAge = 0;
-}
-my $dt = DateTime->now;
-$dt->subtract( years => $paymentsMinimumPatronAge+0 );
-my $payment_permitted = DateTime->compare(dt_from_string($patron->dateofbirth()),$dt) <= 0 ? 1 : 0;
+if ( C4::Context->preference('AllowPatronToSetFinesVisibilityForGuarantor')
+    || C4::Context->preference('AllowStaffToSetFinesVisibilityForGuarantor')
+  )
+{
+    my @relatives;
 
-my $total = $patron->account->balance;
-my $accts = Koha::Account::Lines->search(
-    { borrowernumber => $patron->borrowernumber },
-    { order_by       => { -desc => 'accountlines_id' } }
-);
+    # Filter out guarantees that don't want guarantor to see checkouts
+    foreach my $gr ( $patron->guarantee_relationships() ) {
+        my $g = $gr->guarantee;
+        if ( $g->privacy_guarantor_fines ) {
 
-my @accountlines;
-while ( my $line = $accts->next ) {
-    my $accountline = $line->unblessed;
-    $accountline->{'amount'} = sprintf( "%.2f", $accountline->{'amount'} || '0.00');
-    if ( $accountline->{'amount'} >= 0 ) {
-        $accountline->{'amountcredit'} = 1;
+            my $relatives_accountlines = Koha::Account::Lines->search(
+                { borrowernumber => $g->borrowernumber },
+                { order_by       => { -desc => 'accountlines_id' } }
+            );
+            push(
+                @relatives,
+                {
+                    patron       => $g,
+                    accountlines => $relatives_accountlines,
+                }
+            );
+        }
     }
-    $accountline->{'amountoutstanding'} =
-      sprintf( "%.2f", $accountline->{'amountoutstanding'} || '0.00' );
-    if ( $accountline->{'amountoutstanding'} >= 0 ) {
-        $accountline->{'amountoutstandingcredit'} = 1;
-    }
-    push @accountlines, $accountline;
+    $template->param( relatives => \@relatives );
 }
+
 
 $template->param(
-    ACCOUNT_LINES => \@accountlines,
-    total         => sprintf( "%.2f", $total ), # FIXME Use TT plugin Price
-    accountview   => 1,
-    message       => scalar $query->param('message') || q{},
-    message_value => scalar $query->param('message_value') || q{},
-    payment       => scalar $query->param('payment') || q{},
-    payment_error => scalar $query->param('payment-error') || q{},
-    payment_permitted => $payment_permitted
+    ACCOUNT_LINES       => $accountlines,
+    total               => $total_outstanding,
+    outstanding_credits => $outstanding_credits,
+    accountview         => 1,
+    message             => scalar $query->param('message') || q{},
+    message_value       => scalar $query->param('message_value') || q{},
+    payment             => scalar $query->param('payment') || q{},
+    payment_error       => scalar $query->param('payment-error') || q{},
 );
 
-my $plugins_enabled = C4::Context->preference('UseKohaPlugins') && C4::Context->config("enable_plugins");
-if ( $plugins_enabled ) {
+if ( C4::Context->config("enable_plugins") ) {
     my @plugins = Koha::Plugins->new()->GetPlugins({
         method => 'opac_online_payment',
     });
     # Only pass in plugins where opac online payment is enabled
     @plugins = grep { $_->opac_online_payment } @plugins;
-    $template->param( plugins => \@plugins );
+    $template->param(
+        plugins => \@plugins,
+        payment_methods => scalar @plugins > 0
+    );
 }
 
 output_html_with_http_headers $query, $cookie, $template->output, undef, { force_no_caching => 1 };

@@ -6,18 +6,18 @@ package Koha::Token;
 #
 # This file is part of Koha.
 #
-# Koha is free software; you can redistribute it and/or modify it under the
-# terms of the GNU General Public License as published by the Free Software
-# Foundation; either version 3 of the License, or (at your option) any later
-# version.
+# Koha is free software; you can redistribute it and/or modify it
+# under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 3 of the License, or
+# (at your option) any later version.
 #
-# Koha is distributed in the hope that it will be useful, but WITHOUT ANY
-# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
-# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+# Koha is distributed in the hope that it will be useful, but
+# WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+# GNU General Public License for more details.
 #
-# You should have received a copy of the GNU General Public License along
-# with Koha; if not, write to the Free Software Foundation, Inc.,
-# 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+# You should have received a copy of the GNU General Public License
+# along with Koha; if not, see <http://www.gnu.org/licenses>.
 
 =head1 NAME
 
@@ -54,6 +54,7 @@ use String::Random ();
 use WWW::CSRF ();
 use Digest::MD5 qw(md5_base64);
 use Encode qw( encode );
+use Koha::Exceptions::Token;
 use base qw(Class::Accessor);
 use constant HMAC_SHA1_LENGTH => 20;
 use constant CSRF_EXPIRY_HOURS => 8; # 8 hours instead of 7 days..
@@ -79,7 +80,20 @@ sub new {
     });
 
     Generate several types of tokens. Now includes CSRF.
+    For non-CSRF tokens an optional pattern parameter overrides length.
     Room for future extension.
+
+    Pattern parameter could be write down using this subset of regular expressions:
+    \w    Alphanumeric + "_".
+    \d    Digits.
+    \W    Printable characters other than those in \w.
+    \D    Printable characters other than those in \d.
+    .     Printable characters.
+    []    Character classes.
+    {}    Repetition.
+    *     Same as {0,}.
+    ?     Same as {0,1}.
+    +     Same as {1,}.
 
 =cut
 
@@ -196,8 +210,14 @@ sub _gen_rand {
     my ( $params ) = @_;
     my $length = $params->{length} || 1;
     $length = 1 unless $length > 0;
+    my $pattern = $params->{pattern} // '.{'.$length.'}'; # pattern overrides length parameter
 
-    return String::Random::random_string( '.' x $length );
+    my $token;
+    eval {
+        $token = String::Random::random_regex( $pattern );
+    };
+    Koha::Exceptions::Token::BadPattern->throw($@) if $@;
+    return $token;
 }
 
 =head1 AUTHOR

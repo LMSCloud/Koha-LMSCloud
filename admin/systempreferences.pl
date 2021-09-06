@@ -50,7 +50,7 @@ use C4::Koha;
 use C4::Languages qw(getTranslatedLanguages);
 use C4::ClassSource;
 use C4::Output;
-use YAML::Syck qw( Dump LoadFile );
+use YAML::XS;
 
 my %tabsysprefs; #we do no longer need to keep track of a tab per pref (yaml)
 
@@ -114,7 +114,7 @@ sub GetPrefParams {
         $params->{'type_choice'} = 1;
     } elsif ( $data->{'type'} eq 'YesNo' ) {
         $params->{'type_yesno'} = 1;
-        $data->{'value'}        = C4::Context->boolean_preference( $data->{'variable'} );
+        $data->{'value'}        = C4::Context->preference( $data->{'variable'} );
         if ( defined( $data->{'value'} ) and $data->{'value'} eq '1' ) {
             $params->{'value_yes'} = 1;
         } else {
@@ -182,7 +182,7 @@ sub GetPrefParams {
             $theme     = C4::Context->preference('opacthemes');
         } else {
 
-            # this is the staff client
+            # this is the staff interface
             $interface = 'intranet';
             $theme     = C4::Context->preference('template');
         }
@@ -205,7 +205,7 @@ sub GetPrefParams {
     return $params;
 }
 
-my $input       = new CGI;
+my $input       = CGI->new;
 my $searchfield = $input->param('searchfield') || '';
 my $Tvalue      = $input->param('Tvalue');
 my $offset      = $input->param('offset') || 0;
@@ -215,8 +215,7 @@ my ( $template, $borrowernumber, $cookie ) = get_template_and_user(
     {   template_name   => "admin/systempreferences.tt",
         query           => $input,
         type            => "intranet",
-        authnotrequired => 0,
-        flagsrequired   => { parameters => 'parameters_remaining_permissions' },
+        flagsrequired   => { parameters => 'manage_sysprefs' },
         debug           => 1,
     }
 );
@@ -385,8 +384,7 @@ output_html_with_http_headers $input, $cookie, $template->output;
 # .pref files.
 
 sub get_prefs_from_files {
-    my $context       = C4::Context->new();
-    my $path_pref_en  = $context->config('intrahtdocs') .
+    my $path_pref_en  = C4::Context->config('intrahtdocs') .
                         '/prog/en/modules/admin/preferences';
     # Get all .pref file names
     opendir ( my $fh, $path_pref_en );
@@ -408,7 +406,7 @@ sub get_prefs_from_files {
         }
     };
     for my $file (@pref_files) {
-        my $pref = LoadFile( "$path_pref_en/$file" );
+        my $pref = YAML::XS::LoadFile( "$path_pref_en/$file" );
         for my $tab ( keys %$pref ) {
             my $content = $pref->{$tab};
             if ( ref($content) eq 'ARRAY' ) {

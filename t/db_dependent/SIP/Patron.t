@@ -4,15 +4,17 @@
 # This needs to be extended! Your help is appreciated..
 
 use Modern::Perl;
-use Test::More tests => 5;
+use Test::More tests => 8;
 
-use Koha::Database;
-use Koha::Patrons;
-use Koha::DateUtils;
-use t::lib::TestBuilder;
 use t::lib::Mocks;
+use t::lib::TestBuilder;
+
 use C4::SIP::ILS::Patron;
+use Koha::Account::Lines;
+use Koha::Database;
+use Koha::DateUtils;
 use Koha::Patron::Attributes;
+use Koha::Patrons;
 
 my $schema = Koha::Database->new->schema;
 $schema->storage->txn_begin;
@@ -29,6 +31,32 @@ is( defined $sip_patron, 1, "Patron is valid" );
 $schema->resultset('Borrower')->search({ cardnumber => $card })->delete;
 my $sip_patron2 = C4::SIP::ILS::Patron->new( $card );
 is( $sip_patron2, undef, "Patron is not valid (anymore)" );
+
+subtest "new tests" => sub {
+
+    plan tests => 5;
+
+    my $patron = $builder->build(
+        {
+            source => 'Borrower'
+        }
+    );
+
+    my $cardnumber      = $patron->{cardnumber};
+    my $userid         = $patron->{userid};
+    my $borrowernumber = $patron->{borrowernumber};
+
+    my $ils_patron = C4::SIP::ILS::Patron->new($cardnumber);
+    is( ref($ils_patron), 'C4::SIP::ILS::Patron', 'Found patron via cardnumber scalar' );
+    $ils_patron = C4::SIP::ILS::Patron->new($userid);
+    is( ref($ils_patron), 'C4::SIP::ILS::Patron', 'Found patron via userid scalar' );
+    $ils_patron = C4::SIP::ILS::Patron->new( { borrowernumber => $borrowernumber } );
+    is( ref($ils_patron), 'C4::SIP::ILS::Patron', 'Found patron via borrowernumber hashref' );
+    $ils_patron = C4::SIP::ILS::Patron->new( { cardnumber => $cardnumber } );
+    is( ref($ils_patron), 'C4::SIP::ILS::Patron', 'Found patron via cardnumber hashref' );
+    $ils_patron = C4::SIP::ILS::Patron->new( { userid => $userid } );
+    is( ref($ils_patron), 'C4::SIP::ILS::Patron', 'Found patron via userid hashref' );
+};
 
 subtest "OverduesBlockCirc tests" => sub {
 
@@ -116,6 +144,50 @@ subtest "Test build_patron_attribute_string" => sub {
     is( $attribute_string, "XYTest Attribute|YZAnother Test Attribute|", 'Attribute field generated correctly with multiple params' );
 };
 
+subtest "Test build_custom_field_string" => sub {
+
+    plan tests => 5;
+
+    my $patron = $builder->build_object( { class => 'Koha::Patrons',value=>{surname => "Duck", firstname => "Darkwing"} } );
+
+
+    my $ils_patron = C4::SIP::ILS::Patron->new( $patron->cardnumber );
+
+    my $server = {};
+    $server->{account}->{custom_patron_field}->{field} = "DW";
+    my $attribute_string = $ils_patron->build_custom_field_string( $server );
+    is( $attribute_string, "", 'Custom field not generated if no value passed' );
+
+    $server = {};
+    $server->{account}->{custom_patron_field}->{template} = "[% patron.surname %]";
+    $attribute_string = $ils_patron->build_custom_field_string( $server );
+    is( $attribute_string, "", 'Custom field not generated if no field passed' );
+
+
+    $server = {};
+    $server->{account}->{custom_patron_field}->{field} = "DW";
+    $server->{account}->{custom_patron_field}->{template} = "[% patron.firstname %] [% patron.surname %], let's get dangerous!";
+    $attribute_string = $ils_patron->build_custom_field_string( $server );
+    is( $attribute_string, "DWDarkwing Duck, let's get dangerous!|", 'Custom field processed correctly' );
+
+    $server = {};
+    $server->{account}->{custom_patron_field}->[0]->{field} = "DW";
+    $server->{account}->{custom_patron_field}->[0]->{template} = "[% patron.firstname %] [% patron.surname %], let's get dangerous!";
+    $server->{account}->{custom_patron_field}->[1]->{field} = "LM";
+    $server->{account}->{custom_patron_field}->[1]->{template} = "Launchpad McQuack crashed on [% patron.dateexpiry %]";
+    $attribute_string = $ils_patron->build_custom_field_string( $server );
+    is( $attribute_string, "DWDarkwing Duck, let's get dangerous!|LMLaunchpad McQuack crashed on ".$patron->dateexpiry."|", 'Custom fields processed correctly when multiple exist' );
+
+    $server = {};
+    $server->{account}->{custom_patron_field}->[0]->{field} = "DW";
+    $server->{account}->{custom_patron_field}->[0]->{template} = "[% IF (patron.firstname) %] patron.surname, let's get dangerous!";
+    $server->{account}->{custom_patron_field}->[1]->{field} = "LM";
+    $server->{account}->{custom_patron_field}->[1]->{template} = "Launchpad McQuack crashed on [% patron.dateexpiry %]";
+    $attribute_string = $ils_patron->build_custom_field_string( $server );
+    is( $attribute_string, "LMLaunchpad McQuack crashed on ".$patron->dateexpiry."|", 'Custom fields processed correctly, bad template generate no text' );
+
+};
+
 subtest "update_lastseen tests" => sub {
     plan tests => 2;
 
@@ -136,6 +208,68 @@ subtest "update_lastseen tests" => sub {
     $sip_patron->update_lastseen();
     $seen_patron = Koha::Patrons->find({ cardnumber => $seen_patron->cardnumber() });
     is( output_pref({str => $seen_patron->lastseen(), dateonly => 1}), output_pref({dt => dt_from_string(), dateonly => 1}),'Last seen updated to today if tracking patrons');
+};
+
+subtest "fine_items tests" => sub {
+
+    plan tests => 12;
+
+    my $patron = $builder->build(
+        {
+            source => 'Borrower',
+        }
+    );
+
+    my $fee1 = $builder->build(
+        {
+            source => 'Accountline',
+            value  => {
+                borrowernumber => $patron->{borrowernumber},
+                amountoutstanding => 1,
+            }
+        }
+    );
+
+    my $fee2 = $builder->build(
+        {
+            source => 'Accountline',
+            value  => {
+                borrowernumber => $patron->{borrowernumber},
+                amountoutstanding => 1,
+            }
+        }
+    );
+
+    my $sip_patron = C4::SIP::ILS::Patron->new( $patron->{cardnumber} );
+
+    my $all_fine_items = $sip_patron->fine_items;
+    is( @$all_fine_items, 2, "Got all fine items" );
+
+    # Should return only the first fine item
+    my $fine_items = $sip_patron->fine_items(1,1);
+    is( @$fine_items, 1, "Got one fine item" );
+    is( $fine_items->[0]->{barcode}, $all_fine_items->[0]->{barcode}, "Got correct fine item");
+
+    # Should return only the second fine item
+    $fine_items = $sip_patron->fine_items(2,2);
+    is( @$fine_items, 1, "Got one fine item" );
+    is( $fine_items->[0]->{barcode}, $all_fine_items->[1]->{barcode}, "Got correct fine item");
+
+    # Should return all fine items
+    $fine_items = $sip_patron->fine_items(1,2);
+    is( @$fine_items, 2, "Got two fine items" );
+    is( $fine_items->[0]->{barcode}, $all_fine_items->[0]->{barcode}, "Got correct first fine item");
+    is( $fine_items->[1]->{barcode}, $all_fine_items->[1]->{barcode}, "Got correct second fine item");
+
+    # Check an invalid end boundary
+    $fine_items = $sip_patron->fine_items(1,99);
+    is( @$fine_items, 2, "Got two fine items" );
+    is( $fine_items->[0]->{barcode}, $all_fine_items->[0]->{barcode}, "Got correct first fine item");
+    is( $fine_items->[1]->{barcode}, $all_fine_items->[1]->{barcode}, "Got correct second fine item");
+
+    # Check an invalid start boundary
+    $fine_items = $sip_patron->fine_items(98,99);
+    is( @$fine_items, 0, "Got zero fine items" );
 };
 
 $schema->storage->txn_rollback;

@@ -17,8 +17,8 @@ package C4::Creators::Lib;
 # You should have received a copy of the GNU General Public License
 # along with Koha; if not, see <http://www.gnu.org/licenses>.
 
-use strict;
-use warnings;
+use Modern::Perl;
+use Storable qw(dclone);
 
 use autouse 'Data::Dumper' => qw(Dumper);
 
@@ -297,9 +297,9 @@ NOTE: Do not pass in the keyword 'WHERE.'
 sub get_batch_summary {
     my ( $params ) = @_;
     my @batches = ();
-    $params->{fields} = ['batch_id', 'count(batch_id) as _item_count'];
+    $params->{fields} = ['batch_id', 'description', 'count(batch_id) as _item_count'];
     my ( $query, @where_args ) = _build_query( $params, 'creator_batches' );
-    $query .= " GROUP BY batch_id";
+    $query .= " GROUP BY batch_id, description";
     my $sth = C4::Context->dbh->prepare($query);
     $sth->execute( @where_args );
     if ($sth->err) {
@@ -409,7 +409,7 @@ This function returns a reference to an array of hashes containing all barcode t
 =cut
 
 sub get_barcode_types {
-    return $barcode_types;
+    return dclone $barcode_types;
 }
 
 =head2 C4::Creators::Lib::get_label_types()
@@ -421,7 +421,7 @@ This function returns a reference to an array of hashes containing all label typ
 =cut
 
 sub get_label_types {
-    return $label_types;
+    return dclone $label_types;
 }
 
 =head2 C4::Creators::Lib::get_font_types()
@@ -433,7 +433,7 @@ This function returns a reference to an array of hashes containing all font type
 =cut
 
 sub get_font_types {
-    return $font_types;
+    return dclone $font_types;
 }
 
 =head2 C4::Creators::Lib::get_text_justification_types()
@@ -445,7 +445,7 @@ This function returns a reference to an array of hashes containing all text just
 =cut
 
 sub get_text_justification_types {
-    return $text_justification_types;
+    return dclone $text_justification_types;
 }
 
 =head2 C4::Creators::Lib::get_unit_values()
@@ -459,7 +459,7 @@ There are 72 PS points to the inch.
 =cut
 
 sub get_unit_values {
-    return $unit_values;
+    return dclone $unit_values;
 }
 
 =head2 C4::Creators::Lib::get_output_formats()
@@ -471,7 +471,7 @@ This function returns a reference to an array of hashes containing all label out
 =cut
 
 sub get_output_formats {
-    return $output_formats;
+    return dclone $output_formats;
 }
 
 
@@ -531,7 +531,7 @@ be passed off as a template parameter and used to build an html table.
 sub html_table {
     my $headers = shift;
     my $data = shift;
-    return undef if scalar(@$data) == 0;      # no need to generate a table if there is not data to display
+    return if scalar(@$data) == 0;      # no need to generate a table if there is not data to display
     my $table = [];
     my $fields = [];
     my @table_columns = ();

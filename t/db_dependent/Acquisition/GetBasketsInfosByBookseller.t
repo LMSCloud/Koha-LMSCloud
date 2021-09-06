@@ -1,7 +1,7 @@
 #!/usr/bin/perl
 
 use Modern::Perl;
-use Test::More tests => 40;
+use Test::More tests => 43;
 use Data::Dumper;
 
 use C4::Acquisition qw( NewBasket GetBasketsInfosByBookseller );
@@ -13,9 +13,6 @@ use Koha::Acquisition::Orders;
 
 my $schema = Koha::Database->new()->schema();
 $schema->storage->txn_begin();
-
-my $dbh = C4::Context->dbh;
-$dbh->{RaiseError} = 1;
 
 my $supplier = Koha::Acquisition::Bookseller->new(
     {
@@ -72,7 +69,21 @@ is( $basket->{total_items_cancelled}, 0, 'Start with 0 item cancelled' );
 is( $basket->{expected_items}, 6, 'Start with 6 items expected' );
 is( $basket->{total_biblios_cancelled}, 0, 'Start with 0 biblio cancelled' );
 
-C4::Acquisition::DelOrder( $biblionumber2, $ordernumber2 );
+$order1->uncertainprice(1)->store;
+$baskets = C4::Acquisition::GetBasketsInfosByBookseller( $supplierid );
+$basket = $baskets->[0];
+is( $basket->{uncertainprices}, 1, "Uncertain prcies returns number of uncertain items");
+$order2->uncertainprice(1)->store;
+$baskets = C4::Acquisition::GetBasketsInfosByBookseller( $supplierid );
+$basket = $baskets->[0];
+is( $basket->{uncertainprices}, 2, "Uncertain prcies returns number of uncertain items");
+$order1->uncertainprice(0)->store;
+$order2->uncertainprice(0)->store;
+$baskets = C4::Acquisition::GetBasketsInfosByBookseller( $supplierid );
+$basket = $baskets->[0];
+is( $basket->{uncertainprices}, 0, "Uncertain prcies returns number of uncertain items");
+
+Koha::Acquisition::Orders->find($ordernumber2)->cancel;
 $baskets = C4::Acquisition::GetBasketsInfosByBookseller( $supplierid );
 is( scalar(@$baskets), 1, 'Order2 deleted, still 1 basket' );
 $basket = $baskets->[0];
@@ -82,7 +93,7 @@ is( $basket->{total_items_cancelled}, 4, 'Order2 deleted, 4 items cancelled' );
 is( $basket->{expected_items}, 2, 'Order2 deleted, now 2 items are expected' );
 is( $basket->{total_biblios_cancelled}, 1, 'Order2 deleted, 1 biblios cancelled' );
 
-C4::Acquisition::DelOrder( $biblionumber1, $ordernumber1 );
+Koha::Acquisition::Orders->find($ordernumber1)->cancel;
 $baskets = C4::Acquisition::GetBasketsInfosByBookseller( $supplierid );
 is( scalar(@$baskets), 1, 'Both orders deleted, still 1 basket' );
 $basket = $baskets->[0];
@@ -92,7 +103,7 @@ is( $basket->{total_items_cancelled}, 6, 'Both orders deleted, 6 items cancelled
 is( $basket->{expected_items}, 0, 'Both orders delete, now 0 items are expected' );
 is( $basket->{total_biblios_cancelled}, 2, 'Both orders deleted, 2 biblios cancelled' );
 
-C4::Acquisition::CloseBasket( $basketno );
+Koha::Acquisition::Baskets->find( $basketno )->close;
 $baskets = C4::Acquisition::GetBasketsInfosByBookseller( $supplierid );
 is( scalar(@$baskets), 0, 'Basket is closed, 0 basket opened' );
 $baskets = C4::Acquisition::GetBasketsInfosByBookseller( $supplierid, 1 );
@@ -109,7 +120,7 @@ my $order3 = Koha::Acquisition::Order->new(
 )->store;
 my $ordernumber3 = $order3->ordernumber;
 
-C4::Acquisition::CloseBasket( $basketno );
+Koha::Acquisition::Baskets->find( $basketno )->close;
 $baskets = C4::Acquisition::GetBasketsInfosByBookseller( $supplierid );
 is( scalar(@$baskets), 1, 'Basket is closed and has items to receive' );
 $basket = $baskets->[0];

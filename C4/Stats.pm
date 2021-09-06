@@ -18,12 +18,16 @@ package C4::Stats;
 # You should have received a copy of the GNU General Public License
 # along with Koha; if not, see <http://www.gnu.org/licenses>.
 
-use strict;
-use warnings;
+use Modern::Perl;
 require Exporter;
 use Carp;
 use C4::Context;
 use C4::Debug;
+
+use Koha::DateUtils qw( dt_from_string );
+use Koha::Statistics;
+use Koha::PseudonymizedTransactions;
+
 use vars qw(@ISA @EXPORT);
 
 our $debug;
@@ -64,7 +68,6 @@ C<$params> is an hashref whose expected keys are:
     amount             : the amount of the transaction
     other              : sipmode
     itemtype           : the type of the item
-    accountno          : the count
     ccode              : the collection code of the item
 
 type key is mandatory.
@@ -83,7 +86,7 @@ sub UpdateStats {
 # make some controls
     return () if ! defined $params;
 # change these arrays if new types of transaction or new parameters are allowed
-    my @allowed_keys = qw (type branch amount other itemnumber itemtype borrowernumber accountno ccode location);
+    my @allowed_keys = qw (type branch amount other itemnumber itemtype borrowernumber ccode location);
     my @allowed_circulation_types = qw (renew issue localuse return onsite_checkout);
     my @allowed_accounts_types = qw (writeoff payment cancelfee);
     my @allowed_authentication_types = qw (auth-ext);
@@ -113,7 +116,7 @@ sub UpdateStats {
     }
     my @invalid_params = ();
     for my $myparam (keys %$params ) {
-        push @invalid_params, $myparam unless grep (/^$myparam$/, @allowed_keys);
+        push @invalid_params, $myparam unless grep { $_ eq $myparam } @allowed_keys;
     }
     if (scalar @invalid_params > 0 ) {
         croak ("UpdateStats received invalid param(s): ".join (", ",@invalid_params ));
@@ -127,23 +130,29 @@ sub UpdateStats {
     my $other             = exists $params->{other}          ? $params->{other}          : '';
     my $itemtype          = exists $params->{itemtype}       ? $params->{itemtype}       : '';
     my $location          = exists $params->{location}       ? $params->{location}       : undef;
-    my $accountno         = exists $params->{accountno}      ? $params->{accountno}      : '';
     my $ccode             = exists $params->{ccode}          ? $params->{ccode}          : '';
 
-    my $dbh = C4::Context->dbh;
-    my $sth = $dbh->prepare(
-        "INSERT INTO statistics
-        (datetime,
-         branch,          type,        value,
-         other,           itemnumber,  itemtype, location,
-         borrowernumber,  proccode,    ccode)
-         VALUES (now(),?,?,?,?,?,?,?,?,?,?)"
-    );
-    $sth->execute(
-        $branch,     $type,     $amount,   $other,
-        $itemnumber, $itemtype, $location, $borrowernumber,
-        $accountno,  $ccode
-    );
+    my $dtf = Koha::Database->new->schema->storage->datetime_parser;
+    my $statistic = Koha::Statistic->new(
+        {
+            datetime       => $dtf->format_datetime( dt_from_string ),
+            branch         => $branch,
+            type           => $type,
+            value          => $amount,
+            other          => $other,
+            itemnumber     => $itemnumber,
+            itemtype       => $itemtype,
+            location       => $location,
+            borrowernumber => $borrowernumber,
+            ccode          => $ccode,
+        }
+    )->store;
+
+    Koha::PseudonymizedTransaction->new_from_statistic($statistic)->store
+      if C4::Context->preference('Pseudonymization')
+        && $borrowernumber # Not a real transaction if the patron does not exist
+                           # For instance can be a transfer, or hold trigger
+        && grep { $_ eq $params->{type} } qw(renew issue return onsite_checkout);
 }
 
 1;

@@ -52,7 +52,6 @@ my ($template, $loggedinuser, $cookie) = get_template_and_user(
         template_name   => "cataloguing/moveitem.tt",
         query           => $query,
         type            => "intranet",
-        authnotrequired => 0,
         flagsrequired   => { editcatalogue => 'edit_items' },
         debug           => 1,
     }
@@ -61,42 +60,51 @@ my ($template, $loggedinuser, $cookie) = get_template_and_user(
 
 
 my $biblio = Koha::Biblios->find( $biblionumber );
-$template->param(bibliotitle => $biblio->title);
+$template->param(biblio => $biblio);
 $template->param(biblionumber => $biblionumber);
 
 # If we already have the barcode of the item to move and the biblionumber to move the item to
-if ($barcode && $biblionumber) { 
+if ( $barcode && $biblionumber ) {
 
     my $itemnumber;
-    my $item = Koha::Items->find({ barcode => $barcode });
+    my $item = Koha::Items->find( { barcode => $barcode } );
 
     if ($item) {
 
         $itemnumber = $item->itemnumber;
         my $frombiblionumber = $item->biblionumber;
 
-	    my $moveresult = MoveItemFromBiblio($itemnumber, $frombiblionumber, $biblionumber); 
-	    if ($moveresult) { 
-		$template->param(success => 1);
-	    } else {
-		$template->param(error => 1,
-				 errornonewitem => 1); 
-	    }
+        my $moveresult = MoveItemFromBiblio( $itemnumber, $frombiblionumber, $biblionumber );
+        if ($moveresult) {
+            $template->param(
+                success => 1,
+                from_biblio => Koha::Biblios->find($frombiblionumber),
+            );
+        }
+        else {
+            $template->param(
+                error          => 1,
+                errornonewitem => 1
+            );
+        }
 
-
-	} else {
-	    $template->param(error => 1,
-	                     errornoitem => 1);
-	}
+    }
+    else {
+        $template->param(
+            error       => 1,
+            errornoitem => 1
+        );
+    }
     $template->param(
-			barcode => $barcode,  
-			itemnumber => $itemnumber,
-		    );
+        barcode    => $barcode,
+        itemnumber => $itemnumber,
+    );
 
-} else {
-    $template->param(missingparameter => 1);
-    if (!$barcode)      { $template->param(missingbarcode      => 1); }
-    if (!$biblionumber) { $template->param(missingbiblionumber => 1); }
+}
+else {
+    $template->param( missingparameter => 1 );
+    if ( !$barcode )      { $template->param( missingbarcode      => 1 ); }
+    if ( !$biblionumber ) { $template->param( missingbiblionumber => 1 ); }
 }
 
 

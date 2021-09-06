@@ -52,15 +52,14 @@ Options:
   --marcflavor flavor       Set the MARC flavor. Valid values are marc21 (default),
                             normarc and unimarc.
   --zebralang lang          Choose the primary language for Zebra indexing. Valid
-                            values are cs, en (default), es, fr, gr, nb, ru and uk.
-  --auth-idx idx_mode       Set the indexing mode for authority records. Valid
-                            values are dom (default) and grs1.
-  --biblio-idx idx_mode     Set the indexing mode for bibliographic records.
-                            Valid values are dom (default) and grs1.
+                            values are cs, el, en (default), es, fr, nb, ru and uk.
+  --elasticsearch-server s  Enforce the use of the specified Elasticsearch server(s)
+                            (default: localhost:9200).
   --memcached-servers str   Set a comma-separated list of host:port memcached servers.
   --memcached-prefix str    Set the desired prefix for the instance memcached namespace.
-  --enable-sru              Enable the Z39.50/SRU server (default: disabled).
-  --sru-port                Specifiy a TCP port number for the Z39.50/SRU server
+  --enable-sru              Enable the Z39.50/SRU server in Zebra search engine
+                            (default: disabled).
+  --sru-port                Specify a TCP port number for Zebra's Z39.50/SRU server
                             to listen on. (default: 7090).
   --defaultsql some.sql     Specify a default SQL file to be loaded on the DB.
   --configfile cfg_file     Specify an alternate config file for reading default values.
@@ -77,6 +76,20 @@ Options:
   --tmp-path dir            Set a user defined tmp_path. It defaults to
                             /var/lib/koha/<instance>/tmp
   --letsencrypt             Set up a https-only site with letsencrypt certificates
+  --smtp-host host          SMTP host name
+  --smtp-port NN            SMTP port
+  --smtp-timeout NN         Connection timeout in seconds
+  --smtp-ssl-mode mode      SSL mode. Options are 'disabled' (default), 'ssl' and 'starttls'.
+  --smtp-user-name user     User name to be used on SMTP auth
+  --smtp-password  pass     Password to authenticate SMTP
+  --smtp-debug              Enable debug mode for SMTP
+
+  --mb-host host            RabbitMQ host name (default: localhost)
+  --mb-port NN              RabbitMQ port (default: 61613)
+  --mb-user user            RabbitMQ user (default: guest)
+  --mb-pass pass            RabbitMQ password (default: guest)
+  --mb-vhost vhost          RabbitMQ vhost (default: koha_<instance>)
+
   --help,-h                 Show this help.
 
 Note: the instance name cannot be longer that 11 chars.
@@ -89,6 +102,9 @@ EOF
 generate_config_file() {
     touch "$2"
     chown "root:$username" "$2"
+    # Bug 28364: the z3950 responder needs other permissions
+    [ "$1" = "log4perl-site.conf.in" ] && chown "$username:$username" "$2"
+
     chmod 0640 "$2"
     sed -e "s/__KOHA_CONF_DIR__/\/etc\/koha\/sites\/$name/g" \
         -e "s/__KOHASITE__/$name/g" \
@@ -102,29 +118,35 @@ generate_config_file() {
         -e "s/__SRU_BIBLIOS_PORT__/$SRU_SERVER_PORT/g" \
         -e "s/__START_SRU_PUBLICSERVER__/$START_SRU_PUBLICSERVER/g" \
         -e "s/__END_SRU_PUBLICSERVER__/$END_SRU_PUBLICSERVER/g" \
-        -e "s/__BIBLIOS_INDEXING_MODE__/$BIBLIOS_INDEXING_MODE/g" \
-        -e "s/__AUTHORITIES_INDEXING_MODE__/$AUTHORITIES_INDEXING_MODE/g" \
-        -e "s/__ZEBRA_BIBLIOS_CFG__/$ZEBRA_BIBLIOS_CFG/g" \
-        -e "s/__ZEBRA_AUTHORITIES_CFG__/$ZEBRA_AUTHORITIES_CFG/g" \
-        -e "s/__START_BIBLIOS_RETRIEVAL_INFO__/`echo $START_BIBLIOS_RETRIEVAL_INFO`/g" \
-        -e "s/__END_BIBLIOS_RETRIEVAL_INFO__/`echo $END_BIBLIOS_RETRIEVAL_INFO`/g" \
-        -e "s/__START_AUTHORITIES_RETRIEVAL_INFO__/`echo $START_AUTHORITIES_RETRIEVAL_INFO`/g" \
-        -e "s/__END_AUTHORITIES_RETRIEVAL_INFO__/`echo $END_AUTHORITIES_RETRIEVAL_INFO`/g" \
         -e "s/__API_SECRET__/$API_SECRET/g" \
         -e "s/__DB_NAME__/$mysqldb/g" \
         -e "s/__DB_HOST__/$mysqlhost/g" \
         -e "s/__DB_USER__/$mysqluser/g" \
         -e "s/__DB_PASS__/$mysqlpwd/g" \
+        -e "s/__ELASTICSEARCH_SERVER__/${ELASTICSEARCH_SERVER}/g" \
         -e "s/__UNIXUSER__/$username/g" \
         -e "s/__UNIXGROUP__/$username/g" \
         -e "s#__TEMPLATE_CACHE_DIR__#$TEMPLATE_CACHE_DIR#g" \
         -e "s#__TIMEZONE__#$TIMEZONE#g" \
+        -e "s#__BCRYPT_SETTINGS__#$BCRYPT_SETTINGS#g" \
         -e "s#__UPLOAD_PATH__#$UPLOAD_PATH#g" \
         -e "s#__TMP_PATH__#$TMP_PATH#g" \
         -e "s/__LOG_DIR__/\/var\/log\/koha\/$name/g" \
         -e "s/__PLUGINS_DIR__/\/var\/lib\/koha\/$name\/plugins/g" \
         -e "s/__MEMCACHED_NAMESPACE__/$MEMCACHED_NAMESPACE/g" \
         -e "s/__MEMCACHED_SERVERS__/$MEMCACHED_SERVERS/g" \
+        -e "s/__SMTP_HOST__/$SMTP_HOST/g" \
+        -e "s/__SMTP_PORT__/$SMTP_PORT/g" \
+        -e "s/__SMTP_TIMEOUT__/$SMTP_TIMEOUT/g" \
+        -e "s/__SMTP_SSL_MODE__/$SMTP_SSL_MODE/g" \
+        -e "s/__SMTP_USER_NAME__/$SMTP_USER_NAME/g" \
+        -e "s/__SMTP_PASSWORD__/$SMTP_PASSWORD/g" \
+        -e "s/__SMTP_DEBUG__/$SMTP_DEBUG/g" \
+        -e "s/__MESSAGE_BROKER_HOST__/$MESSAGE_BROKER_HOST/g" \
+        -e "s/__MESSAGE_BROKER_PORT__/$MESSAGE_BROKER_PORT/g" \
+        -e "s/__MESSAGE_BROKER_USER__/$MESSAGE_BROKER_USER/g" \
+        -e "s/__MESSAGE_BROKER_PASS__/$MESSAGE_BROKER_PASS/g" \
+        -e "s/__MESSAGE_BROKER_VHOST__/$MESSAGE_BROKER_VHOST/g" \
         "/etc/koha/$1" > "$2"
 
 }
@@ -159,16 +181,16 @@ check_apache_config()
 {
 
     # Check that mpm_itk is installed and enabled
-    if ! /usr/sbin/apachectl -M 2> /dev/null | grep -q 'mpm_itk'; then
+    if ! /usr/sbin/apachectl -M | grep -q 'mpm_itk'; then
         # Check Apache version
         APACHE_DISABLE_MPM_MSG=""
         if /usr/sbin/apache2ctl -v | grep -q "Server version: Apache/2.4"; then
             # mpm_event or mpm_worker need to be disabled first. mpm_itk depends
             # on mpm_prefork, which is enabled if needed. See
             # https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=734865
-            if /usr/sbin/apachectl -M 2> /dev/null | grep -q 'mpm_event'; then
+            if /usr/sbin/apachectl -M | grep -q 'mpm_event'; then
                 APACHE_DISABLE_MPM_MSG=" sudo a2dismod mpm_event ;"
-            elif /usr/sbin/apachectl -M 2> /dev/null | grep -q 'mpm_worker'; then
+            elif /usr/sbin/apachectl -M | grep -q 'mpm_worker'; then
                 APACHE_DISABLE_MPM_MSG=" sudo a2dismod mpm_worker ;"
             # else mpm_prefork: a2enmod mpm_itk works
             fi
@@ -187,7 +209,7 @@ EOM
     fi
 
     # Check that mod_rewrite is installed and enabled.
-    if ! /usr/sbin/apachectl -M 2> /dev/null | grep -q 'rewrite_module'; then
+    if ! /usr/sbin/apachectl -M | grep -q 'rewrite_module'; then
         cat 1>&2  <<EOM
 
 Koha requires mod_rewrite to be enabled within Apache in order to run.
@@ -200,7 +222,7 @@ EOM
 
     # Check that the CGI module is installed and enabled
     # (Apache 2.4 may not have it by default.)
-    if ! /usr/sbin/apachectl -M 2> /dev/null | grep -q 'cgi_module'; then
+    if ! /usr/sbin/apachectl -M | grep -q 'cgi_module'; then
         cat 1>&2 << EOM
 Koha requires mod_cgi to be enabled within Apache in order to run.
 Typically this can be enabled with:
@@ -212,7 +234,7 @@ EOM
 
     # Check that mod_ssl is installed and enabled.
     if [ "$CLO_LETSENCRYPT" = "yes" ]; then
-        if ! /usr/sbin/apachectl -M 2> /dev/null | grep -q 'ssl_module'; then
+        if ! /usr/sbin/apachectl -M | grep -q 'ssl_module'; then
             cat 1>&2  <<EOM
 
 Koha requires mod_ssl to be enabled within Apache in order to run with --letsencrypt.
@@ -225,76 +247,6 @@ EOM
     fi
 
 }
-
-set_biblios_indexing_mode()
-{
-    local indexing_mode=$1
-    local marc_format=$2
-
-    case $indexing_mode in
-        "dom")
-            START_BIBLIOS_RETRIEVAL_INFO=`cat <<EOF
-    <xi:include href="\/etc\/koha\/$marc_format-retrieval-info-bib-dom.xml"\n
-                xmlns:xi="http:\/\/www.w3.org\/2001\/XInclude">\n
-     <xi:fallback>\n
-      <retrievalinfo>
-EOF`
-
-            END_BIBLIOS_RETRIEVAL_INFO=`cat <<EOF
-      <\/retrievalinfo>\n
-     <\/xi:fallback>\n
-    <\/xi:include>
-EOF`
-            BIBLIOS_INDEXING_MODE="dom"
-            ZEBRA_BIBLIOS_CFG="zebra-biblios-dom.cfg"
-            ;;
-        "grs1")
-            START_BIBLIOS_RETRIEVAL_INFO="    <retrievalinfo>"
-            END_BIBLIOS_RETRIEVAL_INFO="    <\/retrievalinfo>"
-            BIBLIOS_INDEXING_MODE="grs1"
-            ZEBRA_BIBLIOS_CFG="zebra-biblios.cfg"
-            ;;
-        *)
-            die "Error: '$indexing_mode' is not a valid indexing mode for bibliographic records."
-            ;;
-    esac
-}
-
-
-set_authorities_indexing_mode()
-{
-    local indexing_mode=$1
-    local marc_format=$2
-
-    case $indexing_mode in
-        "dom")
-            START_AUTHORITIES_RETRIEVAL_INFO=`cat <<EOF
-    <xi:include href="\/etc\/koha\/$marc_format-retrieval-info-auth-dom.xml"\n
-                xmlns:xi="http:\/\/www.w3.org\/2001\/XInclude">\n
-     <xi:fallback>\n
-      <retrievalinfo>
-EOF`
-
-            END_AUTHORITIES_RETRIEVAL_INFO=`cat <<EOF
-      <\/retrievalinfo>\n
-     <\/xi:fallback>\n
-    <\/xi:include>\n
-EOF`
-            AUTHORITIES_INDEXING_MODE="dom"
-            ZEBRA_AUTHORITIES_CFG="zebra-authorities-dom.cfg"
-            ;;
-        "grs1")
-            START_AUTHORITIES_RETRIEVAL_INFO="    <retrievalinfo>"
-            END_AUTHORITIES_RETRIEVAL_INFO="    <\/retrievalinfo>"
-            AUTHORITIES_INDEXING_MODE="grs1"
-            ZEBRA_AUTHORITIES_CFG="zebra-authorities.cfg"
-            ;;
-        *)
-            die "Error: '$indexing_mode' is not a valid indexing mode for authority records."
-            ;;
-    esac
-}
-
 
 set_memcached()
 {
@@ -319,6 +271,62 @@ set_memcached()
         fi
     fi
 
+}
+
+set_smtp()
+{
+    if [ "$CLO_SMTP_HOST" != "" ]; then
+        SMTP_HOST=$CLO_SMTP_HOST
+    fi
+
+    if [ "$CLO_SMTP_PORT" != "" ]; then
+        SMTP_PORT=$CLO_SMTP_PORT
+    fi
+
+    if [ "$CLO_SMTP_TIMEOUT" != "" ]; then
+        SMTP_TIMEOUT=$CLO_SMTP_TIMEOUT
+    fi
+
+    if [ "$CLO_SMTP_SSL_MODE" != "" ]; then
+        SMTP_SSL_MODE=$CLO_SMTP_SSL_MODE
+    fi
+
+    if [ "$CLO_SMTP_USER_NAME" != "" ]; then
+        SMTP_USER_NAME=$CLO_SMTP_USER_NAME
+    fi
+
+    if [ "$CLO_SMTP_PASSWORD" != "" ]; then
+        SMTP_PASSWORD=$CLO_SMTP_PASSWORD
+    fi
+
+    if [ "$CLO_SMTP_DEBUG" != "" ]; then
+        SMTP_DEBUG=$CLO_SMTP_DEBUG
+    fi
+}
+
+set_message_broker()
+{
+    local instance="$1"
+
+    if [ "$CLO_MESSAGE_BROKER_HOST" != "" ]; then
+        MESSAGE_BROKER_HOST=$CLO_MESSAGE_BROKER_HOST
+    fi
+
+    if [ "$CLO_MESSAGE_BROKER_PORT" != "" ]; then
+        MESSAGE_BROKER_PORT=$CLO_MESSAGE_BROKER_PORT
+    fi
+
+    if [ "$CLO_MESSAGE_BROKER_USER" != "" ]; then
+        MESSAGE_BROKER_USER=$CLO_MESSAGE_BROKER_USER
+    fi
+
+    if [ "$CLO_MESSAGE_BROKER_PASS" != "" ]; then
+        MESSAGE_BROKER_PASS=$CLO_MESSAGE_BROKER_PASS
+    fi
+
+    if [ "$CLO_MESSAGE_BROKER_VHOST" != "" ]; then
+        MESSAGE_BROKER_VHOST=$CLO_MESSAGE_BROKER_VHOST
+    fi
 }
 
 set_upload_path()
@@ -418,10 +426,29 @@ ZEBRA_LANGUAGE="en"
 ADMINUSER="1"
 PASSWDFILE="/etc/koha/passwd"
 
+# SMTP config
+SMTP_HOST="localhost"
+SMTP_PORT="25"
+SMTP_TIMEOUT="120"
+SMTP_SSL_MODE="disabled"
+SMTP_USER_NAME=""
+SMTP_PASSWORD=""
+SMTP_DEBUG="0"
+
+# Message broker (a.k.a. RabbitMQ) config
+DEFAULT_MESSAGE_BROKER_PREFIX="koha_"
+MESSAGE_BROKER_HOST="localhost"
+MESSAGE_BROKER_PORT="61613"
+MESSAGE_BROKER_USER="guest"
+MESSAGE_BROKER_PASS="guest"
+MESSAGE_BROKER_VHOST=""
+
 # memcached variables
 USE_MEMCACHED="yes"
 MEMCACHED_SERVERS=""
 MEMCACHED_PREFIX=""
+# elasticsearch config
+ELASTICSEARCH_SERVER="localhost:9200"
 # hardcoded memcached defaults
 DEFAULT_MEMCACHED_SERVERS="127.0.0.1:11211"
 DEFAULT_MEMCACHED_PREFIX="koha_"
@@ -446,15 +473,6 @@ DEFAULT_SRU_SERVER_PORT="7090"
 START_SRU_PUBLICSERVER="<!--"
 END_SRU_PUBLICSERVER="-->"
 
-# Indexing mode variables (default is DOM)
-BIBLIOS_INDEXING_MODE="dom"
-AUTHORITIES_INDEXING_MODE="dom"
-
-START_BIBLIOS_RETRIEVAL_INFO=""
-END_BIBLIOS_RETRIEVAL_INFO=""
-START_AUTHORITIES_RETRIEVAL_INFO=""
-END_AUTHORITIES_RETRIEVAL_INFO=""
-
 APACHE_CONFIGFILE=""
 
 if [ -e /etc/koha/koha-sites.conf ]
@@ -464,7 +482,7 @@ fi
 
 [ $# -ge 1 ] && [ $# -le 16 ] || ( usage ; die "Error: wrong parameters" )
 
-TEMP=`getopt -o chrpm:l:d:f:b:a: -l create-db,request-db,populate-db,use-db,enable-sru,sru-port:,help,marcflavor:,auth-idx:,biblio-idx:,zebralang:,defaultsql:,configfile:,passwdfile:,dbhost:,database:,adminuser:,memcached-servers:,memcached-prefix:,template-cache-dir:,timezone:,upload-path:,tmp-path:,letsencrypt, \
+TEMP=`getopt -o chrpm:l:d:f:b:a: -l create-db,request-db,populate-db,use-db,enable-sru,sru-port:,help,marcflavor:,auth-idx:,biblio-idx:,zebralang:,defaultsql:,configfile:,passwdfile:,dbhost:,database:,elasticsearch-server:,adminuser:,memcached-servers:,memcached-prefix:,template-cache-dir:,timezone:,upload-path:,tmp-path:,smtp-host:,smtp-port:,smtp-timeout:,smtp-ssl-mode:,smtp-user-name:,smtp-password:,smtp-debug,mb-host:,mb-port:,mb-user:,mb-pass:,mb-vhost:,letsencrypt, \
      -n "$0" -- "$@"`
 
 # Note the quotes around `$TEMP': they are essential!
@@ -475,15 +493,27 @@ CLO_ZEBRA_MARC_FORMAT=""
 CLO_ZEBRA_LANGUAGE=""
 CLO_DEFAULTSQL=""
 CLO_ADMINUSER=""
-CLO_BIBLIOS_INDEXING_MODE=""
-CLO_AUTHORITIES_INDEXING_MODE=""
 CLO_MEMCACHED_SERVERS=""
 CLO_MEMCACHED_PREFIX=""
+CLO_ELASTICSEARCH_SERVER=""
 CLO_UPLOAD_PATH=""
 CLO_TMP_PATH=""
 CLO_LETSENCRYPT=""
 CLO_TEMPLATE_CACHE_DIR=""
 CLO_TIMEZONE=""
+CLO_SMTP_HOST=""
+CLO_SMTP_PORT=""
+CLO_SMTP_TIMEOUT=""
+CLO_SMTP_SSL_MODE=""
+CLO_SMTP_USER_NAME=""
+CLO_SMTP_PASSWORD=""
+CLO_SMTP_DEBUG=""
+
+CLO_MESSAGE_BROKER_HOST=""
+CLO_MESSAGE_BROKER_PORT=""
+CLO_MESSAGE_BROKER_USER=""
+CLO_MESSAGE_BROKER_PASS=""
+CLO_MESSAGE_BROKER_VHOST=""
 
 while true ; do
     case "$1" in
@@ -499,14 +529,12 @@ while true ; do
             CLO_MEMCACHED_SERVERS="$2" ; shift 2 ;;
         --memcached-prefix)
             CLO_MEMCACHED_PREFIX="$2" ; shift 2;;
+        --elasticsearch-server)
+            CLO_ELASTICSEARCH_SERVER="$2" ; shift 2 ;;
         -m|--marcflavor)
             CLO_ZEBRA_MARC_FORMAT="$2" ; shift 2 ;;
         -l|--zebralang)
             CLO_ZEBRA_LANGUAGE="$2" ; shift 2 ;;
-        --auth-idx)
-            CLO_AUTHORITIES_INDEXING_MODE="$2" ; shift 2 ;;
-        --biblio-idx)
-            CLO_BIBLIOS_INDEXING_MODE="$2" ; shift 2 ;;
         -d|--defaultsql)
             CLO_DEFAULTSQL="$2" ; shift 2 ;;
         -f|--configfile)
@@ -521,6 +549,30 @@ while true ; do
             CLO_ADMINUSER="$2" ; shift 2 ;;
         --enable-sru)
             ENABLE_SRU="yes" ; shift ;;
+        --mb-host)
+            CLO_MESSAGE_BROKER_HOST="$2" ; shift 2 ;;
+        --mb-port)
+            CLO_MESSAGE_BROKER_PORT="$2" ; shift 2 ;;
+        --mb-user)
+            CLO_MESSAGE_BROKER_USER="$2" ; shift 2 ;;
+        --mb-pass)
+            CLO_MESSAGE_BROKER_PASS="$2" ; shift 2 ;;
+        --mb-vhost)
+            CLO_MESSAGE_BROKER_VHOST="$2" ; shift 2 ;;
+        --smtp-debug)
+            CLO_SMTP_DEBUG="1" ; shift ;;
+        --smtp-host)
+            CLO_SMTP_HOST="$2" ; shift 2 ;;
+        --smtp-port)
+            CLO_SMTP_PORT="$2" ; shift 2 ;;
+        --smtp-timeout)
+            CLO_SMTP_TIMEOUT="$2" ; shift 2 ;;
+        --smtp-ssl-mode)
+            CLO_SMTP_SSL_MODE="$2" ; shift 2 ;;
+        --smtp-user-name)
+            CLO_SMTP_USER_NAME="$2" ; shift 2 ;;
+        --smtp-password)
+            CLO_SMTP_PASSWORD="$2" ; shift 2 ;;
         --sru-port)
             SRU_SERVER_PORT="$2" ; shift 2 ;;
         --template-cache-dir)
@@ -579,26 +631,22 @@ if [ "$CLO_TIMEZONE" != "" ]; then
     TIMEZONE=$CLO_TIMEZONE
 fi
 
-if [ "$CLO_BIBLIOS_INDEXING_MODE" !=  "" ]; then
-    BIBLIOS_INDEXING_MODE=$CLO_BIBLIOS_INDEXING_MODE
+if [ "${CLO_ELASTICSEARCH_SERVER}" != "" ]; then
+    ELASTICSEARCH_SERVER="${CLO_ELASTICSEARCH_SERVER}"
 fi
 
-set_biblios_indexing_mode $BIBLIOS_INDEXING_MODE $ZEBRA_MARC_FORMAT
+BCRYPT_SETTINGS=$(htpasswd -bnBC 10 "" password | tr -d ':\n' | sed 's/$2y/$2a/');
+
 
 if [ "$ENABLE_SRU" != "no" ]; then
     enable_sru_server
 fi
 
-if [ "$CLO_AUTHORITIES_INDEXING_MODE" !=  "" ]; then
-    AUTHORITIES_INDEXING_MODE=$CLO_AUTHORITIES_INDEXING_MODE
-fi
-
-set_authorities_indexing_mode $AUTHORITIES_INDEXING_MODE $ZEBRA_MARC_FORMAT
-
 [ $# -ge 1 ] || ( usage ; die "Missing instance name..." )
 
 name="$1"
 
+set_smtp
 set_upload_path $name
 set_tmp_path $name
 
@@ -622,6 +670,8 @@ if [ "$USE_MEMCACHED" = "no" ]; then
 else
     set_memcached $name
 fi
+
+set_message_broker $name
 
 # Set template cache dir
 if [ "$CLO_TEMPLATE_CACHE_DIR" != "" ]; then
@@ -688,7 +738,8 @@ if [ "$op" = create ] || [ "$op" = request ] || [ "$op" = use ]
 then
     if [ "$mysqlpwd" = "" ]
     then
-        mysqlpwd="$(pwgen -s 16 1)"
+        mysqlpwd="$(pwgen -s 15 1)"
+        mysqlpwd="$mysqlpwd@"
     fi
 else
     mysqlpwd="$(getinstancemysqlpassword $name)"
@@ -758,12 +809,8 @@ eof
         "/etc/koha/sites/$name/log4perl.conf"
 
     # Generate and install Zebra config files.
-    generate_config_file zebra-biblios-site.cfg.in \
-        "/etc/koha/sites/$name/zebra-biblios.cfg"
     generate_config_file zebra-biblios-dom-site.cfg.in \
         "/etc/koha/sites/$name/zebra-biblios-dom.cfg"
-    generate_config_file zebra-authorities-site.cfg.in \
-        "/etc/koha/sites/$name/zebra-authorities.cfg"
     generate_config_file zebra-authorities-dom-site.cfg.in \
         "/etc/koha/sites/$name/zebra-authorities-dom.cfg"
     generate_config_file zebra.passwd.in \
@@ -847,6 +894,9 @@ then
     # Start Zebra.
     koha-zebra --start "$name"
 
+    # Start worker
+    koha-worker --start "$name"
+
     if [ "$USE_INDEXER_DAEMON" = "yes" ]; then
         # Start Indexer daemon
         koha-indexer --start "$name"
@@ -856,6 +906,8 @@ then
         # Get letsencrypt certificates
         letsencrypt_instance
     fi
+
+    chown $username:$username /var/log/koha/$name/*.log
 fi
 
 

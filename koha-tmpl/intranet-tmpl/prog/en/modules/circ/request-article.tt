@@ -1,3 +1,4 @@
+[% USE raw %]
 [% USE Asset %]
 [% USE KohaDates %]
 [% USE Branches %]
@@ -6,34 +7,45 @@
 [% SET article_requests_view = 1 %]
 [% SET biblionumber = biblio.biblionumber %]
 [% INCLUDE 'doc-head-open.inc' %]
-<title>Koha &rsaquo; Circulation &rsaquo; Request article</title>
+<title>Request article &rsaquo; Circulation &rsaquo; Koha</title>
 [% INCLUDE 'doc-head-close.inc' %]
-[% Asset.css("css/datatables.css") %]
 </head>
 
 <body id="circ_request-article" class="circ">
     [% INCLUDE 'header.inc' %]
     [% INCLUDE 'circ-search.inc' %]
 
-    <div id="breadcrumbs">
-        <a href="/cgi-bin/koha/mainpage.pl">Home</a>
-        &rsaquo;
-        <a href="/cgi-bin/koha/catalogue/search.pl">Catalog</a>
-        [% UNLESS blocking_error %]
-        &rsaquo;
-        <a href="/cgi-bin/koha/catalogue/detail.pl?biblionumber=[% biblionumber %]">[% biblio.title | html %]</a>
-        &rsaquo;
-        Request article
-        [% END %]
-    </div>
+    <nav id="breadcrumbs" aria-label="Breadcrumb" class="breadcrumb">
+        <ol>
+            <li>
+                <a href="/cgi-bin/koha/mainpage.pl">Home</a>
+            </li>
 
-    [% INCLUDE 'blocking_errors.inc' %]
-    <div id="doc3" class="yui-t2">
-        <div id="bd">
-            <div id="yui-main">
-                <div class="yui-b">
+            [% IF blocking_error %]
+                <li>
+                    <a href="#" aria-current="page">
+                        Catalog
+                    </a>
+                </li>
 
-                    <h1>Request article from <a href="/cgi-bin/koha/catalogue/detail.pl?biblionumber=[% biblio.id %]">[% biblio.title | html %]</a></h1>
+            [% ELSE %]
+                [% INCLUDE 'biblio-title.inc' link = 1 %]
+                <li>
+                    <a href="#" aria-current="page">
+                        Request article
+                    </a>
+                </li>
+            [% END %]
+        </ol>
+    </nav>
+
+[% INCLUDE 'blocking_errors.inc' %]
+<div class="main container-fluid">
+    <div class="row">
+        <div class="col-sm-10 col-sm-push-2">
+            <main>
+
+                    <h1>Request article from [% INCLUDE 'biblio-title.inc' link = 1 %]</h1>
                     [% IF no_patrons_found %]
                         <div class="dialog alert">
                             <h3>Patron not found</h3>
@@ -56,17 +68,17 @@
                                     <tbody>
                                         [% FOREACH patron IN patrons %]
                                             <tr>
-                                                <td><input type="radio" name="patron_id" value="[% patron.borrowernumber %]"/></td>
-                                                <td>[% patron.surname %], [% patron.firstname %]</td>
-                                                <td>[% patron.cardnumber %]</td>
-                                                <td>[% patron.categorycode %]</td>
-                                                <td>[% patron.branchcode %]</td>
-                                                <td>[% patron.address %]</td>
+                                                <td><input type="radio" name="patron_id" value="[% patron.borrowernumber | html %]"/></td>
+                                                <td>[% patron.surname | html %], [% patron.firstname | html %]</td>
+                                                <td>[% patron.cardnumber | html %]</td>
+                                                <td>[% patron.categorycode | html %]</td>
+                                                <td>[% patron.branchcode | html %]</td>
+                                                <td>[% patron.address | html %]</td>
                                             </tr>
                                         [% END %]
                                     </tbody>
                                 </table>
-                                <input type="hidden" name="biblionumber" value="[% biblionumber %]" />
+                                <input type="hidden" name="biblionumber" value="[% biblionumber | html %]" />
                                 <fieldset class="action"><input type="submit" value="Select" /></fieldset>
                             </fieldset>
                         </form>
@@ -77,7 +89,7 @@
                                 <div class="hint">Enter patron card number or partial name:</div>
                                 <input type="text" size="40" id="patron" class="focus" name="patron_cardnumber" />
                                 <input type="submit" value="Search" />
-                                <input type="hidden" name="biblionumber" value="[% biblio.id %]" />
+                                <input type="hidden" name="biblionumber" value="[% biblio.id | html %]" />
                             </fieldset>
                         </form>
                     [% ELSE %]
@@ -85,12 +97,11 @@
 
                             <form id="place-article-request" method="post" action="/cgi-bin/koha/circ/request-article.pl">
                                 <input type="hidden" name="action" value="create" />
-                                <input type="hidden" name="biblionumber" id="biblionumber" value="[% biblio.biblionumber %]" />
-                                <input type="hidden" name="borrowernumber" id="borrowernumber" value="[% patron.id %]" />
+                                <input type="hidden" name="biblionumber" id="biblionumber" value="[% biblio.biblionumber | html %]" />
+                                <input type="hidden" name="borrowernumber" id="borrowernumber" value="[% patron.id | html %]" />
 
                                 <fieldset class="rows">
-                                    <legend>Place article request from [% biblio.title %] for [% patron.firstname %] [% patron.surname %] ( [% patron.cardnumber %] )</legend>
-                                    <p/>
+                                    <legend>Place article request from [% biblio.title | html %] for [% patron.firstname | html %] [% patron.surname | html %] ( [% patron.cardnumber | html %] )</legend>
                                     <ul>
                                         <li>
                                             <label for="title">Title:</label>
@@ -137,9 +148,9 @@
                                             <select name="branchcode" id="branchcode">
                                                 [% FOREACH b IN Branches.all %]
                                                     [% IF b.branchcode == Branches.GetLoggedInBranchcode %]
-                                                        <option value="[% b.branchcode %]" selected="selected">[% b.branchname %]</option>
+                                                        <option value="[% b.branchcode | html %]" selected="selected">[% b.branchname | html %]</option>
                                                     [% ELSE %]
-                                                        <option value="[% b.branchcode %]">[% b.branchname %]</option>
+                                                        <option value="[% b.branchcode | html %]">[% b.branchname | html %]</option>
                                                     [% END %]
                                                 [% END %]
                                             </select>
@@ -169,25 +180,25 @@
                                                         <td>
                                                             [% IF article_request_type == 'item_only' && !checked %]
                                                                 [% SET checked = 1 %]
-                                                                <input type="radio" name="itemnumber" value="[% item.itemnumber %]" checked="checked" />
+                                                                <input type="radio" name="itemnumber" value="[% item.itemnumber | html %]" checked="checked" />
                                                             [% ELSE %]
-                                                                <input type="radio" name="itemnumber" value="[% item.itemnumber %]" />
+                                                                <input type="radio" name="itemnumber" value="[% item.itemnumber | html %]" />
                                                             [% END %]
                                                         </td>
                                                         <td>
-                                                            [% ItemTypes.GetDescription( item.itype ) %]
+                                                            [% ItemTypes.GetDescription( item.itype ) | html %]
                                                         </td>
                                                         <td>
-                                                            [% item.barcode %]
+                                                            [% item.barcode | html %]
                                                         </td>
                                                         <td>
-                                                            [% Branches.GetName( item.homebranch ) %]
+                                                            [% Branches.GetName( item.homebranch ) | html %]
                                                         </td>
                                                         <td>
-                                                            [% item.itemcallnumber %]
+                                                            [% item.itemcallnumber | html %]
                                                         </td>
                                                         <td>
-                                                            [% item.enumchron %]
+                                                            [% item.enumchron | html %]
                                                         </td>
                                                     </tr>
                                                 [% END %]
@@ -242,18 +253,18 @@
                                 [% FOREACH ar IN biblio.article_requests_current %]
                                     <tr>
                                         <td>[% ar.created_on | $KohaDates %]</td>
-                                        <td><a href="/cgi-bin/koha/members/moremember.pl?borrowernumber=[% ar.borrowernumber %]">[% ar.borrower.firstname %] [% ar.borrower.surname %]</a></td>
-                                        <td>[% ar.title %]</td>
-                                        <td>[% ar.author %]</td>
-                                        <td>[% ar.volume %]</td>
-                                        <td>[% ar.issue %]</td>
-                                        <td>[% ar.date %]</td>
-                                        <td>[% ar.pages %]</td>
-                                        <td>[% ar.chapters %]</td>
-                                        <td>[% ar.patron_notes %]</td>
+                                        <td><a href="/cgi-bin/koha/members/moremember.pl?borrowernumber=[% ar.borrowernumber | uri %]">[% ar.borrower.firstname | html %] [% ar.borrower.surname | html %]</a></td>
+                                        <td>[% ar.title | html %]</td>
+                                        <td>[% ar.author | html %]</td>
+                                        <td>[% ar.volume | html %]</td>
+                                        <td>[% ar.issue | html %]</td>
+                                        <td>[% ar.date | html %]</td>
+                                        <td>[% ar.pages | html %]</td>
+                                        <td>[% ar.chapters | html %]</td>
+                                        <td>[% ar.patron_notes | html %]</td>
                                         <td>
                                             [% IF ar.item %]
-                                                <a href="/cgi-bin/koha/catalogue/moredetail.pl?itemnumber=[% ar.itemnumber %]&biblionumber=[% ar.biblionumber %]">[% ar.item.barcode %]</a>
+                                                <a href="/cgi-bin/koha/catalogue/moredetail.pl?itemnumber=[% ar.itemnumber | uri %]&biblionumber=[% ar.biblionumber | uri %]">[% ar.item.barcode | html %]</a>
                                             [% END %]
                                         </td>
                                         <td>
@@ -268,21 +279,21 @@
                                             [% END %]
                                         </td>
                                         <td>
-                                            <i id="update-processing-[% ar.id %]" class="fa fa-cog fa-spin hidden"></i>
-                                            <select name="branchcode" id="branchcode-[% ar.id %]" class="ar-update-branchcode">
+                                            <i id="update-processing-[% ar.id | html %]" class="fa fa-cog fa-spin hidden"></i>
+                                            <select name="branchcode" id="branchcode-[% ar.id | html %]" class="ar-update-branchcode">
                                                 [% FOREACH b IN Branches.all %]
                                                     [% IF b.branchcode == ar.branchcode %]
-                                                        <option value="[% b.branchcode %]" selected="selected">[% b.branchname %]</option>
+                                                        <option value="[% b.branchcode | html %]" selected="selected">[% b.branchname | html %]</option>
                                                     [% ELSE %]
-                                                        <option value="[% b.branchcode %]">[% b.branchname %]</option>
+                                                        <option value="[% b.branchcode | html %]">[% b.branchname | html %]</option>
                                                     [% END %]
                                                 [% END %]
                                             </select>
                                         </td>
                                         <td>
-                                            <a title="Cancel article request" href="#" id="cancel-[% ar.id %]" class="ar-cancel-request">
-                                                <i id="cancel-processing-spinner-[% ar.id %]" class="fa fa-cog fa-spin hide"></i>
-                                                <i id="cancel-processing-[% ar.id %]" class="fa fa-times fa-lg" style="color:red"></i>
+                                            <a title="Cancel article request" href="#" id="cancel-[% ar.id | html %]" class="ar-cancel-request">
+                                                <i id="cancel-processing-spinner-[% ar.id | html %]" class="fa fa-cog fa-spin hide"></i>
+                                                <i id="cancel-processing-[% ar.id | html %]" class="fa fa-times fa-lg" style="color:red"></i>
                                             </a>
                                         </td>
                                     </tr>
@@ -290,19 +301,21 @@
                             </table>
                         </fieldset>
                     [% END %]
-                </div>
-            </div>
 
-            <div class="yui-b">
+            </main>
+        </div> <!-- /.col-sm-10.col-sm-push-2 -->
+
+        <div class="col-sm-2 col-sm-pull-10">
+            <aside>
                 [% INCLUDE 'biblio-view-menu.inc' %]
-            </div>
-        </div>
-    </div>
+            </aside>
+        </div> <!-- /.col-sm-2.col-sm-pull-10 -->
+     </div> <!-- /.row -->
 
 [% MACRO jsinclude BLOCK %]
     [% INCLUDE 'datatables.inc' %]
 
-    <script type="text/javascript">
+    <script>
         $('#current-article-requests').ready(function() {
             $(".hide").hide();
         });
@@ -321,10 +334,23 @@
                 .data( "ui-autocomplete" )._renderItem = function( ul, item ) {
                     return $( "<li></li>" )
                     .data( "ui-autocomplete-item", item )
-                    .append( "<a>" + item.surname + ", " + item.firstname +
-                             " (" + item.cardnumber + ") <small>" + item.address +
-                             " " + item.city + " " + item.zipcode + " " +
-                             item.country + "</small></a>" )
+                    .append(
+                        "<a>"
+                            + ( item.surname ? item.surname.escapeHtml() : "" )
+                            + ", "
+                            + ( item.firstname ? item.firstname.escapeHtml() : "" )
+                            + " (" + ( item.cardnumber ? item.cardnumber.escapeHtml() : "" ) + ")"
+                            + " "
+                            + "<small>"
+                                + ( item.address ? item.address.escapeHtml() : "" )
+                                + " "
+                                + ( item.city ? item.city.escapeHtml() : "" )
+                                + " "
+                                + ( item.zipcode ? item.zipcode.escapeHtml() : "" )
+                                + " "
+                                + ( item.country ? item.country.escapeHtml() : "" )
+                            + "</small>"
+                        + "</a>" )
                     .appendTo( ul );
                 };
             }

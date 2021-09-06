@@ -3,19 +3,18 @@
 # Copyright 2012 C & P Bibliography Services
 # Copyright 2017 Koha Development Team
 #
-# This is free software; you can redistribute it and/or modify it under the
-# terms of the GNU General Public License as published by the Free Software
-# Foundation; either version 2 of the License, or (at your option) any later
-# version.
+# Koha is free software; you can redistribute it and/or modify it
+# under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 3 of the License, or
+# (at your option) any later version.
 #
-# This is distributed in the hope that it will be useful, but WITHOUT ANY
-# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
-# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+# Koha is distributed in the hope that it will be useful, but
+# WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+# GNU General Public License for more details.
 #
-# You should have received a copy of the GNU General Public License along with
-# Koha; if not, write to the Free Software Foundation, Inc., 59 Temple Place,
-# Suite 330, Boston, MA  02111-1307 USA
-#
+# You should have received a copy of the GNU General Public License
+# along with Koha; if not, see <http://www.gnu.org/licenses>.
 
 use Modern::Perl;
 
@@ -49,7 +48,7 @@ my $intranet = $ENV{KOHA_INTRANET_URL};
 if (not defined $intranet) {
     plan skip_all =>
          "You must set the environment variable KOHA_INTRANET_URL to ".
-         "point this test to your staff client. If you do not have ".
+         "point this test to your staff interface. If you do not have ".
          "KOHA_CONF set, you must also set KOHA_USER and KOHA_PASS for ".
          "your username and password";
 }
@@ -67,7 +66,7 @@ $agent->form_name('loginform');
 $agent->field( 'password', $password );
 $agent->field( 'userid',   $user );
 $agent->field( 'branch',   '' );
-$agent->click_ok( '', 'login to staff client' );
+$agent->click_ok( '', 'login to staff interface' );
 
 $agent->get_ok( "$intranet/cgi-bin/koha/mainpage.pl", 'load main page' );
 

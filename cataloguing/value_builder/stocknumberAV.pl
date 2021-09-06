@@ -23,27 +23,30 @@ use Modern::Perl;
 use CGI qw ( -utf8 );
 
 use C4::Auth;
-use C4::Context;
 use C4::Output;
+use Koha::AuthorisedValues;
 
 =head1 DESCRIPTION
 
-This plugin is based on authorised values INVENTORY.
+This plugin is based on authorised values from INVENTORY.
 It is used for stocknumber computation.
 
-If the user send an empty string, we return a simple incremented stocknumber.
-If a prefix is submited, we look for the highest stocknumber with this prefix, and return it incremented.
-In this case, a stocknumber has this form : "PREFIX 0009678570".
- - PREFIX is an upercase word
- - a space separator
- - 10 digits, with leading 0s if needed
+If no prefix is submitted, or the prefix does contain only
+numbers, it returns the inserted code (= keep the field unchanged).
+
+If a prefix is submitted, we look for the highest stocknumber
+with this prefix and return it incremented.
+
+In this case, a stocknumber has this form (e.g. "PREFIX 0009678570"):
+PREFIX containing letters, a space separator and 10 digits with leading
+0s if needed.
 
 =cut
 
 my $builder = sub {
     my ( $params ) = @_;
     my $res = qq{
-    <script type='text/javascript'>
+    <script>
         function Click$params->{id}() {
                 var code = document.getElementById('$params->{id}');
                 \$.ajax({
@@ -75,26 +78,24 @@ my $launcher = sub {
         {   template_name   => "cataloguing/value_builder/ajax.tt",
             query           => $input,
             type            => "intranet",
-            authnotrequired => 0,
             flagsrequired   => { editcatalogue => '*' },
             debug           => 1,
         }
     );
 
-    my $dbh = C4::Context->dbh;
-
     # If a prefix is submited, we look for the highest stocknumber with this prefix, and return it incremented
     $code =~ s/ *$//g;
-    if ( $code =~ m/^[A-Z]+$/ ) {
-        my $sth = $dbh->prepare("SELECT lib FROM authorised_values WHERE category='INVENTORY' AND authorised_value=?");
-        $sth->execute( $code);
-
-        if ( my $valeur = $sth->fetchrow ) {
-            $template->param( return => $code . ' ' . sprintf( '%010s', ( $valeur + 1 ) ), );
-            my $sth2 = $dbh->prepare("UPDATE authorised_values SET lib=? WHERE category='INVENTORY' AND authorised_value=?");
-            $sth2->execute($valeur+1,$code);
+    if ( $code =~ m/^[a-zA-Z]+$/ ) {
+        my $av = Koha::AuthorisedValues->find({
+            'category' => 'INVENTORY',
+            'authorised_value' => $code
+        });
+        if ( $av ) {
+            $av->lib($av->lib + 1);
+            $av->store;
+            $template->param( return => $code . ' ' . sprintf( '%010s', ( $av->lib ) ), );
         } else {
-                $template->param( return => "There is no defined value for $code");
+            $template->param( return => "There is no defined value for $code");
         }
         # The user entered a custom value, we don't touch it, this could be handled in js
     } else {

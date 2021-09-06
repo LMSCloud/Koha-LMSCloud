@@ -1,34 +1,34 @@
 [% USE Koha %]
 [% INCLUDE 'doc-head-open.inc' %]
-<title>[% IF ( LibraryNameTitle ) %][% LibraryNameTitle %][% ELSE %]Koha online[% END %] catalog &rsaquo;  Sending your list</title>
+<title>Sending your list &rsaquo; [% IF ( LibraryNameTitle ) %][% LibraryNameTitle | html %][% ELSE %]Koha online[% END %] catalog</title>
 [% INCLUDE 'doc-head-close.inc' %]
 [% BLOCK cssinclude %][% END %]
 </head>
 [% INCLUDE 'bodytag.inc' bodyid='sendshelf' bodyclass='popup' %]
     <div class="main">
         <div class="container-fluid">
-            <div class="row-fluid">
-                <div class="span12">
-                    <div id="usersendshelfform">
+            <div class="row">
+                <div class="col order-first order-md-first order-lg-2">
+                    <div id="usersendshelfform" class="maincontent">
                         [% IF ( email ) %]
                             [% IF ( SENT ) %]
                                 <h1>Message sent</h1>
                                 <div class="alert alert-success">
                                     <p>The list was sent to: [% email | html %]</p>
                                 </div>
-                                <p><a class="focus close" href="/cgi-bin/koha/opac-shelves.pl?op=view&amp;shelfnumber=[% shelfid %]">Back to lists</a></p>
+                                <p><a class="focus close" href="/cgi-bin/koha/opac-shelves.pl?op=view&amp;shelfnumber=[% shelfid | html %]">Back to lists</a></p>
                             [% END %]
                             [% IF ( error ) %]
-                                <div class="alert">
+                                <div class="alert alert-warning">
                                     <p>There was an error sending the list.</p>
                                 </div>
                             [% END %]
                         [% ELSE %]
                             [% IF ( invalidlist ) %]
-                                <div class="alert">
+                                <div class="alert alert-warning">
                                     <p>You do not have permission to send this list.</p>
                                 </div>
-                                <p><a class="button close" href="/cgi-bin/koha/opac-shelves.pl?op=view&amp;shelfnumber=[% shelfid %]">Back to lists</a></p>
+                                <p><a class="button close" href="/cgi-bin/koha/opac-shelves.pl?op=view&amp;shelfnumber=[% shelfid | html %]">Back to lists</a></p>
                             [% ELSE %]
                                 <h1>Sending your list</h1>
                                 <form action="/cgi-bin/koha/opac-sendshelf.pl" method="post" id="sendshelfform">
@@ -39,12 +39,12 @@
                                         <label for="comment">Comment:</label>
                                         <textarea id="comment" name="comment" rows="4" cols="40"></textarea>
 
-                                        <input type="hidden" name="shelfid" value="[% shelfid %]" />
+                                        <input type="hidden" name="shelfid" value="[% shelfid | html %]" />
                                     </fieldset>
                                     [% IF Koha.Preference('RequestOnOpac') || Koha.Preference('OpacRenewalAllowed') %]<p id="donotrequestbymail">Please do not use this mail to request or renew books.</p>[% END %]
                                     <fieldset class="action">
-                                        <input type="submit" value="Send" class="btn" />
-                                        <a class="cancel close" href="/cgi-bin/koha/opac-shelves.pl?op=view&amp;shelfnumber=[% shelfid %]">Cancel</a>
+                                        <input type="submit" value="Send" class="btn btn-primary" />
+                                        <a class="cancel close" href="/cgi-bin/koha/opac-shelves.pl?op=view&amp;shelfnumber=[% shelfid | html %]">Cancel</a>
                                     </fieldset>
                                 </form>
 
@@ -52,7 +52,7 @@
                         [% END # / IF email %]
                     </div> <!-- / #usersendshelfform -->
                 </div> <!-- / .span12 -->
-            </div> <!-- / .row-fluid -->
+            </div> <!-- / .row -->
         </div> <!-- / .container-fluid -->
     </div> <!-- / .main -->
 

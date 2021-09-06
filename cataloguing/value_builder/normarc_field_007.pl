@@ -29,15 +29,13 @@ sub plugin_javascript {
 my ($dbh,$record,$tagslib,$field_number,$tabloop) = @_;
 my $function_name= $field_number;
 my $res="
-<script type=\"text/javascript\">
-//<![CDATA[
+<script>
 
 function Clic$function_name(i) {
 	defaultvalue=document.getElementById(\"$field_number\").value;
 	newin=window.open(\"../cataloguing/plugin_launcher.pl?plugin_name=normarc_field_007.pl&index=$field_number&result=\"+defaultvalue,\"unimarc field 100\",'width=1000,height=600,toolbar=false,scrollbars=yes');
 
 }
-//]]>
 </script>
 ";
 
@@ -55,7 +53,6 @@ my ($template, $loggedinuser, $cookie)
     = get_template_and_user({template_name => "cataloguing/value_builder/normarc_field_007.tt",
 			     query => $input,
 			     type => "intranet",
-			     authnotrequired => 0,
 			     flagsrequired => {editcatalogue => 1},
 			     debug => 1,
 			     });

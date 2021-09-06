@@ -27,19 +27,24 @@ use C4::Context;
 use C4::Templates qw/themelanguage/;
 use C4::Koha;
 use Koha::DateUtils;
+use Koha::Patrons;
+use Koha::Reports;
 use C4::Output;
 use C4::Debug;
 use C4::Log;
+use Koha::Notice::Templates;
+use C4::Letters;
 
 use Koha::AuthorisedValues;
 use Koha::Patron::Categories;
+use Koha::SharedContent;
 
 BEGIN {
     require Exporter;
     @ISA    = qw(Exporter);
     @EXPORT = qw(
       get_report_types get_report_areas get_report_groups get_columns build_query get_criteria
-      save_report get_saved_reports execute_query get_saved_report
+      save_report get_saved_reports execute_query
       get_column_type get_distinct_values save_dictionary get_from_dictionary
       delete_definition delete_report format_results get_sql
       nb_rows update_sql
@@ -413,10 +418,48 @@ sub get_criteria {
 
 sub nb_rows {
     my $sql = shift or return;
-    my $sth = C4::Context->dbh->prepare($sql);
-    $sth->execute();
-    my $rows = $sth->fetchall_arrayref();
-    return scalar (@$rows);
+
+    my $derived_name = 'xxx';
+    # make sure the derived table name is not already used
+    while ( $sql =~ m/$derived_name/ ) {
+        $derived_name .= 'x';
+    }
+
+
+    my $dbh = C4::Context->dbh;
+    my $sth;
+    my $n = 0;
+
+    my $RaiseError = $dbh->{RaiseError};
+    my $PrintError = $dbh->{PrintError};
+    $dbh->{RaiseError} = 1;
+    $dbh->{PrintError} = 0;
+    eval {
+        $sth = $dbh->prepare(qq{
+            SELECT COUNT(*) FROM
+            ( $sql ) $derived_name
+        });
+
+        $sth->execute();
+    };
+    $dbh->{RaiseError} = $RaiseError;
+    $dbh->{PrintError} = $PrintError;
+    if ($@) { # To catch "Duplicate column name" caused by the derived table, or any other syntax error
+        eval {
+            $sth = $dbh->prepare($sql);
+            $sth->execute;
+        };
+        warn $@ if $@;
+        # Loop through the complete results, fetching 1,000 rows at a time.  This
+        # lowers memory requirements but increases execution time.
+        while (my $rows = $sth->fetchall_arrayref(undef, 1000)) {
+            $n += @$rows;
+        }
+        return $n;
+    }
+
+    my $results = $sth->fetch;
+    return $results ? $results->[0] : 0;
 }
 
 =head2 execute_query
@@ -508,10 +551,20 @@ sub execute_query {
     $offset = 0    unless $offset;
     $limit  = 999999 unless $limit;
     $debug and print STDERR "execute_query($sql, $offset, $limit)\n";
-    if ($sql =~ /;?\W?(UPDATE|DELETE|DROP|INSERT|SHOW|CREATE)\W/i) {
-        return (undef, {  sqlerr => $1} );
-    } elsif ($sql !~ /^\s*SELECT\b\s*/i) {
-        return (undef, { queryerr => 'Missing SELECT'} );
+
+    my ( $is_sql_valid, $errors ) = Koha::Report->new({ savedsql => $sql })->is_sql_valid;
+    return (undef, @{$errors}[0]) unless $is_sql_valid;
+
+    foreach my $sql_param ( @$sql_params ){
+        if ( $sql_param =~ m/\n/ ){
+            my @list = split /\n/, $sql_param;
+            my @quoted_list;
+            foreach my $item ( @list ){
+                $item =~ s/\r//;
+              push @quoted_list, C4::Context->dbh->quote($item);
+            }
+            $sql_param = "(".join(",",@quoted_list).")";
+        }
     }
 
     my ($useroffset, $userlimit);
@@ -536,7 +589,10 @@ sub execute_query {
     $dbh->do( 'UPDATE saved_sql SET last_run = NOW() WHERE id = ?', undef, $report_id ) if $report_id;
 
     my $sth = $dbh->prepare($sql);
-    $sth->execute(@$sql_params, $offset, $limit);
+    eval {
+        $sth->execute(@$sql_params, $offset, $limit);
+    };
+    warn $@ if $@;
 
     return ( $sth, { queryerr => $sth->errstr } ) if ($sth->err);
     return ( $sth );
@@ -559,17 +615,29 @@ sub save_report {
     my $area = $fields->{area};
     my $group = $fields->{group};
     my $subgroup = $fields->{subgroup};
-    my $cache_expiry = $fields->{cache_expiry} || 300;
+    my $cache_expiry = $fields->{cache_expiry};
     my $public = $fields->{public};
 
-    my $dbh = C4::Context->dbh();
     $sql =~ s/(\s*\;\s*)$//;    # removes trailing whitespace and /;/
-    my $query = "INSERT INTO saved_sql (borrowernumber,date_created,last_modified,savedsql,report_name,report_area,report_group,report_subgroup,type,notes,cache_expiry,public)  VALUES (?,now(),now(),?,?,?,?,?,?,?,?,?)";
-    $dbh->do($query, undef, $borrowernumber, $sql, $name, $area, $group, $subgroup, $type, $notes, $cache_expiry, $public);
+    my $now = dt_from_string;
+    my $report = Koha::Report->new(
+        {
+            borrowernumber  => $borrowernumber,
+            date_created    => $now, # Must be moved to Koha::Report->store
+            last_modified   => $now, # Must be moved to Koha::Report->store
+            savedsql        => $sql,
+            report_name     => $name,
+            report_area     => $area,
+            report_group    => $group,
+            report_subgroup => $subgroup,
+            type            => $type,
+            notes           => $notes,
+            cache_expiry    => $cache_expiry,
+            public          => $public,
+        }
+    )->store;
 
-    my $id = $dbh->selectrow_array("SELECT max(id) FROM saved_sql WHERE borrowernumber=? AND report_name=?", undef,
-                                   $borrowernumber, $name);
-    return $id;
+    return $report->id;
 }
 
 sub update_sql {
@@ -583,14 +651,22 @@ sub update_sql {
     my $cache_expiry = $fields->{cache_expiry};
     my $public = $fields->{public};
 
+    $sql =~ s/(\s*\;\s*)$//;    # removes trailing whitespace and /;/
+    my $report = Koha::Reports->find($id);
+    $report->last_modified(dt_from_string);
+    $report->savedsql($sql);
+    $report->report_name($name);
+    $report->notes($notes);
+    $report->report_group($group);
+    $report->report_subgroup($subgroup);
+    $report->cache_expiry($cache_expiry) if defined $cache_expiry;
+    $report->public($public);
+    $report->store();
     if( $cache_expiry >= 2592000 ){
-      die "Please specify a cache expiry less than 30 days\n";
+      die "Please specify a cache expiry less than 30 days\n"; # That's a bit harsh
     }
 
-    my $dbh        = C4::Context->dbh();
-    $sql =~ s/(\s*\;\s*)$//;    # removes trailing whitespace and /;/
-    my $query = "UPDATE saved_sql SET savedsql = ?, last_modified = now(), report_name = ?, report_group = ?, report_subgroup = ?, notes = ?, cache_expiry = ?, public = ? WHERE id = ? ";
-    $dbh->do($query, undef, $sql, $name, $group, $subgroup, $notes, $cache_expiry, $public, $id );
+    return $report;
 }
 
 sub store_results {
@@ -622,8 +698,8 @@ sub delete_report {
     my (@ids) = @_;
     return unless @ids;
     foreach my $id (@ids) {
-        my $data = get_saved_report($id);
-        logaction( "REPORTS", "DELETE", $id, "$data->{'report_name'} | $data->{'savedsql'}  " ) if C4::Context->preference("ReportsLog");
+        my $data = Koha::Reports->find($id);
+        logaction( "REPORTS", "DELETE", $id, $data->report_name." | ".$data->savedsql ) if C4::Context->preference("ReportsLog");
     }
     my $dbh = C4::Context->dbh;
     my $query = 'DELETE FROM saved_sql WHERE id IN (' . join( ',', ('?') x @ids ) . ')';
@@ -687,37 +763,13 @@ sub get_saved_reports {
         }
     }
     $query .= " WHERE ".join( " AND ", map "($_)", @cond ) if @cond;
+    $query .= " GROUP BY s.id, s.borrowernumber, s.date_created, s.last_modified, s.savedsql, s.last_run, s.report_name, s.type, s.notes, s.cache_expiry, s.public, s.report_area, s.report_group, s.report_subgroup, s.mana_id, av_g.lib, av_sg.lib, b.firstname, b.surname";
     $query .= " ORDER by date_created";
-    
+
     my $result = $dbh->selectall_arrayref($query, {Slice => {}}, @args);
 
     return $result;
 }
-
-sub get_saved_report {
-    my $dbh   = C4::Context->dbh();
-    my $query;
-    my $report_arg;
-    if ($#_ == 0 && ref $_[0] ne 'HASH') {
-        ($report_arg) = @_;
-        $query = " SELECT * FROM saved_sql WHERE id = ?";
-    } elsif (ref $_[0] eq 'HASH') {
-        my ($selector) = @_;
-        if ($selector->{name}) {
-            $query = " SELECT * FROM saved_sql WHERE report_name = ?";
-            $report_arg = $selector->{name};
-        } elsif ($selector->{id} || $selector->{id} eq '0') {
-            $query = " SELECT * FROM saved_sql WHERE id = ?";
-            $report_arg = $selector->{id};
-        } else {
-            return;
-        }
-    } else {
-        return;
-    }
-    return $dbh->selectrow_hashref($query, undef, $report_arg);
-}
-
 
 =head2 get_column_type($column)
 
@@ -874,6 +926,7 @@ Returns a hash containig all reserved words
 sub GetReservedAuthorisedValues {
     my %reserved_authorised_values =
             map { $_ => 1 } ( 'date',
+                              'list',
                               'branches',
                               'itemtypes',
                               'cn_source',
@@ -923,6 +976,7 @@ sub GetParametersFromSQL {
 
     for ( my $i = 0; $i < ($#split/2) ; $i++ ) {
         my ($name,$authval) = split(/\|/,$split[$i*2+1]);
+        $authval =~ s/\:all$// if $authval;
         push @sql_parameters, { 'name' => $name, 'authval' => $authval };
     }
 
@@ -952,6 +1006,99 @@ sub ValidateSQLParameters {
     }
 
     return \@problematic_parameters;
+}
+
+=head2 EmailReport
+
+    my ( $emails, $arrayrefs ) = EmailReport($report_id, $letter_code, $module, $branch, $email)
+
+Take a report and use it to process a Template Toolkit formatted notice
+Returns arrayrefs containing prepared letters and errors respectively
+
+=cut
+
+sub EmailReport {
+
+    my $params     = shift;
+    my $report_id  = $params->{report_id};
+    my $from       = $params->{from};
+    my $email_col  = $params->{email} || 'email';
+    my $module     = $params->{module};
+    my $code       = $params->{code};
+    my $branch     = $params->{branch} || "";
+
+    my @errors = ();
+    my @emails = ();
+
+    return ( undef, [{ FATAL => "MISSING_PARAMS" }] ) unless ($report_id && $module && $code);
+
+    return ( undef, [{ FATAL => "NO_LETTER" }] ) unless
+    my $letter = Koha::Notice::Templates->find({
+        module     => $module,
+        code       => $code,
+        branchcode => $branch,
+        message_transport_type => 'email',
+    });
+    $letter = $letter->unblessed;
+
+    my $report = Koha::Reports->find( $report_id );
+    my $sql = $report->savedsql;
+    return ( { FATAL => "NO_REPORT" } ) unless $sql;
+
+    my ( $sth, $errors ) = execute_query( $sql ); #don't pass offset or limit, hardcoded limit of 999,999 will be used
+    return ( undef, [{ FATAL => "REPORT_FAIL" }] ) if $errors;
+
+    my $counter = 1;
+    my $template = $letter->{content};
+
+    while ( my $row = $sth->fetchrow_hashref() ) {
+        my $email;
+        my $err_count = scalar @errors;
+        push ( @errors, { NO_BOR_COL => $counter } ) unless defined $row->{borrowernumber};
+        push ( @errors, { NO_EMAIL_COL => $counter } ) unless ( defined $row->{$email_col} );
+        push ( @errors, { NO_FROM_COL => $counter } ) unless defined ( $from || $row->{from} );
+        push ( @errors, { NO_BOR => $row->{borrowernumber} } ) unless Koha::Patrons->find({borrowernumber=>$row->{borrowernumber}});
+
+        my $from_address = $from || $row->{from};
+        my $to_address = $row->{$email_col};
+        push ( @errors, { NOT_PARSE => $counter } ) unless my $content = _process_row_TT( $row, $template );
+        $counter++;
+        next if scalar @errors > $err_count; #If any problems, try next
+
+        $letter->{content}       = $content;
+        $email->{borrowernumber} = $row->{borrowernumber};
+        $email->{letter}         = { %$letter };
+        $email->{from_address}   = $from_address;
+        $email->{to_address}     = $to_address;
+
+        push ( @emails, $email );
+    }
+
+    return ( \@emails, \@errors );
+
+}
+
+
+
+=head2 ProcessRowTT
+
+   my $content = ProcessRowTT($row_hashref, $template);
+
+Accepts a hashref containing values and processes them against Template Toolkit
+to produce content
+
+=cut
+
+sub _process_row_TT {
+
+    my ($row, $template) = @_;
+
+    return 0 unless ($row && $template);
+    my $content;
+    my $processor = Template->new();
+    $processor->process( \$template, $row, \$content);
+    return $content;
+
 }
 
 sub _get_display_value {

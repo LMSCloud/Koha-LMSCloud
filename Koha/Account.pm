@@ -22,19 +22,24 @@ use Modern::Perl;
 use Carp;
 use Data::Dumper;
 use List::MoreUtils qw( uniq );
+use Try::Tiny;
 
-use C4::Circulation qw( ReturnLostItem );
+use C4::Circulation qw( ReturnLostItem CanBookBeRenewed AddRenewal );
+use C4::Letters;
 use C4::Log qw( logaction );
 use C4::Stats qw( UpdateStats );
+use C4::Overdues qw(GetFine);
 use C4::CashRegisterManagement;
-use C4::Context;
 
+use Koha::Patrons;
 use Koha::Account::Lines;
 use Koha::Account::Offsets;
+use Koha::Account::DebitTypes;
 use Koha::DateUtils qw( dt_from_string );
+use Koha::Exceptions;
+use Koha::Exceptions::Account;
 
 =head1 NAME
-
 Koha::Accounts - Module for managing payments and fees for patrons
 
 =cut
@@ -48,19 +53,18 @@ sub new {
 }
 
 =head2 pay
-
 This method allows payments to be made against fees/fines
 
 Koha::Account->new( { patron_id => $borrowernumber } )->pay(
     {
         amount      => $amount,
-        sip         => $sipmode,
         note        => $note,
         description => $description,
         library_id  => $branchcode,
-        lines        => $lines, # Arrayref of Koha::Account::Line objects to pay
-        account_type => $type,  # accounttype code
+        lines       => $lines, # Arrayref of Koha::Account::Line objects to pay
+        credit_type => $type,  # credit_type_code code
         offset_type => $offset_type,    # offset type code
+        item_id     => $itemnumber,     # pass the itemnumber if this is a credit pertianing to a specific item (i.e LOST_FOUND)
     }
 );
 
@@ -69,231 +73,90 @@ Koha::Account->new( { patron_id => $borrowernumber } )->pay(
 sub pay {
     my ( $self, $params ) = @_;
 
-    my $amount       = $params->{amount};
-    my $sip          = $params->{sip};
-    my $description  = $params->{description};
-    my $note         = $params->{note} || q{};
-    my $library_id   = $params->{library_id};
-    my $lines        = $params->{lines};
-    my $type         = $params->{type} || 'payment';
-    my $payment_type = $params->{payment_type} || undef;
-    my $account_type = $params->{account_type};
-    my $offset_type  = $params->{offset_type} || $type eq 'writeoff' ? 'Writeoff' : $type eq 'cancelfee' ? 'Cancel Fee' : 'Payment';
+    my $amount        = $params->{amount};
+    my $description   = $params->{description};
+    my $note          = $params->{note} || q{};
+    my $library_id    = $params->{library_id};
+    my $lines         = $params->{lines};
+    my $type          = $params->{type} || 'PAYMENT';
+    my $payment_type  = $params->{payment_type} || undef;
+    my $cash_register = $params->{cash_register};
+    my $item_id       = $params->{item_id};
+    
     my $withoutCashRegisterManagement = $params->{withoutCashRegisterManagement};
     my $onlinePaymentCashRegisterManagerId = $params->{onlinePaymentCashRegisterManagerId};
 
     my $userenv = C4::Context->userenv;
 
-    # We should remove accountno, it is no longer needed
-    my $last = Koha::Account::Lines->search(
-        {
-            borrowernumber => $self->{patron_id}
-        },
-        {
-            order_by => 'accountno'
-        }
-    )->next();
-    my $accountno = $last ? $last->accountno + 1 : 1;
-
-    my $manager_id = $userenv ? $userenv->{number} : 0;
-    $library_id ||= $userenv ? $userenv->{'branch'} : undef;
-    
-    my $cash_register_mngmt = undef;
-    # Check whether cash registers are activated and mandatory for payment actions.
-    # If thats the case than we need to check whether the manager has opened a cash
-    # register to use for payments.
-    if ( !$withoutCashRegisterManagement && !$sip && C4::Context->preference("ActivateCashRegisterTransactionsOnly") && $type ne 'writeoff' && $type ne 'cancelfee' ) {
-        if ( $onlinePaymentCashRegisterManagerId > 0 ) {
-            $manager_id = $onlinePaymentCashRegisterManagerId;
-        }
-        $cash_register_mngmt = C4::CashRegisterManagement->new($library_id, $manager_id);
-        
-        # if there is no open cash register of the manager we return without a doing the payment
-        return undef if (! $cash_register_mngmt->managerHasOpenCashRegister($library_id, $manager_id) );
+    my $manager_id = $userenv ? $userenv->{number} : undef;
+    if ( $onlinePaymentCashRegisterManagerId > 0 ) {
+        $manager_id = $onlinePaymentCashRegisterManagerId;
     }
-
-    my @fines_paid; # List of account lines paid on with this payment
-
-    my $balance_remaining = $amount; # Set it now so we can adjust the amount if necessary
-    $balance_remaining ||= 0;
-
-    my @account_offsets;
-
-    # We were passed a specific line to pay
-    foreach my $fine ( @$lines ) {
-        my $amount_to_pay =
-            $fine->amountoutstanding > $balance_remaining
-          ? $balance_remaining
-          : $fine->amountoutstanding;
-
-        my $old_amountoutstanding = $fine->amountoutstanding;
-        my $new_amountoutstanding = $old_amountoutstanding - $amount_to_pay;
-        $fine->amountoutstanding($new_amountoutstanding)->store();
-        $balance_remaining = $balance_remaining - $amount_to_pay;
-
-        if ( $fine->itemnumber && $fine->accounttype && ( $fine->accounttype eq 'Rep' || $fine->accounttype eq 'L' ) )
+    my $interface = $params ? ( $params->{interface} || C4::Context->interface ) : C4::Context->interface;
+    my $payment = $self->payin_amount(
         {
-            C4::Circulation::ReturnLostItem( $self->{patron_id}, $fine->itemnumber );
-        }
-
-        my $account_offset = Koha::Account::Offset->new(
-            {
-                debit_id => $fine->id,
-                type     => $offset_type,
-                amount   => $amount_to_pay * -1,
-            }
-        );
-        push( @account_offsets, $account_offset );
-
-        if ( C4::Context->preference("FinesLog") ) {
-            logaction(
-                "FINES", 'MODIFY',
-                $self->{patron_id},
-                Dumper(
-                    {
-                        action                => 'fee_payment',
-                        borrowernumber        => $fine->borrowernumber,
-                        old_amountoutstanding => $old_amountoutstanding,
-                        new_amountoutstanding => 0,
-                        amount_paid           => $old_amountoutstanding,
-                        accountlines_id       => $fine->id,
-                        accountno             => $fine->accountno,
-                        manager_id            => $manager_id,
-                        note                  => $note,
-                    }
-                )
-            );
-            push( @fines_paid, $fine->id );
-        }
-    }
-
-    # Were not passed a specific line to pay, or the payment was for more
-    # than the what was owed on the given line. In that case pay down other
-    # lines with remaining balance.
-    my @outstanding_fines;
-    @outstanding_fines = Koha::Account::Lines->search(
-        {
-            borrowernumber    => $self->{patron_id},
-            amountoutstanding => { '>' => 0 },
-        }
-    ) if $balance_remaining > 0;
-
-    foreach my $fine (@outstanding_fines) {
-        my $amount_to_pay =
-            $fine->amountoutstanding > $balance_remaining
-          ? $balance_remaining
-          : $fine->amountoutstanding;
-
-        my $old_amountoutstanding = $fine->amountoutstanding;
-        $fine->amountoutstanding( $old_amountoutstanding - $amount_to_pay );
-        $fine->store();
-
-        my $account_offset = Koha::Account::Offset->new(
-            {
-                debit_id => $fine->id,
-                type     => $offset_type,
-                amount   => $amount_to_pay * -1,
-            }
-        );
-        push( @account_offsets, $account_offset );
-
-        if ( C4::Context->preference("FinesLog") ) {
-            logaction(
-                "FINES", 'MODIFY',
-                $self->{patron_id},
-                Dumper(
-                    {
-                        action                => "fee_$type",
-                        borrowernumber        => $fine->borrowernumber,
-                        old_amountoutstanding => $old_amountoutstanding,
-                        new_amountoutstanding => $fine->amountoutstanding,
-                        amount_paid           => $amount_to_pay,
-                        accountlines_id       => $fine->id,
-                        accountno             => $fine->accountno,
-                        manager_id            => $manager_id,
-                        note                  => $note,
-                    }
-                )
-            );
-            push( @fines_paid, $fine->id );
-        }
-
-        $balance_remaining = $balance_remaining - $amount_to_pay;
-        last unless $balance_remaining > 0;
-    }
-
-    $account_type ||=
-        $type eq 'writeoff' ? 'W'
-      : $type eq 'cancelfee' ? 'CAN'
-      : defined($sip)       ? "Pay$sip"
-      :                       'Pay';
-
-    my $desc ||= $type eq 'writeoff' ? 'Writeoff' : $type eq 'cancelfee' ? 'Fine cancelled' : q{};
-    if ( $description ) {
-        $desc .= ": $description";
-    }
-
-    my $payment = Koha::Account::Line->new(
-        {
-            borrowernumber    => $self->{patron_id},
-            accountno         => $accountno,
-            date              => dt_from_string(),
-            amount            => 0 - $amount,
-            description       => $desc,
-            accounttype       => $account_type,
-            payment_type      => $payment_type,
-            amountoutstanding => 0 - $balance_remaining,
-            manager_id        => $manager_id,
-            note              => $note,
-            branchcode        => $library_id,
-        }
-    )->store();
-
-    foreach my $o ( @account_offsets ) {
-        $o->credit_id( $payment->id() );
-        $o->store();
-    }
-    
-    # If it is not SIP it is a cash payment and if cash registers are activated as too,
-    # the cash payment need to registered for the opened cash register as cash receipt
-    if ( !$withoutCashRegisterManagement && !$sip && C4::Context->preference("ActivateCashRegisterTransactionsOnly") && $type ne 'writeoff' && $type ne 'cancelfee' ) {
-        $cash_register_mngmt->registerPayment($library_id, $manager_id, $amount, $payment->id());
-    }
-
-    UpdateStats(
-        {
-            branch         => $library_id,
-            type           => $type,
-            amount         => $amount,
-            borrowernumber => $self->{patron_id},
-            accountno      => $accountno,
+            interface     => $interface,
+            type          => $type,
+            amount        => $amount,
+            payment_type  => $payment_type,
+            cash_register => $cash_register,
+            user_id       => $manager_id,
+            library_id    => $library_id,
+            item_id       => $item_id,
+            description   => $description,
+            note          => $note,
+            debits        => $lines,
+            noCashReg     => $withoutCashRegisterManagement,
         }
     );
 
-    if ( C4::Context->preference("FinesLog") ) {
-        logaction(
-            "FINES", 'CREATE',
-            $self->{patron_id},
-            Dumper(
-                {
-                    action            => "create_$type",
-                    borrowernumber    => $self->{patron_id},
-                    accountno         => $accountno,
-                    amount            => 0 - $amount,
-                    amountoutstanding => 0 - $balance_remaining,
-                    accounttype       => $account_type,
-                    accountlines_paid => \@fines_paid,
-                    manager_id        => $manager_id,
-                }
-            )
-        );
+    # NOTE: Pay historically always applied as much credit as it could to all
+    # existing outstanding debits, whether passed specific debits or otherwise.
+    if ( $payment->amountoutstanding ) {
+        $payment =
+          $payment->apply(
+            { debits => [ $self->outstanding_debits->as_list ] } );
     }
 
-    return $payment->id;
+    my $patron = Koha::Patrons->find( $self->{patron_id} );
+    my @account_offsets = $payment->debit_offsets;
+    if ( C4::Context->preference('UseEmailReceipts') ) {
+        if (
+            my $letter = C4::Letters::GetPreparedLetter(
+                module                 => 'circulation',
+                letter_code            => uc("ACCOUNT_$type"),
+                message_transport_type => 'email',
+                lang    => $patron->lang,
+                tables => {
+                    borrowers       => $self->{patron_id},
+                    branches        => $library_id,
+                },
+                substitute => {
+                    credit => $payment,
+                    offsets => \@account_offsets,
+                },
+              )
+          )
+        {
+            C4::Letters::EnqueueLetter(
+                {
+                    letter                 => $letter,
+                    borrowernumber         => $self->{patron_id},
+                    message_transport_type => 'email',
+                }
+            ) or warn "can't enqueue letter $letter";
+        }
+    }
+
+    my $renew_outcomes = [];
+    for my $message ( @{$payment->messages} ) {
+        push @{$renew_outcomes}, $message->payload;
+    }
+
+    return { payment_id => $payment->id, renew_result => $renew_outcomes };
 }
 
 =head3 add_credit
-
 This method allows adding credits to a patron's account
 
 my $credit_line = Koha::Account->new({ patron_id => $patron_id })->add_credit(
@@ -302,8 +165,8 @@ my $credit_line = Koha::Account->new({ patron_id => $patron_id })->add_credit(
         description  => $description,
         note         => $note,
         user_id      => $user_id,
+        interface    => $interface,
         library_id   => $library_id,
-        sip          => $sip,
         payment_type => $payment_type,
         type         => $credit_type,
         item_id      => $item_id
@@ -311,11 +174,13 @@ my $credit_line = Koha::Account->new({ patron_id => $patron_id })->add_credit(
 );
 
 $credit_type can be any of:
-  - 'credit'
-  - 'payment'
-  - 'forgiven'
-  - 'lost_item_return'
-  - 'writeoff'
+  - 'CREDIT'
+  - 'PAYMENT'
+  - 'FORGIVEN'
+  - 'LOST_FOUND'
+  - 'OVERPAYMENT'
+  - 'PAYMENT'
+  - 'WRITEOFF'
 
 =cut
 
@@ -323,96 +188,473 @@ sub add_credit {
 
     my ( $self, $params ) = @_;
 
-    # amount is passed as a positive value, but we store credit as negative values
-    my $amount       = $params->{amount} * -1;
-    my $description  = $params->{description} // q{};
-    my $note         = $params->{note} // q{};
-    my $user_id      = $params->{user_id};
-    my $library_id   = $params->{library_id};
-    my $sip          = $params->{sip};
-    my $payment_type = $params->{payment_type};
-    my $type         = $params->{type} || 'payment';
-    my $item_id      = $params->{item_id};
-    my $branchcode   = $params->{branchcode};
-    
-    $branchcode = C4::Context->userenv->{'branch'} if (! $branchcode );
+    # check for mandatory params
+    my @mandatory = ( 'interface', 'amount' );
+    for my $param (@mandatory) {
+        unless ( defined( $params->{$param} ) ) {
+            Koha::Exceptions::MissingParameter->throw(
+                error => "The $param parameter is mandatory" );
+        }
+    }
 
-    my $schema = Koha::Database->new->schema;
+    # amount should always be passed as a positive value
+    my $amount = $params->{amount} * -1;
+    unless ( $amount < 0 ) {
+        Koha::Exceptions::Account::AmountNotPositive->throw(
+            error => 'Debit amount passed is not positive' );
+    }
 
-    my $account_type = $Koha::Account::account_type->{$type};
-    $account_type .= $sip
-        if defined $sip &&
-           $type eq 'payment';
+    my $description   = $params->{description} // q{};
+    my $note          = $params->{note} // q{};
+    my $user_id       = $params->{user_id};
+    my $interface     = $params->{interface};
+    my $library_id    = $params->{library_id};
+    my $cash_register = $params->{cash_register};
+    my $payment_type  = $params->{payment_type};
+    my $credit_type   = $params->{type} || 'PAYMENT';
+    my $item_id       = $params->{item_id};
+
+    Koha::Exceptions::Account::RegisterRequired->throw()
+      if ( C4::Context->preference("UseCashRegisters")
+        && defined($payment_type)
+        && ( $payment_type eq 'CASH' )
+        && !defined($cash_register) );
 
     my $line;
+    my $schema = Koha::Database->new->schema;
+    try {
+        $schema->txn_do(
+            sub {
 
+                # Insert the account line
+                $line = Koha::Account::Line->new(
+                    {
+                        borrowernumber    => $self->{patron_id},
+                        date              => \'NOW()',
+                        amount            => $amount,
+                        description       => $description,
+                        credit_type_code  => $credit_type,
+                        amountoutstanding => $amount,
+                        payment_type      => $payment_type,
+                        note              => $note,
+                        manager_id        => $user_id,
+                        interface         => $interface,
+                        branchcode        => $library_id,
+                        register_id       => $cash_register,
+                        itemnumber        => $item_id,
+                    }
+                )->store();
+
+                # Record the account offset
+                my $account_offset = Koha::Account::Offset->new(
+                    {
+                        credit_id => $line->id,
+                        type   => $Koha::Account::offset_type->{$credit_type} // $Koha::Account::offset_type->{CREDIT},
+                        amount => $amount
+                    }
+                )->store();
+
+                C4::Stats::UpdateStats(
+                    {
+                        branch         => $library_id,
+                        type           => lc($credit_type),
+                        amount         => $amount,
+                        borrowernumber => $self->{patron_id},
+                    }
+                ) if grep { $credit_type eq $_ } ( 'PAYMENT', 'WRITEOFF' );
+
+                if ( C4::Context->preference("FinesLog") ) {
+                    logaction(
+                        "FINES", 'CREATE',
+                        $self->{patron_id},
+                        Dumper(
+                            {
+                                action            => "create_$credit_type",
+                                borrowernumber    => $self->{patron_id},
+                                amount            => $amount,
+                                description       => $description,
+                                amountoutstanding => $amount,
+                                credit_type_code  => $credit_type,
+                                note              => $note,
+                                itemnumber        => $item_id,
+                                manager_id        => $user_id,
+                                branchcode        => $library_id,
+                            }
+                        ),
+                        $interface
+                    );
+                }
+            }
+        );
+    }
+    catch {
+        if ( ref($_) eq 'Koha::Exceptions::Object::FKConstraint' ) {
+            if ( $_->broken_fk eq 'credit_type_code' ) {
+                Koha::Exceptions::Account::UnrecognisedType->throw(
+                    error => 'Type of credit not recognised' );
+            }
+            else {
+                $_->rethrow;
+            }
+        }
+    };
+
+    return $line;
+}
+
+=head3 payin_amount
+    my $credit = $account->payin_amount(
+        {
+            amount          => $amount,
+            type            => $credit_type,
+            payment_type    => $payment_type,
+            cash_register   => $register_id,
+            interface       => $interface,
+            library_id      => $branchcode,
+            user_id         => $staff_id,
+            debits          => $debit_lines,
+            description     => $description,
+            note            => $note
+        }
+    );
+
+This method allows an amount to be paid into a patrons account and immediately applied against debts.
+
+You can optionally pass a debts parameter which consists of an arrayref of Koha::Account::Line debit lines.
+
+$credit_type can be any of:
+  - 'PAYMENT'
+  - 'WRITEOFF'
+  - 'FORGIVEN'
+
+=cut
+
+sub payin_amount {
+    my ( $self, $params ) = @_;
+
+    # check for mandatory params
+    my @mandatory = ( 'interface', 'amount', 'type' );
+    for my $param (@mandatory) {
+        unless ( defined( $params->{$param} ) ) {
+            Koha::Exceptions::MissingParameter->throw(
+                error => "The $param parameter is mandatory" );
+        }
+    }
+
+    # Check for mandatory register
+    Koha::Exceptions::Account::RegisterRequired->throw()
+      if ( C4::Context->preference("UseCashRegisters")
+        && defined( $params->{payment_type} )
+        && ( $params->{payment_type} eq 'CASH' )
+        && !defined($params->{cash_register}) );
+
+    # amount should always be passed as a positive value
+    my $amount = $params->{amount};
+    unless ( $amount > 0 ) {
+        Koha::Exceptions::Account::AmountNotPositive->throw(
+            error => 'Payin amount passed is not positive' );
+    }
+
+    my $credit;
+    my $schema = Koha::Database->new->schema;
     $schema->txn_do(
         sub {
-            # We should remove accountno, it is no longer needed
-            my $last = Koha::Account::Lines->search( { borrowernumber => $self->{patron_id} },
-                { order_by => 'accountno' } )->next();
-            my $accountno = $last ? $last->accountno + 1 : 1;
 
-            # Insert the account line
-            $line = Koha::Account::Line->new(
-                {   borrowernumber    => $self->{patron_id},
-                    date              => \'NOW()',
-                    amount            => $amount,
-                    description       => $description,
-                    accounttype       => $account_type,
-                    amountoutstanding => $amount,
-                    payment_type      => $payment_type,
-                    note              => $note,
-                    manager_id        => $user_id,
-                    itemnumber        => $item_id,
-                    branchcode        => $branchcode
-                }
-            )->store();
+            # Add payin credit
+            $credit = $self->add_credit($params);
 
-            # Record the account offset
-            my $account_offset = Koha::Account::Offset->new(
-                {   credit_id => $line->id,
-                    type      => $Koha::Account::offset_type->{$type},
-                    amount    => $amount
-                }
-            )->store();
+            # Offset debts passed first
+            if ( exists( $params->{debits} ) ) {
+                $credit = $credit->apply(
+                    {
+                        debits      => $params->{debits},
+                        offset_type => $Koha::Account::offset_type->{$params->{type}}
+                    }
+                );
+            }
 
-            UpdateStats(
-                {   branch         => $library_id,
-                    type           => $type,
-                    amount         => $amount,
-                    borrowernumber => $self->{patron_id},
-                    accountno      => $accountno,
-                }
-            ) if grep { $type eq $_ } ('payment', 'writeoff') ;
-
-            if ( C4::Context->preference("FinesLog") ) {
-                logaction(
-                    "FINES", 'CREATE',
-                    $self->{patron_id},
-                    Dumper(
-                        {   action            => "create_$type",
-                            borrowernumber    => $self->{patron_id},
-                            accountno         => $accountno,
-                            amount            => $amount,
-                            description       => $description,
-                            amountoutstanding => $amount,
-                            accounttype       => $account_type,
-                            note              => $note,
-                            itemnumber        => $item_id,
-                            manager_id        => $user_id,
-                        }
-                    )
+            # Offset against remaining balance if AutoReconcile
+            if ( C4::Context->preference("AccountAutoReconcile")
+                && $credit->amountoutstanding != 0 )
+            {
+                $credit = $credit->apply(
+                    {
+                        debits      => [ $self->outstanding_debits->as_list ],
+                        offset_type => $Koha::Account::offset_type->{$params->{type}}
+                    }
                 );
             }
         }
     );
 
+    return $credit;
+}
+
+=head3 add_debit
+This method allows adding debits to a patron's account
+
+    my $debit_line = Koha::Account->new({ patron_id => $patron_id })->add_debit(
+        {
+            amount           => $amount,
+            description      => $description,
+            note             => $note,
+            user_id          => $user_id,
+            interface        => $interface,
+            library_id       => $library_id,
+            type             => $debit_type,
+            transaction_type => $transaction_type,
+            cash_register    => $register_id,
+            item_id          => $item_id,
+            issue_id         => $issue_id
+        }
+    );
+
+$debit_type can be any of:
+  - ACCOUNT
+  - ACCOUNT_RENEW
+  - RESERVE_EXPIRED
+  - LOST
+  - sundry
+  - NEW_CARD
+  - OVERDUE
+  - PROCESSING
+  - RENT
+  - RENT_DAILY
+  - RENT_RENEW
+  - RENT_DAILY_RENEW
+  - RESERVE
+  - PAYOUT
+
+=cut
+
+sub add_debit {
+
+    my ( $self, $params ) = @_;
+
+    # check for mandatory params
+    my @mandatory = ( 'interface', 'type', 'amount' );
+    for my $param (@mandatory) {
+        unless ( defined( $params->{$param} ) ) {
+            Koha::Exceptions::MissingParameter->throw(
+                error => "The $param parameter is mandatory" );
+        }
+    }
+
+    # check for cash register if using cash
+    Koha::Exceptions::Account::RegisterRequired->throw()
+      if ( C4::Context->preference("UseCashRegisters")
+        && defined( $params->{transaction_type} )
+        && ( $params->{transaction_type} eq 'CASH' )
+        && !defined( $params->{cash_register} ) );
+
+    # amount should always be a positive value
+    my $amount = $params->{amount};
+    unless ( $amount > 0 ) {
+        Koha::Exceptions::Account::AmountNotPositive->throw(
+            error => 'Debit amount passed is not positive' );
+    }
+    
+    my $cash_register_mngmt = undef;
+    # Check whether cash registers are activated and mandatory for payment actions.
+    # If thats the case than we need to check whether the manager has opened a cash
+    # register to use for payments.
+    if ( !$params->{noCashReg} && $params->{payment_type} eq 'CASH' && C4::Context->preference("ActivateCashRegisterTransactionsOnly") && $params->{type} eq 'PAYMENT' ) {
+        $cash_register_mngmt = C4::CashRegisterManagement->new($params->{library_id}, $params->{user_id});
+        
+        # if there is no open cash register of the manager we return without a doing the payment
+        Koha::Exceptions::Account::RegisterRequired->throw() if (! $cash_register_mngmt->managerHasOpenCashRegister($params->{library_id}, $params->{user_id}) );
+    }
+
+    my $description      = $params->{description} // q{};
+    my $note             = $params->{note} // q{};
+    my $user_id          = $params->{user_id};
+    my $interface        = $params->{interface};
+    my $library_id       = $params->{library_id};
+    my $cash_register    = $params->{cash_register};
+    my $debit_type       = $params->{type};
+    my $transaction_type = $params->{transaction_type};
+    my $item_id          = $params->{item_id};
+    my $issue_id         = $params->{issue_id};
+    my $offset_type      = $Koha::Account::offset_type->{$debit_type} // 'Manual Debit';
+
+    my $line;
+    my $schema = Koha::Database->new->schema;
+    try {
+        $schema->txn_do(
+            sub {
+
+                # Insert the account line
+                $line = Koha::Account::Line->new(
+                    {
+                        borrowernumber    => $self->{patron_id},
+                        date              => \'NOW()',
+                        amount            => $amount,
+                        description       => $description,
+                        debit_type_code   => $debit_type,
+                        amountoutstanding => $amount,
+                        payment_type      => $transaction_type,
+                        note              => $note,
+                        manager_id        => $user_id,
+                        interface         => $interface,
+                        itemnumber        => $item_id,
+                        issue_id          => $issue_id,
+                        branchcode        => $library_id,
+                        register_id       => $cash_register,
+                        (
+                            $debit_type eq 'OVERDUE'
+                            ? ( status => 'UNRETURNED' )
+                            : ()
+                        ),
+                    }
+                )->store();
+
+                # Record the account offset
+                my $account_offset = Koha::Account::Offset->new(
+                    {
+                        debit_id => $line->id,
+                        type     => $offset_type,
+                        amount   => $amount
+                    }
+                )->store();
+                
+                # If it is not SIP it is a cash payment and if cash registers are activated as too,
+                # the cash payment need to registered for the opened cash register as cash receipt
+                if ( !$params->{noCashReg} && $params->{payment_type} eq 'CASH' && C4::Context->preference("ActivateCashRegisterTransactionsOnly") && $params->{type} eq 'PAYMENT' ) {    
+                    $cash_register_mngmt->registerPayment($library_id, $user_id, $amount, $line->id());
+                }
+
+                if ( C4::Context->preference("FinesLog") ) {
+                    logaction(
+                        "FINES", 'CREATE',
+                        $self->{patron_id},
+                        Dumper(
+                            {
+                                action            => "create_$debit_type",
+                                borrowernumber    => $self->{patron_id},
+                                amount            => $amount,
+                                description       => $description,
+                                amountoutstanding => $amount,
+                                debit_type_code   => $debit_type,
+                                note              => $note,
+                                itemnumber        => $item_id,
+                                manager_id        => $user_id,
+                            }
+                        ),
+                        $interface
+                    );
+                }
+            }
+        );
+    }
+    catch {
+        if ( ref($_) eq 'Koha::Exceptions::Object::FKConstraint' ) {
+            if ( $_->broken_fk eq 'debit_type_code' ) {
+                Koha::Exceptions::Account::UnrecognisedType->throw(
+                    error => 'Type of debit not recognised' );
+            }
+            else {
+                $_->rethrow;
+            }
+        }
+    };
+
     return $line;
 }
 
-=head3 balance
+=head3 payout_amount
+    my $debit = $account->payout_amount(
+        {
+            payout_type => $payout_type,
+            register_id => $register_id,
+            staff_id    => $staff_id,
+            interface   => 'intranet',
+            amount      => $amount,
+            credits     => $credit_lines
+        }
+    );
 
+This method allows an amount to be paid out from a patrons account against outstanding credits.
+
+$payout_type can be any of the defined payment_types:
+
+=cut
+
+sub payout_amount {
+    my ( $self, $params ) = @_;
+
+    # Check for mandatory parameters
+    my @mandatory =
+      ( 'interface', 'staff_id', 'branch', 'payout_type', 'amount' );
+    for my $param (@mandatory) {
+        unless ( defined( $params->{$param} ) ) {
+            Koha::Exceptions::MissingParameter->throw(
+                error => "The $param parameter is mandatory" );
+        }
+    }
+
+    # Check for mandatory register
+    Koha::Exceptions::Account::RegisterRequired->throw()
+      if ( C4::Context->preference("UseCashRegisters")
+        && ( $params->{payout_type} eq 'CASH' )
+        && !defined($params->{cash_register}) );
+
+    # Amount should always be passed as a positive value
+    my $amount = $params->{amount};
+    unless ( $amount > 0 ) {
+        Koha::Exceptions::Account::AmountNotPositive->throw(
+            error => 'Payout amount passed is not positive' );
+    }
+
+    # Amount should always be less than or equal to outstanding credit
+    my $outstanding = 0;
+    my $outstanding_credits =
+      exists( $params->{credits} )
+      ? $params->{credits}
+      : $self->outstanding_credits->as_list;
+    for my $credit ( @{$outstanding_credits} ) {
+        $outstanding += $credit->amountoutstanding;
+    }
+    $outstanding = $outstanding * -1;
+    Koha::Exceptions::ParameterTooHigh->throw( error =>
+"Amount to payout ($amount) is higher than amountoutstanding ($outstanding)"
+    ) unless ( $outstanding >= $amount );
+
+    my $payout;
+    my $schema = Koha::Database->new->schema;
+    $schema->txn_do(
+        sub {
+
+            # A 'payout' is a 'debit'
+            $payout = $self->add_debit(
+                {
+                    amount            => $params->{amount},
+                    type              => 'PAYOUT',
+                    transaction_type  => $params->{payout_type},
+                    amountoutstanding => $params->{amount},
+                    manager_id        => $params->{staff_id},
+                    interface         => $params->{interface},
+                    branchcode        => $params->{branch},
+                    cash_register     => $params->{cash_register}
+                }
+            );
+
+            # Offset against credits
+            for my $credit ( @{$outstanding_credits} ) {
+                $credit->apply(
+                    { debits => [$payout], offset_type => 'PAYOUT' } );
+                $payout->discard_changes;
+                last if $payout->amountoutstanding == 0;
+            }
+
+            # Set payout as paid
+            $payout->status('PAID')->store;
+        }
+    );
+
+    return $payout;
+}
+
+=head3 balance
 my $balance = $self->balance
 
 Return the balance (sum of amountoutstanding columns)
@@ -421,61 +663,52 @@ Return the balance (sum of amountoutstanding columns)
 
 sub balance {
     my ($self) = @_;
-    my $fines = Koha::Account::Lines->search(
-        {
-            borrowernumber => $self->{patron_id},
-        },
-        {
-            select => [ { sum => 'amountoutstanding' } ],
-            as => ['total_amountoutstanding'],
-        }
-    );
-
-    return ( $fines->count )
-      ? $fines->next->get_column('total_amountoutstanding') + 0
-      : 0;
+    return $self->lines->total_outstanding;
 }
 
 =head3 outstanding_debits
-
 my $lines = Koha::Account->new({ patron_id => $patron_id })->outstanding_debits;
+
+It returns the debit lines with outstanding amounts for the patron.
+
+In scalar context, it returns a Koha::Account::Lines iterator. In list context, it will
+return a list of Koha::Account::Line objects.
 
 =cut
 
 sub outstanding_debits {
     my ($self) = @_;
 
-    my $lines = Koha::Account::Lines->search(
+    return $self->lines->search(
         {
-            borrowernumber    => $self->{patron_id},
+            amount            => { '>' => 0 },
             amountoutstanding => { '>' => 0 }
         }
     );
-
-    return $lines;
 }
 
 =head3 outstanding_credits
-
 my $lines = Koha::Account->new({ patron_id => $patron_id })->outstanding_credits;
+
+It returns the credit lines with outstanding amounts for the patron.
+
+In scalar context, it returns a Koha::Account::Lines iterator. In list context, it will
+return a list of Koha::Account::Line objects.
 
 =cut
 
 sub outstanding_credits {
     my ($self) = @_;
 
-    my $lines = Koha::Account::Lines->search(
+    return $self->lines->search(
         {
-            borrowernumber    => $self->{patron_id},
+            amount            => { '<' => 0 },
             amountoutstanding => { '<' => 0 }
         }
     );
-
-    return $lines;
 }
 
 =head3 non_issues_charges
-
 my $non_issues_charges = $self->non_issues_charges
 
 Calculates amount immediately owing by the patron - non-issue charges.
@@ -490,70 +723,101 @@ Charges exempt from non-issue are:
 sub non_issues_charges {
     my ($self) = @_;
 
-    # FIXME REMOVE And add a warning in the about page + update DB if length(MANUAL_INV) > 5
-    my $ACCOUNT_TYPE_LENGTH = 5;    # this is plain ridiculous...
-
+    #NOTE: With bug 23049 these preferences could be moved to being attached
+    #to individual debit types to give more flexability and specificity.
     my @not_fines;
-    push @not_fines, 'Res'
+    push @not_fines, 'RESERVE'
       unless C4::Context->preference('HoldsInNoissuesCharge');
-    push @not_fines, 'Rent'
+    push @not_fines, ( 'RENT', 'RENT_DAILY', 'RENT_RENEW', 'RENT_DAILY_RENEW' )
       unless C4::Context->preference('RentalsInNoissuesCharge');
     unless ( C4::Context->preference('ManInvInNoissuesCharge') ) {
-        my $dbh = C4::Context->dbh;
-        push @not_fines,
-          @{
-            $dbh->selectcol_arrayref(q|
-                SELECT authorised_value FROM authorised_values WHERE category = 'MANUAL_INV'
-            |)
-          };
+        my @man_inv = Koha::Account::DebitTypes->search({ is_system => 0 })->get_column('code');
+        push @not_fines, @man_inv;
     }
-    @not_fines = map { substr( $_, 0, $ACCOUNT_TYPE_LENGTH ) } uniq(@not_fines);
 
-    my $non_issues_charges = Koha::Account::Lines->search(
+    return $self->lines->search(
+        {
+            debit_type_code => { -not_in => \@not_fines }
+        },
+    )->total_outstanding;
+}
+
+=head3 lines
+my $lines = $self->lines;
+
+Return all credits and debits for the user, outstanding or otherwise
+
+=cut
+
+sub lines {
+    my ($self) = @_;
+
+    return Koha::Account::Lines->search(
         {
             borrowernumber => $self->{patron_id},
-            accounttype    => { -not_in => \@not_fines }
-        },
-        {
-            select => [ { sum => 'amountoutstanding' } ],
-            as     => ['non_issues_charges'],
         }
     );
-    return $non_issues_charges->count
-      ? $non_issues_charges->next->get_column('non_issues_charges') + 0
-      : 0;
+}
+
+=head3 reconcile_balance
+$account->reconcile_balance();
+
+Find outstanding credits and use them to pay outstanding debits.
+Currently, this implicitly uses the 'First In First Out' rule for
+applying credits against debits.
+
+=cut
+
+sub reconcile_balance {
+    my ($self) = @_;
+
+    my $outstanding_debits  = $self->outstanding_debits;
+    my $outstanding_credits = $self->outstanding_credits;
+
+    while (     $outstanding_debits->total_outstanding > 0
+            and my $credit = $outstanding_credits->next )
+    {
+        # there's both outstanding debits and credits
+        $credit->apply( { debits => [ $outstanding_debits->as_list ] } );    # applying credit, no special offset
+
+        $outstanding_debits = $self->outstanding_debits;
+
+    }
+
+    return $self;
 }
 
 1;
 
 =head2 Name mappings
-
 =head3 $offset_type
-
 =cut
 
 our $offset_type = {
-    'credit'           => 'Manual Credit',
-    'forgiven'         => 'Writeoff',
-    'lost_item_return' => 'Lost Item Return',
-    'payment'          => 'Payment',
-    'writeoff'         => 'Writeoff'
+    'CREDIT'           => 'Manual Credit',
+    'FORGIVEN'         => 'Writeoff',
+    'LOST_FOUND'       => 'Lost Item Found',
+    'OVERPAYMENT'      => 'Overpayment',
+    'PAYMENT'          => 'Payment',
+    'WRITEOFF'         => 'Writeoff',
+    'ACCOUNT'          => 'Account Fee',
+    'ACCOUNT_RENEW'    => 'Account Fee',
+    'RESERVE'          => 'Reserve Fee',
+    'PROCESSING'       => 'Processing Fee',
+    'LOST'             => 'Lost Item',
+    'RENT'             => 'Rental Fee',
+    'RENT_DAILY'       => 'Rental Fee',
+    'RENT_RENEW'       => 'Rental Fee',
+    'RENT_DAILY_RENEW' => 'Rental Fee',
+    'OVERDUE'          => 'OVERDUE',
+    'RESERVE_EXPIRED'  => 'Hold Expired',
+    'PAYOUT'           => 'PAYOUT',
 };
 
-=head3 $account_type
-
-=cut
-
-our $account_type = {
-    'credit'           => 'C',
-    'forgiven'         => 'FOR',
-    'lost_item_return' => 'CR',
-    'payment'          => 'Pay',
-    'writeoff'         => 'W'
-};
-
-=head1 AUTHOR
-
+=head1 AUTHORS
+=encoding utf8
 Kyle M Hall <kyle.m.hall@gmail.com>
+Tomás Cohen Arazi <tomascohen@gmail.com>
+Martin Renvoize <martin.renvoize@ptfs-europe.com>
 
 =cut

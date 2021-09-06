@@ -26,14 +26,18 @@ use C4::Output;
 use C4::Context;
 use C4::Search qw/enabled_staff_search_views/;
 
+use Koha::AdditionalFields;
 use Koha::AuthorisedValues;
 use Koha::DateUtils;
 use Koha::Acquisition::Bookseller;
+use Koha::Subscriptions;
 
 use Date::Calc qw/Today Day_of_Year Week_of_Year Add_Delta_Days/;
 use Carp;
 
-my $query = new CGI;
+use Koha::SharedContent;
+
+my $query = CGI->new;
 my $op = $query->param('op') || q{};
 my $issueconfirmed = $query->param('issueconfirmed');
 my $dbh = C4::Context->dbh;
@@ -45,7 +49,7 @@ if ( $op and $op eq "close" ) {
     C4::Serials::ReopenSubscription( $subscriptionid );
 }
 
-# the subscription must be deletable if there is NO issues for a reason or another (should not happend, but...)
+# the subscription must be deletable if there is NO issues for a reason or another (should not happened, but...)
 
 # Permission needed if it is a deletion (del) : delete_subscription
 # Permission needed otherwise : *
@@ -55,11 +59,9 @@ my ($template, $loggedinuser, $cookie)
 = get_template_and_user({template_name => "serials/subscription-detail.tt",
                 query => $query,
                 type => "intranet",
-                authnotrequired => 0,
                 flagsrequired => {serials => $permission},
                 debug => 1,
                 });
-
 
 my $subs = GetSubscription($subscriptionid);
 
@@ -72,31 +74,38 @@ my ($totalissues,@serialslist) = GetSerials($subscriptionid);
 $totalissues-- if $totalissues; # the -1 is to have 0 if this is a new subscription (only 1 issue)
 
 if ($op eq 'del') {
-	if ($$subs{'cannotedit'}){
-		carp "Attempt to delete subscription $subscriptionid by ".C4::Context->userenv->{'id'}." not allowed";
-		print $query->redirect("/cgi-bin/koha/serials/subscription-detail.pl?subscriptionid=$subscriptionid");
-		exit;
-	}
-	
+    if ($$subs{'cannotedit'}){
+        carp "Attempt to delete subscription $subscriptionid by ".C4::Context->userenv->{'id'}." not allowed";
+        print $query->redirect("/cgi-bin/koha/serials/subscription-detail.pl?subscriptionid=$subscriptionid");
+        exit;
+    }
+
     # Asking for confirmation if the subscription has not strictly expired yet or if it has linked issues
     my $strictlyexpired = HasSubscriptionStrictlyExpired($subscriptionid);
     my $linkedissues = CountIssues($subscriptionid);
     my $countitems   = HasItems($subscriptionid);
     if ($strictlyexpired == 0 || $linkedissues > 0 || $countitems>0) {
-		$template->param(NEEDSCONFIRMATION => 1);
-		if ($strictlyexpired == 0) { $template->param("NOTEXPIRED" => 1); }
-		if ($linkedissues     > 0) { $template->param("LINKEDISSUES" => 1); }
-		if ($countitems       > 0) { $template->param("LINKEDITEMS"  => 1); }
+        $template->param(NEEDSCONFIRMATION => 1);
+        if ($strictlyexpired == 0) { $template->param("NOTEXPIRED" => 1); }
+        if ($linkedissues     > 0) { $template->param("LINKEDISSUES" => 1); }
+        if ($countitems       > 0) { $template->param("LINKEDITEMS"  => 1); }
     } else {
-		$issueconfirmed = "1";
+        $issueconfirmed = "1";
     }
     # If it's ok to delete the subscription, we do so
     if ($issueconfirmed eq "1") {
-		&DelSubscription($subscriptionid);
+        &DelSubscription($subscriptionid);
         print $query->redirect("/cgi-bin/koha/serials/serials-home.pl");
         exit;
     }
 }
+elsif ( $op and $op eq "share" ) {
+    my $mana_language = $query->param('mana_language');
+    my $result = Koha::SharedContent::send_entity($mana_language, $loggedinuser, $subscriptionid, 'subscription');
+    $template->param( mana_code => $result->{msg} );
+    $subs->{mana_id} = $result->{id};
+}
+
 my $hasRouting = check_routing($subscriptionid);
 
 (undef, $cookie, undef, undef)
@@ -120,39 +129,31 @@ my $numberpattern = C4::Serials::Numberpattern::GetSubscriptionNumberpattern($su
 
 my $default_bib_view = get_default_view();
 
-my ( $order, $bookseller, $tmpl_infos );
-if ( defined $subscriptionid ) {
-    my $lastOrderNotReceived = GetLastOrderNotReceivedFromSubscriptionid $subscriptionid;
-    my $lastOrderReceived = GetLastOrderReceivedFromSubscriptionid $subscriptionid;
-    if ( defined $lastOrderNotReceived ) {
-        my $basket = GetBasket $lastOrderNotReceived->{basketno};
-        my $bookseller = Koha::Acquisition::Booksellers->find( $basket->{booksellerid} );
-        ( $tmpl_infos->{value_tax_included_ordered}, $tmpl_infos->{value_tax_excluded_ordered} ) = get_value_with_gst_params ( $lastOrderNotReceived->{ecost}, $lastOrderNotReceived->{tax_rate}, $bookseller );
-        $tmpl_infos->{value_tax_included_ordered} = sprintf( "%.2f", $tmpl_infos->{value_tax_included_ordered} );
-        $tmpl_infos->{value_tax_excluded_ordered} = sprintf( "%.2f", $tmpl_infos->{value_tax_excluded_ordered} );
-        $tmpl_infos->{budget_name_ordered} = GetBudgetName $lastOrderNotReceived->{budget_id};
-        $tmpl_infos->{basketno} = $lastOrderNotReceived->{basketno};
-        $tmpl_infos->{ordered_exists} = 1;
-    }
-    if ( defined $lastOrderReceived ) {
-        my $basket = GetBasket $lastOrderReceived->{basketno};
-        my $bookseller = Koha::Acquisition::Booksellers->find( $basket->{booksellerid} );
-        ( $tmpl_infos->{value_tax_included_spent}, $tmpl_infos->{value_tax_excluded_spent} ) = get_value_with_gst_params ( $lastOrderReceived->{unitprice}, $lastOrderReceived->{tax_rate}, $bookseller );
-        $tmpl_infos->{value_tax_included_spent} = sprintf( "%.2f", $tmpl_infos->{value_tax_included_spent} );
-        $tmpl_infos->{value_tax_excluded_spent} = sprintf( "%.2f", $tmpl_infos->{value_tax_excluded_spent} );
-        $tmpl_infos->{budget_name_spent} = GetBudgetName $lastOrderReceived->{budget_id};
-        $tmpl_infos->{invoiceid} = $lastOrderReceived->{invoiceid};
-        $tmpl_infos->{spent_exists} = 1;
-    }
-}
+my $subscription_object = Koha::Subscriptions->find( $subscriptionid );
+$template->param(
+    available_additional_fields => [ Koha::AdditionalFields->search( { tablename => 'subscription' } ) ],
+    additional_field_values => {
+        map { $_->field->name => $_->value }
+          $subscription_object->additional_field_values->as_list
+    },
+);
 
-my $additional_fields = Koha::AdditionalField->all( { tablename => 'subscription' } );
-for my $field ( @$additional_fields ) {
-    if ( $field->{authorised_value_category} ) {
-        $field->{authorised_value_choices} = GetAuthorisedValues( $field->{authorised_value_category} );
+# FIXME Do we want to hide canceled orders?
+my $orders = Koha::Acquisition::Orders->search( { subscriptionid => $subscriptionid }, { order_by => [ { -desc => 'timestamp' }, \[ "field(orderstatus, 'ordered', 'partial', 'complete')" ] ] } );
+my $orders_grouped;
+while ( my $o = $orders->next ) {
+    if ( $o->ordernumber == $o->parent_ordernumber ) {
+        $orders_grouped->{$o->parent_ordernumber}->{datereceived} = $o->datereceived;
+        $orders_grouped->{$o->parent_ordernumber}->{orderstatus} = $o->orderstatus;
+        $orders_grouped->{$o->parent_ordernumber}->{basket} = $o->basket;
     }
+    $orders_grouped->{$o->parent_ordernumber}->{quantity} += $o->quantity;
+    $orders_grouped->{$o->parent_ordernumber}->{ecost_tax_excluded} += sprintf('%.2f', $o->ecost_tax_excluded * $o->quantity);
+    $orders_grouped->{$o->parent_ordernumber}->{ecost_tax_included} += sprintf('%.2f', $o->ecost_tax_included * $o->quantity);
+    $orders_grouped->{$o->parent_ordernumber}->{unitprice_tax_excluded} += sprintf('%.2f', $o->unitprice_tax_excluded * $o->quantity);
+    $orders_grouped->{$o->parent_ordernumber}->{unitprice_tax_included} += sprintf('%.2f', $o->unitprice_tax_included * $o->quantity);
+    push @{$orders_grouped->{$o->parent_ordernumber}->{orders}}, $o;
 }
-$template->param( additional_fields_for_subscription => $additional_fields );
 
 $template->param(
     subscriptionid => $subscriptionid,
@@ -170,10 +171,9 @@ $template->param(
     intranetcolorstylesheet => C4::Context->preference('intranetcolorstylesheet'),
     irregular_issues => scalar @irregular_issues,
     default_bib_view => $default_bib_view,
+    orders_grouped => $orders_grouped,
     (uc(C4::Context->preference("marcflavour"))) => 1,
-    show_acquisition_details => defined $tmpl_infos->{ordered_exists} || defined $tmpl_infos->{spent_exists} ? 1 : 0,
-    basketno => $order->{basketno},
-    %$tmpl_infos,
+    mana_comments => $subs->{comments},
 );
 
 output_html_with_http_headers $query, $cookie, $template->output;
@@ -191,37 +191,4 @@ sub get_default_view {
         return 'labeledMARCdetail';
     }
     return 'detail';
-}
-
-sub get_value_with_gst_params {
-    my $value = shift;
-    my $tax_rate = shift;
-    my $bookseller = shift;
-    if ( $bookseller->listincgst ) {
-        return ( $value, $value / ( 1 + $tax_rate ) );
-    } else {
-        return ( $value * ( 1 + $tax_rate ), $value );
-    }
-}
-
-sub get_tax_excluded {
-    my $value = shift;
-    my $tax_rate = shift;
-    my $bookseller = shift;
-    if ( $bookseller->invoiceincgst ) {
-        return $value / ( 1 + $tax_rate );
-    } else {
-        return $value;
-    }
-}
-
-sub get_gst {
-    my $value = shift;
-    my $tax_rate = shift;
-    my $bookseller = shift;
-    if ( $bookseller->invoiceincgst ) {
-        return $value / ( 1 + $tax_rate ) * $tax_rate;
-    } else {
-        return $value * ( 1 + $tax_rate ) - $value;
-    }
 }

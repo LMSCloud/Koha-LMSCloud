@@ -26,14 +26,13 @@ use C4::Output;
 use C4::Context;
 use Koha::Patrons;
 
-my $cgi = new CGI;
+my $cgi = CGI->new;
 
 my ( $template, $loggedinuser, $cookie, $flags ) = get_template_and_user(
     {
         template_name   => "members/merge-patrons.tt",
         query           => $cgi,
         type            => "intranet",
-        authnotrequired => 0,
         flagsrequired   => { borrowers => 'edit_borrowers' },
     }
 );

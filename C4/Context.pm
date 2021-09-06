@@ -21,90 +21,35 @@ use Modern::Perl;
 
 use vars qw($AUTOLOAD $context @context_stack);
 BEGIN {
-	if ($ENV{'HTTP_USER_AGENT'})	{
-		require CGI::Carp;
-        # FIXME for future reference, CGI::Carp doc says
-        #  "Note that fatalsToBrowser does not work with mod_perl version 2.0 and higher."
-		import CGI::Carp qw(fatalsToBrowser);
-			sub handle_errors {
-			    my $msg = shift;
-			    my $debug_level;
-			    eval {C4::Context->dbh();};
-			    if ($@){
-				$debug_level = 1;
-			    } 
-			    else {
-				$debug_level =  C4::Context->preference("DebugLevel");
-			    }
-
-                print q(<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
-                            "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
-                       <html lang="en" xml:lang="en"  xmlns="http://www.w3.org/1999/xhtml">
-                       <head><title>Koha Error</title></head>
-                       <body>
-                );
-				if ($debug_level eq "2"){
-					# debug 2 , print extra info too.
-					my %versions = get_versions();
-
-		# a little example table with various version info";
-					print "
-						<h1>Koha error</h1>
-						<p>The following fatal error has occurred:</p> 
-                        <pre><code>$msg</code></pre>
-						<table>
-						<tr><th>Apache</th><td>  $versions{apacheVersion}</td></tr>
-						<tr><th>Koha</th><td>    $versions{kohaVersion}</td></tr>
-						<tr><th>Koha DB</th><td> $versions{kohaDbVersion}</td></tr>
-						<tr><th>MySQL</th><td>   $versions{mysqlVersion}</td></tr>
-						<tr><th>OS</th><td>      $versions{osVersion}</td></tr>
-						<tr><th>Perl</th><td>    $versions{perlVersion}</td></tr>
-						</table>";
-
-				} elsif ($debug_level eq "1"){
-					print "
-						<h1>Koha error</h1>
-						<p>The following fatal error has occurred:</p> 
-                        <pre><code>$msg</code></pre>";
-				} else {
-					print "<p>production mode - trapped fatal error</p>";
-				}       
-                print "</body></html>";
-			}
-		#CGI::Carp::set_message(\&handle_errors);
-		## give a stack backtrace if KOHA_BACKTRACES is set
-		## can't rely on DebugLevel for this, as we're not yet connected
-		if ($ENV{KOHA_BACKTRACES}) {
-			$main::SIG{__DIE__} = \&CGI::Carp::confess;
-		}
+    if ( $ENV{'HTTP_USER_AGENT'} ) { # Only hit when plack is not enabled
 
         # Redefine multi_param if cgi version is < 4.08
         # Remove the "CGI::param called in list context" warning in this case
-        require CGI; # Can't check version without the require.
-        if (!defined($CGI::VERSION) || $CGI::VERSION < 4.08) {
+        require CGI;    # Can't check version without the require.
+        if ( !defined($CGI::VERSION) || $CGI::VERSION < 4.08 ) {
             no warnings 'redefine';
             *CGI::multi_param = \&CGI::param;
             use warnings 'redefine';
             $CGI::LIST_CONTEXT_WARN = 0;
         }
-    }  	# else there is no browser to send fatals to!
-}
+    }
+};
 
-use Encode;
-use ZOOM;
-use Koha::Caches;
-use POSIX ();
-use DateTime::TimeZone;
-use Module::Load::Conditional qw(can_load);
 use Carp;
 use DateTime::TimeZone;
+use Encode;
+use File::Spec;
+use Module::Load::Conditional qw(can_load);
+use POSIX ();
+use YAML::XS;
+use ZOOM;
 
-use C4::Boolean;
 use C4::Debug;
-use Koha;
-use Koha::Config;
+use Koha::Caches;
 use Koha::Config::SysPref;
 use Koha::Config::SysPrefs;
+use Koha::Config;
+use Koha;
 
 =head1 NAME
 
@@ -210,8 +155,8 @@ sub import {
 
 =head2 new
 
-  $context = new C4::Context;
-  $context = new C4::Context("/path/to/koha-conf.xml");
+  $context = C4::Context->new;
+  $context = C4::Context->new("/path/to/koha-conf.xml");
 
 Allocates a new context. Initializes the context from the specified
 file, which defaults to either the file given by the C<$KOHA_CONF>
@@ -232,7 +177,6 @@ that, use C<&set_context>.
 sub new {
     my $class = shift;
     my $conf_fname = shift;        # Config file to load
-    my $self = {};
 
     # check that the specified config file exists and is not empty
     undef $conf_fname unless 
@@ -246,19 +190,7 @@ sub new {
         }
     }
 
-    my $conf_cache = Koha::Caches->get_instance('config');
-    my $config_from_cache;
-    if ( $conf_cache->cache ) {
-        $self = $conf_cache->get_from_cache('koha_conf');
-    }
-    unless ( $self and %$self ) {
-        $self = Koha::Config->read_from_file($conf_fname);
-        if ( $conf_cache->memcached_cache ) {
-            # FIXME it may be better to use the memcached servers from the config file
-            # to cache it
-            $conf_cache->set_in_cache('koha_conf', $self)
-        }
-    }
+    my $self = Koha::Config->read_from_file($conf_fname);
     unless ( exists $self->{config} or defined $self->{config} ) {
         warn "The config file ($conf_fname) has not been parsed correctly";
         return;
@@ -367,7 +299,7 @@ C<C4::Config-E<gt>new> will not return it.
 sub _common_config {
 	my $var = shift;
 	my $term = shift;
-    return if !defined($context->{$term});
+    return unless defined $context and defined $context->{$term};
        # Presumably $self->{$term} might be
        # undefined if the config file given to &new
        # didn't exist, and the caller didn't bother
@@ -382,9 +314,6 @@ sub config {
 }
 sub zebraconfig {
 	return _common_config($_[1],'server');
-}
-sub ModZebrations {
-	return _common_config($_[1],'serverinfo');
 }
 
 =head2 preference
@@ -403,19 +332,18 @@ with this method.
 
 =cut
 
-my $syspref_cache = Koha::Caches->get_instance('syspref');
 my $use_syspref_cache = 1;
 sub preference {
     my $self = shift;
     my $var  = shift;    # The system preference to return
 
-    return $ENV{"OVERRIDE_SYSPREF_$var"}
+    return Encode::decode_utf8($ENV{"OVERRIDE_SYSPREF_$var"})
         if defined $ENV{"OVERRIDE_SYSPREF_$var"};
 
     $var = lc $var;
 
     if ($use_syspref_cache) {
-        $syspref_cache = Koha::Caches->get_instance('syspref') unless $syspref_cache;
+        my $syspref_cache = Koha::Caches->get_instance('syspref');
         my $cached_var = $syspref_cache->get_from_cache("syspref_$var");
         return $cached_var if defined $cached_var;
     }
@@ -425,16 +353,30 @@ sub preference {
     my $value = $syspref ? $syspref->value() : undef;
 
     if ( $use_syspref_cache ) {
+        my $syspref_cache = Koha::Caches->get_instance('syspref');
         $syspref_cache->set_in_cache("syspref_$var", $value);
     }
     return $value;
 }
 
-sub boolean_preference {
-    my $self = shift;
-    my $var = shift;        # The system preference to return
-    my $it = preference($self, $var);
-    return defined($it)? C4::Boolean::true_p($it): undef;
+=head2 yaml_preference
+
+Retrieves the required system preference value, and converts it
+from YAML into a Perl data structure. It throws an exception if
+the value cannot be properly decoded as YAML.
+
+=cut
+
+sub yaml_preference {
+    my ( $self, $preference ) = @_;
+
+    my $yaml = eval { YAML::XS::Load( Encode::encode_utf8( $self->preference( $preference ) ) ); };
+    if ($@) {
+        warn "Unable to parse $preference syspref : $@";
+        return;
+    }
+
+    return $yaml;
 }
 
 =head2 enable_syspref_cache
@@ -480,6 +422,7 @@ will not be seen by this process.
 
 sub clear_syspref_cache {
     return unless $use_syspref_cache;
+    my $syspref_cache = Koha::Caches->get_instance('syspref');
     $syspref_cache->flush_all;
 }
 
@@ -533,6 +476,7 @@ sub set_preference {
     }
 
     if ( $use_syspref_cache ) {
+        my $syspref_cache = Koha::Caches->get_instance('syspref');
         $syspref_cache->set_in_cache( "syspref_$variable", $value );
     }
 
@@ -554,6 +498,7 @@ sub delete_preference {
 
     if ( Koha::Config::SysPrefs->find( $var )->delete ) {
         if ( $use_syspref_cache ) {
+            my $syspref_cache = Koha::Caches->get_instance('syspref');
             $syspref_cache->clear_from_cache("syspref_$var");
         }
 
@@ -608,34 +553,19 @@ sub _new_Zconn {
     my $tried=0; # first attempt
     my $Zconn; # connection object
     my $elementSetName;
-    my $index_mode;
     my $syntax;
 
     $server //= "biblioserver";
 
-    if ( $server eq 'biblioserver' ) {
-        $index_mode = $context->{'config'}->{'zebra_bib_index_mode'} // 'dom';
-    } elsif ( $server eq 'authorityserver' ) {
-        $index_mode = $context->{'config'}->{'zebra_auth_index_mode'} // 'dom';
-    }
-
-    if ( $index_mode eq 'grs1' ) {
-        $elementSetName = 'F';
-        $syntax = ( $context->preference("marcflavour") eq 'UNIMARC' )
-                ? 'unimarc'
-                : 'usmarc';
-
-    } else { # $index_mode eq 'dom'
-        $syntax = 'xml';
-        $elementSetName = 'marcxml';
-    }
+    $syntax = 'xml';
+    $elementSetName = 'marcxml';
 
     my $host = $context->{'listen'}->{$server}->{'content'};
     my $user = $context->{"serverinfo"}->{$server}->{"user"};
     my $password = $context->{"serverinfo"}->{$server}->{"password"};
     eval {
         # set options
-        my $o = new ZOOM::Options();
+        my $o = ZOOM::Options->new();
         $o->option(user => $user) if $user && $password;
         $o->option(password => $password) if $user && $password;
         $o->option(async => 1) if $async;
@@ -689,7 +619,6 @@ sub dbh
 {
     my $self = shift;
     my $params = shift;
-    my $sth;
 
     unless ( $params->{new} ) {
         return Koha::Database->schema->storage->dbh;
@@ -777,53 +706,6 @@ sub restore_dbh
     # return something, then this function should, too.
 }
 
-=head2 queryparser
-
-  $queryparser = C4::Context->queryparser
-
-Returns a handle to an initialized Koha::QueryParser::Driver::PQF object.
-
-=cut
-
-sub queryparser {
-    my $self = shift;
-    unless (defined $context->{"queryparser"}) {
-        $context->{"queryparser"} = &_new_queryparser();
-    }
-
-    return
-      defined( $context->{"queryparser"} )
-      ? $context->{"queryparser"}->new
-      : undef;
-}
-
-=head2 _new_queryparser
-
-Internal helper function to create a new QueryParser object. QueryParser
-is loaded dynamically so as to keep the lack of the QueryParser library from
-getting in anyone's way.
-
-=cut
-
-sub _new_queryparser {
-    my $qpmodules = {
-        'OpenILS::QueryParser'           => undef,
-        'Koha::QueryParser::Driver::PQF' => undef
-    };
-    if ( can_load( 'modules' => $qpmodules ) ) {
-        my $QParser     = Koha::QueryParser::Driver::PQF->new();
-        my $config_file = $context->config('queryparser_config');
-        $config_file ||= '/etc/koha/searchengine/queryparser.yaml';
-        if ( $QParser->load_config($config_file) ) {
-            # Set 'keyword' as the default search class
-            $QParser->default_search_class('keyword');
-            # TODO: allow indexes to be configured in the database
-            return $QParser;
-        }
-    }
-    return;
-}
-
 =head2 userenv
 
   C4::Context->userenv;
@@ -850,7 +732,9 @@ sub userenv {
   C4::Context->set_userenv($usernum, $userid, $usercnum,
                            $userfirstname, $usersurname,
                            $userbranch, $branchname, $userflags,
-                           $emailaddress, $branchprinter, $shibboleth);
+                           $emailaddress, $shibboleth
+                           $desk_id, $desk_name,
+                           $register_id, $register_name);
 
 Establish a hash of user environment variables.
 
@@ -861,9 +745,13 @@ set_userenv is called in Auth.pm
 #'
 sub set_userenv {
     shift @_;
-    my ($usernum, $userid, $usercnum, $userfirstname, $usersurname, $userbranch, $branchname, $userflags, $emailaddress, $branchprinter, $shibboleth, $branchcategory)=
-    map { Encode::is_utf8( $_ ) ? $_ : Encode::decode('UTF-8', $_) } # CGI::Session doesn't handle utf-8, so we decode it here
-    @_;
+    my (
+        $usernum,      $userid,     $usercnum,   $userfirstname,
+        $usersurname,  $userbranch, $branchname, $userflags,
+        $emailaddress, $shibboleth, $desk_id,    $desk_name,
+        $register_id,  $register_name, $branchcategory
+    ) = @_;
+
     my $var=$context->{"activeuser"} || '';
     my $cell = {
         "number"     => $usernum,
@@ -871,14 +759,18 @@ sub set_userenv {
         "cardnumber" => $usercnum,
         "firstname"  => $userfirstname,
         "surname"    => $usersurname,
+
         #possibly a law problem
-        "branch"     => $userbranch,
-        "branchname" => $branchname,
-        "flags"      => $userflags,
-        "emailaddress"     => $emailaddress,
-        "branchprinter"    => $branchprinter,
-        "shibboleth" => $shibboleth,
-        "branchcategory" => $branchcategory,
+        "branch"        => $userbranch,
+        "branchname"    => $branchname,
+        "flags"         => $userflags,
+        "emailaddress"  => $emailaddress,
+        "shibboleth"    => $shibboleth,
+        "desk_id"       => $desk_id,
+        "desk_name"     => $desk_name,
+        "register_id"   => $register_id,
+        "register_name" => $register_name,
+        "branchcategory" => $branchcategory
     };
     $context->{userenv}->{$var} = $cell;
     return $cell;
@@ -1044,7 +936,13 @@ sub interface {
 
     if (defined $interface) {
         $interface = lc $interface;
-        if ($interface eq 'opac' || $interface eq 'intranet' || $interface eq 'sip' || $interface eq 'commandline') {
+        if (   $interface eq 'api'
+            || $interface eq 'opac'
+            || $interface eq 'intranet'
+            || $interface eq 'sip'
+            || $interface eq 'cron'
+            || $interface eq 'commandline' )
+        {
             $context->{interface} = $interface;
         } else {
             warn "invalid interface : '$interface'";
@@ -1077,7 +975,77 @@ sub only_my_library {
       && C4::Context->userenv->{branch};
 }
 
+=head3 temporary_directory
+
+Returns root directory for temporary storage
+
+=cut
+
+sub temporary_directory {
+    my ( $class ) = @_;
+    return C4::Context->config('tmp_path') || File::Spec->tmpdir;
+}
+
+=head3 set_remote_address
+
+set_remote_address should be called at the beginning of every script
+that is *not* running under plack in order to the REMOTE_ADDR environment
+variable to be set correctly.
+
+=cut
+
+sub set_remote_address {
+    if ( C4::Context->config('koha_trusted_proxies') ) {
+        require CGI;
+        my $header = CGI->http('HTTP_X_FORWARDED_FOR');
+
+        if ($header) {
+            require Koha::Middleware::RealIP;
+            $ENV{REMOTE_ADDR} = Koha::Middleware::RealIP::get_real_ip( $ENV{REMOTE_ADDR}, $header );
+        }
+    }
+}
+
+=head3 https_enabled
+
+https_enabled should be called when checking if a HTTPS connection
+is used.
+
+Note that this depends on a HTTPS environmental variable being defined
+by the web server. This function may not return the expected result,
+if your web server or reverse proxies are not setting the correct
+X-Forwarded-Proto headers and HTTPS environmental variable.
+
+Note too that the HTTPS value can vary from web server to web server.
+We are relying on the convention of the value being "on" or "ON" here.
+
+=cut
+
+sub https_enabled {
+    my $https_enabled = 0;
+    my $env_https = $ENV{HTTPS};
+    if ($env_https){
+        if ($env_https =~ /^ON$/i){
+            $https_enabled = 1;
+        }
+    }
+    return $https_enabled;
+}
+
 1;
+
+=head3 needs_install
+
+    if ( $context->needs_install ) { ... }
+
+This method returns a boolean representing the install status of the Koha instance.
+
+=cut
+
+sub needs_install {
+    my ($self) = @_;
+    return ($self->preference('Version')) ? 0 : 1;
+}
 
 __END__
 
@@ -1086,10 +1054,6 @@ __END__
 =head2 C<KOHA_CONF>
 
 Specifies the configuration file to read.
-
-=head1 SEE ALSO
-
-XML::Simple
 
 =head1 AUTHORS
 

@@ -41,7 +41,7 @@ my $builder = sub {
     my ( $params ) = @_;
     my $function_name = $params->{id};
     my $res           = "
-  <script type='text/javascript'>
+  <script>
              function Click$function_name(event) {
                        defaultvalue=document.getElementById(event.data.id).value;
                  window.open(\"/cgi-bin/koha/cataloguing/plugin_launcher.pl?plugin_name=marc21_linking_section.pl&index=\" + event.data.id + \"&result=\"+defaultvalue, 'tag_editor', 'width=900,height=700,toolbar=false,scrollbars=yes');
@@ -78,7 +78,6 @@ my $launcher = sub {
             {   template_name   => "cataloguing/value_builder/marc21_linking_section.tt",
                 query           => $query,
                 type            => "intranet",
-                authnotrequired => 0,
                 flagsrequired   => { editcatalogue => '*' },
                 debug           => 1,
             }
@@ -172,15 +171,8 @@ my $launcher = sub {
         my $startfrom      = $query->param('startfrom');
         my $resultsperpage = $query->param('resultsperpage') || 20;
         my $orderby;
-        my $QParser;
-        $QParser = C4::Context->queryparser if ( C4::Context->preference('UseQueryParser') );
-        my $op;
+        my $op = 'and';
 
-        if ($QParser) {
-            $op = '&&';
-        } else {
-            $op = 'and';
-        }
         my $searcher = Koha::SearchEngine::Search->new(
             { index => $Koha::SearchEngine::BIBLIOS_INDEX } );
         $search = 'kw:' . $search . " $op mc-itemtype:" . $itype if $itype;
@@ -199,7 +191,6 @@ my $launcher = sub {
             {   template_name   => "cataloguing/value_builder/marc21_linking_section.tt",
                 query           => $query,
                 type            => 'intranet',
-                authnotrequired => 0,
                 debug           => 1,
             }
         );
@@ -213,7 +204,7 @@ my $launcher = sub {
         }
         my @arrayresults;
         my @field_data = ($search);
-        for ( my $i = 0 ; $i < $resultsperpage ; $i++ ) {
+        for ( my $i = 0 ; $i < $total && $i < $resultsperpage ; $i++ ) {
             my $record = C4::Search::new_record_from_zebra( 'biblioserver', $results->[$i] );
             my $rechash = TransformMarcToKoha( $record );
             my $pos;
@@ -307,7 +298,6 @@ my $launcher = sub {
             {   template_name   => "cataloguing/value_builder/marc21_linking_section.tt",
                 query           => $query,
                 type            => "intranet",
-                authnotrequired => 0,
             }
         );
 

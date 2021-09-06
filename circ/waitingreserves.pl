@@ -40,7 +40,7 @@ use Koha::Items;
 use Koha::ItemTypes;
 use Koha::Patrons;
 
-my $input = new CGI;
+my $input = CGI->new;
 
 my $item           = $input->param('itemnumber');
 my $borrowernumber = $input->param('borrowernumber');
@@ -55,7 +55,6 @@ my ( $template, $loggedinuser, $cookie, $flags ) = get_template_and_user(
         template_name   => "circ/waitingreserves.tt",
         query           => $input,
         type            => "intranet",
-        authnotrequired => 0,
         flagsrequired   => { circulate => "circulate_remaining_permissions" },
         debug           => 1,
     }
@@ -81,43 +80,16 @@ if ( C4::Context->preference('IndependentBranches') ) {
 }
 $template->param( all_branches => 1 ) if $all_branches;
 
-my (@reservloop, @overloop);
-my ($reservcount, $overcount);
+my (@reserve_loop, @over_loop);
 # FIXME - Is priority => 0 useful? If yes it must be moved to waiting, otherwise we need to remove it from here.
 my $holds = Koha::Holds->waiting->search({ priority => 0, ( $all_branches ? () : ( branchcode => $default ) ) }, { order_by => ['waitingdate'] });
+
 # get reserves for the branch we are logged into, or for all branches
 
 my $today = Date_to_Days(&Today);
-my $max_pickup_delay = C4::Context->preference('ReservesMaxPickUpDelay');
 
 while ( my $hold = $holds->next ) {
-    next unless ($hold->waitingdate && $hold->waitingdate ne '0000-00-00');
-
-    my $item = $hold->item;
-    my $patron = $hold->borrower;
-    my $biblio = $item->biblio;
-    my $holdingbranch = $item->holdingbranch;
-    my $homebranch = $item->homebranch;
-
-    my %getreserv = (
-        title             => $biblio->title,
-        itemnumber        => $item->itemnumber,
-        waitingdate       => $hold->waitingdate,
-        reservedate       => $hold->reservedate,
-        borrowernum       => $patron->borrowernumber,
-        biblionumber      => $biblio->biblionumber,
-        barcode           => $item->barcode,
-        homebranch        => $homebranch,
-        holdingbranch     => $item->holdingbranch,
-        itemcallnumber    => $item->itemcallnumber,
-        enumchron         => $item->enumchron,
-        copynumber        => $item->copynumber,
-        borrowername      => $patron->surname, # FIXME Let's send $patron to the template
-        borrowerfirstname => $patron->firstname,
-        borrowerphone     => $patron->phone,
-    );
-
-    my $itemtype = Koha::ItemTypes->find( $item->effective_itemtype );
+    next unless $hold->waitingdate;
 
     my $calcDate;
     if ( $hold->expirationdate ) {
@@ -125,41 +97,28 @@ while ( my $hold = $holds->next ) {
         $calcDate = Date_to_Days( $expire_year, $expire_month, $expire_day );
     }
 
-    $getreserv{'itemtype'}       = $itemtype->description if ($itemtype); # FIXME Should not it be translated_description?
-    $getreserv{'subtitle'}       = GetRecordValue(
-        'subtitle',
-        GetMarcBiblio({ biblionumber => $biblio->biblionumber }),
-        $biblio->frameworkcode);
-    if ( $homebranch ne $holdingbranch ) {
-        $getreserv{'dotransfer'} = 1;
-    }
-
-    $getreserv{patron} = $patron;
-
     if ($calcDate && $today > $calcDate) {
         if ($cancelall) {
-            my $res = cancel( $item->itemnumber, $patron->borrowernumber, $holdingbranch, $homebranch, !$transfer_when_cancel_all );
+            my $res = cancel( $hold->item->itemnumber, $hold->borrowernumber, $hold->item->holdingbranch, $hold->item->homebranch, !$transfer_when_cancel_all );
             push @cancel_result, $res if $res;
             next;
         } else {
-            push @overloop,   \%getreserv;
-            $overcount++;
+            push @over_loop, $hold;
         }
     }else{
-        push @reservloop, \%getreserv;
-        $reservcount++;
+        push @reserve_loop, $hold;
     }
     
 }
 
 $template->param(cancel_result => \@cancel_result) if @cancel_result;
+
 $template->param(
-    reserveloop => \@reservloop,
-    reservecount => $reservcount,
-    overloop    => \@overloop,
-    overcount   => $overcount,
+    reserveloop => \@reserve_loop,
+    reservecount => scalar @reserve_loop,
+    overloop    => \@over_loop,
+    overcount   => scalar @over_loop,
     show_date   => output_pref({ dt => dt_from_string, dateformat => 'iso', dateonly => 1 }),
-    ReservesMaxPickUpDelay => $max_pickup_delay,
     tab => $tab,
 );
 
@@ -187,7 +146,7 @@ sub cancel {
 
 # 	if the document is not in his homebranch location and there is not reservation after, we transfer it
     if ($transfer && !$nextreservinfo) {
-        ModItemTransfer( $item, $fbr, $tbr );
+        ModItemTransfer( $item, $fbr, $tbr, 'CancelReserve' );
     }
     # if we have a result
     if ($nextreservinfo) {

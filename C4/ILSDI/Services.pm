@@ -33,11 +33,11 @@ use HTML::Entities;
 use CGI qw ( -utf8 );
 use DateTime;
 use C4::Auth;
-use C4::Members::Attributes qw(GetBorrowerAttributes);
 use Koha::DateUtils;
 
 use Koha::Biblios;
 use Koha::Checkouts;
+use Koha::Items;
 use Koha::Libraries;
 use Koha::Patrons;
 
@@ -138,14 +138,15 @@ sub GetAvailability {
         } else {
             my $status;
             my $msg;
-            my $items = GetItemnumbersForBiblio($id);
-            if ($items) {
+            my $items = Koha::Items->search({ biblionumber => $id });
+            if ($items->count) {
                 # Open XML
                 $out .= "  <dlf:record>\n";
                 $out .= "    <dlf:bibliographic id=\"" .$id. "\" />\n";
                 $out .= "    <dlf:items>\n";
                 # We loop over the items to clean them
-                foreach my $itemnumber (@$items) {
+                while ( my $item = $items->next ) {
+                    my $itemnumber = $item->itemnumber;
                     my ( $biblionumber, $status, $msg, $location ) = _availability($itemnumber);
                     $out .= "      <dlf:item id=\"" . $itemnumber . "\">\n";
                     $out .= "        <dlf:simpleavailability>\n";
@@ -226,27 +227,69 @@ sub GetRecords {
 
         # Get most of the needed data
         my $biblioitemnumber = $biblioitem->{'biblioitemnumber'};
-        my $holds  = $biblio->current_holds->unblessed;
-        my $issues           = GetBiblioIssues($biblionumber);
-        my $items            = GetItemsByBiblioitemnumber($biblioitemnumber);
+        my $checkouts = Koha::Checkouts->search(
+            { biblionumber => $biblionumber },
+            {
+                join => 'item',
+                '+select' => ['item.barcode'],
+                '+as'     => ['barcode'],
+            }
+        )->unblessed;
+        foreach my $checkout (@$checkouts) {
+            delete $checkout->{'borrowernumber'};
+        }
+        my @items            = $biblio->items->as_list;
+
+        $biblioitem->{items}->{item} = [];
 
         # We loop over the items to clean them
-        foreach my $item (@$items) {
+        foreach my $item (@items) {
+            my %item = %{ $item->unblessed };
 
             # This hides additionnal XML subfields, we don't need these info
-            delete $item->{'more_subfields_xml'};
+            delete $item{'more_subfields_xml'};
 
             # Display branch names instead of branch codes
-            my $home_library    = Koha::Libraries->find( $item->{homebranch} );
-            my $holding_library = Koha::Libraries->find( $item->{holdingbranch} );
-            $item->{'homebranchname'}    = $home_library    ? $home_library->branchname    : '';
-            $item->{'holdingbranchname'} = $holding_library ? $holding_library->branchname : '';
+            my $home_library    = $item->home_branch;
+            my $holding_library = $item->holding_branch;
+            $item{'homebranchname'}    = $home_library    ? $home_library->branchname    : '';
+            $item{'holdingbranchname'} = $holding_library ? $holding_library->branchname : '';
+
+            if ($item->location) {
+                my $authorised_value = Koha::AuthorisedValues->find_by_koha_field({ kohafield => 'items.location', authorised_value => $item->location });
+                if ($authorised_value) {
+                    $item{location_description} = $authorised_value->opac_description;
+                }
+            }
+
+            if ($item->itype) {
+                my $itemtype = Koha::ItemTypes->find($item->itype);
+                if ($itemtype) {
+                    $item{itype_description} = $itemtype->description;
+                }
+            }
+
+            my $transfer = $item->get_transfer;
+            if ($transfer) {
+                $item{transfer} = {
+                    datesent => $transfer->datesent,
+                    frombranch => $transfer->frombranch,
+                    tobranch => $transfer->tobranch,
+                };
+            }
+
+            push @{ $biblioitem->{items}->{item} }, \%item;
+        }
+
+        # Holds
+        my $holds = $biblio->current_holds->unblessed;
+        foreach my $hold (@$holds) {
+            delete $hold->{'borrowernumber'};
         }
 
         # Hashref building...
-        $biblioitem->{'items'}->{'item'}       = $items;
         $biblioitem->{'reserves'}->{'reserve'} = $holds;
-        $biblioitem->{'issues'}->{'issue'}     = $issues;
+        $biblioitem->{'issues'}->{'issue'}     = $checkouts;
 
         push @records, $biblioitem;
     }
@@ -424,11 +467,7 @@ sub GetPatronInfo {
 
     # Fines management
     if ( $cgi->param('show_fines') && $cgi->param('show_fines') eq "1" ) {
-        my @charges;
-        for ( my $i = 1 ; my @charge = getcharges( $borrowernumber, undef, $i ) ; $i++ ) {
-            push( @charges, @charge );
-        }
-        $borrower->{'fines'}->{'fine'} = \@charges;
+        $borrower->{fines}{fine} = $patron->account->lines->unblessed;
     }
 
     # Reserves management
@@ -468,20 +507,51 @@ sub GetPatronInfo {
 
     # Issues management
     if ( $cgi->param('show_loans') && $cgi->param('show_loans') eq "1" ) {
+        my $per_page = $cgi->param('loans_per_page');
+        my $page = $cgi->param('loans_page');
+
         my $pending_checkouts = $patron->pending_checkouts;
+
+        if ($page || $per_page) {
+            $page ||= 1;
+            $per_page ||= 10;
+            $borrower->{total_loans} = $pending_checkouts->count();
+            $pending_checkouts = $pending_checkouts->search(undef, {
+                rows => $per_page,
+                page => $page,
+            });
+        }
+
         my @checkouts;
         while ( my $c = $pending_checkouts->next ) {
             # FIXME We should only retrieve what is needed in the template
             my $issue = $c->unblessed_all_relateds;
+            delete $issue->{'more_subfields_xml'};
             push @checkouts, $issue
         }
         $borrower->{'loans'}->{'loan'} = \@checkouts;
     }
 
-    if ( $cgi->param('show_attributes') eq "1" ) {
-        my $attrs = GetBorrowerAttributes( $borrowernumber, 1 );
-        $borrower->{'attributes'} = $attrs;
+    my $show_attributes = $cgi->param('show_attributes');
+    if ( $show_attributes && $show_attributes eq "1" ) {
+        # FIXME Regression expected here, we do not retrieve the same field as previously
+        # Waiting for answer on bug 14257 comment 15
+        $borrower->{'attributes'} = [
+            map {
+                $_->type->opac_display
+                  ? {
+                    %{ $_->unblessed },
+                    %{ $_->type->unblessed },
+                    value             => $_->attribute,   # Backward compatibility
+                    value_description => $_->description, # Awkward retro-compability...
+                  }
+                  : ()
+            } $patron->extended_attributes->search
+        ];
     }
+
+    # Add is expired information
+    $borrower->{'is_expired'} = $patron->is_expired ? 1 : 0;
 
     return $borrower;
 }
@@ -538,17 +608,17 @@ sub GetServices {
     my $borrower = $patron->unblessed;
     # Get the item, or return an error code if not found
     my $itemnumber = $cgi->param('item_id');
-    my $item = GetItem( $itemnumber );
-    return { code => 'RecordNotFound' } unless $$item{itemnumber};
+    my $item = Koha::Items->find($itemnumber);
+    return { code => 'RecordNotFound' } unless $item;
 
     my @availablefor;
 
     # Reserve level management
-    my $biblionumber = $item->{'biblionumber'};
+    my $biblionumber = $item->biblionumber;
     my $canbookbereserved = CanBookBeReserved( $borrower, $biblionumber );
-    if ($canbookbereserved eq 'OK') {
+    if ($canbookbereserved->{status} eq 'OK') {
         push @availablefor, 'title level hold';
-        my $canitembereserved = IsAvailableForItemLevelRequest($item, $borrower);
+        my $canitembereserved = IsAvailableForItemLevelRequest($item, $patron);
         if ($canitembereserved) {
             push @availablefor, 'item level hold';
         }
@@ -571,7 +641,7 @@ sub GetServices {
     }
 
     # Issuing management
-    my $barcode = $item->{'barcode'} || '';
+    my $barcode = $item->barcode || '';
     $barcode = barcodedecode($barcode) if ( $barcode && C4::Context->preference('itemBarcodeInputFilter') );
     if ($barcode) {
         my ( $issuingimpossible, $needsconfirmation ) = CanBookBeIssued( $patron, $barcode );
@@ -610,19 +680,20 @@ sub RenewLoan {
 
     # Get the item, or return an error code
     my $itemnumber = $cgi->param('item_id');
-    my $item = GetItem( $itemnumber );
-    return { code => 'RecordNotFound' } unless $$item{itemnumber};
+    my $item = Koha::Items->find($itemnumber);
+    return { code => 'RecordNotFound' } unless $item;
 
     # Add renewal if possible
     my @renewal = CanBookBeRenewed( $borrowernumber, $itemnumber );
-    if ( $renewal[0] ) { AddRenewal( $borrowernumber, $itemnumber ); }
+    if ( $renewal[0] ) { AddRenewal( $borrowernumber, $itemnumber, undef, undef, undef, undef, 0 ); }
 
-    my $issue = Koha::Checkouts->find( { itemnumber => $itemnumber } ) or return; # FIXME should be handled
+    my $issue = $item->checkout;
+    return unless $issue; # FIXME should be handled
 
     # Hashref building
     my $out;
     $out->{'renewals'} = $issue->renewals;
-    $out->{date_due}   = dt_from_string($issue->date_due)->strftime('%Y-%m-%d %H:%S');
+    $out->{date_due}   = dt_from_string($issue->date_due)->strftime('%Y-%m-%d %H:%M');
     $out->{'success'}  = $renewal[0];
     $out->{'error'}    = $renewal[1];
 
@@ -643,9 +714,9 @@ Parameters:
     IP address where the end user request is being placed
   - pickup_location (Optional)
     a branch code indicating the location to which to deliver the item for pickup
-  - needed_before_date (Optional)
-    date after which hold request is no longer needed
-  - pickup_expiry_date (Optional)
+  - start_date (Optional)
+    date after which hold request is no longer needed if the document has not been made available
+  - expiry_date (Optional)
     date after which item returned to shelf if item is not picked up
 
 =cut
@@ -658,15 +729,35 @@ sub HoldTitle {
     my $patron = Koha::Patrons->find( $borrowernumber );
     return { code => 'PatronNotFound' } unless $patron;
 
+
+    # If borrower is restricted return an error code
+    return { code => 'PatronRestricted' } if $patron->is_debarred;
+
+    # Check for patron expired, category and syspref settings
+    return { code => 'PatronExpired' } if ($patron->category->effective_BlockExpiredPatronOpacActions && $patron->is_expired);
+
     # Get the biblio record, or return an error code
     my $biblionumber = $cgi->param('bib_id');
     my $biblio = Koha::Biblios->find( $biblionumber );
     return { code => 'RecordNotFound' } unless $biblio;
 
+    my @hostitems = get_hostitemnumbers_of($biblionumber);
+    my @itemnumbers;
+    if (@hostitems){
+        push(@itemnumbers, @hostitems);
+    }
+
+    my $items = Koha::Items->search({ -or => { biblionumber => $biblionumber, itemnumber => { in => \@itemnumbers } } });
+
+    unless ( $items->count ) {
+        return { code => 'NoItems' };
+    }
+
     my $title = $biblio ? $biblio->title : '';
 
     # Check if the biblio can be reserved
-    return { code => 'NotHoldable' } unless CanBookBeReserved( $borrowernumber, $biblionumber ) eq 'OK';
+    my $code = CanBookBeReserved( $borrowernumber, $biblionumber )->{status};
+    return { code => $code } unless ( $code eq 'OK' );
 
     my $branch;
 
@@ -678,12 +769,36 @@ sub HoldTitle {
         $branch = $patron->branchcode;
     }
 
+    my $destination = Koha::Libraries->find($branch);
+    return { code => 'libraryNotPickupLocation' } unless $destination->pickup_location;
+    return { code => 'cannotBeTransferred' } unless $biblio->can_be_transferred({ to => $destination });
+
+    my $resdate;
+    if ( $cgi->param('start_date') ) {
+        $resdate = $cgi->param('start_date');
+    }
+
+    my $expdate;
+    if ( $cgi->param('expiry_date') ) {
+        $expdate = $cgi->param('expiry_date');
+    }
+
     # Add the reserve
     #    $branch,    $borrowernumber, $biblionumber,
     #    $constraint, $bibitems,  $priority, $resdate, $expdate, $notes,
     #    $title,      $checkitem, $found
     my $priority= C4::Reserves::CalculatePriority( $biblionumber );
-    AddReserve( $branch, $borrowernumber, $biblionumber, undef, $priority, undef, undef, undef, $title, undef, undef );
+    AddReserve(
+        {
+            branchcode       => $branch,
+            borrowernumber   => $borrowernumber,
+            biblionumber     => $biblionumber,
+            priority         => $priority,
+            reservation_date => $resdate,
+            expiration_date  => $expdate,
+            title            => $title,
+        }
+    );
 
     # Hashref building
     my $out;
@@ -711,9 +826,9 @@ Parameters:
     an itemnumber
   - pickup_location (Optional)
     a branch code indicating the location to which to deliver the item for pickup
-  - needed_before_date (Optional)
-    date after which hold request is no longer needed
-  - pickup_expiry_date (Optional)
+  - start_date (Optional)
+    date after which hold request is no longer needed if the item has not been made available
+  - expiry_date (Optional)
     date after which item returned to shelf if item is not picked up
 
 =cut
@@ -726,6 +841,12 @@ sub HoldItem {
     my $patron = Koha::Patrons->find( $borrowernumber );
     return { code => 'PatronNotFound' } unless $patron;
 
+    # If borrower is restricted return an error code
+    return { code => 'PatronRestricted' } if $patron->is_debarred;
+
+    # Check for patron expired, category and syspref settings
+    return { code => 'PatronExpired' } if ($patron->category->effective_BlockExpiredPatronOpacActions && $patron->is_expired);
+
     # Get the biblio or return an error code
     my $biblionumber = $cgi->param('bib_id');
     my $biblio = Koha::Biblios->find( $biblionumber );
@@ -735,16 +856,11 @@ sub HoldItem {
 
     # Get the item or return an error code
     my $itemnumber = $cgi->param('item_id');
-    my $item = GetItem( $itemnumber );
-    return { code => 'RecordNotFound' } unless $$item{itemnumber};
+    my $item = Koha::Items->find($itemnumber);
+    return { code => 'RecordNotFound' } unless $item;
 
     # If the biblio does not match the item, return an error code
-    return { code => 'RecordNotFound' } if $$item{biblionumber} ne $biblio->biblionumber;
-
-    # Check for item disponibility
-    my $canitembereserved = C4::Reserves::CanItemBeReserved( $borrowernumber, $itemnumber );
-    my $canbookbereserved = C4::Reserves::CanBookBeReserved( $borrowernumber, $biblionumber );
-    return { code => 'NotHoldable' } unless $canbookbereserved eq 'OK' and $canitembereserved eq 'OK';
+    return { code => 'RecordNotFound' } if $item->biblionumber ne $biblio->biblionumber;
 
     # Pickup branch management
     my $branch;
@@ -755,12 +871,34 @@ sub HoldItem {
         $branch = $patron->branchcode;
     }
 
+    # Check for item disponibility
+    my $canitembereserved = C4::Reserves::CanItemBeReserved( $borrowernumber, $itemnumber, $branch )->{status};
+    return { code => $canitembereserved } unless $canitembereserved eq 'OK';
+
+    my $resdate;
+    if ( $cgi->param('start_date') ) {
+        $resdate = $cgi->param('start_date');
+    }
+
+    my $expdate;
+    if ( $cgi->param('expiry_date') ) {
+        $expdate = $cgi->param('expiry_date');
+    }
+
     # Add the reserve
-    #    $branch,    $borrowernumber, $biblionumber,
-    #    $constraint, $bibitems,  $priority, $resdate, $expdate, $notes,
-    #    $title,      $checkitem, $found
-    my $priority= C4::Reserves::CalculatePriority( $biblionumber );
-    AddReserve( $branch, $borrowernumber, $biblionumber, undef, $priority, undef, undef, undef, $title, $itemnumber, undef );
+    my $priority = C4::Reserves::CalculatePriority($biblionumber);
+    AddReserve(
+        {
+            branchcode       => $branch,
+            borrowernumber   => $borrowernumber,
+            biblionumber     => $biblionumber,
+            priority         => $priority,
+            reservation_date => $resdate,
+            expiration_date  => $expdate,
+            title            => $title,
+            itemnumber       => $itemnumber,
+        }
+    );
 
     # Hashref building
     my $out;
@@ -814,25 +952,25 @@ Returns, for an itemnumber, an array containing availability information.
 
 sub _availability {
     my ($itemnumber) = @_;
-    my $item = GetItem( $itemnumber, undef, undef );
+    my $item = Koha::Items->find($itemnumber);
 
-    if ( not $item->{'itemnumber'} ) {
+    unless ( $item ) {
         return ( undef, 'unknown', 'Error: could not retrieve availability for this ID', undef );
     }
 
-    my $biblionumber = $item->{'biblioitemnumber'};
-    my $library = Koha::Libraries->find( $item->{holdingbranch} );
+    my $biblionumber = $item->biblioitemnumber;
+    my $library = Koha::Libraries->find( $item->holdingbranch );
     my $location = $library ? $library->branchname : '';
 
-    if ( $item->{'notforloan'} ) {
+    if ( $item->notforloan ) {
         return ( $biblionumber, 'not available', 'Not for loan', $location );
-    } elsif ( $item->{'onloan'} ) {
+    } elsif ( $item->onloan ) {
         return ( $biblionumber, 'not available', 'Checked out', $location );
-    } elsif ( $item->{'itemlost'} ) {
+    } elsif ( $item->itemlost ) {
         return ( $biblionumber, 'not available', 'Item lost', $location );
-    } elsif ( $item->{'withdrawn'} ) {
+    } elsif ( $item->withdrawn ) {
         return ( $biblionumber, 'not available', 'Item withdrawn', $location );
-    } elsif ( $item->{'damaged'} ) {
+    } elsif ( $item->damaged ) {
         return ( $biblionumber, 'not available', 'Item damaged', $location );
     } else {
         return ( $biblionumber, 'available', undef, $location );

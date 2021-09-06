@@ -4,6 +4,7 @@
             "x-mojo-to": "Illrequests#list",
             "operationId": "listIllrequests",
             "tags": ["illrequests"],
+            "summary": "List ILL requests",
             "parameters": [{
                 "name": "embed",
                 "in": "query",
@@ -18,7 +19,10 @@
                         "library",
                         "capabilities",
                         "metadata",
-                        "checkedBy"
+                        "checkedBy",
+                        "requested_partners",
+                        "comments",
+                        "status_alias"
                     ]
                 }
             }, {
@@ -68,11 +72,29 @@
                 "required": false,
                 "type": "string"
             }, {
+                "name": "completed_formatted",
+                "in": "query",
+                "description": "The date the request was considered complete formatted",
+                "required": false,
+                "type": "string"
+            }, {
                 "name": "status",
                 "in": "query",
                 "description": "A full status string e.g. REQREV",
                 "required": false,
                 "type": "string"
+            }, {
+                "name": "cost",
+                "in": "query",
+                "description": "The quoted cost of the request",
+                "required": false,
+                "type": "number"
+            }, {
+                "name": "price_paid",
+                "in": "query",
+                "description": "The final cost of the request",
+                "required": false,
+                "type": "number"
             }, {
                 "name": "medium",
                 "in": "query",
@@ -86,15 +108,21 @@
                 "required": false,
                 "type": "string"
             }, {
-                "name": "updatedFormatted",
+                "name": "updated_formatted",
                 "in": "query",
-                "description": "The last updated date of the request, formatted",
+                "description": "The last updated date of the request formatted",
                 "required": false,
                 "type": "string"
             }, {
                 "name": "placed",
                 "in": "query",
                 "description": "The date the request was placed",
+                "required": false,
+                "type": "string"
+            }, {
+                "name": "placed_formatted",
+                "in": "query",
+                "description": "The date the request was placed formatted",
                 "required": false,
                 "type": "string"
             }, {

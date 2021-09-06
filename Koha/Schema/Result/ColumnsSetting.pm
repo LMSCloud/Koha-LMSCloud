@@ -95,8 +95,8 @@ __PACKAGE__->add_columns(
 __PACKAGE__->set_primary_key("module", "page", "tablename", "columnname");
 
 
-# Created by DBIx::Class::Schema::Loader v0.07039 @ 2014-07-07 12:11:07
-# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:s4Zkf15c4v0RJyb1S5UTPA
+# Created by DBIx::Class::Schema::Loader v0.07046 @ 2019-12-12 16:06:36
+# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:IhREpW2PRxxFF9EYOGt2Qg
 
 
 # You can replace this text with custom code or comments, and it will be preserved on regeneration

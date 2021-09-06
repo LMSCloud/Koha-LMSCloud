@@ -45,7 +45,7 @@ use Date::Calc qw/Today Add_Delta_YM/;
 use Koha::Patrons;
 use Koha::List::Patron;
 
-my $cgi = new CGI;
+my $cgi = CGI->new;
 
 # Fetch the paramater list as a hash in scalar context:
 #  * returns paramater list as tied hash ref
@@ -79,7 +79,6 @@ my ( $template, $loggedinuser, $cookie ) = get_template_and_user(
     {   template_name   => "tools/cleanborrowers.tt",
         query           => $cgi,
         type            => "intranet",
-        authnotrequired => 0,
         flagsrequired   => { tools => 'delete_anonymize_patrons', catalogue => 1 },
     }
 );
@@ -179,7 +178,7 @@ elsif ( $step == 3 ) {
     $template->param( patron_lists => [ @non_empty_lists ] );
 }
 
-my $patron_categories = Koha::Patron::Categories->search_limited({}, {order_by => ['description']});
+my $patron_categories = Koha::Patron::Categories->search_with_library_limits({}, {order_by => ['description']});
 
 $template->param(
     step                   => $step,

@@ -1,7 +1,7 @@
 [% USE Koha %]
 [% USE KohaDates %]
 [% INCLUDE 'doc-head-open.inc' %]
-<title>Koha &rsaquo; Web installer &rsaquo; Add a patron category</title>
+<title>Add a patron category &rsaquo; Web installer &rsaquo; Koha</title>
 [%# The following if statement checks if the categories variable handed to this template %]
 [%# by onboarding.pl has data in it. If the categories variable does have data %]
 [%# in it this means that the user has previously imported sample patron category %]
@@ -11,9 +11,6 @@
     <meta http-equiv="refresh" content="0; url=/cgi-bin/koha/installer/onboarding.pl?step=3">
 [% END %]
 [% INCLUDE 'installer-doc-head-close.inc' %]
-[% INCLUDE 'validator-strings.inc' %]
-[% INCLUDE 'installer-strings.inc' %]
-<script type="text/javascript" src="[% interface %]/[% theme %]/js/onboarding.js"></script>
 </head>
 
 <body id="installer" class="installer">
@@ -35,13 +32,13 @@
                         <ol>
                             <li>
                                 <label for="categorycode" class="required">Category code: </label>
-                                <input type="text" pattern="[0-9A-Za-z]{1,10}" id="categorycode" name="categorycode" value="[% category.categorycode |html %]" size="10" maxlength="10" class="required" required="required" />
+                                <input type="text" pattern="[0-9A-Za-z]{1,10}" id="categorycode" name="categorycode" value="[% category.categorycode | html %]" size="10" maxlength="10" class="required" required="required" />
                                 <span class="required">Required</span>
                             </li>
 
                             <li>
                                 <label for="description" class="required">Description: </label>
-                                <input type="text" id="description" name="description" size="40" maxlength="80" class="required" required="required" value="[% category.description |html%]" />
+                                <input type="text" id="description" name="description" size="40" maxlength="80" class="required" required="required" value="[% category.description | html %]" />
                                 <span class="required">Required</span>
                             </li>
 
@@ -102,9 +99,9 @@
                                         <li>
                                             <label for="enrolmentperiod">In months: </label>
                                             [% IF category.enrolmentperiod %]
-                                                <input type="number" class="enrolmentperiod" name="enrolmentperiod" id="enrolmentperiod" min="0" size="3" value="[% category.enrolmentperiod %]" />
+                                                <input type="text" inputmode="numeric" pattern="[0-9]*" class="enrolmentperiod" name="enrolmentperiod" id="enrolmentperiod" size="3" value="[% category.enrolmentperiod | html %]" />
                                             [% ELSE %]
-                                                <input type="number" class="enrolmentperiod" name="enrolmentperiod" id="enrolmentperiod" min="0" size="3" value="" />
+                                                <input type="text" inputmode="numeric" pattern="[0-9]*" class="enrolmentperiod" name="enrolmentperiod" id="enrolmentperiod" size="3" value="" />
                                             [% END %]
                                         </li>
                                         <li>
@@ -119,7 +116,7 @@
 
                         <p>
                             To add another patron category and for more settings go to:
-                            <span class="breadcrumbs"> Administration <b>&rsaquo;</b> Patron categories</span>
+                            <span class="breadcrumbs"> Administration <strong>&rsaquo;</strong> Patron categories</span>
                         </p>
 
                         <input type="submit" class="btn btn-primary" value="Submit" />
@@ -127,5 +124,12 @@
                 </form>
             </div> <!-- / #onboarding-step2 -->
         </div> <!-- / .row -->
+    </div><!-- / .container-fluid -->
 
-[% INCLUDE 'intranet-bottom.inc' %]
+[% MACRO jsinclude BLOCK %]
+    [% INCLUDE 'validator-strings.inc' %]
+    [% INCLUDE 'installer-strings.inc' %]
+    <script src="[% interface | html %]/[% theme | html %]/js/onboarding.js"></script>
+[% END %]
+
+[% INCLUDE 'installer-intranet-bottom.inc' %]

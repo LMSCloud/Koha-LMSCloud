@@ -21,8 +21,8 @@ use Modern::Perl;
 
 use Encode qw( encode is_utf8 );
 use DBIx::RunSQL;
+use YAML::XS;
 use C4::Context;
-use C4::Installer::PerlModules;
 use DBI;
 use Koha;
 
@@ -30,7 +30,7 @@ use vars qw(@ISA @EXPORT);
 BEGIN {
     require Exporter;
     @ISA = qw( Exporter );
-    push @EXPORT, qw( foreign_key_exists index_exists column_exists );
+    push @EXPORT, qw( primary_key_exists foreign_key_exists index_exists column_exists TableExists);
 };
 
 =head1 NAME
@@ -145,22 +145,28 @@ sub marc_framework_sql_list {
 
     foreach my $requirelevel (@listdir) {
         opendir( MYDIR, "$dir/$requirelevel" );
-        my @listname = grep { !/^\./ && -f "$dir/$requirelevel/$_" && $_ =~ m/\.sql$/ } readdir(MYDIR);
+        my @listname = grep { !/^\./ && -f "$dir/$requirelevel/$_" && $_ =~ m/\.(sql|yml)$/ } readdir(MYDIR);
         closedir MYDIR;
         my %cell;
         my @frameworklist;
         map {
-            my $name = substr( $_, 0, -4 );
-            open my $fh, "<:encoding(UTF-8)", "$dir/$requirelevel/$name.txt";
-            my $lines = <$fh>;
-            $lines =~ s/\n|\r/<br \/>/g;
-            $lines = Encode::encode('UTF-8', $lines) unless ( Encode::is_utf8($lines) );
+            my ( $name, $ext ) = split /\./, $_;
+            my @lines;
+            if ( $ext =~ /yml/ ) {
+                my $yaml = YAML::XS::LoadFile("$dir/$requirelevel/$name\.$ext");
+                @lines = @{ $yaml->{'description'} };
+            } else {
+                open my $fh, "<:encoding(UTF-8)", "$dir/$requirelevel/$name.txt";
+                my $line = <$fh>;
+                $line = Encode::encode('UTF-8', $line) unless ( Encode::is_utf8($line) );
+                @lines = split /\n/, $line;
+            }
             my $mandatory = ($requirelevel =~ /(mandatory|requi|oblig|necess)/i);
             push @frameworklist,
               {
                 'fwkname'        => $name,
                 'fwkfile'        => "$dir/$requirelevel/$_",
-                'fwkdescription' => $lines,
+                'fwkdescription' => \@lines,
                 'checked'        => ( ( $frameworksloaded{$_} || $mandatory ) ? 1 : 0 ),
                 'mandatory'      => $mandatory,
               };
@@ -169,7 +175,7 @@ sub marc_framework_sql_list {
           sort { $a->{'fwkname'} cmp $b->{'fwkname'} } @frameworklist;
 
         $cell{"frameworks"} = \@fwks;
-        $cell{"label"}      = ucfirst($requirelevel);
+        $cell{"label"}      = ($requirelevel =~ /(mandatory|requi|oblig|necess)/i)?'mandatory':'optional';
         $cell{"code"}       = lc($requirelevel);
         push @fwklist, \%cell;
     }
@@ -222,22 +228,28 @@ sub sample_data_sql_list {
 
     foreach my $requirelevel (@listdir) {
         opendir( MYDIR, "$dir/$requirelevel" );
-        my @listname = grep { !/^\./ && -f "$dir/$requirelevel/$_" && $_ =~ m/\.sql$/ } readdir(MYDIR);
+        my @listname = grep { !/^\./ && -f "$dir/$requirelevel/$_" && $_ =~ m/\.(sql|yml)$/ } readdir(MYDIR);
         closedir MYDIR;
         my %cell;
         my @frameworklist;
         map {
-            my $name = substr( $_, 0, -4 );
-            open my $fh , "<:encoding(UTF-8)", "$dir/$requirelevel/$name.txt";
-            my $lines = <$fh>;
-            $lines =~ s/\n|\r/<br \/>/g;
-            $lines = Encode::encode('UTF-8', $lines) unless ( Encode::is_utf8($lines) );
+            my ( $name, $ext ) = split /\./, $_;
+            my @lines;
+            if ( $ext =~ /yml/ ) {
+                my $yaml = YAML::XS::LoadFile("$dir/$requirelevel/$name\.$ext");
+                @lines = @{ $yaml->{'description'} };
+            } else {
+                open my $fh, "<:encoding(UTF-8)", "$dir/$requirelevel/$name.txt";
+                my $line = <$fh>;
+                $line = Encode::encode('UTF-8', $line) unless ( Encode::is_utf8($line) );
+                @lines = split /\n/, $line;
+            }
             my $mandatory = ($requirelevel =~ /(mandatory|requi|oblig|necess)/i);
             push @frameworklist,
               {
                 'fwkname'        => $name,
                 'fwkfile'        => "$dir/$requirelevel/$_",
-                'fwkdescription' => $lines,
+                'fwkdescription' => \@lines,
                 'checked'        => ( ( $frameworksloaded{$_} || $mandatory ) ? 1 : 0 ),
                 'mandatory'      => $mandatory,
               };
@@ -245,7 +257,7 @@ sub sample_data_sql_list {
         my @fwks = sort { $a->{'fwkname'} cmp $b->{'fwkname'} } @frameworklist;
 
         $cell{"frameworks"} = \@fwks;
-        $cell{"label"}      = ucfirst($requirelevel);
+        $cell{"label"}      = ($requirelevel =~ /(mandatory|requi|oblig|necess)/i)?'mandatory':'optional';
         $cell{"code"}       = lc($requirelevel);
         push @levellist, \%cell;
     }
@@ -267,7 +279,23 @@ sub load_db_schema {
     my $self = shift;
 
     my $datadir = C4::Context->config('intranetdir') . "/installer/data/$self->{dbms}";
+
+    # Disable checks before load
+    $self->{'dbh'}->do(q{SET NAMES utf8mb4});
+    $self->{'dbh'}->do(q{SET @OLD_UNIQUE_CHECKS=@@UNIQUE_CHECKS, UNIQUE_CHECKS=0});
+    $self->{'dbh'}->do(q{SET @OLD_FOREIGN_KEY_CHECKS=@@FOREIGN_KEY_CHECKS, FOREIGN_KEY_CHECKS=0});
+    $self->{'dbh'}->do(q{SET @OLD_SQL_MODE=@@SQL_MODE, SQL_MODE='NO_AUTO_VALUE_ON_ZERO'});
+    $self->{'dbh'}->do(q{SET @OLD_SQL_NOTES=@@SQL_NOTES, SQL_NOTES=0});
+
+    # Load kohastructure
     my $error = $self->load_sql("$datadir/kohastructure.sql");
+
+    # Re-enable checks after load
+    $self->{'dbh'}->do(q{SET SQL_MODE=@OLD_SQL_MODE});
+    $self->{'dbh'}->do(q{SET FOREIGN_KEY_CHECKS=@OLD_FOREIGN_KEY_CHECKS});
+    $self->{'dbh'}->do(q{SET UNIQUE_CHECKS=@OLD_UNIQUE_CHECKS});
+    $self->{'dbh'}->do(q{SET SQL_NOTES=@OLD_SQL_NOTES});
+
     return $error;
 
 }
@@ -300,6 +328,7 @@ moved to a different method.
 
 sub load_sql_in_order {
     my $self = shift;
+    my $langchoice = shift;
     my $all_languages = shift;
     my @sql_list = @_;
 
@@ -314,26 +343,40 @@ sub load_sql_in_order {
     $request->execute;
     my ($systempreference) = $request->fetchrow;
     $systempreference = '' unless defined $systempreference; # avoid warning
-    # Make sure subtag_registry.sql is loaded second
-    my $subtag_registry = C4::Context->config('intranetdir') . "/installer/data/$self->{dbms}/mandatory/subtag_registry.sql";
-    unshift(@fnames, $subtag_registry);
-    # Make sure authorised value categories are loaded at the beginning
-    my $av_cat = C4::Context->config('intranetdir') . "/installer/data/$self->{dbms}/mandatory/auth_val_cat.sql";
-    unshift(@fnames, $av_cat);
-    # Make sure the global sysprefs.sql file is loaded first
-    my $globalsysprefs = C4::Context->config('intranetdir') . "/installer/data/$self->{dbms}/sysprefs.sql";
-    unshift(@fnames, $globalsysprefs);
-    push @fnames, C4::Context->config('intranetdir') . "/installer/data/mysql/userflags.sql";
-    push @fnames, C4::Context->config('intranetdir') . "/installer/data/mysql/userpermissions.sql";
-    push @fnames, C4::Context->config('intranetdir') . "/installer/data/mysql/audio_alerts.sql";
-    push @fnames, C4::Context->config('intranetdir') . "/installer/data/mysql/account_offset_types.sql";
+
+    my $global_mandatory_dir = C4::Context->config('intranetdir') . "/installer/data/$self->{dbms}/mandatory";
+
+    # Make sure some stuffs are loaded first
+    unshift(@fnames,
+        "$global_mandatory_dir/sysprefs.sql",
+        "$global_mandatory_dir/subtag_registry.sql",
+        "$global_mandatory_dir/auth_val_cat.sql",
+        "$global_mandatory_dir/message_transport_types.sql",
+        "$global_mandatory_dir/sample_notices_message_attributes.sql",
+        "$global_mandatory_dir/sample_notices_message_transports.sql",
+        "$global_mandatory_dir/keyboard_shortcuts.sql",
+    );
+
+    push @fnames, "$global_mandatory_dir/userflags.sql",
+                  "$global_mandatory_dir/userpermissions.sql",
+                  "$global_mandatory_dir/audio_alerts.sql",
+                  "$global_mandatory_dir/account_offset_types.sql",
+                  "$global_mandatory_dir/account_credit_types.sql",
+                  "$global_mandatory_dir/account_debit_types.sql",
+                  ;
+    my $localization_file = C4::Context->config('intranetdir') .
+                            "/installer/data/$self->{dbms}/localization/$langchoice/custom.sql";
+    if ( $langchoice ne 'en' and -f $localization_file ) {
+        push @fnames, $localization_file;
+    }
+
     foreach my $file (@fnames) {
         #      warn $file;
         undef $/;
         my $error = $self->load_sql($file);
         my @file = split qr(\/|\\), $file;
         $lang = $file[ scalar(@file) - 3 ] unless ($lang);
-        my $level = $file[ scalar(@file) - 2 ];
+        my $level = ( $file =~ /(localization)/ ) ? $1 : $file[ scalar(@file) - 2 ];
         unless ($error) {
             $systempreference .= "$file[scalar(@file)-1]|"
               unless ( index( $systempreference, $file[ scalar(@file) - 1 ] ) >= 0 );
@@ -428,11 +471,67 @@ sub set_version_syspref {
     C4::Context->clear_syspref_cache();
 }
 
+=head2 set_languages_syspref
+
+  $installer->set_languages_syspref();
+
+Add the installation language to 'language' and 'OPACLanguages' system preferences
+if different from 'en'
+
+=cut
+
+sub set_languages_syspref {
+    my $self     = shift;
+    my $language = shift;
+
+    return if ( not $language or $language eq 'en' );
+
+    warn "UPDATE Languages";
+    # intranet
+    my $pref = $self->{'dbh'}->prepare("UPDATE systempreferences SET value=? WHERE variable='language'");
+    $pref->execute("en,$language");
+    # opac
+    $pref = $self->{'dbh'}->prepare("UPDATE systempreferences SET value=? WHERE variable='OPACLanguages'");
+    $pref->execute("en,$language");
+
+    C4::Context->clear_syspref_cache();
+}
+
+=head2 process_yml_table
+
+  my $query_info   = $installer->process_yml_table($table);
+
+Analyzes a table loaded in YAML format.
+Returns the values required to build an insert statement.
+
+=cut
+
+sub process_yml_table {
+    my ($table) = @_;
+    my $table_name   = ( keys %$table )[0];                          # table name
+    my @rows         = @{ $table->{$table_name}->{rows} };           #
+    my @columns      = ( sort keys %{$rows[0]} );                    # column names
+    my $fields       = join ",", map{sprintf("`%s`", $_)} @columns;  # idem, joined
+    my $query        = "INSERT INTO $table_name ( $fields ) VALUES ";
+    my @multiline    = @{ $table->{$table_name}->{'multiline'} };    # to check multiline values;
+    my $placeholders = '(' . join ( ",", map { "?" } @columns ) . ')'; # '(?,..,?)' string
+    my @values;
+    foreach my $row ( @rows ) {
+        push @values, [ map {
+                        my $col = $_;
+                        ( @multiline and grep { $_ eq $col } @multiline )
+                        ? join "\r\n", @{$row->{$col}}                # join multiline values
+                        : $row->{$col};
+                     } @columns ];
+    }
+    return { query => $query, placeholders => $placeholders, values => \@values };
+}
+
 =head2 load_sql
 
   my $error = $installer->load_sql($filename);
 
-Runs a the specified SQL file using a sql loader DBIx::RunSQL
+Runs the specified input file using a sql loader DBIx::RunSQL, or a yaml loader
 Returns any strings sent to STDERR
 
 # FIXME This should be improved: sometimes the caller and load_sql warn the same
@@ -452,12 +551,35 @@ sub load_sql {
         local *STDERR;
         open STDERR, ">>", \$dup_stderr;
 
-        eval {
-            DBIx::RunSQL->run_sql_file(
-                dbh     => $dbh,
-                sql     => $filename,
-            );
-        };
+        if ( $filename =~ /sql$/ ) {                                                        # SQL files
+            eval {
+                DBIx::RunSQL->run_sql_file(
+                    dbh     => $dbh,
+                    sql     => $filename,
+                );
+            };
+        }
+        else {                                                                       # YAML files
+            eval {
+                my $yaml         = YAML::XS::LoadFile( $filename );                            # Load YAML
+                for my $table ( @{ $yaml->{'tables'} } ) {
+                    my $query_info   = process_yml_table($table);
+                    my $query        = $query_info->{query};
+                    my $placeholders = $query_info->{placeholders};
+                    my $values       = $query_info->{values};
+                    # Doing only 1 INSERT query for the whole table
+                    my @all_rows_values = map { @$_ } @$values;
+                    $query .= join ', ', ( $placeholders ) x scalar @$values;
+                    $dbh->do( $query, undef, @all_rows_values );
+                }
+                for my $statement ( @{ $yaml->{'sql_statements'} } ) {               # extra SQL statements
+                    $dbh->do($statement);
+                }
+            };
+        }
+        if ($@){
+            warn "Something went wrong loading file $filename ($@)";
+        }
     };
     #   errors thrown while loading installer data should be logged
     if( $dup_stderr ) {
@@ -506,6 +628,18 @@ sub get_file_path_from_name {
 
 }
 
+sub primary_key_exists {
+    my ( $table_name, $key_name ) = @_;
+    my $dbh = C4::Context->dbh;
+    my ($exists) = $dbh->selectrow_array(
+        qq|
+        SHOW INDEX FROM $table_name
+        WHERE key_name = 'PRIMARY' AND column_name = ?
+        |, undef, $key_name
+    );
+    return $exists;
+}
+
 sub foreign_key_exists {
     my ( $table_name, $constraint_name ) = @_;
     my $dbh = C4::Context->dbh;
@@ -527,6 +661,7 @@ sub index_exists {
 
 sub column_exists {
     my ( $table_name, $column_name ) = @_;
+    return unless TableExists($table_name);
     my $dbh = C4::Context->dbh;
     my ($exists) = $dbh->selectrow_array(
         qq|
@@ -536,6 +671,19 @@ sub column_exists {
     );
     return $exists;
 }
+
+sub TableExists { # Could be renamed table_exists for consistency
+    my $table = shift;
+    eval {
+                my $dbh = C4::Context->dbh;
+                local $dbh->{PrintError} = 0;
+                local $dbh->{RaiseError} = 1;
+                $dbh->do(qq{SELECT * FROM $table WHERE 1 = 0 });
+            };
+    return 1 unless $@;
+    return 0;
+}
+
 
 =head1 AUTHOR
 

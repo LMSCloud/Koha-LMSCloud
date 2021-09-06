@@ -28,7 +28,7 @@ use C4::Output;
 sub plugin_javascript {
     my ($dbh,$record,$tagslib,$field_number,$tabloop) = @_;
     my $res="
-    <script type='text/javascript'>
+    <script>
         function Blur$field_number() {
                 var isbn = document.getElementById('$field_number');
                 var url = '../cataloguing/plugin_launcher.pl?plugin_name=unimarc_field_010.pl&isbn=' + isbn.value;
@@ -60,7 +60,6 @@ sub plugin {
             = get_template_and_user({template_name => "cataloguing/value_builder/ajax.tt",
                                     query => $input,
                                     type => "intranet",
-                                    authnotrequired => 0,
                                     flagsrequired => {editcatalogue => '*'},
                                     debug => 1,
                                     });

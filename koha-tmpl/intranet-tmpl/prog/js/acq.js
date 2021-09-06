@@ -4,7 +4,7 @@
 function uncheckbox(form, field) {
     var price = new Number(form.elements['price' + field].value);
     var tmpprice = "";
-    var errmsg = MSG_INVALIDPRICE;
+    var errmsg = __("ERROR: Price is not a valid number, please check the price and try again!");
     if (isNaN(price)) {
         alert(errmsg);
         for(var i=0; i<form.elements['price' + field].value.length; ++i) {
@@ -184,12 +184,14 @@ function updateCosts(){
     var gst_on=false;
 
     var rrp   = new Number(listprice*exchangerate);
+    var rep   = new Number(listprice*exchangerate);
     var ecost = rrp;
     if ( 100-discount != 100 ) { //Prevent rounding issues if no discount
         ecost = new Number(Math.floor(rrp * (100 - discount )) / 100);
     }
     var total =  new Number( ecost * quantity);
     $("#rrp").val(rrp.toFixed(2));
+    $("#replacementprice").val(rep.toFixed(2));
     $("#ecost").val(ecost.toFixed(2));
     $("#total").val(total.toFixed(2));
     $("#listprice").val(listprice.toFixed(2));
@@ -302,9 +304,9 @@ if ( newBudgetParent  ) { url +=  '&parent_id=' + newBudgetParent};
     var result = eval ( xmlhttp.responseText );
 
     if (result == '1') {
-            return MSG_BUDGET_PARENT_ALLOCATION;
+            return "- " + __("Fund amount exceeds parent allocation") + "\n";
     } else if (result == '2') {
-            return MSG_BUDGET_PERIOD_ALLOCATION;
+            return "- " + __("Fund amount exceeds period allocation") + "\n";
     } else  {
             return false;
     }
@@ -336,7 +338,7 @@ function checkBudgetParent(budgetId, newBudgetParent) {
     var result = eval ( xmlhttp.responseText );
 
     if (result == '1') {
-            return MSG_PARENT_BENEATH_BUDGET;
+            return "- " + __("New budget-parent is beneath budget") + "\n";
 //     } else if (result == '2') {
 //            return "- New budget-parent has insufficent funds\n";
 //     } else  {
@@ -362,14 +364,18 @@ function showColumn(num){
 }
 
 function showAllColumns(){
-    $("#selections").checkCheckboxes();
+    $("#selections").find("input:checkbox").each(function () {
+        $(this).prop("checked", true);
+    });
     $("#selections span").addClass("selected");
     $("#plan td:nth-child(2),#plan tr th:nth-child(2)").nextAll().show();
     $("#hideall").prop("checked", false).parent().removeClass("selected");
 }
 function hideAllColumns(){
     var allCols = $("#plan th").length;
-    $("#selections").unCheckCheckboxes();
+    $("#selections").find("input:checkbox").each(function () {
+        $(this).prop("checked", false);
+    });
     $("#selections span").removeClass("selected");
     $("#plan td:nth-child(2),#plan th:nth-child(2)").nextUntil("th:nth-child("+(allCols-1)+"),td:nth-child("+(allCols-1)+")").hide(); // hide all but the last two columns
     $("#hideall").prop("checked", true).parent().addClass("selected");

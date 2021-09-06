@@ -45,14 +45,14 @@ use C4::Biblio;
 use C4::Items;
 use C4::Serials;    # CountSubscriptionFromBiblionumber
 use C4::Search;		# enabled_staff_search_views
-use C4::Acquisition qw(GetOrdersByBiblionumber);
 
 use Koha::Biblios;
 use Koha::Patrons;
 use Koha::RecordProcessor;
+use Koha::Virtualshelves;
 
 
-my $query = new CGI;
+my $query = CGI->new;
 my $dbh = C4::Context->dbh;
 
 my $biblionumber = $query->param('biblionumber');
@@ -64,7 +64,6 @@ my ( $template, $loggedinuser, $cookie ) = get_template_and_user(
         template_name => "catalogue/ISBDdetail.tt",
         query         => $query,
         type          => "intranet",
-	authnotrequired => 0,
 	flagsrequired   => { catalogue => 1 },
     }
 );
@@ -97,7 +96,7 @@ my $record_processor = Koha::RecordProcessor->new({
     filters => 'ViewPolicy',
     options => {
         interface => 'intranet',
-        frameworkcode => 'ACQ'
+        frameworkcode => $framework
     },
 });
 $record_processor->process($record);
@@ -118,6 +117,14 @@ if($query->cookie("holdfor")){
     );
 }
 
+if( $query->cookie("searchToOrder") ){
+    my ( $basketno, $vendorid ) = split( /\//, $query->cookie("searchToOrder") );
+    $template->param(
+        searchtoorder_basketno => $basketno,
+        searchtoorder_vendorid => $vendorid
+    );
+}
+
 # count of item linked with biblio
 my $itemcount = $biblio->items->count;
 $template->param( count => $itemcount);
@@ -132,43 +139,48 @@ if ($subscriptionsnumber) {
     );
 }
 
+# get biblionumbers stored in the cart
+my @cart_list;
+
+if($query->cookie("intranet_bib_list")){
+    my $cart_list = $query->cookie("intranet_bib_list");
+    @cart_list = split(/\//, $cart_list);
+    if ( grep {$_ eq $biblionumber} @cart_list) {
+        $template->param( incart => 1 );
+    }
+}
+
+my $some_private_shelves = Koha::Virtualshelves->get_some_shelves(
+    {
+        borrowernumber => $loggedinuser,
+        add_allowed    => 1,
+        category       => 1,
+    }
+);
+my $some_public_shelves = Koha::Virtualshelves->get_some_shelves(
+    {
+        borrowernumber => $loggedinuser,
+        add_allowed    => 1,
+        category       => 2,
+    }
+);
+
+
+$template->param(
+    add_to_some_private_shelves => $some_private_shelves,
+    add_to_some_public_shelves  => $some_public_shelves,
+);
+
 $template->param (
     ISBD                => $res,
     biblionumber        => $biblionumber,
     isbdview            => 1,
     z3950_search_params => C4::Search::z3950_search_args(GetBiblioData($biblionumber)),
-    ocoins => GetCOinSBiblio($record),
+    ocoins => $biblio->get_coins,
     C4::Search::enabled_staff_search_views,
     searchid            => scalar $query->param('searchid'),
+    biblio              => $biblio,
 );
-
-my @allorders_using_biblio = GetOrdersByBiblionumber ($biblionumber);
-my @deletedorders_using_biblio;
-my @orders_using_biblio;
-my @baskets_orders;
-my @baskets_deletedorders;
-
-foreach my $myorder (@allorders_using_biblio) {
-    my $basket = $myorder->{'basketno'};
-    if ((defined $myorder->{'datecancellationprinted'}) and  ($myorder->{'datecancellationprinted'} ne '0000-00-00') ){
-        push @deletedorders_using_biblio, $myorder;
-        unless (grep(/^$basket$/, @baskets_deletedorders)){
-            push @baskets_deletedorders,$myorder->{'basketno'};
-        }
-    }
-    else {
-        push @orders_using_biblio, $myorder;
-        unless (grep(/^$basket$/, @baskets_orders)){
-            push @baskets_orders,$myorder->{'basketno'};
-            }
-    }
-}
-
-my $count_orders_using_biblio = scalar @orders_using_biblio ;
-$template->param (countorders => $count_orders_using_biblio);
-
-my $count_deletedorders_using_biblio = scalar @deletedorders_using_biblio ;
-$template->param (countdeletedorders => $count_deletedorders_using_biblio);
 
 my $holds = $biblio->holds;
 $template->param( holdcount => $holds->count );

@@ -26,6 +26,7 @@ use Carp;
 use CGI;
 use List::MoreUtils qw( any );
 use C4::Context;
+use Koha::Caches;
 use Koha::Cache::Memory::Lite;
 use vars qw(@ISA @EXPORT @EXPORT_OK %EXPORT_TAGS $DEBUG);
 
@@ -111,44 +112,41 @@ Returns a reference to an array of hashes:
 
 sub getTranslatedLanguages {
     my ($interface, $theme, $current_language, $which) = @_;
-    my $htdocs;
     my @languages;
-    my @enabled_languages;
- 
+    my @enabled_languages =
+      ( $interface && $interface eq 'intranet' )
+      ? split ",", C4::Context->preference('language')
+      : split ",", C4::Context->preference('OPACLanguages');
+
+    my $cache = Koha::Caches->get_instance;
+    my $cache_key = "languages_${interface}_${theme}";
     if ($interface && $interface eq 'opac' ) {
-        @enabled_languages = split ",", C4::Context->preference('opaclanguages');
-        $htdocs = C4::Context->config('opachtdocs');
-        if ( $theme and -d "$htdocs/$theme" ) {
-            (@languages) = _get_language_dirs($htdocs,$theme);
-        }
-        else {
-            for my $theme ( _get_themes('opac') ) {
-                push @languages, _get_language_dirs($htdocs,$theme);
-            }
+        my $htdocs = C4::Context->config('opachtdocs');
+        my $cached = $cache->get_from_cache($cache_key);
+        if ( $cached ) {
+            @languages = @{$cached};
+        } else {
+            @languages = _get_opac_language_dirs( $htdocs, $theme );
+            $cache->set_in_cache($cache_key, \@languages );
         }
     }
     elsif ($interface && $interface eq 'intranet' ) {
-        @enabled_languages = split ",", C4::Context->preference('language');
-        $htdocs = C4::Context->config('intrahtdocs');
-        if ( $theme and -d "$htdocs/$theme" ) {
-            @languages = _get_language_dirs($htdocs,$theme);
-        }
-        else {
-            foreach my $theme ( _get_themes('intranet') ) {
-                push @languages, _get_language_dirs($htdocs,$theme);
-            }
+        my $htdocs = C4::Context->config('intrahtdocs');
+        my $cached = $cache->get_from_cache($cache_key);
+        if ( $cached ) {
+            @languages = @{$cached};
+        } else {
+            @languages = _get_intranet_language_dirs( $htdocs, $theme );
+            $cache->set_in_cache($cache_key, \@languages );
         }
     }
     else {
-        @enabled_languages = split ",", C4::Context->preference('opaclanguages');
         my $htdocs = C4::Context->config('intrahtdocs');
-        foreach my $theme ( _get_themes('intranet') ) {
-            push @languages, _get_language_dirs($htdocs,$theme);
-        }
+        push @languages, _get_intranet_language_dirs( $htdocs );
+
         $htdocs = C4::Context->config('opachtdocs');
-        foreach my $theme ( _get_themes('opac') ) {
-            push @languages, _get_language_dirs($htdocs,$theme);
-        }
+        push @languages, _get_opac_language_dirs( $htdocs );
+
         my %seen;
         $seen{$_}++ for @languages;
         @languages = keys %seen;
@@ -246,6 +244,37 @@ sub getLanguages {
     return \@languages_loop;
 }
 
+sub _get_opac_language_dirs {
+    my ( $htdocs, $theme ) = @_;
+
+    my @languages;
+    if ( $theme and -d "$htdocs/$theme" ) {
+        (@languages) = _get_language_dirs($htdocs,$theme);
+    }
+    else {
+        for my $theme ( _get_themes('opac') ) {
+            push @languages, _get_language_dirs($htdocs,$theme);
+        }
+    }
+    return @languages;
+}
+
+
+sub _get_intranet_language_dirs {
+    my ( $htdocs, $theme ) = @_;
+
+    my @languages;
+    if ( $theme and -d "$htdocs/$theme" ) {
+        @languages = _get_language_dirs($htdocs,$theme);
+    }
+    else {
+        foreach my $theme ( _get_themes('intranet') ) {
+            push @languages, _get_language_dirs($htdocs,$theme);
+        }
+    }
+    return @languages;
+}
+
 =head2 _get_themes
 
 Internal function, returns an array of all available themes.
@@ -315,8 +344,6 @@ sub _build_languages_arrayref {
         my @languages_loop; # the final reference to an array of hashrefs
         my @enabled_languages = @$enabled_languages;
         # how many languages are enabled, if one, take note, some contexts won't need to display it
-        my %seen_languages; # the language tags we've seen
-        my %found_languages;
         my $language_groups;
         my $track_language_groups;
         my $current_language_regex = regex_lang_subtags($current_language);
@@ -556,7 +583,7 @@ sub accept_language {
     }
     # No primary matches. Secondary? (ie, en-us requested and en supported)
     return $secondaryMatch if $secondaryMatch;
-    return undef;   # else, we got nothing.
+    return;   # else, we got nothing.
 }
 
 =head2 getlanguage
@@ -576,13 +603,13 @@ sub getlanguage {
         return $cached if $cached;
     }
 
-    $cgi //= new CGI;
+    $cgi //= CGI->new;
     my $interface = C4::Context->interface;
     my $theme = C4::Context->preference( ( $interface eq 'opac' ) ? 'opacthemes' : 'template' );
     my $language;
 
     my $preference_to_check =
-      $interface eq 'intranet' ? 'language' : 'opaclanguages';
+      $interface eq 'intranet' ? 'language' : 'OPACLanguages';
     # Get the available/valid languages list
     my @languages;
     my $preference_value = C4::Context->preference($preference_to_check);
@@ -620,6 +647,24 @@ sub getlanguage {
 
     $memory_cache->set_in_cache( $cache_key, $language );
     return $language;
+}
+
+=head2 get_rfc4646_from_iso639
+
+    Select a language rfc4646 code given an iso639 code
+
+=cut
+
+sub get_rfc4646_from_iso639 {
+
+    my $iso_code = shift;
+    my $rfc_subtag = Koha::Database->new()->schema->resultset('LanguageRfc4646ToIso639')->find({iso639_2_code=>$iso_code});
+    if ( $rfc_subtag ) {
+        return $rfc_subtag->rfc4646_subtag;
+    } else {
+        return;
+    }
+
 }
 
 1;

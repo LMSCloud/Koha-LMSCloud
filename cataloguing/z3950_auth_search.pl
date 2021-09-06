@@ -26,7 +26,7 @@ use C4::Context;
 use C4::Breeding;
 use C4::Koha;
 
-my $input        = new CGI;
+my $input        = CGI->new;
 my $dbh          = C4::Context->dbh;
 my $error         = $input->param('error');
 my $authid  = $input->param('authid') || 0;
@@ -42,7 +42,9 @@ my $subjectsubdiv       = $input->param('subjectsubdiv');
 my $srchany       = $input->param('srchany');
 my $op            = $input->param('op')||'';
 my $page            = $input->param('current_page') || 1;
+my $index =$input->param('index');
 $page = $input->param('goto_page') if $input->param('changepage_goto');
+my $controlnumber    = $input->param('controlnumber');
 
 my ( $template, $loggedinuser, $cookie ) = get_template_and_user({
         template_name   => "cataloguing/z3950_auth_search.tt",
@@ -63,15 +65,18 @@ $template->param(
     subjectsubdiv   => $subjectsubdiv,
     srchany      => $srchany,
     authid => $authid,
+    controlnumber => $controlnumber,
+    index => $index,
 );
 
 if ( $op ne "do_search" ) {
-    my $sth = $dbh->prepare("SELECT id,host,servername,checked FROM z3950servers WHERE recordtype = 'authority' AND servertype='zed' ORDER BY rank, servername");
+    my $sth = $dbh->prepare("SELECT id,host,servername,checked FROM z3950servers WHERE recordtype = 'authority' ORDER BY `rank`, servername");
     $sth->execute();
     my $serverloop = $sth->fetchall_arrayref( {} );
     $template->param(
         serverloop   => $serverloop,
         opsearch     => "search",
+        index        => $index,
     );
     output_html_with_http_headers $input, $cookie, $template->output;
     exit;
@@ -86,7 +91,6 @@ if ( @id==0 ) {
 }
 
 my $pars= {
-        random => scalar $input->param('random') || rand(1000000000),
         page => $page,
         id => \@id,
         nameany => $nameany,
@@ -100,6 +104,7 @@ my $pars= {
         subjectsubdiv => $subjectsubdiv,
         srchany => $srchany,
         authid => $authid,
+        controlnumber => $controlnumber,
 };
 Z3950SearchAuth($pars, $template);
 output_html_with_http_headers $input, $cookie, $template->output;

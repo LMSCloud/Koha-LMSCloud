@@ -52,8 +52,8 @@ FIXME - this should be moved to a configuration file.
 my %subdivisions = (
     'j' => 'formsubdiv',
     'x' => 'generalsubdiv',
-    'y' => 'chronologicalsubdiv',
-    'z' => 'geographicsubdiv',
+    'y' => 'geographicsubdiv',
+    'z' => 'chronologicalsubdiv',
 );
 
 my $bib_heading_fields;
@@ -87,13 +87,28 @@ sub new {
     return bless {}, $class;
 }
 
-=head2 valid_bib_heading_tag
+=head2 valid_heading_tag
 
 =cut
 
-sub valid_bib_heading_tag {
+sub valid_heading_tag {
     my ( $self, $tag ) = @_;
     return $bib_heading_fields->{$tag};
+}
+
+=head2 valid_heading_subfield
+
+=cut
+
+sub valid_heading_subfield {
+    my $self          = shift;
+    my $tag           = shift;
+    my $subfield      = shift;
+
+    if ( exists $bib_heading_fields->{$tag} ) {
+        return 1 if ($bib_heading_fields->{$tag}->{subfields} =~ /$subfield/);
+    }
+    return 0;
 }
 
 =head2 parse_heading
@@ -145,14 +160,19 @@ sub _get_search_heading {
         my $code    = $subfields[$i]->[0];
         my $code_re = quotemeta $code;
         my $value   = $subfields[$i]->[1];
-        $value =~ s/[-,.:=;!%\/]*$//;
+        $value =~ s/[\s]*[-,.:=;!%\/][\s]*$//;
         next unless $subfields =~ qr/$code_re/;
         if ($first) {
             $first   = 0;
             $heading = $value;
         }
         else {
-            $heading .= " $value";
+            if ( exists $subdivisions{$code} ) {
+                $heading .= " $subdivisions{$code} $value";
+            }
+            else {
+                $heading .= " $value";
+            }
         }
     }
 

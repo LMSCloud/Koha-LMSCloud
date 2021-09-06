@@ -4,18 +4,18 @@ package Koha::Config::SysPref;
 #
 # This file is part of Koha.
 #
-# Koha is free software; you can redistribute it and/or modify it under the
-# terms of the GNU General Public License as published by the Free Software
-# Foundation; either version 3 of the License, or (at your option) any later
-# version.
+# Koha is free software; you can redistribute it and/or modify it
+# under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 3 of the License, or
+# (at your option) any later version.
 #
-# Koha is distributed in the hope that it will be useful, but WITHOUT ANY
-# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
-# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+# Koha is distributed in the hope that it will be useful, but
+# WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+# GNU General Public License for more details.
 #
-# You should have received a copy of the GNU General Public License along
-# with Koha; if not, write to the Free Software Foundation, Inc.,
-# 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+# You should have received a copy of the GNU General Public License
+# along with Koha; if not, see <http://www.gnu.org/licenses>.
 
 use Modern::Perl;
 
@@ -36,6 +36,35 @@ Koha::Config::SysPref - Koha System Preference Object class
 =head2 Class Methods
 
 =cut
+
+=head3 get_yaml_pref_hash
+
+Turn a pref defined via YAML as a hash
+
+=cut
+
+sub get_yaml_pref_hash {
+    my ( $self ) = @_;
+    return if !defined( $self );
+
+    # We want to use C4::Context->preference in any cases
+    # It's cached, and mock_preference still works from tests
+    my @lines = split /\n/, C4::Context->preference($self->variable) // '';
+    my $pref_as_hash;
+    foreach my $line (@lines){
+        my ($field,$array) = split /:/, $line;
+        next if !$array;
+        $field =~ s/^\s*|\s*$//g;
+        $array =~ s/[ [\]\r]//g;
+        my @array = split /,/, $array;
+        @array = map { $_ eq '""' || $_ eq "''" ? '' : $_ } @array;
+        @array = map { $_ eq 'NULL' ? undef : $_ } @array;
+        $pref_as_hash->{$field} = \@array;
+    }
+
+    return $pref_as_hash;
+}
+
 
 =head3 store
 

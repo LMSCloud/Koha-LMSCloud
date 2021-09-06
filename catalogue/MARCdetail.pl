@@ -61,15 +61,16 @@ use C4::Search;		# enabled_staff_search_views
 use Koha::Biblios;
 use Koha::BiblioFrameworks;
 use Koha::Patrons;
+use Koha::DateUtils;
+use Koha::Virtualshelves;
 
 use List::MoreUtils qw( uniq );
 
-my $query        = new CGI;
+my $query        = CGI->new;
 my $dbh          = C4::Context->dbh;
 my $biblionumber = $query->param('biblionumber');
 $biblionumber = HTML::Entities::encode($biblionumber);
-my $frameworkcode = $query->param('frameworkcode');
-$frameworkcode = GetFrameworkCode( $biblionumber ) unless ($frameworkcode);
+my $frameworkcode = $query->param('frameworkcode') // GetFrameworkCode( $biblionumber );
 my $popup        =
   $query->param('popup')
   ;    # if set to 1, then don't insert links, it's just to show the biblio
@@ -81,7 +82,6 @@ my ( $template, $loggedinuser, $cookie ) = get_template_and_user(
         template_name   => "catalogue/MARCdetail.tt",
         query           => $query,
         type            => "intranet",
-        authnotrequired => 0,
         flagsrequired   => { catalogue => 1 },
         debug           => 1,
     }
@@ -100,8 +100,6 @@ if ( not defined $record ) {
     exit;
 }
 
-$template->param( ocoins => GetCOinSBiblio($record) );
-
 my $biblio_object = Koha::Biblios->find( $biblionumber ); # FIXME Should replace $biblio
 my $tagslib = &GetMarcStructure(1,$frameworkcode);
 my $biblio = GetBiblioData($biblionumber);
@@ -115,6 +113,16 @@ if($query->cookie("holdfor")){
         holdfor_cardnumber => $holdfor_patron->cardnumber,
     );
 }
+
+if( $query->cookie("searchToOrder") ){
+    my ( $basketno, $vendorid ) = split( /\//, $query->cookie("searchToOrder") );
+    $template->param(
+        searchtoorder_basketno => $basketno,
+        searchtoorder_vendorid => $vendorid
+    );
+}
+
+$template->param( ocoins => $biblio_object->get_coins );
 
 #count of item linked
 my $itemcount = $biblio_object->items->count;
@@ -259,7 +267,7 @@ my %witness
   ; #---- stores the list of subfields used at least once, with the "meaning" of the code
 my @item_subfield_codes;
 my @item_loop;
-my $norequests = 1;
+
 foreach my $field (@fields) {
     next if ( $field->tag() < 10 );
     my @subf = $field->subfields;
@@ -269,17 +277,32 @@ foreach my $field (@fields) {
     for my $i ( 0 .. $#subf ) {
         next if ( $tagslib->{ $field->tag() }->{ $subf[$i][0] }->{tab} ne 10 );
         next if ( $tagslib->{ $field->tag() }->{ $subf[$i][0] }->{hidden} =~ /-7|-4|-3|-2|2|3|5|8/);
+
         push @item_subfield_codes, $subf[$i][0];
         $witness{ $subf[$i][0] } =
         $tagslib->{ $field->tag() }->{ $subf[$i][0] }->{lib};
-        $item->{ $subf[$i][0] } = GetAuthorisedValueDesc( $field->tag(),
-                        $subf[$i][0], $subf[$i][1], '', $tagslib) || $subf[$i][1];
-        $norequests = 0 if $subf[$i][1] ==0 and $tagslib->{ $field->tag() }->{ $subf[$i][0] }->{kohafield} eq 'items.notforloan';
+
+        # Allow repeatables (BZ 13574)
+        if( $item->{$subf[$i][0]}) {
+            $item->{$subf[$i][0]} .= ' | ';
+        } else {
+            $item->{$subf[$i][0]} = q{};
+        }
+        if( $tagslib->{$field->tag()}->{$subf[$i][0]}->{isurl} ) {
+            $item->{$subf[$i][0]} .= "<a href=\"$subf[$i][1]\">$subf[$i][1]</a>";
+        } else {
+            $item->{ $subf[$i][0] } .= GetAuthorisedValueDesc( $field->tag(), $subf[$i][0], $subf[$i][1], '', $tagslib) || $subf[$i][1];
+        }
+
+        my $kohafield = $tagslib->{ $field->tag() }->{ $subf[$i][0] }->{kohafield};
+        $item->{ $subf[$i][0] } = output_pref( { str => $item->{ $subf[$i][0] }, dateonly => 1 } )
+          if grep { $kohafield eq $_ }
+              qw( items.dateaccessioned items.onloan items.datelastseen items.datelastborrowed items.replacementpricedate );
     }
     push @item_loop, $item if $item;
 }
 
-my ($holdingbrtagf,$holdingbrtagsubf) = &GetMarcFromKohaField("items.holdingbranch",$frameworkcode);
+my ($holdingbrtagf,$holdingbrtagsubf) = &GetMarcFromKohaField( "items.holdingbranch" );
 @item_loop = sort {$a->{$holdingbrtagsubf} cmp $b->{$holdingbrtagsubf}} @item_loop;
 
 @item_subfield_codes = uniq @item_subfield_codes;
@@ -303,8 +326,39 @@ if ($subscriptionscount) {
     );
 }
 
+# get biblionumbers stored in the cart
+my @cart_list;
+
+if($query->cookie("intranet_bib_list")){
+    my $cart_list = $query->cookie("intranet_bib_list");
+    @cart_list = split(/\//, $cart_list);
+    if ( grep {$_ eq $biblionumber} @cart_list) {
+        $template->param( incart => 1 );
+    }
+}
+
+my $some_private_shelves = Koha::Virtualshelves->get_some_shelves(
+    {
+        borrowernumber => $loggedinuser,
+        add_allowed    => 1,
+        category       => 1,
+    }
+);
+my $some_public_shelves = Koha::Virtualshelves->get_some_shelves(
+    {
+        borrowernumber => $loggedinuser,
+        add_allowed    => 1,
+        category       => 2,
+    }
+);
+
+
+$template->param(
+    add_to_some_private_shelves => $some_private_shelves,
+    add_to_some_public_shelves  => $some_public_shelves,
+);
+
 $template->param (
-    norequests              => $norequests,
     item_loop               => \@item_loop,
     item_header_loop        => \@item_header_loop,
     item_subfield_codes     => \@item_subfield_codes,
@@ -314,39 +368,11 @@ $template->param (
 	marcview => 1,
 	z3950_search_params		=> C4::Search::z3950_search_args($biblio),
 	C4::Search::enabled_staff_search_views,
-    searchid            => scalar $query->param('searchid'),
+    searchid                => scalar $query->param('searchid'),
+    biblio                  => $biblio_object,
+    loggedinuser => $loggedinuser,
 );
 
-my @allorders_using_biblio = GetOrdersByBiblionumber ($biblionumber);
-my @deletedorders_using_biblio;
-my @orders_using_biblio;
-my @baskets_orders;
-my @baskets_deletedorders;
-
-foreach my $myorder (@allorders_using_biblio) {
-    my $basket = $myorder->{'basketno'};
-    if ((defined $myorder->{'datecancellationprinted'}) and  ($myorder->{'datecancellationprinted'} ne '0000-00-00') ){
-        push @deletedorders_using_biblio, $myorder;
-        unless (grep(/^$basket$/, @baskets_deletedorders)){
-            push @baskets_deletedorders,$myorder->{'basketno'};
-        }
-    }
-    else {
-        push @orders_using_biblio, $myorder;
-        unless (grep(/^$basket$/, @baskets_orders)){
-            push @baskets_orders,$myorder->{'basketno'};
-            }
-    }
-}
-
-my $count_orders_using_biblio = scalar @orders_using_biblio ;
-$template->param (countorders => $count_orders_using_biblio);
-
-my $count_deletedorders_using_biblio = scalar @deletedorders_using_biblio ;
-$template->param (countdeletedorders => $count_deletedorders_using_biblio);
-
-$biblio = Koha::Biblios->find( $biblionumber );
-my $holds = $biblio->holds;
-$template->param( holdcount => $holds->count );
+$template->param( holdcount => $biblio_object->holds->count );
 
 output_html_with_http_headers $query, $cookie, $template->output;

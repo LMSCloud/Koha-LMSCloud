@@ -32,11 +32,11 @@ use Koha::OAI::Server::GetRecord;
 use Koha::OAI::Server::ListRecords;
 use Koha::OAI::Server::ListIdentifiers;
 use XML::SAX::Writer;
-use YAML::Syck qw( LoadFile );
+use YAML::XS;
 use CGI qw/:standard -oldstyle_urls/;
 use C4::Context;
 use C4::Biblio;
-use Koha::XSLT_Handler;
+use Koha::XSLT::Base;
 
 =head1 NAME
 
@@ -104,11 +104,11 @@ sub new {
     $self->{ koha_identifier      } = C4::Context->preference("OAI-PMH:archiveID");
     $self->{ koha_max_count       } = C4::Context->preference("OAI-PMH:MaxCount");
     $self->{ koha_metadata_format } = ['oai_dc', 'marc21', 'marcxml'];
-    $self->{ xslt_engine          } = Koha::XSLT_Handler->new;
+    $self->{ xslt_engine          } = Koha::XSLT::Base->new;
 
     # Load configuration file if defined in OAI-PMH:ConfFile syspref
     if ( my $file = C4::Context->preference("OAI-PMH:ConfFile") ) {
-        $self->{ conf } = LoadFile( $file );
+        $self->{ conf } = YAML::XS::LoadFile( $file );
         my @formats = keys %{ $self->{conf}->{format} };
         $self->{ koha_metadata_format } =  \@formats;
     }
@@ -127,7 +127,7 @@ sub new {
     # Is metadataPrefix supported by the repository?
     my $mdp = param('metadataPrefix') || '';
     if ( $mdp && !grep { $_ eq $mdp } @{$self->{ koha_metadata_format }} ) {
-        push @errs, new HTTP::OAI::Error(
+        push @errs, HTTP::OAI::Error->new(
             code    => 'cannotDisseminateFormat',
             message => "Dissemination as '$mdp' is not supported",
         );

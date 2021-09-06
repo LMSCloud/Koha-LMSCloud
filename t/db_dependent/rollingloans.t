@@ -20,9 +20,7 @@ my $builder = t::lib::TestBuilder->new;
 $builder->build({ source => 'Branch', value => { branchcode => 'CPL' } })
     unless Koha::Libraries->find('CPL');
 
-C4::Context->_new_userenv(1234567);
-C4::Context->set_userenv(91, 'CLIstaff', '23529001223661', 'CPL',
-                         'CPL', 'CPL', '', 'cc@cscnet.co.uk');
+t::lib::Mocks::mock_userenv({ branchcode => 'CPL' });
 
 t::lib::Mocks::mock_preference('BlockReturnOfWithdrawnItems',0);
 my $test_patron = '23529001223651';
@@ -31,27 +29,21 @@ my $test_item_24 = '502326000404';
 my $test_item_48 = '502326000403';
 
 my $borrower1 = $builder->build_object({ class => 'Koha::Patrons', value => { cardnumber => $test_patron } });
-my $item1 = $builder->build_object({
-    class => 'Koha::Items',
-    value => {
+my $item1 = $builder->build_sample_item(
+    {
         barcode => $test_item_fic,
-        biblionumber => $builder->build( { source => 'Biblioitem' } )->{biblionumber},
     }
-});
-my $item2 = $builder->build_object({
-    class => 'Koha::Items',
-    value => {
+);
+my $item2 = $builder->build_sample_item(
+    {
         barcode => $test_item_24,
-        biblionumber => $builder->build( { source => 'Biblioitem' } )->{biblionumber},
     }
-});
-my $item3 = $builder->build_object({
-    class => 'Koha::Items',
-    value => {
+);
+my $item3 = $builder->build_sample_item(
+    {
         barcode => $test_item_48,
-        biblionumber => $builder->build( { source => 'Biblioitem' } )->{biblionumber},
     }
-});
+);
 
 SKIP: {
     skip 'Missing test borrower or item, skipping tests', 8

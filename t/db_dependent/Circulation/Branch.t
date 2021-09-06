@@ -17,13 +17,15 @@
 
 use Modern::Perl;
 
-use C4::Members;
 use C4::Circulation;
 use C4::Items;
 use C4::Biblio;
 use C4::Context;
+use Koha::CirculationRules;
 
-use Test::More tests => 14;
+use Koha::Patrons;
+
+use Test::More tests => 15;
 use t::lib::Mocks;
 use t::lib::TestBuilder;
 
@@ -42,6 +44,7 @@ can_ok( 'C4::Circulation', qw(
 my $schema = Koha::Database->schema;
 $schema->storage->txn_begin;
 my $dbh = C4::Context->dbh;
+my $query;
 
 $dbh->do(q|DELETE FROM issues|);
 $dbh->do(q|DELETE FROM items|);
@@ -51,11 +54,7 @@ $dbh->do(q|DELETE FROM branches|);
 $dbh->do(q|DELETE FROM categories|);
 $dbh->do(q|DELETE FROM accountlines|);
 $dbh->do(q|DELETE FROM itemtypes|);
-$dbh->do(q|DELETE FROM branch_item_rules|);
-$dbh->do(q|DELETE FROM branch_borrower_circ_rules|);
-$dbh->do(q|DELETE FROM default_branch_circ_rules|);
-$dbh->do(q|DELETE FROM default_circ_rules|);
-$dbh->do(q|DELETE FROM default_branch_item_rules|);
+$dbh->do(q|DELETE FROM circulation_rules|);
 
 my $builder = t::lib::TestBuilder->new();
 
@@ -99,126 +98,163 @@ $record->append_fields(
 my ( $biblionumber, $biblioitemnumber ) = C4::Biblio::AddBiblio( $record, '' );
 
 # item 1 has home branch and holding branch samplebranch1
-my @sampleitem1 = C4::Items::AddItem(
+my $item_id1 = Koha::Item->new(
     {
+        biblionumber   => $biblionumber,
         barcode        => 'barcode_1',
         itemcallnumber => 'callnumber1',
         homebranch     => $samplebranch1->{branchcode},
         holdingbranch  => $samplebranch1->{branchcode},
         itype          => $no_circ_itemtype->{ itemtype }
-    },
-    $biblionumber
-);
-my $item_id1    = $sampleitem1[2];
+    }
+)->store->itemnumber;
 
 # item 2 has holding branch samplebranch2
-my @sampleitem2 = C4::Items::AddItem(
+my $item_id2 = Koha::Item->new(
     {
+        biblionumber   => $biblionumber,
         barcode        => 'barcode_2',
         itemcallnumber => 'callnumber2',
         homebranch     => $samplebranch2->{branchcode},
         holdingbranch  => $samplebranch1->{branchcode},
         itype          => $no_circ_itemtype->{ itemtype }
     },
-    $biblionumber
-);
-my $item_id2 = $sampleitem2[2];
+)->store->itemnumber;
 
 # item 3 has item type sampleitemtype2 with noreturn policy
-my @sampleitem3 = C4::Items::AddItem(
+my $item_id3 = Koha::Item->new(
     {
+        biblionumber   => $biblionumber,
         barcode        => 'barcode_3',
         itemcallnumber => 'callnumber3',
         homebranch     => $samplebranch2->{branchcode},
         holdingbranch  => $samplebranch2->{branchcode},
         itype          => $sampleitemtype2->{itemtype}
-    },
-    $biblionumber
-);
-my $item_id3 = $sampleitem3[2];
+    }
+)->store->itemnumber;
 
 #Add borrower
-my $borrower_id1 = C4::Members::AddMember(
+my $borrower_id1 = Koha::Patron->new({
     firstname    => 'firstname1',
     surname      => 'surname1 ',
     categorycode => $samplecat->{categorycode},
     branchcode   => $samplebranch1->{branchcode},
-);
+})->store->borrowernumber;
 
 is_deeply(
     GetBranchBorrowerCircRule(),
-    { maxissueqty => undef, maxonsiteissueqty => undef },
-"Without parameter, GetBranchBorrower returns undef (unilimited) for maxissueqty and maxonsiteissueqty if no rules defined"
+    { patron_maxissueqty => undef, patron_maxonsiteissueqty => undef },
+"Without parameter, GetBranchBorrower returns undef (unilimited) for patron_maxissueqty and patron_maxonsiteissueqty if no rules defined"
 );
 
-my $query = q|
-    INSERT INTO branch_borrower_circ_rules
-    (branchcode, categorycode, maxissueqty, maxonsiteissueqty)
-    VALUES( ?, ?, ?, ? )
-|;
-
-$dbh->do(
-    $query, {},
-    $samplebranch1->{branchcode},
-    $samplecat->{categorycode}, 5, 6
+Koha::CirculationRules->set_rules(
+    {
+        branchcode   => $samplebranch1->{branchcode},
+        categorycode => $samplecat->{categorycode},
+        rules        => {
+            patron_maxissueqty       => 5,
+            patron_maxonsiteissueqty => 6,
+        }
+    }
 );
 
-$query = q|
-    INSERT INTO default_branch_circ_rules
-    (branchcode, maxissueqty, maxonsiteissueqty, holdallowed, returnbranch)
-    VALUES( ?, ?, ?, ?, ? )
-|;
-$dbh->do( $query, {}, $samplebranch2->{branchcode},
-    3, 2, 1, 'holdingbranch' );
-$query = q|
-    INSERT INTO default_circ_rules
-    (singleton, maxissueqty, maxonsiteissueqty, holdallowed, returnbranch)
-    VALUES( ?, ?, ?, ?, ? )
-|;
-$dbh->do( $query, {}, 'singleton', 4, 5, 3, 'homebranch' );
 
-$query =
-"INSERT INTO branch_item_rules (branchcode,itemtype,holdallowed,returnbranch) VALUES( ?,?,?,?)";
-my $sth = $dbh->prepare($query);
-$sth->execute(
-    $samplebranch1->{branchcode},
-    $sampleitemtype1->{itemtype},
-    5, 'homebranch'
+Koha::CirculationRules->set_rules(
+    {
+        branchcode   => $samplebranch2->{branchcode},
+        categorycode => undef,
+        rules        => {
+            patron_maxissueqty       => 3,
+            patron_maxonsiteissueqty => 2,
+        }
+    }
 );
-$sth->execute(
-    $samplebranch2->{branchcode},
-    $sampleitemtype1->{itemtype},
-    5, 'holdingbranch'
+Koha::CirculationRules->set_rules(
+    {
+        branchcode   => $samplebranch2->{branchcode},
+        itemtype     => undef,
+        rules        => {
+            holdallowed       => 'from_home_library',
+            returnbranch      => 'holdingbranch',
+        }
+    }
 );
-$sth->execute(
-    $samplebranch2->{branchcode},
-    $sampleitemtype2->{itemtype},
-    5, 'noreturn'
+
+Koha::CirculationRules->set_rules(
+    {
+        branchcode   => undef,
+        categorycode => undef,
+        rules        => {
+            patron_maxissueqty       => 4,
+            patron_maxonsiteissueqty => 5,
+        }
+    }
+);
+Koha::CirculationRules->set_rules(
+    {
+        branchcode   => undef,
+        itemtype     => undef,
+        rules        => {
+            holdallowed       => 'from_local_hold_group',
+            returnbranch      => 'homebranch',
+        }
+    }
+);
+
+Koha::CirculationRules->set_rules(
+    {
+        branchcode   => $samplebranch1->{branchcode},
+        itemtype     => $sampleitemtype1->{itemtype},
+        rules        => {
+            holdallowed       => 'invalid_value',
+            returnbranch      => 'homebranch',
+        }
+    }
+);
+Koha::CirculationRules->set_rules(
+    {
+        branchcode   => $samplebranch2->{branchcode},
+        itemtype     => $sampleitemtype1->{itemtype},
+        rules        => {
+            holdallowed       => 'invalid_value',
+            returnbranch      => 'holdingbranch',
+        }
+    }
+);
+Koha::CirculationRules->set_rules(
+    {
+        branchcode   => $samplebranch2->{branchcode},
+        itemtype     => $sampleitemtype2->{itemtype},
+        rules        => {
+            holdallowed       => 'invalid_value',
+            returnbranch      => 'noreturn',
+        }
+    }
 );
 
 #Test GetBranchBorrowerCircRule
 is_deeply(
     GetBranchBorrowerCircRule(),
-    { maxissueqty => 4, maxonsiteissueqty => 5 },
-"Without parameter, GetBranchBorrower returns the maxissueqty and maxonsiteissueqty of default_circ_rules"
+    { patron_maxissueqty => 4, patron_maxonsiteissueqty => 5 },
+"Without parameter, GetBranchBorrower returns the patron_maxissueqty and patron_maxonsiteissueqty of default_circ_rules"
 );
 is_deeply(
     GetBranchBorrowerCircRule( $samplebranch2->{branchcode} ),
-    { maxissueqty => 3, maxonsiteissueqty => 2 },
-"Without only the branchcode specified, GetBranchBorrower returns the maxissueqty and maxonsiteissueqty corresponding"
+    { patron_maxissueqty => 3, patron_maxonsiteissueqty => 2 },
+"Without only the branchcode specified, GetBranchBorrower returns the patron_maxissueqty and patron_maxonsiteissueqty corresponding"
 );
 is_deeply(
     GetBranchBorrowerCircRule(
         $samplebranch1->{branchcode},
         $samplecat->{categorycode}
     ),
-    { maxissueqty => 5, maxonsiteissueqty => 6 },
-    "GetBranchBorrower returns the maxissueqty and maxonsiteissueqty of the branch1 and the category1"
+    { patron_maxissueqty => 5, patron_maxonsiteissueqty => 6 },
+    "GetBranchBorrower returns the patron_maxissueqty and patron_maxonsiteissueqty of the branch1 and the category1"
 );
 is_deeply(
     GetBranchBorrowerCircRule( -1, -1 ),
-    { maxissueqty => 4, maxonsiteissueqty => 5 },
-"GetBranchBorrower with wrong parameters returns the maxissueqty and maxonsiteissueqty of default_circ_rules"
+    { patron_maxissueqty => 4, patron_maxonsiteissueqty => 5 },
+"GetBranchBorrower with wrong parameters returns the patron_maxissueqty and patron_maxonsiteissueqty of default_circ_rules"
 );
 
 #Test GetBranchItemRule
@@ -228,22 +264,22 @@ is_deeply(
         $samplebranch1->{branchcode},
         $sampleitemtype1->{itemtype},
     ),
-    { returnbranch => 'homebranch', holdallowed => 5, @lazy_any },
+    { returnbranch => 'homebranch', holdallowed => 'invalid_value', @lazy_any },
     "GetBranchitem returns holdallowed and return branch"
 );
 is_deeply(
     GetBranchItemRule(),
-    { returnbranch => 'homebranch', holdallowed => 3, @lazy_any },
+    { returnbranch => 'homebranch', holdallowed => 'from_local_hold_group', @lazy_any },
 "Without parameters GetBranchItemRule returns the values in default_circ_rules"
 );
 is_deeply(
     GetBranchItemRule( $samplebranch2->{branchcode} ),
-    { returnbranch => 'holdingbranch', holdallowed => 1, @lazy_any },
+    { returnbranch => 'holdingbranch', holdallowed => 'from_home_library', @lazy_any },
 "With only a branchcode GetBranchItemRule returns values in default_branch_circ_rules"
 );
 is_deeply(
     GetBranchItemRule( -1, -1 ),
-    { returnbranch => 'homebranch', holdallowed => 3, @lazy_any },
+    { returnbranch => 'homebranch', holdallowed => 'from_local_hold_group', @lazy_any },
     "With only one parametern GetBranchItemRule returns default values"
 );
 
@@ -266,6 +302,12 @@ $dbh->do( $query, {}, $borrower_id1, $item_id2, $samplebranch2->{branchcode} );
 ($doreturn, $messages, $iteminformation, $borrower) = AddReturn('barcode_2',
     $samplebranch2->{branchcode});
 is( $messages->{NeedsTransfer}, $samplebranch1->{branchcode}, "AddReturn respects branch return policy - item2->homebranch policy = 'holdingbranch'" );
+
+# Generate the transfer from above
+ModItemTransfer($item_id2, $samplebranch2->{branchcode}, $samplebranch1->{branchcode}, "ReturnToHolding");
+# Fulfill it
+($doreturn, $messages, $iteminformation, $borrower) = AddReturn('barcode_2',$samplebranch1->{branchcode});
+is( $messages->{NeedsTransfer}, undef, "AddReturn does not generate a new transfer for return policy when resolving an existing transfer" );
 
 # item3 should not trigger transfer - floating collection
 $query =

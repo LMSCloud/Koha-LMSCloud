@@ -23,8 +23,8 @@ use Text::CSV::Encoded;
 use Encode qw( decode );
 use URI::Escape;
 use File::Temp;
-use File::Basename qw( dirname );
 use C4::Reports::Guided;
+use Koha::Reports;
 use C4::Auth qw/:DEFAULT get_session/;
 use C4::Output;
 use C4::Debug;
@@ -37,6 +37,8 @@ use Koha::AuthorisedValues;
 use Koha::BiblioFrameworks;
 use Koha::Libraries;
 use Koha::Patron::Categories;
+use Koha::SharedContent;
+use Koha::Util::OpenDocument;
 
 =head1 NAME
 
@@ -48,12 +50,13 @@ Script to control the guided report creation
 
 =cut
 
-my $input = new CGI;
+my $input = CGI->new;
 my $usecache = Koha::Caches->get_instance->memcached_cache;
 
 my $phase = $input->param('phase') // '';
 my $flagsrequired;
-if ( ( $phase eq 'Build new' ) || ( $phase eq 'Create report from SQL' ) || ( $phase eq 'Edit SQL' ) ){
+if ( ( $phase eq 'Build new' ) || ( $phase eq 'Create report from SQL' ) || ( $phase eq 'Edit SQL' )
+   || ( $phase eq 'Build new from existing' ) ) {
     $flagsrequired = 'create_reports';
 }
 elsif ( $phase eq 'Use saved' ) {
@@ -71,7 +74,6 @@ my ( $template, $borrowernumber, $cookie ) = get_template_and_user(
         template_name   => "reports/guided_reports_start.tt",
         query           => $input,
         type            => "intranet",
-        authnotrequired => 0,
         flagsrequired   => { reports => $flagsrequired },
         debug           => 1,
     }
@@ -109,22 +111,22 @@ elsif ( $phase eq 'Build new' ) {
 
     if ( $op eq 'convert' ) {
         my $report_id = $input->param('report_id');
-        my $report    = C4::Reports::Guided::get_saved_report($report_id);
+        my $report    = Koha::Reports->find($report_id);
         if ($report) {
-            my $updated_sql = C4::Reports::Guided::convert_sql( $report->{savedsql} );
+            my $updated_sql = C4::Reports::Guided::convert_sql( $report->savedsql );
             C4::Reports::Guided::update_sql(
                 $report_id,
                 {
                     sql          => $updated_sql,
-                    name         => $report->{report_name},
-                    group        => $report->{report_group},
-                    subgroup     => $report->{report_subgroup},
-                    notes        => $report->{notes},
-                    public       => $report->{public},
-                    cache_expiry => $report->{cache_expiry},
+                    name         => $report->report_name,
+                    group        => $report->report_group,
+                    subgroup     => $report->report_subgroup,
+                    notes        => $report->notes,
+                    public       => $report->public,
+                    cache_expiry => $report->cache_expiry,
                 }
             );
-            $template->param( report_converted => $report->{report_name} );
+            $template->param( report_converted => $report->report_name );
         }
     }
 
@@ -144,6 +146,7 @@ elsif ( $phase eq 'Build new' ) {
         }
     }
     $template->param(
+        'manamsg' => $input->param('manamsg') || '',
         'saved1'                => 1,
         'savedreports'          => $reports,
         'usecache'              => $usecache,
@@ -172,31 +175,37 @@ elsif ( $phase eq 'Delete Saved') {
 elsif ( $phase eq 'Show SQL'){
 	
     my $id = $input->param('reports');
-    my $report = get_saved_report($id);
+    my $report = Koha::Reports->find($id);
     $template->param(
         'id'      => $id,
-        'reportname' => $report->{report_name},
-        'notes'      => $report->{notes},
-	'sql'     => $report->{savedsql},
-	'showsql' => 1,
+        'reportname' => $report->report_name,
+        'notes'      => $report->notes,
+        'sql'     => $report->savedsql,
+        'showsql' => 1,
+        'mana_success' => $input->param('mana_success'),
+        'mana_success' => scalar $input->param('mana_success'),
+        'mana_id' => $report->{mana_id},
+        'mana_comments' => $report->{comments}
     );
 }
 
 elsif ( $phase eq 'Edit SQL'){
     my $id = $input->param('reports');
-    my $report = get_saved_report($id);
-    my $group = $report->{report_group};
-    my $subgroup  = $report->{report_subgroup};
+    my $report = Koha::Reports->find($id);
+    my $group = $report->report_group;
+    my $subgroup  = $report->report_subgroup;
     $template->param(
-        'sql'        => $report->{savedsql},
-        'reportname' => $report->{report_name},
+        'sql'        => $report->savedsql,
+        'reportname' => $report->report_name,
         'groups_with_subgroups' => groups_with_subgroups($group, $subgroup),
-        'notes'      => $report->{notes},
+        'notes'      => $report->notes,
         'id'         => $id,
-        'cache_expiry' => $report->{cache_expiry},
-        'public' => $report->{public},
+        'cache_expiry' => $report->cache_expiry,
+        'public' => $report->public,
         'usecache' => $usecache,
         'editsql'    => 1,
+        'mana_id' => $report->{mana_id},
+        'mana_comments' => $report->{comments}
     );
 }
 
@@ -211,7 +220,6 @@ elsif ( $phase eq 'Update SQL'){
     my $cache_expiry_units = $input->param('cache_expiry_units');
     my $public = $input->param('public');
     my $save_anyway = $input->param('save_anyway');
-
     my @errors;
 
     # if we have the units, then we came from creating a report from SQL and thus need to handle converting units
@@ -224,19 +232,15 @@ elsif ( $phase eq 'Update SQL'){
         $cache_expiry *= 86400; # 60 * 60 * 24
       }
     }
-    # check $cache_expiry isnt too large, Memcached::set requires it to be less than 30 days or it will be treated as if it were an absolute time stamp
+    # check $cache_expiry isn't too large, Memcached::set requires it to be less than 30 days or it will be treated as if it were an absolute time stamp
     if( $cache_expiry >= 2592000 ){
       push @errors, {cache_expiry => $cache_expiry};
     }
 
     create_non_existing_group_and_subgroup($input, $group, $subgroup);
 
-    if ($sql =~ /;?\W?(UPDATE|DELETE|DROP|INSERT|SHOW|CREATE)\W/i) {
-        push @errors, {sqlerr => $1};
-    }
-    elsif ($sql !~ /^(SELECT)/i) {
-        push @errors, {queryerr => "No SELECT"};
-    }
+    my ( $is_sql_valid, $validation_errors ) = Koha::Report->new({ savedsql => $sql })->is_sql_valid;
+    push(@errors, @$validation_errors) unless $is_sql_valid;
 
     if (@errors) {
         $template->param(
@@ -321,7 +325,7 @@ elsif ( $phase eq 'Report on this Area' ) {
     } elsif( $cache_expiry_units eq "days" ){
       $cache_expiry *= 86400; # 60 * 60 * 24
     }
-    # check $cache_expiry isnt too large, Memcached::set requires it to be less than 30 days or it will be treated as if it were an absolute time stamp
+    # check $cache_expiry isn't too large, Memcached::set requires it to be less than 30 days or it will be treated as if it were an absolute time stamp
     if( $cache_expiry >= 2592000 ){ # oops, over the limit of 30 days
       # report error to user
       $template->param(
@@ -333,7 +337,7 @@ elsif ( $phase eq 'Report on this Area' ) {
         'public' => scalar $input->param('public'),
       );
     } else {
-      # they have choosen a new report and the area to report on
+      # they have chosen a new report and the area to report on
       $template->param(
           'build2' => 1,
           'area'   => scalar $input->param('area'),
@@ -546,7 +550,7 @@ elsif ( $phase eq 'Build report' ) {
 
 elsif ( $phase eq 'Save' ) {
     # Save the report that has just been built
-    my $area           = $input->param('area');
+    my $area = $input->param('area');
     my $sql  = $input->param('sql');
     my $type = $input->param('type');
     $template->param(
@@ -585,20 +589,15 @@ elsif ( $phase eq 'Save Report' ) {
         $cache_expiry *= 86400; # 60 * 60 * 24
       }
     }
-    # check $cache_expiry isnt too large, Memcached::set requires it to be less than 30 days or it will be treated as if it were an absolute time stamp
+    # check $cache_expiry isn't too large, Memcached::set requires it to be less than 30 days or it will be treated as if it were an absolute time stamp
     if( $cache_expiry && $cache_expiry >= 2592000 ){
       push @errors, {cache_expiry => $cache_expiry};
     }
 
     create_non_existing_group_and_subgroup($input, $group, $subgroup);
-
     ## FIXME this is AFTER entering a name to save the report under
-    if ($sql =~ /;?\W?(UPDATE|DELETE|DROP|INSERT|SHOW|CREATE)\W/i) {
-        push @errors, {sqlerr => $1};
-    }
-    elsif ($sql !~ /^(SELECT)/i) {
-        push @errors, {queryerr => "No SELECT"};
-    }
+    my ( $is_sql_valid, $validation_errors ) = Koha::Report->new({ savedsql => $sql })->is_sql_valid;
+    push(@errors, @$validation_errors) unless $is_sql_valid;
 
     if (@errors) {
         $template->param(
@@ -667,6 +666,16 @@ elsif ( $phase eq 'Save Report' ) {
     }
 }
 
+elsif ($phase eq 'Share'){
+    my $lang = $input->param('mana_language') || '';
+    my $reportid = $input->param('reportid');
+    my $result = Koha::SharedContent::send_entity($lang, $borrowernumber, $reportid, 'report');
+    if ( $result ) {
+        print $input->redirect("/cgi-bin/koha/reports/guided_reports.pl?phase=Use%20saved&manamsg=".$result->{msg});
+    }else{
+        print $input->redirect("/cgi-bin/koha/reports/guided_reports.pl?phase=Use%20saved&manamsg=noanswer");
+    }
+}
 elsif ($phase eq 'Run this report'){
     # execute a saved report
     my $limit      = $input->param('limit') || 20;
@@ -674,6 +683,7 @@ elsif ($phase eq 'Run this report'){
     my $report_id  = $input->param('reports');
     my @sql_params = $input->multi_param('sql_params');
     my @param_names = $input->multi_param('param_name');
+    my $want_full_chart = $input->param('want_full_chart') || 0;
 
     # offset algorithm
     if ($input->param('page')) {
@@ -686,12 +696,13 @@ elsif ($phase eq 'Run this report'){
     );
 
     my ( $sql, $original_sql, $type, $name, $notes );
-    if (my $report = get_saved_report($report_id)) {
-        $sql   = $original_sql = $report->{savedsql};
-        $name  = $report->{report_name};
-        $notes = $report->{notes};
+    if (my $report = Koha::Reports->find($report_id)) {
+        $sql   = $original_sql = $report->savedsql;
+        $name  = $report->report_name;
+        $notes = $report->notes;
 
         my @rows = ();
+        my @allrows = ();
         # if we have at least 1 parameter, and it's not filled, then don't execute but ask for parameters
         if ($sql =~ /<</ && !@sql_params) {
             # split on ??. Each odd (2,4,6,...) entry should be a parameter to fill
@@ -700,11 +711,12 @@ elsif ($phase eq 'Run this report'){
             my @authval_errors;
             my %uniq_params;
             for(my $i=0;$i<($#split/2);$i++) {
-                my ($text,$authorised_value) = split /\|/,$split[$i*2+1];
-                my $sep = $authorised_value ? "|" : "";
-                if( defined $uniq_params{$text.$sep.$authorised_value} ){
+                my ($text,$authorised_value_all) = split /\|/,$split[$i*2+1];
+                my $sep = $authorised_value_all ? "|" : "";
+                if( defined $uniq_params{$text.$sep.$authorised_value_all} ){
                     next;
-                } else { $uniq_params{$text.$sep.$authorised_value} = "$i"; }
+                } else { $uniq_params{$text.$sep.$authorised_value_all} = "$i"; }
+                my ($authorised_value, $all) = split /:/, $authorised_value_all;
                 my $input;
                 my $labelid;
                 if ( not defined $authorised_value ) {
@@ -713,6 +725,9 @@ elsif ($phase eq 'Run this report'){
                 } elsif ( $authorised_value eq "date" ) {
                     # require a date, provide a date picker
                     $input = 'date';
+                } elsif ( $authorised_value eq "list" ) {
+                    # require a list, provide a textarea
+                    $input = 'textarea';
                 } else {
                     # defined $authorised_value, and not 'date'
                     my $dbh=C4::Context->dbh;
@@ -802,7 +817,7 @@ elsif ($phase eq 'Run this report'){
                     };
                 }
 
-                push @tmpl_parameters, {'entry' => $text, 'input' => $input, 'labelid' => $labelid, 'name' => $text.$sep.$authorised_value };
+                push @tmpl_parameters, {'entry' => $text, 'input' => $input, 'labelid' => $labelid, 'name' => $text.$sep.$authorised_value_all, 'include_all' => $all };
             }
             $template->param('sql'         => $sql,
                             'name'         => $name,
@@ -812,7 +827,8 @@ elsif ($phase eq 'Run this report'){
                             'reports'      => $report_id,
                             );
         } else {
-            my $sql = get_prepped_report( $sql, \@param_names, \@sql_params);
+            my ($sql,$header_types) = $report->prep_report( \@param_names, \@sql_params );
+            $template->param(header_types => $header_types);
             my ( $sth, $errors ) = execute_query( $sql, $offset, $limit, undef, $report_id );
             my $total = nb_rows($sql) || 0;
             unless ($sth) {
@@ -824,15 +840,27 @@ elsif ($phase eq 'Run this report'){
                     my @cells = map { +{ cell => $_ } } @$row;
                     push @rows, { cells => \@cells };
                 }
+                if( $want_full_chart ){
+                    my ($sth2, $errors2) = execute_query($sql);
+                    while (my $row = $sth2->fetchrow_arrayref()) {
+                        my @cells = map { +{ cell => $_ } } @$row;
+                        push @allrows, { cells => \@cells };
+                    }
+                }
             }
 
             my $totpages = int($total/$limit) + (($total % $limit) > 0 ? 1 : 0);
-            my $url = "/cgi-bin/koha/reports/guided_reports.pl?reports=$report_id&amp;phase=Run%20this%20report&amp;limit=$limit";
+            my $url = "/cgi-bin/koha/reports/guided_reports.pl?reports=$report_id&amp;phase=Run%20this%20report&amp;limit=$limit&amp;want_full_chart=$want_full_chart";
+            if (@param_names) {
+                $url = join('&amp;param_name=', $url, map { URI::Escape::uri_escape_utf8($_) } @param_names);
+            }
             if (@sql_params) {
                 $url = join('&amp;sql_params=', $url, map { URI::Escape::uri_escape_utf8($_) } @sql_params);
             }
+
             $template->param(
                 'results' => \@rows,
+                'allresults' => \@allrows,
                 'sql'     => $sql,
                 original_sql => $original_sql,
                 'id'      => $report_id,
@@ -856,15 +884,15 @@ elsif ($phase eq 'Export'){
 
 	# export results to tab separated text or CSV
     my $report_id      = $input->param('report_id');
-    my $report         = get_saved_report($report_id);
-    my $sql            = $report->{savedsql};
+    my $report         = Koha::Reports->find($report_id);
+    my $sql            = $report->savedsql;
     my @param_names    = $input->multi_param('param_name');
     my @sql_params     = $input->multi_param('sql_params');
     my $format         = $input->param('format');
     my $reportname     = $input->param('reportname');
     my $reportfilename = $reportname ? "$reportname-reportresults.$format" : "reportresults.$format" ;
 
-    $sql = get_prepped_report( $sql, \@param_names, \@sql_params );
+    ($sql, undef) = $report->prep_report( \@param_names, \@sql_params );
 	my ($sth, $q_errors) = execute_query($sql);
     unless ($q_errors and @$q_errors) {
         my ( $type, $content );
@@ -873,10 +901,10 @@ elsif ($phase eq 'Export'){
             $content .= join("\t", header_cell_values($sth)) . "\n";
             $content = Encode::decode('UTF-8', $content);
             while (my $row = $sth->fetchrow_arrayref()) {
-                $content .= join("\t", @$row) . "\n";
+                $content .= join("\t", map { $_ // '' } @$row) . "\n";
             }
         } else {
-            my $delimiter = C4::Context->preference('delimiter') || ',';
+            my $delimiter = C4::Context->preference('CSVDelimiter') || ',';
             if ( $format eq 'csv' ) {
                 $delimiter = "\t" if $delimiter eq 'tabulation';
                 $type = 'application/csv';
@@ -899,39 +927,26 @@ elsif ($phase eq 'Export'){
                 $type = 'application/vnd.oasis.opendocument.spreadsheet';
                 my $ods_fh = File::Temp->new( UNLINK => 0 );
                 my $ods_filepath = $ods_fh->filename;
+                my $ods_content;
 
-                use OpenOffice::OODoc;
-                my $tmpdir = dirname $ods_filepath;
-                odfWorkingDirectory( $tmpdir );
-                my $container = odfContainer( $ods_filepath, create => 'spreadsheet' );
-                my $doc = odfDocument (
-                    container => $container,
-                    part      => 'content'
-                );
-                my $table = $doc->getTable(0);
-                my @headers = header_cell_values( $sth );
-                my $rows = $sth->fetchall_arrayref();
-                my ( $nb_rows, $nb_cols ) = ( 0, 0 );
-                $nb_rows = @$rows;
-                $nb_cols = @headers;
-                $doc->expandTable( $table, $nb_rows + 1, $nb_cols );
+                # First line is headers
+                my @headers = header_cell_values($sth);
+                push @$ods_content, \@headers;
 
-                my $row = $doc->getRow( $table, 0 );
-                my $j = 0;
-                for my $header ( @headers ) {
-                    $doc->cellValue( $row, $j, $header );
-                    $j++;
-                }
-                my $i = 1;
-                for ( @$rows ) {
-                    $row = $doc->getRow( $table, $i );
-                    for ( my $j = 0 ; $j < $nb_cols ; $j++ ) {
-                        my $value = Encode::encode( 'UTF8', $rows->[$i - 1][$j] );
-                        $doc->cellValue( $row, $j, $value );
+                # Other line in Unicode
+                my $sql_rows = $sth->fetchall_arrayref();
+                foreach my $sql_row ( @$sql_rows ) {
+                    my @content_row;
+                    foreach my $sql_cell ( @$sql_row ) {
+                        push @content_row, Encode::encode( 'UTF8', $sql_cell );
                     }
-                    $i++;
+                    push @$ods_content, \@content_row;
                 }
-                $doc->save();
+
+                # Process
+                generate_ods($ods_filepath, $ods_content);
+
+                # Output
                 binmode(STDOUT);
                 open $ods_fh, '<', $ods_filepath;
                 $content .= $_ while <$ods_fh>;
@@ -958,25 +973,35 @@ elsif ($phase eq 'Export'){
     );
 }
 
-elsif ( $phase eq 'Create report from SQL' ) {
+elsif ( $phase eq 'Create report from SQL' || $phase eq 'Create report from existing' ) {
 
-    my ($group, $subgroup);
-    # allow the user to paste in sql
+    my ($group, $subgroup, $sql, $reportname, $notes);
     if ( $input->param('sql') ) {
-        $group = $input->param('report_group');
-        $subgroup  = $input->param('report_subgroup');
-        $template->param(
-            'sql'           => scalar $input->param('sql') // '',
-            'reportname'    => scalar $input->param('reportname') // '',
-            'notes'         => scalar $input->param('notes') // '',
-        );
+        $group      = $input->param('report_group');
+        $subgroup   = $input->param('report_subgroup');
+        $sql        = $input->param('sql') // '';
+        $reportname = $input->param('reportname') // '';
+        $notes      = $input->param('notes') // '';
     }
+    elsif ( my $report_id = $input->param('report_id') ) {
+        my $report = Koha::Reports->find($report_id);
+        $group      = $report->report_group;
+        $subgroup   = $report->report_subgroup;
+        $sql        = $report->savedsql // '';
+        $reportname = $report->report_name // '';
+        $notes      = $report->notes // '';
+    }
+
     $template->param(
+        sql        => $sql,
+        reportname => $reportname,
+        notes      => $notes,
         'create' => 1,
         'groups_with_subgroups' => groups_with_subgroups($group, $subgroup),
         'public' => '0',
         'cache_expiry' => 300,
         'usecache' => $usecache,
+
     );
 }
 
@@ -1033,7 +1058,6 @@ sub groups_with_subgroups {
 
 sub create_non_existing_group_and_subgroup {
     my ($input, $group, $subgroup) = @_;
-
     if (defined $group and $group ne '') {
         my $report_groups = C4::Reports::Guided::get_report_groups;
         if (not exists $report_groups->{$group}) {
@@ -1043,6 +1067,9 @@ sub create_non_existing_group_and_subgroup {
                 authorised_value => $group,
                 lib => $groupdesc,
             })->store;
+            my $cache_key = "AuthorisedValues-REPORT_GROUP-0-".C4::Context->userenv->{"branch"};
+            my $cache  = Koha::Caches->get_instance();
+            my $result = $cache->clear_from_cache($cache_key);
         }
         if (defined $subgroup and $subgroup ne '') {
             if (not exists $report_groups->{$group}->{subgroups}->{$subgroup}) {
@@ -1053,27 +1080,11 @@ sub create_non_existing_group_and_subgroup {
                     lib => $subgroupdesc,
                     lib_opac => $group,
                 })->store;
+            my $cache_key = "AuthorisedValues-REPORT_SUBGROUP-0-".C4::Context->userenv->{"branch"};
+            my $cache  = Koha::Caches->get_instance();
+            my $result = $cache->clear_from_cache($cache_key);
             }
         }
     }
 }
 
-# pass $sth and sql_params, get back an executable query
-sub get_prepped_report {
-    my ($sql, $param_names, $sql_params ) = @_;
-    my %lookup;
-    @lookup{@$param_names} = @$sql_params;
-    my @split = split /<<|>>/,$sql;
-    my @tmpl_parameters;
-    for(my $i=0;$i<$#split/2;$i++) {
-        my $quoted = @$param_names ? $lookup{ $split[$i*2+1] } : @$sql_params[$i];
-        # if there are special regexp chars, we must \ them
-        $split[$i*2+1] =~ s/(\||\?|\.|\*|\(|\)|\%)/\\$1/g;
-        if ($split[$i*2+1] =~ /\|\s*date\s*$/) {
-            $quoted = output_pref({ dt => dt_from_string($quoted), dateformat => 'iso', dateonly => 1 }) if $quoted;
-        }
-        $quoted = C4::Context->dbh->quote($quoted);
-        $sql =~ s/<<$split[$i*2+1]>>/$quoted/;
-    }
-    return $sql;
-}

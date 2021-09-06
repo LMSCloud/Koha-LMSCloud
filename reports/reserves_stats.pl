@@ -4,18 +4,18 @@
 #
 # This file is part of Koha.
 #
-# Koha is free software; you can redistribute it and/or modify it under the
-# terms of the GNU General Public License as published by the Free Software
-# Foundation; either version 2 of the License, or (at your option) any later
-# version.
+# Koha is free software; you can redistribute it and/or modify it
+# under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 3 of the License, or
+# (at your option) any later version.
 #
-# Koha is distributed in the hope that it will be useful, but WITHOUT ANY
-# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
-# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+# Koha is distributed in the hope that it will be useful, but
+# WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+# GNU General Public License for more details.
 #
-# You should have received a copy of the GNU General Public License along with
-# Koha; if not, write to the Free Software Foundation, Inc., 
-# 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+# You should have received a copy of the GNU General Public License
+# along with Koha; if not, see <http://www.gnu.org/licenses>.
 
 use Modern::Perl;
 
@@ -34,20 +34,19 @@ use Koha::ItemTypes;
 use Koha::Libraries;
 use Koha::Patron::Categories;
 use List::MoreUtils qw/any/;
-use YAML;
 
 =head1 NAME
 
-    reports/reserve_stats.pl
+reports/reserve_stats.pl
 
 =head1 DESCRIPTION
 
-    Plugin that shows reserve stats
+Plugin that shows reserve stats
 
 =cut
 
 # my $debug = 1;	# override for now.
-my $input = new CGI;
+my $input = CGI->new;
 my $fullreportname = "reports/reserves_stats.tt";
 my $do_it    = $input->param('do_it');
 my $line     = $input->param("Line");
@@ -66,7 +65,6 @@ my ($template, $borrowernumber, $cookie) = get_template_and_user({
 	template_name => $fullreportname,
 	query => $input,
 	type => "intranet",
-	authnotrequired => 0,
 	flagsrequired => {reports => '*'},
 	debug => 0,
 });
@@ -75,7 +73,7 @@ $sep = "\t" if ($sep eq 'tabulation');
 $template->param(do_it => $do_it,
 );
 
-my @patron_categories = Koha::Patron::Categories->search_limited({}, {order_by => ['description']});
+my @patron_categories = Koha::Patron::Categories->search_with_library_limits({}, {order_by => ['description']});
 
 my $locations = { map { ( $_->{authorised_value} => $_->{lib} ) } Koha::AuthorisedValues->get_descriptions_by_koha_field( { frameworkcode => '', kohafield => 'items.location' }, { order_by => ['description'] } ) };
 my $ccodes = { map { ( $_->{authorised_value} => $_->{lib} ) } Koha::AuthorisedValues->get_descriptions_by_koha_field( { frameworkcode => '', kohafield => 'items.ccode' }, { order_by => ['description'] } ) };
@@ -126,9 +124,6 @@ if ($do_it) {
 }
 
 my $dbh = C4::Context->dbh;
-my @values;
-my %labels;
-my %select;
 
 my $itemtypes = Koha::ItemTypes->search_with_localization;
 
@@ -222,7 +217,6 @@ sub calculate {
 	my @sqlorparams;
 	my @sqlor;
 	my @sqlwhere;
-	($debug) and print STDERR Dump($filters_hashref);
 	foreach my $filter (keys %$filters_hashref){
 		my $string;
 		my $stringfield=$filter;
@@ -260,7 +254,6 @@ sub calculate {
 	push @loopfilter, {crit=>'SQL =', sql=>1, filter=>$strcalc};
 	@sqlparams=(@sqlparams,@sqlorparams);
 	$dbcalc->execute(@sqlparams);
-	my ($emptycol,$emptyrow); 
 	my $data = $dbcalc->fetchall_hashref([qw(line col)]);
 	my %cols_hash;
 	foreach my $row (keys %$data){
@@ -337,7 +330,7 @@ sub display_value {
         }
     }
     elsif ( $crit =~ /category/ ) {
-        my @patron_categories = Koha::Patron::Categories->search_limited({}, {order_by => ['description']});
+        my @patron_categories = Koha::Patron::Categories->search_with_library_limits({}, {order_by => ['description']});
         foreach my $patron_category ( @patron_categories ) {
             ( $value eq $patron_category->categorycode ) or next;
             $display_value = $patron_category->description and last;

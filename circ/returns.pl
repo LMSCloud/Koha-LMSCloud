@@ -33,27 +33,31 @@ use Modern::Perl;
 
 use CGI qw ( -utf8 );
 use DateTime;
-use C4::Context;
+
 use C4::Auth qw/:DEFAULT get_session/;
 use C4::Output;
 use C4::Circulation;
-use C4::Print;
 use C4::Reserves;
 use C4::Biblio;
+use C4::Circulation;
+use C4::Context;
 use C4::Items;
-use C4::Members;
-use C4::Members::Messaging;
 use C4::Koha;   # FIXME : is it still useful ?
+use C4::Members::Messaging;
+use C4::Members;
+use C4::Output;
+use C4::Reserves;
 use C4::RotatingCollections;
 use Koha::AuthorisedValues;
-use Koha::DateUtils;
-use Koha::Calendar;
 use Koha::BiblioFrameworks;
+use Koha::Calendar;
+use Koha::Checkouts;
+use Koha::DateUtils;
 use Koha::Holds;
 use Koha::Items;
 use Koha::Patrons;
 
-my $query = new CGI;
+my $query = CGI->new;
 
 #getting the template
 my ( $template, $librarian, $cookie, $flags ) = get_template_and_user(
@@ -61,41 +65,29 @@ my ( $template, $librarian, $cookie, $flags ) = get_template_and_user(
         template_name   => "circ/returns.tt",
         query           => $query,
         type            => "intranet",
-        authnotrequired => 0,
         flagsrequired   => { circulate => "circulate_remaining_permissions" },
     }
 );
 
 my $sessionID = $query->cookie("CGISESSID");
 my $session = get_session($sessionID);
-if ($session->param('branch') eq 'NO_LIBRARY_SET'){
-    # no branch set we can't return
-    print $query->redirect("/cgi-bin/koha/circ/selectbranchprinter.pl");
-    exit;
-}
+my $desk_id = C4::Context->userenv->{"desk_id"} || '';
 
 # Print a reserve slip on this page
 if ( $query->param('print_slip') ) {
     $template->param(
         print_slip     => 1,
-        borrowernumber => scalar $query->param('borrowernumber'), # FIXME We should send a Koha::Patron and raise an error if not exist.
-        biblionumber   => scalar $query->param('biblionumber'),
-        itemnumber     => scalar $query->param('itemnumber'),
+        reserve_id => scalar $query->param('reserve_id'),
     );
 }
 
 #####################
 #Global vars
-my $printers = GetPrinters();
 my $userenv = C4::Context->userenv;
 my $userenv_branch = $userenv->{'branch'} // '';
-my $printer = $userenv->{'branchprinter'} // '';
 my $forgivemanualholdsexpire = $query->param('forgivemanualholdsexpire');
 
-my $overduecharges = (C4::Context->preference('finesMode') && C4::Context->preference('finesMode') ne 'off');
- #
-# Some code to handle the error if there is no branch or printer setting.....
-#
+my $overduecharges = (C4::Context->preference('finesMode') && C4::Context->preference('finesMode') eq 'production');
 
 # Set up the item stack ....
 my %returneditems;
@@ -145,8 +137,8 @@ if ($query->param('WT-itemNumber')){
 	updateWrongTransfer ($query->param('WT-itemNumber'),$query->param('WT-waitingAt'),$query->param('WT-From'));
 }
 
+my $itemnumber = $query->param('itemnumber');
 if ( $query->param('reserve_id') ) {
-    my $itemnumber     = $query->param('itemnumber');
     my $borrowernumber = $query->param('borrowernumber');
     my $reserve_id     = $query->param('reserve_id');
     my $diffBranchReturned = $query->param('diffBranch');
@@ -164,20 +156,17 @@ if ( $query->param('reserve_id') ) {
         my $diffBranchSend = ($userenv_branch ne $diffBranchReturned) ? $diffBranchReturned : undef;
         # diffBranchSend tells ModReserveAffect whether document is expected in this library or not,
         # i.e., whether to apply waiting status
-        ModReserveAffect( $itemnumber, $borrowernumber, $diffBranchSend, $reserve_id );
+        ModReserveAffect( $itemnumber, $borrowernumber, $diffBranchSend, $reserve_id, $desk_id );
     }
 #   check if we have other reserves for this document, if we have a return send the message of transfer
     my ( $messages, $nextreservinfo ) = GetOtherReserves($itemnumber);
 
     my $patron = Koha::Patrons->find( $nextreservinfo );
-    my $name   = $patron ? $patron->surname . ", " . $patron->title . " " . $patron->firstname : '';
     if ( $messages->{'transfert'} ) {
         $template->param(
             itemtitle      => $biblio->title,
-            itemnumber     => $item->itemnumber,
             itembiblionumber => $biblio->biblionumber,
             iteminfo       => $biblio->author,
-            name           => $name,
             patron         => $patron,
             diffbranch     => 1,
         );
@@ -188,7 +177,6 @@ my $borrower;
 my $returned = 0;
 my $messages;
 my $issue;
-my $itemnumber;
 my $barcode     = $query->param('barcode');
 my $exemptfine  = $query->param('exemptfine');
 if (
@@ -203,17 +191,16 @@ my $dropboxmode = $query->param('dropboxmode');
 my $dotransfer  = $query->param('dotransfer');
 my $canceltransfer = $query->param('canceltransfer');
 my $dest = $query->param('dest');
-my $calendar    = Koha::Calendar->new( branchcode => $userenv_branch );
 #dropbox: get last open day (today - 1)
-my $today       = DateTime->now( time_zone => C4::Context->tz());
-my $dropboxdate = $calendar->addDate($today, -1);
+my $dropboxdate = Koha::Checkouts::calculate_dropbox_date();
 
 my $return_date_override = $query->param('return_date_override');
+my $return_date_override_dt;
 my $return_date_override_remember =
   $query->param('return_date_override_remember');
 if ($return_date_override) {
     if ( C4::Context->preference('SpecifyReturnDate') ) {
-        my $return_date_override_dt = eval {dt_from_string( $return_date_override ) };
+        $return_date_override_dt = eval {dt_from_string( $return_date_override ) };
         if ( $return_date_override_dt ) {
             # note that we've overriden the return date
             $template->param( return_date_was_overriden => 1);
@@ -236,12 +223,14 @@ if ($dotransfer){
 # An item has been returned to a branch other than the homebranch, and the librarian has chosen to initiate a transfer
     my $transferitem = $query->param('transferitem');
     my $tobranch     = $query->param('tobranch');
-    ModItemTransfer($transferitem, $userenv_branch, $tobranch);
+    my $trigger      = $query->param('trigger');
+    ModItemTransfer($transferitem, $userenv_branch, $tobranch, $trigger);
 }
 
 if ($canceltransfer){
-    $itemnumber=$query->param('itemnumber');
-    DeleteTransfer($itemnumber);
+    my $item = Koha::Items->find($itemnumber);
+    my $transfer = $item->get_transfer;
+    $transfer->cancel({ reason => 'Manual', force => 1});
     if($dest eq "ttr"){
         print $query->redirect("/cgi-bin/koha/circ/transferstoreceive.pl");
         exit;
@@ -280,18 +269,14 @@ if ($barcode) {
         my $checkout = $item->checkout;
         my $biblio   = $item->biblio;
         $template->param(
-            title            => $biblio->title,
-            homebranch       => $item->homebranch,
-            holdingbranch    => $item->holdingbranch,
-            returnbranch     => $returnbranch,
-            author           => $biblio->author,
-            itembarcode      => $item->barcode,
-            itemtype         => $item->effective_itemtype,
-            ccode            => $item->ccode,
-            itembiblionumber => $biblio->biblionumber,
-            biblionumber     => $biblio->biblionumber,
+            title                => $biblio->title,
+            returnbranch         => $returnbranch,
+            author               => $biblio->author,
+            itembiblionumber     => $biblio->biblionumber,
+            biblionumber         => $biblio->biblionumber,
             additional_materials => $materials,
-            issue            => $checkout,
+            issue                => $checkout,
+            item                 => $item,
         );
     } # FIXME else we should not call AddReturn but set BadBarcode directly instead
 
@@ -301,13 +286,24 @@ if ($barcode) {
         barcode => $barcode,
     );
 
+    my $return_date = $dropboxmode ? $dropboxdate : $return_date_override_dt;
+
+    # Block return if multi-part and confirm has not been received
+    my $needs_confirm =
+         C4::Context->preference("CircConfirmItemParts")
+      && $item
+      && $item->materials
+      && !$query->param('multiple_confirm');
+    $template->param( 'multiple_confirmed' => 1 )
+      if $query->param('multiple_confirm');
 
     # do the return
     ( $returned, $messages, $issue, $borrower ) =
-      AddReturn( $barcode, $userenv_branch, $exemptfine, $dropboxmode, $return_date_override, $dropboxdate );
+      AddReturn( $barcode, $userenv_branch, $exemptfine, $return_date )
+          unless $needs_confirm;
 
     if ($returned) {
-        my $time_now = DateTime->now( time_zone => C4::Context->tz )->truncate( to => 'minute');
+        my $time_now = dt_from_string()->truncate( to => 'minute');
         my $date_due_dt = dt_from_string( $issue->date_due, 'sql' );
         my $duedate = $date_due_dt->strftime('%Y-%m-%d %H:%M');
         $returneditems{0}      = $barcode;
@@ -316,7 +312,7 @@ if ($barcode) {
         $input{borrowernumber} = $borrower->{'borrowernumber'};
         $input{duedate}        = $duedate;
         unless ( $dropboxmode ) {
-            $input{return_overdue} = 1 if (DateTime->compare($date_due_dt, DateTime->now()) == -1);
+            $input{return_overdue} = 1 if (DateTime->compare($date_due_dt, dt_from_string()) == -1);
         } else {
             $input{return_overdue} = 1 if (DateTime->compare($date_due_dt, $dropboxdate) == -1);
         }
@@ -350,13 +346,17 @@ if ($barcode) {
                 );
             }
         }
-    } elsif ( C4::Context->preference('ShowAllCheckins') and !$messages->{'BadBarcode'} ) {
+    } elsif ( C4::Context->preference('ShowAllCheckins') and !$messages->{'BadBarcode'} and !$needs_confirm ) {
         $input{duedate}   = 0;
         $returneditems{0} = $barcode;
         $riduedate{0}     = 0;
         push( @inputloop, \%input );
     }
     $template->param( privacy => $borrower->{privacy} );
+
+    if ( $needs_confirm ) {
+        $template->param( needs_confirm => $needs_confirm );
+    }
 }
 $template->param( inputloop => \@inputloop );
 
@@ -365,12 +365,13 @@ my $waiting  = 0;
 my $reserved = 0;
 
 # new op dev : we check if the document must be returned to his homebranch directly,
-#  if the document is transfered, we have warning message .
+#  if the document is transferred, we have warning message .
 
 if ( $messages->{'WasTransfered'} ) {
     $template->param(
         found          => 1,
-        transfer       => 1,
+        transfer       => $messages->{'WasTransfered'},
+        trigger        => $messages->{'TransferTrigger'},
         itemnumber     => $itemnumber,
     );
 }
@@ -379,7 +380,7 @@ if ( $messages->{'NeedsTransfer'} ){
     $template->param(
         found          => 1,
         needstransfer  => $messages->{'NeedsTransfer'},
-        itemnumber     => $itemnumber,
+        trigger        => $messages->{'TransferTrigger'},
     );
 }
 
@@ -390,20 +391,18 @@ if ( $messages->{'Wrongbranch'} ){
     );
 }
 
-# case of wrong transfert, if the document wasn't transfered to the right library (according to branchtransfer (tobranch) BDD)
+# case of wrong transfert, if the document wasn't transferred to the right library (according to branchtransfer (tobranch) BDD)
 
 if ( $messages->{'WrongTransfer'} and not $messages->{'WasTransfered'}) {
     $template->param(
         WrongTransfer  => 1,
         TransferWaitingAt => $messages->{'WrongTransfer'},
         WrongTransferItem => $messages->{'WrongTransferItem'},
-        itemnumber => $itemnumber,
     );
 
     my $reserve    = $messages->{'ResFound'};
     if ( $reserve ) {
         my $patron = Koha::Patrons->find( $reserve->{'borrowernumber'} );
-        my $name = $patron->surname . ", " . $patron->title . " " . $patron->firstname;
         $template->param(
             patron => $patron,
         );
@@ -420,33 +419,52 @@ if ( $messages->{'ResFound'}) {
     my $reserve    = $messages->{'ResFound'};
     my $patron = Koha::Patrons->find( $reserve->{borrowernumber} );
     my $holdmsgpreferences =  C4::Members::Messaging::GetMessagingPreferences( { borrowernumber => $reserve->{'borrowernumber'}, message_name   => 'Hold_Filled' } );
-    if ( $reserve->{'ResFound'} eq "Waiting" or $reserve->{'ResFound'} eq "Reserved" ) {
-        if ( $reserve->{'ResFound'} eq "Waiting" ) {
+    my $branchCheck = ( $userenv_branch eq $reserve->{branchcode} );
+    if ( $reserve->{'ResFound'} eq "Waiting" ) {
+        $template->param(
+            waiting      => $branchCheck ? 1 : undef,
+        );
+    } elsif ( C4::Context->preference('HoldsAutoFill') ) {
+        my $item = Koha::Items->find( $itemnumber );
+        my $biblio = $item->biblio;
+
+        my $diffBranchSend = !$branchCheck ? $reserve->{branchcode} : undef;
+        ModReserveAffect( $reserve->{itemnumber}, $reserve->{borrowernumber}, $diffBranchSend, $reserve->{reserve_id}, $desk_id );
+        my ( $messages, $nextreservinfo ) = GetOtherReserves($reserve->{itemnumber});
+
+        $template->param(
+            hold_auto_filled => 1,
+            print_slip       => C4::Context->preference('HoldsAutoFillPrintSlip'),
+            reserve_id       => $nextreservinfo->{reserve_id},
+        );
+
+        if ( $messages->{'transfert'} ) {
             $template->param(
-                waiting      => ($userenv_branch eq $reserve->{'branchcode'} ? 1 : 0 ),
-            );
-        } elsif ( $reserve->{'ResFound'} eq "Reserved" ) {
-            $template->param(
-                intransit    => ($userenv_branch eq $reserve->{'branchcode'} ? 0 : 1 ),
-                transfertodo => ($userenv_branch eq $reserve->{'branchcode'} ? 0 : 1 ),
-                reserve_id   => $reserve->{reserve_id},
-                reserved     => 1,
+                itemtitle        => $biblio->title,
+                itembiblionumber => $biblio->biblionumber,
+                iteminfo         => $biblio->author,
+                diffbranch       => 1,
             );
         }
-
-        # same params for Waiting or Reserved
+    } else {
         $template->param(
-            # FIXME The full patron object should be passed to the template
-            found          => 1,
-            patron         => $patron,
-            barcode        => $barcode,
-            destbranch     => $reserve->{'branchcode'},
-            itemnumber     => $reserve->{'itemnumber'},
-            reservenotes   => $reserve->{'reservenotes'},
-            reserve_id     => $reserve->{reserve_id},
-            bormessagepref => $holdmsgpreferences->{'transports'},
+            intransit    => $branchCheck ? undef : 1,
+            transfertodo => $branchCheck ? undef : 1,
+            reserve_id   => $reserve->{reserve_id},
+            reserved     => 1,
         );
-    } # else { ; }  # error?
+    }
+
+    # same params for Waiting or Reserved
+    $template->param(
+        found          => 1,
+        patron         => $patron,
+        barcode        => $barcode,
+        destbranch     => $reserve->{'branchcode'},
+        reservenotes   => $reserve->{'reservenotes'},
+        reserve_id     => $reserve->{reserve_id},
+        bormessagepref => $holdmsgpreferences->{'transports'},
+    );
 }
 
 # Error Messages
@@ -472,6 +490,12 @@ foreach my $code ( keys %$messages ) {
     elsif ( $code eq 'LostItemFeeRefunded' ) {
         $template->param( LostItemFeeRefunded => 1 );
     }
+    elsif ( $code eq 'LostItemFeeCharged' ) {
+        $template->param( LostItemFeeCharged => 1 );
+    }
+    elsif ( $code eq 'LostItemFeeRestored' ) {
+        $template->param( LostItemFeeRestored => 1 );
+    }
     elsif ( $code eq 'ResFound' ) {
         ;    # FIXME... anything to do here?
     }
@@ -493,6 +517,12 @@ foreach my $code ( keys %$messages ) {
     }
     elsif ( $code eq 'NeedsTransfer' ) {
     }
+    elsif ( $code eq 'TransferTrigger' ) {
+        ;    # Handled alongside NeedsTransfer
+    }
+    elsif ( $code eq 'TransferArrived' ) {
+        $err{transferred} = $messages->{'TransferArrived'};
+    }
     elsif ( $code eq 'Wrongbranch' ) {
     }
     elsif ( $code eq 'Debarred' ) {
@@ -507,13 +537,18 @@ foreach my $code ( keys %$messages ) {
     elsif ( $code eq 'ForeverDebarred' ) {
         $err{foreverdebarred}        = $messages->{'ForeverDebarred'};
     }
+    elsif ( $code eq 'ItemLocationUpdated' ) {
+        $err{ItemLocationUpdated} = $messages->{ItemLocationUpdated};
+    }
     elsif ( $code eq 'NotForLoanStatusUpdated' ) {
         $err{NotForLoanStatusUpdated} = $messages->{NotForLoanStatusUpdated};
     }
     elsif ( $code eq 'DataCorrupted' ) {
         $err{data_corrupted} = 1;
     }
-    else {
+    elsif ( $code eq 'ReturnClaims' ) {
+        $template->param( ReturnClaims => $messages->{ReturnClaims} );
+    } else {
         die "Unknown error code $code";    # note we need all the (empty) elsif's above, or we die.
         # This forces the issue of staying in sync w/ Circulation.pm
     }
@@ -544,7 +579,7 @@ foreach ( sort { $a <=> $b } keys %returneditems ) {
             $ri{duedate} = output_pref($duedate);
             my $patron = Koha::Patrons->find( $riborrowernumber{$_} );
             unless ( $dropboxmode ) {
-                $ri{return_overdue} = 1 if (DateTime->compare($duedate, DateTime->now()) == -1);
+                $ri{return_overdue} = 1 if (DateTime->compare($duedate, dt_from_string()) == -1);
             } else {
                 $ri{return_overdue} = 1 if (DateTime->compare($duedate, $dropboxdate) == -1);
             }
@@ -562,10 +597,14 @@ foreach ( sort { $a <=> $b } keys %returneditems ) {
         # FIXME pass $item to the template and we are done here...
         $ri{itembiblionumber}    = $biblio->biblionumber;
         $ri{itemtitle}           = $biblio->title;
+        $ri{subtitle}            = $biblio->subtitle;
+        $ri{part_name}           = $biblio->part_name;
+        $ri{part_number}         = $biblio->part_number;
         $ri{itemauthor}          = $biblio->author;
         $ri{itemcallnumber}      = $item->itemcallnumber;
         $ri{dateaccessioned}     = $item->dateaccessioned;
-        $ri{itemtype}            = $item->effective_itemtype;
+        $ri{recordtype}          = $biblio->itemtype;
+        $ri{itemtype}            = $item->itype;
         $ri{itemnote}            = $item->itemnotes;
         $ri{itemnotes_nonpublic} = $item->itemnotes_nonpublic;
         $ri{ccode}               = $item->ccode;
@@ -574,6 +613,7 @@ foreach ( sort { $a <=> $b } keys %returneditems ) {
         $ri{barcode}             = $bar_code;
         $ri{homebranch}          = $item->homebranch;
         $ri{holdingbranch}       = $item->holdingbranch;
+        $ri{damaged}             = $item->damaged;
 
         $ri{location} = $item->location;
         my $shelfcode = $ri{'location'};
@@ -588,31 +628,34 @@ foreach ( sort { $a <=> $b } keys %returneditems ) {
 
 $template->param(
     riloop         => \@riloop,
-    printer        => $printer,
     errmsgloop     => \@errmsgloop,
     exemptfine     => $exemptfine,
     dropboxmode    => $dropboxmode,
-    dropboxdate    => output_pref($dropboxdate),
+    dropboxdate    => $dropboxdate,
     forgivemanualholdsexpire => $forgivemanualholdsexpire,
     overduecharges => $overduecharges,
     AudioAlerts        => C4::Context->preference("AudioAlerts"),
 );
 
-$itemnumber = GetItemnumberFromBarcode( $barcode );
-if ( $itemnumber ) {
-    my ( $holdingBranch, $collectionBranch ) = GetCollectionItemBranches( $itemnumber );
-    if ( $holdingBranch and $collectionBranch ) {
-        $holdingBranch //= '';
-        $collectionBranch //= $returnbranch;
-        if ( ! ( $holdingBranch eq $collectionBranch ) ) {
-            $template->param(
-              collectionItemNeedsTransferred => 1,
-              collectionBranch => $collectionBranch,
-              itemnumber => $itemnumber,
-            );
+if ( $barcode ) {
+    my $item_from_barcode = Koha::Items->find({barcode => $barcode }); # How many times do we fetch this item?!?
+    if ( $item_from_barcode ) {
+        $itemnumber = $item_from_barcode->itemnumber;
+        my ( $holdingBranch, $collectionBranch ) = GetCollectionItemBranches( $itemnumber );
+        if ( $holdingBranch and $collectionBranch ) {
+            $holdingBranch //= '';
+            $collectionBranch //= $returnbranch;
+            if ( ! ( $holdingBranch eq $collectionBranch ) ) {
+                $template->param(
+                  collectionItemNeedsTransferred => 1,
+                  collectionBranch => $collectionBranch,
+                );
+            }
         }
     }
 }
+
+$template->param( itemnumber => $itemnumber );
 
 # Checking if there is a Fast Cataloging Framework
 $template->param( fast_cataloging => 1 ) if Koha::BiblioFrameworks->find( 'FA' );

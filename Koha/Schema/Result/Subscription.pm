@@ -26,14 +26,18 @@ __PACKAGE__->table("subscription");
 =head2 biblionumber
 
   data_type: 'integer'
-  default_value: 0
+  is_foreign_key: 1
   is_nullable: 0
+
+foreign key for biblio.biblionumber that this subscription is attached to
 
 =head2 subscriptionid
 
   data_type: 'integer'
   is_auto_increment: 1
   is_nullable: 0
+
+unique key for this subscription
 
 =head2 librarian
 
@@ -42,17 +46,23 @@ __PACKAGE__->table("subscription");
   is_nullable: 1
   size: 100
 
+the librarian's username from borrowers.userid
+
 =head2 startdate
 
   data_type: 'date'
   datetime_undef_if_invalid: 1
   is_nullable: 1
 
+start date for this subscription
+
 =head2 aqbooksellerid
 
   data_type: 'integer'
   default_value: 0
   is_nullable: 1
+
+foreign key for aqbooksellers.id to link to the vendor
 
 =head2 cost
 
@@ -72,11 +82,15 @@ __PACKAGE__->table("subscription");
   default_value: 0
   is_nullable: 1
 
+subscription length in weeks (will not be filled in if monthlength or numberlength is set)
+
 =head2 monthlength
 
   data_type: 'integer'
   default_value: 0
   is_nullable: 1
+
+subscription length in weeks (will not be filled in if weeklength or numberlength is set)
 
 =head2 numberlength
 
@@ -84,11 +98,15 @@ __PACKAGE__->table("subscription");
   default_value: 0
   is_nullable: 1
 
+subscription length in weeks (will not be filled in if monthlength or weeklength is set)
+
 =head2 periodicity
 
   data_type: 'integer'
   is_foreign_key: 1
   is_nullable: 1
+
+frequency type links to subscription_frequencies.id
 
 =head2 countissuesperunit
 
@@ -101,12 +119,16 @@ __PACKAGE__->table("subscription");
   data_type: 'longtext'
   is_nullable: 1
 
+notes
+
 =head2 status
 
   data_type: 'varchar'
   default_value: (empty string)
   is_nullable: 0
   size: 100
+
+status of this subscription
 
 =head2 lastvalue1
 
@@ -147,16 +169,22 @@ __PACKAGE__->table("subscription");
   datetime_undef_if_invalid: 1
   is_nullable: 1
 
+first issue received date
+
 =head2 manualhistory
 
   data_type: 'tinyint'
   default_value: 0
   is_nullable: 0
 
+yes or no to managing the history manually
+
 =head2 irregularity
 
   data_type: 'mediumtext'
   is_nullable: 1
+
+any irregularities in the subscription
 
 =head2 skip_serialseq
 
@@ -176,11 +204,15 @@ __PACKAGE__->table("subscription");
   is_foreign_key: 1
   is_nullable: 1
 
+the numbering pattern used links to subscription_numberpatterns.id
+
 =head2 locale
 
   data_type: 'varchar'
   is_nullable: 1
   size: 80
+
+for foreign language subscriptions to display months, seasons, etc correctly
 
 =head2 distributedto
 
@@ -197,6 +229,8 @@ __PACKAGE__->table("subscription");
   data_type: 'mediumtext'
   is_nullable: 1
 
+default call number
+
 =head2 location
 
   data_type: 'varchar'
@@ -204,12 +238,16 @@ __PACKAGE__->table("subscription");
   is_nullable: 1
   size: 80
 
+default shelving location (items.location)
+
 =head2 branchcode
 
   data_type: 'varchar'
   default_value: (empty string)
   is_nullable: 0
   size: 10
+
+default branches (items.homebranch)
 
 =head2 lastbranch
 
@@ -223,11 +261,15 @@ __PACKAGE__->table("subscription");
   default_value: 0
   is_nullable: 0
 
+does receiving this serial create an item record
+
 =head2 staffdisplaycount
 
   data_type: 'varchar'
   is_nullable: 1
   size: 10
+
+how many issues to show to the staff
 
 =head2 opacdisplaycount
 
@@ -235,11 +277,15 @@ __PACKAGE__->table("subscription");
   is_nullable: 1
   size: 10
 
+how many issues to show to the public
+
 =head2 graceperiod
 
   data_type: 'integer'
   default_value: 0
   is_nullable: 0
+
+grace period in days
 
 =head2 enddate
 
@@ -247,17 +293,23 @@ __PACKAGE__->table("subscription");
   datetime_undef_if_invalid: 1
   is_nullable: 1
 
+subscription end date
+
 =head2 closed
 
-  data_type: 'integer'
+  data_type: 'tinyint'
   default_value: 0
   is_nullable: 0
+
+yes / no if the subscription is closed
 
 =head2 reneweddate
 
   data_type: 'date'
   datetime_undef_if_invalid: 1
   is_nullable: 1
+
+date of last renewal for the subscription
 
 =head2 itemtype
 
@@ -271,11 +323,16 @@ __PACKAGE__->table("subscription");
   is_nullable: 1
   size: 10
 
+=head2 mana_id
+
+  data_type: 'integer'
+  is_nullable: 1
+
 =cut
 
 __PACKAGE__->add_columns(
   "biblionumber",
-  { data_type => "integer", default_value => 0, is_nullable => 0 },
+  { data_type => "integer", is_foreign_key => 1, is_nullable => 0 },
   "subscriptionid",
   { data_type => "integer", is_auto_increment => 1, is_nullable => 0 },
   "librarian",
@@ -351,13 +408,15 @@ __PACKAGE__->add_columns(
   "enddate",
   { data_type => "date", datetime_undef_if_invalid => 1, is_nullable => 1 },
   "closed",
-  { data_type => "integer", default_value => 0, is_nullable => 0 },
+  { data_type => "tinyint", default_value => 0, is_nullable => 0 },
   "reneweddate",
   { data_type => "date", datetime_undef_if_invalid => 1, is_nullable => 1 },
   "itemtype",
   { data_type => "varchar", is_nullable => 1, size => 10 },
   "previousitemtype",
   { data_type => "varchar", is_nullable => 1, size => 10 },
+  "mana_id",
+  { data_type => "integer", is_nullable => 1 },
 );
 
 =head1 PRIMARY KEY
@@ -387,6 +446,21 @@ __PACKAGE__->has_many(
   "Koha::Schema::Result::Aqorder",
   { "foreign.subscriptionid" => "self.subscriptionid" },
   { cascade_copy => 0, cascade_delete => 0 },
+);
+
+=head2 biblionumber
+
+Type: belongs_to
+
+Related object: L<Koha::Schema::Result::Biblio>
+
+=cut
+
+__PACKAGE__->belongs_to(
+  "biblionumber",
+  "Koha::Schema::Result::Biblio",
+  { biblionumber => "biblionumber" },
+  { is_deferrable => 1, on_delete => "CASCADE", on_update => "CASCADE" },
 );
 
 =head2 numberpattern
@@ -429,6 +503,36 @@ __PACKAGE__->belongs_to(
   },
 );
 
+=head2 serials
+
+Type: has_many
+
+Related object: L<Koha::Schema::Result::Serial>
+
+=cut
+
+__PACKAGE__->has_many(
+  "serials",
+  "Koha::Schema::Result::Serial",
+  { "foreign.subscriptionid" => "self.subscriptionid" },
+  { cascade_copy => 0, cascade_delete => 0 },
+);
+
+=head2 subscriptionhistory
+
+Type: might_have
+
+Related object: L<Koha::Schema::Result::Subscriptionhistory>
+
+=cut
+
+__PACKAGE__->might_have(
+  "subscriptionhistory",
+  "Koha::Schema::Result::Subscriptionhistory",
+  { "foreign.subscriptionid" => "self.subscriptionid" },
+  { cascade_copy => 0, cascade_delete => 0 },
+);
+
 =head2 subscriptionroutinglists
 
 Type: has_many
@@ -445,9 +549,29 @@ __PACKAGE__->has_many(
 );
 
 
-# Created by DBIx::Class::Schema::Loader v0.07042 @ 2018-02-16 17:54:54
-# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:ZRLfM/4h8VMLTgW7LkUYYA
+# Created by DBIx::Class::Schema::Loader v0.07049 @ 2021-01-21 13:39:29
+# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:RA/Z4pcP53tB0kXgo0W6fQ
 
+__PACKAGE__->has_many(
+  "additional_field_values",
+  "Koha::Schema::Result::AdditionalFieldValue",
+  sub {
+    my ($args) = @_;
+
+    return {
+        "$args->{foreign_alias}.record_id" => { -ident => "$args->{self_alias}.subscriptionid" },
+
+        "$args->{foreign_alias}.field_id" =>
+            { -in => \'(SELECT id FROM additional_fields WHERE tablename = "subscription")' },
+    };
+  },
+  { cascade_copy => 0, cascade_delete => 0 },
+);
+
+__PACKAGE__->add_columns(
+    '+closed'         => { is_boolean => 1 },
+    '+skip_serialseq' => { is_boolean => 1 },
+);
 
 # You can replace this text with custom content, and it will be preserved on regeneration
 1;

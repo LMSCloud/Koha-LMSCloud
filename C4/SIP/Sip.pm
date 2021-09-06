@@ -8,26 +8,27 @@ use strict;
 use warnings;
 use Exporter;
 use Encode;
-use Sys::Syslog qw(syslog);
 use POSIX qw(strftime);
 use Socket qw(:crlf);
 use IO::Handle;
+use List::Util qw(first);
 
 use C4::SIP::Sip::Constants qw(SIP_DATETIME FID_SCREEN_MSG);
 use C4::SIP::Sip::Checksum qw(checksum);
+use C4::SIP::Logger qw(get_logger);
 
 use base qw(Exporter);
 
 our @EXPORT_OK = qw(y_or_n timestamp add_field maybe_add add_count
     denied sipbool boolspace write_msg
     $error_detection $protocol_version $field_delimiter
-    $last_response);
+    $last_response siplog);
 
 our %EXPORT_TAGS = (
     all => [qw(y_or_n timestamp add_field maybe_add
         add_count denied sipbool boolspace write_msg
         $error_detection $protocol_version
-        $field_delimiter $last_response)]);
+        $field_delimiter $last_response siplog)]);
 
 our $error_detection = 0;
 our $protocol_version = 1;
@@ -57,13 +58,19 @@ sub timestamp {
 #    return constructed field value
 #
 sub add_field {
-    my ($field_id, $value) = @_;
+    my ($field_id, $value, $server) = @_;
+
+    if ( my $hide_fields = $server->{account}->{hide_fields} ) {
+        my @fields = split( ',', $hide_fields );
+        return q{} if first { $_ eq $field_id } @fields;
+    }
+
     my ($i, $ent);
 
     if (!defined($value)) {
-	syslog("LOG_DEBUG", "add_field: Undefined value being added to '%s'",
-	       $field_id);
-		$value = '';
+    siplog("LOG_DEBUG", "add_field: Undefined value being added to '%s'",
+           $field_id);
+        $value = '';
     }
     $value=~s/\r/ /g; # CR terminates a sip message
                       # Protect against them in sip text fields
@@ -73,7 +80,7 @@ sub add_field {
     $ent = sprintf("&#%d;", ord($field_delimiter));
 
     while (($i = index($value, $field_delimiter)) != ($[-1)) {
-		substr($value, $i, 1) = $ent;
+        substr($value, $i, 1) = $ent;
     }
 
     return $field_id . $value . $field_delimiter;
@@ -87,6 +94,11 @@ sub add_field {
 sub maybe_add {
     my ($fid, $value, $server) = @_;
 
+    if ( my $hide_fields = $server->{account}->{hide_fields} ) {
+        my @fields = split( ',', $hide_fields );
+        return q{} if first { $_ eq $fid } @fields;
+    }
+
     if ( $fid eq FID_SCREEN_MSG && $server->{account}->{screen_msg_regex} ) {
         foreach my $regex (
             ref $server->{account}->{screen_msg_regex} eq "ARRAY"
@@ -96,7 +108,6 @@ sub maybe_add {
             $value =~ s/$regex->{find}/$regex->{replace}/g;
         }
     }
-
     return (defined($value) && $value) ? add_field($fid, $value) : '';
 }
 
@@ -111,14 +122,14 @@ sub add_count {
     # If the field is unsupported, it will be undef, return blanks
     # as per the spec.
     if (!defined($count)) {
-		return ' ' x 4;
+        return ' ' x 4;
     }
 
     $count = sprintf("%04d", $count);
     if (length($count) != 4) {
-		syslog("LOG_WARNING", "handle_patron_info: %s wrong size: '%s'",
-	       $label, $count);
-		$count = ' ' x 4;
+        siplog("LOG_WARNING", "handle_patron_info: %s wrong size: '%s'",
+           $label, $count);
+        $count = ' ' x 4;
     }
     return $count;
 }
@@ -187,10 +198,26 @@ sub write_msg {
     } else {
         STDOUT->autoflush(1);
         print $msg, $terminator;
-        syslog("LOG_INFO", "OUTPUT MSG: '$msg'");
+        siplog("LOG_INFO", "OUTPUT MSG: '$msg'");
     }
 
     $last_response = $msg;
+}
+
+sub siplog {
+    my ( $level, $mask, @args ) = @_;
+
+    my $method =
+        $level eq 'LOG_ERR'     ? 'error'
+      : $level eq 'LOG_DEBUG'   ? 'debug'
+      : $level eq 'LOG_INFO'    ? 'info'
+      : $level eq 'LOG_WARNING' ? 'warn'
+      :                           'error';
+
+    my $message = @args ? sprintf($mask, @args) : $mask;
+
+    my $logger = C4::SIP::Logger::get_logger();
+    $logger->$method($message) if $logger;
 }
 
 1;

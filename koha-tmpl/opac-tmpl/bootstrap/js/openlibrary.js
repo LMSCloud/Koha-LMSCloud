@@ -48,7 +48,6 @@ KOHA.OpenLibrary = new function() {
                     if (is_opacdetail) {
                         img.src = book.cover.medium;
                         $(this).empty().append(img);
-                        $(this).append('<div class="results_summary">' + '<a href="' + book.url + '">' + OL_PREVIEW + '</a></div>');
                     } else {
                         img.src = book.cover.medium;
                         img.height = '110';
@@ -112,6 +111,8 @@ var ol_readapi_automator =
 // 'constants'
 var readapi_bibids = ['isbn', 'lccn', 'oclc', 'olid', 'iaid', 'bibkeys'];
 var magic_classname = 'ol_readapi_book';
+var ol_readapi_books = $("." + magic_classname );
+var result;
 
 // added to book divs to correlate with API results
 var magic_bookid = 'ol_bookid';
@@ -148,11 +149,11 @@ function create_query() {
 function make_read_button(bookdata) {
     buttons = {
         'full access':
-        "http://openlibrary.org/images/button-read-open-library.png",
+        "https://openlibrary.org/images/button-read-open-library.png",
         'lendable':
-        "http://openlibrary.org/images/button-borrow-open-library.png",
+        "https://openlibrary.org/images/button-borrow-open-library.png",
         'checked out':
-        "http://openlibrary.org/images/button-checked-out-open-library.png"
+        "https://openlibrary.org/images/button-checked-out-open-library.png"
     };
     if (bookdata.items.length == 0) {
         return false;
@@ -161,9 +162,10 @@ function make_read_button(bookdata) {
     if (!(first.status in buttons)) {
         return false;
     }
-    result = '<a href="' + first.itemURL + '">' +
+    result = '<a target="_blank" href="' + first.itemURL + '">' +
       '<img class="' + ol_button_classname +
       '" src="' + buttons[first.status] + '"/></a>';
+    console.log( result );
     return result;
 }
 
@@ -171,13 +173,15 @@ function make_read_button(bookdata) {
 function default_decorate_el_fn(el, bookdata) {
     // Note that 'bookdata' may be undefined, if the Read API call
     // didn't return results for this book
-    if (!bookdata) {
-        decoration = 'Not found';
-    } else {
+    var decoration;
+    if (bookdata) {
         decoration = make_read_button(bookdata);
     }
     if (decoration) {
         el.innerHTML += decoration;
+        el.style.display = 'block'
+    } else {
+        el.style.display = 'none';
     }
 }
 
@@ -214,15 +218,17 @@ function do_query(q, decorate_el_fn) {
                 });
 }
 
-// Do stuff
-var q = create_query();
-do_query(q);
+if( ol_readapi_books.length > 0 ){
+    // Do stuff
+    var q = create_query();
+    do_query(q);
 
-result = {
-    do_query: do_query,
-    create_query: create_query,
-    make_read_button: make_read_button
-};
+    result = {
+        do_query: do_query,
+        create_query: create_query,
+        make_read_button: make_read_button
+    };
+}
 
 return result;
 })(); // close anonymous scope

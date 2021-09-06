@@ -1,9 +1,10 @@
+[% USE raw %]
 [% USE Asset %]
 [% USE Koha %]
 [% USE Branches %]
 [% SET footerjs = 1 %]
 [% INCLUDE 'doc-head-open.inc' %]
-<title>Koha &rsaquo; Tools &rsaquo; Notice fee rules</title>
+<title>Notice fee rules &rsaquo; Tools &rsaquo; Koha</title>
 [% INCLUDE 'doc-head-close.inc' %]
 </head>
 
@@ -11,190 +12,205 @@
 [% INCLUDE 'header.inc' %]
 [% INCLUDE 'cat-search.inc' %]
 
-<div id="breadcrumbs"><a href="/cgi-bin/koha/mainpage.pl">Home</a> &rsaquo; <a href="/cgi-bin/koha/tools/tools-home.pl">Tools</a> &rsaquo; Notice fee rules</div>
+<nav id="breadcrumbs" aria-label="Breadcrumb" class="breadcrumb">
+    <ol>
+        <li>
+            <a href="/cgi-bin/koha/mainpage.pl">Home</a>
+        </li>
+        <li>
+            <a href="/cgi-bin/koha/tools/tools-home.pl">Tools</a>
+        </li>
+        <li>
+            <a href="#" aria-current="page">
+                Notice fee rules
+            </a>
+        </li>
+    </ol>
+</nav>
 
 [% branches = Branches.all( selected => branch, restrict => 'NoMobileStations' ) %]
 
-<div id="doc3" class="yui-t2">
-<div id="bd">
-    <div id="yui-main">
-        <div class="yui-b">
-	    <div id="notice-fee-rules-configuration" class="container">
-		<h1>
-		    [% IF ( branch && branch != '*' ) %]
-			Defining rules for notice fees: "[% Branches.GetName( branch ) %]"
-		    [% ELSE %]
-			Defining rules for notice fees: all libraries
-		    [% END %]
-		</h1>
-		<div class="help">
-		    <p>The rules are applied from most specific to less specific, using the first found in this order:</p>
-		    <ul>
-			<li>same library, same patron type, same letter, same message transport type</li>
-			<li>same library, same patron type, same letter, all message transport types</li>
-			<li>same library, same patron type, all letters, same message transport type</li>
-			<li>same library, same patron type, all letters, all message transport types</li>
-			<li>same library, all patron types, same letter, same message transport type</li>
-			<li>same library, all patron types, same letter, all message transport types</li>
-			<li>same library, all patron types, all letters, same message transport type</li>
-			<li>same library, all patron types, all letters, all message transport types</li>
-			<li>default (all libraries), same patron type, same letter, same message transport type</li>
-			<li>default (all libraries), same patron type, same letter, all message transport types</li>
-			<li>default (all libraries), same patron type, all letters, same message transport type</li>
-			<li>default (all libraries), same patron type, all letters, all message transport types</li>
-			<li>default (all libraries), all patron types, same letter, same message transport type</li>
-			<li>default (all libraries), all patron types, same letter, all message transport types</li>
-			<li>default (all libraries), all patron types, all letters, same message transport type</li>
-			<li>default (all libraries), all patron types, all letters, all message transport types</li>
-		    </ul>
-		    <p>To modify a rule, create a new one with the same patron type, message transport type, and letter (code) selection</p>
-		</div><!-- help-->
+<div class="main container-fluid">
+    <div class="row">
+        <div class="col-sm-10 col-sm-push-2">
+            <main>
+                <h1>
+                    [% IF ( branch && branch != '*' ) %]
+                    Defining rules for notice fees: "[% Branches.GetName( branch ) %]"
+                    [% ELSE %]
+                    Defining rules for notice fees: all libraries
+                    [% END %]
+                </h1>
+                <div class="help">
+                    <p>The rules are applied from most specific to less specific, using the first found in this order:</p>
+                    <ul>
+                    <li>same library, same patron type, same letter, same message transport type</li>
+                    <li>same library, same patron type, same letter, all message transport types</li>
+                    <li>same library, same patron type, all letters, same message transport type</li>
+                    <li>same library, same patron type, all letters, all message transport types</li>
+                    <li>same library, all patron types, same letter, same message transport type</li>
+                    <li>same library, all patron types, same letter, all message transport types</li>
+                    <li>same library, all patron types, all letters, same message transport type</li>
+                    <li>same library, all patron types, all letters, all message transport types</li>
+                    <li>default (all libraries), same patron type, same letter, same message transport type</li>
+                    <li>default (all libraries), same patron type, same letter, all message transport types</li>
+                    <li>default (all libraries), same patron type, all letters, same message transport type</li>
+                    <li>default (all libraries), same patron type, all letters, all message transport types</li>
+                    <li>default (all libraries), all patron types, same letter, same message transport type</li>
+                    <li>default (all libraries), all patron types, same letter, all message transport types</li>
+                    <li>default (all libraries), all patron types, all letters, same message transport type</li>
+                    <li>default (all libraries), all patron types, all letters, all message transport types</li>
+                    </ul>
+                    <p>To modify a rule, create a new one with the same patron type, message transport type, and letter (code) selection</p>
+                </div><!-- help-->
 
-		<div>
-		    <p>
-			<form method="get" action="/cgi-bin/koha/tools/notice-fee-rules.pl" id="selectlibrary">
-			Select a library :
-			    <select name="branch" id="branch" style="width:20em;">
-                    <option value="*">Default</option>
-                    [% PROCESS options_for_libraries libraries => branches %]
-			    </select>
-			</form>
-			[% IF ( definedbranch ) %]
-			<form action="/cgi-bin/koha/tools/notice-fee-rules.pl" method="post">
-			    <label for="tobranch"><strong>Clone these rules to:</strong></label><input type="hidden" name="frombranch" value="[% branch %]" /><input type="hidden" name="op" value="cloneRules" />
-			    <select name="tobranch" id="tobranch">
-                    [% PROCESS options_for_libraries libraries => branches %]
-                </select> <input type="submit" value="Clone" />
-			</form>
-			[% END %]
-		    </p>
-		    <p>
-			<form id="saveRule" method="post" action="/cgi-bin/koha/tools/notice-fee-rules.pl">
-			    <input type="hidden" name="op" value="addRule" />
-			    <input type="hidden" name="branch" value="[% branch %]"/>
-			    <table id="notice-fee-rules">
-			    <thead>
-				<tr>
-				    <th>Patron category</th>
-				    <th>Letter</th>
-				    <th>Message transport type</th>
-				    <th>Notice fee</th>
-				    <th>Action</th>
-				</tr>
-			    </thead>
-			    <tbody>
-				[% FOREACH rule IN rules %]
-				<tr id="row_[% loop.count %]">
-				    <td>
-					[% IF ( rule.default_humancategorycode ) %]
-					    <em>All</em>
-					[% ELSE %]
-					    [% rule.humancategorycode %]
-					[% END %]
-				    </td>
-				    <td>
-					[% IF rule.letter_code == '*' %]
-					    <em>All</em>
-					[% ELSE %]
-					    [% FOREACH letter IN letters %]
-						[% IF (rule.letter_code == letter.code) %]
-						    [% letter.name | html %]
-						[% END %]
-					    [% END %]
-					[% END %]
-				    </td>
-				    <td>
-					[% IF rule.message_transport_type == '*' %]
-					    <em>All</em>
-					[% ELSE %]
-					    [% SWITCH rule.message_transport_type %]
-					    [% CASE 'email' %]
-					      Email
-					    [% CASE 'print' %]
-					      Print
-					    [% CASE 'sms' %]
-					      SMS
-					    [% CASE 'feed' %]
-					      Feed
-					    [% CASE 'phone' %]
-					      Phone
-					    [% CASE %]
-					      [% rule.message_transport_type %]
-					    [% END %]
-					[% END %]
-				    </td>
-				    <td>
-					[% rule.notice_fee %]
-				    </td>
-				    <td class="actions">
-					<a href="#" class="editrule btn btn-default btn-xs"><i class="fa fa-pencil"></i> Edit</a>
-					<a class="btn btn-default btn-xs delete" href="/cgi-bin/koha/tools/notice-fee-rules.pl?op=deleteRule&amp;message_transport_type=[% rule.message_transport_type %]&amp;categorycode=[% rule.categorycode %]&amp;branch=[% rule.current_branch %]&amp;letter_code=[% rule.letter_code %]"><i class="fa fa-trash"></i> Delete</a>
-				    </td>
-				 </tr>
-				[% END %]
-				<tr id="edit_row">
-				    <td>
-					<select name="categorycode" id="categorycode">
-					    <option value="*">All</option>
-					    [% FOREACH categoryloo IN categoryloop %]
-						<option value="[% categoryloo.categorycode %]">[% categoryloo.description %]</option>
-					    [% END %]
-					</select>
-				    </td>
-				    <td>
-					<select name="letter_code" id="letter_code">
-					    <option value="*">All</option>
-					    [% FOREACH letter IN letters %]
-						<option value="[% letter.code | html %]">[% letter.name | html %]</option>
-					    [% END %]
-					</select>
-				    </td>
-				    <td>
-					<select name="message_transport_type" id="message_transport_type">
-					    <option value="*">All</option>
-					    [% FOREACH message_transport_type IN message_transport_types %]
-						<option value="[% message_transport_type %]">
-						[% SWITCH message_transport_type %]
-						[% CASE 'email' %]
-						  Email
-						[% CASE 'print' %]
-						  Print
-						[% CASE 'sms' %]
-						  SMS
-						[% CASE 'feed' %]
-						  Feed
-						[% CASE 'phone' %]
-						  Phone
-						[% CASE %]
-						  [% message_transport_type %]
-						[% END %]
-						</option>
-					    [% END %]
-					</select>
-				    </td>
-				    <td>
-					<input type="number" min="0.00" max="99999.99" step="0.01" name="notice_fee" id="notice_fee" size="5" />
-				    </td>
-				    <td class="actions">
-					<input type="hidden" name="branch" value="[% branch %]"/>
-					<button type="submit" class="btn btn-default btn-xs"><i class="fa fa-save"></i> Save</button>
-					<button name="cancel" onclick="clear_edit();return false;" class="clear_edit btn btn-default btn-xs"><i class="fa fa-undo"></i> Clear</button>
-				    </td>
-				</tr>
-			    </tbody>
-			</table>
-		    </p>
-		</div>
-	    </div>
-        </div><!-- yui-b -->
-    </div><!-- yui-main -->
-    <div class="yui-b noprint">
-        [% INCLUDE 'tools-menu.inc' %]
-    </div>
-</div><!-- bd -->
+                <div>
+                    <p>
+                    <form method="get" action="/cgi-bin/koha/tools/notice-fee-rules.pl" id="selectlibrary">
+                    Select a library :
+                        <select name="branch" id="branch" style="width:20em;">
+                            <option value="*">Default</option>
+                            [% PROCESS options_for_libraries libraries => branches %]
+                        </select>
+                    </form>
+                    [% IF ( definedbranch ) %]
+                    <form action="/cgi-bin/koha/tools/notice-fee-rules.pl" method="post">
+                        <label for="tobranch"><strong>Clone these rules to:</strong></label><input type="hidden" name="frombranch" value="[% branch %]" /><input type="hidden" name="op" value="cloneRules" />
+                        <select name="tobranch" id="tobranch">
+                            [% PROCESS options_for_libraries libraries => branches %]
+                        </select> <input type="submit" value="Clone" />
+                    </form>
+                    [% END %]
+                    </p>
+                    <p>
+                    <form id="saveRule" method="post" action="/cgi-bin/koha/tools/notice-fee-rules.pl">
+                        <input type="hidden" name="op" value="addRule" />
+                        <input type="hidden" name="branch" value="[% branch %]"/>
+                        <table id="notice-fee-rules">
+                        <thead>
+                        <tr>
+                            <th>Patron category</th>
+                            <th>Letter</th>
+                            <th>Message transport type</th>
+                            <th>Notice fee</th>
+                            <th>Action</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        [% FOREACH rule IN rules %]
+                        <tr id="row_[% loop.count %]">
+                            <td>
+                            [% IF ( rule.default_humancategorycode ) %]
+                                <em>All</em>
+                            [% ELSE %]
+                                [% rule.humancategorycode %]
+                            [% END %]
+                            </td>
+                            <td>
+                            [% IF rule.letter_code == '*' %]
+                                <em>All</em>
+                            [% ELSE %]
+                                [% FOREACH letter IN letters %]
+                                [% IF (rule.letter_code == letter.code) %]
+                                    [% letter.name | html %]
+                                [% END %]
+                                [% END %]
+                            [% END %]
+                            </td>
+                            <td>
+                            [% IF rule.message_transport_type == '*' %]
+                                <em>All</em>
+                            [% ELSE %]
+                                [% SWITCH rule.message_transport_type %]
+                                [% CASE 'email' %]
+                                  Email
+                                [% CASE 'print' %]
+                                  Print
+                                [% CASE 'sms' %]
+                                  SMS
+                                [% CASE 'feed' %]
+                                  Feed
+                                [% CASE 'phone' %]
+                                  Phone
+                                [% CASE %]
+                                  [% rule.message_transport_type %]
+                                [% END %]
+                            [% END %]
+                            </td>
+                            <td>
+                            [% rule.notice_fee %]
+                            </td>
+                            <td class="actions">
+                            <a href="#" class="editrule btn btn-default btn-xs"><i class="fa fa-pencil"></i> Edit</a>
+                            <a class="btn btn-default btn-xs delete" href="/cgi-bin/koha/tools/notice-fee-rules.pl?op=deleteRule&amp;message_transport_type=[% rule.message_transport_type %]&amp;categorycode=[% rule.categorycode %]&amp;branch=[% rule.current_branch %]&amp;letter_code=[% rule.letter_code %]"><i class="fa fa-trash"></i> Delete</a>
+                            </td>
+                         </tr>
+                        [% END %]
+                        <tr id="edit_row">
+                            <td>
+                            <select name="categorycode" id="categorycode">
+                                <option value="*">All</option>
+                                [% FOREACH categoryloo IN categoryloop %]
+                                <option value="[% categoryloo.categorycode %]">[% categoryloo.description %]</option>
+                                [% END %]
+                            </select>
+                            </td>
+                            <td>
+                            <select name="letter_code" id="letter_code">
+                                <option value="*">All</option>
+                                [% FOREACH letter IN letters %]
+                                <option value="[% letter.code | html %]">[% letter.name | html %]</option>
+                                [% END %]
+                            </select>
+                            </td>
+                            <td>
+                            <select name="message_transport_type" id="message_transport_type">
+                                <option value="*">All</option>
+                                [% FOREACH message_transport_type IN message_transport_types %]
+                                <option value="[% message_transport_type %]">
+                                [% SWITCH message_transport_type %]
+                                [% CASE 'email' %]
+                                  Email
+                                [% CASE 'print' %]
+                                  Print
+                                [% CASE 'sms' %]
+                                  SMS
+                                [% CASE 'feed' %]
+                                  Feed
+                                [% CASE 'phone' %]
+                                  Phone
+                                [% CASE %]
+                                  [% message_transport_type %]
+                                [% END %]
+                                </option>
+                                [% END %]
+                            </select>
+                            </td>
+                            <td>
+                            <input type="number" min="0.00" max="99999.99" step="0.01" name="notice_fee" id="notice_fee" size="5" />
+                            </td>
+                            <td class="actions">
+                            <input type="hidden" name="branch" value="[% branch %]"/>
+                            <button type="submit" class="btn btn-default btn-xs"><i class="fa fa-save"></i> Save</button>
+                            <button name="cancel" onclick="clear_edit();return false;" class="clear_edit btn btn-default btn-xs"><i class="fa fa-undo"></i> Clear</button>
+                            </td>
+                        </tr>
+                        </tbody>
+                    </table>
+                    </p>
+                </div>
+            </main>
+        </div> <!-- /.col-sm-10.col-sm-push-2 -->
+
+        <div class="col-sm-2 col-sm-pull-10">
+            <aside>
+                [% INCLUDE 'tools-menu.inc' %]
+            </aside>
+        </div> <!-- /.col-sm-2.col-sm-pull-10 -->
+     </div> <!-- /.row -->
 
 [% MACRO jsinclude BLOCK %]
-    [% Asset.js("js/tools-menu.js") %]
+    [% Asset.js("js/tools-menu.js") | $raw %]
     <script type="text/javascript">
         function clear_edit(){
             $('#default-claiming-rules td').removeClass('highlighted-row');

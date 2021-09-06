@@ -28,7 +28,7 @@ $(document).ready(function() {
         radioCheckBox($(this));
     });
 
-    $("#newduedate").datetimepicker({
+    $("#newduedate, #newonholdduedate input").datetimepicker({
         onClose: function(dateText, inst) {
             validate_date(dateText, inst);
         },
@@ -54,26 +54,26 @@ $(document).ready(function() {
         return false;
     });
 
-    var checkout_settings = $(".checkout-settings");
-    var checkout_settings_icon = $(".checkout-settings-icon");
+    var circ_settings = $(".circ-settings");
+    var circ_settings_icon = $(".circ-settings-icon");
 
-    // If any checkboxes in the checkout settings are selected, show the settings by default
-    if ( $(".checkout-settings input:checked,#duedatespec[value!='']").length ) {
-        checkout_settings.show();
-        checkout_settings_icon.removeClass("fa-caret-right").addClass("fa-caret-down");
+    // If any checkboxes in the circ settings are selected, show the settings by default
+    if ( $(".circ-settings input:checked,#duedatespec[value!='']").length ) {
+        circ_settings.show();
+        circ_settings_icon.removeClass("fa-caret-right").addClass("fa-caret-down");
     } else {
-        checkout_settings.hide();
-        checkout_settings_icon.removeClass("fa-caret-down").addClass("fa-caret-right");
+        circ_settings.hide();
+        circ_settings_icon.removeClass("fa-caret-down").addClass("fa-caret-right");
     }
 
-    $("#show-checkout-settings a").on("click",function(){
-        if( checkout_settings.is(":hidden")){
-            checkout_settings.show();
-            checkout_settings_icon.removeClass("fa-caret-right").addClass("fa-caret-down");
+    $("#show-circ-settings a").on("click",function(){
+        if( circ_settings.is(":hidden")){
+            circ_settings.show();
+            circ_settings_icon.removeClass("fa-caret-right").addClass("fa-caret-down");
         } else {
             $("#barcode").focus();
-            checkout_settings.hide();
-            checkout_settings_icon.removeClass("fa-caret-down").addClass("fa-caret-right");
+            circ_settings.hide();
+            circ_settings_icon.removeClass("fa-caret-down").addClass("fa-caret-right");
         }
     });
 
@@ -87,7 +87,7 @@ $(document).ready(function() {
 
     // Debarments
     $("div#reldebarments .remove_restriction").on("click",function(){
-        return confirm(_("Remove restriction?"));
+        return confirm( __("Remove restriction?") );
     });
     var mrform = $("#manual_restriction_form");
     var mrlink = $("#add_manual_restriction");
@@ -113,7 +113,7 @@ $(document).ready(function() {
 
 function export_checkouts(format) {
     if ($("input:checkbox[name='biblionumbers']:checked").length < 1){
-        alert(MSG_EXPORT_SELECT_CHECKOUTS);
+        alert( __("You must select checkout(s) to export") );
         return;
     }
 

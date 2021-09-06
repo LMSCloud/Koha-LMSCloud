@@ -3,8 +3,7 @@
 # Part of the Koha Library Software www.koha-community.org
 # Licensed under the GPL.
 
-use strict;
-use warnings;
+use Modern::Perl;
 
 # CPAN modules
 use DBI;
@@ -25,9 +24,7 @@ sub get_counts() {
 	(SELECT count(*) FROM statistics WHERE branch="NO_LIBRARY"       ) AS NO_LIBRARY,
 	(SELECT count(*) FROM statistics WHERE branch             IS NULL) AS NULL_BRANCH,
 	(SELECT count(*) FROM statistics WHERE itemtype           IS NULL AND itemnumber IS NOT NULL) AS NULL_ITEMTYPE,
-	(SELECT count(*) FROM statistics WHERE usercode           IS NULL) AS NULL_USERCODE,
 	(SELECT count(*) FROM statistics WHERE borrowernumber     IS NULL) AS NULL_BORROWERNUMBER,
-	(SELECT count(*) FROM statistics WHERE associatedborrower IS NULL) AS NULL_ASSOCIATEDBORROWER,
 	(SELECT count(*) FROM statistics                                 ) AS Total
 	);
 	my $sth = $dbh->prepare($query);
@@ -79,13 +76,14 @@ my $query = "UPDATE statistics SET itemtype = ? WHERE itemnumber = ?";
 my $update = $dbh->prepare($query);
 # $debug and print "Update Query: $query\n";
 foreach (@itemnumbers) {
-	my $item = GetItem($_);
-	unless ($item) {
+    my $item = Koha::Items->find($_);
+    unless ($item) {
 		print STDERR "\tNo item found for itemnumber $_\n"; 
 		next;
 	}
-	$update->execute($item->{itype},$_) or warn "Error in UPDATE execution";
-	printf "\titemnumber %5d : %7s  (%s rows)\n", $_, $item->{itype}, $update->rows;
+    my $itemtype = $item->effective_itemtype;
+    $update->execute($itemtype,$_) or warn "Error in UPDATE execution";
+    printf "\titemnumber %5d : %7s  (%s rows)\n", $_, $itemtype, $update->rows;
 }
 
 my $old_issues = $dbh->prepare("SELECT * FROM old_issues WHERE timestamp = ? AND itemnumber = ?");

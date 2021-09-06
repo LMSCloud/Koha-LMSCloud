@@ -1,6 +1,6 @@
 use Modern::Perl;
 
-use Test::More tests => 10;
+use Test::More tests => 11;
 
 use_ok("MARC::Field");
 use_ok("MARC::Record");
@@ -10,6 +10,9 @@ sub new_record {
     my $record = MARC::Record->new;
     $record->leader('03174nam a2200445 a 4500');
     my @fields = (
+        MARC::Field->new(
+            '008', '120829t20132012nyu bk 001 0ceng',
+        ),
         MARC::Field->new(
             100, '1', ' ',
             a => 'Knuth, Donald Ervin',
@@ -71,13 +74,17 @@ subtest 'field_exists' => sub {
 subtest 'read_field' => sub {
     plan tests              => 2;
     subtest 'read subfield' => sub {
-        plan tests => 5;
+        plan tests => 6;
         my $record = new_record;
         $record->append_fields(
             MARC::Field->new(
                 650, ' ', '0',
                 a => 'Computer algorithms.',
                 9 => '463',
+            ),
+            MARC::Field->new(
+                600, ' ', '0',
+                0 => '123456',
             )
         );
 
@@ -126,6 +133,20 @@ subtest 'read_field' => sub {
             ],
             [],
             'There is no 3 650$a'
+        );
+        is_deeply(
+            [
+                read_field(
+                    {
+                        record        => $record,
+                        field         => '600',
+                        subfield      => '0',
+                        field_numbers => [1]
+                    }
+                )
+            ],
+            ['123456'],
+            'first 600$0'
         );
     };
     subtest 'read field' => sub {
@@ -188,7 +209,7 @@ subtest 'read_field' => sub {
 subtest 'update_field' => sub {
     plan tests                => 1;
     subtest 'update subfield' => sub {
-        plan tests => 5;
+        plan tests => 6;
         my $record = new_record;
 
         update_field(
@@ -247,6 +268,7 @@ subtest 'update_field' => sub {
                 952, ' ', ' ',
                 p => '3010023917',
                 y => 'BK',
+                0 => '123456',
             ),
         );
         update_field(
@@ -280,6 +302,23 @@ subtest 'update_field' => sub {
             [ '3010023917', '3010023918' ],
             'update all subfields 952$p with the different values'
         );
+
+        update_field(
+            {
+                record   => $record,
+                field    => '952',
+                subfield => '0',
+                values   => [ '654321' ]
+            }
+        );
+        my @fields_9520 =
+          read_field( { record => $record, field => '952', subfield => '0' } );
+        is_deeply(
+            \@fields_9520,
+            [ '654321', '654321' ],
+            'update all subfields 952$0 with the same value'
+        );
+
     };
 };
 
@@ -1637,7 +1676,7 @@ subtest 'move_field' => sub {
 subtest 'delete_field' => sub {
     plan tests                => 2;
     subtest 'delete subfield' => sub {
-        plan tests => 2;
+        plan tests => 3;
         my $record = new_record;
         $record->append_fields(
             MARC::Field->new(
@@ -1671,6 +1710,18 @@ subtest 'delete_field' => sub {
         @fields_952p =
           read_field( { record => $record, field => '952', subfield => 'p' } );
         is_deeply( \@fields_952p, [], 'Delete all 952$p' );
+
+        $record = new_record;
+        $record->append_fields(
+            MARC::Field->new(
+                600, ' ', ' ',
+                a => 'Murakami, Haruki',
+                0 => 'https://id.loc.gov/authorities/names/n81152393.html',
+            ),
+        );
+        delete_field( { record => $record, field => '600', subfield => '0' } );
+        my @fields_600 = read_field( { record => $record, field => '600' } );
+        is_deeply( \@fields_600, ['Murakami, Haruki'], 'Delete all 600$0, only subfield 0 deleted' );
     };
 
     subtest 'delete field' => sub {
@@ -1691,5 +1742,49 @@ subtest 'delete_field' => sub {
         delete_field( { record => $record, field => '952' } );
         @fields_952 = read_field( { record => $record, field => '952' } );
         is_deeply( \@fields_952, [], 'Delete all 952, 2 deleted' );
+    };
+};
+
+subtest 'field_equals' => sub {
+    plan tests => 2;
+    my $record = new_record;
+    subtest 'standard MARC fields' => sub {
+        plan tests => 2;
+        my $match = Koha::SimpleMARC::field_equals({
+                record => $record,
+                value => 'Donald',
+                field => '100',
+                subfield => 'a',
+            });
+        is_deeply( $match, [], '100$a not equal to "Donald"' );
+
+        $match = Koha::SimpleMARC::field_equals({
+                record => $record,
+                value => 'Donald',
+                field => '100',
+                subfield => 'a',
+                is_regex => 1,
+            });
+        is_deeply( $match, [1], 'first 100$a matches "Donald"');
+    };
+
+    subtest 'control fields' => sub {
+        plan tests => 2;
+        my $match = Koha::SimpleMARC::field_equals({
+                record => $record,
+                value => 'eng',
+                field => '008',
+                subfield => '',
+            });
+        is_deeply( $match, [], '008 control field not equal to "eng"' );
+
+        $match = Koha::SimpleMARC::field_equals({
+                record => $record,
+                value => 'eng',
+                field => '008',
+                subfield => '',
+                is_regex => 1,
+            });
+        is_deeply( $match, [1], 'first 008 control field matches "eng"' );
     };
 };

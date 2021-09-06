@@ -22,6 +22,7 @@ use List::MoreUtils qw(uniq);
 use Getopt::Long;
 use Pod::Usage;
 
+use Koha::Script;
 use C4::Auth;
 use C4::Context;
 use C4::Record;
@@ -32,7 +33,30 @@ use Koha::CsvProfiles;
 use Koha::Exporter::Record;
 use Koha::DateUtils qw( dt_from_string output_pref );
 
-my ( $output_format, $timestamp, $dont_export_items, $csv_profile_id, $deleted_barcodes, $clean, $filename, $record_type, $id_list_file, $starting_authid, $ending_authid, $authtype, $starting_biblionumber, $ending_biblionumber, $itemtype, $starting_callnumber, $ending_callnumber, $start_accession, $end_accession, $help );
+my (
+    $output_format,
+    $timestamp,
+    $dont_export_items,
+    $csv_profile_id,
+    $deleted_barcodes,
+    $clean,
+    $filename,
+    $record_type,
+    $id_list_file,
+    $starting_authid,
+    $ending_authid,
+    $authtype,
+    $starting_biblionumber,
+    $ending_biblionumber,
+    $itemtype,
+    $starting_callnumber,
+    $ending_callnumber,
+    $start_accession,
+    $end_accession,
+    $marc_conditions,
+    $help
+);
+
 GetOptions(
     'format=s'                => \$output_format,
     'date=s'                  => \$timestamp,
@@ -53,6 +77,7 @@ GetOptions(
     'ending_callnumber=s'     => \$ending_callnumber,
     'start_accession=s'       => \$start_accession,
     'end_accession=s'         => \$end_accession,
+    'marc_conditions=s'       => \$marc_conditions,
     'h|help|?'                => \$help
 ) || pod2usage(1);
 
@@ -90,6 +115,22 @@ if ( $deleted_barcodes and $record_type ne 'bibs' ) {
 $start_accession = dt_from_string( $start_accession ) if $start_accession;
 $end_accession   = dt_from_string( $end_accession )   if $end_accession;
 
+# Parse marc conditions
+my @marc_conditions;
+if ($marc_conditions) {
+    foreach my $condition (split(/,\s*/, $marc_conditions)) {
+        if ($condition =~ /^(\d{3})([\w\d]?)(=|(?:!=)|>|<)([^,]+)$/) {
+            push @marc_conditions, [$1, $2, $3, $4];
+        }
+        elsif ($condition =~ /^(exists|not_exists)\((\d{3})([\w\d]?)\)$/) {
+            push @marc_conditions, [$2, $3, $1 eq 'exists' ? '?' : '!?'];
+        }
+        else {
+            die("Invalid condititon: $condition");
+        }
+    }
+}
+
 my $dbh = C4::Context->dbh;
 
 # Redirect stdout
@@ -102,21 +143,31 @@ $timestamp = ($timestamp) ? output_pref({ dt => dt_from_string($timestamp), date
 
 if ( $record_type eq 'bibs' ) {
     if ( $timestamp ) {
-        push @record_ids, $_->{biblionumber} for @{
-            $dbh->selectall_arrayref(q| (
-                SELECT biblio_metadata.biblionumber
-                FROM biblio_metadata
-                  LEFT JOIN items USING(biblionumber)
-                WHERE biblio_metadata.timestamp >= ?
-                  OR items.timestamp >= ?
-            ) UNION (
-                SELECT biblio_metadata.biblionumber
-                FROM biblio_metadata
-                  LEFT JOIN deleteditems USING(biblionumber)
-                WHERE biblio_metadata.timestamp >= ?
-                  OR deleteditems.timestamp >= ?
-            ) |, { Slice => {} }, ( $timestamp ) x 4 );
-        };
+        if (!$dont_export_items) {
+            push @record_ids, $_->{biblionumber} for @{
+                $dbh->selectall_arrayref(q| (
+                    SELECT biblio_metadata.biblionumber
+                    FROM biblio_metadata
+                      LEFT JOIN items USING(biblionumber)
+                    WHERE biblio_metadata.timestamp >= ?
+                      OR items.timestamp >= ?
+                ) UNION (
+                    SELECT biblio_metadata.biblionumber
+                    FROM biblio_metadata
+                      LEFT JOIN deleteditems USING(biblionumber)
+                    WHERE biblio_metadata.timestamp >= ?
+                      OR deleteditems.timestamp >= ?
+                ) |, { Slice => {} }, ( $timestamp ) x 4 );
+            };
+        } else {
+            push @record_ids, $_->{biblionumber} for @{
+                $dbh->selectall_arrayref(q| (
+                    SELECT biblio_metadata.biblionumber
+                    FROM biblio_metadata
+                    WHERE biblio_metadata.timestamp >= ?
+                ) |, { Slice => {} }, $timestamp );
+            };
+        }
     } else {
         my $conditions = {
             ( $starting_biblionumber or $ending_biblionumber )
@@ -191,6 +242,7 @@ if ($deleted_barcodes) {
             SELECT DISTINCT barcode
             FROM deleteditems
             WHERE deleteditems.biblionumber = ?
+            AND barcode IS NOT NULL AND barcode != ''
         |, { Slice => {} }, $record_id );
         say $_->{barcode} for @$barcode;
     }
@@ -204,6 +256,7 @@ else {
     Koha::Exporter::Record::export(
         {   record_type        => $record_type,
             record_ids         => \@record_ids,
+            record_conditions  => @marc_conditions ? \@marc_conditions : undef,
             format             => $output_format,
             csv_profile_id     => $csv_profile_id,
             export_items       => (not $dont_export_items),
@@ -315,6 +368,28 @@ Print a brief help message.
 
  --end_accession=DATE           Export biblio with an item accessionned after DATE
 
+=item B<--marc_conditions>
+
+ --marc_conditions=CONDITIONS   Only include biblios with MARC data matching CONDITIONS.
+                                CONDITIONS is on the format: <marc_target><binary_operator><value>,
+                                or <unary_operation>(<marc_target>).
+                                with multiple conditions separated by commas (,).
+                                For example: --marc_conditions="035a!=(EXAMPLE)123,041a=swe".
+                                Multiple conditions are all required to match.
+                                If <marc_target> has multiple values all values
+                                are also required to match.
+                                Valid operators are: = (equal to), != (not equal to),
+                                > (great than) and < (less than).
+
+                                Two unary operations are also supported:
+                                exists(<marc_target>) and not_exists(<marc_target>).
+                                For example: --marc_conditions="exists(035a)".
+
+                                "exists(<marc_target)" will include marc records where
+                                <marc_target> exists regardless of target value, and
+                                "exists(<marc_target>)" will include marc records where
+                                no <marc_target> exists.
+
 =back
 
 =head1 AUTHOR
@@ -329,11 +404,17 @@ Copyright Koha Team
 
 This file is part of Koha.
 
-Koha is free software; you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software
-Foundation; either version 3 of the License, or (at your option) any later version.
-
-You should have received a copy of the GNU General Public License along
-with Koha; if not, write to the Free Software Foundation, Inc.,
-51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+# Koha is free software; you can redistribute it and/or modify it
+# under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 3 of the License, or
+# (at your option) any later version.
+#
+# Koha is distributed in the hope that it will be useful, but
+# WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with Koha; if not, see <http://www.gnu.org/licenses>.
 
 =cut

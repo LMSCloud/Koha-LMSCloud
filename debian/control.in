@@ -1,5 +1,5 @@
 Source: koha
-Maintainer: Mirko Tietgen <mirko@abunchofthings.net>
+Maintainer: Mason James <mtj@kohaaloha.com>
 Section: web
 Priority: optional
 Standards-Version: 3.8.4
@@ -10,7 +10,7 @@ Standards-Version: 3.8.4
 # See debian/rules, the override_dh_gencontrol rules. 
 # There are some exceptions.
 Build-Depends:__AUTODEPENDS__,
- debhelper (>= 7.0.50), gettext, xsltproc, docbook-xsl, ttf-dejavu,
+ debhelper (>= 7.0.50), gettext, xsltproc, docbook-xsl, fonts-dejavu | ttf-dejavu,
  libxml2-utils, bash-completion, perl-modules-5.26 | libtest-simple-perl (>= 1.302073)
 
 Package: koha-common
@@ -23,21 +23,19 @@ Depends: ${misc:Depends}, ${koha:Depends},
  daemon,
  debconf,
  idzebra-2.0,
- libjs-jquery,
  memcached,
  mysql-client | virtual-mysql-client,
  perl-doc,
  pwgen,
+ rabbitmq-server,
  starman,
  sudo,
- tinymce, 
- ttf-dejavu,
+ fonts-dejavu | ttf-dejavu,
  unzip,
  xmlstarlet,
  yaz
 Suggests: mysql-server | virtual-mysql-server,
  letsencrypt,
- libwww-youtube-download-perl
 Homepage: http://koha-community.org/
 Description: integrated (physical) library management system
  Koha is an Integrated Library Management system for real-world libraries
@@ -73,15 +71,14 @@ Depends: ${misc:Depends},
  daemon,
  debconf,
  idzebra-2.0,
- libjs-jquery,
  mysql-client | virtual-mysql-client,
  mysql-server | virtual-mysql-server,
  perl-doc,
  pwgen,
+ rabbitmq-server,
  starman,
  sudo,
- tinymce,
- ttf-dejavu,
+ fonts-dejavu | ttf-dejavu,
  unzip,
  xmlstarlet,
  yaz
@@ -102,3 +99,47 @@ Description: Perl dep. for koha
  .
  This meta-package contains perl dependencies packages for koha (all
  perl lib).
+
+Package: koha-core
+Architecture: all
+Description: integrated (physical) library management system
+ Koha is an Integrated Library Management system for real-world libraries
+ (the kinds with books).
+ .
+ This package provides a version of Koha identical to that of koha-full,
+ but without third-party systems such as MariaDB, RabbitMQ, et cetera.
+ .
+ This package is EXPERIMENTAL and not recommended for production use.
+Depends: ${misc:Depends}, ${koha:Depends},
+ at,
+ cron-daemon,
+ daemon,
+ debconf,
+ mysql-client | virtual-mysql-client,
+ perl-doc,
+ pwgen,
+ starman,
+ sudo,
+ fonts-dejavu | ttf-dejavu,
+ unzip,
+ xmlstarlet,
+ yaz
+
+Package: koha-full
+Depends:
+ koha-core,
+ apache2,
+ apache2-mpm-itk | libapache2-mpm-itk,
+ idzebra-2.0,
+ memcached,
+ mysql-server | virtual-mysql-server,
+ rabbitmq-server,
+Architecture: all
+Description: integrated (physical) library management system
+ Koha is an Integrated Library Management system for real-world libraries
+ (the kinds with books).
+ .
+ This metapackage provides a version of Koha with the complete set of third-party
+ systems such as MariaDB, RabbitMQ, et cetera.
+ .
+ This package is EXPERIMENTAL and not recommended for production use.

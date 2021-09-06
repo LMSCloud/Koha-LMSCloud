@@ -26,7 +26,7 @@ use C4::Members;
 
 use Koha::Patron::Categories;
 
-my $input = new CGI;
+my $input = CGI->new;
 
 my $dbh = C4::Context->dbh;
 
@@ -34,7 +34,6 @@ my ( $template, $loggedinuser, $cookie, $staff_flags ) = get_template_and_user(
     {   template_name   => "common/patron_search.tt",
         query           => $input,
         type            => "intranet",
-        authnotrequired => 0,
         flagsrequired   => { acquisition => 'order_manage' },
     }
 );
@@ -51,7 +50,7 @@ my $search_patrons_with_acq_perm_only =
     ( $referer =~ m|acqui/basket.pl| )
         ? 1 : 0;
 
-my $patron_categories = Koha::Patron::Categories->search_limited;
+my $patron_categories = Koha::Patron::Categories->search_with_library_limits;
 $template->param(
     patrons_with_acq_perm_only => $search_patrons_with_acq_perm_only,
     view => ( $input->request_method() eq "GET" ) ? "show_form" : "show_results",

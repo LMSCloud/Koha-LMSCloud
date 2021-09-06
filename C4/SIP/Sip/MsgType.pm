@@ -9,7 +9,6 @@ package C4::SIP::Sip::MsgType;
 use strict;
 use warnings;
 use Exporter;
-use Sys::Syslog qw(syslog);
 
 use C4::SIP::Sip qw(:all);
 use C4::SIP::Sip::Constants qw(:all);
@@ -20,7 +19,9 @@ use CGI qw ( -utf8 );
 use C4::Auth qw(&check_api_auth);
 use C4::Context;
 
+use Koha::Patrons;
 use Koha::Patron::Attributes;
+use Koha::Items;
 
 use UNIVERSAL::can;
 
@@ -278,14 +279,14 @@ sub new {
         # it's using the 2.00 login process, so it must support 2.00.
         $protocol_version = 2;
     }
-    syslog( "LOG_DEBUG", "Sip::MsgType::new('%s', '%s...', '%s'): seq.no '%s', protocol %s", $class, substr( $msg, 0, 10 ), $msgtag, $seqno, $protocol_version );
+    siplog( "LOG_DEBUG", "Sip::MsgType::new('%s', '%s...', '%s'): seq.no '%s', protocol %s", $class, substr( $msg, 0, 10 ), $msgtag, $seqno, $protocol_version );
 
     # warn "SIP PROTOCOL: $protocol_version";
     if ( !exists( $handlers{$msgtag} ) ) {
-        syslog( "LOG_WARNING", "new Sip::MsgType: Skipping message of unknown type '%s' in '%s'", $msgtag, $msg );
+        siplog( "LOG_WARNING", "new Sip::MsgType: Skipping message of unknown type '%s' in '%s'", $msgtag, $msg );
         return;
     } elsif ( !exists( $handlers{$msgtag}->{protocol}->{$protocol_version} ) ) {
-        syslog( "LOG_WARNING", "new Sip::MsgType: Skipping message '%s' unsupported by protocol rev. '%d'", $msgtag, $protocol_version );
+        siplog( "LOG_WARNING", "new Sip::MsgType: Skipping message '%s' unsupported by protocol rev. '%d'", $msgtag, $protocol_version );
         return;
     }
 
@@ -317,7 +318,7 @@ sub _initialize {
         $self->{fields}->{$field} = undef;
     }
 
-    syslog( "LOG_DEBUG", "Sip::MsgType::_initialize('%s', '%s', '%s', '%s', ...)", $self->{name}, $msg, $proto->{template}, $proto->{template_len} );
+    siplog( "LOG_DEBUG", "Sip::MsgType::_initialize('%s', '%s', '%s', '%s', ...)", $self->{name}, $msg, $proto->{template}, $proto->{template_len} );
 
     $self->{fixed_fields} = [ unpack( $proto->{template}, $msg ) ];    # see http://perldoc.perl.org/5.8.8/functions/unpack.html
 
@@ -327,9 +328,9 @@ sub _initialize {
         $fn = substr( $field, 0, 2 );
 
         if ( !exists( $self->{fields}->{$fn} ) ) {
-            syslog( "LOG_WARNING", "Unsupported field '%s' in %s message '%s'", $fn, $self->{name}, $msg );
+            siplog( "LOG_WARNING", "Unsupported field '%s' in %s message '%s'", $fn, $self->{name}, $msg );
         } elsif ( defined( $self->{fields}->{$fn} ) ) {
-            syslog( "LOG_WARNING", "Duplicate field '%s' (previous value '%s') in %s message '%s'", $fn, $self->{fields}->{$fn}, $self->{name}, $msg );
+            siplog( "LOG_WARNING", "Duplicate field '%s' (previous value '%s') in %s message '%s'", $fn, $self->{fields}->{$fn}, $self->{name}, $msg );
         } else {
             $self->{fields}->{$fn} = substr( $field, 2 );
         }
@@ -342,6 +343,19 @@ sub handle {
     my ( $msg, $server, $req ) = @_;
     my $config = $server->{config};
     my $self;
+
+    # Set system preference overrides, first global, then account level
+    # Clear overrides from previous message handling first
+    foreach my $key ( keys %ENV ) {
+        delete $ENV{$key} if index($key, 'OVERRIDE_SYSPREF_') > 0;
+    }
+    foreach my $key ( keys %{ $config->{'syspref_overrides'} } ) {
+        $ENV{"OVERRIDE_SYSPREF_$key"} = $config->{'syspref_overrides'}->{$key};
+    }
+    foreach my $key ( keys %{ $server->{account}->{'syspref_overrides'} } ) {
+        $ENV{"OVERRIDE_SYSPREF_$key"} =
+          $server->{account}->{'syspref_overrides'}->{$key};
+    }
 
     #
     # What's the field delimiter for variable length fields?
@@ -365,7 +379,7 @@ sub handle {
         $error_detection = 1;
 
         if ( !verify_cksum($msg) ) {
-            syslog( "LOG_WARNING", "Checksum failed on message '%s'", $msg );
+            siplog( "LOG_WARNING", "Checksum failed on message '%s'", $msg );
 
             # REQUEST_SC_RESEND with error detection
             $last_response = REQUEST_SC_RESEND_CKSUM;
@@ -381,7 +395,7 @@ sub handle {
 
         # We received a non-ED message when ED is supposed to be active.
         # Warn about this problem, then process the message anyway.
-        syslog( "LOG_WARNING", "Received message without error detection: '%s'", $msg );
+        siplog( "LOG_WARNING", "Received message without error detection: '%s'", $msg );
         $error_detection = 0;
         $self = C4::SIP::Sip::MsgType->new( $msg, 0 );
     } else {
@@ -394,7 +408,7 @@ sub handle {
         return substr( $msg, 0, 2 );
     }
     unless ( $self->{handler} ) {
-        syslog( "LOG_WARNING", "No handler defined for '%s'", $msg );
+        siplog( "LOG_WARNING", "No handler defined for '%s'", $msg );
         $last_response = REQUEST_SC_RESEND;
         print("$last_response\r");
         return REQUEST_ACS_RESEND;
@@ -432,21 +446,26 @@ sub build_patron_status {
             $password_rc = $patron->check_password($patron_pwd);
         }
 
-        $resp .= patron_status_string($patron);
+        $resp .= patron_status_string( $patron, $server );
         $resp .= $lang . timestamp();
-        $resp .= add_field( FID_PERSONAL_NAME, $patron->name( $server->{account}->{ae_field_template} ) );
+        if ( defined $server->{account}->{ae_field_template} ) {
+            $resp .= add_field( FID_PERSONAL_NAME, $patron->format( $server->{account}->{ae_field_template}, $server ) );
+        } else {
+            $resp .= add_field( FID_PERSONAL_NAME, $patron->name, $server );
+        }
+
 
         # while the patron ID we got from the SC is valid, let's
         # use the one returned from the ILS, just in case...
-        $resp .= add_field( FID_PATRON_ID, $patron->id );
+        $resp .= add_field( FID_PATRON_ID, $patron->id, $server );
 
         if ( $protocol_version >= 2 ) {
-            $resp .= add_field( FID_VALID_PATRON, 'Y' );
+            $resp .= add_field( FID_VALID_PATRON, 'Y', $server );
 
             # Patron password is a required field.
-            $resp .= add_field( FID_VALID_PATRON_PWD, sipbool($password_rc) );
-            $resp .= maybe_add( FID_CURRENCY, $patron->currency );
-            $resp .= maybe_add( FID_FEE_AMT,  $patron->fee_amount );
+            $resp .= add_field( FID_VALID_PATRON_PWD, sipbool($password_rc), $server );
+            $resp .= maybe_add( FID_CURRENCY, $patron->currency, $server );
+            $resp .= maybe_add( FID_FEE_AMT,  $patron->fee_amount, $server );
         }
 
         my $msg = $patron->screen_msg;
@@ -462,7 +481,8 @@ sub build_patron_status {
 
         $resp .= maybe_add( FID_SCREEN_MSG, $patron->{branchcode}, $server )
           if ( $server->{account}->{send_patron_home_library_in_af} );
-        $resp .= maybe_add( FID_PRINT_LINE, $patron->print_line );
+
+        $resp .= maybe_add( FID_PRINT_LINE, $patron->print_line, $server );
         
         # The next is not standard SIP. With that change we enable delivery of the 
         # patron hold id for EasyCheck devices.
@@ -470,9 +490,10 @@ sub build_patron_status {
              && C4::Context->preference('SIPVendorDialect') eq 'EasyCheck'
              && $patron->dateexpiry ) 
         {
-            $resp .= maybe_add( FID_EXPIRATION, $patron->dateexpiry."    235900" );
+            $resp .= maybe_add( FID_EXPIRATION, $patron->dateexpiry."    235900", $server);
         }
 
+        $resp .= $patron->build_custom_field_string( $server );
         $resp .= $patron->build_patron_attributes_string( $server );
 
     } else {
@@ -481,19 +502,19 @@ sub build_patron_status {
 
         # no personal name, and is invalid (if we're using 2.00)
         $resp .= 'YYYY' . ( ' ' x 10 ) . $lang . timestamp();
-        $resp .= add_field( FID_PERSONAL_NAME, '' );
+        $resp .= add_field( FID_PERSONAL_NAME, '', $server );
 
         # the patron ID is invalid, but it's a required field, so
         # just echo it back
-        $resp .= add_field( FID_PATRON_ID, $fields->{ (FID_PATRON_ID) } );
+        $resp .= add_field( FID_PATRON_ID, $fields->{ (FID_PATRON_ID) }, $server );
 
         ( $protocol_version >= 2 )
-          and $resp .= add_field( FID_VALID_PATRON, 'N' );
+          and $resp .= add_field( FID_VALID_PATRON, 'N', $server );
 
         $resp .= maybe_add( FID_SCREEN_MSG, INVALID_CARD, $server );
     }
 
-    $resp .= add_field( FID_INST_ID, $fields->{ (FID_INST_ID) } );
+    $resp .= add_field( FID_INST_ID, $fields->{ (FID_INST_ID) }, $server );
     return $resp;
 }
 
@@ -535,14 +556,14 @@ sub handle_checkout {
 
         # Off-line transactions need to be recorded, but there's
         # not a lot we can do about it
-        syslog( "LOG_WARNING", "received no-block checkout from terminal '%s'", $account->{id} );
+        siplog( "LOG_WARNING", "received no-block checkout from terminal '%s'", $account->{id} );
 
         $status = $ils->checkout_no_block( $patron_id, $item_id, $sc_renewal_policy, $trans_date, $nb_due_date );
     } else {
 
         # Does the transaction date really matter for items that are
         # checkout out while the terminal is online?  I'm guessing 'no'
-        $status = $ils->checkout( $patron_id, $item_id, $sc_renewal_policy, $fee_ack );
+        $status = $ils->checkout( $patron_id, $item_id, $sc_renewal_policy, $fee_ack, $account );
     }
 
     $item   = $status->item;
@@ -565,25 +586,25 @@ sub handle_checkout {
         $resp .= timestamp;
 
         # Now for the variable fields
-        $resp .= add_field( FID_INST_ID,   $inst );
-        $resp .= add_field( FID_PATRON_ID, $patron_id );
-        $resp .= add_field( FID_ITEM_ID,   $item_id );
-        $resp .= add_field( FID_TITLE_ID,  $item->title_id );
+        $resp .= add_field( FID_INST_ID,   $inst, $server );
+        $resp .= add_field( FID_PATRON_ID, $patron_id, $server );
+        $resp .= add_field( FID_ITEM_ID,   $item_id, $server );
+        $resp .= add_field( FID_TITLE_ID,  $item->title_id, $server );
         if ( $item->due_date ) {
-            $resp .= add_field( FID_DUE_DATE, timestamp( $item->due_date ) );
+            $resp .= add_field( FID_DUE_DATE, timestamp( $item->due_date ), $server );
         } else {
-            $resp .= add_field( FID_DUE_DATE, q{} );
+            $resp .= add_field( FID_DUE_DATE, q{}, $server );
         }
 
         $resp .= maybe_add( FID_SCREEN_MSG, $status->screen_msg, $server );
-        $resp .= maybe_add( FID_PRINT_LINE, $status->print_line );
+        $resp .= maybe_add( FID_PRINT_LINE, $status->print_line, $server );
 
         if ( $protocol_version >= 2 ) {
             if ( $ils->supports('security inhibit') ) {
-                $resp .= add_field( FID_SECURITY_INHIBIT, $status->security_inhibit );
+                $resp .= add_field( FID_SECURITY_INHIBIT, $status->security_inhibit, $server );
             }
-            $resp .= maybe_add( FID_MEDIA_TYPE, $item->sip_media_type );
-            $resp .= maybe_add( FID_ITEM_PROPS, $item->sip_item_properties );
+            $resp .= maybe_add( FID_MEDIA_TYPE, $item->sip_media_type, $server );
+            $resp .= maybe_add( FID_ITEM_PROPS, $item->sip_item_properties, $server );
 
         }
         
@@ -607,30 +628,30 @@ sub handle_checkout {
         # Checkout Response: not ok, no renewal, don't know mag. media,
         # no desensitize
         $resp = sprintf( "120NUN%s", timestamp );
-        $resp .= add_field( FID_INST_ID,   $inst );
-        $resp .= add_field( FID_PATRON_ID, $patron_id );
-        $resp .= add_field( FID_ITEM_ID,   $item_id );
+        $resp .= add_field( FID_INST_ID,   $inst, $server );
+        $resp .= add_field( FID_PATRON_ID, $patron_id, $server );
+        $resp .= add_field( FID_ITEM_ID,   $item_id, $server );
 
         # If the item is valid, provide the title, otherwise
         # leave it blank
-        $resp .= add_field( FID_TITLE_ID, $item ? $item->title_id : '' );
+        $resp .= add_field( FID_TITLE_ID, $item ? $item->title_id : '', $server );
 
         # Due date is required.  Since it didn't get checked out,
         # it's not due, so leave the date blank
-        $resp .= add_field( FID_DUE_DATE, '' );
+        $resp .= add_field( FID_DUE_DATE, '', $server );
 
         $resp .= maybe_add( FID_SCREEN_MSG, $status->screen_msg, $server );
-        $resp .= maybe_add( FID_PRINT_LINE, $status->print_line );
+        $resp .= maybe_add( FID_PRINT_LINE, $status->print_line, $server );
 
         if ( $protocol_version >= 2 ) {
 
             # Is the patron ID valid?
-            $resp .= add_field( FID_VALID_PATRON, sipbool($patron) );
+            $resp .= add_field( FID_VALID_PATRON, sipbool($patron), $server );
 
             if ( $patron && exists( $fields->{FID_PATRON_PWD} ) ) {
 
                 # Password provided, so we can tell if it was valid or not
-                $resp .= add_field( FID_VALID_PATRON_PWD, sipbool( $patron->check_password( $fields->{ (FID_PATRON_PWD) } ) ) );
+                $resp .= add_field( FID_VALID_PATRON_PWD, sipbool( $patron->check_password( $fields->{ (FID_PATRON_PWD) } ) ), $server );
             }
         }
         # The next is not standard SIP. With that change we enable delivery of the 
@@ -647,14 +668,16 @@ sub handle_checkout {
         }
     }
 
+    $resp .= $item->build_additional_item_fields_string( $server ) if $item;
+
     if ( $protocol_version >= 2 ) {
 
         # Financials : return irrespective of ok status
         if ( $status->fee_amount ) {
-            $resp .= add_field( FID_FEE_AMT, $status->fee_amount );
-            $resp .= maybe_add( FID_CURRENCY,       $status->sip_currency );
-            $resp .= maybe_add( FID_FEE_TYPE,       $status->sip_fee_type );
-            $resp .= maybe_add( FID_TRANSACTION_ID, $status->transaction_id );
+            $resp .= add_field( FID_FEE_AMT, $status->fee_amount, $server );
+            $resp .= maybe_add( FID_CURRENCY,       $status->sip_currency, $server );
+            $resp .= maybe_add( FID_FEE_TYPE,       $status->sip_fee_type, $server );
+            $resp .= maybe_add( FID_TRANSACTION_ID, $status->transaction_id, $server );
         }
     }
 
@@ -687,27 +710,10 @@ sub handle_checkin {
     if ( $no_block eq 'Y' ) {
 
         # Off-line transactions, ick.
-        syslog( "LOG_WARNING", "received no-block checkin from terminal '%s'", $account->{id} );
+        siplog( "LOG_WARNING", "received no-block checkin from terminal '%s'", $account->{id} );
         $status = $ils->checkin_no_block( $item_id, $trans_date, $return_date, $item_props, $cancel );
     } else {
-        my $checkinOpts = {};
-        if ( $account->{only_local_checkins} ) {
-            $checkinOpts->{only_local_checkins} = 1;
-        }
-        if ( $account->{disabled_itypes_for_checkins} ) {
-            foreach my $itype( split(/\|/,$account->{disabled_itypes_for_checkins} ) ) {
-                $checkinOpts->{disabled_itypes_for_checkins}->{$itype} = $itype;
-            }
-        }
-        if ( $account->{disabled_ccodes_for_checkins} ) {
-            foreach my $ccode( split(/\|/,$account->{disabled_ccodes_for_checkins} ) ) {
-                $checkinOpts->{disabled_ccodes_for_checkins}->{$ccode} = $ccode;
-            }
-        }
-        if ( $account->{disable_checkins_with_holds} ) {
-            $checkinOpts->{disable_checkins_with_holds} = 1;
-        }
-        $status = $ils->checkin( $item_id, $trans_date, $return_date, $my_branch, $item_props, $cancel, $account->{checked_in_ok}, $checkinOpts );
+        $status = $ils->checkin( $item_id, $trans_date, $return_date, $my_branch, $item_props, $cancel, $account );
     }
 
     $patron = $status->patron;
@@ -725,51 +731,61 @@ sub handle_checkin {
 
     $resp .= $status->alert ? 'Y' : 'N';
     $resp .= timestamp;
-    $resp .= add_field( FID_INST_ID, $inst_id );
-    $resp .= add_field( FID_ITEM_ID, $item_id );
+    $resp .= add_field( FID_INST_ID, $inst_id, $server );
+    $resp .= add_field( FID_ITEM_ID, $item_id, $server );
 
     if ($item) {
-        $resp .= add_field( FID_PERM_LOCN, $item->permanent_location );
-        $resp .= maybe_add( FID_TITLE_ID, $item->title_id );
+        $resp .= add_field( FID_PERM_LOCN, $item->permanent_location, $server );
+        $resp .= maybe_add( FID_TITLE_ID, $item->title_id, $server );
+        $resp .= $item->build_additional_item_fields_string( $server );
     }
 
     if ( $protocol_version >= 2 ) {
-        $resp .= maybe_add( FID_SORT_BIN, $status->sort_bin );
+        $resp .= maybe_add( FID_SORT_BIN, $status->sort_bin, $server );
         if ($patron) {
-            $resp .= add_field( FID_PATRON_ID, $patron->id );
+            $resp .= add_field( FID_PATRON_ID, $patron->id, $server );
         }
         if ($item) {
-            $resp .= maybe_add( FID_MEDIA_TYPE,           $item->sip_media_type );
-            
+            $resp .= maybe_add( FID_MEDIA_TYPE,           $item->sip_media_type,      $server );
             # The next is not standard SIP. With that change we enable delivery of the 
             # patron hold id for EasyCheck devices.
             if ( C4::Context->preference('SIPVendorDialect') 
                 && C4::Context->preference('SIPVendorDialect') eq 'EasyCheck' 
                 && $item->hold_patron_bcode ) 
             {
-                $resp .= maybe_add( FID_ITEM_PROPS,       $item->hold_patron_bcode );
+                $resp .= maybe_add( FID_ITEM_PROPS,       $item->hold_patron_bcode,   $server );
             } else {
-                $resp .= maybe_add( FID_ITEM_PROPS,       $item->sip_item_properties );
+                $resp .= maybe_add( FID_ITEM_PROPS,       $item->sip_item_properties, $server );
             }
+            $resp .= maybe_add( FID_CALL_NUMBER,          $item->call_number,         $server );
+            $resp .= maybe_add( FID_HOLD_PATRON_ID,       $item->hold_patron_bcode,   $server );
+            $resp .= add_field( FID_DESTINATION_LOCATION, $item->destination_loc,     $server ) if ( $item->destination_loc || $server->{account}->{ct_always_send} );
+            $resp .= maybe_add( FID_HOLD_PATRON_NAME,     $item->hold_patron_name( $server->{account}->{da_field_template} ), $server );
+
             if ( $server->{account}->{use_location_instead_ccode_for_CR} ) {
-                $resp .= maybe_add( FID_COLLECTION_CODE,  $item->location );
-            } else {
-                $resp .= maybe_add( FID_COLLECTION_CODE,  $item->collection_code );
+                $resp .= maybe_add( FID_COLLECTION_CODE,  $item->location,            $server );
             }
-            $resp .= maybe_add( FID_CALL_NUMBER,          $item->call_number );
-            $resp .= maybe_add( FID_DESTINATION_LOCATION, $item->destination_loc );
-            $resp .= maybe_add( FID_HOLD_PATRON_ID,       $item->hold_patron_bcode );
-            $resp .= maybe_add( FID_HOLD_PATRON_NAME,     $item->hold_patron_name );
-            if ( $status->hold and $item->destination_loc and $status->hold->{branchcode} ne $item->destination_loc ) {
-                syslog( "LOG_WARNING", 'SIP hold mismatch: $status->hold->{branchcode}=' . $status->hold->{branchcode} . '; $item->destination_loc=' . $item->destination_loc);
+            elsif ( my $CR = $server->{account}->{cr_item_field} ) {
+                $resp .= maybe_add( FID_COLLECTION_CODE, $item->{$CR},                $server );
+            } else {
+                $resp .= maybe_add( FID_COLLECTION_CODE, $item->collection_code,      $server );
+            }
+
+            if ( $status->hold and $status->hold->{branchcode} ne $item->destination_loc ) {
+                warn 'SIP hold mismatch: $status->hold->{branchcode}=' . $status->hold->{branchcode} . '; $item->destination_loc=' . $item->destination_loc;
+
                 # just me being paranoid.
             }
         }
     }
 
-    $resp .= maybe_add( FID_ALERT_TYPE, $status->alert_type ) if $status->alert;
+    if ( $status->alert && $status->alert_type ) {
+        $resp .= maybe_add( FID_ALERT_TYPE, $status->alert_type, $server );
+    } elsif ( $server->{account}->{cv_send_00_on_success} ) {
+        $resp .= add_field( FID_ALERT_TYPE, '00', $server );
+    }
     $resp .= maybe_add( FID_SCREEN_MSG, $status->screen_msg, $server );
-    $resp .= maybe_add( FID_PRINT_LINE, $status->print_line );
+    $resp .= maybe_add( FID_PRINT_LINE, $status->print_line, $server );
 
     $self->write_msg( $resp, undef, $server->{account}->{terminator}, $server->{account}->{encoding} );
 
@@ -831,19 +847,19 @@ sub handle_sc_status {
     } elsif ( $sc_protocol_version =~ /^2\./ ) {
         $new_proto = 2;
     } else {
-        syslog( "LOG_WARNING", "Unrecognized protocol revision '%s', falling back to '1'", $sc_protocol_version );
+        siplog( "LOG_WARNING", "Unrecognized protocol revision '%s', falling back to '1'", $sc_protocol_version );
         $new_proto = 1;
     }
 
     if ( $new_proto != $protocol_version ) {
-        syslog( "LOG_INFO", "Setting protocol level to $new_proto" );
+        siplog( "LOG_INFO", "Setting protocol level to $new_proto" );
         $protocol_version = $new_proto;
     }
 
     if ( $status == SC_STATUS_PAPER ) {
-        syslog( "LOG_WARNING", "Self-Check unit '%s@%s' out of paper", $self->{account}->{id}, $self->{account}->{institution} );
+        siplog( "LOG_WARNING", "Self-Check unit '%s@%s' out of paper", $self->{account}->{id}, $self->{account}->{institution} );
     } elsif ( $status == SC_STATUS_SHUTDOWN ) {
-        syslog( "LOG_WARNING", "Self-Check unit '%s@%s' shutting down", $self->{account}->{id}, $self->{account}->{institution} );
+        siplog( "LOG_WARNING", "Self-Check unit '%s@%s' shutting down", $self->{account}->{id}, $self->{account}->{institution} );
     }
 
     $self->{account}->{print_width} = $print_width;
@@ -883,10 +899,10 @@ sub login_core {
     my $pwd    = shift;
     my $status = 1;                 # Assume it all works
     if ( !exists( $server->{config}->{accounts}->{$uid} ) ) {
-        syslog( "LOG_WARNING", "MsgType::login_core: Unknown login '$uid'" );
+        siplog( "LOG_WARNING", "MsgType::login_core: Unknown login '$uid'" );
         $status = 0;
     } elsif ( $server->{config}->{accounts}->{$uid}->{password} ne $pwd ) {
-        syslog( "LOG_WARNING", "MsgType::login_core: Invalid password for login '$uid'" );
+        siplog( "LOG_WARNING", "MsgType::login_core: Invalid password for login '$uid'" );
         $status = 0;
     } else {
 
@@ -900,16 +916,16 @@ sub login_core {
 
         my $auth_status = api_auth( $uid, $pwd, $inst );
         if ( !$auth_status or $auth_status !~ /^ok$/i ) {
-            syslog( "LOG_WARNING", "api_auth failed for SIP terminal '%s' of '%s': %s", $uid, $inst, ( $auth_status || 'unknown' ) );
+            siplog( "LOG_WARNING", "api_auth failed for SIP terminal '%s' of '%s': %s", $uid, $inst, ( $auth_status || 'unknown' ) );
             $status = 0;
         } else {
-            syslog( "LOG_INFO", "Successful login/auth for '%s' of '%s'", $server->{account}->{id}, $inst );
+            siplog( "LOG_INFO", "Successful login/auth for '%s' of '%s'", $server->{account}->{id}, $inst );
 
             #
             # initialize connection to ILS
             #
             my $module = $server->{config}->{institutions}->{$inst}->{implementation};
-            syslog( "LOG_DEBUG", 'login_core: ' . Dumper($module) );
+            siplog( "LOG_DEBUG", 'login_core: ' . Dumper($module) );
 
             # Suspect this is always ILS but so we don't break any eccentic install (for now)
             if ( $module eq 'ILS' ) {
@@ -917,14 +933,14 @@ sub login_core {
             }
             $module->use;
             if ($@) {
-                syslog( "LOG_ERR", "%s: Loading ILS implementation '%s' for institution '%s' failed", $server->{service}, $module, $inst );
+                siplog( "LOG_ERR", "%s: Loading ILS implementation '%s' for institution '%s' failed", $server->{service}, $module, $inst );
                 die("Failed to load ILS implementation '$module' for $inst");
             }
 
             # like   ILS->new(), I think.
             $server->{ils} = $module->new( $server->{institution}, $server->{account} );
             if ( !$server->{ils} ) {
-                syslog( "LOG_ERR", "%s: ILS connection to '%s' failed", $server->{service}, $inst );
+                siplog( "LOG_ERR", "%s: ILS connection to '%s' failed", $server->{service}, $inst );
                 die("Unable to connect to ILS '$inst'");
             }
         }
@@ -947,7 +963,7 @@ sub handle_login {
     $pwd = $fields->{ (FID_LOGIN_PWD) };    # Terminal PWD, not patron PWD.
 
     if ( $uid_algorithm || $pwd_algorithm ) {
-        syslog( "LOG_ERR", "LOGIN: Unsupported non-zero encryption method(s): uid = $uid_algorithm, pwd = $pwd_algorithm" );
+        siplog( "LOG_ERR", "LOGIN: Unsupported non-zero encryption method(s): uid = $uid_algorithm, pwd = $pwd_algorithm" );
         $status = 0;
     } else {
         $status = login_core( $server, $uid, $pwd );
@@ -967,7 +983,6 @@ sub handle_login {
 sub summary_info {
     my ( $ils, $patron, $summary, $start, $end, $server ) = @_;
     my $resp = '';
-    my $summary_type;
 
     #
     # Map from offsets in the "summary" field of the Patron Information
@@ -982,19 +997,20 @@ sub summary_info {
         { func => $patron->can("unavail_holds"), fid => FID_UNAVAILABLE_HOLD_ITEMS },
     );
 
-    if ( ( $summary_type = index( $summary, 'Y' ) ) == -1 ) {
-        return '';    # No detailed information required
-    }
+    my $summary_type = index( $summary, 'Y' );
+    return q{} if $summary_type == -1;    # No detailed information required.
+    return q{} if $summary_type > 5;      # Positions 6-9 are not defined in the sip spec,
+                                          # and we have no extensions to handle them.
 
-    syslog( "LOG_DEBUG", "Summary_info: index == '%d', field '%s'", $summary_type, $summary_map[$summary_type]->{fid} );
+    siplog( "LOG_DEBUG", "Summary_info: index == '%d', field '%s'", $summary_type, $summary_map[$summary_type]->{fid} );
 
     my $func     = $summary_map[$summary_type]->{func};
     my $fid      = $summary_map[$summary_type]->{fid};
     my $itemlist = &$func( $patron, $start, $end, $server );
 
-    syslog( "LOG_DEBUG", "summary_info: list = (%s)", join( ", ", @{$itemlist} ) );
+    siplog( "LOG_DEBUG", "summary_info: list = (%s)", join( ", ", map{ $_->{barcode} } @{$itemlist} ) );
     foreach my $i ( @{$itemlist} ) {
-        $resp .= add_field( $fid, $i->{barcode} );
+        $resp .= add_field( $fid, $i->{barcode}, $server );
     }
 
     return $resp;
@@ -1020,7 +1036,7 @@ sub handle_patron_info {
     $resp = (PATRON_INFO_RESP);
     if ($patron) {
         $patron->update_lastseen();
-        $resp .= patron_status_string($patron);
+        $resp .= patron_status_string( $patron, $server );
         $resp .= ( defined($lang) and length($lang) == 3 ) ? $lang : $patron->language;
         $resp .= timestamp();
 
@@ -1031,33 +1047,38 @@ sub handle_patron_info {
         $resp .= add_count( 'patron_info/recall_items',  scalar @{ $patron->recall_items } );
         $resp .= add_count( 'patron_info/unavail_holds', scalar @{ $patron->unavail_holds } );
 
-        $resp .= add_field( FID_INST_ID, ( $ils->institution_id || 'SIP2' ) );
+        $resp .= add_field( FID_INST_ID, ( $ils->institution_id || 'SIP2' ), $server );
 
         # while the patron ID we got from the SC is valid, let's
         # use the one returned from the ILS, just in case...
-        $resp .= add_field( FID_PATRON_ID,     $patron->id );
-        $resp .= add_field( FID_PERSONAL_NAME, $patron->name( $server->{account}->{ae_field_template} ) );
+        $resp .= add_field( FID_PATRON_ID,     $patron->id, $server );
+        if ( defined $server->{account}->{ae_field_template} ) {
+            $resp .= add_field( FID_PERSONAL_NAME, $patron->format( $server->{account}->{ae_field_template} ), $server );
+        } else {
+            $resp .= add_field( FID_PERSONAL_NAME, $patron->name, $server );
+        }
 
         # TODO: add code for the fields
         #   hold items limit
         #   overdue items limit
         #   charged items limit
 
-        $resp .= add_field( FID_VALID_PATRON, 'Y' );
+        $resp .= add_field( FID_VALID_PATRON, 'Y', $server );
         my $password_rc;
         if ( defined($patron_pwd) ) {
 
             # If patron password was provided, report whether it was right or not.
-            $password_rc = $patron->check_password($patron_pwd);
             if ( $patron_pwd eq q{} && $server->{account}->{allow_empty_passwords} ) {
                 $password_rc = 1;
+            } else {
+                $password_rc = $patron->check_password($patron_pwd);
             }
-            $resp .= add_field( FID_VALID_PATRON_PWD, sipbool( $password_rc ) );
+            $resp .= add_field( FID_VALID_PATRON_PWD, sipbool( $password_rc ), $server );
         }
 
-        $resp .= maybe_add( FID_CURRENCY, $patron->currency );
-        $resp .= maybe_add( FID_FEE_AMT,  $patron->fee_amount );
-        $resp .= add_field( FID_FEE_LMT, $patron->fee_limit );
+        $resp .= maybe_add( FID_CURRENCY, $patron->currency, $server );
+        $resp .= maybe_add( FID_FEE_AMT,  $patron->fee_amount, $server );
+        $resp .= add_field( FID_FEE_LMT, $patron->fee_limit, $server );
 
         # TODO: zero or more item details for 2.0 can go here:
         #          hold_items
@@ -1068,22 +1089,22 @@ sub handle_patron_info {
 
         $resp .= summary_info( $ils, $patron, $summary, $start, $end, $server );
 
-        $resp .= maybe_add( FID_HOME_ADDR,  $patron->address );
-        $resp .= maybe_add( FID_EMAIL,      $patron->email_addr );
-        $resp .= maybe_add( FID_HOME_PHONE, $patron->home_phone );
+        $resp .= maybe_add( FID_HOME_ADDR,  $patron->address, $server );
+        $resp .= maybe_add( FID_EMAIL,      $patron->email_addr, $server );
+        $resp .= maybe_add( FID_HOME_PHONE, $patron->home_phone, $server );
 
         # SIP 2.0 extensions used by Envisionware
         # Other terminals will ignore unrecognized fields (unrecognized field identifiers)
-        $resp .= maybe_add( FID_PATRON_BIRTHDATE, $patron->birthdate );
-        $resp .= maybe_add( FID_PATRON_CLASS,     $patron->ptype );
+        $resp .= maybe_add( FID_PATRON_BIRTHDATE, $patron->birthdate, $server );
+        $resp .= maybe_add( FID_PATRON_CLASS,     $patron->ptype, $server );
         
         # some SIP consumer in NL and DE need the patron class as FU
         if ( $server->{account}->{send_patron_class_as_FU} ) {
-            $resp .= maybe_add( FID_PATRON_CLASS_ALT, $patron->ptype );
+            $resp .= maybe_add( FID_PATRON_CLASS_ALT, $patron->ptype, $server );
         }
 
         # Custom protocol extension to report patron internet privileges
-        $resp .= maybe_add( FID_INET_PROFILE, $patron->inet_privileges );
+        $resp .= maybe_add( FID_INET_PROFILE, $patron->inet_privileges, $server );
 
         my $msg = $patron->screen_msg;
         if( defined( $patron_pwd ) && !$password_rc ) {
@@ -1099,7 +1120,7 @@ sub handle_patron_info {
         if ( $server->{account}->{send_patron_home_library_in_af} ) {
             $resp .= maybe_add( FID_SCREEN_MSG, $patron->{branchcode}, $server);
         }
-        $resp .= maybe_add( FID_PRINT_LINE, $patron->print_line );
+        $resp .= maybe_add( FID_PRINT_LINE, $patron->print_line, $server );
         
         # The next is not standard SIP. With that change we enable delivery of the 
         # patron hold id for EasyCheck devices.
@@ -1107,9 +1128,10 @@ sub handle_patron_info {
              && C4::Context->preference('SIPVendorDialect') eq 'EasyCheck' 
              && $patron->dateexpiry ) 
         {
-            $resp .= maybe_add( FID_EXPIRATION, $patron->dateexpiry."    235900" );
+            $resp .= maybe_add( FID_EXPIRATION, $patron->dateexpiry."    235900", $server );
         }
 
+        $resp .= $patron->build_custom_field_string( $server );
         $resp .= $patron->build_patron_attributes_string( $server );
     } else {
 
@@ -1119,14 +1141,14 @@ sub handle_patron_info {
         $resp .= 'YYYY' . ( ' ' x 10 ) . $lang . timestamp();
         $resp .= '0000' x 6;
 
-        $resp .= add_field( FID_INST_ID, ( $ils->institution_id || 'SIP2' ) );
+        $resp .= add_field( FID_INST_ID, ( $ils->institution_id || 'SIP2' ), $server );
 
         # patron ID is invalid, but field is required, so just echo it back
-        $resp .= add_field( FID_PATRON_ID, $fields->{ (FID_PATRON_ID) } );
-        $resp .= add_field( FID_PERSONAL_NAME, '' );
+        $resp .= add_field( FID_PATRON_ID, $fields->{ (FID_PATRON_ID) }, $server );
+        $resp .= add_field( FID_PERSONAL_NAME, '', $server );
 
         if ( $protocol_version >= 2 ) {
-            $resp .= add_field( FID_VALID_PATRON, 'N' );
+            $resp .= add_field( FID_VALID_PATRON, 'N', $server );
         }
         $resp .= maybe_add( FID_SCREEN_MSG, INVALID_CARD, $server );
     }
@@ -1152,11 +1174,11 @@ sub handle_end_patron_session {
     $resp .= $status ? 'Y' : 'N';
     $resp .= timestamp();
 
-    $resp .= add_field( FID_INST_ID, $server->{ils}->institution );
-    $resp .= add_field( FID_PATRON_ID, $fields->{ (FID_PATRON_ID) } );
+    $resp .= add_field( FID_INST_ID, $server->{ils}->institution, $server );
+    $resp .= add_field( FID_PATRON_ID, $fields->{ (FID_PATRON_ID) }, $server );
 
     $resp .= maybe_add( FID_SCREEN_MSG, $screen_msg, $server );
-    $resp .= maybe_add( FID_PRINT_LINE, $print_line );
+    $resp .= maybe_add( FID_PRINT_LINE, $print_line, $server );
 
     $self->write_msg( $resp, undef, $server->{account}->{terminator}, $server->{account}->{encoding} );
 
@@ -1175,6 +1197,7 @@ sub handle_fee_paid {
 
     my $disallow_overpayment  = $server->{account}->{disallow_overpayment};
     my $payment_type_writeoff = $server->{account}->{payment_type_writeoff} || q{};
+    my $register_id           = $server->{account}->{register_id};
 
     my $is_writeoff = $pay_type eq $payment_type_writeoff;
 
@@ -1187,14 +1210,53 @@ sub handle_fee_paid {
 
     $ils->check_inst_id( $inst_id, "handle_fee_paid" );
 
-    $status = $ils->pay_fee( $patron_id, $patron_pwd, $fee_amt, $fee_type, $pay_type, $fee_id, $trans_id, $currency, $is_writeoff, $disallow_overpayment );
+    my $pay_result = $ils->pay_fee( $patron_id, $patron_pwd, $fee_amt, $fee_type, $pay_type, $fee_id, $trans_id, $currency, $is_writeoff, $disallow_overpayment, $register_id );
+    $status = $pay_result->{status};
+    my $pay_response = $pay_result->{pay_response};
+
+    my $failmap = {
+        "no_item" => "No matching item could be found",
+        "no_checkout" => "Item is not checked out",
+        "too_soon" => "Cannot yet be renewed",
+        "too_many" => "Renewed the maximum number of times",
+        "auto_too_soon" => "Scheduled for automatic renewal and cannot yet be renewed",
+        "auto_too_late" => "Scheduled for automatic renewal and cannot yet be any more",
+        "auto_account_expired" => "Scheduled for automatic renewal and cannot be renewed because the patron's account has expired",
+        "auto_renew" => "Scheduled for automatic renewal",
+        "auto_too_much_oweing" => "Scheduled for automatic renewal",
+        "on_reserve" => "On hold for another patron",
+        "patron_restricted" => "Patron is currently restricted",
+        "item_denied_renewal" => "Item is not allowed renewal",
+        "onsite_checkout" => "Item is an onsite checkout"
+    };
+    my @success = ();
+    my @fail = ();
+    foreach my $result( @{$pay_response->{renew_result}} ) {
+        my $item = Koha::Items->find({ itemnumber => $result->{itemnumber} });
+        if ($result->{success}) {
+            push @success, '"' . $item->biblio->title . '"';
+        } else {
+            push @fail, '"' . $item->biblio->title . '" : ' . $failmap->{$result->{error}};
+        }
+    }
+
+    my $msg = "";
+    if (scalar @success > 0) {
+        $msg.="The following items were renewed: " . join(", ", @success) . ". ";
+    }
+    if (scalar @fail > 0) {
+        $msg.="The following items were not renewed: " . join(", ", @fail) . ".";
+    }
+    if (length $msg > 0) {
+        $status->screen_msg($status->screen_msg . " $msg");
+    }
 
     $resp .= ( $status->ok ? 'Y' : 'N' ) . timestamp;
-    $resp .= add_field( FID_INST_ID,   $inst_id );
-    $resp .= add_field( FID_PATRON_ID, $patron_id );
-    $resp .= maybe_add( FID_TRANSACTION_ID, $status->transaction_id );
+    $resp .= add_field( FID_INST_ID,   $inst_id, $server );
+    $resp .= add_field( FID_PATRON_ID, $patron_id, $server );
+    $resp .= maybe_add( FID_TRANSACTION_ID, $status->transaction_id, $server );
     $resp .= maybe_add( FID_SCREEN_MSG,     $status->screen_msg, $server );
-    $resp .= maybe_add( FID_PRINT_LINE,     $status->print_line );
+    $resp .= maybe_add( FID_PRINT_LINE,     $status->print_line, $server );
 
     $self->write_msg( $resp, undef, $server->{account}->{terminator}, $server->{account}->{encoding} );
 
@@ -1266,10 +1328,10 @@ sub handle_item_information {
         $resp .= timestamp;
 
         # Just echo back the invalid item id
-        $resp .= add_field( FID_ITEM_ID, $fields->{ (FID_ITEM_ID) } );
+        $resp .= add_field( FID_ITEM_ID, $fields->{ (FID_ITEM_ID) }, $server );
 
         # title id is required, but we don't have one
-        $resp .= add_field( FID_TITLE_ID, '' );
+        $resp .= add_field( FID_TITLE_ID, '', $server );
     } else {
 
         # Valid Item ID, send the good stuff
@@ -1278,55 +1340,63 @@ sub handle_item_information {
         $resp .= $item->sip_fee_type;
         $resp .= timestamp;
 
-        $resp .= add_field( FID_ITEM_ID,  $item->id );
-        $resp .= add_field( FID_TITLE_ID, $item->title_id );
+        $resp .= add_field( FID_ITEM_ID,  $item->id, $server );
+        $resp .= add_field( FID_TITLE_ID, $item->title_id, $server );
 
-        $resp .= maybe_add( FID_MEDIA_TYPE,   $item->sip_media_type );
-        $resp .= maybe_add( FID_PERM_LOCN,    $item->permanent_location );
-        $resp .= maybe_add( FID_CURRENT_LOCN, $item->current_location );
-        
+        $resp .= maybe_add( FID_MEDIA_TYPE,   $item->sip_media_type, $server );
+        $resp .= maybe_add( FID_PERM_LOCN,    $item->permanent_location, $server );
+        $resp .= maybe_add( FID_CURRENT_LOCN, $item->current_location, $server );
+
         # The next is not standard SIP. With that change we enable delivery of the 
         # patron hold id for EasyCheck devices.
         if ( C4::Context->preference('SIPVendorDialect') 
              && C4::Context->preference('SIPVendorDialect') eq 'EasyCheck' ) 
         {
-            $resp .= maybe_add( FID_ITEM_PROPS,   $item->issue_renewals );
+            $resp .= maybe_add( FID_ITEM_PROPS,   $item->issue_renewals, $server );
         } else {
-            $resp .= maybe_add( FID_ITEM_PROPS,   $item->sip_item_properties );
+            $resp .= maybe_add( FID_ITEM_PROPS,   $item->sip_item_properties, $server );
+        }
+
+        if ( my $CR = $server->{account}->{cr_item_field} ) {
+            $resp .= maybe_add( FID_COLLECTION_CODE, $item->{$CR}, $server );
+        } else {
+            $resp .= maybe_add( FID_COLLECTION_CODE, $item->collection_code, $server );
         }
 
         if ( ( $i = $item->fee ) != 0 ) {
-            $resp .= add_field( FID_CURRENCY, $item->fee_currency );
-            $resp .= add_field( FID_FEE_AMT,  $i );
+            $resp .= add_field( FID_CURRENCY, $item->fee_currency, $server );
+            $resp .= add_field( FID_FEE_AMT,  $i, $server );
         }
         if ( $server->{account}->{deliver_hold_shelf_patron_with_BG} && $item->sip_circulation_status eq '08' ) {
             if ( $item->{hold_shelf} ) {
                 foreach my $hold ( @{ $item->{hold_shelf} } ) {
                     if ( $hold->{itemnumber} == $item->{itemnumber}  ) {
-                        $resp .= maybe_add( FID_OWNER, $item->hold_patron_bcode($hold->{borrowernumber}) );
+                        $resp .= maybe_add( FID_OWNER, $item->hold_patron_bcode($hold->{borrowernumber}), $server  );
                         last;
                     }
                 }
             }
         } else {
-            $resp .= maybe_add( FID_OWNER, $item->owner );
+            $resp .= maybe_add( FID_OWNER, $item->owner, $server  );
         }
 
         if ( ( $i = scalar @{ $item->hold_queue } ) > 0 ) {
-            $resp .= add_field( FID_HOLD_QUEUE_LEN, $i );
+            $resp .= add_field( FID_HOLD_QUEUE_LEN, $i, $server );
         }
         if ( $item->due_date ) {
-            $resp .= add_field( FID_DUE_DATE, timestamp( $item->due_date ) );
+            $resp .= add_field( FID_DUE_DATE, timestamp( $item->due_date ), $server );
         }
         if ( ( $i = $item->recall_date ) != 0 ) {
-            $resp .= add_field( FID_RECALL_DATE, timestamp($i) );
+            $resp .= add_field( FID_RECALL_DATE, timestamp($i), $server );
         }
         if ( ( $i = $item->hold_pickup_date ) != 0 ) {
-            $resp .= add_field( FID_HOLD_PICKUP_DATE, timestamp($i) );
+            $resp .= add_field( FID_HOLD_PICKUP_DATE, timestamp($i), $server );
         }
 
         $resp .= maybe_add( FID_SCREEN_MSG, $item->screen_msg, $server );
-        $resp .= maybe_add( FID_PRINT_LINE, $item->print_line );
+        $resp .= maybe_add( FID_PRINT_LINE, $item->print_line, $server );
+
+        $resp .= $item->build_additional_item_fields_string( $server );
     }
 
     $self->write_msg( $resp, undef, $server->{account}->{terminator}, $server->{account}->{encoding} );
@@ -1351,7 +1421,7 @@ sub handle_item_status_update {
     $item_props = $fields->{ (FID_ITEM_PROPS) };
 
     if ( !defined($item_id) ) {
-        syslog( "LOG_WARNING", "handle_item_status: received message without Item ID field" );
+        siplog( "LOG_WARNING", "handle_item_status: received message without Item ID field" );
     } else {
         $item = $ils->find_item($item_id);
     }
@@ -1361,7 +1431,7 @@ sub handle_item_status_update {
         # Invalid Item ID
         $resp .= '0';
         $resp .= timestamp;
-        $resp .= add_field( FID_ITEM_ID, $item_id );
+        $resp .= add_field( FID_ITEM_ID, $item_id, $server );
     } else {
 
         # Valid Item ID
@@ -1371,13 +1441,13 @@ sub handle_item_status_update {
         $resp .= $status->ok ? '1' : '0';
         $resp .= timestamp;
 
-        $resp .= add_field( FID_ITEM_ID,  $item->id );
-        $resp .= add_field( FID_TITLE_ID, $item->title_id );
-        $resp .= maybe_add( FID_ITEM_PROPS, $item->sip_item_properties );
+        $resp .= add_field( FID_ITEM_ID,  $item->id, $server );
+        $resp .= add_field( FID_TITLE_ID, $item->title_id, $server );
+        $resp .= maybe_add( FID_ITEM_PROPS, $item->sip_item_properties, $server );
     }
 
     $resp .= maybe_add( FID_SCREEN_MSG, $status->screen_msg, $server );
-    $resp .= maybe_add( FID_PRINT_LINE, $status->print_line );
+    $resp .= maybe_add( FID_PRINT_LINE, $status->print_line, $server );
 
     $self->write_msg( $resp, undef, $server->{account}->{terminator}, $server->{account}->{encoding} );
 
@@ -1396,7 +1466,7 @@ sub handle_patron_enable {
     $patron_id  = $fields->{ (FID_PATRON_ID) };
     $patron_pwd = $fields->{ (FID_PATRON_PWD) };
 
-    syslog( "LOG_DEBUG", "handle_patron_enable: patron_id: '%s', patron_pwd: '%s'", $patron_id, $patron_pwd );
+    siplog( "LOG_DEBUG", "handle_patron_enable: patron_id: '%s', patron_pwd: '%s'", $patron_id, $patron_pwd );
 
     $patron = $ils->find_patron($patron_id);
 
@@ -1404,10 +1474,10 @@ sub handle_patron_enable {
 
         # Invalid patron ID
         $resp .= 'YYYY' . ( ' ' x 10 ) . '000' . timestamp();
-        $resp .= add_field( FID_PATRON_ID,        $patron_id );
-        $resp .= add_field( FID_PERSONAL_NAME,    '' );
-        $resp .= add_field( FID_VALID_PATRON,     'N' );
-        $resp .= add_field( FID_VALID_PATRON_PWD, 'N' );
+        $resp .= add_field( FID_PATRON_ID,        $patron_id, $server );
+        $resp .= add_field( FID_PERSONAL_NAME,    '', $server );
+        $resp .= add_field( FID_VALID_PATRON,     'N', $server );
+        $resp .= add_field( FID_VALID_PATRON_PWD, 'N', $server );
     } else {
 
         # valid patron
@@ -1416,20 +1486,20 @@ sub handle_patron_enable {
             # Don't enable the patron if there was an invalid password
             $status = $patron->enable;
         }
-        $resp .= patron_status_string($patron);
+        $resp .= patron_status_string( $patron, $server );
         $resp .= $patron->language . timestamp();
 
-        $resp .= add_field( FID_PATRON_ID,     $patron->id );
-        $resp .= add_field( FID_PERSONAL_NAME, $patron->name( $server->{account}->{ae_field_template} ) );
+        $resp .= add_field( FID_PATRON_ID,     $patron->id, $server );
+        $resp .= add_field( FID_PERSONAL_NAME, $patron->format( $server->{account}->{ae_field_template} ), $server );
         if ( defined($patron_pwd) ) {
-            $resp .= add_field( FID_VALID_PATRON_PWD, sipbool( $patron->check_password($patron_pwd) ) );
+            $resp .= add_field( FID_VALID_PATRON_PWD, sipbool( $patron->check_password($patron_pwd) ), $server );
         }
-        $resp .= add_field( FID_VALID_PATRON, 'Y' );
+        $resp .= add_field( FID_VALID_PATRON, 'Y', $server );
         $resp .= maybe_add( FID_SCREEN_MSG, $patron->screen_msg, $server );
-        $resp .= maybe_add( FID_PRINT_LINE, $patron->print_line );
+        $resp .= maybe_add( FID_PRINT_LINE, $patron->print_line, $server );
     }
 
-    $resp .= add_field( FID_INST_ID, $ils->institution );
+    $resp .= add_field( FID_INST_ID, $ils->institution, $server );
 
     $self->write_msg( $resp, undef, $server->{account}->{terminator}, $server->{account}->{encoding} );
 
@@ -1466,7 +1536,7 @@ sub handle_hold {
     } elsif ( $hold_mode eq '*' ) {
         $status = $ils->alter_hold( $patron_id, $patron_pwd, $item_id, $title_id, $expiry_date, $pickup_locn, $hold_type, $fee_ack );
     } else {
-        syslog( "LOG_WARNING", "handle_hold: Unrecognized hold mode '%s' from terminal '%s'", $hold_mode, $server->{account}->{id} );
+        siplog( "LOG_WARNING", "handle_hold: Unrecognized hold mode '%s' from terminal '%s'", $hold_mode, $server->{account}->{id} );
         $status = $ils->Transaction::Hold;    # new?
         $status->screen_msg("System error. Please contact library staff.");
     }
@@ -1476,23 +1546,23 @@ sub handle_hold {
     $resp .= timestamp;
 
     if ( $status->ok ) {
-        $resp .= add_field( FID_PATRON_ID, $status->patron->id );
+        $resp .= add_field( FID_PATRON_ID, $status->patron->id, $server );
 
         ( $status->expiration_date )
-          and $resp .= maybe_add( FID_EXPIRATION, timestamp( $status->expiration_date ) );
-        $resp .= maybe_add( FID_QUEUE_POS,   $status->queue_position );
-        $resp .= maybe_add( FID_PICKUP_LOCN, $status->pickup_location );
-        $resp .= maybe_add( FID_ITEM_ID,     $status->item->id );
-        $resp .= maybe_add( FID_TITLE_ID,    $status->item->title_id );
+          and $resp .= maybe_add( FID_EXPIRATION, timestamp( $status->expiration_date ), $server );
+        $resp .= maybe_add( FID_QUEUE_POS,   $status->queue_position, $server );
+        $resp .= maybe_add( FID_PICKUP_LOCN, $status->pickup_location, $server );
+        $resp .= maybe_add( FID_ITEM_ID,     $status->item->id, $server );
+        $resp .= maybe_add( FID_TITLE_ID,    $status->item->title_id, $server );
     } else {
 
         # Not ok.  still need required fields
-        $resp .= add_field( FID_PATRON_ID, $patron_id );
+        $resp .= add_field( FID_PATRON_ID, $patron_id, $server );
     }
 
-    $resp .= add_field( FID_INST_ID, $ils->institution );
+    $resp .= add_field( FID_INST_ID, $ils->institution, $server );
     $resp .= maybe_add( FID_SCREEN_MSG, $status->screen_msg, $server );
-    $resp .= maybe_add( FID_PRINT_LINE, $status->print_line );
+    $resp .= maybe_add( FID_PRINT_LINE, $status->print_line, $server );
 
     $self->write_msg( $resp, undef, $server->{account}->{terminator}, $server->{account}->{encoding} );
 
@@ -1514,7 +1584,7 @@ sub handle_renew {
     $ils->check_inst_id( $fields->{ (FID_INST_ID) }, "handle_renew" );
 
     if ( $no_block eq 'Y' ) {
-        syslog( "LOG_WARNING", "handle_renew: received 'no block' renewal from terminal '%s'", $server->{account}->{id} );
+        siplog( "LOG_WARNING", "handle_renew: received 'no block' renewal from terminal '%s'", $server->{account}->{id} );
     }
 
     $patron_id  = $fields->{ (FID_PATRON_ID) };
@@ -1539,19 +1609,19 @@ sub handle_renew {
         }
         $resp .= sipbool( $status->desensitize );
         $resp .= timestamp;
-        $resp .= add_field( FID_PATRON_ID, $patron->id );
-        $resp .= add_field( FID_ITEM_ID, $item->id );
-        $resp .= add_field( FID_TITLE_ID, $item->title_id );
+        $resp .= add_field( FID_PATRON_ID, $patron->id, $server );
+        $resp .= add_field( FID_ITEM_ID, $item->id, $server );
+        $resp .= add_field( FID_TITLE_ID, $item->title_id, $server );
         if ( $item->due_date ) {
-            $resp .= add_field( FID_DUE_DATE, timestamp( $item->due_date ) );
+            $resp .= add_field( FID_DUE_DATE, timestamp( $item->due_date ), $server );
         } else {
-            $resp .= add_field( FID_DUE_DATE, q{} );
+            $resp .= add_field( FID_DUE_DATE, q{}, $server );
         }
         if ( $ils->supports('security inhibit') ) {
-            $resp .= add_field( FID_SECURITY_INHIBIT, $status->security_inhibit );
+            $resp .= add_field( FID_SECURITY_INHIBIT, $status->security_inhibit, $server );
         }
-        $resp .= add_field( FID_MEDIA_TYPE, $item->sip_media_type );
-        $resp .= maybe_add( FID_ITEM_PROPS, $item->sip_item_properties );
+        $resp .= add_field( FID_MEDIA_TYPE, $item->sip_media_type, $server );
+        $resp .= maybe_add( FID_ITEM_PROPS, $item->sip_item_properties, $server );
     } else {
 
         # renew failed for some reason
@@ -1562,22 +1632,22 @@ sub handle_renew {
         # If we found the patron or the item, the return the ILS
         # information, otherwise echo back the information we received
         # from the terminal
-        $resp .= add_field( FID_PATRON_ID, $patron ? $patron->id     : $patron_id );
-        $resp .= add_field( FID_ITEM_ID,   $item   ? $item->id       : $item_id );
-        $resp .= add_field( FID_TITLE_ID,  $item   ? $item->title_id : $title_id );
-        $resp .= add_field( FID_DUE_DATE,  '' );
+        $resp .= add_field( FID_PATRON_ID, $patron ? $patron->id     : $patron_id, $server );
+        $resp .= add_field( FID_ITEM_ID,   $item   ? $item->id       : $item_id, $server );
+        $resp .= add_field( FID_TITLE_ID,  $item   ? $item->title_id : $title_id, $server );
+        $resp .= add_field( FID_DUE_DATE,  '', $server );
     }
 
     if ( $status->fee_amount ) {
-        $resp .= add_field( FID_FEE_AMT, $status->fee_amount );
-        $resp .= maybe_add( FID_CURRENCY,       $status->sip_currency );
-        $resp .= maybe_add( FID_FEE_TYPE,       $status->sip_fee_type );
-        $resp .= maybe_add( FID_TRANSACTION_ID, $status->transaction_id );
+        $resp .= add_field( FID_FEE_AMT, $status->fee_amount, $server );
+        $resp .= maybe_add( FID_CURRENCY,       $status->sip_currency, $server );
+        $resp .= maybe_add( FID_FEE_TYPE,       $status->sip_fee_type, $server );
+        $resp .= maybe_add( FID_TRANSACTION_ID, $status->transaction_id, $server );
     }
 
-    $resp .= add_field( FID_INST_ID, $ils->institution );
+    $resp .= add_field( FID_INST_ID, $ils->institution, $server );
     $resp .= maybe_add( FID_SCREEN_MSG, $status->screen_msg, $server );
-    $resp .= maybe_add( FID_PRINT_LINE, $status->print_line );
+    $resp .= maybe_add( FID_PRINT_LINE, $status->print_line, $server );
 
     $self->write_msg( $resp, undef, $server->{account}->{terminator}, $server->{account}->{encoding} );
 
@@ -1622,13 +1692,13 @@ sub handle_renew_all {
     }
 
     $resp .= timestamp;
-    $resp .= add_field( FID_INST_ID, $ils->institution );
+    $resp .= add_field( FID_INST_ID, $ils->institution, $server );
 
-    $resp .= join( '', map( add_field( FID_RENEWED_ITEMS,   $_ ), @renewed ) );
-    $resp .= join( '', map( add_field( FID_UNRENEWED_ITEMS, $_ ), @unrenewed ) );
+    $resp .= join( '', map( add_field( FID_RENEWED_ITEMS,   $_ ), @renewed ), $server );
+    $resp .= join( '', map( add_field( FID_UNRENEWED_ITEMS, $_ ), @unrenewed ), $server );
 
     $resp .= maybe_add( FID_SCREEN_MSG, $status->screen_msg, $server );
-    $resp .= maybe_add( FID_PRINT_LINE, $status->print_line );
+    $resp .= maybe_add( FID_PRINT_LINE, $status->print_line, $server );
 
     $self->write_msg( $resp, undef, $server->{account}->{terminator}, $server->{account}->{encoding} );
 
@@ -1663,13 +1733,17 @@ my @message_type_names = (
 
 sub send_acs_status {
     my ( $self, $server, $screen_msg, $print_line ) = @_;
+
     my $msg = ACS_STATUS;
     ($server) or die "send_acs_status error: no \$server argument received";
     my $account = $server->{account} or die "send_acs_status error: no 'account' in \$server object:\n" . Dumper($server);
     my $policy  = $server->{policy}  or die "send_acs_status error: no 'policy' in \$server object:\n" . Dumper($server);
     my $ils     = $server->{ils}     or die "send_acs_status error: no 'ils' in \$server object:\n" . Dumper($server);
+    my $sip_username = $server->{sip_username} or die "send_acs_status error: no 'sip_username' in \$server object:\n" . Dumper($server);
     my ( $online_status,    $checkin_ok, $checkout_ok, $ACS_renewal_policy );
     my ( $status_update_ok, $offline_ok, $timeout,     $retries );
+    my $sip_user = Koha::Patrons->find({ userid => $sip_username });
+    die "send_acs_status error: sip_username cannot be found in DB or DB cannot be reached" unless $sip_user;
 
     $online_status      = 'Y';
     $checkout_ok        = sipbool( $ils->checkout_ok );
@@ -1681,7 +1755,7 @@ sub send_acs_status {
     $retries            = sprintf( "%03d", $policy->{retries} );
 
     if ( length($retries) != 3 ) {
-        syslog( "LOG_ERR", "handle_acs_status: retries field wrong size: '%s'", $retries );
+        siplog( "LOG_ERR", "handle_acs_status: retries field wrong size: '%s'", $retries );
         $retries = '000';
     }
 
@@ -1694,12 +1768,12 @@ sub send_acs_status {
     } elsif ( $protocol_version == 2 ) {
         $msg .= '2.00';
     } else {
-        syslog( "LOG_ERR", 'Bad setting for $protocol_version, "%s" in send_acs_status', $protocol_version );
+        siplog( "LOG_ERR", 'Bad setting for $protocol_version, "%s" in send_acs_status', $protocol_version );
         $msg .= '1.00';
     }
 
     # Institution ID
-    $msg .= add_field( FID_INST_ID, $account->{institution} );
+    $msg .= add_field( FID_INST_ID, $account->{institution}, $server );
 
     if ( $protocol_version >= 2 ) {
 
@@ -1714,9 +1788,9 @@ sub send_acs_status {
             }
         }
         if ( length($supported_msgs) < 16 ) {
-            syslog( "LOG_ERR", 'send_acs_status: supported messages "%s" too short', $supported_msgs );
+            siplog( "LOG_ERR", 'send_acs_status: supported messages "%s" too short', $supported_msgs );
         }
-        $msg .= add_field( FID_SUPPORTED_MSGS, $supported_msgs );
+        $msg .= add_field( FID_SUPPORTED_MSGS, $supported_msgs, $server );
     }
 
     $msg .= maybe_add( FID_SCREEN_MSG, $screen_msg, $server );
@@ -1724,11 +1798,11 @@ sub send_acs_status {
     if (   defined( $account->{print_width} )
         && defined($print_line)
         && $account->{print_width} < length($print_line) ) {
-        syslog( "LOG_WARNING", "send_acs_status: print line '%s' too long.  Truncating", $print_line );
+        siplog( "LOG_WARNING", "send_acs_status: print line '%s' too long.  Truncating", $print_line );
         $print_line = substr( $print_line, 0, $account->{print_width} );
     }
 
-    $msg .= maybe_add( FID_PRINT_LINE, $print_line );
+    $msg .= maybe_add( FID_PRINT_LINE, $print_line, $server );
 
     # Do we want to tell the terminal its location?
 
@@ -1742,9 +1816,11 @@ sub send_acs_status {
 #
 sub patron_status_string {
     my $patron = shift;
+    my $server = shift;
+
     my $patron_status;
 
-    syslog( "LOG_DEBUG", "patron_status_string: %s charge_ok: %s", $patron->id, $patron->charge_ok );
+    siplog( "LOG_DEBUG", "patron_status_string: %s charge_ok: %s", $patron->id, $patron->charge_ok );
     $patron_status = sprintf(
         '%s%s%s%s%s%s%s%s%s%s%s%s%s%s',
         denied( $patron->charge_ok ),
@@ -1753,7 +1829,7 @@ sub patron_status_string {
         denied( $patron->hold_ok ),
         boolspace( $patron->card_lost ),
         boolspace( $patron->too_many_charged ),
-        boolspace( $patron->too_many_overdue ),
+        $server->{account}->{overdues_block_checkout} ? boolspace( $patron->too_many_overdue ) : q{ },
         boolspace( $patron->too_many_renewal ),
         boolspace( $patron->too_many_claim_return ),
         boolspace( $patron->too_many_lost ),

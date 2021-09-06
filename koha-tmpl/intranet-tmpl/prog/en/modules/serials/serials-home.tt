@@ -1,35 +1,51 @@
+[% USE raw %]
 [% USE Asset %]
 [% USE KohaDates %]
+[% USE Koha %]
 [% SET footerjs = 1 %]
 [% INCLUDE 'doc-head-open.inc' %]
-<title>Koha &rsaquo; Serials [% biblionumber %]</title>
+<title>Serials [% biblionumber | html %] &rsaquo; Koha</title>
 [% INCLUDE 'doc-head-close.inc' %]
 </head>
 <body id="ser_serials-home" class="ser">
 [% INCLUDE 'header.inc' %]
 [% INCLUDE 'serials-search.inc' %]
 
-<div id="breadcrumbs"><a href="/cgi-bin/koha/mainpage.pl">Home</a> &rsaquo; Serials </div>
+<nav id="breadcrumbs" aria-label="Breadcrumb" class="breadcrumb">
+    <ol>
+        <li>
+            <a href="/cgi-bin/koha/mainpage.pl">Home</a>
+        </li>
+        <li>
+            <a href="#" aria-current="page">
+                Serials
+            </a>
+        </li>
+    </ol>
+</nav>
 
-<div id="doc3" class="yui-t2">
-<div id="bd">
-  <div id="yui-main">
-    <div class="yui-b">
+<div class="main container-fluid">
+    <div class="row">
+        <div class="col-sm-10 col-sm-push-2">
+            <main>
+
       [% INCLUDE 'serials-toolbar.inc' %]
-    </div>
-  </div>
-  <div class="yui-b">
-    [% INCLUDE 'serials-menu.inc' %]
-  </div>
+
+            </main>
+        </div> <!-- /.col-sm-10.col-sm-push-2 -->
+
+        <div class="col-sm-2 col-sm-pull-10">
+            <aside>
+                [% INCLUDE 'serials-menu.inc' %]
+            </aside>
+        </div> <!-- /.col-sm-2.col-sm-pull-10 -->
+     </div> <!-- /.row -->
 </div>
 
 [% MACRO jsinclude BLOCK %]
-    [% Asset.js("js/serials-toolbar.js") %]
-    <script type="text/javascript">
-        var subscriptionid = "[% subscriptionid %]";
-        var MSG_CLOSE_SUBSCRIPTION = _("Are you sure you want to close this subscription?");
-        var MSG_REOPEN_SUBSCRIPTION = _("Are you sure you want to reopen this subscription?");
-        var CONFIRM_DELETE_SUBSCRIPTION = _("Are you sure you want to delete this subscription?");
+    [% Asset.js("js/serials-toolbar.js") | $raw %]
+    <script>
+        var subscriptionid = "[% subscriptionid | html %]";
     </script>
 [% END %]
 

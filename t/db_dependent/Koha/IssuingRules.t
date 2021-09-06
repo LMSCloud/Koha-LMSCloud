@@ -20,10 +20,12 @@
 use Modern::Perl;
 
 use Test::More tests => 3;
+use Test::Deep qw( cmp_methods );
+use Test::Exception;
 
 use Benchmark;
 
-use Koha::IssuingRules;
+use Koha::CirculationRules;
 
 use t::lib::TestBuilder;
 use t::lib::Mocks;
@@ -34,196 +36,100 @@ $schema->storage->txn_begin;
 my $builder      = t::lib::TestBuilder->new;
 
 subtest 'get_effective_issuing_rule' => sub {
-    plan tests => 3;
+    plan tests => 2;
 
-    my $patron       = $builder->build({ source => 'Borrower' });
-    my $item     = $builder->build({ source => 'Item' });
-
-    my $categorycode = $patron->{'categorycode'};
-    my $itemtype     = $item->{'itype'};
-    my $branchcode   = $item->{'homebranch'};
+    my $categorycode = $builder->build({ source => 'Category' })->{'categorycode'};
+    my $itemtype     = $builder->build({ source => 'Itemtype' })->{'itemtype'};
+    my $branchcode   = $builder->build({ source => 'Branch' })->{'branchcode'};
 
     subtest 'Call with undefined values' => sub {
-        plan tests => 4;
+        plan tests => 5;
 
         my $rule;
-        Koha::IssuingRules->delete;
+        Koha::CirculationRules->delete;
 
-        is(Koha::IssuingRules->search->count, 0, 'There are no issuing rules.');
-        $rule = Koha::IssuingRules->get_effective_issuing_rule({
+        is(Koha::CirculationRules->search->count, 0, 'There are no issuing rules.');
+        # undef, undef, undef => 1
+        $rule = Koha::CirculationRules->get_effective_rule({
             branchcode   => undef,
             categorycode => undef,
             itemtype     => undef,
+            rule_name    => 'fine',
+            rule_value   => 1,
         });
         is($rule, undef, 'When I attempt to get effective issuing rule by'
            .' providing undefined values, then undef is returned.');
-        ok(Koha::IssuingRule->new({
-            branchcode => '*',
-            categorycode => '*',
-            itemtype => '*',
-        })->store, 'Given I added an issuing rule branchcode => *,'
-           .' categorycode => *, itemtype => *,');
-        $rule = Koha::IssuingRules->get_effective_issuing_rule({
+
+       # undef, undef, undef => 2
+        ok(
+            Koha::CirculationRule->new(
+                {
+                    branchcode   => undef,
+                    categorycode => undef,
+                    itemtype     => undef,
+                    rule_name    => 'fine',
+                    rule_value   => 2,
+                }
+              )->store,
+            'Given I added an issuing rule branchcode => undef,'
+           .' categorycode => undef, itemtype => undef,');
+        $rule = Koha::CirculationRules->get_effective_rule({
             branchcode   => undef,
             categorycode => undef,
             itemtype     => undef,
+            rule_name    => 'fine',
         });
-        ok(_row_match($rule, '*', '*', '*'), 'When I attempt to get effective'
+        _is_row_match(
+            $rule,
+            {
+                branchcode   => undef,
+                categorycode => undef,
+                itemtype     => undef,
+                rule_name    => 'fine',
+                rule_value   => 2,
+            },
+            'When I attempt to get effective'
            .' issuing rule by providing undefined values, then the above one is'
-           .' returned.');
-    };
-
-    subtest 'Get effective issuing rule in correct order' => sub {
-        plan tests => 18;
-
-        my $rule;
-        Koha::IssuingRules->delete;
-        is(Koha::IssuingRules->search->count, 0, 'There are no issuing rules.');
-        $rule = Koha::IssuingRules->get_effective_issuing_rule({
-            branchcode   => $branchcode,
-            categorycode => $categorycode,
-            itemtype     => $itemtype,
-        });
-        is($rule, undef, 'When I attempt to get effective issuing rule, then undef'
-                        .' is returned.');
-
-        ok(Koha::IssuingRule->new({
-            branchcode => '*',
-            categorycode => '*',
-            itemtype => '*',
-        })->store, 'Given I added an issuing rule branchcode => *, categorycode => *, itemtype => *,');
-        $rule = Koha::IssuingRules->get_effective_issuing_rule({
-            branchcode   => $branchcode,
-            categorycode => $categorycode,
-            itemtype     => $itemtype,
-        });
-        ok(_row_match($rule, '*', '*', '*'), 'When I attempt to get effective issuing rule,'
-           .' then the above one is returned.');
-
-        ok(Koha::IssuingRule->new({
-            branchcode => '*',
-            categorycode => '*',
-            itemtype => $itemtype,
-        })->store, "Given I added an issuing rule branchcode => *, categorycode => *, itemtype => $itemtype,");
-        $rule = Koha::IssuingRules->get_effective_issuing_rule({
-            branchcode   => $branchcode,
-            categorycode => $categorycode,
-            itemtype     => $itemtype,
-        });
-        ok(_row_match($rule, '*', '*', $itemtype), 'When I attempt to get effective issuing rule,'
-           .' then the above one is returned.');
-
-        ok(Koha::IssuingRule->new({
-            branchcode => '*',
-            categorycode => $categorycode,
-            itemtype => '*',
-        })->store, "Given I added an issuing rule branchcode => *, categorycode => $categorycode, itemtype => *,");
-        $rule = Koha::IssuingRules->get_effective_issuing_rule({
-            branchcode   => $branchcode,
-            categorycode => $categorycode,
-            itemtype     => $itemtype,
-        });
-        ok(_row_match($rule, '*', $categorycode, '*'), 'When I attempt to get effective issuing rule,'
-           .' then the above one is returned.');
-
-        ok(Koha::IssuingRule->new({
-            branchcode => '*',
-            categorycode => $categorycode,
-            itemtype => $itemtype,
-        })->store, "Given I added an issuing rule branchcode => *, categorycode => $categorycode, itemtype => $itemtype,");
-        $rule = Koha::IssuingRules->get_effective_issuing_rule({
-            branchcode   => $branchcode,
-            categorycode => $categorycode,
-            itemtype     => $itemtype,
-        });
-        ok(_row_match($rule, '*', $categorycode, $itemtype), 'When I attempt to get effective issuing rule,'
-           .' then the above one is returned.');
-
-        ok(Koha::IssuingRule->new({
-            branchcode => $branchcode,
-            categorycode => '*',
-            itemtype => '*',
-        })->store, "Given I added an issuing rule branchcode => $branchcode, categorycode => '*', itemtype => '*',");
-        $rule = Koha::IssuingRules->get_effective_issuing_rule({
-            branchcode   => $branchcode,
-            categorycode => $categorycode,
-            itemtype     => $itemtype,
-        });
-        ok(_row_match($rule, $branchcode, '*', '*'), 'When I attempt to get effective issuing rule,'
-           .' then the above one is returned.');
-
-        ok(Koha::IssuingRule->new({
-            branchcode => $branchcode,
-            categorycode => '*',
-            itemtype => $itemtype,
-        })->store, "Given I added an issuing rule branchcode => $branchcode, categorycode => '*', itemtype => $itemtype,");
-        $rule = Koha::IssuingRules->get_effective_issuing_rule({
-            branchcode   => $branchcode,
-            categorycode => $categorycode,
-            itemtype     => $itemtype,
-        });
-        ok(_row_match($rule, $branchcode, '*', $itemtype), 'When I attempt to get effective issuing rule,'
-           .' then the above one is returned.');
-
-        ok(Koha::IssuingRule->new({
-            branchcode => $branchcode,
-            categorycode => $categorycode,
-            itemtype => '*',
-        })->store, "Given I added an issuing rule branchcode => $branchcode, categorycode => $categorycode, itemtype => '*',");
-        $rule = Koha::IssuingRules->get_effective_issuing_rule({
-            branchcode   => $branchcode,
-            categorycode => $categorycode,
-            itemtype     => $itemtype,
-        });
-        ok(_row_match($rule, $branchcode, $categorycode, '*'), 'When I attempt to get effective issuing rule,'
-           .' then the above one is returned.');
-
-        ok(Koha::IssuingRule->new({
-            branchcode => $branchcode,
-            categorycode => $categorycode,
-            itemtype => $itemtype,
-        })->store, "Given I added an issuing rule branchcode => $branchcode, categorycode => $categorycode, itemtype => $itemtype,");
-        $rule = Koha::IssuingRules->get_effective_issuing_rule({
-            branchcode   => $branchcode,
-            categorycode => $categorycode,
-            itemtype     => $itemtype,
-        });
-        ok(_row_match($rule, $branchcode, $categorycode, $itemtype), 'When I attempt to get effective issuing rule,'
-           .' then the above one is returned.');
+           .' returned.'
+        );
     };
 
     subtest 'Performance' => sub {
         plan tests => 4;
 
         my $worst_case = timethis(500,
-                    sub { Koha::IssuingRules->get_effective_issuing_rule({
+                    sub { Koha::CirculationRules->get_effective_rule({
                             branchcode   => 'nonexistent',
                             categorycode => 'nonexistent',
                             itemtype     => 'nonexistent',
+                            rule_name    => 'nonexistent',
                         });
                     }
                 );
         my $mid_case = timethis(500,
-                    sub { Koha::IssuingRules->get_effective_issuing_rule({
+                    sub { Koha::CirculationRules->get_effective_rule({
                             branchcode   => $branchcode,
                             categorycode => 'nonexistent',
                             itemtype     => 'nonexistent',
+                            rule_name    => 'nonexistent',
                         });
                     }
                 );
         my $sec_best_case = timethis(500,
-                    sub { Koha::IssuingRules->get_effective_issuing_rule({
+                    sub { Koha::CirculationRules->get_effective_rule({
                             branchcode   => $branchcode,
                             categorycode => $categorycode,
                             itemtype     => 'nonexistent',
+                            rule_name    => 'nonexistent',
                         });
                     }
                 );
         my $best_case = timethis(500,
-                    sub { Koha::IssuingRules->get_effective_issuing_rule({
+                    sub { Koha::CirculationRules->get_effective_rule({
                             branchcode   => $branchcode,
                             categorycode => $categorycode,
                             itemtype     => $itemtype,
+                            rule_name    => 'nonexistent',
                         });
                     }
                 );
@@ -242,75 +148,244 @@ subtest 'get_effective_issuing_rule' => sub {
     };
 };
 
-subtest 'get_opacitemholds_policy' => sub {
-    plan tests => 4;
-    my $itype = $builder->build_object({ class => 'Koha::ItemTypes' });
-    my $itemtype = $builder->build_object({ class => 'Koha::ItemTypes' });
-    my $library = $builder->build_object({ class => 'Koha::Libraries' });
-    my $patron = $builder->build_object({ class => 'Koha::Patrons' });
-    my $biblio = $builder->build_object({ class => 'Koha::Biblios' });
-    my $biblioitem = $builder->build_object( { class => 'Koha::Biblioitems', value => { itemtype => $itemtype->itemtype, biblionumber => $biblio->biblionumber } } );
-    my $item = $builder->build_object(
-        {   class  => 'Koha::Items',
-            value  => {
-                homebranch    => $library->branchcode,
-                holdingbranch => $library->branchcode,
-                notforloan    => 0,
-                itemlost      => 0,
-                withdrawn     => 0,
-                biblionumber  => $biblio->biblionumber,
-                biblioitemnumber => $biblioitem->biblioitemnumber,
-                itype         => $itype->itemtype,
-            }
-        }
-    );
-
-    Koha::IssuingRules->delete;
-    Koha::IssuingRule->new({categorycode => '*', itemtype => '*',                 branchcode => '*', opacitemholds => "N"})->store;
-    Koha::IssuingRule->new({categorycode => '*', itemtype => $itype->itemtype,    branchcode => '*', opacitemholds => "Y"})->store;
-    Koha::IssuingRule->new({categorycode => '*', itemtype => $itemtype->itemtype, branchcode => '*', opacitemholds => "N"})->store;
-    t::lib::Mocks::mock_preference('item-level_itypes', 1);
-    my $opacitemholds = Koha::IssuingRules->get_opacitemholds_policy( { item => $item, patron => $patron } );
-    is ( $opacitemholds, 'Y', 'Patrons can place a hold on this itype');
-    t::lib::Mocks::mock_preference('item-level_itypes', 0);
-    $opacitemholds = Koha::IssuingRules->get_opacitemholds_policy( { item => $item, patron => $patron } );
-    is ( $opacitemholds, 'N', 'Patrons cannot place a hold on this itemtype');
-
-    Koha::IssuingRules->delete;
-    Koha::IssuingRule->new({categorycode => '*', itemtype => '*',                 branchcode => '*', opacitemholds => "N"})->store;
-    Koha::IssuingRule->new({categorycode => '*', itemtype => $itype->itemtype,    branchcode => '*', opacitemholds => "N"})->store;
-    Koha::IssuingRule->new({categorycode => '*', itemtype => $itemtype->itemtype, branchcode => '*', opacitemholds => "Y"})->store;
-    t::lib::Mocks::mock_preference('item-level_itypes', 1);
-    $opacitemholds = Koha::IssuingRules->get_opacitemholds_policy( { item => $item, patron => $patron } );
-    is ( $opacitemholds, 'N', 'Patrons cannot place a hold on this itype');
-    t::lib::Mocks::mock_preference('item-level_itypes', 0);
-    $opacitemholds = Koha::IssuingRules->get_opacitemholds_policy( { item => $item, patron => $patron } );
-    is ( $opacitemholds, 'Y', 'Patrons can place a hold on this itemtype');
-
-    $patron->delete;
-};
-
-subtest 'get_onshelfholds_policy' => sub {
+subtest 'set_rule' => sub {
     plan tests => 3;
 
-    t::lib::Mocks::mock_preference('item-level_itypes', 1);
-    Koha::IssuingRules->delete;
+    my $branchcode   = $builder->build({ source => 'Branch' })->{'branchcode'};
+    my $categorycode = $builder->build({ source => 'Category' })->{'categorycode'};
+    my $itemtype     = $builder->build({ source => 'Itemtype' })->{'itemtype'};
 
-    my $patron = $builder->build_object({ class => 'Koha::Patrons' });
-    my $item = $builder->build_object({ class => 'Koha::Items' });
+    subtest 'Correct call' => sub {
+        plan tests => 4;
 
-    is( Koha::IssuingRules->get_onshelfholds_policy({ item => $item, patron => $patron }), undef, 'Should return undef when no rules can be found' );
-    Koha::IssuingRule->new({ categorycode => $patron->categorycode, itemtype => $item->itype, branchcode => '*', onshelfholds => "0" })->store;
-    is( Koha::IssuingRules->get_onshelfholds_policy({ item => $item, patron => $patron }), 0, 'Should be zero' );
-    Koha::IssuingRule->new({ categorycode => $patron->categorycode, itemtype => $item->itype, branchcode => $item->holdingbranch, onshelfholds => "2" })->store;
-    is( Koha::IssuingRules->get_onshelfholds_policy({ item => $item, patron => $patron }), 2, 'Should be two now' );
+        Koha::CirculationRules->delete;
+
+        lives_ok( sub {
+            Koha::CirculationRules->set_rule( {
+                branchcode => $branchcode,
+                rule_name => 'lostreturn',
+                rule_value => '',
+            } );
+        }, 'setting lostreturn with branch' );
+
+        lives_ok( sub {
+            Koha::CirculationRules->set_rule( {
+                branchcode => $branchcode,
+                categorycode => $categorycode,
+                rule_name => 'patron_maxissueqty',
+                rule_value => '',
+            } );
+        }, 'setting patron_maxissueqty with branch/category succeeds' );
+
+        lives_ok( sub {
+            Koha::CirculationRules->set_rule( {
+                branchcode => $branchcode,
+                itemtype => $itemtype,
+                rule_name => 'holdallowed',
+                rule_value => '',
+            } );
+        }, 'setting holdallowed with branch/itemtype succeeds' );
+
+        lives_ok( sub {
+            Koha::CirculationRules->set_rule( {
+                branchcode => $branchcode,
+                categorycode => $categorycode,
+                itemtype => $itemtype,
+                rule_name => 'fine',
+                rule_value => '',
+            } );
+        }, 'setting fine with branch/category/itemtype succeeds' );
+    };
+
+    subtest 'Call with missing params' => sub {
+        plan tests => 4;
+
+        Koha::CirculationRules->delete;
+
+        throws_ok( sub {
+            Koha::CirculationRules->set_rule( {
+                rule_name => 'lostreturn',
+                rule_value => '',
+            } );
+        }, qr/branchcode/, 'setting lostreturn without branch fails' );
+
+        throws_ok( sub {
+            Koha::CirculationRules->set_rule( {
+                branchcode => $branchcode,
+                rule_name => 'patron_maxissueqty',
+                rule_value => '',
+            } );
+        }, qr/categorycode/, 'setting patron_maxissueqty without categorycode fails' );
+
+        throws_ok( sub {
+            Koha::CirculationRules->set_rule( {
+                branchcode => $branchcode,
+                rule_name => 'holdallowed',
+                rule_value => '',
+            } );
+        }, qr/itemtype/, 'setting holdallowed without itemtype fails' );
+
+        throws_ok( sub {
+            Koha::CirculationRules->set_rule( {
+                branchcode => $branchcode,
+                categorycode => $categorycode,
+                rule_name => 'fine',
+                rule_value => '',
+            } );
+        }, qr/itemtype/, 'setting fine without itemtype fails' );
+    };
+
+    subtest 'Call with extra params' => sub {
+        plan tests => 3;
+
+        Koha::CirculationRules->delete;
+
+        throws_ok( sub {
+            Koha::CirculationRules->set_rule( {
+                branchcode => $branchcode,
+                categorycode => $categorycode,
+                rule_name => 'lostreturn',
+                rule_value => '',
+            } );
+        }, qr/categorycode/, 'setting lostreturn with categorycode fails' );
+
+        throws_ok( sub {
+            Koha::CirculationRules->set_rule( {
+                branchcode => $branchcode,
+                categorycode => $categorycode,
+                itemtype => $itemtype,
+                rule_name => 'patron_maxissueqty',
+                rule_value => '',
+            } );
+        }, qr/itemtype/, 'setting patron_maxissueqty with itemtype fails' );
+
+        throws_ok( sub {
+            Koha::CirculationRules->set_rule( {
+                branchcode => $branchcode,
+                rule_name => 'holdallowed',
+                categorycode => $categorycode,
+                itemtype => $itemtype,
+                rule_value => '',
+            } );
+        }, qr/categorycode/, 'setting holdallowed with categorycode fails' );
+    };
 };
 
-sub _row_match {
-    my ($rule, $branchcode, $categorycode, $itemtype) = @_;
+subtest 'clone' => sub {
+    plan tests => 2;
 
-    return $rule->branchcode eq $branchcode && $rule->categorycode eq $categorycode
-            && $rule->itemtype eq $itemtype;
+    my $branchcode   = $builder->build({ source => 'Branch' })->{'branchcode'};
+    my $categorycode = $builder->build({ source => 'Category' })->{'categorycode'};
+    my $itemtype     = $builder->build({ source => 'Itemtype' })->{'itemtype'};
+
+    subtest 'Clone multiple rules' => sub {
+        plan tests => 4;
+
+        Koha::CirculationRules->delete;
+
+        Koha::CirculationRule->new({
+            branchcode   => undef,
+            categorycode => $categorycode,
+            itemtype     => $itemtype,
+            rule_name    => 'fine',
+            rule_value   => 5,
+        })->store;
+
+        Koha::CirculationRule->new({
+            branchcode   => undef,
+            categorycode => $categorycode,
+            itemtype     => $itemtype,
+            rule_name    => 'lengthunit',
+            rule_value   => 'days',
+        })->store;
+
+        Koha::CirculationRules->search({ branchcode => undef })->clone($branchcode);
+
+        my $rule_fine = Koha::CirculationRules->get_effective_rule({
+            branchcode   => $branchcode,
+            categorycode => $categorycode,
+            itemtype     => $itemtype,
+            rule_name    => 'fine',
+        });
+        my $rule_lengthunit = Koha::CirculationRules->get_effective_rule({
+            branchcode   => $branchcode,
+            categorycode => $categorycode,
+            itemtype     => $itemtype,
+            rule_name    => 'lengthunit',
+        });
+
+        _is_row_match(
+            $rule_fine,
+            {
+                branchcode   => $branchcode,
+                categorycode => $categorycode,
+                itemtype     => $itemtype,
+                rule_name    => 'fine',
+                rule_value   => 5,
+            },
+            'When I attempt to get cloned fine rule,'
+           .' then the above one is returned.'
+        );
+        _is_row_match(
+            $rule_lengthunit,
+            {
+                branchcode   => $branchcode,
+                categorycode => $categorycode,
+                itemtype     => $itemtype,
+                rule_name    => 'lengthunit',
+                rule_value   => 'days',
+            },
+            'When I attempt to get cloned lengthunit rule,'
+           .' then the above one is returned.'
+        );
+
+    };
+
+    subtest 'Clone one rule' => sub {
+        plan tests => 2;
+
+        Koha::CirculationRules->delete;
+
+        Koha::CirculationRule->new({
+            branchcode   => undef,
+            categorycode => $categorycode,
+            itemtype     => $itemtype,
+            rule_name    => 'fine',
+            rule_value   => 5,
+        })->store;
+
+        my $rule = Koha::CirculationRules->search({ branchcode => undef })->next;
+        $rule->clone($branchcode);
+
+        my $cloned_rule = Koha::CirculationRules->get_effective_rule({
+            branchcode   => $branchcode,
+            categorycode => $categorycode,
+            itemtype     => $itemtype,
+            rule_name    => 'fine',
+        });
+
+        _is_row_match(
+            $cloned_rule,
+            {
+                branchcode   => $branchcode,
+                categorycode => $categorycode,
+                itemtype     => $itemtype,
+                rule_name    => 'fine',
+                rule_value   => '5',
+            },
+            'When I attempt to get cloned fine rule,'
+           .' then the above one is returned.'
+        );
+
+    };
+};
+
+sub _is_row_match {
+    my ( $rule, $expected, $message ) = @_;
+
+    ok( $rule, $message ) ?
+        cmp_methods( $rule, [ %$expected ], $message ) :
+        fail( $message );
 }
 
 $schema->storage->txn_rollback;

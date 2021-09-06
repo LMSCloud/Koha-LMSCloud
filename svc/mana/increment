@@ -1,0 +1,48 @@
+#!/usr/bin/perl
+
+# Copyright 2017 BibLibre Baptiste Wojtkowski
+#
+# This file is part of Koha.
+#
+# Koha is free software; you can redistribute it and/or modify it
+# under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 3 of the License, or
+# (at your option) any later version.
+#
+# Koha is distributed in the hope that it will be useful, but
+# WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with Koha; if not, see <http://www.gnu.org/licenses>.
+#
+
+use Modern::Perl;
+
+use Koha::SharedContent;
+use C4::Auth qw(check_cookie_auth);
+
+use CGI;
+use JSON;
+
+
+my $input = CGI->new;
+binmode STDOUT, ":encoding(UTF-8)";
+print $input->header( -type => 'text/plain', -charset => 'UTF-8' );
+
+my ( $auth_status, $sessionID ) =
+  check_cookie_auth( $input->cookie('CGISESSID'),
+    { serials => 'create_subscription' } );
+
+if ( $auth_status ne "ok" ) {
+    exit 0;
+}
+my $result = Koha::SharedContent::increment_entity_value(
+    scalar $input->param('resource'),
+    scalar $input->param('id'),
+    scalar $input->param('field'),
+    scalar $input->param('step')
+);
+
+return $result;

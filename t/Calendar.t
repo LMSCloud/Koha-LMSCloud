@@ -31,7 +31,7 @@ use Module::Load::Conditional qw/check_install/;
 
 BEGIN {
     if ( check_install( module => 'Test::DBIx::Class' ) ) {
-        plan tests => 39;
+        plan tests => 40;
     } else {
         plan skip_all => "Need Test::DBIx::Class"
     }
@@ -49,7 +49,7 @@ $db->mock(
 # We need to mock the C4::Context->preference method for
 # simplicity and re-usability of the session definition. Any
 # syspref fits for syspref-agnostic tests.
-my $module_context = new Test::MockModule('C4::Context');
+my $module_context = Test::MockModule->new('C4::Context');
 $module_context->mock(
     'preference',
     sub {
@@ -73,12 +73,14 @@ fixtures_ok [
         [ 'MPL', 1,  6,  2011, '', '', 0 ],
         [ 'MPL', 4,  7,  2012, '', '', 0 ],
         [ 'CPL', 6,  8,  2012, '', '', 0 ],
+        [ 'MPL', 7,  7,  2012, '', '', 1 ], # holiday exception
+        [ 'MPL', 7,  7,  2012, '', '', 0 ], # holiday
       ],
 ], "add fixtures";
 
 my $cache = Koha::Caches->get_instance();
-$cache->clear_from_cache( 'single_holidays' ) ;
-$cache->clear_from_cache( 'exception_holidays' ) ;
+$cache->clear_from_cache('MPL_holidays');
+$cache->clear_from_cache('CPL_holidays');
 
 # 'MPL' branch is arbitrary, is not used at all but is needed for initialization
 my $cal = Koha::Calendar->new( branchcode => 'MPL' );
@@ -131,12 +133,18 @@ my $day_after_christmas = DateTime->new(
     year    => 2012,
     month   => 12,
     day     => 26
-);  # for testing negative addDate
+);  # for testing negative addDuration
 
 my $holiday_for_another_branch = DateTime->new(
     year => 2012,
     month => 8,
     day => 6, # This is a monday
+);
+
+my $holiday_excepted = DateTime->new(
+    year => 2012,
+    month => 7,
+    day => 7, # Both a holiday and exception
 );
 
 {   # Syspref-agnostic tests
@@ -151,6 +159,7 @@ my $holiday_for_another_branch = DateTime->new(
     is ( $cal->is_holiday($notspecial), 0, 'Fixed single date that is not a holiday test' );
     is ( $cal->is_holiday($sunday_exception), 0, 'Exception holiday is not a closed day test' );
     is ( $cal->is_holiday($holiday_for_another_branch), 0, 'Holiday defined for another branch should not be defined as an holiday' );
+    is ( $cal->is_holiday($holiday_excepted), 0, 'Holiday defined and excepted should not be a holiday' );
 }
 
 {   # Bugzilla #8966 - is_holiday truncates referenced date
@@ -207,33 +216,25 @@ my $holiday_for_another_branch = DateTime->new(
 
 {    ## 'Datedue' tests
 
-    $module_context->unmock('preference');
-    $module_context->mock(
-        'preference',
-        sub {
-            return 'Datedue';
-        }
-    );
+    $cal = Koha::Calendar->new( branchcode => 'MPL', days_mode => 'Datedue' );
 
-    $cal = Koha::Calendar->new( branchcode => 'MPL' );
-
-    is($cal->addDate( $dt, $one_day_dur, 'days' ), # tuesday
+    is($cal->addDuration( $dt, $one_day_dur, 'days' ), # tuesday
         dt_from_string('2012-07-05','iso'),
         'Single day add (Datedue, matches holiday, shift)' );
 
-    is($cal->addDate( $dt, $two_day_dur, 'days' ),
+    is($cal->addDuration( $dt, $two_day_dur, 'days' ),
         dt_from_string('2012-07-05','iso'),
         'Two days add, skips holiday (Datedue)' );
 
-    cmp_ok($cal->addDate( $test_dt, $seven_day_dur, 'days' ), 'eq',
+    cmp_ok($cal->addDuration( $test_dt, $seven_day_dur, 'days' ), 'eq',
         '2012-07-30T11:53:00',
         'Add 7 days (Datedue)' );
 
-    is( $cal->addDate( $saturday, $one_day_dur, 'days' )->day_of_week, 1,
-        'addDate skips closed Sunday (Datedue)' );
+    is( $cal->addDuration( $saturday, $one_day_dur, 'days' )->day_of_week, 1,
+        'addDuration skips closed Sunday (Datedue)' );
 
-    is( $cal->addDate($day_after_christmas, -1, 'days')->ymd(), '2012-12-24',
-        'Negative call to addDate (Datedue)' );
+    is( $cal->addDuration($day_after_christmas, -1, 'days')->ymd(), '2012-12-24',
+        'Negative call to addDuration (Datedue)' );
 
     ## Note that the days_between API says closed days are not considered.
     ## This tests are here as an API test.
@@ -246,31 +247,23 @@ my $holiday_for_another_branch = DateTime->new(
 
 {   ## 'Calendar' tests'
 
-    $module_context->unmock('preference');
-    $module_context->mock(
-        'preference',
-        sub {
-            return 'Calendar';
-        }
-    );
-
-    $cal = Koha::Calendar->new( branchcode => 'MPL' );
+    $cal = Koha::Calendar->new( branchcode => 'MPL', days_mode => 'Calendar' );
 
     $dt = dt_from_string('2012-07-03','iso');
 
-    is($cal->addDate( $dt, $one_day_dur, 'days' ),
+    is($cal->addDuration( $dt, $one_day_dur, 'days' ),
         dt_from_string('2012-07-05','iso'),
         'Single day add (Calendar)' );
 
-    cmp_ok($cal->addDate( $test_dt, $seven_day_dur, 'days' ), 'eq',
+    cmp_ok($cal->addDuration( $test_dt, $seven_day_dur, 'days' ), 'eq',
        '2012-08-01T11:53:00',
        'Add 7 days (Calendar)' );
 
-    is( $cal->addDate( $saturday, $one_day_dur, 'days' )->day_of_week, 1,
-            'addDate skips closed Sunday (Calendar)' );
+    is( $cal->addDuration( $saturday, $one_day_dur, 'days' )->day_of_week, 1,
+            'addDuration skips closed Sunday (Calendar)' );
 
-    is( $cal->addDate($day_after_christmas, -1, 'days')->ymd(), '2012-12-24',
-            'Negative call to addDate (Calendar)' );
+    is( $cal->addDuration($day_after_christmas, -1, 'days')->ymd(), '2012-12-24',
+            'Negative call to addDuration (Calendar)' );
 
     cmp_ok( $cal->days_between( $test_dt, $later_dt )->in_units('days'),
                 '==', 40, 'days_between calculates correctly (Calendar)' );
@@ -281,31 +274,24 @@ my $holiday_for_another_branch = DateTime->new(
 
 
 {   ## 'Days' tests
-    $module_context->unmock('preference');
-    $module_context->mock(
-        'preference',
-        sub {
-            return 'Days';
-        }
-    );
 
-    $cal = Koha::Calendar->new( branchcode => 'MPL' );
+    $cal = Koha::Calendar->new( branchcode => 'MPL', days_mode => 'Days' );
 
     $dt = dt_from_string('2012-07-03','iso');
 
-    is($cal->addDate( $dt, $one_day_dur, 'days' ),
+    is($cal->addDuration( $dt, $one_day_dur, 'days' ),
         dt_from_string('2012-07-04','iso'),
         'Single day add (Days)' );
 
-    cmp_ok($cal->addDate( $test_dt, $seven_day_dur, 'days' ),'eq',
+    cmp_ok($cal->addDuration( $test_dt, $seven_day_dur, 'days' ),'eq',
         '2012-07-30T11:53:00',
         'Add 7 days (Days)' );
 
-    is( $cal->addDate( $saturday, $one_day_dur, 'days' )->day_of_week, 7,
-        'addDate doesn\'t skip closed Sunday (Days)' );
+    is( $cal->addDuration( $saturday, $one_day_dur, 'days' )->day_of_week, 7,
+        'addDuration doesn\'t skip closed Sunday (Days)' );
 
-    is( $cal->addDate($day_after_christmas, -1, 'days')->ymd(), '2012-12-25',
-        'Negative call to addDate (Days)' );
+    is( $cal->addDuration($day_after_christmas, -1, 'days')->ymd(), '2012-12-25',
+        'Negative call to addDuration (Days)' );
 
     ## Note that the days_between API says closed days are not considered.
     ## This tests are here as an API test.
@@ -324,17 +310,15 @@ my $holiday_for_another_branch = DateTime->new(
 }
 
 subtest 'days_mode parameter' => sub {
-    plan tests => 2;
+    plan tests => 1;
 
     t::lib::Mocks::mock_preference('useDaysMode', 'Days');
-    my $cal = Koha::Calendar->new( branchcode => 'CPL' );
-    is( $cal->{days_mode}, 'Days', q|If not set, days_mode defaults to syspref's value|);
 
     $cal = Koha::Calendar->new( branchcode => 'CPL', days_mode => 'Calendar' );
     is( $cal->{days_mode}, 'Calendar', q|If set, days_mode is correctly set|);
 };
 
 END {
-    $cache->clear_from_cache( 'single_holidays' ) ;
-    $cache->clear_from_cache( 'exception_holidays' ) ;
+    $cache->clear_from_cache('MPL_holidays');
+    $cache->clear_from_cache('CPL_holidays');
 };

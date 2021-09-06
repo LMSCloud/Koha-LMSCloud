@@ -20,27 +20,22 @@ package C4::Koha;
 # along with Koha; if not, see <http://www.gnu.org/licenses>.
 
 
-use strict;
-#use warnings; FIXME - Bug 2505
+use Modern::Perl;
 
 use C4::Context;
 use Koha::Caches;
-use Koha::DateUtils qw(dt_from_string);
 use Koha::AuthorisedValues;
 use Koha::Libraries;
 use Koha::MarcSubfieldStructures;
-use DateTime::Format::MySQL;
 use Business::ISBN;
 use Business::ISSN;
 use autouse 'Data::cselectall_arrayref' => qw(Dumper);
-use DBI qw(:sql_types);
 use vars qw(@ISA @EXPORT @EXPORT_OK $DEBUG);
 
 BEGIN {
 	require Exporter;
 	@ISA    = qw(Exporter);
 	@EXPORT = qw(
-        &GetPrinters &GetPrinter
         &GetItemTypesCategorized
         &getallthemes
         &getFacets
@@ -66,7 +61,6 @@ BEGIN {
 		$DEBUG
 	);
 	$DEBUG = 0;
-@EXPORT_OK = qw( GetDailyQuote );
 }
 
 =head1 NAME
@@ -103,7 +97,7 @@ sub GetItemTypesCategorized {
         SELECT itemtype, description, imageurl, hideinopac, 0 as 'iscat' FROM itemtypes WHERE ISNULL(searchcategory) or length(searchcategory) = 0
         UNION
         SELECT DISTINCT searchcategory AS `itemtype`,
-                        authorised_values.lib_opac AS description,
+                        COALESCE(authorised_values.lib_opac,authorised_values.lib) AS description,
                         authorised_values.imageurl AS imageurl,
                         hideinopac, 1 as 'iscat'
         FROM itemtypes
@@ -111,7 +105,7 @@ sub GetItemTypesCategorized {
         WHERE searchcategory > '' and hideinopac=1
         UNION
         SELECT DISTINCT searchcategory AS `itemtype`,
-                        authorised_values.lib_opac AS description,
+                        COALESCE(authorised_values.lib_opac,authorised_values.lib) AS description,
                         authorised_values.imageurl AS imageurl,
                         hideinopac, 1 as 'iscat'
         FROM itemtypes
@@ -278,45 +272,6 @@ sub getImageSets {
     return \@imagesets;
 }
 
-=head2 GetPrinters
-
-  $printers = &GetPrinters();
-  @queues = keys %$printers;
-
-Returns information about existing printer queues.
-
-C<$printers> is a reference-to-hash whose keys are the print queues
-defined in the printers table of the Koha database. The values are
-references-to-hash, whose keys are the fields in the printers table.
-
-=cut
-
-sub GetPrinters {
-    my %printers;
-    my $dbh = C4::Context->dbh;
-    my $sth = $dbh->prepare("select * from printers");
-    $sth->execute;
-    while ( my $printer = $sth->fetchrow_hashref ) {
-        $printers{ $printer->{'printqueue'} } = $printer;
-    }
-    return ( \%printers );
-}
-
-=head2 GetPrinter
-
-  $printer = GetPrinter( $query, $printers );
-
-=cut
-
-sub GetPrinter {
-    my ( $query, $printers ) = @_;    # get printer for this query from printers
-    my $printer = $query->param('printer');
-    my %cookie = $query->cookie('userenv');
-    ($printer) || ( $printer = $cookie{'printer'} ) || ( $printer = '' );
-    ( $printers->{$printer} ) || ( $printer = ( keys %$printers )[0] );
-    return $printer;
-}
-
 =head2 getnbpages
 
 Returns the number of pages to display in a pagination bar, given the number
@@ -375,12 +330,6 @@ sub getFacets {
                 sep   => ' - ',
             },
             {
-                idx   => 'su-ut',
-                label => 'Titles',
-                tags  => [ qw/ 500a 501a 503a / ],
-                sep   => ', ',
-            },
-            {
                 idx   => 'au',
                 label => 'Authors',
                 tags  => [ qw/ 700ab 701ab 702ab / ],
@@ -396,6 +345,11 @@ sub getFacets {
                 idx  => 'location',
                 label => 'Location',
                 tags        => [ qw/ 995e / ],
+            },
+            {
+                idx => 'ccode',
+                label => 'CollectionCodes',
+                tags => [ qw / 099t 955h / ],
             }
             ];
 
@@ -489,6 +443,11 @@ sub getFacets {
                 label => 'Years',
                 tags  => [ qw/ 260c 264c / ],
                 sep   => ', ',
+            },
+            {
+                idx => 'ccode',
+                label => 'CollectionCodes',
+                tags => [ qw / 9528 / ],
             }
             ];
 
@@ -745,7 +704,7 @@ sub GetNormalizedOCLCNumber {
         my @fields = $marcrecord->field('035');
         foreach my $field (@fields) {
             my $oclc = $field->subfield('a');
-            if ($oclc =~ /OCoLC/) {
+            if ($oclc && $oclc =~ /OCoLC/) {
                 $oclc =~ s/\(OCoLC\)//;
                 return $oclc;
             }
@@ -754,77 +713,6 @@ sub GetNormalizedOCLCNumber {
         # TODO for UNIMARC
     }
     return
-}
-
-=head2 GetDailyQuote($opts)
-
-Takes a hashref of options
-
-Currently supported options are:
-
-'id'        An exact quote id
-'random'    Select a random quote
-noop        When no option is passed in, this sub will return the quote timestamped for the current day
-
-The function returns an anonymous hash following this format:
-
-        {
-          'source' => 'source-of-quote',
-          'timestamp' => 'timestamp-value',
-          'text' => 'text-of-quote',
-          'id' => 'quote-id'
-        };
-
-=cut
-
-# This is definitely a candidate for some sort of caching once we finally settle caching/persistence issues...
-# at least for default option
-
-sub GetDailyQuote {
-    my %opts = @_;
-    my $dbh = C4::Context->dbh;
-    my $query = '';
-    my $sth = undef;
-    my $quote = undef;
-    if ($opts{'id'}) {
-        $query = 'SELECT * FROM quotes WHERE id = ?';
-        $sth = $dbh->prepare($query);
-        $sth->execute($opts{'id'});
-        $quote = $sth->fetchrow_hashref();
-    }
-    elsif ($opts{'random'}) {
-        # Fall through... we also return a random quote as a catch-all if all else fails
-    }
-    else {
-        $query = 'SELECT * FROM quotes WHERE timestamp LIKE CONCAT(CURRENT_DATE,\'%\') ORDER BY timestamp DESC LIMIT 0,1';
-        $sth = $dbh->prepare($query);
-        $sth->execute();
-        $quote = $sth->fetchrow_hashref();
-    }
-    unless ($quote) {        # if there are not matches, choose a random quote
-        # get a list of all available quote ids
-        $sth = C4::Context->dbh->prepare('SELECT count(*) FROM quotes;');
-        $sth->execute;
-        my $range = ($sth->fetchrow_array)[0];
-        # chose a random id within that range if there is more than one quote
-        my $offset = int(rand($range));
-        # grab it
-        $query = 'SELECT * FROM quotes ORDER BY id LIMIT 1 OFFSET ?';
-        $sth = C4::Context->dbh->prepare($query);
-        # see http://www.perlmonks.org/?node_id=837422 for why
-        # we're being verbose and using bind_param
-        $sth->bind_param(1, $offset, SQL_INTEGER);
-        $sth->execute();
-        $quote = $sth->fetchrow_hashref();
-        # update the timestamp for that quote
-        $query = 'UPDATE quotes SET timestamp = ? WHERE id = ?';
-        $sth = C4::Context->dbh->prepare($query);
-        $sth->execute(
-            DateTime::Format::MySQL->format_datetime( dt_from_string() ),
-            $quote->{'id'}
-        );
-    }
-    return $quote;
 }
 
 sub _normalize_match_point {
@@ -857,9 +745,9 @@ sub _isbn_cleanup13 {
     ) if $isbn;
 }
 
-=head2 NormalizedISBN
+=head2 NormalizeISBN
 
-  my $isbns = NormalizedISBN({
+  my $isbns = NormalizeISBN({
     isbn => $isbn,
     strip_hyphens => [0,1],
     format => ['ISBN-10', 'ISBN-13']
@@ -870,7 +758,9 @@ sub _isbn_cleanup13 {
   to be of the specified format.
 
   If the string cannot be validated as an isbn,
-  it returns nothing.
+  it returns nothing unless return_invalid param is passed.
+
+  #FIXME This routine (and others?) should be moved to Koha::Util::Normalize
 
 =cut
 
@@ -879,7 +769,8 @@ sub NormalizeISBN {
 
     my $string        = $params->{isbn};
     my $strip_hyphens = $params->{strip_hyphens};
-    my $format        = $params->{format};
+    my $format        = $params->{format} || q{};
+    my $return_invalid = $params->{return_invalid};
 
     return unless $string;
 
@@ -888,7 +779,7 @@ sub NormalizeISBN {
     if ( $isbn && $isbn->is_valid() ) {
 
         if ( $format eq 'ISBN-10' ) {
-            $isbn = $isbn->as_isbn10();
+        $isbn = $isbn->as_isbn10();
         }
         elsif ( $format eq 'ISBN-13' ) {
             $isbn = $isbn->as_isbn13();
@@ -902,7 +793,10 @@ sub NormalizeISBN {
         }
 
         return $string;
+    } elsif ( $return_invalid ) {
+        return $string;
     }
+
 }
 
 =head2 GetVariationsOfISBN
@@ -925,7 +819,7 @@ sub GetVariationsOfISBN {
 
     my @isbns;
 
-    push( @isbns, NormalizeISBN({ isbn => $isbn }) );
+    push( @isbns, NormalizeISBN({ isbn => $isbn, return_invalid => 1 }) );
     push( @isbns, NormalizeISBN({ isbn => $isbn, format => 'ISBN-10' }) );
     push( @isbns, NormalizeISBN({ isbn => $isbn, format => 'ISBN-13' }) );
     push( @isbns, NormalizeISBN({ isbn => $isbn, format => 'ISBN-10', strip_hyphens => 1 }) );

@@ -39,7 +39,7 @@ plugin that shows a stats on borrowers
 
 =cut
 
-my $input = new CGI;
+my $input = CGI->new;
 my $do_it=$input->param('do_it');
 my $fullreportname = "reports/issues_avg_stats.tt";
 my $line = $input->param("Line");
@@ -66,7 +66,6 @@ my ($template, $borrowernumber, $cookie)
     = get_template_and_user({template_name => $fullreportname,
                 query => $input,
                 type => "intranet",
-                authnotrequired => 0,
                 flagsrequired => {reports => '*'},
                 debug => 1,
                     });
@@ -389,7 +388,6 @@ sub calculate {
 #	warn "fin des titres colonnes";
 
     my $i=0;
-    my @totalcol;
     my $hilighted=-1;
     
     #Initialization of cell values.....
@@ -442,12 +440,8 @@ sub calculate {
     $dbcalc->execute;
 # 	warn "filling table";
     my $issues_count=0;
-    my $previous_row; 
-    my $previous_col;
     my $loanlength; 
-    my $err;
     my $emptycol;
-    my $weightrow;
 
     while (my  @data = $dbcalc->fetchrow) {
         my ($row, $col, $issuedate, $returndate, $weight)=@data;
@@ -455,8 +449,6 @@ sub calculate {
         $emptycol=1 if (!defined($col));
         $col = "zzEMPTY" if (!defined($col));
         $row = "zzEMPTY" if (!defined($row));
-        # fill returndate to avoid an error with date calc (needed for all non returned issues)
-        $returndate= join '-',Date::Calc::Today if $returndate eq '0000-00-00';
     #  DateCalc returns => 0:0:WK:DD:HH:MM:SS   the weeks, days, hours, minutes,
     #  and seconds between the two
         $loanlength = Delta_Days(split(/-/,$issuedate),split (/-/,$returndate)) ;

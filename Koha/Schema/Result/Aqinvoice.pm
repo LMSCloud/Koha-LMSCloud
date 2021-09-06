@@ -29,10 +29,14 @@ __PACKAGE__->table("aqinvoices");
   is_auto_increment: 1
   is_nullable: 0
 
+ID of the invoice, primary key
+
 =head2 invoicenumber
 
   data_type: 'longtext'
   is_nullable: 0
+
+Name of invoice
 
 =head2 booksellerid
 
@@ -40,11 +44,15 @@ __PACKAGE__->table("aqinvoices");
   is_foreign_key: 1
   is_nullable: 0
 
+foreign key to aqbooksellers
+
 =head2 shipmentdate
 
   data_type: 'date'
   datetime_undef_if_invalid: 1
   is_nullable: 1
+
+date of shipment
 
 =head2 billingdate
 
@@ -52,11 +60,15 @@ __PACKAGE__->table("aqinvoices");
   datetime_undef_if_invalid: 1
   is_nullable: 1
 
+date of billing
+
 =head2 closedate
 
   data_type: 'date'
   datetime_undef_if_invalid: 1
   is_nullable: 1
+
+invoice close date, NULL means the invoice is open
 
 =head2 shipmentcost
 
@@ -64,17 +76,23 @@ __PACKAGE__->table("aqinvoices");
   is_nullable: 1
   size: [28,6]
 
+shipment cost
+
 =head2 shipmentcost_budgetid
 
   data_type: 'integer'
   is_foreign_key: 1
   is_nullable: 1
 
+foreign key to aqbudgets, link the shipment cost to a budget
+
 =head2 message_id
 
   data_type: 'integer'
   is_foreign_key: 1
   is_nullable: 1
+
+foreign key to edifact invoice message
 
 =cut
 
@@ -112,6 +130,21 @@ __PACKAGE__->add_columns(
 __PACKAGE__->set_primary_key("invoiceid");
 
 =head1 RELATIONS
+
+=head2 aqinvoice_adjustments
+
+Type: has_many
+
+Related object: L<Koha::Schema::Result::AqinvoiceAdjustment>
+
+=cut
+
+__PACKAGE__->has_many(
+  "aqinvoice_adjustments",
+  "Koha::Schema::Result::AqinvoiceAdjustment",
+  { "foreign.invoiceid" => "self.invoiceid" },
+  { cascade_copy => 0, cascade_delete => 0 },
+);
 
 =head2 aqorders
 
@@ -184,9 +217,14 @@ __PACKAGE__->belongs_to(
 );
 
 
-# Created by DBIx::Class::Schema::Loader v0.07042 @ 2018-02-16 17:54:53
-# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:SAUxWSdpMJK4atxhfgCAGg
+# Created by DBIx::Class::Schema::Loader v0.07049 @ 2021-01-21 13:39:29
+# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:LkekSbup37Z2WVnU/c9K+g
 
+sub koha_object_class {
+    'Koha::Acquisition::Invoice';
+}
+sub koha_objects_class {
+    'Koha::Acquisition::Invoices';
+}
 
-# You can replace this text with custom content, and it will be preserved on regeneration
 1;

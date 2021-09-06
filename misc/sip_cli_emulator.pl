@@ -52,6 +52,8 @@ my $currency_type;
 my $fee_amount;
 my $fee_identifier;
 my $transaction_id;
+my $pickup_location;
+my $hold_mode;
 
 my $terminator = q{};
 
@@ -73,12 +75,14 @@ GetOptions(
 
     "s|summary=s" => \$summary,
 
-    "fee-type=s"       => \$fee_type,
-    "payment-type=s"   => \$payment_type,
-    "currency-type=s"  => \$currency_type,
-    "fee-amount=s"     => \$fee_amount,
-    "fee-identifier=s" => \$fee_identifier,
-    "transaction-id=s" => \$transaction_id,
+    "fee-type=s"        => \$fee_type,
+    "payment-type=s"    => \$payment_type,
+    "currency-type=s"   => \$currency_type,
+    "fee-amount=s"      => \$fee_amount,
+    "fee-identifier=s"  => \$fee_identifier,
+    "transaction-id=s"  => \$transaction_id,
+    "pickup-location=s" => \$pickup_location,
+    "hold-mode=s"       => \$hold_mode,
 
     "t|terminator=s" => \$terminator,
 
@@ -121,6 +125,12 @@ my $handlers = {
             login_user_id  => $login_user_id,
             login_password => $login_password,
             location_code  => $location_code,
+        },
+    },
+    sc_status_request => {
+        name       => 'SC Status',
+        subroutine => \&build_sc_status_command_message,
+        parameters => {
         },
     },
     patron_status_request => {
@@ -258,6 +268,34 @@ my $handlers = {
             'transaction_id',
         ],
     },
+    hold => {
+        name       => 'Hold',
+        subroutine => \&build_hold_command_message,
+        parameters => {
+            hold_mode           => $hold_mode eq '-' ? '-' : '+',
+            transaction_date    => $transaction_date,
+            expiration_date     => undef,
+            pickup_location     => $pickup_location,
+            hold_type           => undef,
+            institution_id      => $location_code,
+            patron_identifier   => $patron_identifier,
+            patron_password     => $patron_password,
+            item_identifier     => $item_identifier,
+            title_identifier    => undef,
+            terminal_password   => $terminal_password,
+            fee_acknowledged    => $fee_acknowledged,
+        },
+        optional => [
+            'expiration_date',
+            'pickup_location',
+            'hold_type',
+            'patron_password',
+            'item_identifier',
+            'title_identifier',
+            'terminal_password',
+            'fee_acknowledged',
+        ],
+    },
 };
 
 my $data = run_command_message('login');
@@ -328,6 +366,12 @@ sub build_login_command_message {
       . build_field( FID_LOGIN_UID,     $login_user_id )
       . build_field( FID_LOGIN_PWD,     $login_password )
       . build_field( FID_LOCATION_CODE, $location_code );
+}
+
+sub build_sc_status_command_message {
+    my ($params) = @_;
+
+    return SC_STATUS . "0" . "030" . "2.00";
 }
 
 sub build_patron_status_request_command_message {
@@ -459,6 +503,38 @@ sub build_checkin_command_message {
       . build_field( FID_CANCEL,       $cancel, { optional => 1 } );
 }
 
+sub build_hold_command_message {
+    my ($params) = @_;
+
+    my $hold_mode         = $params->{hold_mode};
+    my $transaction_date  = $params->{transaction_date};
+    my $expiration_date   = $params->{expiration_date};
+    my $pickup_location   = $params->{pickup_location};
+    my $hold_type         = $params->{hold_type};
+    my $institution_id    = $params->{institution_id};
+    my $patron_identifier = $params->{patron_identifier};
+    my $patron_password   = $params->{patron_password};
+    my $item_identifier   = $params->{item_identifier};
+    my $title_identifier  = $params->{title_identifier};
+    my $terminal_password = $params->{terminal_password};
+    my $fee_acknowledged  = $params->{fee_acknowledged} || 'N';
+
+    return
+        HOLD
+      . $hold_mode
+      . $transaction_date
+      . build_field( FID_EXPIRATION,   $expiration_date,   { optional => 1 } )
+      . build_field( FID_PICKUP_LOCN,  $pickup_location,   { optional => 1 } )
+      . build_field( FID_HOLD_TYPE,    $hold_type,         { optional => 1 } )
+      . build_field( FID_INST_ID,      $institution_id                       )
+      . build_field( FID_PATRON_ID,    $patron_identifier                    )
+      . build_field( FID_PATRON_PWD,   $patron_password,   { optional => 1 } )
+      . build_field( FID_ITEM_ID,      $item_identifier,   { optional => 1 } )
+      . build_field( FID_TITLE_ID,     $title_identifier,  { optional => 1 } )
+      . build_field( FID_TERMINAL_PWD, $terminal_password, { optional => 1 } )
+      . build_field( FID_FEE_ACK,      $fee_acknowledged,  { optional => 1 } );
+}
+
 sub build_renew_command_message {
     my ($params) = @_;
 
@@ -576,16 +652,20 @@ Options:
   --fee-amount      Fee amount for Fee Paid message, required
   --fee-identifier  Fee identifier for Fee Paid message, optional
   --transaction-id  Transaction id for Fee Paid message, optional
+  --pickup-location Pickup location (branchcode) for Hold message, optional
+  --hold-mode       Accepts "+" to add hold or "-" to cancel hold, defaults to +
 
   -m --message     SIP2 message to execute
 
   Implemented Messages:
-    patron_status_request
-    patron_information
-    item_information
-    checkout
     checkin
-    renew
+    checkout
     fee_paid
+    hold
+    item_information
+    patron_information
+    patron_status_request
+    sc_status_request
+    renew
 /
 }

@@ -1,57 +1,53 @@
 use Modern::Perl;
-use Test::More tests => 2;
+use Test::More tests => 4;
 
 use MARC::Record;
 use MARC::Field;
 use C4::Context;
 
 use C4::Circulation qw( AddIssue AddReturn );
-use C4::Items qw( AddItem );
-use C4::Members qw( AddMember );
 use C4::Biblio qw( AddBiblio );
 use Koha::Database;
 use Koha::DateUtils;
 use Koha::Patron::Debarments qw( GetDebarments DelDebarment );
+use Koha::Patrons;
 
 use t::lib::TestBuilder;
+use t::lib::Mocks;
 
 my $schema = Koha::Database->schema;
 $schema->storage->txn_begin;
 my $builder = t::lib::TestBuilder->new;
 my $dbh = C4::Context->dbh;
-$dbh->{RaiseError} = 1;
 
 my $branchcode = $builder->build({ source => 'Branch' })->{branchcode};
 my $itemtype   = $builder->build({ source => 'Itemtype' })->{itemtype};
 my $patron_category = $builder->build({ source => 'Category' });
 
-local $SIG{__WARN__} = sub { warn $_[0] unless $_[0] =~ /redefined/ };
-my $userenv->{branch} = $branchcode;
-*C4::Context::userenv = \&Mock_userenv;
+t::lib::Mocks::mock_userenv({ branchcode => $branchcode });
 
 # Test without maxsuspensiondays set
-Koha::IssuingRules->search->delete;
-$builder->build(
+Koha::CirculationRules->search->delete;
+Koha::CirculationRules->set_rules(
     {
-        source => 'Issuingrule',
-        value  => {
-            categorycode => '*',
-            itemtype     => '*',
-            branchcode   => '*',
-            firstremind  => 0,
-            finedays     => 2,
-            lengthunit   => 'days',
+        categorycode => undef,
+        itemtype     => undef,
+        branchcode   => undef,
+        rules        => {
+            firstremind => 0,
+            finedays    => 2,
+            lengthunit  => 'days',
             suspension_chargeperiod => 1,
         }
     }
 );
 
-my $borrowernumber = AddMember(
+my $borrowernumber = Koha::Patron->new({
     firstname =>  'my firstname',
     surname => 'my surname',
     categorycode => $patron_category->{categorycode},
     branchcode => $branchcode,
-);
+})->store->borrowernumber;
 my $borrower = Koha::Patrons->find( $borrowernumber )->unblessed;
 
 my $record = MARC::Record->new();
@@ -62,12 +58,13 @@ $record->append_fields(
 
 my $barcode = 'bc_maxsuspensiondays';
 my ($biblionumber, $biblioitemnumber) = AddBiblio($record, '');
-my (undef, undef, $itemnumber) = AddItem({
+my $itemnumber = Koha::Item->new({
+        biblionumber => $biblionumber,
         homebranch => $branchcode,
         holdingbranch => $branchcode,
         barcode => $barcode,
         itype => $itemtype
-    } , $biblionumber);
+    })->store->itemnumber;
 
 # clear any holidays to avoid throwing off the suspension day
 # calculations
@@ -88,8 +85,16 @@ is(
 DelDebarment( $debarments->[0]->{borrower_debarment_id} );
 
 # Test with maxsuspensiondays = 10 days
-my $issuing_rule = Koha::IssuingRules->search->next;
-$issuing_rule->maxsuspensiondays( 10 )->store;
+Koha::CirculationRules->set_rules(
+    {
+        categorycode => undef,
+        itemtype     => undef,
+        branchcode   => undef,
+        rules        => {
+            maxsuspensiondays => 10,
+        }
+    }
+);
 
 my $daysafter10 = dt_from_string->add_duration(DateTime::Duration->new(days => 10));
 AddIssue( $borrower, $barcode, $daysago20 );
@@ -102,9 +107,55 @@ is(
 );
 DelDebarment( $debarments->[0]->{borrower_debarment_id} );
 
-$schema->storage->txn_rollback;
+subtest "suspension_chargeperiod" => sub {
+    Koha::CirculationRules->set_rules(
+        {
+            categorycode => undef,
+            itemtype     => undef,
+            branchcode   => undef,
+            rules        => {
+                firstremind  => 0,
+                finedays     => 7,
+                lengthunit   => 'days',
+                suspension_chargeperiod => 15,
+                maxsuspensiondays => 333,
+            }
+        }
+    );
+    my $patron = $builder->build_object({ class => 'Koha::Patrons' });
+    my $item = $builder->build_sample_item;
 
-# C4::Context->userenv
-sub Mock_userenv {
-    return $userenv;
-}
+    my $last_year = dt_from_string->clone->subtract( years => 1 );
+    my $today = dt_from_string;
+    my $new_debar_dt = C4::Circulation::_calculate_new_debar_dt( $patron->unblessed, $item->unblessed, $last_year, $today );
+    is( $new_debar_dt->truncate( to => 'day' ),
+        $today->clone->add( days => 365 / 15 * 7 )->truncate( to => 'day' ) );
+
+};
+
+subtest "maxsuspensiondays" => sub {
+    Koha::CirculationRules->set_rules(
+        {
+            categorycode => undef,
+            itemtype     => undef,
+            branchcode   => undef,
+            rules        => {
+                firstremind  => 0,
+                finedays     => 15,
+                lengthunit   => 'days',
+                suspension_chargeperiod => 7,
+                maxsuspensiondays => 333,
+            }
+        }
+    );
+    my $patron = $builder->build_object({ class => 'Koha::Patrons' });
+    my $item = $builder->build_sample_item;
+
+    my $last_year = dt_from_string->clone->subtract( years => 1 );
+    my $today = dt_from_string;
+    my $new_debar_dt = C4::Circulation::_calculate_new_debar_dt( $patron->unblessed, $item->unblessed, $last_year, $today );
+    is( $new_debar_dt->truncate( to => 'day' ),
+        $today->clone->add( days => 333 )->truncate( to => 'day' ) );
+};
+
+$schema->storage->txn_rollback;

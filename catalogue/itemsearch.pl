@@ -4,18 +4,18 @@
 #
 # This file is part of Koha
 #
-# Koha is free software; you can redistribute it and/or modify it under the
-# terms of the GNU General Public License as published by the Free Software
-# Foundation; either version 3 of the License, or (at your option) any later
-# version.
+# Koha is free software; you can redistribute it and/or modify it
+# under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 3 of the License, or
+# (at your option) any later version.
 #
-# Koha is distributed in the hope that it will be useful, but WITHOUT ANY
-# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
-# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+# Koha is distributed in the hope that it will be useful, but
+# WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+# GNU General Public License for more details.
 #
-# You should have received a copy of the GNU General Public License along
-# with Koha; if not, write to the Free Software Foundation, Inc.,
-# 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+# You should have received a copy of the GNU General Public License
+# along with Koha; if not, see <http://www.gnu.org/licenses>.
 
 use Modern::Perl;
 use CGI;
@@ -34,7 +34,7 @@ use Koha::Item::Search::Field qw(GetItemSearchFields);
 use Koha::ItemTypes;
 use Koha::Libraries;
 
-my $cgi = new CGI;
+my $cgi = CGI->new;
 my %params = $cgi->Vars;
 
 my $format = $cgi->param('format');
@@ -65,7 +65,7 @@ if (defined $format and $format eq 'json') {
                 push @f, $searchcol;
                 push @c, 'and';
 
-                if ( grep(/^$searchcol$/, qw( ccode homebranch holdingbranch location notforloan )) ) {
+                if ( grep { $_ eq $columns[$i] } qw( ccode homebranch holdingbranch location itype notforloan itemlost ) ) {
                     push @q, "$word";
                     push @op, '=';
                 }
@@ -108,15 +108,18 @@ my ($template, $borrowernumber, $cookie) = get_template_and_user({
     template_name => $template_name,
     query => $cgi,
     type => 'intranet',
-    authnotrequired => 0,
     flagsrequired   => { catalogue => 1 },
 });
 
-my $mss = Koha::MarcSubfieldStructures->search({ frameworkcode => '', kohafield => 'items.notforloan', authorised_value => [ -and => {'!=' => undef }, {'!=' => ''}] });
-my $notforloan_values = $mss->count ? GetAuthorisedValues($mss->next->authorised_value) : [];
+my $mss = Koha::MarcSubfieldStructures->search({ frameworkcode => '', kohafield => 'items.itemlost', authorised_value => [ -and => {'!=' => undef }, {'!=' => ''}] });
+my $itemlost_values = $mss->count ? GetAuthorisedValues($mss->next->authorised_value) : [];
 
-$mss = Koha::MarcSubfieldStructures->search({ frameworkcode => '', kohafield => 'items.location', authorised_value => [ -and => {'!=' => undef }, {'!=' => ''}] });
-my $location_values = $mss->count ? GetAuthorisedValues($mss->next->authorised_value) : [];
+$mss = Koha::MarcSubfieldStructures->search({ frameworkcode => '', kohafield => 'items.withdrawn', authorised_value => [ -and => {'!=' => undef }, {'!=' => ''}] });
+my $withdrawn_values = $mss->count ? GetAuthorisedValues($mss->next->authorised_value) : [];
+
+if ( Koha::MarcSubfieldStructures->search( { frameworkcode => '', kohafield => 'items.new_status' } )->count ) {
+    $template->param( has_new_status => 1 );
+}
 
 if (scalar keys %params > 0) {
     # Parameters given, it's a search
@@ -126,7 +129,7 @@ if (scalar keys %params > 0) {
         filters => [],
     };
 
-    foreach my $p (qw(homebranch holdingbranch location itype ccode issues datelastborrowed notforloan)) {
+    foreach my $p (qw(homebranch holdingbranch location itype ccode issues datelastborrowed notforloan itemlost withdrawn)) {
         if (my @q = $cgi->multi_param($p)) {
             if ($q[0] ne '') {
                 my $f = {
@@ -155,6 +158,7 @@ if (scalar keys %params > 0) {
             if (C4::Context->preference("marcflavour") ne "UNIMARC" && $field eq 'publicationyear') {
                 $field = 'copyrightdate';
             }
+
             if ($i == 0) {
                 $f = {
                     field => $field,
@@ -184,12 +188,15 @@ if (scalar keys %params > 0) {
 
 
     # Yes/No parameters
-    foreach my $p (qw(damaged itemlost)) {
+    foreach my $p (qw( damaged new_status )) {
         my $v = $cgi->param($p) // '';
         my $f = {
             field => $p,
             query => 0,
         };
+        if ( $p eq 'new_status' ) {
+            $f->{ifnull} = 0;
+        }
         if ($v eq 'yes') {
             $f->{operator} = '!=';
             push @{ $filter->{filters} }, $f;
@@ -240,26 +247,10 @@ if (scalar keys %params > 0) {
     }
 
     if ($results) {
-        # Get notforloan labels
-        my $notforloan_map = {};
-        foreach my $nfl_value (@$notforloan_values) {
-            $notforloan_map->{$nfl_value->{authorised_value}} = $nfl_value->{lib};
-        }
-
-        # Get location labels
-        my $location_map = {};
-        foreach my $loc_value (@$location_values) {
-            $location_map->{$loc_value->{authorised_value}} = $loc_value->{lib};
-        }
-
         foreach my $item (@$results) {
             my $biblio = Koha::Biblios->find( $item->{biblionumber} );
             $item->{biblio} = $biblio;
             $item->{biblioitem} = $biblio->biblioitem->unblessed;
-            $item->{status} = $notforloan_map->{$item->{notforloan}};
-            if (defined $item->{location}) {
-                $item->{location} = $location_map->{$item->{location}};
-            }
         }
     }
 
@@ -291,13 +282,6 @@ if (scalar keys %params > 0) {
 
 my @branches = map { value => $_->branchcode, label => $_->branchname }, Koha::Libraries->search( {}, { order_by => 'branchname' } );
 my @homebranches = map { value => $_->branchcode, label => $_->branchname }, Koha::Libraries->search( { -or => [ mobilebranch => undef, mobilebranch => '' ] }, { order_by => 'branchname' } );
-my @locations;
-foreach my $location (@$location_values) {
-    push @locations, {
-        value => $location->{authorised_value},
-        label => $location->{lib} // $location->{authorised_value},
-    };
-}
 my @itemtypes;
 foreach my $itemtype ( Koha::ItemTypes->search ) {
     push @itemtypes, {
@@ -306,20 +290,23 @@ foreach my $itemtype ( Koha::ItemTypes->search ) {
     };
 }
 
-$mss = Koha::MarcSubfieldStructures->search({ frameworkcode => '', kohafield => 'items.ccode', authorised_value => [ -and => {'!=' => undef }, {'!=' => ''}] });
-my $ccode_avcode = $mss->count ? $mss->next->authorised_value : 'CCODE';
-my $ccodes = GetAuthorisedValues($ccode_avcode);
-my @ccodes;
-foreach my $ccode (@$ccodes) {
-    push @ccodes, {
-        value => $ccode->{authorised_value},
-        label => $ccode->{lib},
+my @ccodes = Koha::AuthorisedValues->get_descriptions_by_koha_field({ kohafield => 'items.ccode' });
+foreach my $ccode (@ccodes) {
+    $ccode->{value} = $ccode->{authorised_value},
+    $ccode->{label} = $ccode->{lib},
+}
+
+my @itemlosts;
+foreach my $value (@$itemlost_values) {
+    push @itemlosts, {
+        value => $value->{authorised_value},
+        label => $value->{lib},
     };
 }
 
-my @notforloans;
-foreach my $value (@$notforloan_values) {
-    push @notforloans, {
+my @withdrawns;
+foreach my $value (@$withdrawn_values) {
+    push @withdrawns, {
         value => $value->{authorised_value},
         label => $value->{lib},
     };
@@ -337,10 +324,10 @@ foreach my $field (@items_search_fields) {
 $template->param(
     branches => \@branches,
     homebranches => \@homebranches,
-    locations => \@locations,
     itemtypes => \@itemtypes,
     ccodes => \@ccodes,
-    notforloans => \@notforloans,
+    itemlosts => \@itemlosts,
+    withdrawns => \@withdrawns,
     items_search_fields => \@items_search_fields,
     authorised_values_json => to_json($authorised_values),
 );

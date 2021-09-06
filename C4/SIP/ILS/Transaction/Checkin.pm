@@ -1,4 +1,4 @@
-#
+
 # An object to handle checkin status
 #
 
@@ -12,10 +12,12 @@ use strict;
 use C4::SIP::ILS::Transaction;
 
 use C4::Circulation;
-use C4::Reserves qw( ModReserveAffect );
-use C4::Items qw( ModItemTransfer );
 use C4::Debug;
 use Sys::Syslog qw(syslog);
+use C4::Items qw( ModItemTransfer );
+use C4::Reserves qw( ModReserveAffect );
+use Koha::DateUtils qw( dt_from_string );
+use Koha::Items;
 
 use parent qw(C4::SIP::ILS::Transaction);
 
@@ -48,44 +50,64 @@ sub do_checkin {
     my $self = shift;
     my $branch = shift;
     my $return_date = shift;
-    my $checked_in_ok = shift;
+    my $account = shift;
+
+    my $checked_in_ok     = $account->{checked_in_ok};
+    my $cv_triggers_alert = $account->{cv_triggers_alert};
+    my $holds_block_checkin  = $account->{holds_block_checkin};
+
     if (!$branch) {
         $branch = 'SIP2';
     }
     my $barcode = $self->{item}->id;
 
-    $return_date =   substr( $return_date, 0, 4 )
-                   . '-'
-                   . substr( $return_date, 4, 2 )
-                   . '-'
-                   . substr( $return_date, 6, 2 )
-                   . q{ }
-                   . substr( $return_date, 12, 2 )
-                   . ':'
-                   . substr( $return_date, 14, 2 )
-                   . ':'
-                   . substr( $return_date, 16, 2 );
+    if ( $return_date ) {
+        $return_date =   substr( $return_date, 0, 4 )
+                       . '-'
+                       . substr( $return_date, 4, 2 )
+                       . '-'
+                       . substr( $return_date, 6, 2 )
+                       . q{ }
+                       . substr( $return_date, 12, 2 )
+                       . ':'
+                       . substr( $return_date, 14, 2 )
+                       . ':'
+                       . substr( $return_date, 16, 2 );
+        $return_date = dt_from_string($return_date);
+    }
+
+    my ( $return, $messages, $issue, $borrower );
+
+    my $item = Koha::Items->find( { barcode => $barcode } );
+
+    my $human_required = 0;
+    if (   C4::Context->preference("CircConfirmItemParts")
+        && defined($item)
+        && $item->materials )
+    {
+        $human_required                   = 1;
+        $messages->{additional_materials} = 1;
+    }
+
+    my $checkin_blocked_by_holds = $holds_block_checkin && $item->biblio->holds->count;
 
     $debug and warn "do_checkin() calling AddReturn($barcode, $branch)";
-    my ($return, $messages, $issue, $borrower) = AddReturn($barcode, $branch, undef, undef, $return_date);
-    $self->alert(!$return);
-    # ignoring messages: IsPermanent, WasLost, WasTransfered
+    ( $return, $messages, $issue, $borrower ) =
+      AddReturn( $barcode, $branch, undef, $return_date )
+      unless $human_required || $checkin_blocked_by_holds;
+
+    if ( $checked_in_ok ) {
+        delete $messages->{ItemLocationUpdated};
+        delete $messages->{NotIssued};
+        delete $messages->{LocalUse};
+        $return = 1 unless keys %$messages;
+    }
 
     # biblionumber, biblioitemnumber, itemnumber
     # borrowernumber, reservedate, branchcode
     # cancellationdate, found, reservenotes, priority, timestamp
-
-    # We ignore an error if the item was not checked in and if the SIP account 
-    # parameter 'checked_in_ok' is set. That way, the device does not show an error 
-    # if a such a medium is going to be returned.
-    if ( $messages->{NotIssued} ) {
-        if ($checked_in_ok) {
-            $return = 1;
-        }
-        else {
-            $self->screen_msg("Item not checked out") unless $checked_in_ok;
-        }
-        syslog("LOG_DEBUG", "C4::SIP::ILS::Transaction::Checkin:do_checkin - item not checked out");
+    if ($messages->{additional_materials}) {
+        $self->alert_type('99');
     }
     if( $messages->{DataCorrupted} ) {
         $self->alert_type('98');
@@ -97,6 +119,9 @@ sub do_checkin {
     if ($messages->{withdrawn}) {
         $self->alert_type('99');
         syslog("LOG_DEBUG", "C4::SIP::ILS::Transaction::Checkin:do_checkin - item withdrawn");
+    }
+    if ($messages->{WasLost}) {
+        $self->alert_type('99') if C4::Context->preference("BlockReturnOfLostItems");
     }
     if ($messages->{Wrongbranch}) {
         # wrong branch is an error since the library disabled it 
@@ -118,34 +143,47 @@ sub do_checkin {
         syslog("LOG_DEBUG", "C4::SIP::ILS::Transaction::Checkin:do_checkin - needs transfer");
     }
     if ($messages->{WasTransfered}) { # set into transit so tell unit
-        $self->{item}->destination_loc($issue->item->homebranch);
+        $self->{item}->destination_loc($item->homebranch);
         $self->alert_type('04');            # send to other branch
         syslog("LOG_DEBUG", "C4::SIP::ILS::Transaction::Checkin:do_checkin - was transfered");
     }
-    if ($messages->{ResFound}) {
-        syslog("LOG_DEBUG", "C4::SIP::ILS::Transaction::Checkin:do_checkin - reservation found");
-        $self->hold($messages->{ResFound});
-        if ($branch eq $messages->{ResFound}->{branchcode}) {
+    if ($messages->{ResFound} || $checkin_blocked_by_holds ) {
+        if ($checkin_blocked_by_holds) {
+            $self->alert_type('99');
+            $return = 0;
+        } elsif ($branch eq $messages->{ResFound}->{branchcode}) {
+            $self->hold($messages->{ResFound});
             $self->alert_type('01');
             ModReserveAffect( $messages->{ResFound}->{itemnumber},
                 $messages->{ResFound}->{borrowernumber}, 0, $messages->{ResFound}->{reserve_id});
 
         } else {
+            $self->hold($messages->{ResFound});
             $self->alert_type('02');
-            ModReserveAffect( $messages->{ResFound}->{itemnumber},
+            ModReserveAffect( $item->itemnumber,
                 $messages->{ResFound}->{borrowernumber}, 1, $messages->{ResFound}->{reserve_id});
-            ModItemTransfer( $messages->{ResFound}->{itemnumber},
+            ModItemTransfer( $item->itemnumber,
                 $branch,
-                $messages->{ResFound}->{branchcode}
+                $messages->{ResFound}->{branchcode},
+                'Reserve',
             );
 
         }
         $self->{item}->hold_patron_id( $messages->{ResFound}->{borrowernumber} );
         $self->{item}->destination_loc( $messages->{ResFound}->{branchcode} );
     }
+    # ignoring messages: NotIssued, WasTransfered
 
-    $self->alert(1) if defined $self->alert_type;  # alert_type could be "00", hypothetically
+    if ($cv_triggers_alert) {
+        $self->alert( defined $self->alert_type ); # Overwrites existing alert value, should set to 0 if there is no alert type
+    }
+    else {
+        $self->alert( !$return || defined $self->alert_type );
+    }
+
     $self->ok($return);
+
+    return { messages => $messages };
 }
 
 sub resensitize {

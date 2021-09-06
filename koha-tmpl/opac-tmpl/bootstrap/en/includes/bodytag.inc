@@ -1,6 +1,8 @@
-[% classprop  = 'class="' %]
-[% IF LoginBranchcode.defined %]
-    [% classprop = classprop _ 'branch-' _ LoginBranchcode %]
+[% USE raw %]
+[% USE Branches %]
+[% SET classprop  = 'class="' %]
+[% IF Branches.GetLoggedInBranchcode %]
+    [% classprop = classprop _ 'branch-' _ Branches.GetLoggedInBranchcode %]
 [% ELSE %]
     [% classprop = classprop _ 'branch-default' %]
 [% END %]
@@ -10,6 +12,6 @@
 [% classprop = classprop _ '"' %]
 
 [% IF bodyid.defined %]
-    [% idprop = 'ID="' _ bodyid _ '" ' %]
+    [% SET idprop = 'ID="' _ bodyid _ '" ' %]
 [% END %]
-<body [%idprop%][% classprop %] >
+<body [%idprop|$raw%][%classprop|$raw%] >

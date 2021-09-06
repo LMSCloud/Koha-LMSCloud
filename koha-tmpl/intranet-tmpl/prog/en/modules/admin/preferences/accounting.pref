@@ -1,0 +1,43 @@
+Accounting:
+    Policy:
+        -
+            - pref: AccountAutoReconcile
+              choices:
+                  1: "Do"
+                  0: "Don't"
+            - reconcile patron balances automatically on each transaction adding debits or credits.
+        -
+            - pref: FinePaymentAutoPopup
+              choices:
+                  1: "Do"
+                  0: "Don't"
+            - automatically display a print dialog for a payment receipt when making a payment.
+        -
+            - pref: RoundFinesAtPayment
+              choices:
+                  1: Do
+                  0: "Don't"
+            - round fines to the nearest cent when collecting payments. Enabling this preference allows paying fines of partial cents which may not be visible in the interface.
+    Features:
+        -
+            - pref: UseCashRegisters
+              default: no
+              choices:
+                1: "Use"
+                0: "Don't use"
+            - " cash registers with the accounting system to track payments."
+        -
+            - pref: EnablePointOfSale
+              default: no
+              choices:
+                1: "Enable"
+                0: "Disable"
+            - ' the point of sale feature to allow anonymous transactions with the accounting system. (Requires <a href="/cgi-bin/koha/admin/preferences.pl?op=search&searchfield=UseCashRegisters">UseCashRegisters</a>)'
+        -
+            - pref: AutoCreditNumber
+              choices:
+                '': 'Do not automatically generate credit numbers'
+                annual: 'Automatically generate credit numbers in the form <year>-0001'
+                branchyyyymmincr: 'Automatically generate credit numbers in the form <branchcode>yyyymm0001'
+                incremental: 'Automatically generate credit numbers in the form 1, 2, 3'
+            - Automatic generation also has to be enabled for each credit type (<a href="/cgi-bin/koha/admin/credit_types.pl">Configure credit types</a>)

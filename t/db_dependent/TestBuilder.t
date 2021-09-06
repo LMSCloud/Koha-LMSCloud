@@ -19,7 +19,9 @@
 
 use Modern::Perl;
 
-use Test::More tests => 13;
+use utf8;
+
+use Test::More tests => 14;
 use Test::Warn;
 use File::Basename qw(dirname);
 
@@ -33,8 +35,6 @@ BEGIN {
 our $schema = Koha::Database->new->schema;
 $schema->storage->txn_begin;
 our $builder;
-
-$schema->resultset('DefaultCircRule')->delete; # Is a singleton table
 
 subtest 'Start with some trivial tests' => sub {
     plan tests => 7;
@@ -341,46 +341,53 @@ subtest 'Date handling' => sub {
 };
 
 subtest 'Default values' => sub {
-    plan tests => 2;
+    plan tests => 3;
+
     $builder = t::lib::TestBuilder->new;
     my $item = $builder->build( { source => 'Item' } );
     is( $item->{more_subfields_xml}, undef, 'This xml field should be undef' );
     $item = $builder->build( { source => 'Item', value => { more_subfields_xml => 'some xml' } } );
     is( $item->{more_subfields_xml}, 'some xml', 'Default should not overwrite assigned value' );
+
+    subtest 'generated dynamically (coderef)' => sub {
+        plan tests => 2;
+        my $patron = $builder->build_object({ class => 'Koha::Patrons' });
+        like( $patron->category->category_type, qr{^(A|C|S|I|P|)$}, );
+
+        my $patron_category_X = $builder->build_object({ class => 'Koha::Patron::Categories', value => { category_type => 'X' } });
+        $patron = $builder->build_object({ class => 'Koha::Patrons', value => {categorycode => $patron_category_X->categorycode} });
+        is( $patron->category->category_type, 'X', );
+    };
 };
 
 subtest 'build_object() tests' => sub {
 
-    plan tests => 6;
+    plan tests => 5;
 
     $builder = t::lib::TestBuilder->new();
 
+    my $branchcode = $builder->build( { source => 'Branch' } )->{branchcode};
     my $categorycode = $builder->build( { source => 'Category' } )->{categorycode};
     my $itemtype = $builder->build( { source => 'Itemtype' } )->{itemtype};
 
     my $issuing_rule = $builder->build_object(
-        {   class => 'Koha::IssuingRules',
+        {   class => 'Koha::CirculationRules',
             value => {
+                branchcode   => $branchcode,
                 categorycode => $categorycode,
                 itemtype     => $itemtype
             }
         }
     );
 
-    is( ref($issuing_rule), 'Koha::IssuingRule', 'Type is correct' );
+    is( ref($issuing_rule), 'Koha::CirculationRule', 'Type is correct' );
     is( $issuing_rule->categorycode,
         $categorycode, 'Category code correctly set' );
     is( $issuing_rule->itemtype, $itemtype, 'Item type correctly set' );
 
-    warning_is { $issuing_rule = $builder->build_object( {} ); }
-    { carped => 'Missing class param' },
-        'The class parameter is mandatory, raises a warning if absent';
-    is( $issuing_rule, undef,
-        'If the class parameter is missing, undef is returned' );
-
     subtest 'Test all classes' => sub {
         my $Koha_modules_dir = dirname(__FILE__) . '/../../Koha';
-        my @koha_object_based_modules = `/bin/grep -rl 'sub object_class' $Koha_modules_dir`;
+        my @koha_object_based_modules = `/bin/grep -rl -e '^sub object_class' $Koha_modules_dir`;
         my @source_in_failure;
         for my $module_filepath ( @koha_object_based_modules ) {
             chomp $module_filepath;
@@ -389,15 +396,42 @@ subtest 'build_object() tests' => sub {
             $module =~ s|^.*/(Koha.*)\.pm$|$1|;
             $module =~ s|/|::|g;
             next if $module eq 'Koha::Objects';
-            eval "require $module";;
+            eval "require $module";
             my $object = $builder->build_object( { class => $module } );
             is( ref($object), $module->object_class, "Testing $module" );
+            if ( ! grep {$module eq $_ } qw( Koha::Old::Patrons Koha::Statistics ) ) { # FIXME deletedborrowers and statistics do not have a PK
+                eval {$object->get_from_storage};
+                is( $@, '', "Module $module should have koha_object[s]_class method if needed" );
+            }
+
+            # Testing koha_object_class and koha_objects_class
+            my $object_class =  Koha::Object::_get_object_class($object->_result->result_class);
+            eval "require $object_class";
+            is( $@, '', "Module $object_class should be defined");
+            my $objects_class = Koha::Objects::_get_objects_class($object->_result->result_class);
+            eval "require $objects_class";
+            is( $@, '', "Module $objects_class should be defined");
         }
+    };
+
+    subtest 'test parameters' => sub {
+        plan tests => 3;
+
+        warning_is { $issuing_rule = $builder->build_object( {} ); }
+        { carped => 'Missing class param' },
+            'The class parameter is mandatory, raises a warning if absent';
+        is( $issuing_rule, undef,
+            'If the class parameter is missing, undef is returned' );
+
+        warnings_like {
+            $builder->build_object(
+                { class => 'Koha::Patrons', categorycode => 'foobar' } );
+        } qr{Unknown parameter\(s\): categorycode}, "Unknown parameter detected";
     };
 };
 
 subtest '->build parameter' => sub {
-    plan tests => 3;
+    plan tests => 4;
 
     # Test to make sure build() warns user of unknown parameters.
     warnings_are {
@@ -421,6 +455,25 @@ subtest '->build parameter' => sub {
             zource     => 'Branch', # Intentional spelling error
         })
     } qr/Source parameter not specified/, "Catch warning on missing source";
+
+    warnings_like {
+        $builder->build(
+            { source => 'Borrower', categorycode => 'foobar' } );
+    } qr{Unknown parameter\(s\): categorycode}, "Unkown parameter detected";
 };
 
 $schema->storage->txn_rollback;
+
+subtest 'build_sample_biblio() tests' => sub {
+
+    plan tests => 1;
+
+    $schema->storage->txn_begin;
+
+    warnings_are
+        { $builder->build_sample_biblio({ title => 'hell❤️' }); }
+        [],
+        "No encoding warnings!";
+
+    $schema->storage->txn_rollback;
+};

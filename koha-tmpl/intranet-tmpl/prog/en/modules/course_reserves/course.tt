@@ -1,7 +1,15 @@
 [% SET footerjs = 1 %]
 [% INCLUDE 'doc-head-open.inc' %]
-<title>Koha &rsaquo; Course reserves &rsaquo; [% IF course_name %] Edit [% course_name %] [% ELSE %] New course [% END %]</title>
+<title>[% IF course_name %] Edit [% course_name | html %] [% ELSE %] New course [% END %] &rsaquo; Course reserves &rsaquo; Koha</title>
 [% INCLUDE 'doc-head-close.inc' %]
+<style>
+    #course_instructors {
+        float: left;
+    }
+    .instructor_line {
+        padding: .3em;
+    }
+</style>
 </head>
 
 <body id="courses_course" class="course">
@@ -9,7 +17,21 @@
 [% INCLUDE 'header.inc' %]
 [% INCLUDE 'cat-search.inc' %]
 
-<div id="breadcrumbs"><a href="/cgi-bin/koha/mainpage.pl">Home</a> &rsaquo; <a href="/cgi-bin/koha/course_reserves/course-reserves.pl">Course reserves</a> &rsaquo; [% IF course_name %] Edit <i>[% course_name %]</i> [% ELSE %] New course [% END %]</div>
+<nav id="breadcrumbs" aria-label="Breadcrumb" class="breadcrumb">
+    <ol>
+        <li>
+            <a href="/cgi-bin/koha/mainpage.pl">Home</a>
+        </li>
+        <li>
+            <a href="/cgi-bin/koha/course_reserves/course-reserves.pl">Course reserves</a>
+        </li>
+        <li>
+            <a href="#" aria-current="page">
+                [% IF course_name %] Edit <em>[% course_name | html %]</em> [% ELSE %] New course [% END %]
+            </a>
+        </li>
+    </ol>
+</nav>
 
 [% IF ( departments ) %]
 
@@ -18,7 +40,7 @@
             <div class="col-md-8 col-md-offset-2">
 
             <form method="post" action="/cgi-bin/koha/course_reserves/mod_course.pl" class="validated">
-                [% IF course_id %]<input type="hidden" name="course_id" value="[% course_id %]" />[% END %]
+                [% IF course_id %]<input type="hidden" name="course_id" value="[% course_id | html %]" />[% END %]
                 <fieldset class="rows">
                     <legend>[% IF course_id %]Edit course[% ELSE %]Create course[% END %]</legend>
                     <ol>
@@ -29,9 +51,9 @@
 
                                 [% FOREACH d IN departments %]
                                     [% IF d.authorised_value == department %]
-                                        <option value="[% d.authorised_value %]" selected="selected">[% d.lib %]</option>
+                                        <option value="[% d.authorised_value | html %]" selected="selected">[% d.lib | html %]</option>
                                     [% ELSE %]
-                                        <option value="[% d.authorised_value %]">[% d.lib %]</option>
+                                        <option value="[% d.authorised_value | html %]">[% d.lib | html %]</option>
                                     [% END %]
                                 [% END %]
                             </select>
@@ -40,18 +62,18 @@
 
                         <li>
                             <label class="required" for="course_number">Course number:</label>
-                            <input id="course_number" name="course_number" type="text" value="[% course_number %]" required="required" class="required" />
+                            <input id="course_number" name="course_number" type="text" value="[% course_number | html %]" required="required" class="required" />
                             <span class="required">Required</span>
                         </li>
 
                         <li>
                             <label for="section">Section:</label>
-                            <input id="section" name="section" type="text" value="[% section %]"/>
+                            <input id="section" name="section" type="text" value="[% section | html %]"/>
                         </li>
 
                         <li>
                             <label class="required" for="course_name">Course name:</label>
-                            <input id="course_name" name="course_name" type="text" value="[% course_name %]" required="required" class="required" />
+                            <input id="course_name" name="course_name" type="text" value="[% course_name | html %]" required="required" class="required" />
                             <span class="required">Required</span>
                         </li>
 
@@ -63,9 +85,9 @@
 
                                     [% FOREACH t IN terms %]
                                         [% IF t.authorised_value == term %]
-                                            <option value="[% t.authorised_value %]" selected="selected">[% t.lib %]</option>
+                                            <option value="[% t.authorised_value | html %]" selected="selected">[% t.lib | html %]</option>
                                         [% ELSE %]
-                                            <option value="[% t.authorised_value %]">[% t.lib %]</option>
+                                            <option value="[% t.authorised_value | html %]">[% t.lib | html %]</option>
                                         [% END %]
                                     [% END %]
                                 </select>
@@ -78,29 +100,33 @@
                         <li>
                             <span class="label">Instructors:</span>
 
-                            <fieldset id="course_instructors">
-                                 <div id="instructors">[% FOREACH i IN instructors %]<div id="borrower_[% i.borrowernumber | html %]">[% i.surname | html %], [% i.firstname | html %] ( <a href="#" class="removeInstructor"> Remove </a> )
-                                             <input type='hidden' name='instructors' value='[% i.borrowernumber | html %]' /></div>[% END %]</div>
-                            </fieldset>
-
-                            <fieldset>
-                                <label for="find_instructor">Instructor search:</label>
-                                <input autocomplete="off" id="find_instructor" type="text" style="width:150px" class="noEnterSubmit"/>
+                            <div id="course_instructors">
+                                 <div id="instructors">
+                                    [% FOREACH i IN instructors %]
+                                        <div class="instructor_line" id="borrower_[% i.borrowernumber | html %]">[% i.surname | html %], [% i.firstname | html %] ( <a href="#" class="removeInstructor"><i class="fa fa-trash"></i> Remove </a> )
+                                             <input type='hidden' name='instructors' value='[% i.borrowernumber | html %]' />
+                                         </div>
+                                     [% END %]
+                                 </div>
+                                <p>
+                                    <label for="find_instructor">Instructor search:</label>
+                                    <input autocomplete="off" id="find_instructor" type="text" style="width:150px" class="noEnterSubmit"/>
+                                </p>
                                 <div id="find_instructor_container"></div>
-                            </fieldset>
+                            </div>
                         <li>
                             <label for="staff_note">Staff note:</label>
-                            <textarea name="staff_note" id="staff_note">[% staff_note %]</textarea>
+                            <textarea name="staff_note" id="staff_note">[% staff_note | html %]</textarea>
                         </li>
 
                         <li>
                             <label for="public_note">Public note:</label>
-                            <textarea name="public_note" id="public_note">[% public_note %]</textarea>
+                            <textarea name="public_note" id="public_note">[% public_note | html %]</textarea>
                         </li>
 
                         <li>
                             <label for="students_count">Number of students:</label>
-                            <input id="students_count" name="students_count" type="text" value="[% students_count %]" />
+                            <input id="students_count" name="students_count" type="text" value="[% students_count | html %]" />
                         </li>
 
                         <li>
@@ -118,7 +144,7 @@
                     <input type="submit" value="Save" class="submit" />
 
                     [% IF course_id %]
-                        <a href="/cgi-bin/koha/course_reserves/course-details.pl?course_id=[% course_id %]" class="cancel">Cancel</a>
+                        <a href="/cgi-bin/koha/course_reserves/course-details.pl?course_id=[% course_id | uri %]" class="cancel">Cancel</a>
                     [% ELSE %]
                         <a href="/cgi-bin/koha/course_reserves/course-reserves.pl" class="cancel">Cancel</a>
                     [% END %]
@@ -144,7 +170,7 @@
 
 [% IF ( departments ) %]
     [% MACRO jsinclude BLOCK %]
-        <script type="text/javascript">
+        <script>
             $(document).ready(function(){
                 $( "#find_instructor" ).autocomplete({
                     source: "/cgi-bin/koha/circ/ysearch.pl",
@@ -157,7 +183,23 @@
                 .data( "ui-autocomplete" )._renderItem = function( ul, item ) {
                     return $( "<li></li>" )
                     .data( "ui-autocomplete-item", item )
-                    .append( "<a>" + item.surname + ", " + item.firstname + " (" + item.cardnumber + ") <small>" + item.address + " " + item.city + " " + item.zipcode + " " + item.country + "</small></a>" )
+                    .append(
+                        "<a>"
+                            + ( item.surname ? item.surname.escapeHtml() : "" )
+                            + ", "
+                            + ( item.firstname ? item.firstname.escapeHtml() : "" )
+                            + " (" + ( item.cardnumber ? item.cardnumber.escapeHtml() : "" ) + ")"
+                            + " "
+                            + "<small>"
+                                + ( item.address ? item.address.escapeHtml() : "" )
+                                + " "
+                                + ( item.city ? item.city.escapeHtml() : "" )
+                                + " "
+                                + ( item.zipcode ? item.zipcode.escapeHtml() : "" )
+                                + " "
+                                + ( item.country ? item.country.escapeHtml() : "" )
+                            + "</small>"
+                        + "</a>" )
                     .appendTo( ul );
                 };
 
@@ -174,7 +216,7 @@
             });
 
             function AddInstructor( name, borrowernumber ) {
-                div = "<div id='borrower_" + borrowernumber + "'>" + name + " ( <a href='#' class='removeInstructor'> " + _("Remove")+ " </a> ) <input type='hidden' name='instructors' value='" + borrowernumber + "' /></div>";
+                div = "<div class='instructor_line' id='borrower_" + borrowernumber + "'>" + ( name ? name.escapeHtml() : "" ) + " ( <a href='#' class='removeInstructor'><i class='fa fa-trash'></i> " + _("Remove")+ " </a> ) <input type='hidden' name='instructors' value='" + borrowernumber + "' /></div>";
                 $('#instructors').append( div );
 
                 $('#find_instructor').val('').focus();

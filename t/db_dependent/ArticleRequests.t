@@ -19,16 +19,18 @@ use Modern::Perl;
 
 use POSIX qw(strftime);
 
-use Test::More tests => 55;
+use Test::More tests => 54;
 
 use t::lib::TestBuilder;
+use t::lib::Mocks;
 
 use Koha::Database;
 use Koha::Biblio;
 use Koha::Notice::Messages;
 use Koha::Patron;
-
-use t::lib::TestBuilder;
+use Koha::Library::Group;
+use Koha::CirculationRules;
+use Koha::Caches;
 
 BEGIN {
     use_ok('Koha::ArticleRequest');
@@ -39,31 +41,14 @@ BEGIN {
 my $schema = Koha::Database->new()->schema();
 $schema->storage->txn_begin();
 my $builder = t::lib::TestBuilder->new;
+our $cache = Koha::Caches->get_instance;
 
 my $dbh = C4::Context->dbh;
-$dbh->{RaiseError} = 1;
 
-$dbh->do("DELETE FROM issuingrules");
+$dbh->do("DELETE FROM circulation_rules");
 
-my $biblio = Koha::Biblio->new()->store();
-ok( $biblio->id, 'Koha::Biblio created' );
-
-my $biblioitem = $schema->resultset('Biblioitem')->new(
-    {
-        biblionumber => $biblio->id
-    }
-)->insert();
-ok( $biblioitem->id, 'biblioitem created' );
-
-my $itype = $builder->build({ source => 'Itemtype' });
-my $item = Koha::Item->new(
-    {
-        biblionumber     => $biblio->id,
-        biblioitemnumber => $biblioitem->id,
-        itype => $itype->{itemtype},
-    }
-)->store();
-ok( $item->id, 'Koha::Item created' );
+my $item = $builder->build_sample_item;
+my $biblio = $item->biblio;
 
 my $branch   = $builder->build({ source => 'Branch' });
 my $category = $builder->build({ source => 'Category' });
@@ -84,8 +69,8 @@ my $article_request_title = 'an article request title';
 my $article_request = Koha::ArticleRequest->new(
     {
         borrowernumber => $patron->id,
-        biblionumber   => $biblio->id,
-        itemnumber     => $item->id,
+        biblionumber   => $item->biblionumber,
+        itemnumber     => $item->itemnumber,
         title          => $article_request_title,
     }
 )->store();
@@ -98,7 +83,8 @@ like( $notify_message->content, qr{Title: $article_request_title}, 'Values from 
 $article_request = Koha::ArticleRequests->find( $article_request->id );
 ok( $article_request->id, 'Koha::ArticleRequest created' );
 is( $article_request->status, Koha::ArticleRequest::Status::Pending, 'New article request has status of Open' );
-is( $article_request->updated_on, undef, 'New article request has not an updated_on date set yet' );
+isnt( $article_request->created_on, undef, 'New article request has created_on date set' );
+isnt( $article_request->updated_on, undef, 'New article request has updated_on date set' );
 
 # process
 Koha::Notice::Messages->delete;
@@ -169,33 +155,60 @@ $article_request->complete();
 $article_request->cancel();
 is( $biblio->article_requests_finished()->count(), 1, 'Canceled request not returned for article_requests_finished' );
 
-my $rule;
-$rule = $schema->resultset('Issuingrule')
-  ->new( { categorycode => '*', itemtype => '*', branchcode => '*', article_requests => 'yes' } )->insert();
+my $rule = Koha::CirculationRules->set_rule(
+    {
+        categorycode => undef,
+        itemtype     => undef,
+        branchcode   => undef,
+        rule_name    => 'article_requests',
+        rule_value   => 'yes',
+    }
+);
 ok( $biblio->can_article_request($patron), 'Record is requestable with rule type yes' );
 is( $biblio->article_request_type($patron), 'yes', 'Biblio article request type is yes' );
 ok( $item->can_article_request($patron),   'Item is requestable with rule type yes' );
 is( $item->article_request_type($patron), 'yes', 'Item article request type is yes' );
 $rule->delete();
 
-$rule = $schema->resultset('Issuingrule')
-  ->new( { categorycode => '*', itemtype => '*', branchcode => '*', article_requests => 'bib_only' } )->insert();
+$rule = Koha::CirculationRules->set_rule(
+    {
+        categorycode => undef,
+        itemtype     => undef,
+        branchcode   => undef,
+        rule_name    => 'article_requests',
+        rule_value   => 'bib_only',
+    }
+);
 ok( $biblio->can_article_request($patron), 'Record is requestable with rule type bib_only' );
 is( $biblio->article_request_type($patron), 'bib_only', 'Biblio article request type is bib_only' );
 ok( !$item->can_article_request($patron),  'Item is not requestable with rule type bib_only' );
 is( $item->article_request_type($patron), 'bib_only', 'Item article request type is bib_only' );
 $rule->delete();
 
-$rule = $schema->resultset('Issuingrule')
-  ->new( { categorycode => '*', itemtype => '*', branchcode => '*', article_requests => 'item_only' } )->insert();
+$rule = Koha::CirculationRules->set_rule(
+    {
+        categorycode => undef,
+        itemtype     => undef,
+        branchcode   => undef,
+        rule_name    => 'article_requests',
+        rule_value   => 'item_only',
+    }
+);
 ok( $biblio->can_article_request($patron), 'Record is requestable with rule type item_only' );
 is( $biblio->article_request_type($patron), 'item_only', 'Biblio article request type is item_only' );
 ok( $item->can_article_request($patron),   'Item is not requestable with rule type item_only' );
 is( $item->article_request_type($patron), 'item_only', 'Item article request type is item_only' );
 $rule->delete();
 
-$rule = $schema->resultset('Issuingrule')
-  ->new( { categorycode => '*', itemtype => '*', branchcode => '*', article_requests => 'no' } )->insert();
+$rule = Koha::CirculationRules->set_rule(
+    {
+        categorycode => undef,
+        itemtype     => undef,
+        branchcode   => undef,
+        rule_name    => 'article_requests',
+        rule_value   => 'no',
+    }
+);
 ok( !$biblio->can_article_request($patron), 'Record is requestable with rule type no' );
 is( $biblio->article_request_type($patron), 'no', 'Biblio article request type is no' );
 ok( !$item->can_article_request($patron),   'Item is not requestable with rule type no' );
@@ -204,28 +217,39 @@ $rule->delete();
 
 subtest 'search_limited' => sub {
     plan tests => 2;
-    C4::Context->_new_userenv('xxx');
     my $nb_article_requests = Koha::ArticleRequests->count;
 
     my $group_1 = Koha::Library::Group->new( { title => 'TEST Group 1' } )->store;
     my $group_2 = Koha::Library::Group->new( { title => 'TEST Group 2' } )->store;
     Koha::Library::Group->new({ parent_id => $group_1->id,  branchcode => $patron->branchcode })->store();
     Koha::Library::Group->new({ parent_id => $group_2->id,  branchcode => $patron_2->branchcode })->store();
-    set_logged_in_user( $patron ); # Is superlibrarian
+    t::lib::Mocks::mock_userenv( { patron => $patron } ); # Is superlibrarian
     is( Koha::ArticleRequests->search_limited->count, $nb_article_requests, 'Koha::ArticleRequests->search_limited should return all article requests for superlibrarian' );
-    set_logged_in_user( $patron_2 ); # Is restricted
+    t::lib::Mocks::mock_userenv( { patron => $patron_2 } ); # Is restricted
     is( Koha::ArticleRequests->search_limited->count, 0, 'Koha::ArticleRequests->search_limited should not return all article requests for restricted patron' );
 };
 
-$schema->storage->txn_rollback();
+subtest 'may_article_request' => sub {
+    plan tests => 4;
 
-sub set_logged_in_user {
-    my ($patron) = @_;
-    C4::Context->set_userenv(
-        $patron->borrowernumber, $patron->userid,
-        $patron->cardnumber,     'firstname',
-        'surname',               $patron->library->branchcode,
-        'Midway Public Library', $patron->flags,
-        '',                      ''
-    );
-}
+    # mocking
+    t::lib::Mocks::mock_preference('ArticleRequests', 1);
+    t::lib::Mocks::mock_preference('ArticleRequestsLinkControl', 'calc');
+    $cache->set_in_cache( Koha::CirculationRules::GUESSED_ITEMTYPES_KEY, {
+        '*'  => { 'CR' => 1 },
+        'S'  => { '*'  => 1 },
+        'PT' => { 'BK' => 1 },
+    });
+
+    my $itemtype = Koha::ItemTypes->find('CR') // Koha::ItemType->new({ itemtype => 'CR' })->store;
+    is( $itemtype->may_article_request, 1, 'SER/* should be true' );
+    is( $itemtype->may_article_request({ categorycode => 'S' }), 1, 'SER/S should be true' );
+    is( $itemtype->may_article_request({ categorycode => 'PT' }), '', 'SER/PT should be false' );
+    t::lib::Mocks::mock_preference('ArticleRequestsLinkControl', 'always');
+    is( $itemtype->may_article_request({ categorycode => 'PT' }), '1', 'Result should be true when LinkControl is set to always' );
+
+    # Cleanup
+    $cache->clear_from_cache( Koha::CirculationRules::GUESSED_ITEMTYPES_KEY );
+};
+
+$schema->storage->txn_rollback();

@@ -1,11 +1,159 @@
 Patrons:
     General:
      -
+         - pref: CheckPrevCheckout
+           default: no
+           choices:
+               hardyes: "Do"
+               softyes: "Unless overridden by patron category, do"
+               softno: "Unless overridden by patron category, do not"
+               hardno: "Do not"
+         - " check borrower checkout history to see if the current item has been checked out before."
+     -
+         - "Trigger a warning if the current item has been checked out no longer than"
+         - pref: CheckPrevCheckoutDelay
+           default: 0
+         - "days ago."
+         - "Requires <a href='/cgi-bin/koha/admin/preferences.pl?op=search&searchfield=CheckPrevCheckout'>CheckPrevCheckout</a> to be enabled. There is no time limit if 0 or empty."
+     -
+         - pref: ExtendedPatronAttributes
+           choices:
+               1: Enable
+               0: "Don't enable"
+         - searching, editing and display of custom attributes on patrons.
+     -
+         - pref: intranetreadinghistory
+           choices:
+               1: "Allow"
+               0: "Don't allow"
+         - "staff to access a patron's checkout and hold history (checkout history is still stored, regardless of staff being allowed access or not)."
+     -
+         - The late fine for all checkouts will only go up to
+         - pref: MaxFine
+           class: currency
+         - '[% local_currency %].'
+         - Empty value means no limit. Single item caps are specified in the circulation rules matrix.
+     -
+         - pref: patronimages
+           choices:
+               1: Allow
+               0: "Don't allow"
+         - images to be uploaded and shown for patrons on the staff interface.
+     -
+         - By default, show
+         - pref: PatronsPerPage
+           class: integer
+         - results per page in the staff interface.
+     -
+         - "Comma separated list defining the default fields to be used during a patron search using the \"standard\" option:"
+         - pref: DefaultPatronSearchFields
+           class: multi
+         - "If empty Koha will default to \"surname,firstname,othernames,cardnumber,userid\". Additional fields added to this preference will be added as search options in the dropdown menu on the patron search page."
+     -
+         - "Show the following fields from the items database table as columns on the statistics tab on the patron record: "
+         - pref: StatisticsFields
+           type: modalselect
+           source: items
+         - "If empty, defaults to: location|itype|ccode"
+     -
+         - pref: EnableBorrowerFiles
+           choices:
+               1: Do
+               0: "Don't"
+         - enable the ability to upload and attach arbitrary files to a borrower record.
+     -
+         - pref: useDischarge
+           choices:
+               1: Allow
+               0: "Don't allow"
+         - librarians to discharge borrowers and borrowers to request a discharge.
+     -
+         - pref: FeeOnChangePatronCategory
+           choices:
+               1: Do
+               0: "Don't"
+         - charge a fee when a patron changes to a category with an enrollment fee.
+     -
+         - pref: TrackLastPatronActivity
+           choices:
+               1: Do
+               0: "Don't"
+         - track last patron activity.
+         - Every time a patron will connect, the borrowers.lastseen will be updated with the current time.
+     -
+         - pref: AutoApprovePatronProfileSettings
+           choices:
+               1: Enable
+               0: Disable
+         - "automatic approval of patron detail changes from the OPAC."
+         - Requires <a href="/cgi-bin/koha/admin/preferences.pl?op=search&searchfield=OPACPatronDetails">OPACPatronDetails</a> to be activated.
+     -
+         - pref: ProtectSuperlibrarianPrivileges
+           choices:
+               1: Allow only superlibrarians
+               0: Allow all permitted users
+         - "to access/change superlibrarian privileges."
+         - "<br><strong>NOTE:</strong> A permitted user needs to have the 'permissions' flag (if no superlibrarian)."
+     -
+         - pref: AllowPatronToControlAutorenewal
+           choices:
+               1: Allow patrons
+               0: Allow only staff
+         - "to allow/disallow auto-renewal for account. If allowed a patron will be able to update their own account to allow/disallow auto-renewal."
+     -
+         - Lock expired patrons after
+         - pref: LockExpiredDelay
+           class: integer
+         - days. Leave empty to disable this behavior.
+         - "<br><strong>NOTE:</strong> This system preference requires the misc/cronjobs/cleanup_database.pl cronjob. Ask your system administrator to schedule it."
+
+    Membership expiry:
+     -
+         - When renewing borrowers, base the new expiry date on
+         - pref: BorrowerRenewalPeriodBase
+           choices:
+               now: current date.
+               dateexpiry: current membership expiry date.
+               combination: the latter of the current and expiry date.
+     -
+         - Show a notice if the patron is about to expire or has expired
+         - pref: NotifyBorrowerDeparture
+           class: integer
+         - days beforehand.
+     -
+         - Send an account expiration notice when a patron's card will expire in
+         - pref: MembershipExpiryDaysNotice
+           class: integer
+         - days.
+         - "<br><strong>NOTE:</strong> This system preference requires the <code>misc/cronjobs/membership_expiry.pl</code> cronjob. Ask your system administrator to schedule it."
+    Notices and notifications:
+     -
+         - pref: EnhancedMessagingPreferences
+           choices:
+               1: Allow
+               0: "Don't allow"
+         - "staff to manage which notices patrons will receive and when they will receive them."
+         - '<br><strong>NOTE:</strong> This only applies to courtesy notices. To manage if patrons have also access to these settings, use <a href="/cgi-bin/koha/admin/preferences.pl?op=search&searchfield=EnhancedMessagingPreferencesOPAC">EnhancedMessagingPreferencesOPAC</a>.'
+         - "<br><strong>NOTE:</strong> This system preference requires the <code>misc/cronjobs/process_message_queue.pl</code> and the <code>misc/cronjobs/advance_notices.pl</code> cronjob. Ask your system administrator to schedule them."
+     -
+         - pref: EnhancedMessagingPreferencesOPAC
+           choices:
+               1: Show
+               0: "Don't show"
+         - "patron messaging setting on the OPAC."
+         - '<br><strong>NOTE:</strong> <a href="/cgi-bin/koha/admin/preferences.pl?op=search&searchfield=EnhancedMessagingPreferences">EnhancedMessagingPreferences</a> must be enabled.'
+     -
          - pref: AutoEmailOpacUser
            choices:
-               yes: Send
-               no: "Don't send"
+               1: Send
+               0: "Don't send"
          - an email to newly created patrons with their account details.
+     -
+         - pref: UseEmailReceipts
+           choices:
+               1: Send
+               0: "Don't send"
+         - email receipts to patrons for payments and writeoffs.
      -
          - "Use"
          - pref: AutoEmailPrimaryAddress
@@ -18,108 +166,19 @@ Patrons:
                "OFF": first valid
          - "patron email address for sending out emails."
      -
-         - pref: autoMemberNum
+         - pref: TalkingTechItivaPhoneNotification
            choices:
-               yes: Do
-               no: "Don't"
-         - default the card number field on the patron addition screen to the next available card number (for example, if the largest currently used card number is 26345000012941, then this field will default to 26345000012942).
-         - "NOTE: If autoMemberNum is enabled, the system preference BorrowerMandatoryField must not contain the field cardnumber."
+               1: Enable
+               0: Disable
+         - patron phone notifications using Talking Tech i-tiva (overdues, predues and holds notices currently supported).
+         - <br/><i class="fa fa-exclamation-triangle"></i> If <a href="/cgi-bin/koha/admin/preferences.pl?op=search&searchfield=TalkingTechItivaPhoneNotification">TalkingTechItivaPhoneNotification</a> is enabled, <a href="/cgi-bin/koha/admin/preferences.pl?op=search&searchfield=PhoneNotification">PhoneNotification</a> should be disabled.
      -
-         - "The following <a href='http://schema.koha-community.org/__VERSION__/tables/borrowers.html' target='blank'>database columns</a> must be filled in on the patron entry screen:"
-         - pref: BorrowerMandatoryField
-           class: multi
-         - (separate columns with |)
-         - "NOTE: If autoMemberNum is enabled, the system preference BorrowerMandatoryField must not contain the field cardnumber."
-     -
-         - "The following <a href='http://schema.koha-community.org/__VERSION__/tables/borrowers.html' target='blank'>database columns</a> will not appear on the patron entry screen:"
-         - pref: BorrowerUnwantedField
-           class: multi
-         - (separate columns with |)
-     -
-         - "Guarantors can be the following of those they guarantee:"
-         - pref: borrowerRelationship
-           class: multi
-         - (input multiple choices separated by |). Leave empty to deactivate
-     -
-         - "Borrowers can have the following titles:"
-         - pref: BorrowersTitles
-           class: multi
-         - (separate multiple choices with |)
-     -
-         - pref: CheckPrevCheckout
-           default: no
+         - pref: PhoneNotification
            choices:
-               hardyes: "Do"
-               softyes: "Unless overridden, do"
-               softno: "Unless overridden, do not"
-               hardno: "Do not"
-         - " check borrower checkout history to see if the current item has been checked out before."
-     -
-         - pref: EnhancedMessagingPreferences
-           choices:
-               yes: Allow
-               no: "Don't allow"
-         - "Staff to manage which notices patrons will receive and when they will receive them. Note: this only applies to courtesy notices. To manage if patrons have also access to these settings, use EnhancedMessagingPreferencesOPAC."
-     -
-         - pref: ExtendedPatronAttributes
-           choices:
-               yes: Enable
-               no: "Don't enable"
-         - searching, editing and display of custom attributes on patrons.
-     -
-         - pref: intranetreadinghistory
-           choices:
-               yes: "Allow"
-               no: "Don't allow"
-         - "staff to access a patron's checkout and hold history (reading history is still stored, regardless of staff being allowed access or not)."
-     -
-         - The late fine for all checkouts will only go up to
-         - pref: MaxFine
-           class: currency
-         - '[% local_currency %].'
-         - Empty value means no limit. Single item caps are specified in the circulation rules matrix.
-     -
-         - Login passwords for staff and patrons must be at least
-         - pref: minPasswordLength
-           class: integer
-         - characters long.
-     -
-         - pref: RequireStrongPassword
-           choices:
-               yes: "Require"
-               no: "Don't require"
-         - a strong password for staff and patrons
-         - (Must contain at least one digit, one lowercase and one uppercase).
-     -
-         - Show a notice if the patron is about to expire or has expired
-         - pref: NotifyBorrowerDeparture
-           class: integer
-         - days beforehand.
-     -
-         - Send an account expiration notice when a patron's card will expire in
-         - pref: MembershipExpiryDaysNotice
-           class: integer
-         - days.
-     -
-         - pref: patronimages
-           choices:
-               yes: Allow
-               no: "Don't allow"
-         - images to be uploaded and shown for patrons on the staff client.
-     -
-         - By default, show
-         - pref: PatronsPerPage
-           class: integer
-         - results per page in the staff client.
-     -
-         - pref: DefaultPatronSearchFields
-           class: multi
-         - "Comma separated list defining the default fields to be used during a patron search"
-     -
-         - pref: PatronQuickAddFields
-           class: multi
-         - (separate columns with |)
-         - "add these fields to the patron quick add form when entering a new patron. Displays only mandatory fields and fields specified here. If applicable the guarantor form will be shown as well, individual fields in that form will be ignored."
+               1: Enable
+               0: Disable
+         - patron phone notifications generation. A plugin will be required to process the phone notifications.
+         - <br/><i class="fa fa-exclamation-triangle"></i> If <a href="/cgi-bin/koha/admin/preferences.pl?op=search&searchfield=PhoneNotification">PhoneNotification</a> is enabled, <a href="/cgi-bin/koha/admin/preferences.pl?op=search&searchfield=TalkingTechItivaPhoneNotification">TalkingTechItivaPhoneNotification</a> should be disabled.
      -
          - "Use the SMS::Send::"
          - pref: SMSSendDriver
@@ -130,107 +189,220 @@ Patrons:
          - pref: SMSSendUsername
          - "and a password"
          - pref: SMSSendPassword
+         - ". Override from address with"
+         - pref: EmailSMSSendDriverFromAddress
+           class: email
+         - "for emails sent using \"Email\" send driver."
      -
-         - pref: uppercasesurnames
+         - pref: FallbackToSMSIfNoEmail
            choices:
-               yes: Do
-               no: "Don't"
-         - store and display surnames in upper case.
+               1: Enable
+               0: Disable
+         - sending purchase suggestion messages by SMS if no patron email is defined.
      -
-         - When renewing borrowers, base the new expiry date on
-         - pref: BorrowerRenewalPeriodBase
+         - "Send automatic renewal notices: "
+         - pref: AutoRenewalNotices
            choices:
-               now: current date.
-               dateexpiry: current membership expiry date.
-               combination: the latter of the current and expiry date.
+               never: never
+               preferences: according to patron messaging preferences
+               cron: (Deprecated) according to --send-notices cron switch
+    Patron forms:
      -
-         - pref: TalkingTechItivaPhoneNotification
-           choices:
-               yes: Enable
-               no: Disable
-         - patron phone notifications using Talking Tech i-tiva (overdues, predues and holds notices currently supported).
+         - "The following <a href='http://schema.koha-community.org/__VERSION__/tables/borrowers.html' target='blank'>database columns</a> must be filled in on the patron entry screen:"
+         - pref: BorrowerMandatoryField
+           type: modalselect
+           source: borrowers
+         - '<strong>NOTE:</strong> If <a href="/cgi-bin/koha/admin/preferences.pl?op=search&searchfield=autoMemberNum">autoMemberNum</a> is enabled, the system preference <a href="/cgi-bin/koha/admin/preferences.pl?op=search&searchfield=BorrowerMandatoryField">BorrowerMandatoryField</a> must not contain the field <code>cardnumber</code>.'
      -
-         - "Show the following fields from the items database table as columns on the statistics tab on the patron record: "
-         - pref: StatisticsFields
+         - "The following <a href='http://schema.koha-community.org/__VERSION__/tables/borrowers.html' target='blank'>database columns</a> will not appear on the patron entry screen:"
+         - pref: BorrowerUnwantedField
+           type: modalselect
+           source: borrowers
+           exclusions: branchcode
+     -
+         - "Borrowers can have the following titles:"
+         - pref: BorrowersTitles
            class: multi
-         - "(separate fields with |, without trailing |). Default if empty: location|itype|ccode"
+         - (separate multiple choices with |)
      -
-         - pref: EnableBorrowerFiles
+         - pref: autoMemberNum
            choices:
-               yes: Do
-               no: "Don't"
-         - enable the ability to upload and attach arbitrary files to a borrower record.
-     -
-         - pref: AllowStaffToSetCheckoutsVisibilityForGuarantor
-           choices:
-               yes: Allow
-               no: "Don't allow"
-         - staff to set the ability for a patron's checkouts to be viewed by linked patrons in the OPAC.
+               1: Do
+               0: "Don't"
+         - default the card number field on the patron addition screen to the next available card number (for example, if the largest currently used card number is 26345000012941, then this field will default to 26345000012942).
+         - '<strong>NOTE:</strong> If <a href="/cgi-bin/koha/admin/preferences.pl?op=search&searchfield=autoMemberNum">autoMemberNum</a> is enabled, the system preference <a href="/cgi-bin/koha/admin/preferences.pl?op=search&searchfield=BorrowerMandatoryField">BorrowerMandatoryField</a> must not contain the field <code>cardnumber</code>.'
      -
          - Card numbers for patrons must be
          - pref: CardnumberLength
          - "characters long. The length can be a single number to specify an exact length, a range separated by a comma (i.e., 'Min,Max'), or a maximum with no minimum (i.e., ',Max')."
-         - "If 'cardnumber' is included in the BorrowerMandatoryField list, the minimum length, if not specified here, defaults to one. Maximum cannot be bigger than the database field size of 32."
+         - 'If <code>cardnumber</code> is included in the <a href="/cgi-bin/koha/admin/preferences.pl?op=search&searchfield=BorrowerMandatoryField">BorrowerMandatoryField</a> list, the minimum length, if not specified here, defaults to one. Maximum cannot be bigger than the database field size of 32.'
      -
-         - pref: useDischarge
+         - pref: uppercasesurnames
            choices:
-               yes: Allow
-               no: "Don't allow"
-         - librarians to discharge borrowers and borrowers to request a discharge.
+               1: Do
+               0: "Don't"
+         - store and display surnames in upper case.
      -
-         - pref: FeeOnChangePatronCategory
-           choices:
-               yes: Do
-               no: "Don't"
-         - charge a fee when a patron changes to a category with an enrollment fee.
+         - "The following <a href='http://schema.koha-community.org/__VERSION__/tables/borrowers.html' target='blank'>database columns</a>:"
+         - pref: PatronQuickAddFields
+           type: modalselect
+           source: borrowers
+         - "will be added to the patron quick add form when entering a new patron. Displays only mandatory fields and fields specified here. If applicable the guarantor form will be shown as well, individual fields in that form will be ignored."
      -
-         - pref: EnhancedMessagingPreferencesOPAC
+         - "When adding new patrons or editing existing patrons, collapse the following fields from the full form (can still be expanded later):"
+         - pref: CollapseFieldsPatronAddForm
+           multiple:
+               identity: "Patron identity"
+               guarantor: "Guarantor information"
+               primary_address: "Main address"
+               primary_contact: "Contact information"
+               alt_address: "Alternate address"
+               alt_contact: "Alternate contact"
+               lib_mgmt: "Library management"
+               lib_setup: "Library setup"
+               login: "OPAC/Staff interface login"
+               flags: "Patron account flags (existing patrons)"
+               debarments: "Patron restrictions (existing patrons)"
+               housebound: "Housebound roles"
+               additional: "Additional attributes and identifiers"
+               messaging: "Patron messaging preferences"
+     -
+         - "The following <a href='http://schema.koha-community.org/__VERSION__/tables/borrowers.html' target='blank'>database columns</a>:"
+         - pref: PatronDuplicateMatchingAddFields
+           type: modalselect
+           source: borrowers
+         - "will be used to detect possible duplicates when adding a new patron."
+    Patron relationships:
+     -
+         - "Guarantors can be the following of those they guarantee:"
+         - pref: borrowerRelationship
+           class: multi
+         - (input multiple choices separated by |). Leave empty to deactivate.
+     -
+         - "When adding a guarantee to a guarantor patron fill the following fields in the guarantee's member entry form from the guarantors record:"
+         - pref: PrefillGuaranteeField
+           multiple:
+               B_address: "Alternate address - Address"
+               B_address2: "Alternate address - Address 2"
+               B_city: "Alternate address - City"
+               contactnote: "Alternate address - Contact note"
+               B_country: "Alternate address - Country"
+               B_email: "Alternate address - Email"
+               B_phone: "Alternate address - Phone"
+               B_state: "Alternate address - State"
+               B_streetnumber: "Alternate address - Street number"
+               B_zipcode: "Alternate address - ZIP/Postal code"
+               altcontactaddress1: "Alternate contact - Address"
+               altcontactaddress2: "Alternate contact - Address 2"
+               altcontactaddress3: "Alternate contact - City"
+               altcontactcountry: "Alternate contact - Country"
+               altcontactfirstname: "Alternate contact - First name"
+               altcontactphone: "Alternate contact - Phone"
+               altcontactstate: "Alternate contact - State"
+               altcontactsurname: "Alternate contact - Surname"
+               altcontactzipcode: "Alternate contact - ZIP/Postal code"
+               fax: "Contact - Fax"
+               mobile: "Contact - Other phone"
+               email: "Contact - Primary email"
+               phone: "Contact - Primary phone"
+               emailpro: "Contact - Secondary email"
+               phonepro: "Contact - Secondary phone"
+               address: "Main address - Address"
+               address2: "Main address - Address 2"
+               city: "Main address - City"
+               country: "Main address - Country"
+               state: "Main address - State"
+               zipcode: "Main address - ZIP/Postal code"
+               streetnumber: "Main address - Street number"
+     -
+         - pref: AllowStaffToSetCheckoutsVisibilityForGuarantor
            choices:
-               yes: Show
-               no: "Don't show"
-         - "patron messaging setting on the OPAC (note: EnhancedMessagingPreferences must be enabled)."
+               1: Allow
+               0: "Don't allow"
+         - staff to set the ability for a patron's checkouts to be viewed by linked patrons in the OPAC.
+     -
+         - pref: AllowStaffToSetFinesVisibilityForGuarantor
+           choices:
+               1: Allow
+               0: "Don't allow"
+         - staff to set the ability for a patron's fines to be viewed by linked patrons in the OPAC.
+    Privacy:
+     -
+         - Use the following URL
+         - pref: PrivacyPolicyURL
+         - to refer to your local privacy policy in messages about privacy and data protection. (If you enforce GDPR policy, make sure that this page is not blocked.)
+         - '<br><strong>NOTE:</strong> The URL will only be displayed if <a href="/cgi-bin/koha/admin/preferences.pl?op=search&searchfield=GDPR_Policy">GDPR_Policy</a> is set.'
+     -
+         - "Set GDPR policy to:"
+         - pref: GDPR_Policy
+           choices:
+               '': 'disabled'
+               Enforced: 'enforced'
+               Permissive: 'permissive'
+         - ". GDPR is the EU General Data Protection Regulation. When you enforce, patrons need to give consent before using the OPAC. If you set to permissive, Koha will warn but not enforce."
+         - '<br><strong>NOTE:</strong> If you enable this you will also have to set the URL of your public privacy policy with the <a href="/cgi-bin/koha/admin/preferences.pl?op=search&searchfield=PrivacyPolicyURL">PrivacyPolicyURL</a> setting.'
+     -
+         - Lock/expire patrons that submitted an unsubscribe request (refused consent) after
+         - pref: UnsubscribeReflectionDelay
+         - days, anonymize locked/expired accounts after
+         - pref: PatronAnonymizeDelay
+         - days and remove anonymized patron accounts after
+         - pref: PatronRemovalDelay
+         - "days.<br>IMPORTANT: No action is performed when these delays are empty (no text). But a zero value ('0') is interpreted as no delay (do it now)! The actions are performed by the cleanup database cron job."
+    Security:
      -
          - "Provide a list of letter codes (separate multiple codes with |) which can be used to send adhoc notices (available in the patron result list).<br />"
          - pref: AdhocNoticesLetterCodes
            class: multi
          - "<br />An asterix can be used as wildcard character to match multiple letter codes."
      -
-         - pref: TrackLastPatronActivity
+         - Login passwords for staff and patrons must be at least
+         - pref: minPasswordLength
+           class: integer
+         - characters long.
+     -
+         - pref: RequireStrongPassword
            choices:
-               yes: Do
-               no: "Don't"
-         - track last patron activity.
-         - Everytime a patron will connect, the borrowers.lastseen will be updated with the current time.
+               1: "Require"
+               0: "Don't require"
+         - a strong password for staff and patrons
+         - (must contain at least one digit, one lowercase and one uppercase).
      -
          - Block a patron's account if it reaches
          - pref: FailedLoginAttempts
            class: integer
          - failed login attempts.
      -
-         - pref: ProtectSuperlibrarianPrivileges
+         - pref: Pseudonymization
            choices:
-               yes: Allow only superlibrarians
-               no: Allow all permitted users
-         - "to access/change superlibrarian privileges. Note: A permitted user needs to have the 'permissions' flag (if no superlibrarian)."
-
-    "Norwegian patron database":
-     -
-         - pref: NorwegianPatronDBEnable
-           choices:
-               yes: Enable
-               no: Disable
-         - the ability to communicate with the Norwegian national patron database via the
-         - pref: NorwegianPatronDBEndpoint
-         - endpoint.
-     -
-         - Communicate with the Norwegian national patron database using the username
-         - pref: NorwegianPatronDBUsername
-         - and the password
-         - pref: NorwegianPatronDBPassword
-         - . You can get these from "Base Bibliotek", which is maintained by the Norwegian National Library.
-     -
-         - pref: NorwegianPatronDBSearchNLAfterLocalHit
-           choices:
-               yes: Do
-               no: "Don't"
-         - search the Norwegian national patron database after a local search result was found.
+               1: Enable
+               0: Disable
+         - "pseudonymization to comply with GDPR for personal information."
+         - "Patrons and transactions will be copied to a separate table for statistics purpose."
+         - "<br/>Use the following fields for patrons:"
+         - pref: PseudonymizationPatronFields
+           multiple:
+             title: "Patron's title"
+             city: "City"
+             state: "State"
+             zipcode: "Zipcode"
+             country: "Country"
+             branchcode: "Patron's library"
+             categorycode: "Patron's category"
+             dateenrolled: "Date the patron was added to Koha"
+             sex: "Patron's gender"
+             sort1: "Sort1"
+             sort2: "Sort2"
+         - "<br/> And the following fields for the transactions:"
+         - pref: PseudonymizationTransactionFields
+           multiple:
+             datetime: "Date and time of the transaction"
+             transaction_branchcode: "Library where the transaction occurred"
+             transaction_type: "Transaction type"
+             itemnumber: "Itemnumber"
+             itemtype: "Item type"
+             holdingbranch: "Holding branch"
+             homebranch: "Home branch"
+             location: "Location"
+             itemcallnumber: "Item's callnumber"
+             ccode: "Collection code"

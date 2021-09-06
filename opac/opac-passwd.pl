@@ -24,29 +24,26 @@ use CGI qw ( -utf8 );
 
 use C4::Auth;    # checkauth, getborrowernumber.
 use C4::Context;
-use Digest::MD5 qw(md5_base64);
 use C4::Circulation;
 use C4::Members;
 use C4::Output;
-use Koha::AuthUtils qw(hash_password);
 use Koha::Patrons;
 
-my $query = new CGI;
-my $dbh   = C4::Context->dbh;
+use Try::Tiny;
+
+my $query = CGI->new;
 
 my ( $template, $borrowernumber, $cookie ) = get_template_and_user(
     {
         template_name   => "opac-passwd.tt",
         query           => $query,
         type            => "opac",
-        authnotrequired => 0,
         debug           => 1,
     }
 );
 
 my $patron = Koha::Patrons->find( $borrowernumber );
-if ( C4::Context->preference("OpacPasswordChange") ) {
-    my $sth =  $dbh->prepare("UPDATE borrowers SET password = ? WHERE borrowernumber=?");
+if ( $patron->category->effective_change_password ) {
     if (   $query->param('Oldkey')
         && $query->param('Newkey')
         && $query->param('Confirm') )
@@ -54,25 +51,26 @@ if ( C4::Context->preference("OpacPasswordChange") ) {
         my $error;
         my $new_password = $query->param('Newkey');
         my $confirm_password = $query->param('Confirm');
-        if ( goodkey( $dbh, $borrowernumber, $query->param('Oldkey') ) ) {
+        if ( C4::Auth::checkpw_hash( scalar $query->param('Oldkey'), $patron->password ) ) {
 
             if ( $new_password ne $confirm_password ) {
                 $template->param( 'Ask_data'       => '1' );
                 $template->param( 'Error_messages' => '1' );
                 $template->param( 'passwords_mismatch'   => '1' );
             } else {
-                my ( $is_valid, $error ) = Koha::AuthUtils::is_password_valid( $new_password );
-                unless ( $is_valid ) {
-                    $error = 'password_too_short' if $error eq 'too_short';
-                    $error = 'password_too_weak' if $error eq 'too_weak';
-                    $error = 'password_has_whitespaces' if $error eq 'has_whitespaces';
-                } else {
-                    # Password is valid and match
-                    my $clave = hash_password( $new_password );
-                    $sth->execute( $clave, $borrowernumber );
+                try {
+                    $patron->set_password({ password => $new_password });
                     $template->param( 'password_updated' => '1' );
                     $template->param( 'borrowernumber'   => $borrowernumber );
                 }
+                catch {
+                    $error = 'password_too_short'
+                        if $_->isa('Koha::Exceptions::Password::TooShort');
+                    $error = 'password_too_weak'
+                        if $_->isa('Koha::Exceptions::Password::TooWeak');
+                    $error = 'password_has_whitespaces'
+                        if $_->isa('Koha::Exceptions::Password::WhitespaceCharacters');
+                };
             }
         }
         else {
@@ -92,7 +90,7 @@ if ( C4::Context->preference("OpacPasswordChange") ) {
         # Called Empty, Ask for data.
         $template->param( 'Ask_data' => '1' );
         if (!$query->param('Oldkey') && ($query->param('Newkey') || $query->param('Confirm'))){
-            # Old password is empty but one of the others isnt
+            # Old password is empty but one of the others isn't
             $template->param( 'Error_messages' => '1' );
             $template->param( 'WrongPass'      => '1' );
         }
@@ -111,23 +109,3 @@ $template->param(
 
 
 output_html_with_http_headers $query, $cookie, $template->output, undef, { force_no_caching => 1 };
-
-sub goodkey {
-    my ( $dbh, $borrowernumber, $key ) = @_;
-
-    my $sth =
-      $dbh->prepare("SELECT password FROM borrowers WHERE borrowernumber=?");
-    $sth->execute($borrowernumber);
-    if ( $sth->rows ) {
-        my $hash;
-        my ($stored_hash) = $sth->fetchrow;
-        if ( substr($stored_hash,0,2) eq '$2') {
-            $hash = hash_password($key, $stored_hash);
-        } else {
-            $hash = md5_base64($key);
-        }
-        if ( $hash eq $stored_hash ) { return 1; }
-        else { return 0; }
-    }
-    else { return 0; }
-}

@@ -19,9 +19,11 @@ use Modern::Perl;
 
 use POSIX qw(strftime);
 
-use Test::More tests => 68;
+use Test::More tests => 67;
 use t::lib::Mocks;
 use Koha::Database;
+use Koha::DateUtils qw(dt_from_string output_pref);
+use Koha::Acquisition::Basket;
 
 use MARC::File::XML ( BinaryEncoding => 'utf8', RecordFormat => 'MARC21' );
 
@@ -31,6 +33,7 @@ BEGIN {
     use_ok('C4::Budgets');
     use_ok('Koha::Acquisition::Orders');
     use_ok('Koha::Acquisition::Booksellers');
+    use_ok('t::lib::TestBuilder');
 }
 
 # Sub used for testing C4::Acquisition subs returning order(s):
@@ -121,9 +124,6 @@ sub _check_fields_of_orders {
 
 my $schema = Koha::Database->new()->schema();
 $schema->storage->txn_begin();
-
-my $dbh = C4::Context->dbh;
-$dbh->{RaiseError} = 1;
 
 # Creating some orders
 my $bookseller = Koha::Acquisition::Bookseller->new(
@@ -292,7 +292,7 @@ for ( 0 .. 5 ) {
     $order_content[$_]->{str}->{ordernumber} = $ordernumbers[$_];
 }
 
-DelOrder( $order_content[3]->{str}->{biblionumber}, $ordernumbers[3] );
+Koha::Acquisition::Orders->find($ordernumbers[3])->cancel;
 
 my $invoiceid = AddInvoice(
     invoicenumber => 'invoice',
@@ -302,14 +302,34 @@ my $invoiceid = AddInvoice(
 
 my $invoice = GetInvoice( $invoiceid );
 
+my $reception_date = output_pref(
+    {
+            dt => dt_from_string->add( days => 1 ),
+            dateformat => 'iso',
+            dateonly => 1,
+    }
+);
 my ($datereceived, $new_ordernumber) = ModReceiveOrder(
     {
         biblionumber      => $biblionumber4,
         order             => Koha::Acquisition::Orders->find( $ordernumbers[4] )->unblessed,
         quantityreceived  => 1,
         invoice           => $invoice,
-        budget_id          => $order_content[4]->{str}->{budget_id},
+        budget_id         => $order_content[4]->{str}->{budget_id},
+        datereceived      => $reception_date,
     }
+);
+
+is(
+    output_pref(
+        {
+            dt         => dt_from_string($datereceived),
+            dateformat => 'iso',
+            dateonly   => 1
+        }
+    ),
+    $reception_date,
+    'ModReceiveOrder sets the passed date'
 );
 
 my $search_orders = SearchOrders({
@@ -371,16 +391,16 @@ is( scalar (@$search_orders), 0, "SearchOrders takes into account the biblionumb
 ok( GetBudgetByOrderNumber( $ordernumbers[0] )->{'budget_id'} eq $budgetid,
     "GetBudgetByOrderNumber returns expected budget" );
 
-my @lateorders = GetLateOrders(0);
-is( scalar grep ( $_->{basketno} eq $basketno, @lateorders ),
+my $lateorders = Koha::Acquisition::Orders->filter_by_lates({ delay => 0 });
+is( $lateorders->search({ 'me.basketno' => $basketno })->count,
     0, "GetLateOrders does not get orders from opened baskets" );
-C4::Acquisition::CloseBasket($basketno);
-@lateorders = GetLateOrders(0);
-isnt( scalar grep ( $_->{basketno} eq $basketno, @lateorders ),
+Koha::Acquisition::Baskets->find($basketno)->close;
+$lateorders = Koha::Acquisition::Orders->filter_by_lates({ delay => 0 });
+isnt( $lateorders->search({ 'me.basketno' => $basketno })->count,
     0, "GetLateOrders gets orders from closed baskets" );
-ok( !grep ( $_->{ordernumber} eq $ordernumbers[3], @lateorders ),
+is( $lateorders->search({ ordernumber => $ordernumbers[3] })->count, 0,
     "GetLateOrders does not get cancelled orders" );
-ok( !grep ( $_->{ordernumber} eq $ordernumbers[4], @lateorders ),
+is( $lateorders->search({ ordernumber => $ordernumbers[4] })->count, 0,
     "GetLateOrders does not get received orders" );
 
 $search_orders = SearchOrders({
@@ -395,13 +415,12 @@ is( scalar (@$search_orders), 4, "SearchOrders with pending and ordered params g
 # Test AddClaim
 #
 
-my $order = $lateorders[0];
-AddClaim( $order->{ordernumber} );
-my $neworder = GetOrder( $order->{ordernumber} );
+my $order = $lateorders->next;
+$order->claim();
 is(
-    $neworder->{claimed_date},
+    output_pref({ str => $order->claimed_date, dateformat => 'iso', dateonly => 1 }),
     strftime( "%Y-%m-%d", localtime(time) ),
-    "AddClaim : Check claimed_date"
+    "Koha::Acquisition::Order->claim: Check claimed_date"
 );
 
 my $order2 = Koha::Acquisition::Orders->find( $ordernumbers[1] )->unblessed;
@@ -413,8 +432,7 @@ $order2->{order_internalnote} = "my notes";
         quantityreceived => 2,
         invoice          => $invoice,
     }
-)
-;
+);
 $order2 = GetOrder( $ordernumbers[1] );
 is( $order2->{'quantityreceived'},
     0, 'Splitting up order did not receive any on original order' );
@@ -423,8 +441,14 @@ is( $order2->{'budget_id'}, $budgetid,
     'Budget on original order is unchanged' );
 is( $order2->{order_internalnote}, "my notes",
     'ModReceiveOrder and GetOrder deal with internal notes' );
+my $order1 = GetOrder( $ordernumbers[0] );
+is(
+    $order1->{order_internalnote},
+    "internal note",
+    "ModReceiveOrder only changes the supplied orders internal notes"
+);
 
-$neworder = GetOrder($new_ordernumber);
+my $neworder = GetOrder($new_ordernumber);
 is( $neworder->{'quantity'}, 2, '2 items on new order' );
 is( $neworder->{'quantityreceived'},
     2, 'Splitting up order received items on new order' );
@@ -437,6 +461,11 @@ my $orders = GetHistory( ordernumber => $ordernumbers[1] );
 is( scalar( @$orders ), 1, 'GetHistory with a given ordernumber returns 1 order' );
 $orders = GetHistory( ordernumber => $ordernumbers[1], search_children_too => 1 );
 is( scalar( @$orders ), 2, 'GetHistory with a given ordernumber and search_children_too set returns 2 orders' );
+$orders = GetHistory( ordernumbers => [$ordernumbers[1]] );
+is( scalar( @$orders ), 1, 'GetHistory with a given ordernumbers returns 1 order' );
+$orders = GetHistory( ordernumbers => \@ordernumbers );
+is( scalar( @$orders ), scalar( @ordernumbers ) - 1, 'GetHistory with a list of ordernumbers returns N-1 orders (was has been deleted [3])' );
+
 
 # Test GetHistory() with and without SearchWithISBNVariations
 # The ISBN passed as a param is the ISBN-10 version of the 13-digit ISBN in the sample record declared in $marcxml
@@ -498,40 +527,6 @@ is( $nonexistent_order, undef, 'GetOrder returns undef if no ordernumber is give
 $nonexistent_order = GetOrder( 424242424242 );
 is( $nonexistent_order, undef, 'GetOrder returns undef if a nonexistent ordernumber is given' );
 
-# Tests for DelOrder
-my $order1 = GetOrder($ordernumbers[0]);
-my $error = DelOrder($order1->{biblionumber}, $order1->{ordernumber});
-ok((not defined $error), "DelOrder does not fail");
-$order1 = GetOrder($order1->{ordernumber});
-ok((defined $order1->{datecancellationprinted}), "order is cancelled");
-ok((not defined $order1->{cancellationreason}), "order has no cancellation reason");
-ok((defined Koha::Biblios->find( $order1->{biblionumber} )), "biblio still exists");
-
-$order2 = GetOrder($ordernumbers[1]);
-$error = DelOrder($order2->{biblionumber}, $order2->{ordernumber}, 1);
-ok((not defined $error), "DelOrder does not fail");
-$order2 = GetOrder($order2->{ordernumber});
-ok((defined $order2->{datecancellationprinted}), "order is cancelled");
-ok((not defined $order2->{cancellationreason}), "order has no cancellation reason");
-ok((not defined Koha::Biblios->find( $order2->{biblionumber} )), "biblio does not exist anymore");
-
-my $order4 = GetOrder($ordernumbers[3]);
-$error = DelOrder($order4->{biblionumber}, $order4->{ordernumber}, 1, "foobar");
-ok((not defined $error), "DelOrder does not fail");
-$order4 = GetOrder($order4->{ordernumber});
-ok((defined $order4->{datecancellationprinted}), "order is cancelled");
-ok(($order4->{cancellationreason} eq "foobar"), "order has cancellation reason \"foobar\"");
-ok((not defined Koha::Biblios->find( $order4->{biblionumber} )), "biblio does not exist anymore");
-
-my $order5 = GetOrder($ordernumbers[4]);
-C4::Items::AddItem( { barcode => '0102030405' }, $order5->{biblionumber} );
-$error = DelOrder($order5->{biblionumber}, $order5->{ordernumber}, 1);
-$order5 = GetOrder($order5->{ordernumber});
-ok((defined $order5->{datecancellationprinted}), "order is cancelled");
-ok((defined Koha::Biblios->find( $order5->{biblionumber} )), "biblio still exists");
-
-# End of tests for DelOrder
-
 subtest 'ModOrder' => sub {
     plan tests => 1;
     ModOrder( { ordernumber => $order1->{ordernumber}, unitprice => 42 } );
@@ -551,7 +546,7 @@ ok($active_count >= scalar GetBudgetsReport(1), "GetBudgetReport doesn't return 
 
 # "Flavoured" tests (tests that required a run for each marc flavour)
 # Tests should be added to the run_flavoured_tests sub below
-my $biblio_module = new Test::MockModule('C4::Biblio');
+my $biblio_module = Test::MockModule->new('C4::Biblio');
 $biblio_module->mock(
     'GetMarcSubfieldStructure',
     sub {
@@ -611,8 +606,7 @@ sub run_flavoured_tests {
     $orders = GetHistory( isbn => '0136019706' );
     is( scalar(@$orders), 1, "GetHistory searches correctly by ISBN" );
 
-    my $order = GetOrder($ordernumber);
-    DelOrder($order->{biblionumber}, $order->{ordernumber}, 1);
+    Koha::Acquisition::Orders->find($ordernumber)->cancel;
 }
 
 # Do "flavoured" tests
@@ -664,5 +658,282 @@ sub create_isbn_field {
 
     return $field;
 }
+
+subtest 'ModReceiveOrder replacementprice tests' => sub {
+    plan tests => 2;
+    #Let's build an order, we need a couple things though
+    my $builder = t::lib::TestBuilder->new;
+    my $order_biblio = $builder->build_sample_biblio;
+    my $order_basket = $builder->build({ source => 'Aqbasket', value => { is_standing => 0 } });
+    my $order_invoice = $builder->build({ source => 'Aqinvoice'});
+    my $order_currency = $builder->build({ source => 'Currency', value => { active => 1, archived => 0, symbol => 'F', rate => 2, isocode => undef, currency => 'FOO' }  });
+    my $order_vendor = $builder->build({ source => 'Aqbookseller',value => { listincgst => 0, listprice => $order_currency->{currency}, invoiceprice => $order_currency->{currency} } });
+    my $orderinfo ={
+        basketno => $order_basket->{basketno},
+        booksellerid => $order_vendor->{id},
+        rrp => 19.99,
+        replacementprice => undef,
+        quantity => 1,
+        quantityreceived => 0,
+        datereceived => undef,
+        datecancellationprinted => undef,
+    };
+    my $receive_order = $builder->build({ source => 'Aqorder', value => $orderinfo });
+    (undef, my $received_ordernumber) = ModReceiveOrder({
+            biblionumber => $order_biblio->biblionumber,
+            order        => $receive_order,
+            invoice      => $order_invoice,
+            quantityreceived => $receive_order->{quantity},
+            budget_id    => $order->{budget_id},
+    });
+    my $received_order = GetOrder($received_ordernumber);
+    is ($received_order->{replacementprice},undef,"No price set if none passed in");
+    $orderinfo->{replacementprice} = 16.12;
+    $receive_order = $builder->build({ source => 'Aqorder', value => $orderinfo });
+    (undef, $received_ordernumber) = ModReceiveOrder({
+            biblionumber => $order_biblio->biblionumber,
+            order        => $receive_order,
+            invoice      => $order_invoice,
+            quantityreceived => $receive_order->{quantity},
+            budget_id    => $order->{budget_id},
+    });
+    $received_order = GetOrder($received_ordernumber);
+    is ($received_order->{replacementprice},'16.120000',"Replacement price set if none passed in");
+};
+
+subtest 'ModReceiveOrder and subscription' => sub {
+    plan tests => 2;
+
+    my $builder     = t::lib::TestBuilder->new;
+    my $first_note  = 'first note';
+    my $second_note = 'second note';
+    my $subscription = $builder->build_object( { class => 'Koha::Subscriptions' } );
+    my $order = $builder->build_object(
+        {
+            class => 'Koha::Acquisition::Orders',
+            value => {
+                subscriptionid     => $subscription->subscriptionid,
+                order_internalnote => $first_note,
+                quantity           => 5,
+                quantityreceived   => 0,
+                ecost_tax_excluded => 42,
+                unitprice_tax_excluded => 42,
+            }
+        }
+    );
+    my $order_info = $order->unblessed;
+    # We do not want the note from the original note to be modified
+    # Keeping it will permit to display it for future receptions
+    $order_info->{order_internalnote} = $second_note;
+    my ( undef, $received_ordernumber ) = ModReceiveOrder(
+        {
+            biblionumber     => $order->biblionumber,
+            order            => $order_info,
+            invoice          => $order->{invoiceid},
+            quantityreceived => 1,
+            budget_id        => $order->budget_id,
+        }
+    );
+    my $received_order = Koha::Acquisition::Orders->find($received_ordernumber);
+    is( $received_order->order_internalnote,
+        $second_note, "No price set if none passed in" );
+
+    $order->get_from_storage;
+    is( $order->get_from_storage->order_internalnote, $first_note );
+};
+
+subtest 'GetHistory with additional fields' => sub {
+    plan tests => 3;
+    my $builder = t::lib::TestBuilder->new;
+    my $order_basket = $builder->build({ source => 'Aqbasket', value => { is_standing => 0 } });
+    my $orderinfo ={
+        basketno => $order_basket->{basketno},
+        rrp => 19.99,
+        replacementprice => undef,
+        quantity => 1,
+        quantityreceived => 0,
+        datereceived => undef,
+        datecancellationprinted => undef,
+    };
+    my $order =        $builder->build({ source => 'Aqorder', value => $orderinfo });
+    my $history = GetHistory(ordernumber => $order->{ordernumber});
+    is( scalar( @$history ), 1, 'GetHistory returns the one order');
+
+    my $additional_field = $builder->build({source => 'AdditionalField', value => {
+            tablename => 'aqbasket',
+            name => 'snakeoil',
+            authorised_value_category => "",
+        }
+    });
+    $history = GetHistory( ordernumber => $order->{ordernumber}, additional_fields => [{ id => $additional_field->{id}, value=>'delicious'}]);
+    is( scalar ( @$history ), 0, 'GetHistory returns no order for an unused additional field');
+    my $basket = Koha::Acquisition::Baskets->find({ basketno => $order_basket->{basketno} });
+    $basket->set_additional_fields([{
+        id => $additional_field->{id},
+        value => 'delicious',
+    }]);
+
+    $history = GetHistory( ordernumber => $order->{ordernumber}, additional_fields => [{ id => $additional_field->{id}, value=>'delicious'}]);
+    is( scalar( @$history ), 1, 'GetHistory returns the order when additional field is set');
+};
+
+subtest 'Tests for get_rounding_sql' => sub {
+
+    plan tests => 2;
+
+    my $value = '3.141592';
+
+    t::lib::Mocks::mock_preference( 'OrderPriceRounding', q{} );
+    my $no_rounding_result = C4::Acquisition::get_rounding_sql($value);
+    t::lib::Mocks::mock_preference( 'OrderPriceRounding', q{nearest_cent} );
+    my $rounding_result = C4::Acquisition::get_rounding_sql($value);
+
+    ok( $no_rounding_result eq $value, "Value ($value) not to be rounded" );
+    ok( $rounding_result =~ /CAST/,    "Value ($value) will be rounded" );
+
+};
+
+subtest 'Test for get_rounded_price' => sub {
+
+    plan tests => 6;
+
+    my $exact_price      = 3.14;
+    my $up_price         = 3.145592;
+    my $down_price       = 3.141592;
+    my $round_up_price   = sprintf( '%0.2f', $up_price );
+    my $round_down_price = sprintf( '%0.2f', $down_price );
+
+    t::lib::Mocks::mock_preference( 'OrderPriceRounding', q{} );
+    my $not_rounded_result1 = C4::Acquisition::get_rounded_price($exact_price);
+    my $not_rounded_result2 = C4::Acquisition::get_rounded_price($up_price);
+    my $not_rounded_result3 = C4::Acquisition::get_rounded_price($down_price);
+    t::lib::Mocks::mock_preference( 'OrderPriceRounding', q{nearest_cent} );
+    my $rounded_result1 = C4::Acquisition::get_rounded_price($exact_price);
+    my $rounded_result2 = C4::Acquisition::get_rounded_price($up_price);
+    my $rounded_result3 = C4::Acquisition::get_rounded_price($down_price);
+
+    is( $not_rounded_result1, $exact_price,      "Price ($exact_price) was correctly not rounded ($not_rounded_result1)" );
+    is( $not_rounded_result2, $up_price,         "Price ($up_price) was correctly not rounded ($not_rounded_result2)" );
+    is( $not_rounded_result3, $down_price,       "Price ($down_price) was correctly not rounded ($not_rounded_result3)" );
+    is( $rounded_result1,     $exact_price,      "Price ($exact_price) was correctly rounded ($rounded_result1)" );
+    is( $rounded_result2,     $round_up_price,   "Price ($up_price) was correctly rounded ($rounded_result2)" );
+    is( $rounded_result3,     $round_down_price, "Price ($down_price) was correctly rounded ($rounded_result3)" );
+
+};
+
+subtest 'GetHistory - managing library' => sub {
+
+    plan tests => 1;
+
+    my $orders = GetHistory(managing_library => 'CPL');
+
+    my $builder = t::lib::TestBuilder->new;
+
+    my $order_basket1 = $builder->build({ source => 'Aqbasket', value => { branch => 'CPL' } });
+    my $orderinfo1 ={
+        basketno => $order_basket1->{basketno},
+        rrp => 19.99,
+        replacementprice => undef,
+        quantity => 1,
+        quantityreceived => 0,
+        datereceived => undef,
+        datecancellationprinted => undef,
+    };
+    my $order1 = $builder->build({ source => 'Aqorder', value => $orderinfo1 });
+
+    my $order_basket2 = $builder->build({ source => 'Aqbasket', value => { branch => 'LIB' } });
+    my $orderinfo2 ={
+        basketno => $order_basket2->{basketno},
+        rrp => 19.99,
+        replacementprice => undef,
+        quantity => 1,
+        quantityreceived => 0,
+        datereceived => undef,
+        datecancellationprinted => undef,
+    };
+    my $order2 = $builder->build({ source => 'Aqorder', value => $orderinfo2 });
+
+    my $history = GetHistory(managing_library => 'CPL');
+    is( scalar( @$history), scalar ( @$orders ) +1, "GetHistory returns number of orders");
+
+};
+
+subtest 'GetHistory - is_standing' => sub {
+
+    plan tests => 1;
+
+    my $orders = GetHistory( is_standing => '1' );
+
+    my $builder = t::lib::TestBuilder->new;
+
+    my $order_basket1 = $builder->build( { source => 'Aqbasket', value => { is_standing => 0 } } );
+    my $orderinfo1 = {
+        basketno                => $order_basket1->{basketno},
+        rrp                     => 19.99,
+        replacementprice        => undef,
+        quantity                => 1,
+        quantityreceived        => 0,
+        datereceived            => undef,
+        datecancellationprinted => undef,
+    };
+    my $order1 = $builder->build( { source => 'Aqorder', value => $orderinfo1 } );
+
+    my $order_basket2 = $builder->build( { source => 'Aqbasket', value => { is_standing => 1 } } );
+    my $orderinfo2 = {
+        basketno                => $order_basket2->{basketno},
+        rrp                     => 19.99,
+        replacementprice        => undef,
+        quantity                => 1,
+        quantityreceived        => 0,
+        datereceived            => undef,
+        datecancellationprinted => undef,
+    };
+    my $order2 = $builder->build( { source => 'Aqorder', value => $orderinfo2 } );
+
+    my $history = GetHistory( is_standing => 1 );
+    is(
+        scalar(@$history),
+        scalar(@$orders) + 1,
+        "GetHistory returns number of standing orders"
+    );
+
+};
+
+subtest 'Acquisition logging' => sub {
+
+    plan tests => 5;
+
+    t::lib::Mocks::mock_preference('AcquisitionLog', 1);
+
+    Koha::ActionLogs->delete;
+    my $basketno = NewBasket( $booksellerid, 1 );
+    my @create_logs = Koha::ActionLogs->search({ module =>'ACQUISITIONS', action => 'ADD_BASKET', object => $basketno });
+    is (scalar @create_logs, 1, 'Basket creation is logged');
+
+    Koha::ActionLogs->delete;
+    C4::Acquisition::ReopenBasket($basketno);
+    my @reopen_logs = Koha::ActionLogs->search({ module =>'ACQUISITIONS', action => 'REOPEN_BASKET', object => $basketno });
+    is (scalar @reopen_logs, 1, 'Basket reopen is logged');
+
+    Koha::ActionLogs->delete;
+    C4::Acquisition::ModBasket({
+        basketno => $basketno,
+        booksellerid => $booksellerid
+    });
+    my @mod_logs = Koha::ActionLogs->search({ module =>'ACQUISITIONS', action => 'MODIFY_BASKET', object => $basketno });
+    is (scalar @mod_logs, 1, 'Basket modify is logged');
+
+    Koha::ActionLogs->delete;
+    C4::Acquisition::ModBasketHeader($basketno,"Test","","","",$booksellerid);
+    my @mod_header_logs = Koha::ActionLogs->search({ module =>'ACQUISITIONS', action => 'MODIFY_BASKET_HEADER', object => $basketno });
+    is (scalar @mod_header_logs, 1, 'Basket header modify is logged');
+
+    Koha::ActionLogs->delete;
+    C4::Acquisition::ModBasketUsers($basketno,(1));
+    my @mod_users_logs = Koha::ActionLogs->search({ module =>'ACQUISITIONS', action => 'MODIFY_BASKET_USERS', object => $basketno });
+    is (scalar @mod_users_logs, 1, 'Basket users modify is logged');
+
+    t::lib::Mocks::mock_preference('AcquisitionLog', 0);
+};
 
 $schema->storage->txn_rollback();

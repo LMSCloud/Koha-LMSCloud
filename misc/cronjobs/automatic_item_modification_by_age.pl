@@ -6,8 +6,10 @@ use Getopt::Long;
 use Pod::Usage;
 use JSON;
 
+use Koha::Script -cron;
 use C4::Context;
 use C4::Items;
+use C4::Log;
 
 # Getting options
 my ( $verbose, $help, $confirm );
@@ -25,6 +27,8 @@ my $syspref_content = C4::Context->preference('automatic_item_modification_by_ag
 my $rules = eval { JSON::from_json( $syspref_content ) };
 pod2usage({ -message => "Unable to load the configuration : $@", -exitval => 1 })
     if $@;
+
+cronlogaction();
 
 my $report = C4::Items::ToggleNewStatus( { rules => $rules, report_only => not $confirm } );
 

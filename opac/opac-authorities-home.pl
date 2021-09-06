@@ -35,7 +35,7 @@ use Koha::Authority::Types;
 use Koha::SearchEngine::Search;
 use Koha::SearchEngine::QueryBuilder;
 
-my $query        = new CGI;
+my $query        = CGI->new;
 my $op           = $query->param('op') || '';
 my $authtypecode = $query->param('authtypecode') || '';
 my $dbh          = C4::Context->dbh;
@@ -56,7 +56,6 @@ if ( $op eq "do_search" ) {
     my @value = $query->multi_param('value');
     $value[0] ||= q||;
 
-    my @tags;
     my $builder = Koha::SearchEngine::QueryBuilder->new(
         { index => $Koha::SearchEngine::AUTHORITIES_INDEX } );
     my $searcher = Koha::SearchEngine::Search->new(
@@ -75,6 +74,7 @@ if ( $op eq "do_search" ) {
             debug           => 1,
         }
     );
+    $template->param( search_query => $search_query ) if C4::Context->preference('DumpSearchQueryTemplate');
 
     # multi page display gestion
     my $value_url = uri_escape_utf8($value[0]);

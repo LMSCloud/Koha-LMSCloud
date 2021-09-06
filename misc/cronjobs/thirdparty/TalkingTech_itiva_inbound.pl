@@ -31,6 +31,7 @@ BEGIN {
 use Getopt::Long;
 use Pod::Usage;
 
+use Koha::Script -cron;
 use C4::Context;
 
 sub usage {
@@ -76,6 +77,7 @@ if ( defined $infile ) {
         $updated += $result;
         $total++;
     }
+    close($IN);
 }
 else {
     die pod2usage( -verbose => 1 );

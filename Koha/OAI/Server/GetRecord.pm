@@ -44,10 +44,11 @@ sub new {
     my @bind_params = ($biblionumber);
     if ( $items_included ) {
         # Take latest timestamp of biblio and any items
+        # Or timestamp of deleted items where bib not deleted
         $sql .= "
             UNION
-            SELECT timestamp from deleteditems
-            WHERE biblionumber=?
+            SELECT deleteditems.timestamp FROM deleteditems JOIN biblio USING (biblionumber)
+            WHERE deleteditems.biblionumber=?
             UNION
             SELECT timestamp from items
             WHERE biblionumber=?
@@ -91,7 +92,7 @@ sub new {
         {
             return HTTP::OAI::Response->new(
              requestURL  => $repository->self_url(),
-             errors      => [ new HTTP::OAI::Error(
+             errors      => [ HTTP::OAI::Error->new(
                 code    => 'idDoesNotExist',
                 message => "There is no biblio record with this identifier",
                 ) ],

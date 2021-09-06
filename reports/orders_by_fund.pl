@@ -37,13 +37,12 @@ use C4::Acquisition; #GetBasket()
 use Koha::Biblios;
 use Koha::DateUtils;
 
-my $query = new CGI;
+my $query = CGI->new;
 my ( $template, $loggedinuser, $cookie ) = get_template_and_user(
     {
         template_name   => "reports/orders_by_budget.tt",
         query           => $query,
         type            => "intranet",
-        authnotrequired => 0,
         flagsrequired   => { reports => '*' },
         debug           => 1,
     }
@@ -107,8 +106,8 @@ if ( $get_orders ) {
         $order->{title} = $biblio ? $biblio->title : '';
         $order->{title} ||= $order->{biblionumber};
 
-        $order->{'total_rrp'} = $order->{'quantity'} * $order->{'rrp'};
-        $order->{'total_ecost'} = $order->{'quantity'} * $order->{'ecost'};
+        $order->{'total_rrp'} = get_rounded_price($order->{'quantity'}) * $order->{'rrp'};
+        $order->{'total_ecost'} = get_rounded_price($order->{'quantity'}) * $order->{'ecost'};
 
         # Format the dates and currencies correctly
         $order->{'datereceived'} = output_pref(dt_from_string($order->{'datereceived'}));
@@ -210,7 +209,7 @@ else {
     $template->param(   budgetsloop   => \@{$budgetloop},
         outputFormatloop => \@outputFormats,
         delimiterloop => \@CSVdelimiters,
-        delimiterPreference => C4::Context->preference('delimiter')
+        delimiterPreference => C4::Context->preference('CSVDelimiter')
     );
 }
 

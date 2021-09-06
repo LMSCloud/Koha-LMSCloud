@@ -301,7 +301,15 @@ sub construct_objects_needed {
     my $issue_id1 = $dbh->last_insert_id( undef, undef, 'old_issues', undef );
 
     # ---------- Add 1 old_reserves
-    AddReserve( $branchcode, $borrowernumber1, $biblionumber1, '', 1, undef, undef, '', 'Title', undef, undef );
+    AddReserve(
+        {
+            branchcode     => $branchcode,
+            borrowernumber => $borrowernumber1,
+            biblionumber   => $biblionumber1,
+            priority       => 1,
+            title          => 'Title',
+        }
+    );
     my $biblio = Koha::Biblios->find( $biblionumber1 );
     my $holds = $biblio->holds;
     $holds->next->cancel if $holds->count;
@@ -350,8 +358,9 @@ sub mocking_systempreferences_to_a_set_value {
         casLogout
         AllowPKIAuth
         DebugLevel
-        delimiter
+        CSVDelimiter
         noItemTypeImages
+        OpacNoItemTypeImages
         virtualshelves
         AutoLocation
         IndependentBranches
@@ -386,7 +395,7 @@ sub mocking_systempreferences_to_a_set_value {
         AgeRestrictionOverride
         AllFinesNeedOverride
         AllowFineOverride
-        AllowItemsOnHoldCheckout
+        AllowItemsOnHoldCheckoutSIP
         AllowItemsOnHoldCheckoutSCO
         AllowNotForLoanOverride
         AllowRenewalLimitOverride
@@ -397,7 +406,6 @@ sub mocking_systempreferences_to_a_set_value {
         CircControl
         HomeOrHoldingBranch
         HomeOrHoldingBranchReturn
-        InProcessingToShelvingCart
         IssueLostItem
         IssuingInProcess
         ManInvInNoissuesCharge
@@ -406,10 +414,8 @@ sub mocking_systempreferences_to_a_set_value {
         RenewalSendNotice
         RentalsInNoissuesCharge
         ReturnBeforeExpiry
-        ReturnToShelvingCart
         TransfersMaxDaysWarning
         UseBranchTransferLimits
-        useDaysMode
         UseTransportCostMatrix
         UseCourseReserves
         finesCalendar
@@ -437,7 +443,7 @@ sub mocking_systempreferences_to_a_set_value {
         TransferWhenCancelAllWaitingHolds
         AllowAllMessageDeletion
         AllowOfflineCirculation
-        CircAutocompl
+        PatronAutoComplete
         CircAutoPrintQuickSlip
         DisplayClearScreenButton
         FilterBeforeOverdueReport
@@ -452,7 +458,7 @@ sub mocking_systempreferences_to_a_set_value {
         UpdateTotalIssuesOnCirc
         UseTablesortForCirc
         WaitingNotifyAtCheckin
-        AllowSelfCheckReturns
+        SCOAllowCheckin
         AutoSelfCheckAllowed
         FRBRizeEditions
         OPACFRBRizeEditions
@@ -462,26 +468,23 @@ sub mocking_systempreferences_to_a_set_value {
         BakerTaylorEnabled
         GoogleJackets
         HTML5MediaEnabled
-        IDreamBooksReadometer
-        IDreamBooksResults
-        IDreamBooksReviews
         LibraryThingForLibrariesEnabled
         LocalCoverImages
         OPACLocalCoverImages
         NovelistSelectEnabled
         OpenLibraryCovers
         OpenLibrarySearch
-        UseKohaPlugins
         SyndeticsEnabled
         TagsEnabled
         CalendarFirstDayOfWeek
         opaclanguagesdisplay
+        AcquisitionLog
         AuthoritiesLog
         BorrowersLog
         CataloguingLog
         FinesLog
         IssueLog
-        LetterLog
+        ClaimsLog
         ReturnLog
         SubscriptionLog
         BiblioDefaultView
@@ -520,12 +523,11 @@ sub mocking_systempreferences_to_a_set_value {
         opacuserlogin
         QuoteOfTheDay
         RequestOnOpac
-        reviewson
+        OPACComments
         ShowReviewer
         ShowReviewerPhoto
         SocialNetworks
         suggestion
-        AllowPurchaseSuggestionBranchChoice
         OpacAllowPublicListCreation
         OpacAllowSharingPrivateLists
         OpacRenewalAllowed
@@ -552,15 +554,13 @@ sub mocking_systempreferences_to_a_set_value {
         TalkingTechItivaPhoneNotification
         uppercasesurnames
         IncludeSeeFromInSearches
-        OpacGroupResults
         QueryAutoTruncate
         QueryFuzzy
         QueryStemming
         QueryWeightFields
         TraceCompleteSubfields
         TraceSubjectSubdivisions
-        UseICU
-        UseQueryParser
+        UseICUStyleQuotes
         defaultSortField
         displayFacetCount
         OPACdefaultSortField

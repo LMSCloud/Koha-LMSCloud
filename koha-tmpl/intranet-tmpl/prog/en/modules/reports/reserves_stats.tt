@@ -1,9 +1,9 @@
 [% USE Branches %]
 [% SET footerjs = 1 %]
 [% INCLUDE 'doc-head-open.inc' %]
-<title>Koha &rsaquo; Reports &rsaquo; Holds statistics [% IF ( do_it ) %]&rsaquo; Results[% END %]</title>
+<title>Holds statistics[% IF ( do_it ) %] &rsaquo; Results[% END %] &rsaquo; Reports &rsaquo; Koha</title>
 [% INCLUDE 'doc-head-close.inc' %]
-<style type="text/css">
+<style>
 	.sql {display:none;}
 </style>
 </head>
@@ -12,13 +12,38 @@
 [% INCLUDE 'header.inc' %]
 [% INCLUDE 'cat-search.inc' %]
 
-<div id="breadcrumbs"><a href="/cgi-bin/koha/mainpage.pl">Home</a> &rsaquo; <a href="/cgi-bin/koha/reports/reports-home.pl">Reports</a> [% IF ( do_it ) %]&rsaquo; <a href="/cgi-bin/koha/reports/reserves_stats.pl">Holds statistics</a> &rsaquo; Results [% ELSE %]&rsaquo; Holds statistics[% END %]</div>
+<nav id="breadcrumbs" aria-label="Breadcrumb" class="breadcrumb">
+    <ol>
+        <li>
+            <a href="/cgi-bin/koha/mainpage.pl">Home</a>
+        </li>
+        <li>
+            <a href="/cgi-bin/koha/reports/reports-home.pl">Reports</a>
+        </li>
+        [% IF ( do_it ) %]
+            <li>
+                <a href="/cgi-bin/koha/reports/reserves_stats.pl">Holds statistics</a>
+            </li>
+            <li>
+                <a href="#" aria-current="page">
+                    Results
+                </a>
+            </li>
+        [% ELSE %]
+            <li>
+                <a href="#" aria-current="page">
+                    Holds statistics
+                </a>
+            </li>
+        [% END %]
+    </ol>
+</nav>
 
-<div id="doc3" class="yui-t2">
+<div class="main container-fluid">
+    <div class="row">
+        <div class="col-sm-10 col-sm-push-2">
+            <main>
 
-   <div id="bd">
-	<div id="yui-main">
-	<div class="yui-b">
 
 [% IF ( do_it ) %]
     [% IF ( mainloop ) %]
@@ -31,7 +56,7 @@
 				[% ELSIF ( loopfilte.sql ) %]<li class="sql">
 				[% ELSE %]<li>
 				[% END %]
-					[% loopfilte.crit %] [% loopfilte.filter %]
+					[% loopfilte.crit | html %] [% loopfilte.filter | html %]
 				</li>
             [% END %]
             </ul>
@@ -41,29 +66,29 @@
         
         <table> 
             <tr>
-                <th>[% mainloo.line %] / [% mainloo.column %]</th>
+                <th>[% mainloo.line | html %] / [% mainloo.column | html %]</th>
                 [% FOREACH loopco IN mainloo.loopcol %]
-                    <th>[% loopco.coltitle_display |html %]</th>
+                    <th>[% loopco.coltitle_display | html %]</th>
                 [% END %]
                 <th>TOTAL</th>
                 </tr>
                 [% FOREACH loopro IN mainloo.looprow %]
                     <tr>
-                        <td>[% loopro.rowtitle_display or "UNKNOWN VALUE" |html %]</td>
+                        <td>[% loopro.rowtitle_display or "UNKNOWN VALUE" | html %]</td>
                     [% FOREACH loopcel IN loopro.loopcell %]
 						<td align="center">
-						[% IF ( loopcel.url_complement ) %]<a href="reserves_stats.pl?output=[% loopcel.output %]&amp;[% loopcel.url_complement %]">[% loopcel.value %]</a>[% ELSE %][% loopcel.value %][% END %]
+                        [% IF ( loopcel.url_complement ) %]<a href="reserves_stats.pl?output=[% loopcel.output | uri %]&amp;[% loopcel.url_complement | uri %]">[% loopcel.value | html %]</a>[% ELSE %][% loopcel.value | html %][% END %]
 						</td>
                     [% END %]
-						<td align="center">[% loopro.totalrow %]</td>
+						<td align="center">[% loopro.totalrow | html %]</td>
                     </tr>
                 [% END %]
             <tr>
                 <th>TOTAL</th>
                 [% FOREACH loopfoote IN mainloo.loopfooter %]
-                <th>[% loopfoote.totalcol %]</th>
+                <th>[% loopfoote.totalcol | html %]</th>
                 [% END %]
-                <th>[% mainloo.total %]</th>
+                <th>[% mainloo.total | html %]</th>
             </tr>
         </table>
     [% END %]
@@ -141,7 +166,7 @@
            <td><select name="filter_categorycode" id="borcat">
                <option value=""> </option>
                [% FOREACH categoryloo IN categoryloop %]
-                 <option value="[% categoryloo.categorycode %]">[% categoryloo.description %]</option>
+                 <option value="[% categoryloo.categorycode | html %]">[% categoryloo.description | html %]</option>
                [% END %]
                </select>
              </td> 
@@ -153,7 +178,7 @@
            <td><select name="filter_items.itype" id="itype">
                <option value=""> </option>
                [% FOREACH itemtype IN itemtypes %]
-                 <option value="[% itemtype.itemtype %]">[% itemtype.translated_description %]</option>
+                 <option value="[% itemtype.itemtype | html %]">[% itemtype.translated_description | html %]</option>
                [% END %]
                </select>
              </td> 
@@ -195,7 +220,7 @@
             <td><select name="filter_items.ccode" id="ccode">
                 <option value=""> </option>
                 [% FOREACH ccodeloo IN ccodeloop %]
-					[% IF ( ccodeloo.selected ) %] <option value="[% ccodeloo.code %]" selected="selected">[% ccodeloo.description %]</option>[% ELSE %]<option value="[% ccodeloo.code %]">[% ccodeloo.description %]</option>[% END %]
+					[% IF ( ccodeloo.selected ) %] <option value="[% ccodeloo.code | html %]" selected="selected">[% ccodeloo.description | html %]</option>[% ELSE %]<option value="[% ccodeloo.code | html %]">[% ccodeloo.description | html %]</option>[% END %]
                 [% END %]
                 </select>
             </td>
@@ -207,7 +232,7 @@
             <td><select name="filter_items.location" id="location">
                 <option value=""> </option>
                 [% FOREACH locationloo IN locationloop %]
-					[% IF ( locationloo.selected ) %]<option value="[% locationloo.code %]" selected="selected">[% locationloo.description %]</option>[% ELSE %]<option value="[% locationloo.code %]">[% locationloo.description %]</option>[% END %]
+					[% IF ( locationloo.selected ) %]<option value="[% locationloo.code | html %]" selected="selected">[% locationloo.description | html %]</option>[% ELSE %]<option value="[% locationloo.code | html %]">[% locationloo.description | html %]</option>[% END %]
 				[% END %]
                </select>
             </td> 
@@ -225,7 +250,7 @@
 			<td><select name="filter_borrowers.sort1" id="sort1">
                <option value=""> </option>
                [% FOREACH Bsort IN Bsort1 %]
-			   [% IF ( Bsort.selected ) %]<option value="[% Bsort.authorised_value %]" selected="selected">[% Bsort.lib %]</option>[% ELSE %]<option value="[% Bsort.authorised_value %]" >[% Bsort.lib %]</option>[% END %]
+			   [% IF ( Bsort.selected ) %]<option value="[% Bsort.authorised_value | html %]" selected="selected">[% Bsort.lib | html %]</option>[% ELSE %]<option value="[% Bsort.authorised_value | html %]" >[% Bsort.lib | html %]</option>[% END %]
                [% END %]
                </select>
             </td> 
@@ -238,7 +263,7 @@
            	<td><select name="filter_borrowers.sort2" id="sort2">
                <option value=""> </option>
                [% FOREACH Bsort IN Bsort2 %]
-			   [% IF ( Bsort.selected ) %]<option value="[% Bsort.authorised_value %]" selected="selected">[% Bsort.lib %]</option>[% ELSE %]<option value="[% Bsort.authorised_value %]" >[% Bsort.lib %]</option>[% END %]
+			   [% IF ( Bsort.selected ) %]<option value="[% Bsort.authorised_value | html %]" selected="selected">[% Bsort.lib | html %]</option>[% ELSE %]<option value="[% Bsort.authorised_value | html %]" >[% Bsort.lib | html %]</option>[% END %]
                [% END %]
                </select>
             </td> 
@@ -248,7 +273,7 @@
     </table><br /></fieldset>
 
 <fieldset class="rows"><legend>Cell value </legend><ol><li><label for="cellvalue1">Count holds:</label> <input type="radio" name="Cellvalue" value="1" id="cellvalue1" checked="checked" /> </li>
-            <li><label for="cellvalue2">Count unique borrowers:</label> <input type="radio" name="Cellvalue" value="2" id="cellvalue2" /> </li><li><label for="cellvalue3">Count unique items:</label> <input type="radio" name="Cellvalue" id="cellvalue3" value="3" /> </li><li><label for="cellvalue4">Count unique biblios:</label> <input type="radio" name="Cellvalue" id="cellvalue4" value="4" /> </li></ol></fieldset>
+            <li><label for="cellvalue2">Count unique borrowers:</label> <input type="radio" name="Cellvalue" value="2" id="cellvalue2" /> </li><li><label for="cellvalue3">Count unique items:</label> <input type="radio" name="Cellvalue" id="cellvalue3" value="3" /> </li><li><label for="cellvalue4">Count unique bibliographic records:</label> <input type="radio" name="Cellvalue" id="cellvalue4" value="4" /> </li></ol></fieldset>
 			
 	<fieldset class="rows">
 	<legend>Output</legend>
@@ -260,17 +285,17 @@
             <label for="outputfile">To a file:</label> <input type="radio" name="output" value="file" id="outputfile" />
             <label class="inline" for="basename">Named: </label><input type="text" name="basename" id="basename" value="Export" />
             <label class="inline" for="MIME">Into an application:</label>
-            <select name="MIME" id="MIME" size="1">
+            <select name="MIME" id="MIME">
             [% FOREACH value IN CGIextChoice %]
-                <option value="[% value %]">[% value %]</option>
+                <option value="[% value | html %]">[% value | html %]</option>
             [% END %]
             </select>
-            <select name="sep" id="sep" size="1">
+            <select name="sep" id="sep">
             [% FOREACH value IN CGIsepChoice.values.sort() %]
               [% IF ( value == CGIsepChoice.default ) %]
-                <option value="[% value %]" selected="selected">[% value %]</option>
+                <option value="[% value | html %]" selected="selected">[% value | html %]</option>
               [% ELSE %]
-                <option value="[% value %]">[% value %]</option>
+                <option value="[% value | html %]">[% value | html %]</option>
               [% END %]
             [% END %]
             </select>
@@ -280,22 +305,25 @@
 
 	<fieldset class="action">
 	<input type="submit" value="Submit" />
-	<input type="hidden" name="report_name" value="[% report_name %]" />
+	<input type="hidden" name="report_name" value="[% report_name | html %]" />
 	<input type="hidden" name="do_it" value="1" />
 	</fieldset>
 	</form>
 [% END %]
 
-</div>
-</div>
-<div class="yui-b">
-[% INCLUDE 'reports-menu.inc' %]
-</div>
-</div>
+            </main>
+        </div> <!-- /.col-sm-10.col-sm-push-2 -->
+
+        <div class="col-sm-2 col-sm-pull-10">
+            <aside>
+                [% INCLUDE 'reports-menu.inc' %]
+            </aside>
+        </div> <!-- /.col-sm-2.col-sm-pull-10 -->
+     </div> <!-- /.row -->
 
 [% MACRO jsinclude BLOCK %]
     [% INCLUDE 'calendar.inc' %]
-    <script type="text/javascript">
+    <script>
         $(document).ready(function() {
             // http://jqueryui.com/demos/datepicker/#date-range
             var dates = $( "#filter_reservedate_begin, #filter_reservedate_end" ).datepicker({

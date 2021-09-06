@@ -18,12 +18,16 @@
 # along with Koha; if not, see <http://www.gnu.org/licenses>.
 
 use Modern::Perl;
-use Test::More tests => 124;
+use Test::More tests => 161;
 use Test::Warn;
+use Test::Exception;
+use Encode qw( encode_utf8 );
+use utf8;
 
 # To be replaced by t::lib::Mock
 use Test::MockModule;
 use Koha::Database;
+use Koha::Patron::Relationships;
 
 use File::Temp qw(tempfile tempdir);
 my $temp_dir = tempdir('Koha_patrons_import_test_XXXX', CLEANUP => 1, TMPDIR => 1);
@@ -49,7 +53,7 @@ subtest 'test_methods' => sub {
                    'set_attribute_types',
                    'prepare_columns',
                    'set_column_keys',
-                   'set_patron_attributes',
+                   'generate_patron_attributes',
                    'check_branch_code',
                    'format_dates',
                   );
@@ -85,10 +89,10 @@ is($result_0, undef, 'Got the expected undef from import_patrons with no file ha
 t::lib::Mocks::mock_preference('ExtendedPatronAttributes', 0);
 t::lib::Mocks::mock_preference('dateformat', 'us');
 
-
 my $csv_headers  = 'cardnumber,surname,firstname,title,othernames,initials,streetnumber,streettype,address,address2,city,state,zipcode,country,email,phone,mobile,fax,dateofbirth,branchcode,categorycode,dateenrolled,dateexpiry,userid,password';
 my $res_header   = 'cardnumber, surname, firstname, title, othernames, initials, streetnumber, streettype, address, address2, city, state, zipcode, country, email, phone, mobile, fax, dateofbirth, branchcode, categorycode, dateenrolled, dateexpiry, userid, password';
 my $csv_one_line = '1000,Nancy,Jenkins,Dr,,NJ,78,Circle,Bunting,El Paso,Henderson,Texas,79984,United States,ajenkins0@sourceforge.net,7-(388)559-6763,3-(373)151-4471,8-(509)286-4001,10/16/1965,CPL,PT,12/28/2014,07/01/2015,jjenkins0,DPQILy';
+my $csv_one_line_a = '1001,Nancy,Jenkins,Dr,,NJ,78,Circle,Bunting,El Paso,Henderson,Texas,79984,United States,ajenkins0@sourceforge.net,7-(388)559-6763,3-(373)151-4471,8-(509)286-4001,10/16/1965,CPL,PT,12/28/2014,07/01/2015,jjenkins0,DPQILy';
 
 my $filename_1 = make_csv($temp_dir, $csv_headers, $csv_one_line);
 open(my $handle_1, "<", $filename_1) or die "cannot open < $filename_1: $!";
@@ -135,7 +139,7 @@ is($result_2->{imported}, 0, 'Got the expected 0 imported result from import_pat
 is($result_2->{invalid}, 1, 'Got the expected 1 invalid result from import_patrons with invalid card number');
 is($result_2->{overwritten}, 0, 'Got the expected 0 overwritten result from import_patrons with invalid card number');
 
-# Given ... valid file handle, good matchpoint but same input as prior test.
+# Given ... valid file handle, good matchpoint that matches should not overwrite when not set.
 my $filename_3 = make_csv($temp_dir, $csv_headers, $csv_one_line);
 open(my $handle_3, "<", $filename_3) or die "cannot open < $filename_3: $!";
 my $params_3 = { file => $handle_3, matchpoint => 'cardnumber', };
@@ -144,25 +148,73 @@ my $params_3 = { file => $handle_3, matchpoint => 'cardnumber', };
 my $result_3 = $patrons_import->import_patrons($params_3);
 
 # Then ...
-is($result_3->{already_in_db}, 0, 'Got the expected 0 already_in_db from import_patrons with duplicate userid');
-is($result_3->{errors}->[0]->{duplicate_userid}, 1, 'Got the expected duplicate userid error from import patrons with duplicate userid');
-is($result_3->{errors}->[0]->{userid}, 'jjenkins0', 'Got the expected userid error from import patrons with duplicate userid');
+is($result_3->{already_in_db}, 1, 'Got the expected 1 already_in_db from import_patrons with duplicate userid');
+is($result_3->{errors}->[0]->{duplicate_userid}, undef, 'No duplicate userid error from import patrons with duplicate userid (it is our own)');
+is($result_3->{errors}->[0]->{userid}, undef, 'No duplicate userid error from import patrons with duplicate userid (it is our own)');
 
-is($result_3->{feedback}->[0]->{feedback}, 1, 'Got the expected 1 feedback from import_patrons with duplicate userid');
+is($result_3->{feedback}->[0]->{feedback}, 1, 'Got 1 expected feedback from import_patrons that matched but not overwritten');
 is($result_3->{feedback}->[0]->{name}, 'headerrow', 'Got the expected header row name from import_patrons with duplicate userid');
 is($result_3->{feedback}->[0]->{value}, $res_header, 'Got the expected header row value from import_patrons with duplicate userid');
 
-is($result_3->{imported}, 0, 'Got the expected 0 imported result from import_patrons with duplicate userid');
-is($result_3->{invalid}, 1, 'Got the expected 1 invalid result from import_patrons with duplicate userid');
-is($result_3->{overwritten}, 0, 'Got the expected 0 overwritten result from import_patrons with duplicate userid');
+is($result_3->{imported}, 0, 'Got the expected 0 imported result from import_patrons');
+is($result_3->{invalid}, 0, 'Got the expected 0 invalid result from import_patrons');
+is($result_3->{overwritten}, 0, 'Got the expected 0 overwritten result from import_patrons that matched');
+
+# Given ... valid file handle, good matchpoint that matches should overwrite when set.
+my $filename_3a = make_csv($temp_dir, $csv_headers, $csv_one_line);
+open(my $handle_3a, "<", $filename_3a) or die "cannot open < $filename_3: $!";
+my $params_3a = { file => $handle_3a, matchpoint => 'cardnumber', overwrite_cardnumber => 1};
+
+# When ...
+my $result_3a;
+warning_is { $result_3a = $patrons_import->import_patrons($params_3a) }
+           undef,
+           "No warning raised by import_patrons";
+
+# Then ...
+is($result_3a->{already_in_db}, 0, 'Got the expected 0 already_in_db from import_patrons when matched and overwrite set');
+is($result_3a->{errors}->[0]->{duplicate_userid}, undef, 'No duplicate userid error from import patrons with duplicate userid (it is our own)');
+is($result_3a->{errors}->[0]->{userid}, undef, 'No duplicate userid error from import patrons with duplicate userid (it is our own)');
+
+is($result_3a->{feedback}->[0]->{feedback}, 1, 'Got 1 expected feedback from import_patrons that matched and overwritten');
+is($result_3a->{feedback}->[0]->{name}, 'headerrow', 'Got the expected header row name from import_patrons with duplicate userid');
+is($result_3a->{feedback}->[0]->{value}, $res_header, 'Got the expected header row value from import_patrons with duplicate userid');
+
+is($result_3a->{imported}, 0, 'Got the expected 0 imported result from import_patrons');
+is($result_3a->{invalid}, 0, 'Got the expected 0 invalid result from import_patrons');
+is($result_3a->{overwritten}, 1, 'Got the expected 1 overwritten result from import_patrons that matched');
+
+# Given ... valid file handle, good matchpoint that does not match and conflicting userid.
+my $filename_3b = make_csv($temp_dir, $csv_headers, $csv_one_line_a);
+open(my $handle_3b, "<", $filename_3b) or die "cannot open < $filename_3: $!";
+my $params_3b = { file => $handle_3b, matchpoint => 'cardnumber', };
+
+# When ...
+my $result_3b = $patrons_import->import_patrons($params_3b);
+
+# Then ...
+is($result_3b->{already_in_db}, 0, 'Got the expected 0 already_in_db from import_patrons with duplicate userid');
+is($result_3b->{errors}->[0]->{duplicate_userid}, 1, 'Got the expected duplicate userid error from import patrons with duplicate userid');
+is($result_3b->{errors}->[0]->{userid}, 'jjenkins0', 'Got the expected userid error from import patrons with duplicate userid');
+
+is($result_3b->{feedback}->[0]->{feedback}, 1, 'Got the expected 1 feedback from import_patrons with duplicate userid');
+is($result_3b->{feedback}->[0]->{name}, 'headerrow', 'Got the expected header row name from import_patrons with duplicate userid');
+is($result_3b->{feedback}->[0]->{value}, $res_header, 'Got the expected header row value from import_patrons with duplicate userid');
+
+is($result_3b->{imported}, 0, 'Got the expected 0 imported result from import_patrons with duplicate userid');
+is($result_3b->{invalid}, 1, 'Got the expected 1 invalid result from import_patrons with duplicate userid');
+is($result_3b->{overwritten}, 0, 'Got the expected 0 overwritten result from import_patrons with duplicate userid');
 
 # Given ... a new input and mocked C4::Context
 t::lib::Mocks::mock_preference('ExtendedPatronAttributes', 1);
+my $attribute = $builder->build({ source => "BorrowerAttributeType"});
 
-my $new_input_line = '1001,Donna,Sullivan,Mrs,Henry,DS,59,Court,Burrows,Reading,Salt Lake City,Pennsylvania,19605,United States,hsullivan1@purevolume.com,3-(864)009-3006,7-(291)885-8423,1-(879)095-5038,09/19/1970,LPL,PT,03/04/2015,07/01/2015,hsullivan1,8j6P6Dmap';
-my $filename_4 = make_csv($temp_dir, $csv_headers, $new_input_line);
+my $csv_headers_a  = 'cardnumber,surname,firstname,title,othernames,initials,streetnumber,streettype,address,address2,city,state,zipcode,country,email,phone,mobile,fax,dateofbirth,branchcode,categorycode,dateenrolled,dateexpiry,userid,password,patron_attributes';
+my $res_header_a   = 'cardnumber, surname, firstname, title, othernames, initials, streetnumber, streettype, address, address2, city, state, zipcode, country, email, phone, mobile, fax, dateofbirth, branchcode, categorycode, dateenrolled, dateexpiry, userid, password, patron_attributes';
+my $new_input_line = '1001,Donna,Sullivan,Mrs,Henry,DS,59,Court,Burrows,Reading,Salt Lake City,Pennsylvania,19605,United States,hsullivan1@purevolume.com,3-(864)009-3006,7-(291)885-8423,1-(879)095-5038,09/19/1970,LPL,PT,03/04/2015,07/01/2015,hsullivan1,8j6P6Dmap,'.$attribute->{code}.':1';
+my $filename_4 = make_csv($temp_dir, $csv_headers_a, $new_input_line);
 open(my $handle_4, "<", $filename_4) or die "cannot open < $filename_4: $!";
-my $params_4 = { file => $handle_4, matchpoint => 'SHOW_BCODE', };
+my $params_4 = { file => $handle_4, matchpoint => $attribute->{code}, };
 
 # When ...
 my $result_4 = $patrons_import->import_patrons($params_4);
@@ -173,11 +225,11 @@ is(scalar @{$result_4->{errors}}, 0, 'Got the expected 0 size error array from i
 
 is($result_4->{feedback}->[0]->{feedback}, 1, 'Got the expected 1 feedback from import_patrons with extended user');
 is($result_4->{feedback}->[0]->{name}, 'headerrow', 'Got the expected header row name from import_patrons with extended user');
-is($result_4->{feedback}->[0]->{value}, $res_header, 'Got the expected header row value from import_patrons with extended user');
+is($result_4->{feedback}->[0]->{value}, $res_header_a, 'Got the expected header row value from import_patrons with extended user');
 
 is($result_4->{feedback}->[1]->{feedback}, 1, 'Got the expected second feedback from import_patrons with extended user');
 is($result_4->{feedback}->[1]->{name}, 'attribute string', 'Got the expected attribute string from import_patrons with extended user');
-is($result_4->{feedback}->[1]->{value}, '', 'Got the expected second feedback value from import_patrons with extended user');
+is($result_4->{feedback}->[1]->{value}, $attribute->{code}.':1', 'Got the expected second feedback value from import_patrons with extended user');
 
 is($result_4->{feedback}->[2]->{feedback}, 1, 'Got the expected third feedback from import_patrons with extended user');
 is($result_4->{feedback}->[2]->{name}, 'lastimported', 'Got the expected last imported name from import_patrons with extended user');
@@ -187,14 +239,35 @@ is($result_4->{imported}, 1, 'Got the expected 1 imported result from import_pat
 is($result_4->{invalid}, 0, 'Got the expected 0 invalid result from import_patrons with extended user');
 is($result_4->{overwritten}, 0, 'Got the expected 0 overwritten result from import_patrons with extended user');
 
+seek $handle_4,0,0; #Reset to verify finding a matched patron works
+my $result_4a = $patrons_import->import_patrons($params_4);
+is($result_4a->{already_in_db}, 1, 'Got the expected 1 already_in_db from import_patrons with extended user matched');
+is(scalar @{$result_4->{errors}}, 0, 'Got the expected 0 size error array from import_patrons with extended user matched');
+
+is($result_4a->{feedback}->[0]->{feedback}, 1, 'Got the expected 1 feedback from import_patrons with extended user matched');
+is($result_4a->{feedback}->[0]->{name}, 'headerrow', 'Got the expected header row name from import_patrons with extended user matched');
+is($result_4a->{feedback}->[0]->{value}, $res_header_a, 'Got the expected header row value from import_patrons with extended user matched');
+
+is($result_4a->{feedback}->[1]->{feedback}, 1, 'Got the expected second feedback from import_patrons with extended user matched');
+is($result_4a->{feedback}->[1]->{name}, 'attribute string', 'Got the expected attribute string from import_patrons with extended user matched');
+is($result_4a->{feedback}->[1]->{value}, $attribute->{code}.':1', 'Got the expected second feedback value from import_patrons with extended user matched');
+
+is($result_4a->{feedback}->[2]->{already_in_db}, '1', 'Got the expected already_in_db from import_patrons with extended user matched');
+like($result_4a->{feedback}->[2]->{value}, qr/^Donna \/ \d+/, 'Got the expected third feedback value from import_patrons with extended user matched');
+
+is($result_4a->{imported}, 0, 'Got the expected 0 imported result from import_patrons with extended user matched');
+is($result_4a->{invalid}, 0, 'Got the expected 0 invalid result from import_patrons with extended user matched');
+is($result_4a->{overwritten}, 0, 'Got the expected 0 overwritten result from import_patrons with extended user matched');
+
 t::lib::Mocks::mock_preference('ExtendedPatronAttributes', 0);
 
+my $surname ='Chloé❤';
 # Given ... 3 new inputs. One with no branch code, one with unexpected branch code.
-my $input_no_branch   = '1002,Johnny,Reynolds,Mr,Patricia,JR,12,Hill,Kennedy,Saint Louis,Colorado Springs,Missouri,63131,United States,preynolds2@washington.edu,7-(925)314-9514,0-(315)973-8956,4-(510)556-2323,09/18/1967,,PT,05/07/2015,07/01/2015,preynolds2,K3HiDzl';
-my $input_good_branch = '1003,Linda,Richardson,Mr,Kimberly,LR,90,Place,Bayside,Atlanta,Erie,Georgia,31190,United States,krichardson3@pcworld.com,8-(035)185-0387,4-(796)518-3676,3-(644)960-3789,04/13/1954,RPL,PT,06/06/2015,07/01/2015,krichardson3,P3EO0MVRPXbM';
-my $input_na_branch   = '1005,Ruth,Greene,Mr,Michael,RG,3,Avenue,Grim,Peoria,Jacksonville,Illinois,61614,United States,mgreene5@seesaa.net,3-(941)565-5752,1-(483)885-8138,4-(979)577-6908,02/09/1957,ZZZ,ST,04/02/2015,07/01/2015,mgreene5,or4ORT6JH';
+my $input_no_branch   = qq|1002,$surname,Reynolds,Mr,Patricia,JR,12,Hill,Kennedy,Saint Louis,Colorado Springs,Missouri,63131,United States,preynolds2i\@washington.edu,7-(925)314-9514,0-(315)973-8956,4-(510)556-2323,09/18/1967,,PT,05/07/2015,07/01/2015,preynolds2,K3HiDzl|;
+my $input_good_branch = qq|1003,$surname,Richardson,Mr,Kimberly,LR,90,Place,Bayside,Atlanta,Erie,Georgia,31190,United States,krichardson3\@pcworld.com,8-(035)185-0387,4-(796)518-3676,3-(644)960-3789,04/13/1954,RPL,PT,06/06/2015,07/01/2015,krichardson3,P3EO0MVRPXbM|;
+my $input_na_branch   = qq|1005,$surname,Greene,Mr,Michael,RG,3,Avenue,Grim,Peoria,Jacksonville,Illinois,61614,United States,mgreene5\@seesaa.net,3-(941)565-5752,1-(483)885-8138,4-(979)577-6908,02/09/1957,ZZZ,ST,04/02/2015,07/01/2015,mgreene5,or4ORT6JH|;
 
-my $filename_5 = make_csv($temp_dir, $csv_headers, $input_no_branch, $input_good_branch, $input_na_branch);
+my $filename_5 = make_csv($temp_dir, $csv_headers, encode_utf8($input_no_branch), encode_utf8($input_good_branch), encode_utf8($input_na_branch));
 open(my $handle_5, "<", $filename_5) or die "cannot open < $filename_5: $!";
 my $params_5 = { file => $handle_5, matchpoint => 'cardnumber', };
 
@@ -208,14 +281,14 @@ is($result_5->{errors}->[0]->{missing_criticals}->[0]->{borrowernumber}, 'UNDEF'
 is($result_5->{errors}->[0]->{missing_criticals}->[0]->{key}, 'branchcode', 'Got the expected branch code key from import patrons for branch tests');
 is($result_5->{errors}->[0]->{missing_criticals}->[0]->{line}, 2, 'Got the expected 2 line number error from import patrons for branch tests');
 is($result_5->{errors}->[0]->{missing_criticals}->[0]->{lineraw}, $input_no_branch."\r\n", 'Got the expected lineraw error from import patrons for branch tests');
-is($result_5->{errors}->[0]->{missing_criticals}->[0]->{surname}, 'Johnny', 'Got the expected surname error from import patrons for branch tests');
+is($result_5->{errors}->[0]->{missing_criticals}->[0]->{surname}, $surname, 'Got the expected surname error from import patrons for branch tests');
 
 is($result_5->{errors}->[1]->{missing_criticals}->[0]->{borrowernumber}, 'UNDEF', 'Got the expected undef borrower number error from import patrons for branch tests');
 is($result_5->{errors}->[1]->{missing_criticals}->[0]->{branch_map}, 1, 'Got the expected 1 branchmap error from import patrons for branch tests');
 is($result_5->{errors}->[1]->{missing_criticals}->[0]->{key}, 'branchcode', 'Got the expected branch code key from import patrons for branch tests');
 is($result_5->{errors}->[1]->{missing_criticals}->[0]->{line}, 4, 'Got the expected 4 line number error from import patrons for branch tests');
 is($result_5->{errors}->[1]->{missing_criticals}->[0]->{lineraw}, $input_na_branch."\r\n", 'Got the expected lineraw error from import patrons for branch tests');
-is($result_5->{errors}->[1]->{missing_criticals}->[0]->{surname}, 'Ruth', 'Got the expected surname error from import patrons for branch tests');
+is($result_5->{errors}->[1]->{missing_criticals}->[0]->{surname}, $surname, 'Got the expected surname error from import patrons for branch tests');
 is($result_5->{errors}->[1]->{missing_criticals}->[0]->{value}, 'ZZZ', 'Got the expected ZZZ value error from import patrons for branch tests');
 
 is($result_5->{feedback}->[0]->{feedback}, 1, 'Got the expected 1 feedback from import_patrons for branch tests');
@@ -224,7 +297,7 @@ is($result_5->{feedback}->[0]->{value}, $res_header, 'Got the expected header ro
 
 is($result_5->{feedback}->[1]->{feedback}, 1, 'Got the expected 1 feedback from import_patrons for branch tests');
 is($result_5->{feedback}->[1]->{name}, 'lastimported', 'Got the expected lastimported name from import_patrons for branch tests');
-like($result_5->{feedback}->[1]->{value},  qr/^Linda \/ \d+/, 'Got the expected last imported value from import_patrons with for branch tests');
+like($result_5->{feedback}->[1]->{value},  qr/^$surname \/ \d+/, 'Got the expected last imported value from import_patrons with for branch tests');
 
 is($result_5->{imported}, 1, 'Got the expected 1 imported result from import patrons for branch tests');
 is($result_5->{invalid}, 2, 'Got the expected 2 invalid result from import patrons for branch tests');
@@ -310,6 +383,159 @@ is($result_7->{imported}, 1, 'Got the expected 1 imported result from import pat
 is($result_7->{invalid}, 1, 'Got the expected 1 invalid result from import patrons for dates tests');
 is($result_7->{overwritten}, 0, 'Got the expected 0 overwritten result from import patrons for dates tests');
 
+subtest 'test_import_without_cardnumber' => sub {
+    plan tests => 2;
+
+    #Remove possible existing user with a "" as cardnumber
+    my $blank_card = Koha::Patrons->find({ cardnumber => '' });
+    $blank_card->delete if $blank_card;
+
+    my $branchcode = $builder->build({ source => "Branch"})->{branchcode};
+    my $categorycode = $builder->build({ source => "Category"})->{categorycode};
+    my $csv_headers  = 'surname, branchcode, categorycode';
+    my $res_headers  = 'surname, branchcode, categorycode';
+    my $csv_nocard_1 = "Squarepants,$branchcode,$categorycode";
+    my $csv_nocard_2 = "Star,$branchcode,$categorycode";
+
+    my $filename_1 = make_csv($temp_dir, $csv_headers, $csv_nocard_1, $csv_nocard_2);
+    open(my $handle_1, "<", $filename_1) or die "cannot open < $filename_1: $!";
+    my $params_1 = { file => $handle_1, };
+
+    my $defaults = { cardnumber => "" }; #currently all the defaults come as "" if not filled
+
+    my $result = $patrons_import->import_patrons($params_1, $defaults);
+    like($result->{feedback}->[1]->{value}, qr/^Squarepants \/ \d+/, 'First borrower imported as expected');
+    like($result->{feedback}->[2]->{value}, qr/^Star \/ \d+/, 'Second borrower imported as expected');
+
+};
+
+subtest 'test_import_with_cardnumber_0' => sub {
+    plan tests => 2;
+
+    #Remove possible existing user with a "" as cardnumber
+    my $zero_card = Koha::Patrons->find({ cardnumber => 0 });
+    $zero_card->delete if $zero_card;
+
+    my $branchcode = $builder->build({ source => "Branch"})->{branchcode};
+    my $categorycode = $builder->build({ source => "Category"})->{categorycode};
+    my $csv_headers  = 'cardnumber,surname, branchcode, categorycode';
+    my $res_headers  = 'cardnumber,surname, branchcode, categorycode';
+    my $csv_nocard_1 = "0,Squarepants,$branchcode,$categorycode";
+
+    my $filename_1 = make_csv($temp_dir, $csv_headers, $csv_nocard_1);
+    open(my $handle_1, "<", $filename_1) or die "cannot open < $filename_1: $!";
+    my $params_1 = { file => $handle_1, };
+
+    my $defaults = { cardnumber => "" }; #currently all the defaults come as "" if not filled
+
+    my $result = $patrons_import->import_patrons($params_1, $defaults);
+    like($result->{feedback}->[1]->{value}, qr/^Squarepants \/ \d+/, 'First borrower imported as expected');
+    $zero_card = Koha::Patrons->find({ cardnumber => 0 });
+    is($zero_card->surname.$zero_card->branchcode.$zero_card->categorycode,'Squarepants'.$branchcode.$categorycode,"Patron with cardnumber 0 is the imported patron");
+
+};
+
+subtest 'Import patron with guarantor' => sub {
+    plan tests => 4;
+    t::lib::Mocks::mock_preference( 'borrowerRelationship', 'guarantor' );
+
+    my $category = $builder->build( { source => 'Category' } )->{categorycode};
+    my $branch = $builder->build( { source => 'Branch' } )->{branchcode};
+    my $guarantor = Koha::Patron->new(
+        {
+            surname      => 'Guarantor',
+            branchcode   => $branch,
+            categorycode => $category,
+        }
+    )->store();
+    my $guarantor_id = $guarantor->id;
+
+    my $branchcode = $builder->build( { source => "Branch" } )->{branchcode};
+    my $categorycode = $builder->build( { source => "Category" } )->{categorycode};
+    my $csv_headers = 'cardnumber,surname, branchcode, categorycode, guarantor_id, guarantor_relationship';
+    my $csv = "kylemhall,Hall,$branchcode,$categorycode,$guarantor_id,guarantor";
+
+    my $filename_1 = make_csv( $temp_dir, $csv_headers, $csv );
+    open( my $handle_1, "<", $filename_1 ) or die "cannot open < $filename_1: $!";
+    my $params_1 = { file => $handle_1, };
+
+    my $result = $patrons_import->import_patrons( $params_1 );
+    like( $result->{feedback}->[1]->{value}, qr/^Hall \/ \d+/, 'First borrower imported as expected' );
+    my $patron = Koha::Patrons->find( { cardnumber => 'kylemhall' } );
+    is( $patron->surname, "Hall", "Patron was created" );
+
+    my $r = Koha::Patron::Relationships->find( { guarantor_id => $guarantor_id } );
+    ok( $r, 'Found relationship' );
+    is( $r->guarantee->cardnumber, 'kylemhall', 'Found the correct guarantee' );
+};
+
+subtest 'test_import_with_password_overwrite' => sub {
+    plan tests => 8;
+
+    #Remove possible existing user to avoid clashes
+    my $ernest = Koha::Patrons->find({ userid => 'ErnestP' });
+    $ernest->delete if $ernest;
+
+    #Setup our info
+    my $branchcode = $builder->build({ source => "Branch"})->{branchcode};
+    my $categorycode = $builder->build({ source => "Category", value => { category_type => 'A'  } })->{categorycode};
+    my $staff_categorycode = $builder->build({ source => "Category", value => { category_type => 'S'  } })->{categorycode};
+    my $csv_headers  = 'surname,userid,branchcode,categorycode,password';
+    my $csv_password = "Worrell,ErnestP,$branchcode,$categorycode,Ernest11";
+    my $csv_password_change = "Worrell,ErnestP,$branchcode,$categorycode,Vern1234";
+    my $csv_blank_password = "Worel,ErnestP,$branchcode,$categorycode,";
+    my $defaults = { cardnumber => "" }; #currently all the defaults come as "" if not filled
+    my $csv_staff_password_change = "Worrell,ErnestP,$branchcode,$staff_categorycode,Vern1234";
+
+    #Make the test files for importing
+    my $filename_1 = make_csv($temp_dir, $csv_headers, $csv_password);
+    open(my $handle_1, "<", $filename_1) or die "cannot open < $filename_1: $!";
+    my $params_1 = { file => $handle_1, matchpoint => 'userid', overwrite_passwords => 1, overwrite_cardnumber => 1};
+    my $filename_2 = make_csv($temp_dir, $csv_headers, $csv_password_change);
+    open(my $handle_2, "<", $filename_2) or die "cannot open < $filename_2: $!";
+    my $params_2 = { file => $handle_2, matchpoint => 'userid', overwrite_passwords => 1, overwrite_cardnumber => 1};
+
+    my $filename_3 = make_csv($temp_dir, $csv_headers, $csv_blank_password);
+    open(my $handle_3, "<", $filename_3) or die "cannot open < $filename_3: $!";
+    my $params_3 = { file => $handle_3, matchpoint => 'userid', overwrite_passwords => 1, overwrite_cardnumber => 1};
+
+    my $filename_4 = make_csv($temp_dir, $csv_headers, $csv_staff_password_change);
+    open(my $handle_4, "<", $filename_4) or die "cannot open < $filename_4: $!";
+    my $params_4 = { file => $handle_4, matchpoint => 'userid', overwrite_passwords => 1, overwrite_cardnumber => 1};
+
+
+    my $result = $patrons_import->import_patrons($params_1, $defaults);
+    like($result->{feedback}->[1]->{value}, qr/^Worrell \/ \d+/, 'First borrower imported as expected');
+    $ernest = Koha::Patrons->find({ userid => 'ErnestP' });
+    isnt($ernest->password,'Ernest',"New patron is imported, password is encrypted");
+
+    #Save info to double check
+    my $orig_pass = $ernest->password;
+
+    $result = $patrons_import->import_patrons($params_2, $defaults);
+    $ernest = Koha::Patrons->find({ userid => 'ErnestP' });
+    isnt($ernest->password,$orig_pass,"New patron is overwritten, password is overwritten");
+    isnt($ernest->password,'Vern',"Password is overwritten and is encrypted from value provided");
+
+    #Save info to check not changed
+    $orig_pass = $ernest->password;
+
+    $result = $patrons_import->import_patrons($params_3, $defaults);
+    $ernest = Koha::Patrons->find({ userid => 'ErnestP' });
+    is($ernest->surname,'Worel',"Patron is overwritten, surname changed");
+    is($ernest->password,$orig_pass,"Patron was overwritten but password is not overwritten if blank");
+
+    $ernest->category($staff_categorycode);
+    $ernest->store;
+
+    $result = $patrons_import->import_patrons($params_4, $defaults);
+    $ernest = Koha::Patrons->find({ userid => 'ErnestP' });
+    is($ernest->surname,'Worrell',"Patron is overwritten, surname changed");
+    is($ernest->password,$orig_pass,"Patron is imported, password is not changed for staff");
+
+};
+
+
 subtest 'test_prepare_columns' => sub {
     plan tests => 16;
 
@@ -381,8 +607,8 @@ subtest 'test_set_column_keys' => sub {
     my $attr_type_3 = $patrons_import->set_attribute_types($params_3);
 
     # Then ...
-    isa_ok($attr_type_3, 'C4::Members::AttributeTypes');
-    is($attr_type_3->{code}, $code_3, 'Got the expected code attribute type from set attribute types');
+    isa_ok($attr_type_3, 'Koha::Patron::Attribute::Type');
+    is($attr_type_3->code, $code_3, 'Got the expected code attribute type from set attribute types');
 };
 
 subtest 'test_set_column_keys' => sub {
@@ -393,29 +619,30 @@ subtest 'test_set_column_keys' => sub {
     # When ... Then ...
     my @columnkeys_0 = $patrons_import->set_column_keys(undef);
     # -1 because we do not want the borrowernumber column
-    is(scalar @columnkeys_0, @columns - 1, 'Got the expected array size from set column keys with undef extended');
+    # +2 for guarantor id and guarantor relationship
+    is(scalar @columnkeys_0, @columns - 1 + 2, 'Got the expected array size from set column keys with undef extended');
 
     # Given ... extended.
     my $extended = 1;
 
     # When ... Then ...
     my @columnkeys_1 = $patrons_import->set_column_keys($extended);
-    is(scalar @columnkeys_1, @columns - 1 + $extended, 'Got the expected array size from set column keys with extended');
+    is(scalar @columnkeys_1, @columns - 1 + 2 + $extended, 'Got the expected array size from set column keys with extended');
 };
 
-subtest 'test_set_patron_attributes' => sub {
+subtest 'test_generate_patron_attributes' => sub {
     plan tests => 13;
 
     # Given ... nothing at all
     # When ... Then ...
-    my $result_0 = $patrons_import->set_patron_attributes(undef, undef, undef);
+    my $result_0 = $patrons_import->generate_patron_attributes(undef, undef, undef);
     is($result_0, undef, 'Got the expected undef from set patron attributes with nothing');
 
     # Given ... not extended.
     my $extended_1 = 0;
 
     # When ... Then ...
-    my $result_1 = $patrons_import->set_patron_attributes($extended_1, undef, undef);
+    my $result_1 = $patrons_import->generate_patron_attributes($extended_1, undef, undef);
     is($result_1, undef, 'Got the expected undef from set patron attributes with not extended');
 
     # Given ... NO patrons attributes
@@ -424,7 +651,7 @@ subtest 'test_set_patron_attributes' => sub {
     my @feedback_2;
 
     # When ...
-    my $result_2 = $patrons_import->set_patron_attributes($extended_2, $patron_attributes_2, \@feedback_2);
+    my $result_2 = $patrons_import->generate_patron_attributes($extended_2, $patron_attributes_2, \@feedback_2);
 
     # Then ...
     is($result_2, undef, 'Got the expected undef from set patron attributes with no patrons attributes');
@@ -435,15 +662,15 @@ subtest 'test_set_patron_attributes' => sub {
     my @feedback_3;
 
     # When ...
-    my $result_3 = $patrons_import->set_patron_attributes($extended_2, $patron_attributes_3, \@feedback_3);
+    my $result_3 = $patrons_import->generate_patron_attributes($extended_2, $patron_attributes_3, \@feedback_3);
 
     # Then ...
     ok($result_3, 'Got some data back from set patron attributes');
     is($result_3->[0]->{code}, 'grade', 'Got the expected first code from set patron attributes');
-    is($result_3->[0]->{value}, '01', 'Got the expected first value from set patron attributes');
+    is($result_3->[0]->{attribute}, '01', 'Got the expected first value from set patron attributes');
 
     is($result_3->[1]->{code}, 'homeroom', 'Got the expected second code from set patron attributes');
-    is($result_3->[1]->{value}, 1150605, 'Got the expected second value from set patron attributes');
+    is($result_3->[1]->{attribute}, 1150605, 'Got the expected second value from set patron attributes');
 
     is(scalar @feedback_3, 1, 'Got the expected 1 array size from set patron attributes with extended user');
     is($feedback_3[0]->{feedback}, 1, 'Got the expected second feedback from set patron attributes with extended user');
@@ -615,6 +842,298 @@ subtest 'test_format_dates' => sub {
     is($missing_criticals_2[2]->{line}, $line_number, 'Got the expected third line from check_branch_code with bad dates');
     is($missing_criticals_2[2]->{lineraw}, $borrowerline, 'Got the expected third lineraw from check_branch_code with bad dates');
 };
+
+subtest 'patron_attributes' => sub {
+
+    plan tests => 17;
+
+    t::lib::Mocks::mock_preference('ExtendedPatronAttributes', 1);
+
+    my $unique_attribute_type = $builder->build_object(
+        {
+            class => 'Koha::Patron::Attribute::Types',
+            value => { unique_id=> 1, repeatable => 0 }
+        }
+    );
+    my $repeatable_attribute_type = $builder->build_object(
+        {
+            class => 'Koha::Patron::Attribute::Types',
+            value => { unique_id => 0, repeatable => 1 }
+        }
+    );
+    my $normal_attribute_type = $builder->build_object(
+        {
+            class => 'Koha::Patron::Attribute::Types',
+            value => { unique_id => 0, repeatable => 0 }
+        }
+    );
+    my $non_existent_attribute_type = $builder->build_object(
+        {
+            class => 'Koha::Patron::Attribute::Types',
+        }
+    );
+    my $non_existent_attribute_type_code = $non_existent_attribute_type->code;
+    $non_existent_attribute_type->delete;
+
+    our $cardnumber = "1042";
+
+    # attributes is { code => \@attributes }
+    sub build_csv {
+        my ($attributes) = @_;
+
+        my $csv_headers = 'cardnumber,surname,firstname,branchcode,categorycode,patron_attributes';
+        my @attributes_str = map { my $code = $_; map {  sprintf "%s:%s", $code, $_ } @{ $attributes->{$code} } } keys %$attributes;
+        my $attributes_str = join ',', @attributes_str;
+        my $csv_line = sprintf '%s,John,D,MPL,PT,"%s"', $cardnumber, $attributes_str;
+        my $filename = make_csv( $temp_dir, $csv_headers, $csv_line );
+        open( my $fh, "<:encoding(utf8)", $filename ) or die "cannot open $filename: $!";
+        return $fh;
+    }
+
+    { # Everything good, we create a patron with 3 attributes
+        my $attributes = {
+            $unique_attribute_type->code => ['my unique attribute 1'],
+            $repeatable_attribute_type->code => [ 'my repeatable attribute 1', 'my repeatable attribute 2' ],
+            $normal_attribute_type->code => ['my normal attribute 1'],
+        };
+        my $fh = build_csv({ %$attributes });
+        my $result = $patrons_import->import_patrons({file => $fh});
+
+        is( $result->{imported}, 1 );
+
+        my $patron = Koha::Patrons->find({cardnumber => $cardnumber});
+        compare_patron_attributes($patron->extended_attributes->unblessed, { %$attributes } );
+        $patron->delete;
+    }
+
+    { # UniqueIDConstraint
+        $builder->build_object(
+            {
+                class => 'Koha::Patron::Attributes',
+                value => { code => $unique_attribute_type->code, attribute => 'unique' }
+            }
+        );
+
+        my $attributes = {
+            $unique_attribute_type->code => ['unique'],
+            $normal_attribute_type->code => ['my normal attribute 1']
+        };
+        my $fh = build_csv({ %$attributes });
+
+        my $result = $patrons_import->import_patrons({file => $fh, matchpoint => 'cardnumber'});
+        my $error = $result->{errors}->[0];
+        is( $error->{patron_attribute_unique_id_constraint}, 1 );
+        is( $error->{patron_id}, $cardnumber );
+        is( $error->{attribute}->code, $unique_attribute_type->code );
+
+        my $patron = Koha::Patrons->find({cardnumber => $cardnumber});
+        is( $patron, undef, 'Patron is not created' );
+    }
+
+    { #InvalidType
+        my $attributes = {
+            $non_existent_attribute_type_code => ['my non-existent attribute'],
+            $normal_attribute_type->code      => ['my attribute 1'],
+        };
+        my $fh = build_csv({ %$attributes });
+
+        my $result = $patrons_import->import_patrons({file => $fh, matchpoint => 'cardnumber'});
+        is( $result->{imported}, 0 );
+
+        my $error = $result->{errors}->[0];
+        is( $error->{patron_attribute_invalid_type}, 1 );
+        is( $error->{patron_id}, $cardnumber );
+        is( $error->{attribute_type_code}, $non_existent_attribute_type_code );
+
+        my $patron = Koha::Patrons->find({cardnumber => $cardnumber});
+        is( $patron, undef );
+
+    }
+
+    { # NonRepeatable
+        my $attributes = {
+                $repeatable_attribute_type->code => ['my repeatable attribute 1', 'my repeatable attribute 2'],
+                $normal_attribute_type->code     => ['my normal attribute 1', 'my normal attribute 2'],
+            };
+        my $fh = build_csv({ %$attributes });
+        my $result = $patrons_import->import_patrons({file => $fh, matchpoint => 'cardnumber'});
+        is( $result->{imported}, 0 );
+
+        my $error = $result->{errors}->[0];
+        is( $error->{patron_attribute_non_repeatable}, 1 );
+        is( $error->{patron_id}, $cardnumber );
+        is( $error->{attribute}->code, $normal_attribute_type->code );
+
+        my $patron = Koha::Patrons->find({cardnumber => $cardnumber});
+        is( $patron, undef );
+    }
+
+    subtest 'update existing patron' => sub {
+        plan tests => 19;
+
+        my $patron = $builder->build_object(
+            {
+                class => 'Koha::Patrons',
+                value => { cardnumber => $cardnumber }
+            }
+        );
+
+        my $attributes = {
+            $unique_attribute_type->code => ['my unique attribute 1'],
+            $repeatable_attribute_type->code => [ 'my repeatable attribute 1', 'my repeatable attribute 2' ],
+            $normal_attribute_type->code => ['my normal attribute 1'],
+        };
+        my $fh = build_csv({ %$attributes });
+        my $result = $patrons_import->import_patrons(
+            {
+                file                         => $fh,
+                matchpoint                   => 'cardnumber',
+                overwrite_cardnumber         => 1,
+                preserve_extended_attributes => 1
+            }
+        );
+
+        is( $result->{overwritten}, 1 );
+
+        compare_patron_attributes($patron->extended_attributes->unblessed, { %$attributes } );
+
+        # Adding a new non-repeatable attribute
+        my $new_attributes = {
+            $normal_attribute_type->code => ['my normal attribute 2'],
+        };
+        $fh = build_csv({ %$new_attributes });
+        $result = $patrons_import->import_patrons(
+            {
+                file                         => $fh,
+                matchpoint                   => 'cardnumber',
+                overwrite_cardnumber         => 1,
+                preserve_extended_attributes => 1
+            }
+        );
+
+        is( $result->{overwritten}, 1 );
+
+        # The normal_attribute_type has been replaced with 'my normal attribute 2'
+        compare_patron_attributes($patron->extended_attributes->unblessed, { %$attributes, %$new_attributes } );
+
+        # UniqueIDConstraint
+        $patron->extended_attributes->delete; # reset
+        $builder->build_object(
+            {
+                class => 'Koha::Patron::Attributes',
+                value => { code => $unique_attribute_type->code, attribute => 'unique' }
+            }
+        );
+        $attributes = {
+            $unique_attribute_type->code => ['unique'],
+            $repeatable_attribute_type->code => [ 'my repeatable attribute 1', 'my repeatable attribute 2' ],
+            $normal_attribute_type->code => ['my normal attribute 1'],
+        };
+        $fh = build_csv({ %$attributes });
+        $result = $patrons_import->import_patrons(
+            {
+                file                         => $fh,
+                matchpoint                   => 'cardnumber',
+                overwrite_cardnumber         => 1,
+                preserve_extended_attributes => 1
+            }
+        );
+
+        is( $result->{overwritten}, 0 );
+        my $error = $result->{errors}->[0];
+        is( $error->{patron_attribute_unique_id_constraint}, 1 );
+        is( $error->{borrowernumber}, $patron->borrowernumber );
+        is( $error->{attribute}->code, $unique_attribute_type->code );
+
+        compare_patron_attributes($patron->extended_attributes->unblessed, {},  );
+
+
+        #InvalidType
+        $attributes = {
+            $non_existent_attribute_type_code => ['my non-existent attribute'],
+            $normal_attribute_type->code      => ['my attribute 1'],
+        };
+        $fh = build_csv({ %$attributes });
+
+        $result = $patrons_import->import_patrons(
+            {
+                file                         => $fh,
+                matchpoint                   => 'cardnumber',
+                overwrite_cardnumber         => 1,
+                preserve_extended_attributes => 1
+            }
+        );
+        is( $result->{overwritten}, 0 );
+
+        $error = $result->{errors}->[0];
+        is( $error->{patron_attribute_invalid_type}, 1 );
+        is( $error->{borrowernumber}, $patron->borrowernumber );
+        is( $error->{attribute_type_code}, $non_existent_attribute_type_code );
+
+        # NonRepeatable
+        $attributes = {
+                $repeatable_attribute_type->code => ['my repeatable attribute 1', 'my repeatable attribute 2'],
+                $normal_attribute_type->code     => ['my normal attribute 1', 'my normal attribute 2'],
+            };
+        $fh = build_csv({ %$attributes });
+        $result = $patrons_import->import_patrons(
+            {
+                file                         => $fh,
+                matchpoint                   => 'cardnumber',
+                overwrite_cardnumber         => 1,
+                preserve_extended_attributes => 1
+            }
+        );
+        is( $result->{overwritten}, 0 );
+
+        $error = $result->{errors}->[0];
+        is( $error->{patron_attribute_non_repeatable}, 1 );
+        is( $error->{borrowernumber}, $patron->borrowernumber );
+        is( $error->{attribute}->code, $normal_attribute_type->code );
+
+        # Don't preserve existing attributes
+        $attributes = {
+                $repeatable_attribute_type->code => ['my repeatable attribute 3', 'my repeatable attribute 4'],
+                $normal_attribute_type->code     => ['my normal attribute 1'],
+            };
+        $fh = build_csv({ %$attributes });
+        $result = $patrons_import->import_patrons(
+            {
+                file                         => $fh,
+                matchpoint                   => 'cardnumber',
+                overwrite_cardnumber         => 1,
+                preserve_extended_attributes => 1
+            }
+        );
+        is( $result->{overwritten}, 1 );
+
+        compare_patron_attributes($patron->extended_attributes->unblessed, { %$attributes } );
+
+    };
+
+};
+
+# got is { code => $code, attribute => $attribute }
+# expected is { $code => \@attributes }
+sub compare_patron_attributes {
+    my ( $got, $expected ) = @_;
+
+    $got = [ map { { code => $_->{code}, attribute => $_->{attribute} } } @$got ];
+    $expected = [
+        map {
+            my $code = $_;
+            map { { code => $code, attribute => $_ } } @{ $expected->{$code} }
+          } keys %$expected
+    ];
+    for my $v ( $got, $expected ) {
+        $v = [
+            sort {
+                $a->{code} cmp $b->{code} || $a->{attribute} cmp $b->{attribute}
+            } @$v
+        ];
+    }
+    is_deeply($got, $expected);
+}
 
 # ###### Test utility ###########
 sub make_csv {

@@ -6,7 +6,7 @@
                 <a id="issues-table-load-now-button" href="#" class="btn btn-default"><i class="fa fa-book"></i> Show checkouts</a>
             </p>
         </div>
-        <form name="issues" action="/cgi-bin/koha/tools/export.pl" method="post" class="checkboxed">
+        <form name="issues" action="/cgi-bin/koha/tools/export.pl" method="post">
             <table id="issues-table" style="width: 100% !Important;">
                 <thead>
                     <tr>
@@ -15,18 +15,22 @@
                         <th scope="col">Due date</th>
                         <th scope="col">Due date</th>
                         <th scope="col">Title</th>
+                        <th scope="col">Record-level item type</th>
                         <th scope="col">Item type</th>
+                        <th scope="col">Collection</th>
                         <th scope="col">Location</th>
                         <th scope="col">Home library</th>
                         <th scope="col">&nbsp;</th>
                         <th scope="col">Checked out on</th>
                         <th scope="col">Checked out from</th>
-                        <th scope="col">Call no</th>
+                        <th scope="col">Call number</th>
+                        <th scope="col">Copy number</th>
                         <th scope="col">Charge</th>
                         <th scope="col">Fine</th>
                         <th scope="col">Price</th>
                         <th scope="col">Renew <p class="column-tool"><a href="#" id="CheckAllRenewals">select all</a> | <a href="#" id="UncheckAllRenewals">none</a></p></th>
                         <th scope="col">Check in <p class="column-tool"><a href="#" id="CheckAllCheckins">select all</a> | <a href="#" id="UncheckAllCheckins">none</a></p></th>
+                        <th scope="col">Return claims</th>
                         <th scope="col">Export <p class="column-tool"><a href="#" id="CheckAllExports">select all</a> | <a href="#" id="UncheckAllExports">none</a></p></th>
                     </tr>
                 </thead>
@@ -39,12 +43,16 @@
             <div id="issues-table-actions">
                 <fieldset class="action">
                     [% IF ( CAN_user_circulate_override_renewals ) %]
-                        [% IF CAN_user_circulate_override_renewals && Koha.Preference( 'AllowRenewalLimitOverride' ) %]
-                            <label for="override_limit">Override renewal limit:</label>
+                        [% IF Koha.Preference( 'AllowRenewalLimitOverride' ) || Koha.Preference( 'AllowRenewalOnHoldOverride' ) %]
+                            <label for="override_limit">Override renewal restrictions:</label>
                             <input type="checkbox" name="override_limit" id="override_limit" value="1" />
                         [% END %]
                     [% END %]
                     [% IF ( CAN_user_circulate_circulate_remaining_permissions ) %]
+                        [% IF Koha.Preference( 'UnseenRenewals' ) %]
+                            <label id="renew_as_unseen_label" for="override_limit">Renew as &quot;unseen&quot; if appropriate:</label>
+                            <input type="checkbox" name="renew_as_unseen" id="renew_as_unseen_checkbox" value="1" />
+                        [% END %]
                         <button class="btn btn-default" id="RenewCheckinChecked"><i class="fa fa-check"></i> Renew or check in selected items</button>
                         <button class="btn btn-default" id="RenewAll"><i class="fa fa-book"></i> Renew all</button>
                     [% END %]
@@ -52,7 +60,7 @@
 
                 [% IF Koha.Preference('ExportCircHistory') %]
                     <fieldset>
-                        <label for="issues-table-output-format"><b>Export checkouts using format:</b></label>
+                        <label for="issues-table-output-format"><strong>Export checkouts using format:</strong></label>
                         <select name="issues-table-output-format" id="issues-table-output-format">
                             <option value="iso2709_995">MARC with items</option>
                             <option value="iso2709">MARC without items</option>
@@ -64,7 +72,7 @@
                         [% IF csv_profiles.size %]
                             <select name="csv_profile_id">
                                 [% FOREACH csv_profile IN csv_profiles %]
-                                    <option value="[% csv_profile.export_format_id %]">[% csv_profile.profile %]</option>
+                                    <option value="[% csv_profile.export_format_id | html %]">[% csv_profile.profile | html %]</option>
                                 [% END %]
                             </select>
                         [% END %]
@@ -81,4 +89,74 @@
     [% ELSE %]
         <p>Patron has nothing checked out.</p>
     [% END %]
+</div>
+
+<!-- Claims Returned Modal -->
+<div class="modal fade" id="claims-returned-modal" tabindex="-1" role="dialog" aria-labelledby="claims-returned-modal-label">
+  <div class="modal-dialog" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h4 class="modal-title" id="claims-returned-modal-label">Claim returned</h4>
+      </div>
+      <div class="modal-body">
+
+          <div class="form-group">
+            <label for="claims-returned-notes" class="control-label">Notes</label>
+            <div>
+              <textarea id="claims-returned-notes" class="form-control" rows="3"></textarea>
+            </div>
+          </div>
+
+          [% IF Koha.Preference('ClaimReturnedChargeFee') == 'ask' %]
+            <div class="form-group">
+              <div class="checkbox">
+                <label for="claims-returned-charge-lost-fee">
+                  <input id="claims-returned-charge-lost-fee" type="checkbox" value="1">
+                  Charge lost fee
+                </label>
+              </div>
+            </div>
+          [% END %]
+
+          <input type="hidden" id="claims-returned-itemnumber" />
+      </div>
+      <div class="modal-footer">
+        <button id="claims-returned-modal-btn-submit" type="button" class="btn btn-primary"><i class="fa fa-exclamation-circle"></i> Make claim</button>
+        <button class="btn btn-default deny cancel" href="#" data-dismiss="modal" aria-hidden="true"><i class="fa fa-times"></i> Cancel</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Resolve Return Claim Modal -->
+<div class="modal fade" id="claims-returned-resolved-modal" tabindex="-1" role="dialog" aria-labelledby="claims-returned-resolved-modal-label">
+  <div class="modal-dialog" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h4 class="modal-title" id="claims-returned-resolved-modal-label">Resolve return claim</h4>
+      </div>
+      <div class="modal-body">
+
+          <div class="form-group">
+            <label for="claims-returned-resolved-code">Resolution</label>
+            [% SET resolutions = AuthorisedValues.GetAuthValueDropbox('RETURN_CLAIM_RESOLUTION') %]
+            <select class="form-control" id="claims-returned-resolved-modal-resolved-code">
+              [% FOREACH r IN resolutions %]
+                  <option value="[% r.authorised_value | html %]">[% r.lib | html %]</option>
+              [% END %]
+            </select>
+          </div>
+
+          <input type="hidden" id="claims-returned-resolved-modal-id"/>
+      </div>
+      <div class="modal-footer">
+        <button id="claims-returned-resolved-modal-btn-submit" type="button" class="btn btn-primary">
+          <i id="claims-returned-resolved-modal-btn-submit-icon" class="fa fa-exclamation-circle"></i>
+          <i id="claims-returned-resolved-modal-btn-submit-spinner" class="fa fa-spinner fa-pulse fa-fw" style="display:none"></i>
+          Resolve claim
+         </button>
+        <button class="btn btn-default deny cancel" href="#" data-dismiss="modal" aria-hidden="true"><i class="fa fa-times"></i> Cancel</button>
+      </div>
+    </div>
+  </div>
 </div>

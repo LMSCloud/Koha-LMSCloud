@@ -18,34 +18,36 @@
 use Modern::Perl;
 
 use C4::Context;
-use Mail::Sendmail;
 use C4::Letters;
 use Koha::Database;
+use Koha::DateUtils;
 use Koha::Patrons;
+
 use t::lib::TestBuilder;
+use t::lib::Mocks;
 
 use Test::More tests => 22;
 use Test::MockModule;
 use Test::Warn;
 use Carp;
 
-my %mail;
-my $module = Test::MockModule->new('Mail::Sendmail');
-$module->mock(
-    'sendmail',
+my ( $email_object, $sendmail_params );
+
+my $email_sender_module = Test::MockModule->new('Email::Stuffer');
+$email_sender_module->mock(
+    'send_or_die',
     sub {
-        carp 'Fake sendmail';
-        %mail = @_;
+        ( $email_object, $sendmail_params ) = @_;
+        warn 'Fake sendmail';
     }
 );
 
 use_ok('Koha::Patron::Password::Recovery');
 
+t::lib::Mocks::mock_preference('KohaAdminEmailAddress', 'test@koha-community.org');
+
 my $schema = Koha::Database->new()->schema();
 $schema->storage->txn_begin();
-
-my $dbh = C4::Context->dbh;
-$dbh->{RaiseError} = 1;
 
 #
 # Start with fresh data
@@ -68,6 +70,8 @@ my $patron_category = $builder->build({ source => 'Category' });
 my $branch = $builder->build({
     source => 'Branch',
     value => {
+        branchemail      => undef,
+        branchreplyto    => undef,
         branchreturnpath => $email1,
     },
 });
@@ -115,21 +119,21 @@ $schema->resultset('BorrowerPasswordRecovery')->create(
     {
         borrowernumber => $borrowernumber1,
         uuid           => $uuid1,
-        valid_until    => DateTime->now( time_zone => C4::Context->tz() )->add( days => 2 )->datetime()
+        valid_until    => dt_from_string()->add( days => 2 )->datetime()
     }
 );
 $schema->resultset('BorrowerPasswordRecovery')->create(
     {
         borrowernumber => $borrowernumber2,
         uuid           => $uuid2,
-        valid_until    => DateTime->now( time_zone => C4::Context->tz() )->subtract( days => 2 )->datetime()
+        valid_until    => dt_from_string()->subtract( days => 2 )->datetime()
     }
 );
 $schema->resultset('BorrowerPasswordRecovery')->create(
     {
         borrowernumber => $borrowernumber3,
         uuid           => $uuid3,
-        valid_until    => DateTime->now( time_zone => C4::Context->tz() )->subtract( days => 3 )->datetime()
+        valid_until    => dt_from_string()->subtract( days => 3 )->datetime()
     }
 );
 
@@ -167,7 +171,7 @@ $schema->resultset('BorrowerPasswordRecovery')->create(
     {
         borrowernumber => $borrowernumber2,
         uuid           => $uuid2,
-        valid_until    => DateTime->now( time_zone => C4::Context->tz() )->subtract( days => 2 )->datetime()
+        valid_until    => dt_from_string()->subtract( days => 2 )->datetime()
     }
 );
 
@@ -182,7 +186,7 @@ $schema->resultset('BorrowerPasswordRecovery')->create(
     {
         borrowernumber => $borrowernumber3,
         uuid           => $uuid3,
-        valid_until    => DateTime->now( time_zone => C4::Context->tz() )->subtract( days => 3 )->datetime()
+        valid_until    => dt_from_string()->subtract( days => 3 )->datetime()
     }
 );
 

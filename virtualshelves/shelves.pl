@@ -29,6 +29,7 @@ use C4::XSLT;
 
 use Koha::Biblios;
 use Koha::Biblioitems;
+use Koha::Items;
 use Koha::ItemTypes;
 use Koha::CsvProfiles;
 use Koha::Patrons;
@@ -36,13 +37,12 @@ use Koha::Virtualshelves;
 
 use constant ANYONE => 2;
 
-my $query = new CGI;
+my $query = CGI->new;
 
 my ( $template, $loggedinuser, $cookie ) = get_template_and_user(
     {   template_name   => "virtualshelves/shelves.tt",
         query           => $query,
         type            => "intranet",
-        authnotrequired => 0,
         flagsrequired   => { catalogue => 1 },
     }
 );
@@ -101,7 +101,7 @@ if ( $op eq 'add_form' ) {
     if ( $shelf ) {
         $op = $referer;
         my $sortfield = $query->param('sortfield');
-        $sortfield = 'title' unless grep {/^$sortfield$/}qw( title author copyrightdate itemcallnumber );
+        $sortfield = 'title' unless grep { $_ eq $sortfield } qw( title author copyrightdate itemcallnumber dateadded );
         if ( $shelf->can_be_managed( $loggedinuser ) ) {
             $shelf->shelfname( scalar $query->param('shelfname') );
             $shelf->sortfield( $sortfield );
@@ -151,9 +151,9 @@ if ( $op eq 'add_form' ) {
                 foreach my $barcode (@barcodes){
                     $barcode =~ s/\r$//; # strip any naughty return chars
                     next if $barcode eq '';
-                    my $item = GetItem( 0, $barcode);
-                    if (defined $item && $item->{itemnumber}) {
-                        my $added = eval { $shelf->add_biblio( $item->{biblionumber}, $loggedinuser ); };
+                    my $item = Koha::Items->find({barcode => $barcode});
+                    if ( $item ) {
+                        my $added = eval { $shelf->add_biblio( $item->biblionumber, $loggedinuser ); };
                         if ($@) {
                             push @messages, { item_barcode => $barcode, type => 'alert', code => ref($@), msg => $@ };
                         } elsif ( $added ) {
@@ -233,7 +233,7 @@ if ( $op eq 'view' ) {
     if ( $shelf ) {
         if ( $shelf->can_be_viewed( $loggedinuser ) ) {
             my $sortfield = $query->param('sortfield') || $shelf->sortfield || 'title';    # Passed in sorting overrides default sorting
-            $sortfield = 'title' unless grep {/^$sortfield$/}qw( title author copyrightdate itemcallnumber );
+            $sortfield = 'title' unless grep { $_ eq $sortfield } qw( title author copyrightdate itemcallnumber dateadded );
             my $direction = $query->param('direction') || 'asc';
             $direction = 'asc' if $direction ne 'asc' and $direction ne 'desc';
             my ( $rows, $page );
@@ -273,13 +273,16 @@ if ( $op eq 'view' ) {
                 $itemtype = Koha::ItemTypes->find( $itemtype );
                 my $biblio = Koha::Biblios->find( $content->biblionumber );
                 $this_item->{title}             = $biblio->title;
+                $this_item->{subtitle}          = $biblio->subtitle;
+                $this_item->{medium}            = $biblio->medium;
+                $this_item->{part_number}       = $biblio->part_number;
+                $this_item->{part_name}         = $biblio->part_name;
                 $this_item->{author}            = $biblio->author;
                 $this_item->{dateadded}         = $content->dateadded;
                 $this_item->{imageurl}          = $itemtype ? C4::Koha::getitemtypeimagelocation( 'intranet', $itemtype->imageurl ) : q{};
                 $this_item->{description}       = $itemtype ? $itemtype->description : q{}; #FIXME Should this be translated_description ?
                 $this_item->{notforloan}        = $itemtype->notforloan if $itemtype;
-                $this_item->{'coins'}           = GetCOinSBiblio($record);
-                $this_item->{'subtitle'}        = GetRecordValue( 'subtitle', $record, GetFrameworkCode( $biblionumber ) );
+                $this_item->{'coins'}           = $biblio->get_coins;
                 $this_item->{'normalized_upc'}  = GetNormalizedUPC( $record, $marcflavour );
                 $this_item->{'normalized_ean'}  = GetNormalizedEAN( $record, $marcflavour );
                 $this_item->{'normalized_oclc'} = GetNormalizedOCLCNumber( $record, $marcflavour );

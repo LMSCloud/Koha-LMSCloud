@@ -72,7 +72,9 @@ use C4::Output;
 use C4::Context;
 use C4::Serials;
 use C4::Search qw/enabled_staff_search_views/;
+
 use Koha::DateUtils;
+use Koha::Items;
 use Koha::Serial::Items;
 
 use List::MoreUtils qw/uniq/;
@@ -120,7 +122,6 @@ my ( $template, $loggedinuser, $cookie ) = get_template_and_user(
         template_name   => 'serials/serials-edit.tt',
         query           => $query,
         type            => 'intranet',
-        authnotrequired => 0,
         flagsrequired   => { serials => 'receive_serials' },
         debug           => 1,
     }
@@ -236,7 +237,8 @@ if ( $op and $op eq 'serialchangestatus' ) {
                     $plan_date,
                     $pub_date,
                     $publisheddatetexts[$i],
-                    $notes[$i]
+                    $notes[$i],
+                    $serialdatalist[0]->{'routingnotes'}
                 );
             }
         }
@@ -265,7 +267,13 @@ if ( $op and $op eq 'serialchangestatus' ) {
                     my $subscriptioninfos = GetSubscription($subscriptionids[$i]);
 
                     # Changing the status to "available" and the itemtype according to the previousitemtype db field
-                    ModItem({notforloan => 0, itype => $subscriptioninfos->{'previousitemtype'} }, undef, $itemnumber);
+                    my $item = Koha::Items->find($itemnumber);
+                    $item->set(
+                        {
+                            notforloan => 0,
+                            itype => $subscriptioninfos->{'previousitemtype'}
+                        }
+                    )->store;
                 }
             }
         }
@@ -281,11 +289,12 @@ if ( $op and $op eq 'serialchangestatus' ) {
         my @itemid       = $query->multi_param('itemid');
         my @ind_tag      = $query->multi_param('ind_tag');
         my @indicator    = $query->multi_param('indicator');
+        my @num_copies   = $query->multi_param('number_of_copies');
 
         #Rebuilding ALL the data for items into a hash
         # parting them on $itemid.
         my %itemhash;
-        my $countdistinct;
+        my $countdistinct = 0;
         my $range = scalar(@itemid);
         for ( my $i = 0 ; $i < $range ; $i++ ) {
             unless ( $itemhash{ $itemid[$i] } ) {
@@ -299,6 +308,7 @@ if ( $op and $op eq 'serialchangestatus' ) {
                     $itemhash{ $itemid[$i] }->{'serial'} = $newserial;
                 }
                 $itemhash{ $itemid[$i] }->{'bibnum'} = $bibnums[$countdistinct];
+                $itemhash{ $itemid[$i] }->{'num_copies'} = $num_copies[$countdistinct];
                 $countdistinct++;
             }
             push @{ $itemhash{ $itemid[$i] }->{'tags'} },      $tags[$i];
@@ -330,20 +340,18 @@ if ( $op and $op eq 'serialchangestatus' ) {
                     $itemhash{$item}->{'ind_tag'}
                 );
 
-                #           warn $xml;
+                # warn $xml;
                 my $bib_record = MARC::Record::new_from_xml( $xml, 'UTF-8' );
                 if ( $item =~ /^N/ ) {
 
-                    #New Item
+                $itemhash{$item}->{'num_copies'} //= 1;
+
+                for (my $copy = 0; $copy < $itemhash{$item}->{'num_copies'};){
+
+                # New Item
 
                   # if autoBarcode is set to 'incremental', calculate barcode...
-                    my ( $barcodetagfield, $barcodetagsubfield ) =
-                      GetMarcFromKohaField(
-                        'items.barcode',
-                        GetFrameworkCode(
-                            $serialdatalist[0]->{'biblionumber'}
-                        )
-                      );
+                    my ( $barcodetagfield, $barcodetagsubfield ) = GetMarcFromKohaField( 'items.barcode' );
                     if ( C4::Context->preference('autoBarcode') eq
                         'incremental' )
                     {
@@ -359,25 +367,25 @@ if ( $op and $op eq 'serialchangestatus' ) {
                             $sth_barcode->execute;
                             my ($newbarcode) = $sth_barcode->fetchrow;
 
-# OK, we have the new barcode, add the entry in MARC record # FIXME -> should be  using barcode plugin here.
-                            $bib_record->field($barcodetagfield)
-                              ->update( $barcodetagsubfield => ++$newbarcode );
+                            # OK, we have the new barcode, add the entry in MARC record # FIXME -> should be  using barcode plugin here.
+                            $bib_record->field($barcodetagfield)->update( $barcodetagsubfield => ++$newbarcode );
                         }
                     }
 
                     # check for item barcode # being unique
                     my $exists;
-                    if (
-                        $bib_record->subfield(
-                            $barcodetagfield, $barcodetagsubfield
-                        )
-                      )
-                    {
-                        $exists = GetItemnumberFromBarcode(
-                            $bib_record->subfield(
-                                $barcodetagfield, $barcodetagsubfield
-                            )
-                        );
+                    if ( $bib_record->subfield( $barcodetagfield, $barcodetagsubfield ) ) {
+                        my $barcode = $bib_record->subfield( $barcodetagfield, $barcodetagsubfield );
+
+                        if ($copy > 0){
+                            use C4::Barcodes;
+                            my $barcodeobj = C4::Barcodes->new;
+                            my $newbarcode = $barcodeobj->next_value($barcode);
+                            $barcode = $newbarcode;
+                            $bib_record->field($barcodetagfield)->update($barcodetagsubfield => $barcode);
+                        }
+
+                        $exists = Koha::Items->find({barcode => $barcode});
                     }
 
                     #           push @errors,"barcode_not_unique" if($exists);
@@ -393,7 +401,11 @@ if ( $op and $op eq 'serialchangestatus' ) {
                         AddItem2Serial( $itemhash{$item}->{serial},
                             $itemnumber );
                     }
+                    $copy++;
                 }
+
+                } # if ( $item =~ /^N/ ) {
+
                 else {
 
                     #modify item

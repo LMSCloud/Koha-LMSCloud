@@ -19,7 +19,7 @@
 
 use Modern::Perl;
 
-use Test::More tests => 6;
+use Test::More tests => 7;
 
 use t::lib::TestBuilder;
 use t::lib::Mocks;
@@ -27,7 +27,6 @@ use Test::Exception;
 
 use C4::Context;
 use Koha::Database;
-use Koha::Patron::Attribute::Type;
 use Koha::Patron::Attribute::Types;
 
 my $schema  = Koha::Database->new->schema;
@@ -68,6 +67,106 @@ subtest 'new() tests' => sub {
         2, 'Two objects created' );
 
     $schema->storage->txn_rollback;
+};
+
+subtest 'store' => sub {
+
+    plan tests => 4;
+
+    $schema->storage->txn_begin;
+
+    # Create 2 attribute types without restrictions:
+    # Repeatable and can have the same values
+    my $attr_type_1 = $builder->build_object(
+        {
+            class => 'Koha::Patron::Attribute::Types',
+            value => { repeatable => 1, unique_id => 0 }
+        }
+    );
+    my $attr_type_2 = $builder->build_object(
+        {
+            class => 'Koha::Patron::Attribute::Types',
+            value => { repeatable => 1, unique_id => 0 }
+        }
+    );
+
+    # Patron 1 has twice the attribute 1 and attribute 2
+    # Patron 2 has attribute 1 and attribute 2="42"
+    # Patron 3 has attribute 2="42"
+    # Attribute 1 cannot remove repeatable
+    # Attribute 2 cannot set unique_id
+    my $patron_1 = $builder->build_object( { class => 'Koha::Patrons' } );
+    my $patron_2 = $builder->build_object( { class => 'Koha::Patrons' } );
+    my $patron_3 = $builder->build_object( { class => 'Koha::Patrons' } );
+
+    my $attribute_111 = $builder->build_object(
+        {
+            class => 'Koha::Patron::Attributes',
+            value => {
+                borrowernumber => $patron_1->borrowernumber,
+                code           => $attr_type_1->code
+            }
+        }
+    );
+    my $attribute_112 = $builder->build_object(
+        {
+            class => 'Koha::Patron::Attributes',
+            value => {
+                borrowernumber => $patron_1->borrowernumber,
+                code           => $attr_type_1->code
+            }
+        }
+    );
+
+    my $attribute_211 = $builder->build_object(
+        {
+            class => 'Koha::Patron::Attributes',
+            value => {
+                borrowernumber => $patron_2->borrowernumber,
+                code           => $attr_type_1->code
+            }
+        }
+    );
+    my $attribute_221 = $builder->build_object(
+        {
+            class => 'Koha::Patron::Attributes',
+            value => {
+                borrowernumber => $patron_2->borrowernumber,
+                code           => $attr_type_2->code,
+                attribute      => '42',
+            }
+        }
+    );
+
+    my $attribute_321 = $builder->build_object(
+        {
+            class => 'Koha::Patron::Attributes',
+            value => {
+                borrowernumber => $patron_3->borrowernumber,
+                code           => $attr_type_2->code,
+                attribute      => '42',
+            }
+        }
+    );
+
+    throws_ok {
+        $attr_type_1->repeatable(0)->store;
+    }
+    'Koha::Exceptions::Patron::Attribute::Type::CannotChangeProperty', "";
+
+    $attribute_112->delete;
+    ok($attr_type_1->set({ unique_id => 1, repeatable => 0 })->store);
+
+    throws_ok {
+        $attr_type_2->unique_id(1)->store;
+    }
+    'Koha::Exceptions::Patron::Attribute::Type::CannotChangeProperty', "";
+
+    $attribute_321->attribute(43)->store;
+    ok($attr_type_2->set({ unique_id => 1, repeatable => 0 })->store);
+
+    $schema->storage->txn_rollback;
+
 };
 
 subtest 'library_limits() tests' => sub {
@@ -287,33 +386,21 @@ subtest 'replace_library_limits() tests' => sub {
     $schema->storage->txn_rollback;
 };
 
-subtest 'search() with branch limits tests' => sub {
+subtest 'search_with_library_limits() tests' => sub {
 
-    plan tests => 3;
+    plan tests => 6;
 
     $schema->storage->txn_begin;
 
     # Cleanup before running the tests
     Koha::Patron::Attribute::Types->search()->delete();
 
-    my $object_code_1
-        = Koha::Patron::Attribute::Type->new( { code => 'code_1', description => 'a description for code_1' } )
-        ->store();
+    my $object_code_1 = $builder->build_object({ class => 'Koha::Patron::Attribute::Types', value => { code => 'code_1' } });
+    my $object_code_2 = $builder->build_object({ class => 'Koha::Patron::Attribute::Types', value => { code => 'code_2' } });
+    my $object_code_3 = $builder->build_object({ class => 'Koha::Patron::Attribute::Types', value => { code => 'code_3' } });
+    my $object_code_4 = $builder->build_object({ class => 'Koha::Patron::Attribute::Types', value => { code => 'code_4' } });
 
-    my $object_code_2
-        = Koha::Patron::Attribute::Type->new( { code => 'code_2', description => 'a description for code_2' } )
-        ->store();
-
-    my $object_code_3
-        = Koha::Patron::Attribute::Type->new( { code => 'code_3', description => 'a description for code_3' } )
-        ->store();
-
-    my $object_code_4
-        = Koha::Patron::Attribute::Type->new( { code => 'code_4', description => 'a description for code_4' } )
-        ->store();
-
-    is( Koha::Patron::Attribute::Types->search()->count,
-        4, 'Three objects created' );
+    is( Koha::Patron::Attribute::Types->search()->count, 4, 'Three objects created' );
 
     my $branch_1 = $builder->build( { source => 'Branch' } )->{branchcode};
     my $branch_2 = $builder->build( { source => 'Branch' } )->{branchcode};
@@ -322,16 +409,27 @@ subtest 'search() with branch limits tests' => sub {
     $object_code_2->library_limits( [$branch_2] );
     $object_code_3->library_limits( [ $branch_1, $branch_2 ] );
 
-    is( Koha::Patron::Attribute::Types->search( { branchcode => $branch_1 } )
-            ->count,
-        3,
-        '3 attribute types are available for the specified branch'
-    );
-    is( Koha::Patron::Attribute::Types->search( { branchcode => $branch_2 } )
-            ->count,
-        3,
-        '3 attribute types are available for the specified branch'
-    );
+    my $results = Koha::Patron::Attribute::Types->search_with_library_limits( {}, { order_by => 'code' }, $branch_1 );
+
+    is( $results->count, 3, '3 attribute types are available for the specified branch' );
+
+    $results = Koha::Patron::Attribute::Types->search_with_library_limits( {}, { order_by => 'code' }, $branch_2 );
+
+    is( $results->count, 3, '3 attribute types are available for the specified branch' );
+
+    $results = Koha::Patron::Attribute::Types->search_with_library_limits( {}, { order_by => 'code' }, undef );
+
+    is( $results->count, 4, 'All attribute types are available with no library pssed' );
+
+    t::lib::Mocks::mock_userenv({ branchcode => $branch_2 });
+
+    $results = Koha::Patron::Attribute::Types->search_with_library_limits( {}, { order_by => 'code' }, undef );
+
+    is( $results->count, 3, '3 attribute types are available with no library passed' );
+
+    $results = Koha::Patron::Attribute::Types->search_with_library_limits();
+
+    is( $results->count, 3, 'No crash if no params passed' );
 
     $schema->storage->txn_rollback;
 };

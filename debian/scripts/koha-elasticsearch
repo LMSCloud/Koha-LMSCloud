@@ -38,10 +38,14 @@ Actions:
     --rebuild         Trigger a rebuild process
 
 Options:
+    --delete|-d       Delete elasticsearch index before reindexing.
+    --reset|-r        Reset elasticsearch mappings from file.
     --authorities|-a  Only run process for authorities.
     --biblios|-b      Only run process for biblios.
     -c|--commit n     Specify how many records will be batched up before
                       they're added to Elasticsearch (default: 5000).
+    -p|--processes n  Specify the number of parallel processes to use
+                      for indexing.
     --verbose|-v      Be verbose.
     --help|-h         Print this help.
 
@@ -91,6 +95,19 @@ run_rebuild_elasticsearch()
     fi
     rebuild_opts="--commit ${commit_size}"
 
+    if [ "${clo_processes}" > 0 ]; then
+        processes=${clo_processes}
+    fi
+    rebuild_opts="${rebuild_opts} --processes ${processes}"
+
+    if [ "${delete}" = "yes" ]; then
+        rebuild_opts="${rebuild_opts} -d"
+    fi
+
+    if [ "${reset}" = "yes" ]; then
+        rebuild_opts="${rebuild_opts} -r"
+    fi
+
     if [ "${biblios}" = "yes" ]; then
         rebuild_opts="${rebuild_opts} -b"
     fi
@@ -104,7 +121,7 @@ run_rebuild_elasticsearch()
     fi
 
     if koha-shell \
-          -c "${KOHA_BINDIR}/search_tools/rebuild_elastic_search.pl ${rebuild_opts}" \
+          -c "${KOHA_BINDIR}/search_tools/rebuild_elasticsearch.pl ${rebuild_opts}" \
           ${name}; then
         return 0
     else
@@ -118,6 +135,7 @@ authorities="yes"
 biblios_only="no"
 authorities_only="no"
 commit_size=5000
+processes=1
 verbose="no"
 op=""
 
@@ -127,6 +145,12 @@ while [ -n "$*" ]; do
         -h|--help)
             usage ; exit 0
             ;;
+        -d|--delete)
+            delete="yes"
+            ;;
+        -r|--reset)
+            reset="yes"
+            ;;
         -b|--biblios)
             toggle_biblios_only
             ;;
@@ -135,6 +159,9 @@ while [ -n "$*" ]; do
             ;;
         -c|--commit)
             clo_commit_size="$2" ; shift
+            ;;
+        -p|--processes)
+            clo_processes="$2" ; shift
             ;;
         --rebuild)
             set_action "rebuild"

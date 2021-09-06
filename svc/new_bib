@@ -27,7 +27,7 @@ use C4::Items;
 use XML::Simple;
 use C4::Charset;
 
-my $query = new CGI;
+my $query = CGI->new;
 binmode STDOUT, ':encoding(UTF-8)';
 
 my ($status, $cookie, $sessionID) = check_api_auth($query, { editcatalogue => 'edit_catalogue'} );
@@ -50,10 +50,11 @@ sub add_bib {
 
     my $result = {};
     my $inxml = $query->param('POSTDATA');
+    my $frameworkcode = $query->url_param('frameworkcode') // '';
     print $query->header(-type => 'text/xml', -charset => 'utf-8');
 
     my $marcflavour = C4::Context->preference('marcflavour') || 'MARC21';
-    my $record = eval {MARC::Record::new_from_xml( $inxml, "utf8", $marcflavour)};
+    my $record = eval {MARC::Record::new_from_xml( $inxml, "UTF-8", $marcflavour)};
     my $do_not_escape = 0;
     if ($@) {
         $result->{'status'} = "failed";
@@ -69,11 +70,11 @@ sub add_bib {
 
         # delete any item tags
         my ( $itemtag, $itemsubfield ) =
-          GetMarcFromKohaField( "items.itemnumber", '' );
+          GetMarcFromKohaField( "items.itemnumber" );
         foreach my $field ( $record->field($itemtag) ) {
             $record->delete_field($field);
         }
-        my ( $biblionumber, $biblioitemnumber ) = AddBiblio( $record, '' );
+        my ( $biblionumber, $biblioitemnumber ) = AddBiblio( $record, $frameworkcode );
         my $new_record = GetMarcBiblio({ biblionumber => $biblionumber });
         if ( $query->url_param('items') ) {
             foreach my $field ( $fullrecord->field($itemtag) ) {

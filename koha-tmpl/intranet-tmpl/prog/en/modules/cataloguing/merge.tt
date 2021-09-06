@@ -1,11 +1,12 @@
+[% USE raw %]
 [% USE Asset %]
 [% SET footerjs = 1 %]
 [% PROCESS 'merge-record.inc' %]
 
 [% INCLUDE 'doc-head-open.inc' %]
-<title>Koha &rsaquo; Cataloging &rsaquo; Merging records</title>
+<title>Merging records &rsaquo; Cataloging &rsaquo; Koha</title>
 [% INCLUDE 'doc-head-close.inc' %]
-<style type="text/css">
+<style>
 div.record ul, div.record li { float:none; display:block; }
 div#result { margin-top: 1em; }
 /* We use this style "against" the li ui-tabs-nav style automatically applied */
@@ -16,13 +17,25 @@ div#result { margin-top: 1em; }
 <body id="cat_merge" class="cat">
 [% INCLUDE 'header.inc' %]
 [% INCLUDE 'cataloging-search.inc' %]
-<div id="breadcrumbs"><a href="/cgi-bin/koha/mainpage.pl">Home</a> &rsaquo; <a href="/cgi-bin/koha/cataloguing/addbooks.pl">Cataloging</a>  &rsaquo; Merging records</div>
 
-<div id="doc" class="yui-t7">
+<nav id="breadcrumbs" aria-label="Breadcrumb" class="breadcrumb">
+    <ol>
+        <li>
+            <a href="/cgi-bin/koha/mainpage.pl">Home</a>
+        </li>
+        <li>
+            <a href="/cgi-bin/koha/cataloguing/addbooks.pl">Cataloging</a>
+        </li>
+        <li>
+            <a href="#" aria-current="page">
+                Merging records
+            </a>
+        </li>
+</nav>
 
-<div id="bd">
-        <div id="yui-main">
-
+<div class="main container-fluid">
+    <div class="row">
+        <div class="col-md-10 col-md-offset-1 col-lg-8 col-lg-offset-2">
 
 <h1>Merging records</h1>
 [% IF ( result ) %]
@@ -30,9 +43,9 @@ div#result { margin-top: 1em; }
        [% FOREACH error IN errors %]
            <div class="dialog alert">
                 [% IF error.code == 'CANNOT_MOVE' %]
-                    The following items could not be moved from the old record to the new one: [% error.value %]
+                    The following items could not be moved from the old record to the new one: [% error.value | html %]
                 [% ELSE %]
-                    [% error %]
+                    [% error | html %]
                 [% END %]
                 <br />
                 Therefore, the record to be merged has not been deleted.
@@ -40,7 +53,7 @@ div#result { margin-top: 1em; }
        [% END %]
 
     [% ELSE %]
-        <p>The merge was successful. <a href="/cgi-bin/koha/catalogue/MARCdetail.pl?biblionumber=[% ref_biblionumber %]">Click here to see the merged record.</a></p>
+        <p>The merge was successful. <a href="/cgi-bin/koha/catalogue/MARCdetail.pl?biblionumber=[% ref_biblionumber | uri %]">View the merged record.</a></p>
         <h3>Report</h3>
         <table>
             <thead>
@@ -54,7 +67,7 @@ div#result { margin-top: 1em; }
                         [% ELSE %]
                             [% header = tag _ '$' _ code %]
                         [% END %]
-                        <th>[% header %]</th>
+                        <th>[% header | html %]</th>
                     [% END %]
                 </tr>
             </thead>
@@ -62,7 +75,7 @@ div#result { margin-top: 1em; }
                 [% FOREACH record IN report_records %]
                     <tr>
                         <td>
-                            [% record.biblionumber %]
+                            [% record.biblionumber | html %]
                             [% IF loop.first %]
                                 (record kept)
                             [% END %]
@@ -72,7 +85,7 @@ div#result { margin-top: 1em; }
                                 [% values = record.fields.$key %]
                                 [% IF values %]
                                     [% FOREACH value IN record.fields.$key %]
-                                        [% value %]
+                                        [% value | html %]
                                         [% UNLESS loop.last %]<br />[% END %]
                                     [% END %]
                                 [% END %]
@@ -95,16 +108,13 @@ div#result { margin-top: 1em; }
         [% FOREACH record IN records %]
             <li class="radio">
                 [% IF loop.first %]
-                    <input type="radio" value="[% record.biblionumber %]" checked="checked" id="ref_biblionumber[% record.biblionumber %]" name="ref_biblionumber" onclick="changeFramework('[% record.frameworkcode %]')" />
+                    <input type="radio" value="[% record.biblionumber | html %]" checked="checked" id="ref_biblionumber[% record.biblionumber | html %]" name="ref_biblionumber" onclick="changeFramework('[% record.frameworkcode | html %]')" />
                 [% ELSE %]
-                    <input type="radio" value="[% record.biblionumber %]" id="ref_biblionumber[% record.biblionumber %]" name="ref_biblionumber" onclick="changeFramework('[% record.frameworkcode %]')" />
+                    <input type="radio" value="[% record.biblionumber | html %]" id="ref_biblionumber[% record.biblionumber | html %]" name="ref_biblionumber" onclick="changeFramework('[% record.frameworkcode | html %]')" />
                 [% END %]
-                <label for="ref_biblionumber[% record.biblionumber %]">
-                    [% record.data.title %]
-                    [% FOREACH subtitle IN record.subtitles %]
-                        [% subtitle.subfield %]
-                    [% END %]
-                    ([% record.biblionumber %]) <a href="/cgi-bin/koha/catalogue/showmarc.pl?id=[% record.biblionumber %]" class="previewData">View MARC</a>
+                <label for="ref_biblionumber[% record.biblionumber | html %]">
+                    [% INCLUDE 'biblio-title.inc' biblio=record.data %]
+                    ([% record.biblionumber | uri %]) <a href="/cgi-bin/koha/catalogue/showmarc.pl?id=[% record.biblionumber | uri %]" class="previewData">View MARC</a>
                 </label>
             </li>
         [% END %]
@@ -114,14 +124,14 @@ div#result { margin-top: 1em; }
                 <select name="frameworkcode" id="frameworkcode">
                     <option value="">Default</option>
                     [% FOREACH framework IN frameworks %]
-                        <option value="[% framework.frameworkcode %]">[% framework.frameworktext %]</option>
+                        <option value="[% framework.frameworkcode | html %]">[% framework.frameworktext | html %]</option>
                     [% END %]
                 </select>
             </li>
     </ol>
 
     [% FOREACH record IN records %]
-        <input type="hidden" name="biblionumber" value="[% record.biblionumber %]" />
+        <input type="hidden" name="biblionumber" value="[% record.biblionumber | html %]" />
     [% END %]
     <fieldset class="action">
         <input type="submit" value="Next" />
@@ -137,7 +147,7 @@ div#result { margin-top: 1em; }
         <h3 id="dataPreviewLabel">Preview</h3>
     </div>
     <div class="modal-body">
-        <div id="loading"> <img src="[% interface %]/[% theme %]/img/spinner-small.gif" alt="" /> Loading </div>
+        <div id="loading"> <img src="[% interface | html %]/[% theme | html %]/img/spinner-small.gif" alt="" /> Loading </div>
     </div>
     <div class="modal-footer">
         <button class="btn btn-default" data-dismiss="modal" aria-hidden="true">Close</button>
@@ -150,33 +160,31 @@ div#result { margin-top: 1em; }
 [% IF ( errors.size ) %]
     <div class="dialog alert">
         [% FOREACH error IN errors %]
-            <p>[% error %]</p>
+            <p>[% error | html %]</p>
         [% END %]
     </div>
 [% ELSE %]
 <form id="mergeform" action="/cgi-bin/koha/cataloguing/merge.pl" method="post" onsubmit="return mergeformsubmit()">
 
-<div class="yui-g">
-<div class="yui-u first">
+<div class="col-sm-6">
 [% PROCESS mergesource sourcerecords=records %]
 </div>
-<div class="yui-u">
+<div class="col-sm-6">
 [% PROCESS mergetarget %]
-</div> <!-- .yui-u -->
+</div> <!-- .col-sm-6 -->
 
-<input type="hidden" name="ref_biblionumber" value="[% ref_biblionumber %]" />
+<input type="hidden" name="ref_biblionumber" value="[% ref_biblionumber | html %]" />
 [% FOREACH record IN records %]
-    <input type="hidden" name="biblionumber" value="[% record.recordid %]" />
+    <input type="hidden" name="biblionumber" value="[% record.recordid | html %]" />
 [% END %]
-<input type="hidden" name="frameworkcode" value="[% framework %]" />
+<input type="hidden" name="frameworkcode" value="[% framework | html %]" />
 
 <fieldset class="action">
     <input type="submit" name="merge" value="Merge" />
     <label for="report_fields">Fields to display in report:</label>
-    <input type="text" name="report_fields" id="report_fields" value="[% MergeReportFields %]" />
-    <span class="hint">(Example: "001,245ab,600")
+    <input type="text" name="report_fields" id="report_fields" value="[% MergeReportFields | html %]" />
+    <span class="hint">(Example: "001,245ab,600")</span>
 </fieldset>
-</div>
 </form>
 [% END %]
 [% END %]
@@ -184,12 +192,10 @@ div#result { margin-top: 1em; }
 
 </div>
 </div>
-</div>
 
 [% MACRO jsinclude BLOCK %]
-    [% Asset.js("js/merge-record.js") %]
-    [% INCLUDE 'merge-record-strings.inc' %]
-    <script type="text/javascript">
+    [% Asset.js("js/merge-record.js") | $raw %]
+    <script>
         [% UNLESS (result) %]
           [% IF (choosereference) %]
             function changeFramework(fw) {
@@ -206,7 +212,7 @@ div#result { margin-top: 1em; }
                 });
                 $("#dataPreview").on("hidden.bs.modal", function(){
                     $("#dataPreviewLabel").html("");
-                    $("#dataPreview .modal-body").html("<div id=\"loading\"><img src=\"[% interface %]/[% theme %]/img/spinner-small.gif\" alt=\"\" /> "+_("Loading")+"</div>");
+                    $("#dataPreview .modal-body").html("<div id=\"loading\"><img src=\"[% interface | html %]/[% theme | html %]/img/spinner-small.gif\" alt=\"\" /> "+_("Loading")+"</div>");
                 });
             });
           [% ELSE %]
@@ -278,7 +284,7 @@ div#result { margin-top: 1em; }
 
         $(document).ready(function(){
             tagslib = [];
-            $.getJSON("/cgi-bin/koha/cataloguing/merge_ajax.pl", {frameworkcode : "[% framework %]" }, function(json) {
+            $.getJSON("/cgi-bin/koha/cataloguing/merge_ajax.pl", {frameworkcode : "[% framework | html %]" }, function(json) {
               tagslib = json;
               rebuild_target($("#tabs"), $("#resultul"));
             });
@@ -288,8 +294,8 @@ div#result { margin-top: 1em; }
 
             // Check all checkboxes in first tab, and uncheck all others to avoid
             // inconsistencies from a page refresh.
-            $('#tabs div#tabrecord[% ref_biblionumber %]').find('input[type="checkbox"]').prop('checked', true);
-            $('#tabs > div:not("#tabrecord[% ref_biblionumber %]")').find('input[type="checkbox"]').prop('checked', false);
+            $('#tabs div#tabrecord[% ref_biblionumber | html %]').find('input[type="checkbox"]').prop('checked', true);
+            $('#tabs > div:not("#tabrecord[% ref_biblionumber | html %]")').find('input[type="checkbox"]').prop('checked', false);
 
             //Set focus to cataloging search
             $("input[name=q]:eq(0)").focus();

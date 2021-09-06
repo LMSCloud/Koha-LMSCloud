@@ -3,25 +3,25 @@
 [% IF enrollments %]
     <h4>Clubs currently enrolled in</h4>
 
-    <table>
+    <table id="table_clubenrollments">
         <thead>
             <tr>
                 <th>Name</th>
                 <th>Description</th>
                 <th>Date enrolled</th>
-                [% IF CAN_user_clubs_enroll %]<th>&nbsp;</th>[% END %]
+                [% IF CAN_user_clubs_enroll %]<th class="NoSort">Actions</th>[% END %]
             </tr>
         </thead>
 
         <tbody>
             [% FOREACH e IN enrollments %]
                 <tr>
-                    <td>[% e.club.name %]</td>
-                    <td>[% e.club.description %]</td>
+                    <td>[% e.club.name | html %]</td>
+                    <td>[% e.club.description | html %]</td>
                     <td>[% e.date_enrolled | $KohaDates %]</td>
                     [% IF CAN_user_clubs_enroll %]
                         <td>
-                            <button class="btn btn-xs btn-default" onclick="cancelEnrollment( [% e.id %] )">
+                            <button class="btn btn-xs btn-default" onclick="cancelEnrollment( [% e.id | html %] )">
                                 <i class="fa fa-remove"></i> Cancel enrollment
                             </button>
                         </td>
@@ -36,23 +36,23 @@
 
     <h4>Clubs not enrolled in</h4>
 
-    <table>
+    <table id="table_clubnoenrollmemnts">
         <thead>
             <tr>
                 <th>Name</th>
                 <th>Description</th>
-                [% IF CAN_user_clubs_enroll %]<th>&nbsp;</th>[% END %]
+                [% IF CAN_user_clubs_enroll %]<th class="NoSort">Actions</th>[% END %]
             </tr>
         </thead>
 
         <tbody>
             [% FOREACH c IN clubs %]
                 <tr>
-                    <td>[% c.name %]</td>
-                    <td>[% c.description %]</td>
+                    <td>[% c.name | html %]</td>
+                    <td>[% c.description | html %]</td>
                     [% IF CAN_user_clubs_enroll %]
                         <td class="action">
-                            <button class="btn btn-xs btn-default" onclick="loadEnrollmentForm([% c.id %])">
+                            <button class="btn btn-xs btn-default" onclick="loadEnrollmentForm([% c.id | html %])">
                                 <i class="fa fa-plus"></i> Enroll
                             </button>
                         </td>
@@ -63,11 +63,18 @@
     </table>
 [% END %]
 
+<script>
+$("#table_clubnoenrollmemnts, #table_clubenrollments").dataTable($.extend(true, {}, dataTablesDefaults, {
+    "columnDefs": [
+        { 'sortable': false, 'targets': [ 'NoSort' ] }
+    ],
+    paginate: true
+}));
+
 [% IF CAN_user_clubs_enroll %]
-<script type="text/javascript">
 function loadEnrollmentForm( id ) {
     $("body").css("cursor", "progress");
-    $('#clubs-tab').load('/cgi-bin/koha/clubs/patron-enroll.pl?borrowernumber=[% borrowernumber %]&id=' + id, function() {
+    $('#clubs-tab').load('/cgi-bin/koha/clubs/patron-enroll.pl?borrowernumber=[% borrowernumber | html %]&id=' + id, function() {
         $("body").css("cursor", "default");
     });
 
@@ -82,7 +89,7 @@ function cancelEnrollment( id ) {
         data: { id: id },
         success: function( data ) {
             if ( data.success ) {
-                $('#clubs-tab').load('/cgi-bin/koha/clubs/patron-clubs-tab.pl?borrowernumber=[% borrowernumber %]', function() {
+                $('#clubs-tab').load('/cgi-bin/koha/clubs/patron-clubs-tab.pl?borrowernumber=[% borrowernumber | html %]', function() {
                     $("body").css("cursor", "default");
                 });
             } else {

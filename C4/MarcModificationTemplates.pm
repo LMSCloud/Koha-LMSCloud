@@ -24,6 +24,7 @@ use DateTime;
 use C4::Context;
 use Koha::SimpleMARC;
 use Koha::MoreUtils;
+use Koha::DateUtils;
 
 use vars qw(@ISA @EXPORT);
 
@@ -501,7 +502,7 @@ sub ModifyRecordWithTemplate {
     warn( "C4::MarcModificationTemplates::ModifyRecordWithTemplate( $template_id, $record )" ) if DEBUG;
     warn( "Unmodified Record:\n" . $record->as_formatted() ) if DEBUG >= 10;
 
-    my $current_date = DateTime->now()->ymd();
+    my $current_date = dt_from_string()->ymd();
     my $branchcode = '';
     $branchcode = C4::Context->userenv->{branch} if C4::Context->userenv;
 
@@ -585,9 +586,15 @@ sub ModifyRecordWithTemplate {
                     }
                 ];
                 $field_numbers = [Koha::MoreUtils::singleton ( @$field_numbers, @$all_fields ) ];
-                $do = $conditional eq 'if'
-                    ? @$field_numbers
-                    : not @$field_numbers;
+                if ( $from_field == $conditional_field ){
+                    $do = $conditional eq 'if'
+                        ? @$field_numbers
+                        : not @$field_numbers;
+                } else {
+                    $do = $conditional eq 'if'
+                        ? not @$field_numbers
+                        : @$field_numbers;
+                }
             }
         }
 
@@ -599,17 +606,29 @@ sub ModifyRecordWithTemplate {
             # A condition has been given
             if ( @$field_numbers > 0 ) {
                 if ( $field_number == 1 ) {
-                    # We want only the first matching
-                    $field_numbers = [ $field_numbers->[0] ];
+                    # We want only the first
+                    if ( $from_field == $conditional_field ){
+                        # want first field matching condition
+                        $field_numbers = [ $field_numbers->[0] ];
+                    } else {
+                        # condition doesn't match, so just want first occurrence of from field
+                        $field_numbers = [ 1 ];
+                    }
+                } else {
+                    unless ( $from_field == $conditional_field ){
+                        # condition doesn't match from fields so need all occurrences of from fields for action
+                        $field_numbers = field_exists({
+                            record => $record,
+                            field => $from_field,
+                            subfield => $from_subfield,
+                        });
+                    }
                 }
             }
             # There was no condition
             else {
                 if ( $field_number == 1 ) {
                     # We want to process the first field
-                    $field_numbers = [ 1 ];
-                } elsif ( $to_field and $from_field ne $to_field ) {
-                    # If the from and to fields are not the same, we only process the first field.
                     $field_numbers = [ 1 ];
                 }
             }
@@ -641,6 +660,15 @@ sub ModifyRecordWithTemplate {
                         replace => $to_regex_replace,
                         modifiers => $to_regex_modifiers
                     },
+                    field_numbers => $field_numbers,
+                });
+            }
+            elsif ( $action eq 'add_field' ) {
+                add_field({
+                    record => $record,
+                    field => $from_field,
+                    subfield => $from_subfield,
+                    values => [ $field_value ],
                     field_numbers => $field_numbers,
                 });
             }

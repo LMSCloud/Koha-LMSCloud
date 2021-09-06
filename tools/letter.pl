@@ -46,6 +46,7 @@ use C4::Auth;
 use C4::Context;
 use C4::Output;
 use C4::Letters;
+use C4::Log;
 
 use Koha::Patron::Attribute::Types;
 
@@ -57,7 +58,7 @@ sub protected_letters {
     return { map { $_->[0] => 1 } @{$codes} };
 }
 
-our $input       = new CGI;
+our $input       = CGI->new;
 my $searchfield = $input->param('searchfield');
 my $script_name = '/cgi-bin/koha/tools/letter.pl';
 our $branchcode  = $input->param('branchcode');
@@ -66,7 +67,9 @@ my $code        = $input->param('code');
 my $module      = $input->param('module') || '';
 my $content     = $input->param('content');
 my $op          = $input->param('op') || '';
-my $redirect      = $input->param('redirect');
+my $redirect    = $input->param('redirect');
+my $section     = $input->param('section');
+
 my $dbh = C4::Context->dbh;
 
 our ( $template, $borrowernumber, $cookie, $staffflags ) = get_template_and_user(
@@ -74,7 +77,6 @@ our ( $template, $borrowernumber, $cookie, $staffflags ) = get_template_and_user
         template_name   => 'tools/letter.tt',
         query           => $input,
         type            => 'intranet',
-        authnotrequired => 0,
         flagsrequired   => { tools => 'edit_notices' },
         debug           => 1,
     }
@@ -90,13 +92,14 @@ $template->param(
 	script_name => $script_name,
   searchfield => $searchfield,
     branchcode => $branchcode,
+    section => $section,
 	action => $script_name
 );
 
 if ( $op eq 'add_validate' or $op eq 'copy_validate' ) {
     add_validate();
     if( $redirect eq "just_save" ){
-        print $input->redirect("/cgi-bin/koha/tools/letter.pl?op=add_form&branchcode=$branchcode&module=$module&code=$code&redirect=done");
+        print $input->redirect("/cgi-bin/koha/tools/letter.pl?op=add_form&branchcode=$branchcode&module=$module&code=$code&redirect=done&section=$section");
         exit;
     } else {
         $op = q{}; # we return to the default screen for the next operation
@@ -188,7 +191,7 @@ sub add_form {
             code       => $code,
         );
         my $first_flag_name = 1;
-        my ( $lang, @templates );
+        my $lang;
         # The letter name is contained into each mtt row.
         # So we can only sent the first one to the template.
         for my $letter ( @$letters ) {
@@ -205,6 +208,7 @@ sub add_form {
             $letters{ $lang }{templates}{$mtt} = {
                 message_transport_type => $letter->{message_transport_type},
                 is_html    => $letter->{is_html},
+                updated_on => $letter->{updated_on},
                 title      => $letter->{title},
                 content    => $letter->{content} // '',
             };
@@ -249,20 +253,31 @@ sub add_form {
 
         }
 
-        if ( $module eq 'circulation' and $code and $code eq "CHECKIN" ) {
+        if ( $module eq 'circulation' and $code and ( $code eq "CHECKIN" or $code eq "CHECKINSLIP" ) ) {
             push @{$field_selection}, add_fields('old_issues');
         } else {
             push @{$field_selection}, add_fields('issues');
         }
 
-        if ( $module eq 'circulation' and $code =~ /^AR_/  ) {
+        if ( $module eq 'circulation' and $code and $code =~ /^AR_/  ) {
             push @{$field_selection}, add_fields('article_requests');
+        }
+
+        if ( $module eq 'members' and $code and $code eq 'PROBLEM_REPORT' ) {
+            push @{$field_selection}, add_fields('problem_reports');
+        }
+
+        if ( $module eq 'ill' ) {
+            push @{$field_selection}, add_fields('illrequests');
         }
     }
 
-    my $preview_is_available = grep {/^$code$/} qw(
-        CHECKIN CHECKOUT HOLD_SLIP
-    );
+    my $preview_is_available = 0;
+
+    if ($code) {
+        $preview_is_available = grep {$_ eq $code } qw( CHECKIN CHECKOUT HOLD_SLIP );
+    }
+
     $template->param(
         module     => $module,
         SQLfieldnames => $field_selection,
@@ -284,10 +299,10 @@ sub add_validate {
     my @content       = $input->multi_param('content');
     my @lang          = $input->multi_param('lang');
     for my $mtt ( @mtt ) {
-        my $is_html = $input->param("is_html_$mtt");
+        my $lang = shift @lang;
+        my $is_html = $input->param("is_html_$mtt\_$lang");
         my $title   = shift @title;
         my $content = shift @content;
-        my $lang = shift @lang;
         my $letter = C4::Letters::getletter( $oldmodule, $code, $branchcode, $mtt, $lang );
 
         # getletter can return the default letter even if we pass a branchcode
@@ -301,6 +316,10 @@ sub add_validate {
             next;
         }
         elsif ( $letter and $letter->{message_transport_type} eq $mtt and $letter->{lang} eq $lang ) {
+            logaction( 'NOTICES', 'MODIFY', $letter->{id}, $content,
+                'Intranet' )
+              if ( C4::Context->preference("NoticesLog")
+                && $content ne $letter->{content} );
             $dbh->do(
                 q{
                     UPDATE letter
@@ -312,11 +331,22 @@ sub add_validate {
                 $branchcode, $oldmodule, $code, $mtt, $lang
             );
         } else {
-            $dbh->do(
-                q{INSERT INTO letter (branchcode,module,code,name,is_html,title,content,message_transport_type, lang) VALUES (?,?,?,?,?,?,?,?,?)},
-                undef,
-                $branchcode || '', $module, $code, $name, $is_html || 0, $title, $content, $mtt, $lang
-            );
+            my $letter = Koha::Notice::Template->new(
+                {
+                    branchcode             => $branchcode,
+                    module                 => $module,
+                    code                   => $code,
+                    name                   => $name,
+                    is_html                => $is_html,
+                    title                  => $title,
+                    content                => $content,
+                    message_transport_type => $mtt,
+                    lang                   => $lang
+                }
+            )->store;
+            logaction( 'NOTICES', 'CREATE', $letter->id, $letter->content,
+                'Intranet' )
+              if C4::Context->preference("NoticesLog");
         }
     }
     # set up default display
@@ -336,16 +366,23 @@ sub delete_confirm {
 }
 
 sub delete_confirmed {
-    my ($branchcode, $module, $code, $mtt, $lang) = @_;
-    C4::Letters::DelLetter(
+    my ( $branchcode, $module, $code, $mtt, $lang ) = @_;
+    my $letters = Koha::Notice::Templates->search(
         {
             branchcode => $branchcode || '',
             module     => $module,
             code       => $code,
-            mtt        => $mtt,
-            lang       => $lang,
+            ( $mtt ? ( message_transport_type => $mtt ) : () ),
+            ( $lang ? ( lang => $lang ) : () ),
         }
     );
+    while ( my $letter = $letters->next ) {
+        logaction( 'NOTICES', 'DELETE', $letter->id, $letter->content,
+            'Intranet' )
+          if C4::Context->preference("NoticesLog");
+        $letter->delete;
+    }
+
     # setup default display for screen
     default_display($branchcode);
     return;
@@ -358,7 +395,7 @@ sub retrieve_letters {
 
     my $dbh = C4::Context->dbh;
     my ($sql, @where, @args);
-    $sql = "SELECT branchcode, module, code, name, branchname
+    $sql = "SELECT branchcode, module, code, name, branchname, MAX(updated_on) as updated_on
             FROM letter
             LEFT OUTER JOIN branches USING (branchcode)
     ";
@@ -378,6 +415,7 @@ sub retrieve_letters {
 
     $sql .= " WHERE ".join(" AND ", @where) if @where;
     $sql .= " GROUP BY branchcode,module,code,name,branchname";
+
     $sql .= " ORDER BY module, code, branchcode";
 
     return $dbh->selectall_arrayref($sql, { Slice => {} }, @args);

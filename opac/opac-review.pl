@@ -31,7 +31,7 @@ use Koha::DateUtils;
 use Koha::Review;
 use Koha::Reviews;
 
-my $query        = new CGI;
+my $query        = CGI->new;
 my $biblionumber = $query->param('biblionumber');
 my $review       = $query->param('review');
 my $reviewid     = $query->param('reviewid');
@@ -71,9 +71,6 @@ if( !@errors && defined $review ) {
 			if ($clean ne $review) {
 				push @errors, {scrubbed=>$clean};
 			}
-			my $js_ok_review = $clean;
-			$js_ok_review =~ s/"/&quot;/g;	# probably redundant w/ TMPL ESCAPE=JS
-			$template->param(clean_review=>$js_ok_review);
             if ($savedreview) {
                 $savedreview->set(
                     {
@@ -100,11 +97,10 @@ if( !@errors && defined $review ) {
 $review = $clean;
 $review ||= $savedreview->review if $savedreview;
 $template->param(
-    'biblionumber'   => $biblionumber,
     'borrowernumber' => $borrowernumber,
     'review'         => $review,
     'reviewid'       => $reviewid || 0,
-    'title'          => $biblio->title,
+    'biblio'         => $biblio,
 );
 
 output_html_with_http_headers $query, $cookie, $template->output;

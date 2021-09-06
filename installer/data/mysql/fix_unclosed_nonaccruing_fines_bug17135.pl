@@ -21,10 +21,11 @@
 use Modern::Perl;
 
 use C4::Context;
-use C4::Overdues qw/CalcFine BorType/;
+use C4::Overdues qw/CalcFine/;
 use C4::Log qw/logaction/;
 
 use Koha::DateUtils;
+use Koha::Patrons;
 use Getopt::Long;
 
 my ($help, $verbose, $confirm, $log, $stdout_log);
@@ -76,7 +77,7 @@ sub Bug_17135_fix {
 
     my $control = C4::Context->preference('CircControl');
     my $mode = C4::Context->preference('finesMode');
-    my $today = DateTime->now( time_zone => C4::Context->tz() );
+    my $today = dt_from_string();
     my $dbh = C4::Context->dbh;
 
     ## fetch the unclosed FU fines linked to the issues by issue_id
@@ -151,13 +152,13 @@ sub Bug_17135_fix {
             my $overdue = $overdues->[0];
 
             ### last if $overdue->{itemlost}; ## arguable
-            my $borrower = BorType( $overdue->{borrowernumber} );
+            my $patron = Koha::Patron->find( $overdue->{borrowernumber} );
             my $branchcode =
              ( $control eq 'ItemHomeLibrary' ) ? $overdue->{homebranch}
-             : ( $control eq 'PatronLibrary' )   ? $borrower->{branchcode}
+             : ( $control eq 'PatronLibrary' )   ? $patron->branchcode
              :                                     $overdue->{branchcode};
 
-            my ($amount) = CalcFine( $overdue, $borrower->{categorycode}, $branchcode, $datedue, $today );
+            my ($amount) = CalcFine( $overdue, $patron->categorycode, $branchcode, $datedue, $today );
             ### Warn("CalcFine() returned '$amount'");
             last if ($amount > 0); ## accruing fine, skip closing
 

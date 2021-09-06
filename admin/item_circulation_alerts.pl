@@ -43,14 +43,13 @@ sub show {
             template_name   => "admin/item_circulation_alerts.tt",
             query           => $input,
             type            => "intranet",
-            authnotrequired => 0,
-            flagsrequired   => { parameters => 'parameters_remaining_permissions' },
+            flagsrequired   => { parameters => 'item_circ_alerts' },
             debug           => defined($input->param('debug')),
         }
     );
 
     my $branch   = $input->param('branch') || '*';
-    my @categories = Koha::Patron::Categories->search_limited;
+    my @categories = Koha::Patron::Categories->search_with_library_limits;
     my @item_types = Koha::ItemTypes->search;
     my $grid_checkout = $preferences->grid({ branchcode => $branch, notification => 'CHECKOUT' });
     my $grid_checkin  = $preferences->grid({ branchcode => $branch, notification => 'CHECKIN' });
@@ -112,7 +111,7 @@ sub dispatch {
         show   => \&show,
         toggle => \&toggle,
     );
-    my $input  = new CGI;
+    my $input  = CGI->new;
     my $action = $input->param('action') || 'show';
     if (not exists $handler{$action}) {
         my $status = 400;

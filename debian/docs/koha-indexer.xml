@@ -24,7 +24,7 @@
   <refsynopsisdiv>
     <cmdsynopsis>
       <command>koha-indexer</command>
-      <arg choice="req"><option>--start</option>|<option>--stop</option>|<option>--restart</option>|<option>--help</option>|<option>-h</option>|<option>--quiet</option>|<option>-q</option></arg>
+      <arg choice="req"><option>--start</option>|<option>--stop</option>|<option>--restart</option>|<option>--status</option>|<option>--help</option>|<option>-h</option>|<option>--quiet</option>|<option>-q</option></arg>
       <arg choice="req" rep="repeat"><replaceable>instancename</replaceable></arg>
     </cmdsynopsis>
   </refsynopsisdiv>
@@ -51,6 +51,20 @@
       <term><option>--restart</option></term>
       <listitem>
         <para>Restart the indexer daemon for the desired Koha instances.</para>
+      </listitem>
+    </varlistentry>
+
+    <varlistentry>
+      <term><option>--status</option></term>
+      <listitem>
+        <para>Show the status of the indexer for the specified instances.</para>
+      </listitem>
+    </varlistentry>
+
+    <varlistentry>
+      <term><option>--debug</option></term>
+      <listitem>
+        <para>Raise the verbosity of the script to debug level. Note this is very verbose and contains a lot of information, it is not intended for production use but debugging purposes only.</para>
       </listitem>
     </varlistentry>
 

@@ -26,12 +26,11 @@ use Koha::Localizations;
 
 use CGI qw( -utf8 );
 
-my $query = new CGI;
+my $query = CGI->new;
 
 my ( $template, $borrowernumber, $cookie ) = get_template_and_user(
     {   template_name   => "admin/localization.tt",
-        authnotrequired => 0,
-        flagsrequired   => { parameters => 'parameters_remaining_permissions' },
+        flagsrequired   => { parameters => 'manage_itemtypes' },
         query           => $query,
         type            => "intranet",
         debug           => 1,

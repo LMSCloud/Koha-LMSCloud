@@ -29,6 +29,8 @@ __PACKAGE__->table("branchtransfers");
   is_auto_increment: 1
   is_nullable: 0
 
+primary key
+
 =head2 itemnumber
 
   data_type: 'integer'
@@ -36,11 +38,24 @@ __PACKAGE__->table("branchtransfers");
   is_foreign_key: 1
   is_nullable: 0
 
+the itemnumber that it is in transit (items.itemnumber)
+
+=head2 daterequested
+
+  data_type: 'timestamp'
+  datetime_undef_if_invalid: 1
+  default_value: current_timestamp
+  is_nullable: 0
+
+the date the transfer was requested
+
 =head2 datesent
 
   data_type: 'datetime'
   datetime_undef_if_invalid: 1
   is_nullable: 1
+
+the date the transfer was initialized
 
 =head2 frombranch
 
@@ -50,11 +65,23 @@ __PACKAGE__->table("branchtransfers");
   is_nullable: 0
   size: 10
 
+the branch the transfer is coming from
+
 =head2 datearrived
 
   data_type: 'datetime'
   datetime_undef_if_invalid: 1
   is_nullable: 1
+
+the date the transfer arrived at its destination
+
+=head2 datecancelled
+
+  data_type: 'datetime'
+  datetime_undef_if_invalid: 1
+  is_nullable: 1
+
+the date the transfer was cancelled
 
 =head2 tobranch
 
@@ -64,10 +91,30 @@ __PACKAGE__->table("branchtransfers");
   is_nullable: 0
   size: 10
 
+the branch the transfer was going to
+
 =head2 comments
 
   data_type: 'longtext'
   is_nullable: 1
+
+any comments related to the transfer
+
+=head2 reason
+
+  data_type: 'enum'
+  extra: {list => ["Manual","StockrotationAdvance","StockrotationRepatriation","ReturnToHome","ReturnToHolding","RotatingCollection","Reserve","LostReserve","CancelReserve","TransferCancellation"]}
+  is_nullable: 1
+
+what triggered the transfer
+
+=head2 cancellation_reason
+
+  data_type: 'enum'
+  extra: {list => ["Manual","StockrotationAdvance","StockrotationRepatriation","ReturnToHome","ReturnToHolding","RotatingCollection","Reserve","LostReserve","CancelReserve","ItemLost"]}
+  is_nullable: 1
+
+what triggered the transfer cancellation
 
 =cut
 
@@ -80,6 +127,13 @@ __PACKAGE__->add_columns(
     default_value  => 0,
     is_foreign_key => 1,
     is_nullable    => 0,
+  },
+  "daterequested",
+  {
+    data_type => "timestamp",
+    datetime_undef_if_invalid => 1,
+    default_value => \"current_timestamp",
+    is_nullable => 0,
   },
   "datesent",
   {
@@ -101,6 +155,12 @@ __PACKAGE__->add_columns(
     datetime_undef_if_invalid => 1,
     is_nullable => 1,
   },
+  "datecancelled",
+  {
+    data_type => "datetime",
+    datetime_undef_if_invalid => 1,
+    is_nullable => 1,
+  },
   "tobranch",
   {
     data_type => "varchar",
@@ -111,6 +171,44 @@ __PACKAGE__->add_columns(
   },
   "comments",
   { data_type => "longtext", is_nullable => 1 },
+  "reason",
+  {
+    data_type => "enum",
+    extra => {
+      list => [
+        "Manual",
+        "StockrotationAdvance",
+        "StockrotationRepatriation",
+        "ReturnToHome",
+        "ReturnToHolding",
+        "RotatingCollection",
+        "Reserve",
+        "LostReserve",
+        "CancelReserve",
+        "TransferCancellation",
+      ],
+    },
+    is_nullable => 1,
+  },
+  "cancellation_reason",
+  {
+    data_type => "enum",
+    extra => {
+      list => [
+        "Manual",
+        "StockrotationAdvance",
+        "StockrotationRepatriation",
+        "ReturnToHome",
+        "ReturnToHolding",
+        "RotatingCollection",
+        "Reserve",
+        "LostReserve",
+        "CancelReserve",
+        "ItemLost",
+      ],
+    },
+    is_nullable => 1,
+  },
 );
 
 =head1 PRIMARY KEY
@@ -173,9 +271,14 @@ __PACKAGE__->belongs_to(
 );
 
 
-# Created by DBIx::Class::Schema::Loader v0.07042 @ 2018-02-16 17:54:53
-# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:uPQzv0lMxfnu75SzS6UpVQ
+# Created by DBIx::Class::Schema::Loader v0.07049 @ 2021-04-23 09:48:46
+# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:7iCCrApSJnoleyL9p3odQg
 
+sub koha_object_class {
+    'Koha::Item::Transfer';
+}
+sub koha_objects_class {
+    'Koha::Item::Transfers';
+}
 
-# You can replace this text with custom content, and it will be preserved on regeneration
 1;

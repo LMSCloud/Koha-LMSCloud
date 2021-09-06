@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<!DOCTYPE stylesheet [<!ENTITY nbsp "&#160;" >]>
+<!DOCTYPE stylesheet>
 
 <!-- $Id: MARC21slim2DC.xsl,v 1.1 2003/01/06 08:20:27 adam Exp $ -->
 <xsl:stylesheet version="1.0"
@@ -23,13 +23,13 @@
         <xsl:variable name="TraceSubjectSubdivisions" select="marc:sysprefs/marc:syspref[@name='TraceSubjectSubdivisions']"/>
         <xsl:variable name="TracingQuotesLeft">
           <xsl:choose>
-            <xsl:when test="marc:sysprefs/marc:syspref[@name='UseICU']='1'">{</xsl:when>
+            <xsl:when test="marc:sysprefs/marc:syspref[@name='UseICUStyleQuotes']='1'">{</xsl:when>
             <xsl:otherwise>"</xsl:otherwise>
           </xsl:choose>
         </xsl:variable>
         <xsl:variable name="TracingQuotesRight">
           <xsl:choose>
-            <xsl:when test="marc:sysprefs/marc:syspref[@name='UseICU']='1'">}</xsl:when>
+            <xsl:when test="marc:sysprefs/marc:syspref[@name='UseICUStyleQuotes']='1'">}</xsl:when>
             <xsl:otherwise>"</xsl:otherwise>
           </xsl:choose>
         </xsl:variable>
@@ -67,7 +67,7 @@
 
         <!-- Tittel og ansvarsopplysninger -->
         <xsl:if test="marc:datafield[@tag=245]">
-        <h1 class="title">
+        <h2 class="title">
             <xsl:for-each select="marc:datafield[@tag=245]">
                     <xsl:call-template name="subfieldSelect">
                         <xsl:with-param name="codes">a</xsl:with-param>
@@ -89,7 +89,7 @@
                         <xsl:with-param name="codes">np</xsl:with-param>
                     </xsl:call-template>
             </xsl:for-each>
-        </h1>
+        </h2>
         </xsl:if>
 
         <!-- Author Statement -->
@@ -659,6 +659,56 @@
 
         </span>
         </xsl:for-each>
+        </xsl:if>
+
+        <xsl:variable name="OPACShowMusicalInscripts" select="marc:sysprefs/marc:syspref[@name='OPACShowMusicalInscripts']" />
+        <xsl:variable name="OPACPlayMusicalInscripts" select="marc:sysprefs/marc:syspref[@name='OPACPlayMusicalInscripts']" />
+
+        <xsl:if test="$OPACShowMusicalInscripts and marc:datafield[@tag=031]">
+            <xsl:for-each select="marc:datafield[@tag=031]">
+
+                <span class="results_summary musical_inscripts">
+                    <xsl:if test="marc:subfield[@code='u']">
+                        <span class="uri">
+                            <a>
+                                <xsl:attribute name="href">
+                                    <xsl:value-of select="marc:subfield[@code='u']"/>
+                                </xsl:attribute>
+                                <xsl:text>Audio file</xsl:text>
+                            </a>
+                        </span>
+                    </xsl:if>
+                    <xsl:if test="marc:subfield[@code='2'] and marc:subfield[@code='2']/text() = 'pe' and marc:subfield[@code='g'] and marc:subfield[@code='n'] and marc:subfield[@code='o'] and marc:subfield[@code='p']">
+                        <div class="inscript" data-system="pae">
+                            <xsl:attribute name="data-clef">
+                                <xsl:value-of select="marc:subfield[@code='g']"/>
+                            </xsl:attribute>
+                            <xsl:attribute name="data-keysig">
+                                <xsl:value-of select="marc:subfield[@code='n']"/>
+                            </xsl:attribute>
+                            <xsl:attribute name="data-timesig">
+                                <xsl:value-of select="marc:subfield[@code='o']"/>
+                            </xsl:attribute>
+                            <xsl:attribute name="data-notation">
+                                <xsl:value-of select="marc:subfield[@code='p']"/>
+                            </xsl:attribute>
+                        </div>
+                        <xsl:if test="$OPACPlayMusicalInscripts = 1">
+                            <div class="audio_controls">
+                                <button class="btn play_btn">
+                                    <i id="carticon" class="fa fa-play"></i>
+                                    <xsl:text> Play this sample</xsl:text>
+                                </button>
+                            </div>
+                        </xsl:if>
+                    </xsl:if>
+                </span>
+            </xsl:for-each>
+            <xsl:if test="$OPACPlayMusicalInscripts = 1">
+                <div class="results_summary">
+                    <span class="inscript_audio hide"></span>
+                </div>
+            </xsl:if>
         </xsl:if>
 
     </xsl:template>

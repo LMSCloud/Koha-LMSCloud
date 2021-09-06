@@ -27,14 +27,13 @@ use C4::Output;
 use Koha::Biblios;
 use Koha::Patrons;
 
-my $cgi = new CGI;
+my $cgi = CGI->new;
 
 my ( $template, $borrowernumber, $cookie ) = get_template_and_user(
     {
         template_name   => "opac-request-article.tt",
         query           => $cgi,
         type            => "opac",
-        authnotrequired => 0,
         debug           => 1,
     }
 );
@@ -84,4 +83,4 @@ $template->param(
     patron => $patron,
 );
 
-output_html_with_http_headers $cgi, $cookie, $template->output;
+output_html_with_http_headers $cgi, $cookie, $template->output, undef, { force_no_caching => 1 };

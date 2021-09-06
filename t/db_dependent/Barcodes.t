@@ -50,12 +50,11 @@ subtest 'Test generation of annual barcodes from DB values' => sub {
 
     my $barcodevalue = $barcodeobj->value();
 
-    my $item_1 = $builder->build({
-        source => 'Item',
-        value => {
+    my $item_1 = $builder->build_sample_item(
+        {
             barcode => $barcodevalue
         }
-    });
+    );
 
     is($barcodevalue,$barcodeobj->db_max(), "(annual) First barcode saved to db is equal to db_max" );
 
@@ -66,12 +65,11 @@ subtest 'Test generation of annual barcodes from DB values' => sub {
     $barcodevalue = $barcodeobj->next_value($barcodevalue);
     $barcodevalue = $barcodeobj->next_value($barcodevalue);
 
-    my $item_2 = $builder->build({
-        source => 'Item',
-        value => {
+    my $item_2 = $builder->build_sample_item(
+        {
             barcode => $barcodevalue
         }
-    });
+    );
 
     $barcodeobj = C4::Barcodes->new('annual');
 
@@ -105,12 +103,11 @@ subtest 'Test generation of hbyymmincr barcodes from DB values' => sub {
 
     my $barcodevalue = $barcodeobj->value();
 
-    my $item_1 = $builder->build({
-        source => 'Item',
-        value => {
+    my $item_1 = $builder->build_sample_item(
+        {
             barcode => $barcodevalue
         }
-    });
+    );
 
     is($barcodevalue,$barcodeobj->db_max(), "(hbyymmincr) First barcode saved to db is equal to db_max" );
 
@@ -121,12 +118,11 @@ subtest 'Test generation of hbyymmincr barcodes from DB values' => sub {
     $barcodevalue = $barcodeobj->next_value($barcodevalue);
     $barcodevalue = $barcodeobj->next_value($barcodevalue);
 
-    my $item_2 = $builder->build({
-        source => 'Item',
-        value => {
+    my $item_2 = $builder->build_sample_item(
+        {
             barcode => $barcodevalue
         }
-    });
+    );
 
     $barcodeobj = C4::Barcodes->new('hbyymmincr',$branchcode_1);
 
@@ -149,7 +145,7 @@ my %thash = (
     EAN13 => ['0000000695152','892685001928'],
 );
 
-my ($obj1,$obj2,$format,$value,$initial,$serial,$re,$next,$previous,$temp);
+my ($obj1,$obj2,$format,$value,$initial,$serial,$next,$previous,$temp);
 my @formats = sort keys %thash;
 foreach (@formats) {
     my $pre = sprintf '(%-12s)', $_;
@@ -214,7 +210,7 @@ foreach (@formats) {
     }
 }
 
-foreach $format (@formats) {
+foreach my $format (@formats) {
     my $pre = sprintf '(%-12s)', $format;
     foreach my $testval (@{$thash{ $format }}) {
         if ($format eq 'hbyymmincr') {

@@ -1,6 +1,6 @@
 #!/usr/bin/perl
 
-# Copyright 2015 Koha Development team
+# Copyright 2015-2019 Koha Development team
 #
 # This file is part of Koha
 #
@@ -19,7 +19,8 @@
 
 use Modern::Perl;
 
-use Test::More tests => 5;
+use Test::More tests => 8;
+use Test::Exception;
 
 use Koha::Suggestion;
 use Koha::Suggestions;
@@ -32,18 +33,18 @@ my $schema = Koha::Database->new->schema;
 $schema->storage->txn_begin;
 
 my $builder           = t::lib::TestBuilder->new;
-my $biblio_1          = $builder->build( { source => 'Biblio' } );
-my $biblio_2          = $builder->build( { source => 'Biblio' } );
+my $biblio_1          = $builder->build_sample_biblio;
+my $biblio_2          = $builder->build_sample_biblio;
 my $patron            = $builder->build( { source => 'Borrower' } );
 my $nb_of_suggestions = Koha::Suggestions->search->count;
 my $new_suggestion_1  = Koha::Suggestion->new(
     {   suggestedby  => $patron->{borrowernumber},
-        biblionumber => $biblio_1->{biblionumber},
+        biblionumber => $biblio_1->biblionumber,
     }
 )->store;
 my $new_suggestion_2 = Koha::Suggestion->new(
     {   suggestedby  => $patron->{borrowernumber},
-        biblionumber => $biblio_2->{biblionumber},
+        biblionumber => $biblio_2->biblionumber,
     }
 )->store;
 
@@ -51,7 +52,7 @@ subtest 'store' => sub {
     plan tests => 3;
     my $suggestion  = Koha::Suggestion->new(
         {   suggestedby  => $patron->{borrowernumber},
-            biblionumber => $biblio_1->{biblionumber},
+            biblionumber => $biblio_1->biblionumber,
         }
     )->store;
 
@@ -78,3 +79,181 @@ is( Koha::Suggestions->search->count, $nb_of_suggestions + 1, 'Delete should hav
 
 $schema->storage->txn_rollback;
 
+subtest 'constraints' => sub {
+    plan tests => 11;
+    $schema->storage->txn_begin;
+
+    my $print_error = $schema->storage->dbh->{PrintError};
+    $schema->storage->dbh->{PrintError} = 0;
+
+    my $patron = $builder->build_object( { class => "Koha::Patrons" } );
+    my $biblio = $builder->build_sample_biblio();
+    my $branch = $builder->build_object( { class => "Koha::Libraries" } );
+
+    my $suggestion = $builder->build_object(
+        {
+            class => "Koha::Suggestions",
+            value => {
+                suggestedby  => $patron->borrowernumber,
+                biblionumber => $biblio->biblionumber,
+                branchcode   => $branch->branchcode,
+                managedby    => undef,
+                acceptedby   => undef,
+                rejectedby   => undef,
+                budgetid     => undef,
+            }
+        }
+    );
+
+    my $nonexistent_borrowernumber = $patron->borrowernumber;
+    # suggestedby
+    $patron->delete;
+    $suggestion = $suggestion->get_from_storage;
+    is( $suggestion->suggestedby, undef,
+        "The suggestion is not deleted when the related patron is deleted" );
+
+    # biblionumber
+    $biblio->delete;
+    $suggestion = $suggestion->get_from_storage;
+    is( $suggestion->biblionumber, undef,
+        "The suggestion is not deleted when the related biblio is deleted" );
+
+    # branchcode
+    $branch->delete;
+    $suggestion = $suggestion->get_from_storage;
+    is( $suggestion->branchcode, undef,
+        "The suggestion is not deleted when the related branch is deleted" );
+
+    # managerid
+    {   # hide useless warnings
+        local *STDERR;
+        open STDERR, '>', '/dev/null';
+        throws_ok {
+            $suggestion->managedby($nonexistent_borrowernumber)->store;
+        }
+        'Koha::Exceptions::Object::FKConstraint',
+          'store raises an exception on invalid managerid';
+        close STDERR;
+    }
+    my $manager = $builder->build_object( { class => "Koha::Patrons" } );
+    $suggestion->managedby( $manager->borrowernumber )->store;
+    $manager->delete;
+    $suggestion = $suggestion->get_from_storage;
+    is( $suggestion->managedby, undef,
+        "The suggestion is not deleted when the related manager is deleted" );
+
+    # acceptedby
+    {    # hide useless warnings
+        local *STDERR;
+        open STDERR, '>', '/dev/null';
+        throws_ok {
+            $suggestion->acceptedby($nonexistent_borrowernumber)->store;
+        }
+        'Koha::Exceptions::Object::FKConstraint',
+          'store raises an exception on invalid acceptedby id';
+        close STDERR;
+    }
+    my $acceptor = $builder->build_object( { class => "Koha::Patrons" } );
+    $suggestion->acceptedby( $acceptor->borrowernumber )->store;
+    $acceptor->delete;
+    $suggestion = $suggestion->get_from_storage;
+    is( $suggestion->acceptedby, undef,
+        "The suggestion is not deleted when the related acceptor is deleted" );
+
+    # rejectedby
+    {    # hide useless warnings
+        local *STDERR;
+        open STDERR, '>', '/dev/null';
+        throws_ok {
+            $suggestion->rejectedby($nonexistent_borrowernumber)->store;
+        }
+        'Koha::Exceptions::Object::FKConstraint',
+          'store raises an exception on invalid rejectedby id';
+        close STDERR;
+    }
+    my $rejecter = $builder->build_object( { class => "Koha::Patrons" } );
+    $suggestion->rejectedby( $rejecter->borrowernumber )->store;
+    $rejecter->delete;
+    $suggestion = $suggestion->get_from_storage;
+    is( $suggestion->rejectedby, undef,
+        "The suggestion is not deleted when the related rejecter is deleted" );
+
+    # budgetid
+    {    # hide useless warnings
+        local *STDERR;
+        open STDERR, '>', '/dev/null';
+
+        throws_ok { $suggestion->budgetid($nonexistent_borrowernumber)->store; }
+        'Koha::Exceptions::Object::FKConstraint',
+          'store raises an exception on invalid budgetid';
+        close STDERR;
+    }
+    my $fund = $builder->build_object( { class => "Koha::Acquisition::Funds" } );
+    $suggestion->budgetid( $fund->id )->store;
+    $fund->delete;
+    $suggestion = $suggestion->get_from_storage;
+    is( $suggestion->budgetid, undef,
+        "The suggestion is not deleted when the related budget is deleted" );
+
+    $schema->storage->dbh->{PrintError} = $print_error;
+    $schema->storage->txn_rollback;
+};
+
+subtest 'manager, suggester, rejecter, last_modifier' => sub {
+    plan tests => 8;
+    $schema->storage->txn_begin;
+
+    my $suggestion = $builder->build_object( { class => 'Koha::Suggestions' } );
+
+    is( ref( $suggestion->manager ),
+        'Koha::Patron',
+        '->manager should have returned a Koha::Patron object' );
+    is( ref( $suggestion->rejecter ),
+        'Koha::Patron',
+        '->rejecter should have returned a Koha::Patron object' );
+    is( ref( $suggestion->suggester ),
+        'Koha::Patron',
+        '->suggester should have returned a Koha::Patron object' );
+    is( ref( $suggestion->last_modifier ),
+        'Koha::Patron',
+        '->last_modifier should have returned a Koha::Patron object' );
+
+    $suggestion->set(
+        {
+            managedby          => undef,
+            rejectedby         => undef,
+            suggestedby        => undef,
+            lastmodificationby => undef
+        }
+    );
+
+    is( $suggestion->manager, undef,
+        '->manager should have returned undef if no manager set' );
+    is( $suggestion->rejecter, undef,
+        '->rejecter should have returned undef if no rejecter set' );
+    is( $suggestion->suggester, undef,
+        '->suggester should have returned undef if no suggester set' );
+    is( $suggestion->last_modifier,
+        undef,
+        '->last_modifier should have returned undef if no last_modifier set' );
+
+    $schema->storage->txn_rollback;
+};
+
+subtest 'fund' => sub {
+    plan tests => 2;
+
+    $schema->storage->txn_begin;
+
+    my $suggestion = $builder->build_object( { class => 'Koha::Suggestions' } );
+    is( ref( $suggestion->fund ),
+        'Koha::Acquisition::Fund',
+        '->fund should have returned a Koha::Acquisition::Fund object' );
+
+    $suggestion->set( { budgetid => undef } );
+
+    is( $suggestion->fund, undef,
+        '->fund should have returned undef if not fund set' );
+
+    $schema->storage->txn_rollback;
+};

@@ -4,21 +4,20 @@
 #
 # This file is part of Koha.
 #
-# Koha is free software; you can redistribute it and/or modify it under the
-# terms of the GNU General Public License as published by the Free Software
-# Foundation; either version 3 of the License, or (at your option) any later
-# version.
+# Koha is free software; you can redistribute it and/or modify it
+# under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 3 of the License, or
+# (at your option) any later version.
 #
-# Koha is distributed in the hope that it will be useful, but WITHOUT ANY
-# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
-# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+# Koha is distributed in the hope that it will be useful, but
+# WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+# GNU General Public License for more details.
 #
-# You should have received a copy of the GNU General Public License along
-# with Koha; if not, write to the Free Software Foundation, Inc.,
-# 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+# You should have received a copy of the GNU General Public License
+# along with Koha; if not, see <http://www.gnu.org/licenses>.
 
-use strict;
-use warnings;
+use Modern::Perl;
 use CGI qw ( -utf8 );
 use C4::Output;
 use C4::Auth;
@@ -26,10 +25,11 @@ use C4::AuthoritiesMarc;
 use C4::Koha;
 use C4::Biblio;
 
+use Koha::Authority::MergeRequests;
 use Koha::Authority::Types;
 use Koha::MetadataRecord::Authority;
 
-my $input  = new CGI;
+my $input  = CGI->new;
 my @authid = $input->multi_param('authid');
 my $merge  = $input->param('merge');
 
@@ -40,7 +40,6 @@ my ( $template, $loggedinuser, $cookie ) = get_template_and_user(
         template_name   => "authorities/merge.tt",
         query           => $input,
         type            => "intranet",
-        authnotrequired => 0,
         flagsrequired   => { editauthorities => 1 },
     }
 );
@@ -83,8 +82,7 @@ if ($merge) {
     my $MARCfrom = GetAuthority( $recordid2 );
     merge({ mergefrom => $recordid2, MARCfrom => $MARCfrom, mergeto => $recordid1, MARCto => $record });
 
-    # Delete the other record. Do not merge. It is unneeded and could under
-    # special circumstances have unwanted side-effects.
+    # Delete the other record. No need to merge.
     DelAuthority({ authid => $recordid2, skip_merge => 1 });
 
     # Parameters

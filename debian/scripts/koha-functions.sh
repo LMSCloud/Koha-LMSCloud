@@ -166,7 +166,7 @@ is_sip_enabled()
 {
     local instancename=$1
 
-    if [ -e /etc/koha/sites/$instancename/SIPconfig.xml ]; then
+    if [ -e /var/lib/koha/$instancename/sip.enabled ]; then
         return 0
     else
         return 1
@@ -178,6 +178,20 @@ is_sitemap_enabled()
     local instancename=$1
 
     if [ -e /var/lib/koha/$instancename/sitemap.enabled ]; then
+        return 0
+    else
+        return 1
+    fi
+}
+
+is_sip_running()
+{
+    local instancename=$1
+
+    if daemon --name="$instancename-koha-sip" \
+            --pidfiles="/var/run/koha/$instancename/" \
+            --user="$instancename-koha.$instancename-koha" \
+            --running ; then
         return 0
     else
         return 1
@@ -212,6 +226,54 @@ is_indexer_running()
     fi
 }
 
+is_worker_running()
+{
+    local instancename=$1
+
+    if daemon --name="$instancename-koha-worker" \
+            --pidfiles="/var/run/koha/$instancename/" \
+            --user="$instancename-koha.$instancename-koha" \
+            --running ; then
+        return 0
+    else
+        return 1
+    fi
+}
+
+is_plack_enabled_opac()
+{
+    local instancefile=$1
+
+    if [ "$instancefile" = "" ]; then
+        return 1
+    fi
+
+    # remember 0 means success/true in bash.
+    if grep -q '^[[:space:]]*Include /etc/koha/apache-shared-opac-plack.conf' \
+            "$instancefile" ; then
+        return 0
+    else
+        return 1
+    fi
+}
+
+is_plack_enabled_intranet()
+{
+    local instancefile=$1
+
+    if [ "$instancefile" = "" ]; then
+        return 1
+    fi
+
+    # remember 0 means success/true in bash.
+    if grep -q '^[[:space:]]*Include /etc/koha/apache-shared-intranet-plack.conf' \
+            "$instancefile" ; then
+        return 0
+    else
+        return 1
+    fi
+}
+
 is_plack_enabled()
 {
     local site=$1
@@ -221,10 +283,22 @@ is_plack_enabled()
         return 1
     fi
 
-    if grep -q '^[[:space:]]*Include /etc/koha/apache-shared-opac-plack.conf' \
-            "$instancefile" && \
-       grep -q '^[[:space:]]*Include /etc/koha/apache-shared-intranet-plack.conf' \
-            "$instancefile" ; then
+    if is_plack_enabled_opac $instancefile ; then
+        enabledopac=1
+    else
+        enabledopac=0
+    fi
+    if is_plack_enabled_intranet $instancefile ; then
+        enabledintra=1
+    else
+        enabledintra=0
+    fi
+
+    # remember 0 means success/true in bash.
+    if [ "$enabledopac" != "$enabledintra" ] ; then
+        echo "$site has a plack configuration error. Enable or disable plack to correct this."
+        return 0
+    elif [ "$enabledopac" = "1" ] ; then
         return 0
     else
         return 1
@@ -236,6 +310,31 @@ is_plack_running()
     local instancename=$1
 
     if start-stop-daemon --pidfile "/var/run/koha/${instancename}/plack.pid" \
+            --user="$instancename-koha" \
+            --status ; then
+        return 0
+    else
+        return 1
+    fi
+}
+
+is_z3950_enabled()
+{
+    local instancename=$1
+
+    if [ -e /etc/koha/sites/$instancename/z3950/config.xml ]; then
+        return 0
+    else
+        return 1
+    fi
+}
+
+is_z3950_running()
+{
+    local instancename=$1
+
+    if start-stop-daemon --pidfile "/var/run/koha/${instancename}/z3950-responder.pid" \
+            --user="$instancename-koha" \
             --status ; then
         return 0
     else
@@ -278,6 +377,17 @@ get_loglevels()
         echo "$retval"
     else
         echo "none,fatal,warn"
+    fi
+}
+
+get_max_record_size()
+{
+    local instancename=$1
+    local retval=$(xmlstarlet sel -t -v 'yazgfs/config/zebra_max_record_size' /etc/koha/sites/$instancename/koha-conf.xml)
+    if [ "$retval" != "" ]; then
+        echo "$retval"
+    else
+        echo "1024"
     fi
 }
 

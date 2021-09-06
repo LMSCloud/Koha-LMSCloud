@@ -25,7 +25,7 @@ use C4::Koha;
 use C4::Output;
 use C4::MarcModificationTemplates;
 
-my $cgi = new CGI;
+my $cgi = CGI->new;
 
 my $op = $cgi->param('op') || q{};
 my $template_id = $cgi->param('template_id');
@@ -35,7 +35,6 @@ my ($template, $loggedinuser, $cookie)
             template_name => "tools/marc_modification_templates.tt",
             query => $cgi,
             type => "intranet",
-            authnotrequired => 0,
             flagsrequired => { tools => 'marc_modification_templates' },
             debug => 1,
     });
@@ -116,18 +115,23 @@ my @templates = GetModificationTemplates( $template_id );
 my @actions = GetModificationTemplateActions( $template_id );
 foreach my $action ( @actions ) {
   $action->{'action_delete_field'} = ( $action->{'action'} eq 'delete_field' );
+  $action->{'action_add_field'} = ( $action->{'action'} eq 'add_field' );
   $action->{'action_update_field'} = ( $action->{'action'} eq 'update_field' );
   $action->{'action_move_field'} = ( $action->{'action'} eq 'move_field' );
   $action->{'action_copy_field'} = ( $action->{'action'} eq 'copy_field' );
   $action->{'action_copy_and_replace_field'} = ( $action->{'action'} eq 'copy_and_replace_field' );
 
-  $action->{'conditional_if'} = ( $action->{'conditional'} eq 'if' );
-  $action->{'conditional_unless'} = ( $action->{'conditional'} eq 'unless' );
+  if( defined $action->{'conditional'} ){
+      $action->{'conditional_if'} = ( $action->{'conditional'} eq 'if' );
+      $action->{'conditional_unless'} = ( $action->{'conditional'} eq 'unless' );
+  }
 
-  $action->{'conditional_comparison_exists'} = ( $action->{'conditional_comparison'} eq 'exists' );
-  $action->{'conditional_comparison_not_exists'} = ( $action->{'conditional_comparison'} eq 'not_exists' );
-  $action->{'conditional_comparison_equals'} = ( $action->{'conditional_comparison'} eq 'equals' );
-  $action->{'conditional_comparison_not_equals'} = ( $action->{'conditional_comparison'} eq 'not_equals' );
+  if( defined $action->{'conditional_comparison'} ){
+      $action->{'conditional_comparison_exists'} = ( $action->{'conditional_comparison'} eq 'exists' );
+      $action->{'conditional_comparison_not_exists'} = ( $action->{'conditional_comparison'} eq 'not_exists' );
+      $action->{'conditional_comparison_equals'} = ( $action->{'conditional_comparison'} eq 'equals' );
+      $action->{'conditional_comparison_not_equals'} = ( $action->{'conditional_comparison'} eq 'not_equals' );
+  }
 }
 
 $template->param(

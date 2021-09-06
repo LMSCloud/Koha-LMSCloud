@@ -26,6 +26,7 @@ use DateTime;
 use Readonly;
 use Business::ISBN;
 use Koha::Database;
+use Koha::DateUtils;
 use C4::Budgets qw( GetBudget );
 
 use Koha::Acquisition::Orders;
@@ -51,7 +52,7 @@ sub new {
 
         # convenient alias
         $self->{basket} = $self->{orderlines}->[0]->basketno;
-        $self->{message_date} = DateTime->now( time_zone => 'local' );
+        $self->{message_date} = dt_from_string();
     }
 
     # validate that its worth proceeding
@@ -103,6 +104,10 @@ sub encode {
     $self->{transmission} .= $self->user_data_message_segments();
 
     $self->{transmission} .= $self->trailing_service_segments();
+
+    # Guard against CR LF etc being added in data from DB
+    $self->{transmission}=~s/[\r\n\t]//g;
+
     return $self->{transmission};
 }
 
@@ -403,23 +408,38 @@ sub order_line {
     }
     my $budget = GetBudget( $orderline->budget_id );
     my $ol_fields = { budget_code => $budget->{budget_code}, };
-    if ( $orderline->order_vendornote ) {
-        $ol_fields->{servicing_instruction} = $orderline->order_vendornote;
+
+    my $item_fields = [];
+    for my $item (@items) {
+        push @{$item_fields},
+          {
+            branchcode     => $item->homebranch->branchcode,
+            itype          => $item->itype,
+            location       => $item->location,
+            itemcallnumber => $item->itemcallnumber,
+          };
     }
     $self->add_seg(
         gir_segments(
             {
-                basket    => $basket,
                 ol_fields => $ol_fields,
-                items     => \@items
+                items     => $item_fields
             }
         )
     );
 
     # TBD what if #items exceeds quantity
 
-    # FTX free text for current orderline TBD
-    #    dont really have a special instructions field to encode here
+    # FTX free text for current orderline
+    #    Pass vendor note in FTX free text segment
+    if ( $orderline->order_vendornote ) {
+        my $vendornote = $orderline->order_vendornote;
+        chomp $vendornote;
+        my $ftx = 'FTX+LIN+++';
+        $ftx .= $vendornote;
+        $ftx .= $seg_terminator;
+        $self->add_seg($ftx);
+    }
     # Encode notes here
     # PRI-CUX-DTM unit price on which order is placed : optional
     # Coutts read this as 0.00 if not present
@@ -512,7 +532,7 @@ sub imd_segment {
         }
         $odd = !$odd;
     }
-    if ( @segs && $segs[-1] !~ m/$seg_terminator$/o ) {
+    if ( @segs && $segs[-1] !~ m/[^?]$seg_terminator$/o ) {
         $segs[-1] .= $seg_terminator;
     }
     return @segs;
@@ -521,7 +541,6 @@ sub imd_segment {
 sub gir_segments {
     my ($params) = @_;
 
-    my $basket       = $params->{basket};
     my $orderfields  = $params->{ol_fields};
     my @onorderitems = @{ $params->{items} };
 
@@ -529,28 +548,50 @@ sub gir_segments {
     my @segments;
     my $sequence_no = 1;
     foreach my $item (@onorderitems) {
-        my $seg = sprintf 'GIR+%03d', $sequence_no;
-        $seg .= add_gir_identity_number( 'LFN', $budget_code );
-        if ( $basket->effective_create_items eq 'ordering' ) {
-            $seg .=
-              add_gir_identity_number( 'LLO', $item->homebranch->branchcode );
-            $seg .= add_gir_identity_number( 'LST', $item->itype );
-            $seg .= add_gir_identity_number( 'LSQ', $item->location );
-            $seg .= add_gir_identity_number( 'LSM', $item->itemcallnumber );
+        my $elements_added = 0;
+        my @gir_elements;
+        if ($budget_code) {
+            push @gir_elements,
+              { identity_number => 'LFN', data => $budget_code };
+        }
+        if ( $item->{branchcode} ) {
+            push @gir_elements,
+              { identity_number => 'LLO', data => $item->{branchcode} };
+        }
+        if ( $item->{itype} ) {
+            push @gir_elements,
+              { identity_number => 'LST', data => $item->{itype} };
+        }
+        if ( $item->{location} ) {
+            push @gir_elements,
+              { identity_number => 'LSQ', data => $item->{location} };
+        }
+        if ( $item->{itemcallnumber} ) {
+            push @gir_elements,
+              { identity_number => 'LSM', data => $item->{itemcallnumber} };
+        }
 
-            # itemcallnumber -> shelfmark
-        }
-        else {
-            if ( $item->{branch} ) {
-                $seg .= add_gir_identity_number( 'LLO', $item->{branch} );
-            }
-            $seg .= add_gir_identity_number( 'LST', $item->{itemtype} );
-            $seg .= add_gir_identity_number( 'LSM', $item->{shelfmark} );
-        }
+        # itemcallnumber -> shelfmark
         if ( $orderfields->{servicing_instruction} ) {
-            $seg .= add_gir_identity_number( 'LVT',
-                $orderfields->{servicing_instruction} );
+            push @gir_elements,
+              {
+                identity_number => 'LVT',
+                data            => $orderfields->{servicing_instruction}
+              };
         }
+        my $e_cnt = 0;    # count number of elements so we dont exceed 5 per segment
+        my $copy_no = sprintf 'GIR+%03d', $sequence_no;
+        my $seg     = $copy_no;
+        foreach my $e (@gir_elements) {
+            if ( $e_cnt == 5 ) {
+                push @segments, $seg;
+                $seg = $copy_no;
+            }
+            $seg .=
+              add_gir_identity_number( $e->{identity_number}, $e->{data} );
+            ++$e_cnt;
+        }
+
         $sequence_no++;
         push @segments, $seg;
     }

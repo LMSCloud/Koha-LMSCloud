@@ -2,19 +2,18 @@
 #
 # This file is part of Koha.
 #
-# Koha is free software; you can redistribute it and/or modify it under the
-# terms of the GNU General Public License as published by the Free Software
-# Foundation; either version 2 of the License, or (at your option) any later
-# version.
+# Koha is free software; you can redistribute it and/or modify it
+# under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 3 of the License, or
+# (at your option) any later version.
 #
-# Koha is distributed in the hope that it will be useful, but WITHOUT ANY
-# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
-# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+# Koha is distributed in the hope that it will be useful, but
+# WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+# GNU General Public License for more details.
 #
-# You should have received a copy of the GNU General Public License along
-# with Koha; if not, write to the Free Software Foundation, Inc.,
-# 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
-#
+# You should have received a copy of the GNU General Public License
+# along with Koha; if not, see <http://www.gnu.org/licenses>.
 
 use Modern::Perl;
 use Data::Dumper;
@@ -29,11 +28,12 @@ use Koha::Library;
 use Koha::DateUtils;
 use Koha::MarcSubfieldStructures;
 use Koha::Caches;
+use Koha::AuthorisedValues;
 
 use t::lib::Mocks;
 use t::lib::TestBuilder;
 
-use Test::More tests => 12;
+use Test::More tests => 14;
 
 use Test::Warn;
 
@@ -56,99 +56,142 @@ subtest 'General Add, Get and Del tests' => sub {
 
     # Create a biblio instance for testing
     t::lib::Mocks::mock_preference('marcflavour', 'MARC21');
-    my ($bibnum, $bibitemnum) = get_biblio();
+    my $biblio = $builder->build_sample_biblio();
 
     # Add an item.
-    my ($item_bibnum, $item_bibitemnum, $itemnumber) = AddItem({ homebranch => $library->{branchcode}, holdingbranch => $library->{branchcode}, location => $location, itype => $itemtype->{itemtype} } , $bibnum);
-    cmp_ok($item_bibnum, '==', $bibnum, "New item is linked to correct biblionumber.");
-    cmp_ok($item_bibitemnum, '==', $bibitemnum, "New item is linked to correct biblioitemnumber.");
+    my $item = $builder->build_sample_item(
+        {
+            biblionumber => $biblio->biblionumber,
+            library      => $library->{branchcode},
+            location     => $location,
+            itype        => $itemtype->{itemtype}
+        }
+    );
+    my $itemnumber = $item->itemnumber;
+    cmp_ok($item->biblionumber, '==', $biblio->biblionumber, "New item is linked to correct biblionumber.");
+    cmp_ok($item->biblioitemnumber, '==', $biblio->biblioitem->biblioitemnumber, "New item is linked to correct biblioitemnumber.");
 
     # Get item.
-    my $getitem = GetItem($itemnumber);
-    cmp_ok($getitem->{'itemnumber'}, '==', $itemnumber, "Retrieved item has correct itemnumber.");
-    cmp_ok($getitem->{'biblioitemnumber'}, '==', $item_bibitemnum, "Retrieved item has correct biblioitemnumber.");
-    is( $getitem->{location}, $location, "The location should not have been modified" );
-    is( $getitem->{permanent_location}, $location, "The permanent_location should have been set to the location value" );
+    my $getitem = Koha::Items->find($itemnumber);
+    cmp_ok($getitem->itemnumber, '==', $itemnumber, "Retrieved item has correct itemnumber.");
+    cmp_ok($getitem->biblioitemnumber, '==', $item->biblioitemnumber, "Retrieved item has correct biblioitemnumber."); # We are not testing anything useful here
+    is( $getitem->location, $location, "The location should not have been modified" );
+    is( $getitem->permanent_location, $location, "The permanent_location should have been set to the location value" );
 
 
     # Do not modify anything, and do not explode!
-    my $dbh = C4::Context->dbh;
-    local $dbh->{RaiseError} = 1;
-    ModItem({}, $bibnum, $itemnumber);
+    $getitem->set({})->store;
 
     # Modify item; setting barcode.
-    ModItem({ barcode => '987654321' }, $bibnum, $itemnumber);
-    my $moditem = GetItem($itemnumber);
-    cmp_ok($moditem->{'barcode'}, '==', '987654321', 'Modified item barcode successfully to: '.$moditem->{'barcode'} . '.');
+    $getitem->barcode('987654321')->store;
+    my $moditem = Koha::Items->find($itemnumber);
+    cmp_ok($moditem->barcode, '==', '987654321', 'Modified item barcode successfully to: '.$moditem->barcode . '.');
 
     # Delete item.
-    DelItem({ biblionumber => $bibnum, itemnumber => $itemnumber });
-    my $getdeleted = GetItem($itemnumber);
-    is($getdeleted->{'itemnumber'}, undef, "Item deleted as expected.");
+    $moditem->delete;
+    my $getdeleted = Koha::Items->find($itemnumber);
+    is($getdeleted, undef, "Item deleted as expected.");
 
-    ($item_bibnum, $item_bibitemnum, $itemnumber) = AddItem({ homebranch => $library->{branchcode}, holdingbranch => $library->{branchcode}, location => $location, permanent_location => 'my permanent location', itype => $itemtype->{itemtype} } , $bibnum);
-    $getitem = GetItem($itemnumber);
-    is( $getitem->{location}, $location, "The location should not have been modified" );
-    is( $getitem->{permanent_location}, 'my permanent location', "The permanent_location should not have modified" );
+    $itemnumber = $builder->build_sample_item(
+        {
+            biblionumber => $biblio->biblionumber,
+            library      => $library->{branchcode},
+            location     => $location,
+            permanent_location => 'my permanent location',
+            itype        => $itemtype->{itemtype}
+        }
+    )->itemnumber;
+    $getitem = Koha::Items->find($itemnumber);
+    is( $getitem->location, $location, "The location should not have been modified" );
+    is( $getitem->permanent_location, 'my permanent location', "The permanent_location should not have modified" );
 
-    ModItem({ location => $location }, $bibnum, $itemnumber);
-    $getitem = GetItem($itemnumber);
-    is( $getitem->{location}, $location, "The location should have been set to correct location" );
-    is( $getitem->{permanent_location}, $location, "The permanent_location should have been set to location" );
+    my $new_location = "New location";
+    $getitem->location($new_location)->store;
+    $getitem = Koha::Items->find($itemnumber);
+    is( $getitem->location, $new_location, "The location should have been set to correct location" );
+    is( $getitem->permanent_location, $new_location, "The permanent_location should have been set to location" );
 
-    ModItem({ location => 'CART' }, $bibnum, $itemnumber);
-    $getitem = GetItem($itemnumber);
-    is( $getitem->{location}, 'CART', "The location should have been set to CART" );
-    is( $getitem->{permanent_location}, $location, "The permanent_location should not have been set to CART" );
+    $getitem->location('CART')->store;
+    $getitem = Koha::Items->find($itemnumber);
+    is( $getitem->location, 'CART', "The location should have been set to CART" );
+    is( $getitem->permanent_location, $new_location, "The permanent_location should not have been set to CART" );
 
     t::lib::Mocks::mock_preference('item-level_itypes', '1');
-    $getitem = GetItem($itemnumber);
-    is( $getitem->{itype}, $itemtype->{itemtype}, "Itemtype set correctly when using item-level_itypes" );
+    $getitem = Koha::Items->find($itemnumber);
+    is( $getitem->effective_itemtype, $itemtype->{itemtype}, "Itemtype set correctly when using item-level_itypes" );
     t::lib::Mocks::mock_preference('item-level_itypes', '0');
-    $getitem = GetItem($itemnumber);
-    is( $getitem->{itype}, undef, "Itemtype set correctly when not using item-level_itypes" );
+    $getitem = Koha::Items->find($itemnumber);
+    is( $getitem->effective_itemtype, $biblio->biblioitem->itemtype, "Itemtype set correctly when not using item-level_itypes" );
 
     $schema->storage->txn_rollback;
 };
 
-subtest 'ModItem tests' => sub {
-    plan tests => 6;
+subtest 'ModItemTransfer tests' => sub {
+    plan tests => 8;
 
     $schema->storage->txn_begin;
 
     my $builder = t::lib::TestBuilder->new;
-    my $item = $builder->build({
-        source => 'Item',
-        value  => {
-            itemlost     => 0,
-            damaged      => 0,
-            withdrawn    => 0,
-            itemlost_on  => undef,
-            damaged_on   => undef,
-            withdrawn_on => undef,
+    my $item    = $builder->build_sample_item();
+
+    my $library1 = $builder->build(
+        {
+            source => 'Branch',
         }
-    });
+    );
+    my $library2 = $builder->build(
+        {
+            source => 'Branch',
+        }
+    );
 
-    my @fields = qw( itemlost withdrawn damaged );
-    for my $field (@fields) {
-        $item->{$field} = 1;
-        ModItem( $item, $item->{biblionumber}, $item->{itemnumber} );
-        my $post_mod_item = Koha::Items->find({ itemnumber => $item->{itemnumber} })->unblessed;
-        is( output_pref({ str => $post_mod_item->{$field."_on"}, dateonly => 1 }), output_pref({ dt => dt_from_string(), dateonly => 1 }), "When updating $field, $field"."_on is updated" );
+    ModItemTransfer( $item->itemnumber, $library1->{branchcode},
+        $library2->{branchcode}, 'Manual' );
 
-        $item->{$field} = 0;
-        ModItem( $item, $item->{biblionumber}, $item->{itemnumber} );
-        $post_mod_item = Koha::Items->find({ itemnumber => $item->{itemnumber} })->unblessed;
-        is( $post_mod_item->{$field."_on"}, undef, "When clearing $field, $field"."_on is cleared" );
-    }
+    my $transfers = Koha::Item::Transfers->search(
+        {
+            itemnumber => $item->itemnumber
+        }
+    );
+
+    is( $transfers->count, 1, "One transfer created with ModItemTransfer" );
+    $item->discard_changes;
+    is($item->holdingbranch, $library1->{branchcode}, "Items holding branch was updated to frombranch");
+
+    ModItemTransfer( $item->itemnumber, $library2->{branchcode},
+        $library1->{branchcode}, 'Manual' );
+    $transfers = Koha::Item::Transfers->search(
+        { itemnumber => $item->itemnumber, },
+        { order_by   => { '-asc' => 'branchtransfer_id' } }
+    );
+
+    is($transfers->count, 2, "Second transfer recorded on second call of ModItemTransfer");
+    my $transfer1 = $transfers->next;
+    my $transfer2 = $transfers->next;
+    isnt($transfer1->datecancelled, undef, "First transfer marked as cancelled by ModItemTransfer");
+    like($transfer1->cancellation_reason,qr/^Manual/, "First transfer contains cancellation_reason 'Manual'");
+    is($transfer2->datearrived, undef, "Second transfer is now the active transfer");
+    $item->discard_changes;
+    is($item->holdingbranch, $library2->{branchcode}, "Items holding branch was updated to frombranch");
+
+    # Check 'reason' is populated when passed
+    ModItemTransfer( $item->itemnumber, $library2->{branchcode},
+        $library1->{branchcode}, "Manual" );
+
+    $transfers = Koha::Item::Transfers->search(
+        { itemnumber => $item->itemnumber, },
+        { order_by   => { '-desc' => 'branchtransfer_id' } }
+    );
+
+    my $transfer3 = $transfers->next;
+    is($transfer3->reason, 'Manual', "Reason set via ModItemTransfer");
 
     $schema->storage->txn_rollback;
-
 };
 
 subtest 'GetHiddenItemnumbers tests' => sub {
 
-    plan tests => 9;
+    plan tests => 11;
 
     # This sub is controlled by the OpacHiddenItems system preference.
 
@@ -168,50 +211,47 @@ subtest 'GetHiddenItemnumbers tests' => sub {
 
     # Create a new biblio
     t::lib::Mocks::mock_preference('marcflavour', 'MARC21');
-    my ($biblionumber, $biblioitemnumber) = get_biblio();
+    my $biblio = $builder->build_sample_biblio();
 
     # Add two items
-    my ( $item1_bibnum, $item1_bibitemnum, $item1_itemnumber ) = AddItem(
+    my $item1_itemnumber = $builder->build_sample_item(
         {
-            homebranch    => $library1->{branchcode},
-            holdingbranch => $library1->{branchcode},
-            withdrawn     => 1,
-            itype         => $itemtype->{itemtype},
-        },
-        $biblionumber
-    );
-    my ( $item2_bibnum, $item2_bibitemnum, $item2_itemnumber ) = AddItem(
+            biblionumber => $biblio->biblionumber,
+            library      => $library1->{branchcode},
+            withdrawn    => 1,
+            itype        => $itemtype->{itemtype}
+        }
+    )->itemnumber;
+    my $item2_itemnumber = $builder->build_sample_item(
         {
-            homebranch    => $library2->{branchcode},
-            holdingbranch => $library2->{branchcode},
-            withdrawn     => 0,
-            itype         => $itemtype->{itemtype},
-        },
-        $biblionumber
-    );
-
+            biblionumber => $biblio->biblionumber,
+            library      => $library2->{branchcode},
+            withdrawn    => 0,
+            itype        => $itemtype->{itemtype}
+        }
+    )->itemnumber;
     my $opachiddenitems;
     my @itemnumbers = ($item1_itemnumber,$item2_itemnumber);
     my @hidden;
     my @items;
-    push @items, GetItem( $item1_itemnumber );
-    push @items, GetItem( $item2_itemnumber );
+    push @items, Koha::Items->find( $item1_itemnumber )->unblessed;
+    push @items, Koha::Items->find( $item2_itemnumber )->unblessed;
 
     # Empty OpacHiddenItems
     t::lib::Mocks::mock_preference('OpacHiddenItems','');
-    ok( !defined( GetHiddenItemnumbers( @items ) ),
+    ok( !defined( GetHiddenItemnumbers( { items => \@items } ) ),
         "Hidden items list undef if OpacHiddenItems empty");
 
     # Blank spaces
     t::lib::Mocks::mock_preference('OpacHiddenItems','  ');
-    ok( scalar GetHiddenItemnumbers( @items ) == 0,
+    ok( scalar GetHiddenItemnumbers( { items => \@items } ) == 0,
         "Hidden items list empty if OpacHiddenItems only contains blanks");
 
     # One variable / value
     $opachiddenitems = "
         withdrawn: [1]";
     t::lib::Mocks::mock_preference( 'OpacHiddenItems', $opachiddenitems );
-    @hidden = GetHiddenItemnumbers( @items );
+    @hidden = GetHiddenItemnumbers( { items => \@items } );
     ok( scalar @hidden == 1, "Only one hidden item");
     is( $hidden[0], $item1_itemnumber, "withdrawn=1 is hidden");
 
@@ -219,7 +259,7 @@ subtest 'GetHiddenItemnumbers tests' => sub {
     $opachiddenitems = "
         withdrawn: [1,0]";
     t::lib::Mocks::mock_preference( 'OpacHiddenItems', $opachiddenitems );
-    @hidden = GetHiddenItemnumbers( @items );
+    @hidden = GetHiddenItemnumbers( { items => \@items } );
     ok( scalar @hidden == 2, "Two items hidden");
     is_deeply( \@hidden, \@itemnumbers, "withdrawn=1 and withdrawn=0 hidden");
 
@@ -229,13 +269,20 @@ subtest 'GetHiddenItemnumbers tests' => sub {
         homebranch: [$library2->{branchcode}]
     ";
     t::lib::Mocks::mock_preference( 'OpacHiddenItems', $opachiddenitems );
-    @hidden = GetHiddenItemnumbers( @items );
+    @hidden = GetHiddenItemnumbers( { items => \@items } );
     ok( scalar @hidden == 2, "Two items hidden");
     is_deeply( \@hidden, \@itemnumbers, "withdrawn=1 and homebranch library2 hidden");
 
+    # Override hidden with patron category
+    t::lib::Mocks::mock_preference( 'OpacHiddenItemsExceptions', 'S' );
+    @hidden = GetHiddenItemnumbers( { items => \@items, borcat => 'PT' } );
+    ok( scalar @hidden == 2, "Two items still hidden");
+    @hidden = GetHiddenItemnumbers( { items => \@items, borcat => 'S' } );
+    ok( scalar @hidden == 0, "Two items not hidden");
+
     # Valid OpacHiddenItems, empty list
     @items = ();
-    @hidden = GetHiddenItemnumbers( @items );
+    @hidden = GetHiddenItemnumbers( { items => \@items } );
     ok( scalar @hidden == 0, "Empty items list, no item hidden");
 
     $schema->storage->txn_rollback;
@@ -243,7 +290,7 @@ subtest 'GetHiddenItemnumbers tests' => sub {
 
 subtest 'GetItemsInfo tests' => sub {
 
-    plan tests => 4;
+    plan tests => 9;
 
     $schema->storage->txn_begin;
 
@@ -258,17 +305,28 @@ subtest 'GetItemsInfo tests' => sub {
         source => 'Itemtype',
     });
 
-    # Add a biblio
-    my ($biblionumber, $biblioitemnumber) = get_biblio();
-    # Add an item
-    my ( $item_bibnum, $item_bibitemnum, $itemnumber ) = AddItem(
+    Koha::AuthorisedValues->delete;
+    my $av1 = Koha::AuthorisedValue->new(
         {
+            category         => 'RESTRICTED',
+            authorised_value => '1',
+            lib              => 'Restricted Access',
+            lib_opac         => 'Restricted Access OPAC',
+        }
+    )->store();
+
+    # Add a biblio
+    my $biblio = $builder->build_sample_biblio();
+    # Add an item
+    my $itemnumber = $builder->build_sample_item(
+        {
+            biblionumber  => $biblio->biblionumber,
             homebranch    => $library1->{branchcode},
             holdingbranch => $library2->{branchcode},
             itype         => $itemtype->{itemtype},
-        },
-        $biblionumber
-    );
+            restricted    => 1,
+        }
+    )->itemnumber;
 
     my $library = Koha::Libraries->find( $library1->{branchcode} );
     $library->opac_info("homebranch OPAC info");
@@ -278,14 +336,32 @@ subtest 'GetItemsInfo tests' => sub {
     $library->opac_info("holdingbranch OPAC info");
     $library->store;
 
-    my @results = GetItemsInfo( $biblionumber );
+    my @results = GetItemsInfo( $biblio->biblionumber );
     ok( @results, 'GetItemsInfo returns results');
+
     is( $results[0]->{ home_branch_opac_info }, "homebranch OPAC info",
         'GetItemsInfo returns the correct home branch OPAC info notice' );
     is( $results[0]->{ holding_branch_opac_info }, "holdingbranch OPAC info",
         'GetItemsInfo returns the correct holding branch OPAC info notice' );
     is( exists( $results[0]->{ onsite_checkout } ), 1,
         'GetItemsInfo returns a onsite_checkout key' );
+    is( $results[0]->{ restricted }, 1,
+        'GetItemsInfo returns a restricted value code' );
+    is( $results[0]->{ restrictedvalue }, "Restricted Access",
+        'GetItemsInfo returns a restricted value description (staff)' );
+    is( $results[0]->{ restrictedvalueopac }, "Restricted Access OPAC",
+        'GetItemsInfo returns a restricted value description (OPAC)' );
+
+    #place item into holds queue
+    my $dbh = C4::Context->dbh;
+    @results = GetItemsInfo( $biblio->biblionumber );
+    is( $results[0]->{ has_pending_hold }, "0",
+        'Hold not marked as pending/unavailable if nothing in tmp_holdsqueue for item' );
+
+    $dbh->do(q{INSERT INTO tmp_holdsqueue (biblionumber, itemnumber, surname, borrowernumber ) VALUES (?, ?, "Zorro", 42)}, undef, $biblio->biblionumber, $itemnumber);
+    @results = GetItemsInfo( $biblio->biblionumber );
+    is( $results[0]->{ has_pending_hold }, "1",
+        'Hold marked as pending/unavailable if tmp_holdsqueue is not empty for item' );
 
     $schema->storage->txn_rollback;
 };
@@ -331,7 +407,7 @@ subtest q{Test Koha::Database->schema()->resultset('Item')->itemtype()} => sub {
 };
 
 subtest 'SearchItems test' => sub {
-    plan tests => 14;
+    plan tests => 17;
 
     $schema->storage->txn_begin;
     my $dbh = C4::Context->dbh;
@@ -348,23 +424,28 @@ subtest 'SearchItems test' => sub {
     });
 
     t::lib::Mocks::mock_preference('marcflavour', 'MARC21');
-    my $cpl_items_before = SearchItemsByField( 'homebranch', $library1->{branchcode});
+    my ($cpl_items_before) = SearchItems( { field => 'homebranch', query => $library1->{branchcode} } );
 
-    my ($biblionumber) = get_biblio();
+    my $biblio = $builder->build_sample_biblio({ title => 'Silence in the library' });
+    $builder->build_sample_biblio({ title => 'Silence in the shadow' });
 
     my (undef, $initial_items_count) = SearchItems(undef, {rows => 1});
 
     # Add two items
-    my (undef, undef, $item1_itemnumber) = AddItem({
-        homebranch => $library1->{branchcode},
-        holdingbranch => $library1->{branchcode},
-        itype => $itemtype->{itemtype},
-    }, $biblionumber);
-    my (undef, undef, $item2_itemnumber) = AddItem({
-        homebranch => $library2->{branchcode},
-        holdingbranch => $library2->{branchcode},
-        itype => $itemtype->{itemtype},
-    }, $biblionumber);
+    my $item1_itemnumber = $builder->build_sample_item(
+        {
+            biblionumber => $biblio->biblionumber,
+            library      => $library1->{branchcode},
+            itype        => $itemtype->{itemtype}
+        }
+    )->itemnumber;
+    my $item2_itemnumber = $builder->build_sample_item(
+        {
+            biblionumber => $biblio->biblionumber,
+            library      => $library2->{branchcode},
+            itype        => $itemtype->{itemtype}
+        }
+    )->itemnumber;
 
     my ($items, $total_results);
 
@@ -447,7 +528,7 @@ subtest 'SearchItems test' => sub {
     ok($found, "item1 found");
 
     my $frameworkcode = q||;
-    my ($itemfield) = GetMarcFromKohaField('items.itemnumber', $frameworkcode);
+    my ($itemfield) = GetMarcFromKohaField( 'items.itemnumber' );
 
     # Create item subfield 'z' without link
     $dbh->do('DELETE FROM marc_subfield_structure WHERE tagfield=? AND tagsubfield="z" AND frameworkcode=?', undef, $itemfield, $frameworkcode);
@@ -460,16 +541,16 @@ subtest 'SearchItems test' => sub {
     $cache->clear_from_cache("default_value_for_mod_marc-");
     $cache->clear_from_cache("MarcSubfieldStructure-$frameworkcode");
 
-    my $item3_record = new MARC::Record;
+    my $item3_record = MARC::Record->new;
     $item3_record->append_fields(
-        new MARC::Field(
+        MARC::Field->new(
             $itemfield, '', '',
             'z' => 'foobar',
             'y' => $itemtype->{itemtype}
         )
     );
     my (undef, undef, $item3_itemnumber) = AddItemFromMarc($item3_record,
-        $biblionumber);
+        $biblio->biblionumber);
 
     # Search item where item subfield z is "foobar"
     $filter = {
@@ -491,26 +572,68 @@ subtest 'SearchItems test' => sub {
     $cache->clear_from_cache("default_value_for_mod_marc-");
     $cache->clear_from_cache("MarcSubfieldStructure-$frameworkcode");
 
-    ModItemFromMarc($item3_record, $biblionumber, $item3_itemnumber);
+    ModItemFromMarc($item3_record, $biblio->biblionumber, $item3_itemnumber);
 
     # Make sure the link is used
-    my $item3 = GetItem($item3_itemnumber);
-    ok($item3->{itemnotes} eq 'foobar', 'itemnotes eq "foobar"');
+    my $item3 = Koha::Items->find($item3_itemnumber);
+    is($item3->itemnotes, 'foobar', 'itemnotes eq "foobar"');
 
     # Do the same search again.
     # This time it will search in items.itemnotes
     ($items, $total_results) = SearchItems($filter);
-    ok(scalar @$items == 1, 'found 1 item with itemnotes = "foobar"');
+    is(scalar(@$items), 1, 'found 1 item with itemnotes = "foobar"');
 
-    my $cpl_items_after = SearchItemsByField( 'homebranch', $library1->{branchcode});
-    is( ( scalar( @$cpl_items_after ) - scalar ( @$cpl_items_before ) ), 1, 'SearchItemsByField should return something' );
+    my ($cpl_items_after) = SearchItems( { field => 'homebranch', query => $library1->{branchcode} } );
+    is( ( scalar( @$cpl_items_after ) - scalar ( @$cpl_items_before ) ), 1, 'SearchItems should return something' );
+
+    # Issues count = 0
+    $filter = {
+        conjunction => 'AND',
+        filters => [
+            {
+                field => 'issues',
+                query => 0,
+                operator => '=',
+            },
+            {
+                field => 'homebranch',
+                query => $library1->{branchcode},
+                operator => '=',
+            },
+        ],
+    };
+    ($items, $total_results) = SearchItems($filter);
+    is($total_results, 1, "Search items.issues issues = 0 returns result (items.issues defaults to 0)");
+
+    # Is null
+    $filter = {
+        conjunction => 'AND',
+        filters     => [
+            {
+                field    => 'new_status',
+                query    => 0,
+                operator => '='
+            },
+            {
+                field    => 'homebranch',
+                query    => $library1->{branchcode},
+                operator => '=',
+            },
+        ],
+    };
+    ($items, $total_results) = SearchItems($filter);
+    is($total_results, 0, 'found no item with new_status=0 without ifnull');
+
+    $filter->{filters}[0]->{ifnull} = 0;
+    ($items, $total_results) = SearchItems($filter);
+    is($total_results, 1, 'found all items of library1 with new_status=0 with ifnull = 0');
 
     $schema->storage->txn_rollback;
 };
 
 subtest 'Koha::Item(s) tests' => sub {
 
-    plan tests => 5;
+    plan tests => 7;
 
     $schema->storage->txn_begin();
 
@@ -527,15 +650,15 @@ subtest 'Koha::Item(s) tests' => sub {
 
     # Create a biblio and item for testing
     t::lib::Mocks::mock_preference('marcflavour', 'MARC21');
-    my ($bibnum, $bibitemnum) = get_biblio();
-    my ( $item_bibnum, $item_bibitemnum, $itemnumber ) = AddItem(
+    my $biblio = $builder->build_sample_biblio();
+    my $itemnumber = $builder->build_sample_item(
         {
+            biblionumber  => $biblio->biblionumber,
             homebranch    => $library1->{branchcode},
             holdingbranch => $library2->{branchcode},
-            itype         => $itemtype->{itemtype},
-        },
-        $bibnum
-    );
+            itype         => $itemtype->{itemtype}
+        }
+    )->itemnumber;
 
     # Get item.
     my $item = Koha::Items->find( $itemnumber );
@@ -549,11 +672,15 @@ subtest 'Koha::Item(s) tests' => sub {
     is( ref($holdingbranch), 'Koha::Library', "Got Koha::Library from holding_branch method" );
     is( $holdingbranch->branchcode(), $library2->{branchcode}, "Home branch code matches holdingbranch" );
 
+    $biblio = $item->biblio();
+    is( ref($item->biblio), 'Koha::Biblio', "Got Koha::Biblio from biblio method" );
+    is( $item->biblio->title(), $biblio->title, 'Title matches biblio title' );
+
     $schema->storage->txn_rollback;
 };
 
 subtest 'C4::Biblio::EmbedItemsInMarcBiblio' => sub {
-    plan tests => 7;
+    plan tests => 8;
 
     $schema->storage->txn_begin();
 
@@ -568,7 +695,7 @@ subtest 'C4::Biblio::EmbedItemsInMarcBiblio' => sub {
         source => 'Itemtype',
     });
 
-    my ( $biblionumber, $biblioitemnumber ) = get_biblio();
+    my $biblio = $builder->build_sample_biblio();
     my $item_infos = [
         { homebranch => $library1->{branchcode}, holdingbranch => $library1->{branchcode} },
         { homebranch => $library1->{branchcode}, holdingbranch => $library1->{branchcode} },
@@ -585,14 +712,15 @@ subtest 'C4::Biblio::EmbedItemsInMarcBiblio' => sub {
 
     my @itemnumbers;
     for my $item_info (@$item_infos) {
-        my ( undef, undef, $itemnumber ) = AddItem(
+        my $itemnumber = $builder->build_sample_item(
             {
+                biblionumber  => $biblio->biblionumber,
                 homebranch    => $item_info->{homebranch},
-                holdingbranch => $item_info->{holdingbanch},
-                itype         => $itemtype->{itemtype},
-            },
-            $biblionumber
-        );
+                holdingbranch => $item_info->{holdingbranch},
+                itype         => $itemtype->{itemtype}
+            }
+        )->itemnumber;
+
         push @itemnumbers, $itemnumber;
     }
 
@@ -600,22 +728,34 @@ subtest 'C4::Biblio::EmbedItemsInMarcBiblio' => sub {
     t::lib::Mocks::mock_preference( 'OpacHiddenItems', '' );
 
     my ($itemfield) =
-      C4::Biblio::GetMarcFromKohaField( 'items.itemnumber', '' );
-    my $record = C4::Biblio::GetMarcBiblio({ biblionumber => $biblionumber });
+      C4::Biblio::GetMarcFromKohaField( 'items.itemnumber' );
+    my $record = C4::Biblio::GetMarcBiblio({ biblionumber => $biblio->biblionumber });
     warning_is { C4::Biblio::EmbedItemsInMarcBiblio() }
     { carped => 'EmbedItemsInMarcBiblio: No MARC record passed' },
-      'Should crap is no record passed.';
+      'Should carp is no record passed.';
 
-    C4::Biblio::EmbedItemsInMarcBiblio( $record, $biblionumber );
+    C4::Biblio::EmbedItemsInMarcBiblio({
+        marc_record  => $record,
+        biblionumber => $biblio->biblionumber });
     my @items = $record->field($itemfield);
     is( scalar @items, $number_of_items, 'Should return all items' );
 
-    C4::Biblio::EmbedItemsInMarcBiblio( $record, $biblionumber,
-        [ $itemnumbers[1], $itemnumbers[3] ] );
+    my $marc_with_items = C4::Biblio::GetMarcBiblio({
+        biblionumber => $biblio->biblionumber,
+        embed_items  => 1 });
+    is_deeply( $record, $marc_with_items, 'A direct call to GetMarcBiblio with items matches');
+
+    C4::Biblio::EmbedItemsInMarcBiblio({
+        marc_record  => $record,
+        biblionumber => $biblio->biblionumber,
+        item_numbers => [ $itemnumbers[1], $itemnumbers[3] ] });
     @items = $record->field($itemfield);
     is( scalar @items, 2, 'Should return all items present in the list' );
 
-    C4::Biblio::EmbedItemsInMarcBiblio( $record, $biblionumber, undef, 1 );
+    C4::Biblio::EmbedItemsInMarcBiblio({
+        marc_record  => $record,
+        biblionumber => $biblio->biblionumber,
+        opac         => 1 });
     @items = $record->field($itemfield);
     is( scalar @items, $number_of_items, 'Should return all items for opac' );
 
@@ -623,13 +763,18 @@ subtest 'C4::Biblio::EmbedItemsInMarcBiblio' => sub {
         homebranch: ['$library1->{branchcode}']";
     t::lib::Mocks::mock_preference( 'OpacHiddenItems', $opachiddenitems );
 
-    C4::Biblio::EmbedItemsInMarcBiblio( $record, $biblionumber );
+    C4::Biblio::EmbedItemsInMarcBiblio({
+        marc_record  => $record,
+        biblionumber => $biblio->biblionumber });
     @items = $record->field($itemfield);
     is( scalar @items,
         $number_of_items,
         'Even with OpacHiddenItems set, all items should have been embedded' );
 
-    C4::Biblio::EmbedItemsInMarcBiblio( $record, $biblionumber, undef, 1 );
+    C4::Biblio::EmbedItemsInMarcBiblio({
+        marc_record  => $record,
+        biblionumber => $biblio->biblionumber,
+        opac         => 1 });
     @items = $record->field($itemfield);
     is(
         scalar @items,
@@ -640,7 +785,10 @@ subtest 'C4::Biblio::EmbedItemsInMarcBiblio' => sub {
     $opachiddenitems = "
         homebranch: ['$library1->{branchcode}', '$library2->{branchcode}']";
     t::lib::Mocks::mock_preference( 'OpacHiddenItems', $opachiddenitems );
-    C4::Biblio::EmbedItemsInMarcBiblio( $record, $biblionumber, undef, 1 );
+    C4::Biblio::EmbedItemsInMarcBiblio({
+        marc_record  => $record,
+        biblionumber => $biblio->biblionumber,
+        opac         => 1 });
     @items = $record->field($itemfield);
     is(
         scalar @items,
@@ -652,151 +800,43 @@ subtest 'C4::Biblio::EmbedItemsInMarcBiblio' => sub {
 };
 
 
-subtest 'C4::Items::_build_default_values_for_mod_marc' => sub {
-    plan tests => 4;
-
-    $schema->storage->txn_begin();
-
-    my $builder = t::lib::TestBuilder->new;
-    my $framework = $builder->build({ source => 'BiblioFramework' });
-
-    # Link biblio.biblionumber and biblioitems.biblioitemnumber to avoid _koha_marc_update_bib_ids to fail with 'no biblio[item]number tag for framework"
-    Koha::MarcSubfieldStructures->search({ frameworkcode => '', tagfield => '999', tagsubfield => [ 'c', 'd' ] })->delete;
-    Koha::MarcSubfieldStructure->new({ frameworkcode => '', tagfield => '999', tagsubfield => 'c', kohafield => 'biblio.biblionumber' })->store;
-    Koha::MarcSubfieldStructure->new({ frameworkcode => '', tagfield => '999', tagsubfield => 'd', kohafield => 'biblioitems.biblioitemnumber' })->store;
-
-    # Same for item fields: itemnumber, barcode, itype
-    Koha::MarcSubfieldStructures->search({ frameworkcode => '', tagfield => '952', tagsubfield => [ '9', 'p', 'y' ] })->delete;
-    Koha::MarcSubfieldStructure->new({ frameworkcode => '', tagfield => '952', tagsubfield => '9', kohafield => 'items.itemnumber' })->store;
-    Koha::MarcSubfieldStructure->new({ frameworkcode => '', tagfield => '952', tagsubfield => 'p', kohafield => 'items.barcode' })->store;
-    Koha::MarcSubfieldStructure->new({ frameworkcode => '', tagfield => '952', tagsubfield => 'y', kohafield => 'items.itype' })->store;
-    Koha::Caches->get_instance->clear_from_cache( "MarcSubfieldStructure-" );
-
-    my $itemtype = $builder->build({ source => 'Itemtype' })->{itemtype};
-
-    # Create a record with a barcode
-    my ($biblionumber) = get_biblio( $framework->{frameworkcode} );
-    my $item_record = new MARC::Record;
-    my $a_barcode = 'a barcode';
-    my $barcode_field = MARC::Field->new(
-        '952', ' ', ' ',
-        p => $a_barcode,
-        y => $itemtype
-    );
-    my $itemtype_field = MARC::Field->new(
-        '952', ' ', ' ',
-        y => $itemtype
-    );
-    $item_record->append_fields( $barcode_field );
-    my (undef, undef, $item_itemnumber) = AddItemFromMarc($item_record, $biblionumber);
-
-    # Make sure everything has been set up
-    my $item = GetItem($item_itemnumber);
-    is( $item->{barcode}, $a_barcode, 'Everything has been set up correctly, the barcode is defined as expected' );
-
-    # Delete the barcode field and save the record
-    $item_record->delete_fields( $barcode_field );
-    $item_record->append_fields( $itemtype_field ); # itemtype is mandatory
-    ModItemFromMarc($item_record, $biblionumber, $item_itemnumber);
-    $item = GetItem($item_itemnumber);
-    is( $item->{barcode}, undef, 'The default value should have been set to the barcode, the field is mapped to a kohafield' );
-
-    # Re-add the barcode field and save the record
-    $item_record->append_fields( $barcode_field );
-    ModItemFromMarc($item_record, $biblionumber, $item_itemnumber);
-    $item = GetItem($item_itemnumber);
-    is( $item->{barcode}, $a_barcode, 'Everything has been set up correctly, the barcode is defined as expected' );
-
-    # Remove the mapping for barcode
-    Koha::MarcSubfieldStructures->search({ frameworkcode => '', tagfield => '952', tagsubfield => 'p' })->delete;
-
-    # And make sure the caches are cleared
-    my $cache = Koha::Caches->get_instance();
-    $cache->clear_from_cache("default_value_for_mod_marc-");
-    $cache->clear_from_cache("MarcSubfieldStructure-");
-
-    # Update the MARC field with another value
-    $item_record->delete_fields( $barcode_field );
-    my $another_barcode = 'another_barcode';
-    my $another_barcode_field = MARC::Field->new(
-        '952', ' ', ' ',
-        p => $another_barcode,
-    );
-    $item_record->append_fields( $another_barcode_field );
-    # The DB value should not have been updated
-    ModItemFromMarc($item_record, $biblionumber, $item_itemnumber);
-    $item = GetItem($item_itemnumber);
-    is ( $item->{barcode}, $a_barcode, 'items.barcode is not mapped anymore, so the DB column has not been updated' );
-
-    $cache->clear_from_cache("default_value_for_mod_marc-");
-    $cache->clear_from_cache( "MarcSubfieldStructure-" );
-    $schema->storage->txn_rollback;
-};
-
-subtest '_mod_item_dates' => sub {
-    plan tests => 11;
-
-    is( C4::Items::_mod_item_dates(), undef, 'Call without parameters' );
-    is( C4::Items::_mod_item_dates(1), undef, 'Call without hashref' );
-
-    my $orgitem;
-    my $item = {
-        itemcallnumber  => 'V II 149 1963',
-        barcode         => '109304',
-    };
-    $orgitem = { %$item };
-    C4::Items::_mod_item_dates($item);
-    is_deeply( $item, $orgitem, 'No dates passed to _mod_item_dates' );
-
-    # add two correct dates
-    t::lib::Mocks::mock_preference('dateformat', 'us');
-    $item->{dateaccessioned} = '01/31/2016';
-    $item->{onloan} =  $item->{dateaccessioned};
-    $orgitem = { %$item };
-    C4::Items::_mod_item_dates($item);
-    is( $item->{dateaccessioned}, '2016-01-31', 'dateaccessioned is fine' );
-    is( $item->{onloan}, '2016-01-31', 'onloan is fine too' );
-
-
-    # add some invalid dates
-    $item->{notexistingcolumndate} = '13/1/2015'; # wrong format
-    $item->{anotherdate} = 'tralala'; # even worse
-    $item->{myzerodate} = '0000-00-00'; # wrong too
-    C4::Items::_mod_item_dates($item);
-    is( $item->{notexistingcolumndate}, undef, 'Invalid date became NULL' );
-    is( $item->{anotherdate}, undef, 'Second invalid date became NULL too' );
-    is( $item->{myzerodate}, undef, '0000-00-00 became NULL too' );
-
-    # check if itemlost_on was not touched
-    $item->{itemlost_on} = '12345678';
-    $item->{withdrawn_on} = '12/31/2015 23:59:00';
-    $item->{damaged_on} = '01/20/2017 09:00:00';
-    $orgitem = { %$item };
-    C4::Items::_mod_item_dates($item);
-    is_deeply( $item, $orgitem, 'Colums with _on are not touched' );
-
-    t::lib::Mocks::mock_preference('dateformat', 'metric');
-    $item->{dateaccessioned} = '01/31/2016'; #wrong
-    $item->{yetanotherdatetime} = '20/01/2016 13:58:00'; #okay
-    C4::Items::_mod_item_dates($item);
-    is( $item->{dateaccessioned}, undef, 'dateaccessioned wrong format' );
-    is( $item->{yetanotherdatetime}, '2016-01-20 13:58:00',
-        'yetanotherdatetime is ok' );
-};
-
 subtest 'get_hostitemnumbers_of' => sub {
-    plan tests => 1;
+    plan tests => 3;
 
-    my $bib = MARC::Record->new();
-    $bib->append_fields(
+    $schema->storage->txn_begin;
+    t::lib::Mocks::mock_preference('marcflavour', 'MARC21');
+    my $builder = t::lib::TestBuilder->new;
+
+    # Host item field without 0 or 9
+    my $bib1 = MARC::Record->new();
+    $bib1->append_fields(
         MARC::Field->new('100', ' ', ' ', a => 'Moffat, Steven'),
         MARC::Field->new('245', ' ', ' ', a => 'Silence in the library'),
         MARC::Field->new('773', ' ', ' ', b => 'b without 0 or 9'),
     );
-    my ($biblionumber, $bibitemnum) = AddBiblio($bib, '');
+    my ($biblionumber1, $bibitemnum1) = AddBiblio($bib1, '');
+    my @itemnumbers1 = C4::Items::get_hostitemnumbers_of( $biblionumber1 );
+    is( scalar @itemnumbers1, 0, '773 without 0 or 9');
 
-    my @itemnumbers = C4::Items::get_hostitemnumbers_of( $biblionumber );
-    is( @itemnumbers, 0, );
+    # Correct host item field, analytical records on
+    t::lib::Mocks::mock_preference('EasyAnalyticalRecords', 1);
+    my $hostitem = $builder->build_sample_item();
+    my $bib2 = MARC::Record->new();
+    $bib2->append_fields(
+        MARC::Field->new('100', ' ', ' ', a => 'Moffat, Steven'),
+        MARC::Field->new('245', ' ', ' ', a => 'Silence in the library'),
+        MARC::Field->new('773', ' ', ' ', 0 => $hostitem->biblionumber , 9 => $hostitem->itemnumber, b => 'b' ),
+    );
+    my ($biblionumber2, $bibitemnum2) = AddBiblio($bib2, '');
+    my @itemnumbers2 = C4::Items::get_hostitemnumbers_of( $biblionumber2 );
+    is( scalar @itemnumbers2, 1, '773 with 0 and 9, EasyAnalyticalRecords on');
+
+    # Correct host item field, analytical records off
+    t::lib::Mocks::mock_preference('EasyAnalyticalRecords', 0);
+    @itemnumbers2 = C4::Items::get_hostitemnumbers_of( $biblionumber2 );
+    is( scalar @itemnumbers2, 0, '773 with 0 and 9, EasyAnalyticalRecords off');
+
+    $schema->storage->txn_rollback;
 };
 
 subtest 'Test logging for ModItem' => sub {
@@ -817,38 +857,273 @@ subtest 'Test logging for ModItem' => sub {
 
     # Create a biblio instance for testing
     t::lib::Mocks::mock_preference('marcflavour', 'MARC21');
-    my ($bibnum, $bibitemnum) = get_biblio();
+    my $biblio = $builder->build_sample_biblio();
 
     # Add an item.
-    my ($item_bibnum, $item_bibitemnum, $itemnumber) = AddItem({ homebranch => $library->{branchcode}, holdingbranch => $library->{branchcode}, location => $location, itype => $itemtype->{itemtype} } , $bibnum);
+    my $item = $builder->build_sample_item(
+        {
+            biblionumber => $biblio->biblionumber,
+            library      => $library->{homebranch},
+            location     => $location,
+            itype        => $itemtype->{itemtype}
+        }
+    );
 
     # False means no logging
     $schema->resultset('ActionLog')->search()->delete();
-    ModItem({ location => $location }, $bibnum, $itemnumber, { log_action => 0 });
+    $item->location($location)->store({ log_action => 0 });
     is( $schema->resultset('ActionLog')->count(), 0, 'False value does not trigger logging' );
 
     # True means logging
     $schema->resultset('ActionLog')->search()->delete();
-    ModItem({ location => $location }, $bibnum, $itemnumber, { log_action => 1 });
+    $item->location('new location')->store({ log_action => 1 });
     is( $schema->resultset('ActionLog')->count(), 1, 'True value does trigger logging' );
 
     # Undefined defaults to true
     $schema->resultset('ActionLog')->search()->delete();
-    ModItem({ location => $location }, $bibnum, $itemnumber);
+    $item->location($location)->store();
     is( $schema->resultset('ActionLog')->count(), 1, 'Undefined value defaults to true, triggers logging' );
 
     $schema->storage->txn_rollback;
 };
 
-# Helper method to set up a Biblio.
-sub get_biblio {
-    my ( $frameworkcode ) = @_;
-    $frameworkcode //= '';
-    my $bib = MARC::Record->new();
-    $bib->append_fields(
-        MARC::Field->new('100', ' ', ' ', a => 'Moffat, Steven'),
-        MARC::Field->new('245', ' ', ' ', a => 'Silence in the library'),
+subtest 'Check stockrotationitem relationship' => sub {
+    plan tests => 1;
+
+    $schema->storage->txn_begin();
+
+    my $builder = t::lib::TestBuilder->new;
+    my $item = $builder->build_sample_item;
+
+    $builder->build({
+        source => 'Stockrotationitem',
+        value  => { itemnumber_id => $item->itemnumber }
+    });
+
+    my $sritem = Koha::Items->find($item->itemnumber)->stockrotationitem;
+    isa_ok( $sritem, 'Koha::StockRotationItem', "Relationship works and correctly creates Koha::Object." );
+
+    $schema->storage->txn_rollback;
+};
+
+subtest 'Check add_to_rota method' => sub {
+    plan tests => 2;
+
+    $schema->storage->txn_begin();
+
+    my $builder = t::lib::TestBuilder->new;
+    my $item = $builder->build_sample_item;
+    my $rota = $builder->build({ source => 'Stockrotationrota' });
+    my $srrota = Koha::StockRotationRotas->find($rota->{rota_id});
+
+    $builder->build({
+        source => 'Stockrotationstage',
+        value  => { rota_id => $rota->{rota_id} },
+    });
+
+    my $sritem = Koha::Items->find($item->itemnumber);
+    $sritem->add_to_rota($rota->{rota_id});
+
+    is(
+        Koha::StockRotationItems->find($item->itemnumber)->stage_id,
+        $srrota->stockrotationstages->next->stage_id,
+        "Adding to a rota a new sritem item being assigned to its first stage."
     );
-    my ($bibnum, $bibitemnum) = AddBiblio($bib, $frameworkcode);
-    return ($bibnum, $bibitemnum);
+
+    my $newrota = $builder->build({ source => 'Stockrotationrota' });
+
+    my $srnewrota = Koha::StockRotationRotas->find($newrota->{rota_id});
+
+    $builder->build({
+        source => 'Stockrotationstage',
+        value  => { rota_id => $newrota->{rota_id} },
+    });
+
+    $sritem->add_to_rota($newrota->{rota_id});
+
+    is(
+        Koha::StockRotationItems->find($item->itemnumber)->stage_id,
+        $srnewrota->stockrotationstages->next->stage_id,
+        "Moving an item results in that sritem being assigned to the new first stage."
+    );
+
+    $schema->storage->txn_rollback;
+};
+
+subtest 'Split subfields in Item2Marc (Bug 21774)' => sub {
+    plan tests => 3;
+    $schema->storage->txn_begin;
+
+    my $builder = t::lib::TestBuilder->new;
+    my $item = $builder->build_sample_item({ ccode => 'A|B' });
+
+    Koha::MarcSubfieldStructures->search({ tagfield => '952', tagsubfield => '8' })->delete; # theoretical precaution
+    Koha::MarcSubfieldStructures->search({ kohafield => 'items.ccode' })->delete;
+    my $mapping = Koha::MarcSubfieldStructure->new(
+        {
+            frameworkcode => q{},
+            tagfield      => '952',
+            tagsubfield   => '8',
+            kohafield     => 'items.ccode',
+            repeatable    => 1
+        }
+    )->store;
+    Koha::Caches->get_instance->clear_from_cache( "MarcSubfieldStructure-" );
+
+    # Start testing
+    my $marc = C4::Items::Item2Marc( $item->unblessed, $item->biblionumber );
+    my @subs = $marc->subfield( $mapping->tagfield, $mapping->tagsubfield );
+    is( @subs, 2, 'Expect two subfields' );
+    is( $subs[0], 'A', 'First subfield matches' );
+    is( $subs[1], 'B', 'Second subfield matches' );
+
+    $schema->storage->txn_rollback;
+};
+
+subtest 'ModItemFromMarc' => sub {
+    plan tests => 6;
+    $schema->storage->txn_begin;
+
+    my $builder = t::lib::TestBuilder->new;
+    my ($itemfield) = GetMarcFromKohaField( 'items.itemnumber' );
+    my $itemtype = $builder->build_object({ class => 'Koha::ItemTypes' });
+    my $biblio = $builder->build_sample_biblio;
+    my ( $lost_tag, $lost_sf ) = GetMarcFromKohaField( 'items.itemlost' );
+    my $item_record = MARC::Record->new;
+    $item_record->append_fields(
+        MARC::Field->new(
+            $itemfield, '', '',
+            'y' => $itemtype->itemtype,
+        ),
+        MARC::Field->new(
+            $itemfield, '', '',
+            $lost_sf => '1',
+        ),
+    );
+    my (undef, undef, $itemnumber) = AddItemFromMarc($item_record,
+        $biblio->biblionumber);
+
+    my $item = Koha::Items->find($itemnumber);
+    is( $item->itemlost, 1, 'itemlost picked from the item marc');
+
+    $item->new_status("this is something")->store;
+
+    my $updated_item_record = MARC::Record->new;
+    $updated_item_record->append_fields(
+        MARC::Field->new(
+            $itemfield, '', '',
+            'y' => $itemtype->itemtype,
+        )
+    );
+
+    my $updated_item = ModItemFromMarc($updated_item_record, $biblio->biblionumber, $itemnumber);
+    is( $updated_item->{itemlost}, 0, 'itemlost should have been reset to the default value in DB' );
+    is( $updated_item->{new_status}, "this is something", "Non mapped field has not been reset" );
+    is( Koha::Items->find($itemnumber)->new_status, "this is something" );
+
+    subtest 'cn_sort' => sub {
+        plan tests => 3;
+
+        my $item = $builder->build_sample_item;
+        $item->set({ cn_source => 'ddc', itemcallnumber => 'xxx' })->store;
+        is( $item->cn_sort, 'XXX', 'init values set are expected' );
+
+        my $marc = C4::Items::Item2Marc( $item->get_from_storage->unblessed, $item->biblionumber );
+        ModItemFromMarc( $marc, $item->biblionumber, $item->itemnumber );
+        is( $item->get_from_storage->cn_sort, 'XXX', 'cn_sort has not been updated' );
+
+        $marc = C4::Items::Item2Marc( { %{$item->unblessed}, itemcallnumber => 'yyy' }, $item->biblionumber );
+        ModItemFromMarc( $marc, $item->biblionumber, $item->itemnumber );
+        is( $item->get_from_storage->cn_sort, 'YYY', 'cn_sort has been updated' );
+    };
+
+    subtest 'permanent_location' => sub {
+        plan tests => 10;
+
+        # Make sure items.permanent_location is not mapped
+        Koha::MarcSubfieldStructures->search(
+            {
+                frameworkcode => q{},
+                kohafield     => 'items.permanent_location',
+            }
+        )->delete;
+        Koha::MarcSubfieldStructures->search(
+            {
+                frameworkcode => q{},
+                tagfield     => '952',
+                tagsubfield     => 'C',
+            }
+        )->delete;
+        Koha::Caches->get_instance->clear_from_cache( "MarcSubfieldStructure-" );
+
+        my $item = $builder->build_sample_item;
+
+        # By default, setting location to something new should set permanent location to the same thing
+        # with the usual exceptions
+        $item->set({ location => 'A', permanent_location => 'A' })->store;
+        is( $item->location, 'A', 'initial location set as expected' );
+        is( $item->permanent_location, 'A', 'initial permanent location set as expected' );
+
+        $item->location('B');
+        my $marc = C4::Items::Item2Marc( $item->unblessed, $item->biblionumber );
+        ModItemFromMarc( $marc, $item->biblionumber, $item->itemnumber );
+
+        $item = $item->get_from_storage;
+        is( $item->location, 'B', 'new location set as expected' );
+        is( $item->permanent_location, 'B', 'new permanent location set as expected' );
+
+        # Added a marc mapping for permanent location, allows it to be edited independently
+        my $mapping = Koha::MarcSubfieldStructure->new(
+            {
+                frameworkcode => q{},
+                tagfield      => '952',
+                tagsubfield   => 'C',
+                kohafield     => 'items.permanent_location',
+                repeatable    => 0,
+                tab           => 10,
+                hidden        => 0,
+            }
+        )->store;
+        Koha::Caches->get_instance->clear_from_cache( "MarcSubfieldStructure-" );
+
+        # Now if we change location, and also pass in a permanent location
+        # the permanent_location will not be overwritten by location
+        $item->location('C');
+        $marc = C4::Items::Item2Marc( $item->unblessed, $item->biblionumber );
+        ModItemFromMarc( $marc, $item->biblionumber, $item->itemnumber );
+        $item = $item->get_from_storage;
+        is( $item->location, 'C', 'next new location set as expected' );
+        is( $item->permanent_location, 'B', 'permanent location remains unchanged as expected' );
+
+        $item->permanent_location(undef)->more_subfields_xml(undef)->store;
+        # Clear values from the DB
+        $item = $item->get_from_storage;
+
+        # Update the location
+        $item->location('D');
+        $marc = C4::Items::Item2Marc( $item->unblessed, $item->biblionumber );
+        # Remove the permanent_location field from the form
+        $marc->field('952')->delete_subfield("C");
+        ModItemFromMarc( $marc, $item->biblionumber, $item->itemnumber );
+        $item = $item->get_from_storage;
+        is( $item->location, 'D', 'next new location set as expected' );
+        is( $item->permanent_location, 'D', 'permanent location is updated if not previously set and no value passed' );
+
+        # Clear values from the DB
+        $item->permanent_location(undef)->more_subfields_xml(undef)->store;
+        $item = $item->get_from_storage;
+
+        # This time nothing is set, but we pass an empty string
+        $item->permanent_location("");
+        $item->location('E');
+        $marc = C4::Items::Item2Marc( $item->unblessed, $item->biblionumber );
+        $marc->field('952')->add_subfields( "C", "" );
+        ModItemFromMarc( $marc, $item->biblionumber, $item->itemnumber );
+        $item = $item->get_from_storage;
+        is( $item->location, 'E', 'next new location set as expected' );
+        is( $item->permanent_location, undef, 'permanent location is not updated if previously set as blank string' );
+    };
+
+    $schema->storage->txn_rollback;
+    Koha::Caches->get_instance->clear_from_cache( "MarcSubfieldStructure-" );
 }

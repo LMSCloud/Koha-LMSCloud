@@ -30,9 +30,8 @@ use DateTime;
 use DateTime::Duration;
 use Scalar::Util qw( looks_like_number );
 use C4::Output;
-use C4::Print;
 use C4::Auth qw/:DEFAULT get_session haspermission/;
-use C4::Koha;   # GetPrinter
+use C4::Koha;
 use C4::Circulation;
 use C4::Utils::DataTables::Members;
 use C4::Members;
@@ -43,7 +42,6 @@ use C4::Reserves;
 use Koha::Holds;
 use C4::Context;
 use CGI::Session;
-use C4::Members::Attributes qw(GetBorrowerAttributes);
 use C4::CashRegisterManagement qw(passCashRegisterCheck);
 use Koha::AuthorisedValues;
 use Koha::CsvProfiles;
@@ -68,20 +66,13 @@ use List::MoreUtils qw/uniq/;
 #
 # PARAMETERS READING
 #
-my $query = new CGI;
+my $query = CGI->new;
 
 my $override_high_holds     = $query->param('override_high_holds');
 my $override_high_holds_tmp = $query->param('override_high_holds_tmp');
 
 my $sessionID = $query->cookie("CGISESSID") ;
 my $session = get_session($sessionID);
-if (!C4::Context->userenv){
-    if ($session->param('branch') eq 'NO_LIBRARY_SET'){
-        # no branch set we can't issue
-        print $query->redirect("/cgi-bin/koha/circ/selectbranchprinter.pl");
-        exit;
-    }
-}
 
 my $barcodes = [];
 my $barcode =  $query->param('barcode');
@@ -126,9 +117,9 @@ my $batch = $query->param('batch');
 my $batch_allowed = 0;
 if ( $batch && C4::Context->preference('BatchCheckouts') ) {
     $template_name = q|circ/circulation_batch_checkouts.tt|;
-    my @batch_category_codes = split '\|', C4::Context->preference('BatchCheckoutsValidCategories');
+    my @batch_category_codes = split ',', C4::Context->preference('BatchCheckoutsValidCategories');
     my $categorycode = $patron->categorycode;
-    if ( $categorycode && grep {/^$categorycode$/} @batch_category_codes ) {
+    if ( $categorycode && grep { $_ eq $categorycode } @batch_category_codes ) {
         $batch_allowed = 1;
     } else {
         $barcodes = [];
@@ -140,18 +131,20 @@ my ( $template, $loggedinuser, $cookie ) = get_template_and_user (
         template_name   => $template_name,
         query           => $query,
         type            => "intranet",
-        authnotrequired => 0,
         flagsrequired   => { circulate => 'circulate_remaining_permissions' },
     }
 );
-my $logged_in_user = Koha::Patrons->find( $loggedinuser ) or die "Not logged in";
+my $logged_in_user = Koha::Patrons->find( $loggedinuser );
 
 my $force_allow_issue = $query->param('forceallow') || 0;
 if (!C4::Auth::haspermission( C4::Context->userenv->{id} , { circulate => 'force_checkout' } )) {
     $force_allow_issue = 0;
 }
-
 my $onsite_checkout = $query->param('onsite_checkout');
+
+if (C4::Context->preference("OnSiteCheckoutAutoCheck") && $onsite_checkout eq "on") {
+    $template->param(onsite_checkout => $onsite_checkout);
+}
 
 my @failedrenews = $query->multi_param('failedrenew');    # expected to be itemnumbers
 our %renew_failed = ();
@@ -177,7 +170,7 @@ for my $barcode ( @$barcodes ) {
 
 my $stickyduedate  = $query->param('stickyduedate') || $session->param('stickyduedate');
 my $duedatespec    = $query->param('duedatespec')   || $session->param('stickyduedate');
-$duedatespec = eval { output_pref( { dt => dt_from_string( $duedatespec ), dateformat => 'iso', timeformat => '24hr' }); }
+$duedatespec = eval { output_pref( { dt => dt_from_string( $duedatespec ), dateformat => 'iso' }); }
     if ( $duedatespec );
 my $restoreduedatespec  = $query->param('restoreduedatespec') || $duedatespec || $session->param('stickyduedate');
 if ( $restoreduedatespec && $restoreduedatespec eq "highholds_empty" ) {
@@ -185,7 +178,6 @@ if ( $restoreduedatespec && $restoreduedatespec eq "highholds_empty" ) {
 }
 my $issueconfirmed = $query->param('issueconfirmed');
 my $cancelreserve  = $query->param('cancelreserve');
-my $print          = $query->param('print') || q{};
 my $debt_confirmed = $query->param('debt_confirmed') || 0; # Don't show the debt error dialog twice
 my $charges        = $query->param('charges') || q{};
 
@@ -203,6 +195,8 @@ else {
     $session->clear('auto_renew');
 }
 
+$template->param( auto_renew => $session->param('auto_renew') );
+
 my ($datedue,$invalidduedate);
 
 my $duedatespec_allow = C4::Context->preference('SpecifyDueDate');
@@ -219,27 +213,12 @@ if( $onsite_checkout && !$duedatespec_allow ) {
     }
 }
 
-# check and see if we should print
-if ( @$barcodes == 0 && $print eq 'maybe' ) {
-    $print = 'yes';
-}
-
 my $inprocess = (@$barcodes == 0) ? '' : $query->param('inprocess');
 if ( @$barcodes == 0 && $charges eq 'yes' ) {
     $template->param(
         PAYCHARGES     => 'yes',
         borrowernumber => $borrowernumber
     );
-}
-
-if ( $print eq 'yes' && $borrowernumber ne '' ) {
-    if ( C4::Context->boolean_preference('printcirculationslips') ) {
-        my $letter = IssueSlip($branch, $borrowernumber, "QUICK");
-        NetworkPrint($letter->{content});
-    }
-    $query->param( 'borrowernumber', '' );
-    $borrowernumber = ''; # FIXME This is terrible
-    $patron = undef;
 }
 
 #
@@ -322,6 +301,13 @@ if ($patron) {
         }
     }
 
+    # Calculate and display patron's age
+    if ( !$patron->is_valid_age ) {
+        $template->param( age_limitations => 1 );
+        $template->param( age_low => $patron->category->dateofbirthrequired );
+        $template->param( age_high => $patron->category->upperagelimit );
+    }
+
 }
 
 #
@@ -331,7 +317,12 @@ if ($patron) {
 if (@$barcodes) {
   my $checkout_infos;
   for my $barcode ( @$barcodes ) {
-    my $template_params = { barcode => $barcode };
+
+    my $template_params = {
+        barcode         => $barcode,
+        onsite_checkout => $onsite_checkout,
+    };
+
     # always check for blockers on issuing
     my ( $error, $question, $alerts, $messages ) = CanBookBeIssued(
         $patron,
@@ -350,12 +341,10 @@ if (@$barcodes) {
     $template_params->{messages} = $messages;
 
     my $item = Koha::Items->find({ barcode => $barcode });
-    my ( $biblio, $mss );
 
+    my $biblio;
     if ( $item ) {
         $biblio = $item->biblio;
-        my $mss = Koha::MarcSubfieldStructures->search({ frameworkcode => $biblio->frameworkcode, kohafield => 'items.notforloan', authorised_value => [ -and => {'!=' => undef }, {'!=' => ''}] });
-        $template_params->{authvalcode_notforloan} = $mss->count ? $mss->next->authorised_value : undef;
     }
 
     # Fix for bug 7494: optional checkout-time fallback search for a book
@@ -373,22 +362,25 @@ if (@$barcodes) {
 
         # if multiple hits, offer options to librarian
         if ( $total_hits > 0 ) {
-            my @options = ();
+            my @barcodes;
             foreach my $hit ( @{$results} ) {
-                my $chosen =
+                my $chosen = # Maybe easier to retrieve the itemnumber from $hit?
                   TransformMarcToKoha( C4::Search::new_record_from_zebra('biblioserver',$hit) );
 
                 # offer all barcodes individually
                 if ( $chosen->{barcode} ) {
-                    foreach my $barcode ( sort split(/\s*\|\s*/, $chosen->{barcode}) ) {
-                        my %chosen_single = %{$chosen};
-                        $chosen_single{barcode} = $barcode;
-                        push( @options, \%chosen_single );
-                    }
+                    push @barcodes, sort split(/\s*\|\s*/, $chosen->{barcode});
                 }
             }
-            $template_params->{options} = \@options;
+            my $items = Koha::Items->search({ barcode => {-in => \@barcodes}});
+            $template_params->{options} = $items;
         }
+    }
+
+    if ( $error->{DEBT_GUARANTORS} ) {
+        $template_params->{DEBT_GUARANTORS} = $error->{DEBT_GUARANTORS};
+        $template_params->{IMPOSSIBLE} = 1;
+        $blocker = 1;
     }
 
     if ( $error->{UNKNOWN_BARCODE} or not $onsite_checkout or not C4::Context->preference("OnSiteCheckoutsForce") ) {
@@ -407,7 +399,7 @@ if (@$barcodes) {
             my $materials = $item->materials;
             my $descriptions = Koha::AuthorisedValues->get_description_by_koha_field({ frameworkcode => $biblio->frameworkcode, kohafield => 'items.materials', authorised_value => $materials });
             $materials = $descriptions->{lib} // $materials;
-            $template_params->{additional_materials} = $materials;
+            $template_params->{ADDITIONAL_MATERIALS} = $materials;
             $template_params->{itemhomebranch} = $item->homebranch;
 
             # pass needsconfirmation to template if issuing is possible and user hasn't yet confirmed.
@@ -416,8 +408,6 @@ if (@$barcodes) {
                 $template_params->{getTitleMessageIteminfo} = $biblio->title;
                 $template_params->{getBarcodeMessageIteminfo} = $item->barcode;
                 $template_params->{NEEDSCONFIRMATION} = 1;
-                $template_params->{onsite_checkout} = $onsite_checkout;
-                $template_params->{auto_renew} = $session->param('auto_renew');
                 $confirm_required = 1;
             }
         }
@@ -430,9 +420,10 @@ if (@$barcodes) {
         }
     }
 
-    if ($question->{RESERVE_WAITING} or $question->{RESERVED}){
+    if ($question->{RESERVE_WAITING} or $question->{RESERVED} or $question->{TRANSFERRED} or $question->{PROCESSING}){
         $template->param(
-            reserveborrowernumber => $question->{'resborrowernumber'}
+            reserveborrowernumber => $question->{'resborrowernumber'},
+            reserve_id => $question->{reserve_id},
         );
     }
 
@@ -501,11 +492,24 @@ if ( $patron ) {
         );
     }
 
+    # Check the debt of this patrons guarantors *and* the guarantees of those guarantors
+    my $no_issues_charge_guarantors = C4::Context->preference("NoIssuesChargeGuarantorsWithGuarantees");
+    if ( $no_issues_charge_guarantors ) {
+        my $guarantors_non_issues_charges += $patron->relationships_debt({ include_guarantors => 1, only_this_guarantor => 0, include_this_patron => 1 });
+
+        if ( $guarantors_non_issues_charges > $no_issues_charge_guarantors ) {
+            $template->param(
+                charges_guarantors_guarantees => $guarantors_non_issues_charges
+            );
+            $noissues = 1 unless C4::Context->preference("allowfineoverride");
+        }
+    }
+
     my $no_issues_charge_guarantees = C4::Context->preference("NoIssuesChargeGuarantees");
     $no_issues_charge_guarantees = undef unless looks_like_number( $no_issues_charge_guarantees );
     if ( defined $no_issues_charge_guarantees ) {
         my $guarantees_non_issues_charges = 0;
-        my $guarantees = $patron->guarantees;
+        my $guarantees = $patron->guarantee_relationships->guarantees;
         while ( my $g = $guarantees->next ) {
             $guarantees_non_issues_charges += $g->account->non_issues_charges;
         }
@@ -539,12 +543,6 @@ if ( $patron ) {
     }
 }
 
-if ( $patron && $patron->is_child) {
-    my $patron_categories = Koha::Patron::Categories->search_limited({ category_type => 'A' }, {order_by => ['categorycode']});
-    $template->param( 'CATCODE_MULTI' => 1) if $patron_categories->count > 1;
-    $template->param( 'catcode' => $patron_categories->next->categorycode )  if $patron_categories->count == 1;
-}
-
 my $messages = Koha::Patron::Messages->search(
     {
         'me.borrowernumber' => $borrowernumber,
@@ -561,26 +559,17 @@ if ( Koha::BiblioFrameworks->find('FA') ) {
     $fast_cataloging = 1 
 }
 
-if (C4::Context->preference('ExtendedPatronAttributes')) {
-    my $attributes = GetBorrowerAttributes($borrowernumber);
-    $template->param(
-        ExtendedPatronAttributes => 1,
-        extendedattributes => $attributes
-    );
-}
 my $view = $batch
     ?'batch_checkout_view'
     : 'circview';
 
 my @relatives;
-if ( $borrowernumber ) {
-    if ( $patron ) {
-        if ( my $guarantor = $patron->guarantor ) {
-            push @relatives, $guarantor->borrowernumber;
-            push @relatives, $_->borrowernumber for $patron->siblings;
-        } else {
-            push @relatives, $_->borrowernumber for $patron->guarantees;
-        }
+if ( $patron ) {
+    if ( my @guarantors = $patron->guarantor_relationships()->guarantors() ) {
+        push( @relatives, $_->id ) for @guarantors;
+        push( @relatives, $_->id ) for $patron->siblings();
+    } else {
+        push( @relatives, $_->id ) for $patron->guarantee_relationships()->guarantees();
     }
 }
 my $relatives_issues_count =
@@ -647,14 +636,15 @@ my $has_modifications = Koha::Patron::Modifications->search( { borrowernumber =>
 $template->param(
     debt_confirmed            => $debt_confirmed,
     SpecifyDueDate            => $duedatespec_allow,
-    CircAutocompl             => C4::Context->preference("CircAutocompl"),
     checkCashRegisterFailed   => (! $checkCashRegisterOk),
+    PatronAutoComplete      => C4::Context->preference("PatronAutoComplete"),
     debarments                => scalar GetDebarments({ borrowernumber => $borrowernumber }),
     todaysdate                => output_pref( { dt => dt_from_string()->set(hour => 23)->set(minute => 59), dateformat => 'sql' } ),
     has_modifications         => $has_modifications,
     override_high_holds       => $override_high_holds,
     nopermission              => scalar $query->param('nopermission'),
     autoswitched              => $autoswitched,
+    logged_in_user            => $logged_in_user,
 );
 
 output_html_with_http_headers $query, $cookie, $template->output;

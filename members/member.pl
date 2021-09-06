@@ -32,13 +32,12 @@ use Koha::DateUtils;
 use Koha::List::Patron;
 use Koha::Patrons;
 
-my $input = new CGI;
+my $input = CGI->new;
 
 my ($template, $loggedinuser, $cookie)
     = get_template_and_user({template_name => "members/member.tt",
                  query => $input,
                  type => "intranet",
-                 authnotrequired => 0,
                  flagsrequired => {borrowers => 'edit_borrowers'},
                  });
 

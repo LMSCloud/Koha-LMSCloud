@@ -35,10 +35,13 @@
 use Modern::Perl;
 
 use Time::HiRes qw(gettimeofday);
+use POSIX qw(strftime);
 use C4::Context;
 use C4::Biblio qw( AddBiblio ); # We shouldn't use it
 
-use Test::More tests => 20;
+use Koha::CirculationRules;
+
+use Test::More tests => 22;
 use MARC::Record;
 use MARC::Field;
 
@@ -70,18 +73,23 @@ our $sample_data = {
     issuingrule => {
         categorycode  => 'test_cat',
         itemtype      => 'IT4test',
-        branchcode    => '*',
+        branchcode    => undef,
         maxissueqty   => '5',
         issuelength   => '5',
         lengthunit    => 'days',
         renewalperiod => '5',
+        reservesallowed => '5',
+        onshelfholds  => '1',
+        opacitemholds => 'Y',
       },
 };
 our ( $borrowernumber, $start, $prev_time, $cleanup_needed );
 
+$dbh->do(q|INSERT INTO itemtypes(itemtype) VALUES (?)|, undef, $sample_data->{itemtype}{itemtype});
+
 SKIP: {
     eval { require Selenium::Remote::Driver; };
-    skip "Selenium::Remote::Driver is needed for selenium tests.", 20 if $@;
+    skip "Selenium::Remote::Driver is needed for selenium tests.", 22 if $@;
 
     $cleanup_needed = 1;
 
@@ -144,19 +152,34 @@ SKIP: {
     time_diff("add biblio");
 
     my $itemtype = $sample_data->{itemtype};
-    $dbh->do(q|INSERT INTO itemtypes (itemtype, description, rentalcharge, notforloan) VALUES (?, ?, ?, ?)|, undef, $itemtype->{itemtype}, $itemtype->{description}, $itemtype->{rentalcharge}, $itemtype->{notforloan});
 
     my $issuing_rules = $sample_data->{issuingrule};
-    $dbh->do(q|INSERT INTO issuingrules (categorycode, itemtype, branchcode, maxissueqty, issuelength, lengthunit, renewalperiod) VALUES (?, ?, ?, ?, ?, ?, ?)|, undef, $issuing_rules->{categorycode}, $issuing_rules->{itemtype}, $issuing_rules->{branchcode}, $issuing_rules->{maxissueqty}, $issuing_rules->{issuelength}, $issuing_rules->{lengthunit}, $issuing_rules->{renewalperiod});
+    Koha::CirculationRules->set_rules(
+        {
+            categorycode => $issuing_rules->{categorycode},
+            itemtype     => $issuing_rules->{itemtype},
+            branchcode   => $issuing_rules->{branchcode},
+            rules => {
+                maxissueqty     => $issuing_rules->{maxissueqty},
+                issuelength     => $issuing_rules->{issuelength},
+                lengthunit      => $issuing_rules->{lengthunit},
+                renewalperiod   => $issuing_rules->{renewalperiod},
+                reservesallowed => $issuing_rules->{reservesallowed},
+                onshelfholds    => $issuing_rules->{onshelfholds},
+                opacitemholds   => $issuing_rules->{opacitemholds},
+
+              }
+        }
+    );
+
 
     for my $biblionumber ( @biblionumbers ) {
         $driver->get($base_url."/cataloguing/additem.pl?biblionumber=$biblionumber");
         like( $driver->get_title(), qr(test biblio \d+ by test author), );
         my $form = $driver->find_element('//form[@name="f"]');
-        my $inputs = $driver->find_child_elements($form, '//input[@type="text"]');
+        # select the text inputs that don't have display:none
+        my $inputs = $driver->find_child_elements($form, '/.//*[not(self::node()[contains(@style,"display:none")])]/*[@type="text"]');
         for my $input ( @$inputs ) {
-            next if $input->is_hidden();
-
             my $id = $input->get_attribute('id');
             next unless $id =~ m|^tag_952_subfield|;
 
@@ -174,6 +197,21 @@ SKIP: {
                 # It's a varchar(10)
                 $v = 't_value_x';
             }
+            elsif (
+                $id =~ m|^tag_952_subfield_w| # replacementpricedate
+            ) {
+                $v = strftime("%Y-%m-%d", localtime);
+            }
+            elsif (
+                $id =~ m|^tag_952_subfield_d| # dateaccessioned
+            ) {
+                next; # The input has been prefilled with %Y-%m-%d already
+            }
+            elsif (
+                $id =~ m|^tag_952_subfield_3| # materials
+            ) {
+                $v = ""; # We don't want the checkin/checkout to need confirmation if CircConfirmItemParts is on
+            }
             else {
                 $v = 't_value_bib' . $biblionumber;
             }
@@ -181,7 +219,7 @@ SKIP: {
         }
 
         $driver->find_element('//input[@name="add_submit"]')->click;
-        like( $driver->get_title(), qr($biblionumber.*Items) );
+        like( $driver->get_title(), qr(Items.*Record #$biblionumber) );
 
         $dbh->do(q|UPDATE items SET notforloan=0 WHERE biblionumber=?|, {}, $biblionumber );
         $dbh->do(q|UPDATE biblioitems SET itemtype=? WHERE biblionumber=?|, {}, $itemtype->{itemtype}, $biblionumber);
@@ -205,11 +243,26 @@ SKIP: {
     for my $biblionumber ( @biblionumbers ) {
         $driver->get($base_url."/circ/returns.pl");
         $driver->find_element('//input[@id="barcode"]')->send_keys('t_value_bib'.$biblionumber);
-        $driver->find_element('//form[@id="checkin-form"]/div/fieldset/input[@type="submit"]')->click;
+        $driver->find_element('//*[@id="circ_returns_checkin"]/div[2]/div[1]/div[2]/button')->click;
         like( $driver->get_title(), qr(Check in test biblio \d+) );
     }
 
     time_diff("checkin");
+
+    #Place holds
+    $driver->get($base_url."/reserve/request.pl?borrowernumber=$borrowernumber&biblionumber=".$biblionumbers[0]);
+    $driver->find_element('//form[@id="hold-request-form"]//button[@type="submit"]')->click; # Biblio level
+    $driver->pause(1000); # This seems wrong, since bug 19618 the hold is created async with an AJAX call. Not sure what is happening here but the next statements are exectuted before the hold is created and the count is wrong (still 0)
+    my $patron = Koha::Patrons->find($borrowernumber);
+    is( $patron->holds->count, 1, );
+
+    $driver->get($base_url."/reserve/request.pl?borrowernumber=$borrowernumber&biblionumber=".$biblionumbers[1]);
+    $driver->find_element('//form[@id="hold-request-form"]//input[@type="radio"]')->click; # Item level, there is only 1 item per bib so we are safe
+    $driver->find_element('//form[@id="hold-request-form"]//button[@type="submit"]')->click;
+    $driver->pause(1000);
+    is( $patron->holds->count, 2, );
+
+    time_diff("holds");
 
     close $fh;
     $driver->quit();
@@ -232,7 +285,7 @@ sub cleanup {
         $dbh->do(qq|DELETE FROM biblio WHERE title = "test biblio $i"|);
     };
     $dbh->do(q|DELETE FROM itemtypes WHERE itemtype=?|, undef, $sample_data->{itemtype}{itemtype});
-    $dbh->do(q|DELETE FROM issuingrules WHERE categorycode=? AND itemtype=? AND branchcode=?|, undef, $sample_data->{issuingrule}{categorycode}, $sample_data->{issuingrule}{itemtype}, $sample_data->{issuingrule}{branchcode});
+    $dbh->do(q|DELETE FROM circulation_rules WHERE categorycode=? AND itemtype=? AND branchcode=?|, undef, $sample_data->{issuingrule}{categorycode}, $sample_data->{issuingrule}{itemtype}, $sample_data->{issuingrule}{branchcode});
 }
 
 sub time_diff {

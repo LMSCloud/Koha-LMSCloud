@@ -42,7 +42,7 @@ my $function_name= $field_number;
 
 
 my $res  = "
-<script type=\"text/javascript\">
+<script>
 function Clic$function_name(subfield_managed) {
     defaultvalue=escape(document.getElementById(\"$field_number\").value);
     newin=window.open(\"../cataloguing/plugin_launcher.pl?plugin_name=unimarc_field_210c.pl&index=\"+subfield_managed,\"unimarc_225a\",'width=500,height=600,toolbar=false,scrollbars=yes');
@@ -54,7 +54,7 @@ return ($function_name,$res);
 
 sub plugin {
 my ($input) = @_;
-    my $query=new CGI;
+    my $query=CGI->new;
     my $op = $query->param('op');
     my $authtypecode = $query->param('authtypecode');
     my $index = $query->param('index');
@@ -94,7 +94,6 @@ my ($input) = @_;
             = get_template_and_user({template_name => "cataloguing/value_builder/unimarc_field_210c.tt",
                     query => $query,
                     type => 'intranet',
-                    authnotrequired => 0,
                     flagsrequired => {editcatalogue => '*'},
                     debug => 1,
                     });
@@ -125,7 +124,6 @@ my ($input) = @_;
             = get_template_and_user({template_name => "cataloguing/value_builder/unimarc_field_210c.tt",
                     query => $query,
                     type => 'intranet',
-                    authnotrequired => 0,
                     flagsrequired => {editcatalogue => '*'},
                     debug => 1,
                     });

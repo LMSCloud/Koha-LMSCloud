@@ -3,18 +3,18 @@ package Koha::DateUtils;
 # Copyright (c) 2011 PTFS-Europe Ltd.
 # This file is part of Koha.
 #
-# Koha is free software; you can redistribute it and/or modify it under the
-# terms of the GNU General Public License as published by the Free Software
-# Foundation; either version 2 of the License, or (at your option) any later
-# version.
+# Koha is free software; you can redistribute it and/or modify it
+# under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 3 of the License, or
+# (at your option) any later version.
 #
-# Koha is distributed in the hope that it will be useful, but WITHOUT ANY
-# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
-# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+# Koha is distributed in the hope that it will be useful, but
+# WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+# GNU General Public License for more details.
 #
-# You should have received a copy of the GNU General Public License along with
-# Koha; if not, write to the Free Software Foundation, Inc.,
-# 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+# You should have received a copy of the GNU General Public License
+# along with Koha; if not, see <http://www.gnu.org/licenses>.
 
 use Modern::Perl;
 use DateTime;
@@ -117,7 +117,7 @@ sub dt_from_string {
             (?<minute>\d{2})
             :
             (?<second>\d{2})
-            (([Zz])|([\+|\-]([01][0-9]|2[0-3]):[0-5][0-9]))
+            (\.\d{1,3})?(([Zz])|([\+|\-]([01][0-9]|2[0-3]):[0-5][0-9]))
         /xms;
     }
     elsif ( $date_format eq 'iso' or $date_format eq 'sql' ) {
@@ -139,12 +139,17 @@ sub dt_from_string {
                     :
                     (?<second>\d{2})
                 )?
+                (
+                    \s
+                    (?<ampm>\w{2})
+                )?
             )?
     |xms;
     $regex .= $time_re;
     $fallback_re .= $time_re;
 
     my %dt_params;
+    my $ampm;
     if ( $date_string =~ $regex ) {
         %dt_params = (
             year   => $+{year},
@@ -154,6 +159,7 @@ sub dt_from_string {
             minute => $+{minute},
             second => $+{second},
         );
+        $ampm = $+{ampm};
     } elsif ( $date_string =~ $fallback_re ) {
         %dt_params = (
             year   => $+{year},
@@ -163,6 +169,7 @@ sub dt_from_string {
             minute => $+{minute},
             second => $+{second},
         );
+        $ampm = $+{ampm};
     }
     else {
         die "The given date ($date_string) does not match the date format ($date_format)";
@@ -175,6 +182,15 @@ sub dt_from_string {
     $dt_params{hour}   = 00 unless defined $dt_params{hour};
     $dt_params{minute} = 00 unless defined $dt_params{minute};
     $dt_params{second} = 00 unless defined $dt_params{second};
+
+    if ( $ampm ) {
+        if ( $ampm eq 'AM' ) {
+            $dt_params{hour} = 00 if $dt_params{hour} == 12;
+        } elsif ( $dt_params{hour} != 12 ) { # PM
+            $dt_params{hour} += 12;
+            $dt_params{hour} = 00 if $dt_params{hour} == 24;
+        }
+    }
 
     my $dt = eval {
         DateTime->new(
@@ -254,8 +270,13 @@ sub output_pref {
           : $dt->strftime("%Y-%m-%d $time");
     }
     elsif ( $pref =~ m/^rfc3339/ ) {
-        $date = $dt->strftime('%FT%T%z');
-        substr($date, -2, 0, ':'); # timezone "HHmm" => "HH:mm"
+        if (!$dateonly) {
+            $date = $dt->strftime('%FT%T%z');
+            substr($date, -2, 0, ':'); # timezone "HHmm" => "HH:mm"
+        }
+        else {
+            $date = $dt->strftime("%Y-%m-%d");
+        }
     }
     elsif ( $pref =~ m/^metric/ ) {
         $date = $dateonly

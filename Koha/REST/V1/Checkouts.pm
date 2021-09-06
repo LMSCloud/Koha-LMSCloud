@@ -1,0 +1,207 @@
+package Koha::REST::V1::Checkouts;
+
+# This file is part of Koha.
+#
+# Koha is free software; you can redistribute it and/or modify it
+# under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 3 of the License, or
+# (at your option) any later version.
+#
+# Koha is distributed in the hope that it will be useful, but
+# WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with Koha; if not, see <http://www.gnu.org/licenses>.
+
+use Modern::Perl;
+
+use Mojo::Base 'Mojolicious::Controller';
+use Mojo::JSON;
+
+use C4::Auth qw( haspermission );
+use C4::Context;
+use C4::Circulation;
+use Koha::Checkouts;
+use Koha::Old::Checkouts;
+
+use Try::Tiny;
+
+=head1 NAME
+
+Koha::REST::V1::Checkout
+
+=head1 API
+
+=head2 Methods
+
+=head3 list
+
+List Koha::Checkout objects
+
+=cut
+
+sub list {
+    my $c = shift->openapi->valid_input or return;
+
+    my $checked_in = delete $c->validation->output->{checked_in};
+
+    try {
+        my $checkouts_set;
+
+        if ( $checked_in ) {
+            $checkouts_set = Koha::Old::Checkouts->new;
+        } else {
+            $checkouts_set = Koha::Checkouts->new;
+        }
+
+        my $checkouts = $c->objects->search( $checkouts_set );
+
+        return $c->render(
+            status  => 200,
+            openapi => $checkouts
+        );
+    } catch {
+        $c->unhandled_exception($_);
+    };
+}
+
+=head3 get
+
+get one checkout
+
+=cut
+
+sub get {
+    my $c = shift->openapi->valid_input or return;
+
+    my $checkout_id = $c->validation->param('checkout_id');
+    my $checkout = Koha::Checkouts->find( $checkout_id );
+    $checkout = Koha::Old::Checkouts->find( $checkout_id )
+        unless ($checkout);
+
+    unless ($checkout) {
+        return $c->render(
+            status => 404,
+            openapi => { error => "Checkout doesn't exist" }
+        );
+    }
+
+    return try {
+        return $c->render(
+            status  => 200,
+            openapi => $checkout->to_api
+        );
+    }
+    catch {
+        $c->unhandled_exception($_);
+    };
+}
+
+=head3 renew
+
+Renew a checkout
+
+=cut
+
+sub renew {
+    my $c = shift->openapi->valid_input or return;
+
+    my $checkout_id = $c->validation->param('checkout_id');
+    my $seen = $c->validation->param('seen') || 1;
+    my $checkout = Koha::Checkouts->find( $checkout_id );
+
+    unless ($checkout) {
+        return $c->render(
+            status => 404,
+            openapi => { error => "Checkout doesn't exist" }
+        );
+    }
+
+    return try {
+        my $borrowernumber = $checkout->borrowernumber;
+        my $itemnumber = $checkout->itemnumber;
+
+        my ($can_renew, $error) = C4::Circulation::CanBookBeRenewed(
+            $borrowernumber, $itemnumber);
+
+        if (!$can_renew) {
+            return $c->render(
+                status => 403,
+                openapi => { error => "Renewal not authorized ($error)" }
+            );
+        }
+
+        AddRenewal(
+            $borrowernumber,
+            $itemnumber,
+            $checkout->branchcode,
+            undef,
+            undef,
+            $seen
+        );
+        $checkout = Koha::Checkouts->find($checkout_id);
+
+        $c->res->headers->location( $c->req->url->to_string );
+        return $c->render(
+            status  => 201,
+            openapi => $checkout->to_api
+        );
+    }
+    catch {
+        $c->unhandled_exception($_);
+    };
+}
+
+=head3 allows_renewal
+
+Checks if the checkout could be renewed and return the related information.
+
+=cut
+
+sub allows_renewal {
+    my $c = shift->openapi->valid_input or return;
+
+    my $checkout_id = $c->validation->param('checkout_id');
+    my $checkout = Koha::Checkouts->find( $checkout_id );
+
+    unless ($checkout) {
+        return $c->render(
+            status => 404,
+            openapi => { error => "Checkout doesn't exist" }
+        );
+    }
+
+    return try {
+        my ($can_renew, $error) = C4::Circulation::CanBookBeRenewed(
+            $checkout->borrowernumber, $checkout->itemnumber);
+
+        my $renewable = Mojo::JSON->false;
+        $renewable = Mojo::JSON->true if $can_renew;
+
+        my $rule = Koha::CirculationRules->get_effective_rule(
+            {
+                categorycode => $checkout->patron->categorycode,
+                itemtype     => $checkout->item->effective_itemtype,
+                branchcode   => $checkout->branchcode,
+                rule_name    => 'renewalsallowed',
+            }
+        );
+        return $c->render(
+            status => 200,
+            openapi => {
+                allows_renewal => $renewable,
+                max_renewals => $rule->rule_value,
+                current_renewals => $checkout->renewals,
+                unseen_renewals => $checkout->unseen_renewals,
+                error => $error
+            }
+        );
+    }
+    catch {
+        $c->unhandled_exception($_);
+    };
+}
+
+1;

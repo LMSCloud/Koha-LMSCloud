@@ -28,14 +28,13 @@ use Koha::Biblios;
 use Koha::Patrons;
 use Koha::ArticleRequests;
 
-my $cgi = new CGI;
+my $cgi = CGI->new;
 
 my ( $template, $borrowernumber, $cookie, $flags ) = get_template_and_user(
     {
         template_name   => "circ/request-article.tt",
         query           => $cgi,
         type            => "intranet",
-        authnotrequired => 0,
         flagsrequired   => { circulate => 'circulate_remaining_permissions' },
     }
 );

@@ -4,23 +4,24 @@
 #
 # This file is part of Koha.
 #
-# Koha is free software; you can redistribute it and/or modify it under the
-# terms of the GNU General Public License as published by the Free Software
-# Foundation; either version 3 of the License, or (at your option) any later
-# version.
+# Koha is free software; you can redistribute it and/or modify it
+# under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 3 of the License, or
+# (at your option) any later version.
 #
-# Koha is distributed in the hope that it will be useful, but WITHOUT ANY
-# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
-# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+# Koha is distributed in the hope that it will be useful, but
+# WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+# GNU General Public License for more details.
 #
-# You should have received a copy of the GNU General Public License along
-# with Koha; if not, write to the Free Software Foundation, Inc.,
-# 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+# You should have received a copy of the GNU General Public License
+# along with Koha; if not, see <http://www.gnu.org/licenses>.
 
 use Modern::Perl;
 
 use CGI;
 use JSON qw(to_json);
+use Try::Tiny;
 
 use C4::Circulation;
 use C4::Context;
@@ -28,7 +29,7 @@ use C4::Auth qw(check_cookie_auth);
 
 use Koha::DateUtils qw(output_pref dt_from_string);
 
-my $input = new CGI;
+my $input = CGI->new;
 
 my ( $auth_status, $sessionID ) =
   check_cookie_auth( $input->cookie('CGISESSID'),
@@ -46,6 +47,7 @@ my $borrowernumber = $input->param('borrowernumber');
 my $override_limit = $input->param('override_limit');
 my $branchcode     = $input->param('branchcode')
   || C4::Context->userenv->{'branch'};
+my $seen           = $input->param('seen');
 my $date_due;
 if ( $input->param('date_due') ) {
     $date_due = dt_from_string( scalar $input->param('date_due') );
@@ -59,9 +61,23 @@ $data->{branchcode} = $branchcode;
 ( $data->{renew_okay}, $data->{error} ) =
   CanBookBeRenewed( $borrowernumber, $itemnumber, $override_limit );
 
+# If we're allowing reserved items to be renewed...
+if ( $data->{error} && $data->{error} eq 'on_reserve' && C4::Context->preference('AllowRenewalOnHoldOverride')) {
+    $data->{renew_okay} = 1;
+    $data->{error} = undef;
+}
+
 if ( $data->{renew_okay} ) {
-    $date_due = AddRenewal( $borrowernumber, $itemnumber, $branchcode, $date_due );
-    $data->{date_due} = output_pref( { dt => $date_due, as_due_date => 1 } );
+    try{
+        $date_due = AddRenewal( $borrowernumber, $itemnumber, $branchcode, $date_due, undef, undef, $seen );
+        $data->{date_due} = output_pref( { dt => $date_due, as_due_date => 1 } );
+    } catch {
+        if ( ref($_) eq 'Koha::Exceptions::Checkout::FailedRenewal' ) {
+            $data->{error} = 'renewal_failed';
+        } else {
+            $_->rethrow;
+        }
+    };
 }
 
 print to_json($data);

@@ -1,70 +1,33 @@
+[% USE raw %]
 [% USE Asset %]
 [% USE Koha %]
-[% USE KohaDates %]
-[% USE Branches %]
-[% USE Price %]
 [% SET footerjs = 1 %]
+
 [% INCLUDE 'doc-head-open.inc' %]
-<title>Print receipt for [% patron.cardnumber %]</title>
+<title>Print receipt for [% patron.cardnumber | html %]</title>
 [% INCLUDE 'doc-head-close.inc' %]
-[% Asset.css("css/printreceiptinvoice.css") %]
+
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<link rel="shortcut icon" href="[% IF ( IntranetFavicon ) %][% IntranetFavicon | url %][% ELSE %][% interface | html %]/[% theme | html %]/img/favicon.ico[% END %]" type="image/x-icon" />
+
+[% Asset.css("css/printreceiptinvoice.css") | $raw %]
 [% INCLUDE 'blocking_errors.inc' %]
 </head>
 
 <body id="pat_printfeercpt" class="pat">
 
 <div id="receipt">
-<!-- The table with the account items -->
-<table>
-[% IF ( LibraryName ) %]
- <tr>
-    <th colspan=4 class="centerednames">
-		<h3>[% LibraryName %]</h3>
-	</th>
- </tr>
-[% END %]
- <tr>
-    <th colspan=4 class="centerednames">
-        <h2><u>Fee receipt</u></h2>
-	</th>
- </tr>
- <tr>
-    <th colspan=4 class="centerednames">
-        <h2>[% Branches.GetName( patron.branchcode ) %]</h2>
-	</th>
- </tr>
- <tr>
-    <th colspan=4 >
-        Received with thanks from  [% patron.firstname %] [% patron.surname %] <br />
-        Card number: [% patron.cardnumber %]<br />
-	</th>
- </tr>
-  <tr>
-	<th>Date</th>
-    <th>Description of charges</th>
-    <th>Note</th>
-    <th>Amount</th>
- </tr>
-
-  [% FOREACH account IN accounts %]
-<tr class="highlight">
-      <td>[% account.date | $KohaDates %]</td>
-      <td>
-        [% INCLUDE 'accounttype.inc' account => account %]
-        [%- IF account.description %], [% account.description | html %][% END %]
-      </td>
-      <td>[% account.note %]</td>
-      [% IF ( account.amountcredit ) %]<td class="credit">[% ELSE %]<td class="debit">[% END %][% account.amount | $Price %]</td>
-    </tr>
-
+  [% IF slip %]
+    [% IF plain %]
+    <pre>
+      [% slip | html %]
+    </pre>
+    [% ELSE %]
+      [% slip | $raw %]
+    [% END %]
+  [% ELSE %]
+    No print template found
   [% END %]
-<tfoot>
-  <tr>
-    <td colspan="3">Total outstanding dues as on date: </td>
-    [% IF ( totalcredit ) %]<td class="credit">[% ELSE %]<td class="debit">[% END %][% total | $Price %]</td>
-  </tr>
-  </tfoot>
-</table>
 </div>
 
 [% MACRO jsinclude BLOCK %]

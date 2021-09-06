@@ -31,7 +31,7 @@ use Koha::DateUtils;
 use Koha::Patron::Categories;
 use Koha::Libraries;
 
-my $input         = new CGI;
+my $input         = CGI->new;
 my $searchfield   = $input->param('description') // q||;
 my $categorycode  = $input->param('categorycode');
 my $op            = $input->param('op') // 'list';
@@ -42,33 +42,15 @@ my ( $template, $loggedinuser, $cookie ) = get_template_and_user(
         template_name   => "admin/categories.tt",
         query           => $input,
         type            => "intranet",
-        authnotrequired => 0,
-        flagsrequired   => { parameters => 'parameters_remaining_permissions' },
+        flagsrequired   => { parameters => 'manage_patron_categories' },
         debug           => 1,
     }
 );
 
 if ( $op eq 'add_form' ) {
-    my ( $category, $selected_branches );
-    if ($categorycode) {
-        $category          = Koha::Patron::Categories->find($categorycode);
-        $selected_branches = $category->branch_limitations;
-    }
-
-    my $branches = Koha::Libraries->search( { -or => [ mobilebranch => undef, mobilebranch => '' ] }, { order_by => ['branchname'] } )->unblessed;
-    my @branches_loop;
-    foreach my $branch ( @$branches ) {
-        my $selected = ( grep { $_ eq $branch->{branchcode} } @$selected_branches ) ? 1 : 0;
-        push @branches_loop,
-          { branchcode => $branch->{branchcode},
-            branchname => $branch->{branchname},
-            selected   => $selected,
-          };
-    }
 
     $template->param(
-        category => $category,
-        branches_loop       => \@branches_loop,
+        category => scalar Koha::Patron::Categories->find($categorycode),
     );
 
     if ( C4::Context->preference('EnhancedMessagingPreferences') ) {
@@ -93,7 +75,17 @@ elsif ( $op eq 'add_validate' ) {
     my $checkPrevCheckout = $input->param('checkprevcheckout');
     my $default_privacy = $input->param('default_privacy');
     my $family_card = $input->param('family_card');
+    my $reset_password = $input->param('reset_password');
+    my $change_password = $input->param('change_password');
+    my $exclude_from_local_holds_priority = $input->param('exclude_from_local_holds_priority');
+    my $min_password_length = $input->param('min_password_length');
+    my $require_strong_password = $input->param('require_strong_password');
     my @branches = grep { $_ ne q{} } $input->multi_param('branches');
+
+    $reset_password = undef if $reset_password eq -1;
+    $change_password = undef if $change_password eq -1;
+    $min_password_length = undef unless length($min_password_length);
+    $require_strong_password = undef if $require_strong_password eq -1;
 
     my $is_a_modif = $input->param("is_a_modif");
 
@@ -124,9 +116,14 @@ elsif ( $op eq 'add_validate' ) {
         $category->checkprevcheckout($checkPrevCheckout);
         $category->default_privacy($default_privacy);
         $category->family_card($family_card);
+        $category->reset_password($reset_password);
+        $category->change_password($change_password);
+        $category->exclude_from_local_holds_priority($exclude_from_local_holds_priority);
+        $category->min_password_length($min_password_length);
+        $category->require_strong_password($require_strong_password);
         eval {
             $category->store;
-            $category->replace_branch_limitations( \@branches );
+            $category->replace_library_limits( \@branches );
         };
         if ( $@ ) {
             push @messages, {type => 'error', code => 'error_on_update' };
@@ -150,11 +147,16 @@ elsif ( $op eq 'add_validate' ) {
             BlockExpiredPatronOpacActions => $BlockExpiredPatronOpacActions,
             checkprevcheckout => $checkPrevCheckout,
             default_privacy => $default_privacy,
-            family_card => $family_card
+            family_card => $family_card,
+            reset_password => $reset_password,
+            change_password => $change_password,
+            exclude_from_local_holds_priority => $exclude_from_local_holds_priority,
+            min_password_length => $min_password_length,
+            require_strong_password => $require_strong_password,
         });
         eval {
             $category->store;
-            $category->replace_branch_limitations( \@branches );
+            $category->replace_library_limits( \@branches );
         };
 
         if ( $@ ) {

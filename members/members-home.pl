@@ -28,13 +28,12 @@ use Koha::Libraries;
 use Koha::List::Patron;
 use Koha::Patron::Categories;
 
-my $query = new CGI;
+my $query = CGI->new;
 
 my ($template, $loggedinuser, $cookie, $flags)
     = get_template_and_user({template_name => "members/member.tt",
                  query => $query,
                  type => "intranet",
-                 authnotrequired => 0,
                  flagsrequired => {borrowers => 'edit_borrowers'},
                  debug => 1,
                  });
@@ -45,7 +44,7 @@ if( Koha::Libraries->search->count < 1){
     $template->param(no_branches => 1);
 }
 
-my @categories = Koha::Patron::Categories->search_limited;
+my @categories = Koha::Patron::Categories->search_with_library_limits;
 if(scalar(@categories) < 1){
     $no_add = 1;
     $template->param(no_categories => 1);
@@ -70,6 +69,7 @@ $template->param(
 
 $template->param(
     alphabet => C4::Context->preference('alphabet') || join (' ', 'A' .. 'Z'),
+    PatronAutoComplete => C4::Context->preference('PatronAutoComplete'),
     patron_lists => [ GetPatronLists() ],
     PatronsPerPage => C4::Context->preference("PatronsPerPage") || 20,
 );

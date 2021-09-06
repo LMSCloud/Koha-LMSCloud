@@ -10,7 +10,7 @@
 <form name="f_pop" onsubmit="report()" action="">
 <table>
 	<tr>
-		<td><label for="f1">Code date publication </label></td><td><select name="f1" id="f1" size="1">
+        <td><label for="f1">Code date publication </label></td><td><select name="f1" id="f1">
 			[% IF ( f1_075 ) %]
 			<option value="075 - postface" selected="selected">postface</option>
 			[% ELSE %]
@@ -48,15 +48,15 @@
 </form>
 
 [% MACRO jsinclude BLOCK %]
-    <script type="text/javascript">
+    <script>
         function report() {
             x = document.f_pop.f1.value.split(' - ');
             var doc   = opener.document;
-            var field = doc.getElementById("[% index %]");
+            var field = doc.getElementById("[% index | html %]");
 
             field.value =  x[0];
-            if ([% index2 %] > 0) {
-                opener.document.f.field_value[[% index2 %]].value= x[1];
+            if ([% index2 | html %] > 0) {
+                opener.document.f.field_value[[% index2 | html %]].value= x[1];
             }
             self.close();
             return false;

@@ -38,9 +38,9 @@ use C4::Accounts;
 use C4::Stats;
 use C4::Koha;
 use C4::Overdues;
-use C4::Members::Attributes qw(GetBorrowerAttributes);
 use C4::CashRegisterManagement qw(passCashRegisterCheck);
 use Koha::Patrons;
+use Koha::Items;
 
 use Koha::Patron::Categories;
 use URI::Escape;
@@ -55,7 +55,6 @@ our ( $template, $loggedinuser, $cookie ) = get_template_and_user(
     {   template_name   => 'members/pay.tt',
         query           => $input,
         type            => 'intranet',
-        authnotrequired => 0,
         flagsrequired   => { borrowers => 'edit_borrowers', updatecharges => $updatecharges_permissions },
         debug           => 1,
     }
@@ -68,8 +67,12 @@ if ( !$borrowernumber ) {
     $borrowernumber = $input->param('borrowernumber0');
 }
 
+my $payment_id = $input->param('payment_id');
+our $change_given = $input->param('change_given');
+our @renew_results = $input->multi_param('renew_result');
+
 # get borrower details
-my $logged_in_user = Koha::Patrons->find( $loggedinuser ) or die "Not logged in";
+my $logged_in_user = Koha::Patrons->find( $loggedinuser );
 our $patron         = Koha::Patrons->find($borrowernumber);
 output_and_exit_if_error( $input, $cookie, $template, { module => 'members', logged_in_user => $logged_in_user, current_patron => $patron } );
 
@@ -78,58 +81,61 @@ $user ||= q{};
 
 our $branch = C4::Context->userenv->{'branch'};
 
-my $checkCashRegisterOk = passCashRegisterCheck($branch,$loggedinuser);
-
 my $writeoff_item = $input->param('confirm_writeoff');
 my $cancel_item = $input->param('confirm_cancelfee');
-my $paycollect    = $input->param('paycollect');
-if ($paycollect && $checkCashRegisterOk ) {
-    print $input->redirect(
-        "/cgi-bin/koha/members/paycollect.pl?borrowernumber=$borrowernumber");
-}
-my $payselected = $input->param('payselected');
-if ($payselected && $checkCashRegisterOk) {
-    payselected(@names);
-}
+my $checkCashRegisterOk = passCashRegisterCheck($branch,$loggedinuser);
 
-my $writeoff_all = $input->param('woall');    # writeoff all fines
-my $cancel_all   = $input->param('cancelall');    # cancel all fines
-if ($writeoff_all || $cancel_all) {
-    writeoff_or_cancel_all(@names);
-} elsif ($writeoff_item || $cancel_item) {
+if ( $input->param('paycollect') && $checkCashRegisterOk ) {
+    print $input->redirect(
+        "/cgi-bin/koha/members/paycollect.pl?borrowernumber=$borrowernumber&change_given=$change_given");
+}
+elsif ( $input->param('payselected') && $checkCashRegisterOk ) {
+    payselected({ params => \@names });
+}
+elsif ( $input->param('writeoff_selected') ) {
+    payselected({ params => \@names, type => 'WRITEOFF' });
+}
+elsif ( $input->param('cancel_selected') ) {
+    payselected({ params => \@names, type => 'CANCEL' });
+}
+elsif ( $input->param('woall') ) {
+    writeoff_all(@names);
+}
+elsif ( $input->param('apply_credits') ) {
+    apply_credits({ patron => $patron, cgi => $input });
+}
+elsif ( $input->param('confirm_writeoff') || $input->param('confirm_cancelfee') ) {
+    my $item_id         = $input->param('itemnumber');
     my $accountlines_id = $input->param('accountlines_id');
-    my $amount       = $input->param('amountwrittenoff');
-    my $payment_note = $input->param("payment_note");
+    my $amount          = $input->param('amountwrittenoff');
+    my $payment_note    = $input->param("payment_note");
 
     my $accountline = Koha::Account::Lines->find( $accountlines_id );
 
-    $amount = $accountline->amountoutstanding if (abs($amount - $accountline->amountoutstanding) < 0.01);
+    $amount = $accountline->amountoutstanding if (abs($amount - $accountline->amountoutstanding) < 0.01) && C4::Context->preference('RoundFinesAtPayment');
     if ( $amount > $accountline->amountoutstanding ) {
-        my $redirectURL = "/cgi-bin/koha/members/paycollect.pl?"
-            . "borrowernumber=$borrowernumber"
-            . "&amount=" . $accountline->amount
-            . "&amountoutstanding=" . $accountline->amountoutstanding
-            . "&accounttype=" . $accountline->accounttype
-            . "&accountlines_id=" . $accountlines_id
-            . "&error_over=1";
-        if ($cancel_item) {
-            $redirectURL .= "&cancel_individual=1";
-        } else {
-            $redirectURL .= "&writeoff_individual=1";
-        }
-        print $input->redirect( $redirectURL );
+        print $input->redirect( "/cgi-bin/koha/members/paycollect.pl?"
+              . "borrowernumber=$borrowernumber"
+              . "&amount=" . $accountline->amount
+              . "&amountoutstanding=" . $accountline->amountoutstanding
+              . "&debit_type_code=" . $accountline->debit_type_code
+              . "&accountlines_id=" . $accountlines_id
+              . "&change_given=" . $change_given
+              . ( scalar $input->param('confirm_writeoff') ? "&writeoff_individual=1" : "&writeoff_individual=1" )
+              . "&error_over=1" );
 
     } else {
-        my $actiontype = $cancel_item ? 'cancelfee' : 'writeoff';
-        Koha::Account->new( { patron_id => $borrowernumber } )->pay(
+        $payment_id = Koha::Account->new( { patron_id => $borrowernumber } )->pay(
             {
                 amount     => $amount,
-                lines      => [ scalar Koha::Account::Lines->find($accountlines_id) ],
-                type       => $actiontype,
+                lines      => [ Koha::Account::Lines->find($accountlines_id) ],
+                type       => 'WRITEOFF',
                 note       => $payment_note,
+                interface  => C4::Context->interface,
+                item_id    => $item_id,
                 library_id => $branch,
             }
-        );
+        )->{payment_id};
     }
 }
 
@@ -146,9 +152,28 @@ for (@names) {
     }
 }
 
+# Populate an arrayref with everything we need to display any
+# renew results that occurred based on what we were passed
+my $renew_results_display = [];
+foreach my $renew_result(@renew_results) {
+    my ($itemnumber, $success, $info) = split(/,/, $renew_result);
+    my $item = Koha::Items->find($itemnumber);
+    if ($success) {
+        $info = uri_unescape($info);
+    }
+    push @{$renew_results_display}, {
+        item => $item,
+        success => $success,
+        info => $info
+    };
+}
+
 $template->param(
-    finesview => 1,
-    checkCashRegisterFailed   => (! $checkCashRegisterOk)
+    checkCashRegisterFailed   => (! $checkCashRegisterOk),
+    finesview  => 1,
+    payment_id => $payment_id,
+    change_given => $change_given,
+    renew_results => $renew_results_display
 );
 
 add_accounts_to_template();
@@ -158,26 +183,22 @@ output_html_with_http_headers $input, $cookie, $template->output;
 sub add_accounts_to_template {
 
     my $patron = Koha::Patrons->find( $borrowernumber );
-    my $account_lines = $patron->account->outstanding_debits;
+    my $account = $patron->account;
+    my $outstanding_credits = $account->outstanding_credits;
+    my $account_lines = $account->outstanding_debits;
     my $total = $account_lines->total_outstanding;
     my @accounts;
     while ( my $account_line = $account_lines->next ) {
-        $account_line = $account_line->unblessed;
-        if ( $account_line->{itemnumber} ) {
-            my $item = Koha::Items->find( $account_line->{itemnumber} );
-            my $biblio = $item->biblio;
-            $account_line->{biblionumber} = $biblio->biblionumber;
-            $account_line->{title}        = $biblio->title;
-        }
         push @accounts, $account_line;
     }
-    borrower_add_additional_fields($patron);
 
     $template->param(
         patron   => $patron,
         accounts => \@accounts,
         total    => $total,
+        outstanding_credits => $outstanding_credits
     );
+
     return;
 
 }
@@ -206,8 +227,7 @@ sub redirect_to_paycollect {
       "/cgi-bin/koha/members/paycollect.pl?borrowernumber=$borrowernumber";
     $redirect .= q{&};
     $redirect .= "$action=1";
-    $redirect .= get_for_redirect( 'accounttype', "accounttype$line_no", 0 );
-    $redirect .= get_for_redirect( 'accounttypename', "accounttypename$line_no", 0);
+    $redirect .= get_for_redirect( 'debit_type_code', "debit_type_code$line_no", 0 );
     $redirect .= get_for_redirect( 'amount', "amount$line_no", 1 );
     $redirect .=
       get_for_redirect( 'amountoutstanding', "amountoutstanding$line_no", 1 );
@@ -217,6 +237,7 @@ sub redirect_to_paycollect {
     $redirect .= get_for_redirect( 'accountlines_id', "accountlines_id$line_no", 0 );
     $redirect .= q{&} . 'payment_note' . q{=} . uri_escape_utf8( scalar $input->param("payment_note_$line_no") );
     $redirect .= '&remote_user=';
+    $redirect .= "change_given=$change_given";
     $redirect .= $user;
     return print $input->redirect($redirect);
 }
@@ -226,7 +247,7 @@ sub writeoff_or_cancel_all {
     my @wo_lines = grep { /^accountlines_id\d+$/ } @params;
     
     my $borrowernumber = $input->param('borrowernumber');
-    my $actiontype = $input->param('woall') ? 'writeoff' : 'cancelfee';
+    my $actiontype = $input->param('woall') ? 'WRITEOFF' : 'CANCEL';
     
     for (@wo_lines) {
         if (/(\d+)/) {
@@ -238,9 +259,10 @@ sub writeoff_or_cancel_all {
             Koha::Account->new( { patron_id => $borrowernumber } )->pay(
                 {
                     amount => $amount,
-                    lines  => [ scalar Koha::Account::Lines->find($accountlines_id) ],
+                    lines  => [ Koha::Account::Lines->find($accountlines_id) ],
                     type   => $actiontype,
                     note   => $payment_note,
+                    interface  => C4::Context->interface,
                     library_id => $branch,
                     description => $description,
                 }
@@ -252,31 +274,12 @@ sub writeoff_or_cancel_all {
     return;
 }
 
-sub borrower_add_additional_fields {
-    my $patron = shift;
-
-# some borrower info is not returned in the standard call despite being assumed
-# in a number of templates. It should not be the business of this script but in lieu of
-# a revised api here it is ...
-    if ( $patron->is_child ) {
-        my $patron_categories = Koha::Patron::Categories->search_limited({ category_type => 'A' }, {order_by => ['categorycode']});
-        $template->param( 'CATCODE_MULTI' => 1) if $patron_categories->count > 1;
-        $template->param( 'catcode' => $patron_categories->next->categorycode )  if $patron_categories->count == 1;
-    }
-
-    if (C4::Context->preference('ExtendedPatronAttributes')) {
-        my $extendedattributes = GetBorrowerAttributes($patron->borrowernumber);
-        $template->param(
-            extendedattributes       => $extendedattributes,
-            ExtendedPatronAttributes => 1,
-        );
-    }
-
-    return;
-}
-
 sub payselected {
-    my @params = @_;
+    my $parameters = shift;
+
+    my @params = @{ $parameters->{params} };
+    my $type = $parameters->{type} || 'PAYMENT';
+
     my $amt    = 0;
     my @lines_to_pay;
     foreach (@params) {
@@ -291,10 +294,23 @@ sub payselected {
     my $notes = '&notes=' . join("%0A", map { scalar $input->param("payment_note_$_") } @lines_to_pay );
     my $redirect =
         "/cgi-bin/koha/members/paycollect.pl?borrowernumber=$borrowernumber"
+      . "&type=$type"
       . $amt
       . $sel
       . $notes;
 
     print $input->redirect($redirect);
+    return;
+}
+
+sub apply_credits {
+    my ($args) = @_;
+
+    my $patron = $args->{patron};
+    my $cgi    = $args->{cgi};
+
+    $patron->account->reconcile_balance();
+
+    print $cgi->redirect("/cgi-bin/koha/members/pay.pl?borrowernumber=" . $patron->borrowernumber );
     return;
 }

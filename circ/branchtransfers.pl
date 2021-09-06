@@ -39,15 +39,15 @@ use Koha::Patrons;
 ###############################################
 #  Getting state
 
-my $query = new CGI;
+my $query = CGI->new;
 
 if (!C4::Context->userenv){
 	my $sessionID = $query->cookie("CGISESSID");
     my $session;
 	$session = get_session($sessionID) if $sessionID;
-	if (!$session or $session->param('branch') eq 'NO_LIBRARY_SET'){
+    if (!$session){
 		# no branch set we can't transfer
-		print $query->redirect("/cgi-bin/koha/circ/selectbranchprinter.pl");
+        print $query->redirect("/cgi-bin/koha/circ/set-library.pl");
 		exit;
 	}
 }
@@ -59,15 +59,22 @@ my ($template, $user, $cookie, $flags ) = get_template_and_user(
         template_name   => "circ/branchtransfers.tt",
         query           => $query,
         type            => "intranet",
-        authnotrequired => 0,
         flagsrequired   => { circulate => "circulate_remaining_permissions" },
     }
 );
+
+# Check transfers is allowed from system preference
+if ( C4::Context->preference("IndependentBranchesTransfers") && !C4::Context->IsSuperLibrarian() ) {
+    print $query->redirect("/cgi-bin/koha/errors/403.pl");
+    exit;
+}
 
 my $messages;
 my $found;
 my $reserved;
 my $waiting;
+my $hold_transferred;
+my $hold_processed;
 my $reqmessage;
 my $cancelled;
 my $setwaiting;
@@ -111,64 +118,51 @@ elsif ( $request eq 'KillReserved' ) {
     } # FIXME else?
 }
 
-# collect the stack of books already transfered so they can printed...
+# collect the stack of books already transferred so they can printed...
 my @trsfitemloop;
-my $transfered;
+my $transferred;
 my $barcode = $query->param('barcode');
 # remove leading/trailing whitespace
 defined $barcode and $barcode =~ s/^\s*|\s*$//g;  # FIXME: barcodeInputFilter
 # warn "barcode : $barcode";
 if ($barcode) {
 
-    ( $transfered, $messages ) =
-      transferbook( $tobranchcd, $barcode, $ignoreRs );
+    ( $transferred, $messages ) =
+
+        transferbook({
+            from_branch => C4::Context->userenv->{'branch'},
+            to_branch => $tobranchcd,
+            barcode => $barcode,
+            ignore_reserves => $ignoreRs,
+            trigger => 'Manual'
+        });
     my $item = Koha::Items->find({ barcode => $barcode });
     $found = $messages->{'ResFound'};
-    if ($transfered) {
-        my %item;
-        my $biblio = $item->biblio;
+    if ($transferred) {
+        my %trsfitem;
         my $frbranchcd =  C4::Context->userenv->{'branch'};
-        $item{'biblionumber'}          = $item->biblionumber;
-        $item{'itemnumber'}            = $item->itemnumber;
-        $item{'title'}                 = $biblio->title;
-        $item{'author'}                = $biblio->author;
-        $item{'itemtype'}              = $biblio->biblioitem->itemtype;
-        $item{'ccode'}                 = $item->ccode;
-        $item{'itemcallnumber'}        = $item->itemcallnumber;
-        my $av = Koha::AuthorisedValues->search({ category => 'LOC', authorised_value => $item->location });
-        $item{'location'}              = $av->count ? $av->next->lib : '';
-        $item{counter}  = 0;
-        $item{barcode}  = $barcode;
-        $item{frombrcd} = $frbranchcd;
-        $item{tobrcd}   = $tobranchcd;
-        push( @trsfitemloop, \%item );
+        $trsfitem{item}     = $item;
+        $trsfitem{counter}  = 0;
+        $trsfitem{frombrcd} = $frbranchcd;
+        $trsfitem{tobrcd}   = $tobranchcd;
+        push( @trsfitemloop, \%trsfitem );
     }
 }
 
 foreach ( $query->param ) {
     (next) unless (/bc-(\d*)/);
     my $counter = $1;
-    my %item;
+    my %trsfitem;
     my $bc    = $query->param("bc-$counter");
     my $frbcd = $query->param("fb-$counter");
     my $tobcd = $query->param("tb-$counter");
     $counter++;
-    $item{counter}  = $counter;
-    $item{barcode}  = $bc;
-    $item{frombrcd} = $frbcd;
-    $item{tobrcd}   = $tobcd;
+    $trsfitem{counter}  = $counter;
+    $trsfitem{frombrcd} = $frbcd;
+    $trsfitem{tobrcd}   = $tobcd;
     my $item = Koha::Items->find({ barcode => $bc });
-    my $biblio = $item->biblio;
-    $item{'biblionumber'}          = $item->biblionumber;
-    $item{'itemnumber'}            = $item->itemnumber;
-    $item{'title'}                 = $biblio->title;
-    $item{'author'}                = $biblio->author;
-    $item{'itemtype'}              = $biblio->biblioitem->itemtype;
-    $item{'ccode'}                 = $item->ccode;
-    $item{'itemcallnumber'}        = $item->itemcallnumber;
-    my $av = Koha::AuthorisedValues->search({ category => 'LOC', authorised_value => $item->location });
-    $item{'location'}              = $av->count ? $av->next->lib : '';
-    push( @trsfitemloop, \%item );
+    $trsfitem{item}     = $item;
+    push( @trsfitemloop, \%trsfitem );
 }
 
 my $itemnumber;
@@ -179,11 +173,15 @@ my $biblionumber;
 if ($found) {
     my $res = $messages->{'ResFound'};
     $itemnumber = $res->{'itemnumber'};
+    $borrowernumber = $res->{'borrowernumber'};
 
     if ( $res->{'ResFound'} eq "Waiting" ) {
         $waiting = 1;
-    }
-    elsif ( $res->{'ResFound'} eq "Reserved" ) {
+    } elsif ( $res->{'ResFound'} eq "Transferred" ) {
+        $hold_transferred = 1;
+    } elsif ( $res->{'ResFound'} eq "Processing" ) {
+        $hold_processed = 1;
+    } elsif ( $res->{'ResFound'} eq "Reserved" ) {
         $reserved  = 1;
         $biblionumber = $res->{'biblionumber'};
     }
@@ -220,10 +218,13 @@ foreach my $code ( keys %$messages ) {
 
 # use Data::Dumper;
 # warn "FINAL ============= ".Dumper(@trsfitemloop);
+
 $template->param(
     found                   => $found,
     reserved                => $reserved,
     waiting                 => $waiting,
+    transferred             => $hold_transferred,
+    processing              => $hold_processed,
     borrowernumber          => $borrowernumber,
     itemnumber              => $itemnumber,
     barcode                 => $barcode,
@@ -234,7 +235,7 @@ $template->param(
     setwaiting              => $setwaiting,
     trsfitemloop            => \@trsfitemloop,
     errmsgloop              => \@errmsgloop,
-    CircAutocompl           => C4::Context->preference("CircAutocompl")
+    PatronAutoComplete    => C4::Context->preference("PatronAutoComplete"),
 );
 
 # Checking if there is a Fast Cataloging Framework

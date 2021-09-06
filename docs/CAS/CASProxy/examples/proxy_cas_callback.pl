@@ -33,7 +33,7 @@ use Storable qw(nstore_fd);
 my $casServerUrl = 'https://localhost:8443/cas/';
 my $cas = Authen::CAS::Client->new($casServerUrl);
 
-my $cgi = new CGI;
+my $cgi = CGI->new;
 
 my $proxy_service = $cgi->url;
 
@@ -49,9 +49,9 @@ if ($cgi->param('pgtId')) {
 
     # Now we store the pgtIou and the pgtId in the application vars (in our case a storable object in a file), 
     # so that the page requesting the webservice can retrieve the pgtId matching it's PgtIou 
-    open FILE, ">", "casSession.tmp" or die "Unable to open file";
-    nstore_fd({$pgtIou => $pgtId}, \*FILE);
-    close FILE;
+    open my $fh, ">", "casSession.tmp" or die "Unable to open file";
+    nstore_fd({$pgtIou => $pgtId}, $fh);
+    close $fh;
 
 } else {
     warn "Failed to get a Proxy Ticket\n";

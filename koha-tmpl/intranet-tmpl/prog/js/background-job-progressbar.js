@@ -42,7 +42,7 @@ function submitBackgroundJob(f) {
 
         // gather up form submission
         var inputs = [];
-        $(':input', f).each(function() {
+        $(':input:enabled', f).each(function() {
             if (this.type == 'radio' || this.type == 'checkbox') {
                 if (this.checked) {
                     inputs.push(this.name + '=' + encodeURIComponent(this.value));
@@ -69,7 +69,7 @@ function submitBackgroundJob(f) {
                 backgroundJobProgressTimer = setInterval("updateJobProgress()", 500);
             },
             error: function(xml, textStatus) {
-                alert('Failed to submit form: ' + textStatus);
+                humanMsg.displayMsg( '<p>' + _('Import of record(s) failed: ') + textStatus + '</p></br>'+xml.responseText, { className: 'humanError' } );
             }
 
         });

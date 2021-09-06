@@ -29,10 +29,14 @@ __PACKAGE__->table("import_batches");
   is_auto_increment: 1
   is_nullable: 0
 
+unique identifier and primary key
+
 =head2 matcher_id
 
   data_type: 'integer'
   is_nullable: 1
+
+the id of the match rule used (matchpoints.matcher_id)
 
 =head2 template_id
 
@@ -51,11 +55,15 @@ __PACKAGE__->table("import_batches");
   default_value: 0
   is_nullable: 0
 
+number of records in the file
+
 =head2 num_items
 
   data_type: 'integer'
   default_value: 0
   is_nullable: 0
+
+number of items in the file
 
 =head2 upload_timestamp
 
@@ -64,12 +72,16 @@ __PACKAGE__->table("import_batches");
   default_value: current_timestamp
   is_nullable: 0
 
+date and time the file was uploaded
+
 =head2 overlay_action
 
   data_type: 'enum'
   default_value: 'create_new'
   extra: {list => ["replace","create_new","use_template","ignore"]}
   is_nullable: 0
+
+how to handle duplicate records
 
 =head2 nomatch_action
 
@@ -78,12 +90,16 @@ __PACKAGE__->table("import_batches");
   extra: {list => ["create_new","ignore"]}
   is_nullable: 0
 
+how to handle records where no match is found
+
 =head2 item_action
 
   data_type: 'enum'
   default_value: 'always_add'
   extra: {list => ["always_add","add_only_for_matches","add_only_for_new","ignore","replace"]}
   is_nullable: 0
+
+what to do with item records
 
 =head2 import_status
 
@@ -92,12 +108,16 @@ __PACKAGE__->table("import_batches");
   extra: {list => ["staging","staged","importing","imported","reverting","reverted","cleaned"]}
   is_nullable: 0
 
+the status of the imported file
+
 =head2 batch_type
 
   data_type: 'enum'
   default_value: 'batch'
   extra: {list => ["batch","z3950","webservice"]}
   is_nullable: 0
+
+where this batch has come from
 
 =head2 record_type
 
@@ -106,15 +126,27 @@ __PACKAGE__->table("import_batches");
   extra: {list => ["biblio","auth","holdings"]}
   is_nullable: 0
 
+type of record in the batch
+
 =head2 file_name
 
   data_type: 'varchar'
   is_nullable: 1
   size: 100
 
+the name of the file uploaded
+
 =head2 comments
 
   data_type: 'longtext'
+  is_nullable: 1
+
+any comments added when the file was uploaded
+
+=head2 profile_id
+
+  data_type: 'integer'
+  is_foreign_key: 1
   is_nullable: 1
 
 =cut
@@ -203,6 +235,8 @@ __PACKAGE__->add_columns(
   { data_type => "varchar", is_nullable => 1, size => 100 },
   "comments",
   { data_type => "longtext", is_nullable => 1 },
+  "profile_id",
+  { data_type => "integer", is_foreign_key => 1, is_nullable => 1 },
 );
 
 =head1 PRIMARY KEY
@@ -234,10 +268,48 @@ __PACKAGE__->has_many(
   { cascade_copy => 0, cascade_delete => 0 },
 );
 
+=head2 profile
 
-# Created by DBIx::Class::Schema::Loader v0.07042 @ 2018-02-16 17:54:53
-# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:41giNJCRD9WXC4IGO/1D3A
+Type: belongs_to
+
+Related object: L<Koha::Schema::Result::ImportBatchProfile>
+
+=cut
+
+__PACKAGE__->belongs_to(
+  "profile",
+  "Koha::Schema::Result::ImportBatchProfile",
+  { id => "profile_id" },
+  {
+    is_deferrable => 1,
+    join_type     => "LEFT",
+    on_delete     => "SET NULL",
+    on_update     => "SET NULL",
+  },
+);
 
 
-# You can replace this text with custom content, and it will be preserved on regeneration
+# Created by DBIx::Class::Schema::Loader v0.07049 @ 2021-01-21 13:39:29
+# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:+/u1tQQzT5ygzGwVgWxxwg
+
+=head2 koha_object_class
+
+  Koha Object class
+
+=cut
+
+sub koha_object_class {
+    'Koha::ImportBatch';
+}
+
+=head2 koha_objects_class
+
+  Koha Objects class
+
+=cut
+
+sub koha_objects_class {
+    'Koha::ImportBatches';
+}
+
 1;

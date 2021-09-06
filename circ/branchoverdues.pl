@@ -31,19 +31,20 @@ use Data::Dumper;
 
 =head1 branchoverdues.pl
 
- this module is a new interface, allow to the librarian to check all items on overdues (based on the acountlines type 'FU' )
- this interface is filtered by branches (automatically), and by location (optional) ....
+This view is used to display all overdue items to the librarian.
+
+It is automatically filtered by branch and can optionally be filtered
+by item location.
 
 =cut
 
-my $input       = new CGI;
+my $input       = CGI->new;
 my $dbh = C4::Context->dbh;
 
 my ( $template, $loggedinuser, $cookie, $flags ) = get_template_and_user({
         template_name   => "circ/branchoverdues.tt",
         query           => $input,
         type            => "intranet",
-        authnotrequired => 0,
         flagsrequired   => { circulate => "circulate_remaining_permissions" },
         debug           => 1,
 });
@@ -64,23 +65,23 @@ my @overduesloop;
 my @getoverdues = GetOverduesForBranch( $default, $location );
 $debug and warn "HERE : $default / $location" . Dumper(@getoverdues);
 # search for location authorised value
-my ($tag,$subfield) = GetMarcFromKohaField('items.location','');
+my ($tag,$subfield) = GetMarcFromKohaField( 'items.location' );
 my $tagslib = &GetMarcStructure(1,'');
 if ($tagslib->{$tag}->{$subfield}->{authorised_value}) {
     my $values= GetAuthorisedValues($tagslib->{$tag}->{$subfield}->{authorised_value});
-    for (@$values) { $_->{selected} = 1 if $location eq $_->{authorised_value} }
+    for (@$values) { $_->{selected} = 1 if defined $location && $location eq $_->{authorised_value} }
     $template->param(locationsloop => $values);
 }
 # now display infos
 foreach my $num (@getoverdues) {
     my %overdueforbranch;
-    my $record = GetMarcBiblio({ biblionumber => $num->{biblionumber} });
-    if ($record){
-        $overdueforbranch{'subtitle'} = GetRecordValue('subtitle',$record,'')->[0]->{subfield};
-    }
     my $dt = dt_from_string($num->{date_due}, 'sql');
     $overdueforbranch{'date_due'}          = output_pref($dt);
     $overdueforbranch{'title'}             = $num->{'title'};
+    $overdueforbranch{'subtitle'}          = $num->{'subtitle'};
+    $overdueforbranch{'medium'}            = $num->{'medium'};
+    $overdueforbranch{'part_number'}       = $num->{'part_number'};
+    $overdueforbranch{'part_name'}         = $num->{'part_name'};
     $overdueforbranch{'description'}       = $num->{'description'};
     $overdueforbranch{'barcode'}           = $num->{'barcode'};
     $overdueforbranch{'biblionumber'}      = $num->{'biblionumber'};

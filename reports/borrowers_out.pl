@@ -41,7 +41,7 @@ Plugin that shows a stats on borrowers
 
 =cut
 
-my $input = new CGI;
+my $input = CGI->new;
 my $do_it=$input->param('do_it');
 my $fullreportname = "reports/borrowers_out.tt";
 my $limit = $input->param("Limit");
@@ -58,7 +58,6 @@ my ($template, $borrowernumber, $cookie)
     = get_template_and_user({template_name => $fullreportname,
                 query => $input,
                 type => "intranet",
-                authnotrequired => 0,
                 flagsrequired => {reports => '*'},
                 debug => 1,
                 });
@@ -110,15 +109,11 @@ if ($do_it) {
 # Displaying choices
 } else {
     my $dbh = C4::Context->dbh;
-    my @values;
-    my %labels;
-    my %select;
-    my $req;
-    
+
     my $CGIextChoice = ( 'CSV' ); # FIXME translation
 	my $CGIsepChoice = GetDelimiterChoices;
 
-    my $patron_categories = Koha::Patron::Categories->search_limited({}, {order_by => ['categorycode']});
+    my $patron_categories = Koha::Patron::Categories->search_with_library_limits({}, {order_by => ['categorycode']});
     $template->param(
                     CGIextChoice => $CGIextChoice,
                     CGIsepChoice => $CGIsepChoice,
@@ -133,7 +128,6 @@ sub calculate {
     my @mainloop;
     my @loopfooter;
     my @loopcol;
-    my @loopline;
     my @looprow;
     my %globalline;
     my $grantotal =0;

@@ -26,11 +26,10 @@
       <command>koha-create</command>
       <arg choice="req"><option>--create-db</option>|<option>--request-db</option>|<option>--populate-db</option>|<option>--use-db</option></arg>
       <arg><option>--marcflavor</option> marc21|normarc|unimarc</arg>
-      <arg><option>--zebralang</option> en|es|fr|gr|nb|ru|uk</arg>
-      <arg><option>--auth-idx</option> dom|grs1</arg>
-      <arg><option>--biblio-idx</option> dom|grs1</arg>
+      <arg><option>--zebralang</option> el|en|es|fr|nb|ru|uk</arg>
       <arg><option>--memcached-servers</option> server:port</arg>
       <arg><option>--memcached-prefix</option> namespace_prefix</arg>
+      <arg><option>--elasticsearch-server</option> server:port</arg>
       <arg><option>--defaultsql</option> /path/to/some.sql</arg>
       <arg><option>--configfile</option> /path/to/config</arg>
       <arg><option>--passwdfile</option> /path/to/passwd</arg>
@@ -44,6 +43,18 @@
       <arg><option>--upload-path</option> directory</arg>
       <arg><option>--tmp-path</option> directory</arg>
       <arg><option>--letsencrypt</option></arg>
+      <arg><option>--smtp-host</option> host</arg>
+      <arg><option>--smtp-port</option> port</arg>
+      <arg><option>--smtp-timeout</option> n</arg>
+      <arg><option>--smtp-ssl-mode</option> disabled|ssl|starttls</arg>
+      <arg><option>--smtp-user-name</option> user</arg>
+      <arg><option>--smtp-password</option>  pass</arg>
+      <arg><option>--smtp-debug</option></arg>
+      <arg><option>--mb-host</option> host</arg>
+      <arg><option>--mb-port</option> port</arg>
+      <arg><option>--mb-user</option> user</arg>
+      <arg><option>--mb-pass</option> pass</arg>
+      <arg><option>--mb-vhost</option> vhost</arg>
       <arg><option>--help</option>|<option>-h</option></arg>
 
       <arg choice="req" rep="norepeat"><replaceable>instancename</replaceable></arg>
@@ -138,20 +149,6 @@
     </varlistentry>
 
     <varlistentry>
-      <term><option>--auth-idx</option></term>
-      <listitem>
-        <para>Specified the desired indexing mode for authority records. Valid options are <option>dom</option> (default) and <option>grs1</option>.</para>
-      </listitem>
-    </varlistentry>
-
-    <varlistentry>
-      <term><option>--biblio-idx</option></term>
-      <listitem>
-        <para>Specified the desired indexing mode for bibliographic records. Valid options are <option>dom</option> (default) and <option>grs1</option>.</para>
-      </listitem>
-    </varlistentry>
-
-    <varlistentry>
       <term><option>--memcached-servers</option></term>
       <listitem>
         <para>Specify a comma-separated list of host:port memcached servers for using with the created Koha instance. Defaults to <option>127.0.0.1:11211</option>, the needed configuration for a locally installed memcached server.</para>
@@ -162,6 +159,13 @@
       <term><option>--memcached-prefix</option></term>
       <listitem>
         <para>Specifiy a <option>namespace prefix</option> for memcached. You usually leave this option alone to avoid namespace collisions. It defaults to <option>koha_</option>.</para>
+      </listitem>
+    </varlistentry>
+
+    <varlistentry>
+      <term><option>--elasticsearch-server</option></term>
+      <listitem>
+        <para>Specifiy a <option>server:port</option> Elasticsearch server configuration. It defaults to <option>localhost:9200</option>.</para>
       </listitem>
     </varlistentry>
 
@@ -218,6 +222,90 @@
     </varlistentry>
 
     <varlistentry>
+      <term><option>--smtp-host</option></term>
+      <listitem>
+        <para>Specify the SMTP server <option>hostname</option>. (default: localhost)</para>
+      </listitem>
+    </varlistentry>
+
+    <varlistentry>
+      <term><option>--smtp-port</option></term>
+      <listitem>
+        <para>Specify the SMTP server <option>port</option>. (default: 25)</para>
+      </listitem>
+    </varlistentry>
+
+    <varlistentry>
+      <term><option>--smtp-timeout</option></term>
+      <listitem>
+        <para>Timeout for outbound SMTP connections. (default: 120)</para>
+      </listitem>
+    </varlistentry>
+
+    <varlistentry>
+      <term><option>--smtp-ssl-mode</option></term>
+      <listitem>
+        <para>Set the SSL mode. Options are <option>disabled</option> (default), <option>ssl</option> and <option>starttls</option>.</para>
+      </listitem>
+    </varlistentry>
+
+    <varlistentry>
+      <term><option>--smtp-user-name</option></term>
+      <listitem>
+        <para>Specify the user name to use for SMTP. (default: empty)</para>
+      </listitem>
+    </varlistentry>
+
+    <varlistentry>
+      <term><option>--smtp-password</option></term>
+      <listitem>
+        <para>Specify the password for SMTP. (default: empty)</para>
+      </listitem>
+    </varlistentry>
+
+    <varlistentry>
+      <term><option>--smtp-debug</option></term>
+      <listitem>
+        <para>Enable debug mode.</para>
+      </listitem>
+    </varlistentry>
+
+    <varlistentry>
+      <term><option>--mb-host</option></term>
+      <listitem>
+        <para>Specify the host name for the RabbitMQ server. (default: localhost)</para>
+      </listitem>
+    </varlistentry>
+
+    <varlistentry>
+      <term><option>--mb-port</option></term>
+      <listitem>
+        <para>Specify the port for the RabbitMQ server. (default: 61613)</para>
+      </listitem>
+    </varlistentry>
+
+    <varlistentry>
+      <term><option>--mb-user</option></term>
+      <listitem>
+        <para>Specify the user to connect to the RabbitMQ server. (default: guest)</para>
+      </listitem>
+    </varlistentry>
+
+    <varlistentry>
+      <term><option>--mb-pass</option></term>
+      <listitem>
+        <para>Specify the password to connect to the RabbitMQ server. (default: guest)</para>
+      </listitem>
+    </varlistentry>
+
+    <varlistentry>
+      <term><option>--mb-vhost</option></term>
+      <listitem>
+        <para>Specify the vhost to use on the RabbitMQ service. (default: koha_instance)</para>
+      </listitem>
+    </varlistentry>
+
+    <varlistentry>
       <term><option>--help</option>,<option>-h</option></term>
       <listitem>
         <para>Print usage information.</para>
@@ -232,7 +320,7 @@
     <para><command>koha-create</command>  creates  a new Koha instance.  It is meant for a site that provides Koha hosting, and serves several sites from the same host.</para>
     <para>The name of the instance is used as the domain name  for  Apache,  Unix user and group names, and MySQL username and database names are derived from it.  Unix user and group are named instance-koha. MySQL username is koha_instance, and database is koha_instance.</para>
     <para>The Unix user has logins disabled.  The password for MySQL is generated randomly, and printed to the terminal.</para>
-    <para>The instance name is used as the domain name (ServerName)  for  Apache. The public catalogue (OPAC), for library customers, is on port 80.  The staff client interface is configured similarly, depending on the settings in <filename>/etc/koha/koha-sites.conf</filename> or alternate config file.</para>
+    <para>The instance name is used as the domain name (ServerName)  for  Apache. The public catalogue (OPAC), for library customers, is on port 80.  The staff interface is configured similarly, depending on the settings in <filename>/etc/koha/koha-sites.conf</filename> or alternate config file.</para>
     <para>After  the  Koha  instance  is created, it is ready to be used, but the librarian needs to log in via the intranet and configure things.</para>
     <para>Several configuration variables are available for adjusting this behavior. The variables are put into <filename>/etc/koha/koha-sites.conf</filename>. The following variables are obeyed:</para>
     

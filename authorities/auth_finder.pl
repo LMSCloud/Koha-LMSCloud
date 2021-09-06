@@ -18,8 +18,7 @@
 # You should have received a copy of the GNU General Public License
 # along with Koha; if not, see <http://www.gnu.org/licenses>.
 
-use strict;
-use warnings;
+use Modern::Perl;
 
 use CGI qw ( -utf8 );
 use C4::Output;
@@ -32,7 +31,7 @@ use Koha::SearchEngine::QueryBuilder;
 
 use Koha::Authority::Types;
 
-my $query        = new CGI;
+my $query        = CGI->new;
 my $op           = $query->param('op') || '';
 my $authtypecode = $query->param('authtypecode') || '';
 my $index        = $query->param('index') || '';
@@ -47,7 +46,6 @@ my ( $template, $loggedinuser, $cookie ) = get_template_and_user(
         : 'authorities/auth_finder.tt',
         query           => $query,
         type            => 'intranet',
-        authnotrequired => 0,
         flagsrequired   => { catalogue => 1 },
     }
 );
@@ -78,6 +76,7 @@ if ( $op eq "do_search" ) {
         \@marclist, \@and_or, \@excluding, \@operator,
         \@value, $authtypecode, $orderby
     );
+    $template->param( search_query => $search_query ) if C4::Context->preference('DumpSearchQueryTemplate');
     my $offset = $startfrom * $resultsperpage;
     my ( $results, $total ) =
         $searcher->search_auth_compat( $search_query, $offset,

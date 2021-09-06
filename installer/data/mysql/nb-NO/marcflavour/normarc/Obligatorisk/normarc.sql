@@ -2,18 +2,18 @@
 --
 -- Copyright 2012 Magnus Enger Libriotech
 --
--- Koha is free software; you can redistribute it and/or modify it under the
--- terms of the GNU General Public License as published by the Free Software
--- Foundation; either version 2 of the License, or (at your option) any later
--- version.
+-- Koha is free software; you can redistribute it and/or modify it
+-- under the terms of the GNU General Public License as published by
+-- the Free Software Foundation; either version 3 of the License, or
+-- (at your option) any later version.
 --
--- Koha is distributed in the hope that it will be useful, but WITHOUT ANY
--- WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
--- A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+-- Koha is distributed in the hope that it will be useful, but
+-- WITHOUT ANY WARRANTY; without even the implied warranty of
+-- MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+-- GNU General Public License for more details.
 --
--- You should have received a copy of the GNU General Public License along
--- with this program; if not, write to the Free Software Foundation, Inc.,
--- 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+-- You should have received a copy of the GNU General Public License
+-- along with Koha; if not, see <http://www.gnu.org/licenses>.
 
 DELETE FROM marc_tag_structure WHERE frameworkcode='';
 INSERT INTO marc_tag_structure (tagfield,liblibrarian,libopac,repeatable,mandatory,authorised_value,frameworkcode) VALUES ('000','Postens hode','Postens hode','0','1','','');
@@ -263,11 +263,11 @@ INSERT INTO marc_subfield_structure (tagfield,tagsubfield,liblibrarian,libopac,r
 INSERT INTO marc_subfield_structure (tagfield,tagsubfield,liblibrarian,libopac,repeatable,mandatory,kohafield,tab,authorised_value,authtypecode,value_builder,isurl,hidden,frameworkcode,seealso,link,defaultvalue,maxlength) VALUES ('240','s','Versjon','Versjon','0','0','0','2','','','','0','-1','','','',NULL,'9999');
 INSERT INTO marc_subfield_structure (tagfield,tagsubfield,liblibrarian,libopac,repeatable,mandatory,kohafield,tab,authorised_value,authtypecode,value_builder,isurl,hidden,frameworkcode,seealso,link,defaultvalue,maxlength) VALUES ('240','w','Sorteringsdelfelt for delfelt $a','Sorteringsdelfelt for delfelt $a','0','0','0','2','','','','0','-1','','','',NULL,'9999');
 INSERT INTO marc_subfield_structure (tagfield,tagsubfield,liblibrarian,libopac,repeatable,mandatory,kohafield,tab,authorised_value,authtypecode,value_builder,isurl,hidden,frameworkcode,seealso,link,defaultvalue,maxlength) VALUES ('245','a','Tittel','Tittel','0','0','biblio.title','2','','','','0','0','','','',NULL,'9999');
-INSERT INTO marc_subfield_structure (tagfield,tagsubfield,liblibrarian,libopac,repeatable,mandatory,kohafield,tab,authorised_value,authtypecode,value_builder,isurl,hidden,frameworkcode,seealso,link,defaultvalue,maxlength) VALUES ('245','b','Annen tittelinformasjon','Annen tittelinformasjon','0','0','bibliosubtitle.subtitle','2','','','','0','0','','','',NULL,'9999');
+INSERT INTO marc_subfield_structure (tagfield,tagsubfield,liblibrarian,libopac,repeatable,mandatory,kohafield,tab,authorised_value,authtypecode,value_builder,isurl,hidden,frameworkcode,seealso,link,defaultvalue,maxlength) VALUES ('245','b','Annen tittelinformasjon','Annen tittelinformasjon','0','0','biblio.subtitle','2','','','','0','0','','','',NULL,'9999');
 INSERT INTO marc_subfield_structure (tagfield,tagsubfield,liblibrarian,libopac,repeatable,mandatory,kohafield,tab,authorised_value,authtypecode,value_builder,isurl,hidden,frameworkcode,seealso,link,defaultvalue,maxlength) VALUES ('245','c','Ansvarsangivelse','Ansvarsangivelse','0','0','0','2','','','','0','0','','','',NULL,'9999');
 INSERT INTO marc_subfield_structure (tagfield,tagsubfield,liblibrarian,libopac,repeatable,mandatory,kohafield,tab,authorised_value,authtypecode,value_builder,isurl,hidden,frameworkcode,seealso,link,defaultvalue,maxlength) VALUES ('245','h','Generell materialbetegnelse','Generell materialbetegnelse','0','0','0','2','','','','0','0','','','',NULL,'9999');
-INSERT INTO marc_subfield_structure (tagfield,tagsubfield,liblibrarian,libopac,repeatable,mandatory,kohafield,tab,authorised_value,authtypecode,value_builder,isurl,hidden,frameworkcode,seealso,link,defaultvalue,maxlength) VALUES ('245','n','Nummer for del av verk','Nummer for del av verk','0','0','0','2','','','','0','0','','','',NULL,'9999');
-INSERT INTO marc_subfield_structure (tagfield,tagsubfield,liblibrarian,libopac,repeatable,mandatory,kohafield,tab,authorised_value,authtypecode,value_builder,isurl,hidden,frameworkcode,seealso,link,defaultvalue,maxlength) VALUES ('245','p','Tittel for del av verk','Tittel for del av verk','0','0','0','2','','','','0','0','','','',NULL,'9999');
+INSERT INTO marc_subfield_structure (tagfield,tagsubfield,liblibrarian,libopac,repeatable,mandatory,kohafield,tab,authorised_value,authtypecode,value_builder,isurl,hidden,frameworkcode,seealso,link,defaultvalue,maxlength) VALUES ('245','n','Nummer for del av verk','Nummer for del av verk','0','0','biblio.part_number','2','','','','0','0','','','',NULL,'9999');
+INSERT INTO marc_subfield_structure (tagfield,tagsubfield,liblibrarian,libopac,repeatable,mandatory,kohafield,tab,authorised_value,authtypecode,value_builder,isurl,hidden,frameworkcode,seealso,link,defaultvalue,maxlength) VALUES ('245','p','Tittel for del av verk','Tittel for del av verk','0','0','biblio.part_name','2','','','','0','0','','','',NULL,'9999');
 INSERT INTO marc_subfield_structure (tagfield,tagsubfield,liblibrarian,libopac,repeatable,mandatory,kohafield,tab,authorised_value,authtypecode,value_builder,isurl,hidden,frameworkcode,seealso,link,defaultvalue,maxlength) VALUES ('245','w','Sorteringsdelfelt for delfelt $a','Sorteringsdelfelt for delfelt $a','0','0','0','2','','','','0','0','','','',NULL,'9999');
 INSERT INTO marc_subfield_structure (tagfield,tagsubfield,liblibrarian,libopac,repeatable,mandatory,kohafield,tab,authorised_value,authtypecode,value_builder,isurl,hidden,frameworkcode,seealso,link,defaultvalue,maxlength) VALUES ('246','a','Parallelltittel','Parallelltittel','0','0','0','2','','','','0','-1','','','',NULL,'9999');
 INSERT INTO marc_subfield_structure (tagfield,tagsubfield,liblibrarian,libopac,repeatable,mandatory,kohafield,tab,authorised_value,authtypecode,value_builder,isurl,hidden,frameworkcode,seealso,link,defaultvalue,maxlength) VALUES ('246','b','Annen tittelinformasjon','Annen tittelinformasjon','0','0','0','2','','','','0','-1','','','',NULL,'9999');
@@ -320,7 +320,7 @@ INSERT INTO marc_subfield_structure (tagfield,tagsubfield,liblibrarian,libopac,r
 INSERT INTO marc_subfield_structure (tagfield,tagsubfield,liblibrarian,libopac,repeatable,mandatory,kohafield,tab,authorised_value,authtypecode,value_builder,isurl,hidden,frameworkcode,seealso,link,defaultvalue,maxlength) VALUES ('440','w','Sorteringsdelfelt for delfelt $a','Sorteringsdelfelt for delfelt $a','0','0','0','4','','','','0','-1','','','',NULL,'9999');
 INSERT INTO marc_subfield_structure (tagfield,tagsubfield,liblibrarian,libopac,repeatable,mandatory,kohafield,tab,authorised_value,authtypecode,value_builder,isurl,hidden,frameworkcode,seealso,link,defaultvalue,maxlength) VALUES ('440','x','ISSN','ISSN','0','0','0','4','','','','0','-1','','','',NULL,'9999');
 INSERT INTO marc_subfield_structure (tagfield,tagsubfield,liblibrarian,libopac,repeatable,mandatory,kohafield,tab,authorised_value,authtypecode,value_builder,isurl,hidden,frameworkcode,seealso,link,defaultvalue,maxlength) VALUES ('440','y','Nummerering i underserien','Nummerering i underserien','0','0','0','4','','','','0','-1','','','',NULL,'9999');
-INSERT INTO marc_subfield_structure (tagfield,tagsubfield,liblibrarian,libopac,repeatable,mandatory,kohafield,tab,authorised_value,authtypecode,value_builder,isurl,hidden,frameworkcode,seealso,link,defaultvalue,maxlength) VALUES ('490','a','Serietittel','Serietittel','0','0','0','4','','','','0','-1','','','',NULL,'9999');
+INSERT INTO marc_subfield_structure (tagfield,tagsubfield,liblibrarian,libopac,repeatable,mandatory,kohafield,tab,authorised_value,authtypecode,value_builder,isurl,hidden,frameworkcode,seealso,link,defaultvalue,maxlength) VALUES ('490','a','Serietittel','Serietittel','0','0','biblioitems.seriestitle','4','','','','0','-1','','','',NULL,'9999');
 INSERT INTO marc_subfield_structure (tagfield,tagsubfield,liblibrarian,libopac,repeatable,mandatory,kohafield,tab,authorised_value,authtypecode,value_builder,isurl,hidden,frameworkcode,seealso,link,defaultvalue,maxlength) VALUES ('500','a','Notens tekst','Notens tekst','0','0','biblio.notes','5','','','','0','0','','','',NULL,'9999');
 INSERT INTO marc_subfield_structure (tagfield,tagsubfield,liblibrarian,libopac,repeatable,mandatory,kohafield,tab,authorised_value,authtypecode,value_builder,isurl,hidden,frameworkcode,seealso,link,defaultvalue,maxlength) VALUES ('501','a','Notens tekst','Notens tekst','0','0','0','5','','','','0','-1','','','',NULL,'9999');
 INSERT INTO marc_subfield_structure (tagfield,tagsubfield,liblibrarian,libopac,repeatable,mandatory,kohafield,tab,authorised_value,authtypecode,value_builder,isurl,hidden,frameworkcode,seealso,link,defaultvalue,maxlength) VALUES ('502','a','Notens tekst','Notens tekst','0','0','0','5','','','','0','-1','','','',NULL,'9999');
@@ -448,7 +448,7 @@ INSERT INTO marc_subfield_structure (tagfield,tagsubfield,liblibrarian,libopac,r
 INSERT INTO marc_subfield_structure (tagfield,tagsubfield,liblibrarian,libopac,repeatable,mandatory,kohafield,tab,authorised_value,authtypecode,value_builder,isurl,hidden,frameworkcode,seealso,link,defaultvalue,maxlength) VALUES ('650','2','Kilde for emneinnførselen','Kilde for emneinnførselen','0','0','0','6','','','','0','-1','','','',NULL,'9999');
 INSERT INTO marc_subfield_structure (tagfield,tagsubfield,liblibrarian,libopac,repeatable,mandatory,kohafield,tab,authorised_value,authtypecode,value_builder,isurl,hidden,frameworkcode,seealso,link,defaultvalue,maxlength) VALUES ('650','7','Del av dokumentet som emneinnførselen gjelder','Del av dokumentet som emneinnførselen gjelder','0','0','0','6','','','','0','-1','','','',NULL,'9999');
 INSERT INTO marc_subfield_structure (tagfield,tagsubfield,liblibrarian,libopac,repeatable,mandatory,kohafield,tab,authorised_value,authtypecode,value_builder,isurl,hidden,frameworkcode,seealso,link,defaultvalue,maxlength) VALUES ('650','9','Språk eller språkform','Språk eller språkform','0','0','0','6','','','','0','-1','','','',NULL,'9999');
-INSERT INTO marc_subfield_structure (tagfield,tagsubfield,liblibrarian,libopac,repeatable,mandatory,kohafield,tab,authorised_value,authtypecode,value_builder,isurl,hidden,frameworkcode,seealso,link,defaultvalue,maxlength) VALUES ('650','a','Emneord','Emneord','0','0','bibliosubject.subject','6','','','','0','-1','','','',NULL,'9999');
+INSERT INTO marc_subfield_structure (tagfield,tagsubfield,liblibrarian,libopac,repeatable,mandatory,kohafield,tab,authorised_value,authtypecode,value_builder,isurl,hidden,frameworkcode,seealso,link,defaultvalue,maxlength) VALUES ('650','a','Emneord','Emneord','0','0',NULL,'6','','','','0','-1','','','',NULL,'9999');
 INSERT INTO marc_subfield_structure (tagfield,tagsubfield,liblibrarian,libopac,repeatable,mandatory,kohafield,tab,authorised_value,authtypecode,value_builder,isurl,hidden,frameworkcode,seealso,link,defaultvalue,maxlength) VALUES ('650','c','Aktive datoer','Aktive datoer','0','0','0','6','','','','0','-1','','','',NULL,'9999');
 INSERT INTO marc_subfield_structure (tagfield,tagsubfield,liblibrarian,libopac,repeatable,mandatory,kohafield,tab,authorised_value,authtypecode,value_builder,isurl,hidden,frameworkcode,seealso,link,defaultvalue,maxlength) VALUES ('650','d','Sted','Sted','0','0','0','6','','','','0','-1','','','',NULL,'9999');
 INSERT INTO marc_subfield_structure (tagfield,tagsubfield,liblibrarian,libopac,repeatable,mandatory,kohafield,tab,authorised_value,authtypecode,value_builder,isurl,hidden,frameworkcode,seealso,link,defaultvalue,maxlength) VALUES ('650','q','Forklarende tilføyelser','Forklarende tilføyelser','0','0','0','6','','','','0','-1','','','',NULL,'9999');

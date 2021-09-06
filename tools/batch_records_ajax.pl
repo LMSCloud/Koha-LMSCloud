@@ -5,18 +5,18 @@
 #
 # This file is part of Koha.
 #
-# Koha is free software; you can redistribute it and/or modify it under the
-# terms of the GNU General Public License as published by the Free Software
-# Foundation; either version 3 of the License, or (at your option) any later
-# version.
+# Koha is free software; you can redistribute it and/or modify it
+# under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 3 of the License, or
+# (at your option) any later version.
 #
-# Koha is distributed in the hope that it will be useful, but WITHOUT ANY
-# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
-# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+# Koha is distributed in the hope that it will be useful, but
+# WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+# GNU General Public License for more details.
 #
-# You should have received a copy of the GNU General Public License along
-# with Koha; if not, write to the Free Software Foundation, Inc.,
-# 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+# You should have received a copy of the GNU General Public License
+# along with Koha; if not, see <http://www.gnu.org/licenses>.
 
 =head1 NAME
 
@@ -39,7 +39,7 @@ use C4::Charset;
 use C4::Auth qw/check_cookie_auth/;
 use C4::ImportBatch;
 
-my $input = new CGI;
+my $input = CGI->new;
 
 my @sort_columns =
   qw/import_record_id title status overlay_status overlay_status/;
@@ -68,12 +68,6 @@ my $records =
 my @list = ();
 foreach my $record (@$records) {
     my $citation = $record->{'title'} || $record->{'authorized_heading'};
-    $citation .= " $record->{'author'}" if $record->{'author'};
-    $citation .= " (" if $record->{'issn'} or $record->{'isbn'};
-    $citation .= $record->{'isbn'} if $record->{'isbn'};
-    $citation .= ", " if $record->{'issn'} and $record->{'isbn'};
-    $citation .= $record->{'issn'} if $record->{'issn'};
-    $citation .= ")" if $record->{'issn'} or $record->{'isbn'};
 
     my $match = GetImportRecordMatches( $record->{'import_record_id'}, 1 );
     my $match_citation = '';
@@ -99,6 +93,9 @@ foreach my $record (@$records) {
         DT_RowId        => $record->{'import_record_id'},
         import_record_id => $record->{'import_record_id'},
         citation        => $citation,
+        author          => $record->{'author'},
+        issn            => $record->{'issn'},
+        isbn            => $record->{'isbn'},
         status          => $record->{'status'},
         overlay_status  => $record->{'overlay_status'},
         match_citation  => $match_citation,

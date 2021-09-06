@@ -4,18 +4,18 @@ package Koha::Illrequest::Config;
 #
 # This file is part of Koha.
 #
-# Koha is free software; you can redistribute it and/or modify it under the
-# terms of the GNU General Public License as published by the Free Software
-# Foundation; either version 3 of the License, or (at your option) any later
-# version.
+# Koha is free software; you can redistribute it and/or modify it
+# under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 3 of the License, or
+# (at your option) any later version.
 #
-# Koha is distributed in the hope that it will be useful, but WITHOUT ANY
-# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
-# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+# Koha is distributed in the hope that it will be useful, but
+# WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+# GNU General Public License for more details.
 #
-# You should have received a copy of the GNU General Public License along
-# with Koha; if not, write to the Free Software Foundation, Inc.,
-# 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+# You should have received a copy of the GNU General Public License
+# along with Koha; if not, see <http://www.gnu.org/licenses>.
 
 use Modern::Perl;
 
@@ -122,12 +122,16 @@ sub backends_available {
 
 =head3 available_backends
 
-Return a list of available backends.
+  $backends = $config->available_backends;
+  $backends = $config->abailable_backends($reduced);
+
+Return a list of available backends, if passed a | delimited list it
+will filter those backends down to only those present in the list.
 
 =cut
 
 sub available_backends {
-    my ( $self ) = @_;
+    my ( $self, $reduce ) = @_;
     my $backend_dir = $self->backend_dir;
     my $backends_available = $self->backends_available;
     my $backendsRef = [];
@@ -135,6 +139,7 @@ sub available_backends {
         my @backends = ();
         @backends = glob "$backend_dir/*" if ( $backend_dir );
         @backends = map { basename($_) } @backends;
+        @backends = grep { $_ =~ /$reduce/ } @backends if $reduce;
         if ( scalar @backends ) {
             my @backendsAvailable = split(/,/, $backends_available);
             my %backendsAll;
@@ -152,6 +157,17 @@ sub available_backends {
         }
     }
     return $backendsRef;
+}
+
+=head3 has_branch
+
+Return whether a 'branch' block is defined
+
+=cut
+
+sub has_branch {
+    my ( $self ) = @_;
+    return $self->{configuration}->{raw_config}->{branch};
 }
 
 =head3 partner_code
@@ -187,19 +203,23 @@ sub limits {
 
 =head3 getPrefixes
 
-    my $prefixes = $config->getPrefixes('brw_cat' | 'branch');
+    my $prefixes = $config->getPrefixes();
 
-Return the prefix for ILLs defined by our config.
+Return the branch prefix for ILLs defined by our config.
 
 =cut
 
 sub getPrefixes {
+
     my ( $self, $type ) = @_;
     die "Unexpected type." unless ( $type eq 'brw_cat' || $type eq 'branch' );
     my $values = {};
     $values->{$type} = $self->{cachedConfigPrefixes}->{$type};
     $values->{default} = $self->{cachedConfigPrefixes}->{default};
     return $values;
+    ### JOIN-TODO ### Activate the next two lines and remove the previous lines if community 21.05 is the correct
+    # my ( $self ) = @_;
+    # return $self->{configuration}->{prefixes}->{branch};
 }
 
 =head3 getLimitRules

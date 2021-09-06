@@ -1,10 +1,11 @@
+[% USE raw %]
 [% USE Asset %]
 [% PROCESS 'merge-record.inc' %]
 [% SET footerjs = 1 %]
 [% INCLUDE 'doc-head-open.inc' %]
-<title>Koha &rsaquo; Cataloging &rsaquo; Merging records</title>
+<title>Merging records &rsaquo; Cataloging &rsaquo; Koha</title>
 [% INCLUDE 'doc-head-close.inc' %]
-<style type="text/css">
+<style>
 div.record ul, div.record li { float:none; display:block; }
 div#result { margin-top: 1em; }
 /* We use this style "against" the li ui-tabs-nav style automatically applied */
@@ -14,11 +15,27 @@ div#result { margin-top: 1em; }
 <body id="auth_merge" class="cat">
 [% INCLUDE 'header.inc' %]
 [% INCLUDE 'authorities-search.inc' %]
-<div id="breadcrumbs"><a href="/cgi-bin/koha/mainpage.pl">Home</a> &rsaquo; <a href="/cgi-bin/koha/authorities/authorities-home.pl">Authorities</a>  &rsaquo; Merging records</div>
+
+<nav id="breadcrumbs" aria-label="Breadcrumb" class="breadcrumb">
+    <ol>
+        <li>
+            <a href="/cgi-bin/koha/mainpage.pl">Home</a>
+        </li>
+        <li>
+            <a href="/cgi-bin/koha/authorities/authorities-home.pl">Authorities</a>
+        </li>
+        <li>
+            <a href="#" aria-current="page">
+                Merging records
+            </a>
+        </li>
+    </ol>
+</nav>
 
 <div class="main container-fluid">
     <div class="row">
         <div class="col-md-8 col-md-offset-2">
+            <main>
 
 <h1>Merging records</h1>
 
@@ -27,7 +44,7 @@ div#result { margin-top: 1em; }
     [% FOREACH error IN errors %]
         <div class="dialog alert">
             [% IF error.code == 'WRONG_COUNT' %]
-                Number of records provided for merging: [% error.value %]. Currently only 2 records can be merged at a time.
+                Number of records provided for merging: [% error.value | html %]. Currently only 2 records can be merged at a time.
             [% ELSIF error.code == 'DESTRUCTIVE_MERGE' %]
                 You cannot merge a record with itself. Please select two different authorities.
             [% ELSIF error.code == 'WRONG_FRAMEWORK' %]
@@ -35,17 +52,16 @@ div#result { margin-top: 1em; }
             [% ELSIF error.code == 'EMPTY_MARC' %]
                 Sorry, but we did not find any MARC tags in the reference record.
             [% ELSIF error.code == 'MISSING_RECORD' %]
-                Sorry, but we did not find a record for number: [% error.value %].
+                Sorry, but we did not find a record for number: [% error.value | html %].
             [% ELSE %]
-                [% error %]
+                [% error | html %]
             [% END %]
         </div>
     [% END %]
 
 [% ELSIF ( result ) %]
 
-        <script type="text/javascript">window.location.href="/cgi-bin/koha/authorities/detail.pl?authid=[% recordid1 %]"</script>
-        <p>The merging was successful. <a href="/cgi-bin/koha/authorities/detail.pl?authid=[% recordid1 %]">Click here to see the merged record.</a></p>
+    <p>The merging was successful. <a href="/cgi-bin/koha/authorities/detail.pl?authid=[% recordid1 | uri %]">View the merged record.</a></p>
 
 [% ELSIF ( choosereference ) %]
 
@@ -54,27 +70,27 @@ div#result { margin-top: 1em; }
     <fieldset class="rows">
     <legend>Merge reference</legend>
     <ol>
-    <li class="radio"><input type="radio" value="[% recordid1 %]" checked="checked" id="mergereference1" name="mergereference" onclick="changeFramework('[% frameworkcode1 %]')" /><label for="mergereference1">[% title1 %] [% FOREACH subtitl1 IN subtitle1 %] [% subtitl1.subfield %][% END %] (<a href="/cgi-bin/koha/authorities/detail.pl?authid=[% recordid1 %]" title="MARC" class="preview-merge-reference" target="_blank">[% recordid1 %][% IF frameworklabel1 %] &mdash; [% frameworklabel1 %][% END %]</a>)</label></li>
-    <li class="radio"><input type="radio" value="[% recordid2 %]" id="mergereference2" name="mergereference" onclick="changeFramework('[% frameworkcode2 %]')" /><label for="mergereference2">[% title2 %] [% FOREACH subtitl2 IN subtitle2 %] [% subtitl2.subfield %][% END %] (<a href="/cgi-bin/koha/authorities/detail.pl?authid=[% recordid2 %]" title="MARC" class="preview-merge-reference" target="_blank">[% recordid2 %][% IF frameworklabel2 %] &mdash; [% frameworklabel2 %][% END %]</a>)</label></li>
+    <li class="radio"><input type="radio" value="[% recordid1 | uri %]" checked="checked" id="mergereference1" name="mergereference" onclick="changeFramework('[% frameworkcode1 | html %]')" /><label for="mergereference1">[% title1 | html %] [% FOREACH subtitl1 IN subtitle1 %] [% subtitl1 | html %][% END %] (<a href="/cgi-bin/koha/authorities/detail.pl?authid=[% recordid1 | uri %]" title="MARC" class="preview-merge-reference" target="_blank">[% recordid1 | html %][% IF frameworklabel1 %] &mdash; [% frameworklabel1 | html %][% END %]</a>)</label></li>
+    <li class="radio"><input type="radio" value="[% recordid2 | uri %]" id="mergereference2" name="mergereference" onclick="changeFramework('[% frameworkcode2 | html %]')" /><label for="mergereference2">[% title2 | html %] [% FOREACH subtitl2 IN subtitle2 %] [% subtitl2 | html %][% END %] (<a href="/cgi-bin/koha/authorities/detail.pl?authid=[% recordid2 | uri %]" title="MARC" class="preview-merge-reference" target="_blank">[% recordid2 | html %][% IF frameworklabel2 %] &mdash; [% frameworklabel2 | html %][% END %]</a>)</label></li>
 
     [% IF frameworkselect %]
           <li><label for="frameworkcode">Using framework:</label>
                       <select name="frameworkcode" id="frameworkcode">
                                       [% FOREACH frameworkcodeloo IN frameworkselect %]
                                           [% IF frameworkcodeloo.authtypecode == frameworkcode1 %]
-                                              <option value="[% frameworkcodeloo.authtypecode %]" selected="selected">
+                                              <option value="[% frameworkcodeloo.authtypecode | html %]" selected="selected">
                                           [% ELSE %]
-                                              <option value="[% frameworkcodeloo.authtypecode %]">
+                                              <option value="[% frameworkcodeloo.authtypecode | html %]">
                                           [% END %]
-                                           [% frameworkcodeloo.authtypetext %]
+                                           [% frameworkcodeloo.authtypetext | html %]
                                            </option>
                                       [% END %]
                       </select></li>
     [% END %]
 </ol>
 
-    <input type="hidden" name="authid" value="[% recordid1 %]" />
-    <input type="hidden" name="authid" value="[% recordid2 %]" />
+    <input type="hidden" name="authid" value="[% recordid1 | html %]" />
+    <input type="hidden" name="authid" value="[% recordid2 | html %]" />
     <fieldset class="action"><input type="submit" value="Next" /></fieldset>
     </fieldset>
 </form>
@@ -83,34 +99,33 @@ div#result { margin-top: 1em; }
 
 <form id="mergeform" action="/cgi-bin/koha/authorities/merge.pl" method="post" onsubmit="return mergeformsubmit()">
 
-<div class="yui-g">
-<div class="yui-u first">
+    <div class="row">
+        <div class="col-sm-6">
 [% PROCESS mergesource sourcerecords=records %]
 </div>
-<div class="yui-u">
+        <div class="col-sm-6">
 [% PROCESS mergetarget %]
-</div> <!-- .yui-u -->
+</div>
+</div>
 
-<input type="hidden" name="recordid1" value="[% recordid1 %]" />
-<input type="hidden" name="recordid2" value="[% recordid2 %]" />
-<input type="hidden" name="mergereference" value="[% mergereference %]" />
-<input type="hidden" name="frameworkcode" value="[% framework %]" />
+<input type="hidden" name="recordid1" value="[% recordid1 | html %]" />
+<input type="hidden" name="recordid2" value="[% recordid2 | html %]" />
+<input type="hidden" name="mergereference" value="[% mergereference | html %]" />
+<input type="hidden" name="frameworkcode" value="[% framework | html %]" />
 
 <fieldset class="action"><input type="submit" name="merge" value="Merge" /></fieldset>
-</div>
 </form>
 
 [% END %]
 
-</div>
+        </main>
+    </div> <!-- /.col-md-8 col-md-offset-2 -->
+</div> <!-- /.row -->
 
 [% MACRO jsinclude BLOCK %]
-    [% INCLUDE 'merge-record-strings.inc' %]
     [% INCLUDE 'authorities_js.inc' %]
-    [% Asset.js("js/merge-record.js") %]
-    [% INCLUDE 'merge-record-strings.inc' %]
-    <script type="text/javascript">
-    //<![CDATA[
+    [% Asset.js("js/merge-record.js") | $raw %]
+    <script>
 
         // When submiting the form
         function mergeformsubmit() {
@@ -120,7 +135,7 @@ div#result { margin-top: 1em; }
     $(document).ready(function(){
         // Getting marc structure via ajax
         tagslib = [];
-        $.getJSON("/cgi-bin/koha/authorities/merge_ajax.pl", {frameworkcode : "[% framework %]" }, function(json) {
+        $.getJSON("/cgi-bin/koha/authorities/merge_ajax.pl", {frameworkcode : "[% framework | html %]" }, function(json) {
             tagslib = json;
             rebuild_target($("#tabs"), $("#resultul"));
         });
@@ -139,7 +154,6 @@ div#result { margin-top: 1em; }
         $("#Frameworks").val(fw);
     }
 
-    //]]>
     </script>
 [% END %]
 

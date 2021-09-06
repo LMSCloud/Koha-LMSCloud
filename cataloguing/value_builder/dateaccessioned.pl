@@ -3,6 +3,7 @@
 # Converted to new plugin style (Bug 13437)
 
 # Copyright 2000-2002 Katipo Communications
+# Parts copyright Athens County Public Libraries 2019
 #
 # This file is part of Koha.
 #
@@ -20,7 +21,6 @@
 # along with Koha; if not, see <http://www.gnu.org/licenses>.
 
 use Modern::Perl;
-use C4::Biblio qw/GetMarcFromKohaField/;
 use Koha::DateUtils;
 
 my $builder = sub {
@@ -29,31 +29,34 @@ my $builder = sub {
 
     my $date = output_pref({ dt => dt_from_string, dateformat => 'iso', dateonly => 1 });
 
-	# find the tag/subfield mapped to items.dateaccessioned
-	my ($tag,$subfield) =  GetMarcFromKohaField("items.dateaccessioned","");
-	my $res  = <<END_OF_JS;
-<script type="text/javascript">
-//<![CDATA[
-//  
-// from: cataloguing/value_builder/dateaccessioned.pl
+    my $res  = <<END_OF_JS;
+<script>
+/* from: cataloguing/value_builder/dateaccessioned.pl */
+
+\$(document).ready(function(){
+    \$("#$function_name").datepicker({
+        dateFormat: "yy-mm-dd"
+    });
+});
 
 function Focus$function_name(event) {
     set_to_today(event.data.id);
+    \$("#$function_name").datepicker("show");
+
 }
 
 function Click$function_name(event) {
+    event.preventDefault();
     set_to_today(event.data.id, 1);
-    return false; // prevent page scroll
 }
 
 function set_to_today( id, force ) {
-    // The force parameter is used in Click but not in Focus !
+    /* The force parameter is used in Click but not in Focus ! */
     if (! id) { alert(_("Bad id ") + id + _(" sent to set_to_today()")); return 0; }
-    if (\$("#" + id).val() == '' || \$("#" + id).val() == '0000-00-00' || force ) {
+    if (\$("#" + id).val() == '' || force ) {
         \$("#" + id).val("$date");
     }
 }
-//]]>
 </script>
 END_OF_JS
     return $res;

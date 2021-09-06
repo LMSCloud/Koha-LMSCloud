@@ -68,9 +68,9 @@ fieldset.rows textarea,
 ol.bibliodetails,
 ol.bibliodetails span.label,
 span.required,
+span.important,
 #marcDocsSelect,
 #toplevelnav,
-.treeview .hitarea,
 .ui-tabs-nav li,
 .yui-g div.first,
 .yui-gb div.first,
@@ -127,12 +127,6 @@ float:right
    /* karam margin-right: 13em; */
 }
 
-.treeview .hitarea
-{
-   margin-left: 0;
-   margin-right: -16px;
-}
-
 div#menu li a
 {
    margin-left: -1px;
@@ -147,7 +141,8 @@ div.patroninfo h5,
    margin-left: 0.5em;
 }
 fieldset.rows img,
-span.required
+span.required,
+span.important
 {
    margin-right: 0.5em;
 }
@@ -168,11 +163,6 @@ div#header_search
    padding-right: 0;
 }
 
-body
-{
-   padding-right: 1.5em;
-}
-
 .yui-u
 {
    padding-right: 0.5em;
@@ -187,10 +177,6 @@ ul
 .yui-b
 {
    padding-bottom: 5em;
-}
-
-.treeview li {
-   padding: 3px 16px 3px 16px;
 }
 
 #login
@@ -247,13 +233,6 @@ div.patroninfo h5
    border-left: 0;
 }
 
-/* flip over images */
-
-.treeview li,
-.treeview li.last
-{
-   background-position-x: right !important;
-}
 /* TODO - Can we find ways to avoid this? */
 
 h1#logo,
@@ -332,8 +311,7 @@ ul#toplevelmenu {
     float: right;
 }
 #cartmenulink {
-    background: url("../img/cart-small.gif") no-repeat scroll right center transparent;
-    padding-right: 15px;
+    padding-right: 25px;
 }
 
 
@@ -399,18 +377,6 @@ p label, {
     float: left;
 }
 
-/*the arrwos in pref.*/
-h3.expanded {
-    background: url("../img/collapse.gif") no-repeat scroll right 6px transparent;
-    cursor: pointer;
-    padding-right: 12px;
-}
-h3.collapsed {
-    background: url("../img/expand.gif") no-repeat scroll right 6px transparent;
-    cursor: pointer;
-    padding-right: 12px;
-
-}
 .dropdown-menu {
     position: absolute;
     top: 100%;
@@ -442,4 +408,61 @@ div#yui-main {
 div#yui-main.sysprefs {
     margin-right: 0em;
     float: right;
+}
+
+#user-menu {
+    left: 5px;
+    right: unset;
+}
+
+div.dt-buttons {
+    position: relative;
+    float: right;
+}
+
+#catalog-search-link {
+    border-right: 0;
+    border-left: 1px solid #fff;
+    padding-left: .3em;
+}
+
+#catalog-search-dropdown > a {
+    border-left: 0;
+    border-right: 1px solid #a3c8cf;
+    margin: 0;
+    padding: .4em .6em;
+}
+
+#catalog-search-dropdown > a.catalog-search-dropdown-hover,
+#catalog-search-dropdown > a:hover {
+    border-left: 0;
+    border-right: 1px solid #82b4be;
+}
+
+@media (max-width: 767px) {
+    h1#logo {
+        float: none;
+        margin:  auto;
+        position: relative;
+    }
+
+    div#header_search {
+        margin-right: 0;
+    }
+
+    #user-menu .open .dropdown-menu {
+        float: left;
+        left: 0;
+        min-width: 160px;
+        margin: 2px 0px 0px;
+        position: absolute;
+        right: auto;
+        top: 100%;
+        z-index: 1000;
+    }
+
+    .navbar .nav > li {
+        float: none;
+    }
+
 }

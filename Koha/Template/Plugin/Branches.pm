@@ -30,19 +30,20 @@ use Koha::Libraries;
 sub GetName {
     my ( $self, $branchcode ) = @_;
 
-    my $query = "SELECT branchname FROM branches WHERE branchcode = ?";
-    my $sth   = C4::Context->dbh->prepare($query);
-    $sth->execute($branchcode);
-    my $b = $sth->fetchrow_hashref();
-    return $b ? $b->{'branchname'} : q{};
+    my $l = Koha::Libraries->find($branchcode);
+    return $l ? $l->branchname : q{};
 }
 
 sub GetLoggedInBranchcode {
     my ($self) = @_;
 
-    return C4::Context->userenv ?
-        C4::Context->userenv->{'branch'} :
-        '';
+    return C4::Context::mybranch;
+}
+
+sub GetLoggedInBranchname {
+    my ($self) = @_;
+
+    return C4::Context->userenv ? C4::Context->userenv->{'branchname'} : q{};
 }
 
 sub GetURL {
@@ -57,27 +58,37 @@ sub GetURL {
 
 sub all {
     my ( $self, $params ) = @_;
-    my $selected = $params->{selected};
+    my $selected = $params->{selected} // ();
     my $unfiltered = $params->{unfiltered} || 0;
-    my $only_from_group = $params->{only_from_group} || 0;
-    my $restrict;
-    $restrict = $params->{restrict} if $params->{restrict};
+    my $search_params = $params->{search_params} || {};
+    my $do_not_select_my_library = $params->{do_not_select_my_library} || 0; # By default we select the library of the logged in user if no selected passed
+
+    if ( !$unfiltered ) {
+        $search_params->{only_from_group} = $params->{only_from_group} || 0;
+    }
     
-    my $searchparam = {};
-    $searchparam = { -or => [ mobilebranch => undef, mobilebranch => '' ] } if ( $restrict && $restrict eq 'NoMobileStations' );
-    $searchparam->{only_from_group} = $only_from_group if (! $unfiltered );
+    $search_params = { -or => [ mobilebranch => undef, mobilebranch => '' ] } if ( $params->{restrict} && $params->{restrict} eq 'NoMobileStations' );
+
+    my @selected =
+      ref $selected eq 'Koha::Libraries'
+      ? $selected->get_column('branchcode')
+      : ( $selected // () );
 
     my $libraries = $unfiltered
-      ? Koha::Libraries->search( $searchparam, { order_by => ['branchname'] } )->unblessed
-      : Koha::Libraries->search_filtered( $searchparam, { order_by => ['branchname'] } )->unblessed;
+      ? Koha::Libraries->search( $search_params, { order_by => ['branchname'] } )->unblessed
+      : Koha::Libraries->search_filtered( $search_params, { order_by => ['branchname'] } )->unblessed;
 
-    for my $l ( @$libraries ) {
-        if (       defined $selected and $l->{branchcode} eq $selected
-            or not defined $selected and C4::Context->userenv and $l->{branchcode} eq ( C4::Context->userenv->{branch} // q{} )
-        ) {
-            $l->{selected} = 1;
+    for my $l (@$libraries) {
+        if ( grep { $l->{branchcode} eq $_ } @selected
+            or  not @selected
+                and not $do_not_select_my_library
+                and C4::Context->userenv
+                and $l->{branchcode} eq ( C4::Context->userenv->{branch} // q{} ) )
+        {
+             $l->{selected} = 1;
         }
     }
+
 
     return $libraries;
 }
@@ -85,6 +96,57 @@ sub all {
 sub InIndependentBranchesMode {
     my ( $self ) = @_;
     return ( not C4::Context->preference("IndependentBranches") or C4::Context::IsSuperLibrarian );
+}
+
+sub pickup_locations {
+    my ( $self, $params ) = @_;
+    my $search_params = $params->{search_params} || {};
+    my $selected      = $params->{selected};
+    my @libraries;
+
+    if(defined $search_params->{item} || defined $search_params->{biblio}) {
+        my $item = $search_params->{'item'};
+        my $biblio = $search_params->{'biblio'};
+        my $patron = $search_params->{'patron'};
+
+        unless (! defined $patron || ref($patron) eq 'Koha::Patron') {
+            $patron = Koha::Patrons->find($patron);
+        }
+
+        if ($item) {
+            $item = Koha::Items->find($item)
+              unless ref($item) eq 'Koha::Item';
+            @libraries = $item->pickup_locations( { patron => $patron } )
+              if defined $item;
+        }
+        elsif ($biblio) {
+            $biblio = Koha::Biblios->find($biblio)
+              unless ref($biblio) eq 'Koha::Biblio';
+            @libraries = $biblio->pickup_locations( { patron => $patron } )
+              if defined $biblio;
+        }
+    }
+
+    my $sparam = { pickup_location => 1 };
+    $sparam = { pickup_location => 1, -or => [ mobilebranch => undef, mobilebranch => '' ] } if (! C4::Context->preference("OPACAllowUserToChooseMobileStation"));
+    
+    @libraries = Koha::Libraries->search( $sparam,
+        { order_by => ['branchname'] } )
+      unless @libraries;
+
+    @libraries = map { $_->unblessed } @libraries;
+
+    for my $l (@libraries) {
+        if ( defined $selected and $l->{branchcode} eq $selected
+            or not defined $selected
+            and C4::Context->userenv
+            and $l->{branchcode} eq C4::Context->userenv->{branch} )
+        {
+            $l->{selected} = 1;
+        }
+    }
+
+    return \@libraries;
 }
 
 1;

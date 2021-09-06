@@ -21,11 +21,10 @@ use CGI qw ( -utf8 );
 
 use C4::Auth;    # checkauth, getborrowernumber.
 use C4::Context;
-use C4::Members;
 use C4::Output;
 use Koha::Patrons;
 
-my $query = new CGI;
+my $query = CGI->new;
 
 # if OPACPrivacy is disabled, leave immediately
 if ( ! C4::Context->preference('OPACPrivacy') || ! C4::Context->preference('opacreadinghistory') ) {
@@ -40,7 +39,6 @@ my ( $template, $borrowernumber, $cookie ) = get_template_and_user(
         template_name   => "opac-privacy.tt",
         query           => $query,
         type            => "opac",
-        authnotrequired => 0,
         debug           => 1,
     }
 );
@@ -48,14 +46,18 @@ my ( $template, $borrowernumber, $cookie ) = get_template_and_user(
 my $op                         = $query->param("op");
 my $privacy                    = $query->param("privacy");
 my $privacy_guarantor_checkouts = $query->param("privacy_guarantor_checkouts");
+my $privacy_guarantor_fines     = $query->param("privacy_guarantor_fines");
 
 if ( $op eq "update_privacy" ) {
-    ModMember(
-        borrowernumber             => $borrowernumber,
-        privacy                    => $privacy,
-        privacy_guarantor_checkouts => $privacy_guarantor_checkouts,
-    );
-    $template->param( 'privacy_updated' => 1 );
+    my $patron = Koha::Patrons->find( $borrowernumber );
+    if ( $patron ) {
+        $patron->set({
+            privacy                    => $privacy,
+            privacy_guarantor_checkouts => defined $privacy_guarantor_checkouts?$privacy_guarantor_checkouts:$patron->privacy_guarantor_checkouts,
+            privacy_guarantor_fines     => defined $privacy_guarantor_fines?$privacy_guarantor_fines:$patron->privacy_guarantor_fines,
+        })->store;
+        $template->param( 'privacy_updated' => 1 );
+    }
 }
 elsif ( $op eq "delete_record" ) {
 
@@ -82,6 +84,7 @@ $template->param(
     'borrower'                       => $borrower,
     'surname'                        => $borrower->surname,
     'firstname'                      => $borrower->firstname,
+    'has_guarantor_flag'             => $borrower->guarantor_relationships->guarantors->_resultset->count
 );
 
 output_html_with_http_headers $query, $cookie, $template->output, undef, { force_no_caching => 1 };

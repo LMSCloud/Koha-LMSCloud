@@ -1,0 +1,35 @@
+---
+#
+#  Copyright 2020 Koha Development Team
+#
+#  This file is part of Koha.
+#
+# Koha is free software; you can redistribute it and/or modify it
+# under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 3 of the License, or
+# (at your option) any later version.
+#
+# Koha is distributed in the hope that it will be useful, but
+# WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with Koha; if not, see <http://www.gnu.org/licenses>.
+
+description:
+  - "Useful patron attribute types:"
+  - "* SHOW_BCODE - Show barcode on the patron summary screen items listings"
+
+tables:
+  - borrower_attribute_types:
+      translatable: [ description ]
+      multiline: []
+      rows:
+        - code: "SHOW_BCODE"
+          description: "Show barcode on the summary screen items listings"
+          repeatable: 0
+          unique_id: 0
+          opac_display: 1
+          staff_searchable: 0
+          authorised_value_category: "YES_NO"

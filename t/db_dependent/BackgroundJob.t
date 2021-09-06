@@ -5,15 +5,15 @@ use C4::Auth;
 use CGI qw ( -utf8 );
 use Test::More tests => 18;
 
+use Koha::Database;
+
 BEGIN {
     use_ok('C4::BackgroundJob');
 }
-my $query = new CGI;
+my $query = CGI->new;
 
-# Generate a session id
-my $dbh     = C4::Context->dbh;
-$dbh->{AutoCommit} = 0;
-$dbh->{RaiseError} = 1;
+my $schema = Koha::Database->new->schema;
+$schema->storage->txn_begin;
 
 my $session = C4::Auth::get_session;
 $session->flush;
@@ -47,13 +47,11 @@ is( $job->size, "56", '->set() does not scribble over private object data' );
 $job->finish("finished");
 is( $job->status, 'completed', "testing finished" );
 
-ok( $job->results );    #Will return undef unless finished
+ok( $job->results, 'Test if we have results' );
 
 my $second_job = C4::BackgroundJob->new( $sessionID, "making new job" );
-$session = C4::Auth::get_session( $job->{sessionID} );
-is( ref( $session->param( 'job_' . $job->id ) ),        "C4::BackgroundJob", 'job_$jobid should be a C4::BackgroundJob for uncleared job 1' );
-is( ref( $session->param( 'job_' . $second_job->id ) ), "C4::BackgroundJob", 'job_$jobid should be a C4::BackgroundJob for uncleared job 2' );
+is( ref( C4::BackgroundJob->fetch( $sessionID, $job->id ) ),        "C4::BackgroundJob", 'job_$jobid should be a C4::BackgroundJob for uncleared job 1' );
+is( ref( C4::BackgroundJob->fetch( $sessionID, $second_job->id ) ), "C4::BackgroundJob", 'job_$jobid should be a C4::BackgroundJob for uncleared job 2' );
 $job->clear;
-$session = C4::Auth::get_session( $job->{sessionID} );
-is( $session->param( 'job_' . $job->id ), undef, 'After clearing it, job 1 should not exist anymore in the session' );
-is( ref( $session->param( 'job_' . $second_job->id ) ), "C4::BackgroundJob", 'After clear on job 1, job 2 should still be a C4::BackgroundJob' );
+is( C4::BackgroundJob->fetch( $sessionID, $job->id ), undef, 'After clearing it, job 1 should not exist anymore in the session' );
+is( ref( C4::BackgroundJob->fetch( $sessionID, $second_job->id ) ), "C4::BackgroundJob", 'After clear on job 1, job 2 should still be a C4::BackgroundJob' );

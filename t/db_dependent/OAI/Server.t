@@ -18,14 +18,17 @@
 # along with Koha; if not, see <http://www.gnu.org/licenses>.
 
 use Modern::Perl;
+use Test::Deep qw( cmp_deeply re );
 use Test::MockTime qw/set_fixed_time restore_time/;
 
-use Test::More tests => 30;
+use Test::More tests => 31;
 use DateTime;
+use File::Basename;
+use File::Spec;
 use Test::MockModule;
 use Test::Warn;
 use XML::Simple;
-use YAML;
+use YAML::XS;
 
 use t::lib::Mocks;
 
@@ -72,12 +75,13 @@ $dbh->do('DELETE FROM oai_sets');
 
 set_fixed_time(CORE::time());
 
-my $base_datetime = DateTime->now();
+my $base_datetime = dt_from_string(undef, undef, 'UTC');
 my $date_added = $base_datetime->ymd . ' ' .$base_datetime->hms . 'Z';
 my $date_to = substr($date_added, 0, 10) . 'T23:59:59Z';
-my (@header, @marcxml, @oaidc);
+my (@header, @marcxml, @oaidc, @marcxml_transformed);
 my $sth = $dbh->prepare('UPDATE biblioitems     SET timestamp=? WHERE biblionumber=?');
 my $sth2 = $dbh->prepare('UPDATE biblio_metadata SET timestamp=? WHERE biblionumber=?');
+my $first_bn = 0;
 
 # Add biblio records
 foreach my $index ( 0 .. NUMBER_OF_MARC_RECORDS - 1 ) {
@@ -85,17 +89,23 @@ foreach my $index ( 0 .. NUMBER_OF_MARC_RECORDS - 1 ) {
     if (C4::Context->preference('marcflavour') eq 'UNIMARC') {
         $record->append_fields( MARC::Field->new('101', '', '', 'a' => "lng" ) );
         $record->append_fields( MARC::Field->new('200', '', '', 'a' => "Title $index" ) );
+        $record->append_fields( MARC::Field->new('952', '', '', 'a' => "Code" ) );
     } else {
         $record->append_fields( MARC::Field->new('008', '                                   lng' ) );
         $record->append_fields( MARC::Field->new('245', '', '', 'a' => "Title $index" ) );
+        $record->append_fields( MARC::Field->new('952', '', '', 'a' => "Code" ) );
     }
     my ($biblionumber) = AddBiblio($record, '');
+    $first_bn = $biblionumber unless $first_bn;
     my $timestamp = $base_datetime->ymd . ' ' .$base_datetime->hms;
     $sth->execute($timestamp,$biblionumber);
     $sth2->execute($timestamp,$biblionumber);
     $timestamp .= 'Z';
     $timestamp =~ s/ /T/;
     $record = GetMarcBiblio({ biblionumber => $biblionumber });
+    my $record_transformed = $record->clone;
+    $record_transformed->delete_fields( $record_transformed->field('952'));
+    $record_transformed = XMLin($record_transformed->as_xml_record);
     $record = XMLin($record->as_xml_record);
     push @header, { datestamp => $timestamp, identifier => "TEST:$biblionumber" };
     my $dc = {
@@ -120,6 +130,13 @@ foreach my $index ( 0 .. NUMBER_OF_MARC_RECORDS - 1 ) {
         header => $header[$index],
         metadata => {
             record => $record,
+        },
+    };
+
+    push @marcxml_transformed, {
+        header => $header[$index],
+        metadata => {
+            record => $record_transformed,
         },
     };
 }
@@ -160,11 +177,11 @@ sub test_query {
     }
 
     delete $response->{responseDate};
-    unless (is_deeply($response, \%full_expected, $test)) {
+    unless (cmp_deeply($response, \%full_expected, $test)) {
         diag
-            "PARAM:" . Dump($param) .
-            "EXPECTED:" . Dump(\%full_expected) .
-            "RESPONSE:" . Dump($response);
+            "PARAM:" . YAML::XS::Dump($param) .
+            "EXPECTED:" . YAML::XS::Dump(\%full_expected) .
+            "RESPONSE:" . YAML::XS::Dump($response);
     }
 }
 
@@ -201,7 +218,7 @@ test_query('ListIdentifiers', {verb => 'ListIdentifiers', metadataPrefix => 'mar
     ListIdentifiers => {
         header => [ @header[0..2] ],
         resumptionToken => {
-            content => "marcxml/3/1970-01-01T00:00:00Z/$date_to//0/0",
+            content => re( qr{^marcxml/3////0/0/\d+$} ),
             cursor  => 3,
         },
     },
@@ -211,7 +228,7 @@ test_query('ListIdentifiers', {verb => 'ListIdentifiers', metadataPrefix => 'mar
     ListIdentifiers => {
         header => [ @header[0..2] ],
         resumptionToken => {
-            content => "marcxml/3/1970-01-01T00:00:00Z/$date_to//0/0",
+            content => re( qr{^marcxml/3////0/0/\d+$} ),
             cursor  => 3,
         },
     },
@@ -219,12 +236,12 @@ test_query('ListIdentifiers', {verb => 'ListIdentifiers', metadataPrefix => 'mar
 
 test_query(
     'ListIdentifiers with resumptionToken 1',
-    { verb => 'ListIdentifiers', resumptionToken => "marcxml/3/1970-01-01T00:00:00Z/$date_to//0/0" },
+    { verb => 'ListIdentifiers', resumptionToken => "marcxml/3/1970-01-01T00:00:00Z/$date_to//0/0/" . ($first_bn + 3) },
     {
         ListIdentifiers => {
             header => [ @header[3..5] ],
             resumptionToken => {
-              content => "marcxml/6/1970-01-01T00:00:00Z/$date_to//0/0",
+              content => re( qr{^marcxml/6/1970-01-01T00:00:00Z/$date_to//0/0/\d+$} ),
               cursor  => 6,
             },
           },
@@ -233,12 +250,12 @@ test_query(
 
 test_query(
     'ListIdentifiers with resumptionToken 2',
-    { verb => 'ListIdentifiers', resumptionToken => "marcxml/6/1970-01-01T00:00:00Z/$date_to//0/0" },
+    { verb => 'ListIdentifiers', resumptionToken => "marcxml/6/1970-01-01T00:00:00Z/$date_to//0/0/" . ($first_bn + 6) },
     {
         ListIdentifiers => {
             header => [ @header[6..8] ],
             resumptionToken => {
-              content => "marcxml/9/1970-01-01T00:00:00Z/$date_to//0/0",
+              content => re( qr{^marcxml/9/1970-01-01T00:00:00Z/$date_to//0/0/\d+$} ),
               cursor  => 9,
             },
           },
@@ -247,7 +264,7 @@ test_query(
 
 test_query(
     'ListIdentifiers with resumptionToken 3, response without resumption',
-    { verb => 'ListIdentifiers', resumptionToken => "marcxml/9/1970-01-01T00:00:00Z/$date_to//0/0" },
+    { verb => 'ListIdentifiers', resumptionToken => "marcxml/9/1970-01-01T00:00:00Z/$date_to//0/0/" . ($first_bn + 9) },
     {
         ListIdentifiers => {
             header => $header[9],
@@ -266,7 +283,7 @@ test_query('ListRecords marcxml', {verb => 'ListRecords', metadataPrefix => 'mar
     ListRecords => {
         record => [ @marcxml[0..2] ],
         resumptionToken => {
-          content => "marcxml/3/1970-01-01T00:00:00Z/$date_to//0/0",
+          content => re( qr{^marcxml/3////0/0/\d+$} ),
           cursor  => 3,
         },
     },
@@ -274,11 +291,11 @@ test_query('ListRecords marcxml', {verb => 'ListRecords', metadataPrefix => 'mar
 
 test_query(
     'ListRecords marcxml with resumptionToken 1',
-    { verb => 'ListRecords', resumptionToken => "marcxml/3/1970-01-01T00:00:00Z/$date_to//0/0" },
+    { verb => 'ListRecords', resumptionToken => "marcxml/3////0/0/" . ($first_bn + 3) },
     { ListRecords => {
         record => [ @marcxml[3..5] ],
         resumptionToken => {
-          content => "marcxml/6/1970-01-01T00:00:00Z/$date_to//0/0",
+          content => re( qr{^marcxml/6////0/0/\d+$} ),
           cursor  => 6,
         },
     },
@@ -286,11 +303,11 @@ test_query(
 
 test_query(
     'ListRecords marcxml with resumptionToken 2',
-    { verb => 'ListRecords', resumptionToken => "marcxml/6/1970-01-01T00:00:00Z/$date_to//0/0" },
+    { verb => 'ListRecords', resumptionToken => "marcxml/6/1970-01-01T00:00:00Z/$date_to//0/0/" . ($first_bn + 6) },
     { ListRecords => {
         record => [ @marcxml[6..8] ],
         resumptionToken => {
-          content => "marcxml/9/1970-01-01T00:00:00Z/$date_to//0/0",
+          content => re( qr{^marcxml/9/1970-01-01T00:00:00Z/$date_to//0/0/\d+$} ),
           cursor  => 9,
         },
     },
@@ -299,7 +316,7 @@ test_query(
 # Last record, so no resumption token
 test_query(
     'ListRecords marcxml with resumptionToken 3, response without resumption',
-    { verb => 'ListRecords', resumptionToken => "marcxml/9/1970-01-01T00:00:00Z/$date_to//0/0" },
+    { verb => 'ListRecords', resumptionToken => "marcxml/9/1970-01-01T00:00:00Z/$date_to//0/0/" . ($first_bn + 9) },
     { ListRecords => {
         record => $marcxml[9],
     },
@@ -309,7 +326,7 @@ test_query('ListRecords oai_dc', {verb => 'ListRecords', metadataPrefix => 'oai_
     ListRecords => {
         record => [ @oaidc[0..2] ],
         resumptionToken => {
-          content => "oai_dc/3/1970-01-01T00:00:00Z/$date_to//0/0",
+          content => re( qr{^oai_dc/3////0/0/\d+$} ),
           cursor  => 3,
         },
     },
@@ -317,11 +334,11 @@ test_query('ListRecords oai_dc', {verb => 'ListRecords', metadataPrefix => 'oai_
 
 test_query(
     'ListRecords oai_dc with resumptionToken 1',
-    { verb => 'ListRecords', resumptionToken => "oai_dc/3/1970-01-01T00:00:00Z/$date_to//0/0" },
+    { verb => 'ListRecords', resumptionToken => "oai_dc/3////0/0/" . ($first_bn + 3) },
     { ListRecords => {
         record => [ @oaidc[3..5] ],
         resumptionToken => {
-          content => "oai_dc/6/1970-01-01T00:00:00Z/$date_to//0/0",
+          content => re( qr{^oai_dc/6////0/0/\d+$} ),
           cursor  => 6,
         },
     },
@@ -329,11 +346,11 @@ test_query(
 
 test_query(
     'ListRecords oai_dc with resumptionToken 2',
-    { verb => 'ListRecords', resumptionToken => "oai_dc/6/1970-01-01T00:00:00Z/$date_to//0/0" },
+    { verb => 'ListRecords', resumptionToken => "oai_dc/6/1970-01-01T00:00:00Z/$date_to//0/0/" . ($first_bn + 6) },
     { ListRecords => {
         record => [ @oaidc[6..8] ],
         resumptionToken => {
-          content => "oai_dc/9/1970-01-01T00:00:00Z/$date_to//0/0",
+          content => re( qr{^oai_dc/9/1970-01-01T00:00:00Z/$date_to//0/0/\d+$} ),
           cursor  => 9,
         },
     },
@@ -342,11 +359,25 @@ test_query(
 # Last record, so no resumption token
 test_query(
     'ListRecords oai_dc with resumptionToken 3, response without resumption',
-    { verb => 'ListRecords', resumptionToken => "oai_dc/9/1970-01-01T00:00:00Z/$date_to//0/0" },
+    { verb => 'ListRecords', resumptionToken => "oai_dc/9/1970-01-01T00:00:00Z/$date_to//0/0/" . ($first_bn + 9) },
     { ListRecords => {
         record => $oaidc[9],
     },
 });
+
+#  List records, but now transformed by XSLT
+t::lib::Mocks::mock_preference("OAI-PMH:ConfFile" =>  File::Spec->rel2abs(dirname(__FILE__)) . "/oaiconf.yaml");
+test_query('ListRecords marcxml with xsl transformation',
+    { verb => 'ListRecords', metadataPrefix => 'marcxml' },
+    { ListRecords => {
+        record => [ @marcxml_transformed[0..2] ],
+        resumptionToken => {
+            content => re( qr{^marcxml/3////0/0/\d+$} ),
+            cursor => 3,
+        }
+    },
+});
+t::lib::Mocks::mock_preference("OAI-PMH:ConfFile" => '');
 
 restore_time();
 
@@ -362,7 +393,7 @@ subtest 'Bug 19725: OAI-PMH ListRecords and ListIdentifiers should use biblio_me
     $record->append_fields(MARC::Field->new(999, '', '', z => '_'));
     ModBiblio( $record, $biblionumber );
     my $from_dt = dt_from_string(
-        Koha::Biblio::Metadatas->find({ biblionumber => $biblionumber, format => 'marcxml', marcflavour => 'MARC21' })->timestamp
+        Koha::Biblio::Metadatas->find({ biblionumber => $biblionumber, format => 'marcxml', schema => 'MARC21' })->timestamp
     );
     my $from = $from_dt->ymd . 'T' . $from_dt->hms . 'Z';
     $oaidc[0]->{header}->{datestamp} = $from;

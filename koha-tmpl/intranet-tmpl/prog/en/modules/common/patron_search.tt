@@ -1,17 +1,17 @@
+[% USE raw %]
 [% USE Asset %]
 [% USE Koha %]
 [% USE Branches %]
 [% SET footerjs = 1 %]
 [% INCLUDE 'doc-head-open.inc' %]
-<title>Koha &rsaquo; Patron search</title>
+<title>Patron search &rsaquo; Koha</title>
 [% INCLUDE 'doc-head-close.inc' %]
-[% Asset.css("css/datatables.css") %]
+<style> .modal-body .close { display: none; } </style>
 </head>
 
 <body id="common_patron_search" class="common">
 <div id="patron_search" class="yui-t7">
-  <div id="bd">
-    <div class="yui-g">
+    <div class="container-fluid">
 
         <form id="searchform">
             <fieldset class="brief">
@@ -19,14 +19,14 @@
                 <ol>
                     <li>
                         <label for="searchmember_filter">Search:</label>
-                        <input type="text" id="searchmember_filter" value="[% searchmember %]"/>
+                        <input type="text" id="searchmember_filter" value="[% searchmember | html %]" class="focus" />
                     </li>
                     <li>
                         <label for="categorycode_filter">Category:</label>
                         <select id="categorycode_filter">
                             <option value="">Any</option>
                             [% FOREACH category IN categories %]
-                                <option value="[% category.categorycode %]">[% category.description %]</option>
+                                <option value="[% category.categorycode | html %]">[% category.description | html %]</option>
                             [% END %]
                         </select>
                     </li>
@@ -38,7 +38,7 @@
                                 <option value="">Any</option>
                             [% END %]
                             [% FOREACH l IN libraries %]
-                                <option value="[% l.branchcode %]">[% l.branchname %]</option>
+                                <option value="[% l.branchcode | html %]">[% l.branchname | html %]</option>
                             [% END %]
                         </select>
                     </li>
@@ -53,10 +53,14 @@
             <div class="hint">Only staff with superlibrarian or acquisitions permissions (or order_manage permission if granular permissions are enabled) are returned in the search results</div>
         [% END %]
 
+        [% IF patrons_with_suggestion_perm_only %]
+            <div class="hint">Only staff with superlibrarian or suggestions_manage permissions are returned in the search results</div>
+        [% END %]
+
         <div class="browse">
             Browse by last name:
             [% FOREACH letter IN alphabet.split(' ') %]
-                <a href="#" class="filterByLetter">[% letter %]</a>
+                <a href="#" class="filterByLetter">[% letter | html %]</a>
             [% END %]
         </div>
 
@@ -88,13 +92,34 @@
         </div>
 
 <div id="closewindow"><a href="#" class="btn btn-default btn-default close">Close</a></div>
+
+<!-- Patron preview modal -->
+<div class="modal" id="patronPreview" tabindex="-1" role="dialog" aria-labelledby="patronPreviewLabel">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="closebtn" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+                <h4 class="modal-title" id="patronPreviewLabel"></h4>
+            </div>
+            <div class="modal-body">
+                <div id="loading">
+                    <img src="[% interface | html %]/[% theme | html %]/img/spinner-small.gif" alt="" /> Loading
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 </div>
 </div>
 
 [% MACRO jsinclude BLOCK %]
     [% INCLUDE 'datatables.inc' %]
 
-    <script type="text/javascript">
+    <script>
         var search = 1;
         $(document).ready(function(){
             $("#info").hide();
@@ -129,6 +154,15 @@
                         'name': 'name_sorton',
                         'value': 'borrowers.surname borrowers.firstname'
                     },{
+                        'name': 'cardnumber_sorton',
+                        'value': 'borrowers.cardnumber',
+                    },{
+                        'name': 'dateofbirth_sorton',
+                        'value': 'borrowers.dateofbirth',
+                    },{
+                        'name': 'dateexpiry_sorton',
+                        'value': 'borrowers.dateexpiry',
+                    },{
                         'name': 'category_sorton',
                         'value': 'categories.description',
                     },{
@@ -136,15 +170,20 @@
                         'value': 'branches.branchname'
                     },{
                         'name': 'template_path',
-                        'value': '[% json_template %]',
+                        'value': '[% json_template | html %]',
                     },{
                         'name': 'selection_type',
-                        'value': '[% selection_type %]',
+                        'value': '[% selection_type | html %]',
                     }
                     [% IF patrons_with_acq_perm_only %]
                     ,{
                         'name': 'has_permission',
                         'value': 'acquisition.order_manage',
+                    }
+                    [% ELSIF patrons_with_suggestion_perm_only %]
+                    ,{
+                        'name': 'has_permission',
+                        'value': 'suggestions.suggestions_manage',
                     }
                     [% END %]
                     );
@@ -165,19 +204,15 @@
                         [% ELSIF column == 'address' %]
                             { 'mDataProp': 'dt_address', 'bSortable': false }
                         [% ELSE %]
-                            { 'mDataProp': 'dt_[% column %]' }
+                            { 'mDataProp': 'dt_[% column | html %]' }
                         [% END %]
                         [% UNLESS loop.last %],[% END %]
                     [% END %]
                 ],
                 'bAutoWidth': false,
-                [% IF patrons_with_acq_perm_only %]
-                    'bPaginate': false,
-                [% ELSE %]
-                    'sPaginationType': 'full_numbers',
-                    "iDisplayLength": [% Koha.Preference('PatronsPerPage') %],
-                [% END %]
-                'aaSorting': [[[% aaSorting || 0 %], 'asc']],
+                'sPaginationType': 'full_numbers',
+                "iDisplayLength": [% Koha.Preference('PatronsPerPage') | html %],
+                'aaSorting': [[[% aaSorting || 0 | html %], 'asc']],
                 'bFilter': false,
                 'bProcessing': true,
             }));
@@ -200,6 +235,18 @@
                 var borrowernumber = $(this).data("borrowernumber");
                 var borrower_data = $("#borrower_data"+borrowernumber).val();
                 select_user( borrowernumber, JSON.parse(borrower_data) );
+            });
+
+            $("body").on("click",".patron_preview", function( e ){
+                e.preventDefault();
+                var borrowernumber = $(this).data("borrowernumber");
+                var page = "/cgi-bin/koha/members/moremember.pl?print=brief&borrowernumber=" + borrowernumber;
+                $("#patronPreview .modal-body").load( page + " div.container-fluid" );
+                $('#patronPreview').modal({show:true});
+            });
+
+            $("#patronPreview").on('hidden.bs.modal', function (e) {
+                $("#patronPreview .modal-body").html("<img src=\"[% interface | html %]/[% theme | html %]/img/spinner-small.gif\" alt=\"\" /> Loading");
             });
 
         });
@@ -247,7 +294,11 @@
         [% ELSIF selection_type == 'select' %]
             function select_user(borrowernumber, data) {
                 var p = window.opener;
-                p.select_user(borrowernumber, data);
+                [%  IF callback %]
+                    p.[% callback | html %](borrowernumber, data);
+                [%  ELSE %]
+                    p.select_user(borrowernumber, data);
+                [%  END %]
                 window.close();
             }
         [% END %]

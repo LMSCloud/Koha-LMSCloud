@@ -72,7 +72,7 @@ sub MARCfindbreeding {
     # remove the - in isbn, koha store isbn without any -
     if ($marc) {
         my $record = MARC::Record->new_from_usmarc($marc);
-        my ($isbnfield,$isbnsubfield) = GetMarcFromKohaField('biblioitems.isbn','');
+        my ($isbnfield,$isbnsubfield) = GetMarcFromKohaField( 'biblioitems.isbn' );
         if ( $record->field($isbnfield) ) {
             foreach my $field ( $record->field($isbnfield) ) {
                 foreach my $subfield ( $field->subfield($isbnsubfield) ) {
@@ -105,7 +105,7 @@ sub MARCfindbreeding {
                 and C4::Context->preference("z3950AuthorAuthFields")
                 and C4::Context->preference("marcflavour") eq 'UNIMARC' )
             {
-                my ( $tag, $subfield ) = GetMarcFromKohaField("biblio.author", '');
+                my ( $tag, $subfield ) = GetMarcFromKohaField( "biblio.author" );
 
                 my $auth_fields =
                   C4::Context->preference("z3950AuthorAuthFields");
@@ -170,14 +170,15 @@ sub build_authorized_values_list {
     # builds list, depending on authorised value...
 
     #---- branch
-    if ( $tagslib->{$tag}->{$subfield}->{'authorised_value'} eq "branches" ) {
+    my $category = $tagslib->{$tag}->{$subfield}->{authorised_value};
+    if ( $category eq "branches" ) {
         my $libraries = Koha::Libraries->search_filtered({}, {order_by => ['branchname']});
         while ( my $l = $libraries->next ) {
             push @authorised_values, $l->branchcode;;
             $authorised_lib{$l->branchcode} = $l->branchname;
         }
     }
-    elsif ( $tagslib->{$tag}->{$subfield}->{authorised_value} eq "itemtypes" ) {
+    elsif ( $category eq "itemtypes" ) {
         push @authorised_values, "";
 
         my $itemtype;
@@ -188,7 +189,7 @@ sub build_authorized_values_list {
         }
         $value = $itemtype unless ($value);
     }
-    elsif ( $tagslib->{$tag}->{$subfield}->{authorised_value} eq "cn_source" ) {
+    elsif ( $category eq "cn_source" ) {
         push @authorised_values, "";
 
         my $class_sources = GetClassSources();
@@ -219,6 +220,7 @@ sub build_authorized_values_list {
         }
     }
     $authorised_values_sth->finish;
+
     return {
         type     => 'select',
         id       => "tag_".$tag."_subfield_".$subfield."_".$index_tag."_".$index_subfield,
@@ -226,6 +228,7 @@ sub build_authorized_values_list {
         default  => $value,
         values   => \@authorised_values,
         labels   => \%authorised_lib,
+        ( ( grep { $_ eq $category } ( qw(branches itemtypes cn_source) ) ) ? () : ( category => $category ) ),
     };
 
 }
@@ -249,11 +252,11 @@ sub CreateKey {
 
 sub GetMandatoryFieldZ3950 {
     my $frameworkcode = shift;
-    my @isbn   = GetMarcFromKohaField('biblioitems.isbn',$frameworkcode);
-    my @title  = GetMarcFromKohaField('biblio.title',$frameworkcode);
-    my @author = GetMarcFromKohaField('biblio.author',$frameworkcode);
-    my @issn   = GetMarcFromKohaField('biblioitems.issn',$frameworkcode);
-    my @lccn   = GetMarcFromKohaField('biblioitems.lccn',$frameworkcode);
+    my @isbn   = GetMarcFromKohaField( 'biblioitems.isbn' );
+    my @title  = GetMarcFromKohaField( 'biblio.title' );
+    my @author = GetMarcFromKohaField( 'biblio.author' );
+    my @issn   = GetMarcFromKohaField( 'biblioitems.issn' );
+    my @lccn   = GetMarcFromKohaField( 'biblioitems.lccn' );
     
     return {
         $isbn[0].$isbn[1]     => 'isbn',
@@ -275,18 +278,18 @@ sub create_input {
     
     my $index_subfield = CreateKey(); # create a specifique key for each subfield
 
-    $value =~ s/"/&quot;/g;
-
     # if there is no value provided but a default value in parameters, get it
     if ( $value eq '' ) {
         $value = $tagslib->{$tag}->{$subfield}->{defaultvalue} // q{};
 
-        # get today date & replace <<YYYY>>, <<MM>>, <<DD>> if provided in the default value
+        # get today date & replace <<YYYY>>, <<YY>>, <<MM>>, <<DD>> if provided in the default value
         my $today_dt = dt_from_string;
         my $year = $today_dt->strftime('%Y');
+        my $shortyear = $today_dt->strftime('%y');
         my $month = $today_dt->strftime('%m');
         my $day = $today_dt->strftime('%d');
         $value =~ s/<<YYYY>>/$year/g;
+        $value =~ s/<<YY>>/$shortyear/g;
         $value =~ s/<<MM>>/$month/g;
         $value =~ s/<<DD>>/$day/g;
         # And <<USER>> with surname (?)
@@ -307,6 +310,7 @@ sub create_input {
         marc_lib       => $tagslib->{$tag}->{$subfield}->{lib},
         tag_mandatory  => $tagslib->{$tag}->{mandatory},
         mandatory      => $tagslib->{$tag}->{$subfield}->{mandatory},
+        important      => $tagslib->{$tag}->{$subfield}->{important},
         repeatable     => $tagslib->{$tag}->{$subfield}->{repeatable},
         kohafield      => $tagslib->{$tag}->{$subfield}->{kohafield},
         index          => $index_tag,
@@ -320,13 +324,15 @@ sub create_input {
         $subfield_data{z3950_mandatory} = $mandatory_z3950->{$tag.$subfield};
     }
     # Subfield is hidden depending of hidden and mandatory flag, and is always
-    # shown if it contains anything or if its field is mandatory.
+    # shown if it contains anything or if its field is mandatory or important.
     my $tdef = $tagslib->{$tag};
     $subfield_data{visibility} = "display:none;"
         if $tdef->{$subfield}->{hidden} % 2 == 1 &&
            $value eq '' &&
            !$tdef->{$subfield}->{mandatory} &&
-           !$tdef->{mandatory};
+           !$tdef->{mandatory} &&
+           !$tdef->{$subfield}->{important} &&
+           !$tdef->{important};
     # expand all subfields of 773 if there is a host item provided in the input
     $subfield_data{visibility} ="" if ($tag eq 773 and $cgi->param('hostitemnumber'));
 
@@ -389,6 +395,7 @@ sub create_input {
                 size           => 67,
                 maxlength      => $subfield_data{maxlength},
                 javascript     => $plugin->javascript,
+                plugin         => $plugin->name,
                 noclick        => $plugin->noclick,
             };
         } else {
@@ -483,7 +490,7 @@ sub build_tabs {
     $query .= qq{ LEFT JOIN authorised_values_branches ON ( id = av_id )} if $branch_limit;
     $query .= " WHERE category = ?";
     $query .= " AND ( branchcode = ? OR branchcode IS NULL )" if $branch_limit;
-    $query .= " GROUP BY lib ORDER BY lib, lib_opac";
+    $query .= " GROUP BY authorised_value,lib ORDER BY lib, lib_opac";
     my $authorised_values_sth = $dbh->prepare( $query );
 
     # in this array, we will push all the 10 tabs
@@ -491,16 +498,19 @@ sub build_tabs {
     my @BIG_LOOP;
     my %seen;
     my @tab_data; # all tags to display
-    
+
+    my $max_num_tab=-1;
+    my ( $itemtag, $itemsubfield ) = GetMarcFromKohaField( "items.itemnumber" );
     foreach my $used ( @$usedTagsLib ){
+
         push @tab_data,$used->{tagfield} if not $seen{$used->{tagfield}};
         $seen{$used->{tagfield}}++;
-    }
-        
-    my $max_num_tab=-1;
-    foreach(@$usedTagsLib){
-        if($_->{tab} > -1 && $_->{tab} >= $max_num_tab && $_->{tagfield} != '995'){ # FIXME : MARC21 ?
-            $max_num_tab = $_->{tab}; 
+
+        if (   $used->{tab} > -1
+            && $used->{tab} >= $max_num_tab
+            && $used->{tagfield} ne $itemtag )
+        {
+            $max_num_tab = $used->{tab};
         }
     }
     if($max_num_tab >= 9){
@@ -510,7 +520,7 @@ sub build_tabs {
     for ( my $tabloop = 0 ; $tabloop <= $max_num_tab ; $tabloop++ ) {
         my @loop_data = (); #innerloop in the template.
         my $i = 0;
-        foreach my $tag (@tab_data) {
+        foreach my $tag (sort @tab_data) {
             $i++;
             next if ! $tag;
             my ($indicator1, $indicator2);
@@ -558,7 +568,7 @@ sub build_tabs {
                             my $subfield = $subfields[$subfieldcount][0];
                             my $value    = $subfields[$subfieldcount][1];
                             next if ( length $subfield != 1 );
-                            next if ( $tagslib->{$tag}->{$subfield}->{tab} ne $tabloop );
+                            next if ( !defined $tagslib->{$tag}->{$subfield} || $tagslib->{$tag}->{$subfield}->{tab} ne $tabloop );
                             push(
                                 @subfields_data,
                                 &create_input(
@@ -570,7 +580,7 @@ sub build_tabs {
                     }
 
                     # now, loop again to add parameter subfield that are not in the MARC::Record
-                    foreach my $subfield ( sort( keys %{ $tagslib->{$tag} } ) )
+                    foreach my $subfield ( keys %{ $tagslib->{$tag} } )
                     {
                         next if ( length $subfield != 1 );
                         next if ( $tagslib->{$tag}->{$subfield}->{tab} ne $tabloop );
@@ -606,6 +616,7 @@ sub build_tabs {
                             tag_lib       => $tagslib->{$tag}->{lib},
                             repeatable       => $tagslib->{$tag}->{repeatable},
                             mandatory       => $tagslib->{$tag}->{mandatory},
+                            important       => $tagslib->{$tag}->{important},
                             subfield_loop => \@subfields_data,
                             fixedfield    => $tag < 10?1:0,
                             random        => CreateKey,
@@ -622,12 +633,15 @@ sub build_tabs {
             }
             else {
                 my @subfields_data;
-                foreach my $subfield ( sort( keys %{ $tagslib->{$tag} } ) ) {
-                    next if ( length $subfield != 1 );
+                foreach my $subfield (
+                    sort { $a->{display_order} <=> $b->{display_order} || $a->{subfield} cmp $b->{subfield} }
+                    grep { ref($_) && %$_ } # Not a subfield (values for "important", "lib", "mandatory", etc.) or empty
+                    values %{ $tagslib->{$tag} } )
+                {
                     next
-                      if ( ( $tagslib->{$tag}->{$subfield}->{hidden} <= -4 )
-                        or ( $tagslib->{$tag}->{$subfield}->{hidden} >= 5 ) )
-                      and not ( $subfield eq "9" and
+                      if ( ( $subfield->{hidden} <= -4 )
+                        or ( $subfield->{hidden} >= 5 ) )
+                      and not ( $subfield->{subfield} eq "9" and
                                 exists($tagslib->{$tag}->{'a'}->{authtypecode}) and
                                 defined($tagslib->{$tag}->{'a'}->{authtypecode}) and
                                 $tagslib->{$tag}->{'a'}->{authtypecode} ne ""
@@ -636,11 +650,11 @@ sub build_tabs {
                            # if subfield is $9 in a field whose $a is authority-controlled,
                            # always include in the form regardless of the hidden setting - bug 2206
                     next
-                      if ( $tagslib->{$tag}->{$subfield}->{tab} ne $tabloop );
+                      if ( $subfield->{tab} ne $tabloop );
 			push(
                         @subfields_data,
                         &create_input(
-                            $tag, $subfield, '', $index_tag, $tabloop, $record,
+                            $tag, $subfield->{subfield}, '', $index_tag, $tabloop, $record,
                             $authorised_values_sth,$input
                         )
                     );
@@ -652,6 +666,7 @@ sub build_tabs {
                         tag_lib          => $tagslib->{$tag}->{lib},
                         repeatable       => $tagslib->{$tag}->{repeatable},
                         mandatory       => $tagslib->{$tag}->{mandatory},
+                        important       => $tagslib->{$tag}->{important},
                         indicator1       => ( $indicator1 || $tagslib->{$tag}->{ind1_defaultvalue} ), #if not set, try to load the default value
                         indicator2       => ( $indicator2 || $tagslib->{$tag}->{ind2_defaultvalue} ), #use short-circuit operator for efficiency
                         subfield_loop    => \@subfields_data,
@@ -677,7 +692,7 @@ sub build_tabs {
 # ========================
 #          MAIN
 #=========================
-my $input = new CGI;
+my $input = CGI->new;
 my $error = $input->param('error');
 my $biblionumber  = $input->param('biblionumber'); # if biblionumber exists, it's a modif, not a new biblio.
 my $parentbiblio  = $input->param('parentbiblionumber');
@@ -687,7 +702,7 @@ my $op            = $input->param('op') // q{};
 my $mode          = $input->param('mode');
 my $frameworkcode = $input->param('frameworkcode');
 my $redirect      = $input->param('redirect');
-my $searchid      = $input->param('searchid');
+my $searchid      = $input->param('searchid') // "";
 my $dbh           = C4::Context->dbh;
 my $hostbiblionumber = $input->param('hostbiblionumber');
 my $hostitemnumber = $input->param('hostitemnumber');
@@ -714,7 +729,6 @@ my ( $template, $loggedinuser, $cookie ) = get_template_and_user(
         template_name   => "cataloguing/addbiblio.tt",
         query           => $input,
         type            => "intranet",
-        authnotrequired => 0,
         flagsrequired   => { editcatalogue => $userflags },
     }
 );
@@ -736,11 +750,15 @@ if ($frameworkcode eq 'FA'){
         'stickyduedate'      => $fa_stickyduedate,
         'duedatespec'        => $fa_duedatespec,
     );
-} elsif ( $op ne "delete" && C4::Context->preference('EnableAdvancedCatalogingEditor') && $input->cookie( 'catalogue_editor_' . $loggedinuser ) eq 'advanced' && !$breedingid ) {
+} elsif ( $op ne "delete" &&
+            C4::Context->preference('EnableAdvancedCatalogingEditor') &&
+            C4::Auth::haspermission(C4::Context->userenv->{id},{'editcatalogue'=>'advanced_editor'}) &&
+            $input->cookie( 'catalogue_editor_' . $loggedinuser ) eq 'advanced' &&
+            !$breedingid ) {
     # Only use the advanced editor for non-fast-cataloging.
     # breedingid is not handled because those would only come off a Z39.50
     # search initiated by the basic editor.
-    print $input->redirect( '/cgi-bin/koha/cataloguing/editor.pl' . ( $biblionumber ? ( '#catalog/' . $biblionumber ) : '' ) );
+    print $input->redirect( '/cgi-bin/koha/cataloguing/editor.pl' . ( $biblionumber ? ( ($op eq 'duplicate'?'#duplicate/':'#catalog/') . $biblionumber ) : '' ) );
     exit;
 }
 
@@ -803,10 +821,10 @@ if ($biblionumber) {
 
     # if it's a modif, retrieve bibli and biblioitem numbers for the future modification of old-DB.
     ( $biblionumbertagfield, $biblionumbertagsubfield ) =
-	&GetMarcFromKohaField( "biblio.biblionumber", $frameworkcode );
+        &GetMarcFromKohaField( "biblio.biblionumber" );
     ( $biblioitemnumtagfield, $biblioitemnumtagsubfield ) =
-	&GetMarcFromKohaField( "biblioitems.biblioitemnumber", $frameworkcode );
-	    
+        &GetMarcFromKohaField( "biblioitems.biblioitemnumber" );
+
     # search biblioitems value
     my $sth =  $dbh->prepare("select biblioitemnumber from biblioitems where biblionumber=?");
     $sth->execute($biblionumber);
@@ -915,7 +933,7 @@ elsif ( $op eq "delete" ) {
 	exit;
     }
     
-    print $input->redirect('/cgi-bin/koha/catalogue/search.pl');
+    print $input->redirect('/cgi-bin/koha/catalogue/search.pl' . ($searchid ? "?searchid=$searchid" : ""));
     exit;
     
 } else {

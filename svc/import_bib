@@ -28,7 +28,7 @@ use C4::Matcher;
 use XML::Simple;
 # use Carp::Always;
 
-my $query = new CGI;
+my $query = CGI->new;
 binmode STDOUT, ':encoding(UTF-8)';
 
 my ($status, $cookie, $sessionID) = check_api_auth($query, { editcatalogue => 'edit_catalogue'} );
@@ -73,7 +73,7 @@ sub import_bib {
     }
 
     my $marcflavour = C4::Context->preference('marcflavour') || 'MARC21';
-    my $marc_record = eval {MARC::Record::new_from_xml( $inxml, "utf8", $marcflavour)};
+    my $marc_record = eval {MARC::Record::new_from_xml( $inxml, "UTF-8", $marcflavour)};
     if ($@) {
         $result->{'status'} = "failed";
         $result->{'error'} = $@;

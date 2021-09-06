@@ -37,14 +37,9 @@ sub queue_position {
 
 sub do_hold {
     my $self = shift;
-    unless ( $self->{patron} ) {
+    my $patron = Koha::Patrons->find( $self->{patron}->borrowernumber );
+    unless ( $patron ) {
         $self->screen_msg('do_hold called with undefined patron');
-        $self->ok(0);
-        return $self;
-    }
-    my $patron = Koha::Patrons->find( { cardnumber => $self->{patron}->id } );
-    unless ($patron) {
-        $self->screen_msg( 'No borrower matches cardnumber "' . $self->{patron}->id . '".' );
         $self->ok(0);
         return $self;
     }
@@ -54,13 +49,27 @@ sub do_hold {
         $self->ok(0);
         return $self;
     }
-    my $branch = ( $self->pickup_location || $self->{patron}->branchcode );
+    my $branch = ( $self->pickup_location || $self->{patron}->{branchcode} );
     unless ($branch) {
         $self->screen_msg('No branch specified (or found w/ patron).');
         $self->ok(0);
         return $self;
     }
-    AddReserve( $branch, $patron->borrowernumber, $item->biblionumber );
+    unless ( $item->can_be_transferred( { to => Koha::Libraries->find( $branch ) } ) ) {
+        $self->screen_msg('Item cannot be transferred.');
+        $self->ok(0);
+        return $self;
+    }
+
+    my $priority = C4::Reserves::CalculatePriority($item->biblionumber);
+    AddReserve(
+        {
+            priority       => $priority,
+            branchcode     => $branch,
+            borrowernumber => $patron->borrowernumber,
+            biblionumber   => $item->biblionumber
+        }
+    );
 
     # unfortunately no meaningful return value
     $self->ok(1);
@@ -69,26 +78,16 @@ sub do_hold {
 
 sub drop_hold {
 	my $self = shift;
-	unless ($self->{patron}) {
-		$self->screen_msg('drop_hold called with undefined patron');
-		$self->ok(0);
-		return $self;
-	}
-    my $patron = Koha::Patrons->find( { cardnumber => $self->{patron}->id } );
+    my $patron = Koha::Patrons->find( $self->{patron}->borrowernumber );
     unless ($patron) {
-		$self->screen_msg('No borrower matches cardnumber "' . $self->{patron}->id . '".');
-		$self->ok(0);
-		return $self;
-	}
-    my $item = Koha::Items->find({ barcode => $self->{item}->id });
+        $self->screen_msg('drop_hold called with undefined patron');
+        $self->ok(0);
+        return $self;
+    }
 
-    my $holds = Koha::Holds->search(
-        {
-            biblionumber   => $item->biblionumber,
-            itemnumber     => $self->{item}->id,
-            borrowernumber => $patron->borrowernumber
-        }
-    );
+    my $item = Koha::Items->find({ barcode => $self->{item}->id });
+    my $holds = $item->holds->search({ borrowernumber => $patron->borrowernumber });
+
     return $self unless $holds->count;
 
     $holds->next->cancel;
@@ -99,17 +98,12 @@ sub drop_hold {
 
 sub change_hold {
 	my $self = shift;
-	unless ($self->{patron}) {
-		$self->screen_msg('change_hold called with undefined patron');
-		$self->ok(0);
-		return $self;
-	}
-    my $patron = Koha::Patrons->find( { cardnumber => $self->{patron}->id } );
+    my $patron = Koha::Patrons->find( $self->{patron}->borrowernumber );
     unless ($patron) {
-		$self->screen_msg('No borrower matches cardnumber "' . $self->{patron}->id . '".');
-		$self->ok(0);
-		return $self;
-	}
+        $self->screen_msg('change_hold called with undefined patron');
+        $self->ok(0);
+        return $self;
+    }
     my $item = Koha::Items->find({ barcode => $self->{item}->id });
     unless ($item) {
 		$self->screen_msg('No biblio record matches barcode "' . $self->{item}->id . '".');

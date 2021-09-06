@@ -13,14 +13,15 @@ use C4::Context;
 use C4::Members;
 use C4::Circulation;
 use CGI qw ( -utf8 );
-use C4::Members::Attributes qw(GetBorrowerAttributes);
 use Koha::AuthUtils;
 use Koha::Token;
 
 use Koha::Patrons;
 use Koha::Patron::Categories;
 
-my $input = new CGI;
+use Try::Tiny;
+
+my $input = CGI->new;
 
 my $theme = $input->param('theme') || "default";
 
@@ -31,28 +32,26 @@ my ( $template, $loggedinuser, $cookie, $staffflags ) = get_template_and_user(
         template_name   => "members/member-password.tt",
         query           => $input,
         type            => "intranet",
-        authnotrequired => 0,
         flagsrequired   => { borrowers => 'edit_borrowers' },
         debug           => 1,
     }
 );
 
-my $member      = $input->param('member');
-my $cardnumber  = $input->param('cardnumber');
-my $destination = $input->param('destination');
+my $patron_id    = $input->param('member');
+my $destination  = $input->param('destination');
 my $newpassword  = $input->param('newpassword');
 my $newpassword2 = $input->param('newpassword2');
+my $new_user_id  = $input->param('newuserid');
 
 my @errors;
 
-my $logged_in_user = Koha::Patrons->find( $loggedinuser ) or die "Not logged in";
-my $patron = Koha::Patrons->find( $member );
+my $logged_in_user = Koha::Patrons->find( $loggedinuser );
+my $patron = Koha::Patrons->find( $patron_id );
 output_and_exit_if_error( $input, $cookie, $template, { module => 'members', logged_in_user => $logged_in_user, current_patron => $patron } );
 
 my $category_type = $patron->category->category_type;
-my $bor = $patron->unblessed;
 
-if ( ( $member ne $loggedinuser ) && ( $category_type eq 'S' ) ) {
+if ( ( $patron_id ne $loggedinuser ) && ( $category_type eq 'S' ) ) {
     push( @errors, 'NOPERMISSION' )
       unless ( $staffflags->{'superlibrarian'} || $staffflags->{'staffaccess'} );
 
@@ -61,58 +60,49 @@ if ( ( $member ne $loggedinuser ) && ( $category_type eq 'S' ) ) {
 
 push( @errors, 'NOMATCH' ) if ( ( $newpassword && $newpassword2 ) && ( $newpassword ne $newpassword2 ) );
 
-if ( $newpassword and not @errors ) {
-    my ( $is_valid, $error ) = Koha::AuthUtils::is_password_valid( $newpassword );
-    unless ( $is_valid ) {
-        push @errors, 'ERROR_password_too_short' if $error eq 'too_short';
-        push @errors, 'ERROR_password_too_weak' if $error eq 'too_weak';
-        push @errors, 'ERROR_password_has_whitespaces' if $error eq 'has_whitespaces';
-    }
-}
-
 if ( $newpassword and not @errors) {
 
-    die "Wrong CSRF token"
+    output_and_exit( $input, $cookie, $template,  'wrong_csrf_token' )
         unless Koha::Token->new->check_csrf({
             session_id => scalar $input->cookie('CGISESSID'),
             token  => scalar $input->param('csrf_token'),
         });
 
-    my $digest = Koha::AuthUtils::hash_password( scalar $input->param('newpassword') );
-    my $uid    = $input->param('newuserid') || $bor->{userid};
-    my $dbh    = C4::Context->dbh;
-    if ( Koha::Patrons->find( $member )->update_password($uid, $digest) ) {
+    try {
+        $patron->set_password({ password => $newpassword });
+        $patron->userid($new_user_id)->store
+            if $new_user_id and $new_user_id ne $patron->userid;
         $template->param( newpassword => $newpassword );
         if ( $destination eq 'circ' ) {
-            print $input->redirect("/cgi-bin/koha/circ/circulation.pl?findborrower=$cardnumber");
+            print $input->redirect("/cgi-bin/koha/circ/circulation.pl?findborrower=" . $patron->cardnumber);
         }
         else {
-            print $input->redirect("/cgi-bin/koha/members/moremember.pl?borrowernumber=$member");
+            print $input->redirect("/cgi-bin/koha/members/moremember.pl?borrowernumber=$patron_id");
         }
     }
-    else {
-        push( @errors, 'BADUSERID' );
-    }
-}
-
-if ( $patron->is_child ) {
-    my $patron_categories = Koha::Patron::Categories->search_limited({ category_type => 'A' }, {order_by => ['categorycode']});
-    $template->param( 'CATCODE_MULTI' => 1) if $patron_categories->count > 1;
-    $template->param( 'catcode' => $patron_categories->next->categorycode )  if $patron_categories->count == 1;
-}
-
-if ( C4::Context->preference('ExtendedPatronAttributes') ) {
-    my $attributes = GetBorrowerAttributes( $bor->{'borrowernumber'} );
-    $template->param(
-        ExtendedPatronAttributes => 1,
-        extendedattributes       => $attributes
-    );
+    catch {
+        if ( $_->isa('Koha::Exceptions::Password::TooShort') ) {
+            push @errors, 'ERROR_password_too_short';
+        }
+        elsif ( $_->isa('Koha::Exceptions::Password::WhitespaceCharacters') ) {
+            push @errors, 'ERROR_password_has_whitespaces';
+        }
+        elsif ( $_->isa('Koha::Exceptions::Password::TooWeak') ) {
+            push @errors, 'ERROR_password_too_weak';
+        }
+        elsif ( $_->isa('Koha::Exceptions::Password::Plugin') ) {
+            push @errors, 'ERROR_from_plugin';
+        }
+        else {
+            push( @errors, 'BADUSERID' );
+        }
+    };
 }
 
 $template->param(
-    patron                     => $patron,
-    destination                => $destination,
-    csrf_token                 => Koha::Token->new->generate_csrf({ session_id => scalar $input->cookie('CGISESSID'), }),
+    patron      => $patron,
+    destination => $destination,
+    csrf_token  => Koha::Token->new->generate_csrf({ session_id => scalar $input->cookie('CGISESSID'), }),
 );
 
 if ( scalar(@errors) ) {

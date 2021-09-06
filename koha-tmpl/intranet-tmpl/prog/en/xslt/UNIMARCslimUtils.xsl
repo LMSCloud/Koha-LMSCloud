@@ -1,6 +1,6 @@
 <?xml version='1.0'?>
 
-<!DOCTYPE stylesheet [<!ENTITY nbsp "&#160;" >]>
+<!DOCTYPE stylesheet>
 
 <xsl:stylesheet version="1.0"
   xmlns:marc="http://www.loc.gov/MARC21/slim"
@@ -29,48 +29,39 @@
   </xsl:template>
 
   <xsl:template name="tag_210">
-    <li>
-      <strong>Publication: </strong>
+    <span class="results_summary publication">
+      <span class="label">Publication: </span>
       <xsl:for-each select="marc:datafield[@tag=210]">
         <span>
           <xsl:call-template name="addClassRtl" />
-          <xsl:value-of select="marc:subfield[@code='a']"/>
-          <xsl:if test="marc:subfield[@code='b']">
-            <xsl:if test="marc:subfield[@code='a']">, </xsl:if>
-            <xsl:value-of select="marc:subfield[@code='b']"/>
-          </xsl:if>
-          <xsl:if test="marc:subfield[@code='a' or @code='b']">
-            <xsl:if test="marc:subfield[@code='a']"> : </xsl:if>
-            <xsl:value-of select="marc:subfield[@code='c']"/>
-          </xsl:if>
-          <xsl:if test="marc:subfield[@code='d']">
-            <xsl:if test="marc:subfield[@code='a' or @code='c']">, </xsl:if>
-            <xsl:value-of select="marc:subfield[@code='d']"/>
-          </xsl:if>
-          <xsl:if test="marc:subfield[@code='e']">
-            <xsl:if test="marc:subfield[@code='a' or @code='c' or @code='d']"> — </xsl:if>
-            <xsl:value-of select="marc:subfield[@code='e']"/>
-          </xsl:if>
-          <xsl:if test="marc:subfield[@code='g']">
-            <xsl:if test="marc:subfield[@code='e']"> : </xsl:if>
-            <xsl:value-of select="marc:subfield[@code='g']"/>
-          </xsl:if>
-          <xsl:if test="marc:subfield[@code='h']">
-            <xsl:if test="marc:subfield[@code='e' or @code='g']">, </xsl:if>
-            <xsl:value-of select="marc:subfield[@code='h']"/>
-          </xsl:if>
+          <xsl:for-each select="marc:subfield">
+            <xsl:choose>
+              <xsl:when test="@code='c' or @code='g'">
+                <xsl:if test="position()>1">
+                  <xsl:text> : </xsl:text>
+                </xsl:if>
+                <xsl:value-of select="."/>
+              </xsl:when>
+              <xsl:otherwise>
+                <xsl:if test="position()>1">
+                  <xsl:text>, </xsl:text>
+                </xsl:if>
+                <xsl:value-of select="."/>
+              </xsl:otherwise>
+            </xsl:choose>
+          </xsl:for-each>
           <xsl:if test="not (position() = last())">
             <xsl:text> • </xsl:text>
           </xsl:if>
         </span>
       </xsl:for-each>
-    </li>
+    </span>
   </xsl:template>
 
-	<xsl:template name="tag_215">
+  <xsl:template name="tag_215">
     <xsl:for-each select="marc:datafield[@tag=215]">
-      <li>
-        <strong>Description: </strong>
+      <span class="results_summary description">
+        <span class="label">Description: </span>
         <xsl:if test="marc:subfield[@code='a']">
           <xsl:value-of select="marc:subfield[@code='a']"/>
         </xsl:if>
@@ -83,15 +74,15 @@
         <xsl:if test="marc:subfield[@code='e']"> +
           <xsl:value-of select="marc:subfield[@code='e']"/>
         </xsl:if>
-      </li>
+      </span>
     </xsl:for-each>
   </xsl:template>
 
 	<xsl:template name="tag_4xx">
     <xsl:for-each select="marc:datafield[@tag=464 or @tag=461]">
-        <li>
-        <strong>Linked with: </strong>
-        <span>
+      <span class="results_summary linked_with">
+        <span class="label">Linked with: </span>
+        <span class="value">
           <xsl:call-template name="addClassRtl" />
           <xsl:if test="marc:subfield[@code='t']">
             <xsl:value-of select="marc:subfield[@code='t']"/>
@@ -106,7 +97,7 @@
             <xsl:value-of select="marc:subfield[@code='v']"/>
           </xsl:if>
         </span>
-      </li>
+      </span>
     </xsl:for-each>
   </xsl:template>
 
@@ -203,9 +194,13 @@
   <xsl:template name="tag_title">
     <xsl:param name="tag" />
     <xsl:param name="label" />
+    <xsl:param name="spanclass" />
     <xsl:if test="marc:datafield[@tag=$tag]">
-      <li>
-        <strong><xsl:value-of select="$label"/>: </strong>
+      <span class="results_summary {$spanclass}">
+        <span class="label">
+          <xsl:value-of select="$label"/>
+          <xsl:text>: </xsl:text>
+        </span>
         <xsl:for-each select="marc:datafield[@tag=$tag]">
           <xsl:value-of select="marc:subfield[@code='a']" />
           <xsl:if test="marc:subfield[@code='d']">
@@ -243,17 +238,20 @@
             <xsl:value-of select="marc:subfield[@code='z']"/>
           </xsl:if>
         </xsl:for-each>
-      </li>
+      </span>
     </xsl:if>
   </xsl:template>
-
 
   <xsl:template name="tag_subject">
     <xsl:param name="tag" />
     <xsl:param name="label" />
+    <xsl:param name="spanclass"/>
     <xsl:if test="marc:datafield[@tag=$tag]">
-      <li>
-        <strong><xsl:value-of select="$label"/>: </strong>
+      <span class="results_summary subjects {$spanclass}">
+        <span class="label">
+          <xsl:value-of select="$label"/>
+          <xsl:text>: </xsl:text>
+        </span>
         <xsl:for-each select="marc:datafield[@tag=$tag]">
           <a>
             <xsl:choose>
@@ -267,7 +265,7 @@
             <xsl:call-template name="chopPunctuation">
               <xsl:with-param name="chopString">
                 <xsl:call-template name="subfieldSelect">
-                    <xsl:with-param name="codes">abcdjpvxyz</xsl:with-param>
+                    <xsl:with-param name="codes">abcdjptvxyz</xsl:with-param>
                     <xsl:with-param name="subdivCodes">jpxyz</xsl:with-param>
                     <xsl:with-param name="subdivDelimiter">-- </xsl:with-param>
                 </xsl:call-template>
@@ -278,27 +276,38 @@
             <xsl:text> | </xsl:text>
           </xsl:if>
         </xsl:for-each>
-      </li>
+      </span>
     </xsl:if>
   </xsl:template>
-
 
   <xsl:template name="tag_7xx">
     <xsl:param name="tag" />
     <xsl:param name="label" />
+    <xsl:param name="spanclass" />
     <xsl:if test="marc:datafield[@tag=$tag]">
-      <li>
-        <strong><xsl:value-of select="$label" />: </strong>
-        <xsl:for-each select="marc:datafield[@tag=$tag]">
-          <span>
+      <span class="results_summary author {$spanclass}">
+        <span class="label">
+          <xsl:value-of select="$label" />
+          <xsl:text>: </xsl:text>
+        </span>
+        <span class="value">
+          <xsl:for-each select="marc:datafield[@tag=$tag]">
             <xsl:call-template name="addClassRtl" />
             <a>
               <xsl:choose>
                 <xsl:when test="marc:subfield[@code=9]">
-                  <xsl:attribute name="href">/cgi-bin/koha/catalogue/search.pl?q=an:<xsl:value-of select="str:encode-uri(marc:subfield[@code=9], true())"/></xsl:attribute>
+                  <xsl:attribute name="href">
+                    <xsl:text>/cgi-bin/koha/catalogue/search.pl?q=an:</xsl:text>
+                    <xsl:value-of select="str:encode-uri(marc:subfield[@code=9], true())"/>
+                  </xsl:attribute>
                 </xsl:when>
                 <xsl:otherwise>
-                  <xsl:attribute name="href">/cgi-bin/koha/catalogue/search.pl?q=au:<xsl:value-of select="str:encode-uri(marc:subfield[@code='a'], true())"/><xsl:text> </xsl:text><xsl:value-of select="marc:subfield[@code='b']"/></xsl:attribute>
+                    <xsl:attribute name="href">
+                      <xsl:text>/cgi-bin/koha/catalogue/search.pl?q=au:</xsl:text>
+                      <xsl:value-of select="str:encode-uri(marc:subfield[@code='a'], true())"/>
+                      <xsl:text>%20</xsl:text>
+                      <xsl:value-of select="str:encode-uri(marc:subfield[@code='b'], true())"/>
+                  </xsl:attribute>
                 </xsl:otherwise>
               </xsl:choose>
               <xsl:if test="marc:subfield[@code='a']">
@@ -332,12 +341,12 @@
                 <xsl:value-of select="marc:subfield[@code='p']"/>
               </xsl:if>
             </a>
-          </span>
-          <xsl:if test="not (position() = last())">
-            <xsl:text> ; </xsl:text>
-          </xsl:if>
-        </xsl:for-each>
-      </li>
+            <xsl:if test="not (position() = last())">
+              <xsl:text> ; </xsl:text>
+            </xsl:if>
+          </xsl:for-each>
+        </span>
+      </span>
     </xsl:if>
   </xsl:template>
 

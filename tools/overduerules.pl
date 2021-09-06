@@ -32,7 +32,7 @@ use Koha::Libraries;
 
 use Koha::Patron::Categories;
 
-our $input = new CGI;
+our $input = CGI->new;
 my $dbh = C4::Context->dbh;
 
 my @patron_categories = Koha::Patron::Categories->search( { overduenoticerequired => { '>' => 0 } } );
@@ -65,7 +65,6 @@ my ( $template, $loggedinuser, $cookie ) = get_template_and_user(
         template_name   => "tools/overduerules.tt",
         query           => $input,
         type            => "intranet",
-        authnotrequired => 0,
         flagsrequired   => { tools => 'edit_notice_status_triggers' },
         debug           => 1,
     }
@@ -78,7 +77,6 @@ $branch =
   : Koha::Libraries->search->count() == 1                              ? undef
   :                                                                      undef;
 $branch ||= q{};
-$branch = q{} if $branch eq 'NO_LIBRARY_SET';
 
 my $op = $input->param('op');
 $op ||= q{};
@@ -331,11 +329,6 @@ my $letters = C4::Letters::GetLettersAvailableForALibrary(
     }
 );
 
-
-########################################
-#  Initialize overduerules table and letter selection
-########################################
-my @line_loop;
 my $message_transport_types = C4::Letters::GetMessageTransportTypes();
 my ( @first, @second, @third, @fourth, @fifth );
 for my $patron_category (@patron_categories) {

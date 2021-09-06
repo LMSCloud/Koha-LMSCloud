@@ -41,7 +41,6 @@ my $dbh = C4::Context->dbh;
 
 my $database = Koha::Database->new();
 my $schema   = $database->schema();
-$dbh->{RaiseError} = 1;
 
 sub run_hiding_tests {
 
@@ -59,7 +58,7 @@ sub run_hiding_tests {
     };
 
     my ( $isbn_field, $isbn_subfield ) =
-      GetMarcFromKohaField( 'biblioitems.isbn', q{} );
+      GetMarcFromKohaField( 'biblioitems.isbn' );
     my $update_sql = q{UPDATE marc_subfield_structure SET hidden=? };
     my $sth        = $dbh->prepare($update_sql);
     foreach my $hidden_value (@valid_hidden_values) {
@@ -170,9 +169,9 @@ sub run_hiding_tests {
 sub create_marc_record {
 
     my ( $title_field, $title_subfield ) =
-      GetMarcFromKohaField( 'biblio.title', q{} );
+      GetMarcFromKohaField( 'biblio.title' );
     my ( $isbn_field, $isbn_subfield ) =
-      GetMarcFromKohaField( 'biblioitems.isbn', q{} );
+      GetMarcFromKohaField( 'biblioitems.isbn' );
     my $isbn        = '0590353403';
     my $title       = 'Foundation';
     my $marc_record = MARC::Record->new;

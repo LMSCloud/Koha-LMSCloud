@@ -39,6 +39,7 @@ use C4::Auth qw/:DEFAULT get_session/;
 use C4::Output;
 use C4::Members;
 use C4::Koha;
+use Koha::DateUtils;
 
 #use Smart::Comments;
 #use Data::Dumper;
@@ -49,7 +50,7 @@ BEGIN {
 	$debug = $ENV{DEBUG} || 0;
 }
 
-my $input = new CGI;
+my $input = CGI->new;
 my $sessionID = $input->cookie("CGISESSID");
 my $session = get_session($sessionID);
 
@@ -66,7 +67,6 @@ my ( $template, $loggedinuser, $cookie ) = get_template_and_user(
         template_name   => "circ/printslip.tt",
         query           => $input,
         type            => "intranet",
-        authnotrequired => 0,
         flagsrequired   => $flagsrequired,
         debug           => 1,
     }
@@ -74,13 +74,40 @@ my ( $template, $loggedinuser, $cookie ) = get_template_and_user(
 
 my $borrowernumber = $input->param('borrowernumber');
 
-my $logged_in_user = Koha::Patrons->find( $loggedinuser ) or die "Not logged in";
+my $logged_in_user = Koha::Patrons->find( $loggedinuser );
 my $patron         = Koha::Patrons->find( $borrowernumber );
 output_and_exit_if_error( $input, $cookie, $template, { module => 'members', logged_in_user => $logged_in_user, current_patron => $patron } );
 
 my $branch=C4::Context->userenv->{'branch'};
 my ($slip, $is_html);
-if (my $letter = IssueSlip ($session->param('branch') || $branch, $borrowernumber, $print eq "qslip")) {
+if ( $print eq 'checkinslip' ) {
+    my $checkinslip_branch = $session->param('branch') ? $session->param('branch') : $branch;
+
+    # get today's checkins
+    my @itemnumbers = $patron->old_checkouts->search( { branchcode => $checkinslip_branch } )
+      ->filter_by_todays_checkins->get_column('itemnumber');
+
+    my %loops = (
+        old_issues => \@itemnumbers,
+    );
+
+    my $letter = C4::Letters::GetPreparedLetter(
+        module      => 'circulation',
+        letter_code => 'CHECKINSLIP',
+        branchcode  => $checkinslip_branch,
+        lang        => $patron->lang,
+        tables      => {
+            branches  => $checkinslip_branch,
+            borrowers => $borrowernumber,
+        },
+        loops                  => \%loops,
+        message_transport_type => 'print'
+    );
+
+    $slip    = $letter->{content};
+    $is_html = $letter->{is_html};
+
+} elsif (my $letter = IssueSlip ($session->param('branch') || $branch, $borrowernumber, $print eq "qslip")) {
     $slip = $letter->{content};
     $is_html = $letter->{is_html};
 }

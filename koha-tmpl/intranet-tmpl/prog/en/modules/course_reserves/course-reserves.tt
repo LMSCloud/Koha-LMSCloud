@@ -1,11 +1,12 @@
+[% USE raw %]
 [% USE Asset %]
 [% USE AuthorisedValues %]
+[% USE TablesSettings %]
 [% SET footerjs = 1 %]
 [% INCLUDE 'doc-head-open.inc' %]
-<title>Koha &rsaquo; Course reserves</title>
+<title>Course reserves &rsaquo; Koha</title>
 [% INCLUDE 'doc-head-close.inc' %]
 
-[% Asset.css("css/datatables.css") %]
 </head>
 
 <body id="courses_course_reserves" class="course">
@@ -13,40 +14,31 @@
 [% INCLUDE 'header.inc' %]
 [% INCLUDE 'cat-search.inc' %]
 
-<div id="breadcrumbs"><a href="/cgi-bin/koha/mainpage.pl">Home</a> &rsaquo; <a href="/cgi-bin/koha/course_reserves/course-reserves.pl">Course reserves</a></div>
+<nav id="breadcrumbs" aria-label="Breadcrumb" class="breadcrumb">
+    <ol>
+        <li>
+            <a href="/cgi-bin/koha/mainpage.pl">Home</a>
+        </li>
+        <li>
+            <a href="#" aria-current="page">Course reserves</a>
+        </li>
+    </ol>
+</nav>
 
     <div class="main container-fluid">
         <div class="row">
-            <div class="col-md-8 col-md-offset-2">
+            <div class="col-md-10 col-md-offset-1">
 
-                    [% IF CAN_user_coursereserves_add_reserves OR CAN_user_coursereserves_manage_courses OR CAN_user_coursereserves_manage_courses %]
+                    [% IF CAN_user_coursereserves_add_reserves OR CAN_user_coursereserves_manage_courses OR CAN_user_coursereserves_manage_courses OR CAN_user_coursereserves_delete_reserves %]
                     <div id="toolbar">
                         [% IF ( CAN_user_coursereserves_manage_courses ) %]
-                            <a class="btn btn-default btn-sm" id="new_course" href="/cgi-bin/koha/course_reserves/course.pl"><i class="fa fa-plus"></i> New course</a>
+                            <a class="btn btn-default" id="new_course" href="/cgi-bin/koha/course_reserves/course.pl"><i class="fa fa-plus"></i> New course</a>
+                        [% END %]
+                        [% IF ( CAN_user_coursereserves_delete_reserves ) %]
+                            <a class="btn btn-default" id="batch_rm" href="/cgi-bin/koha/course_reserves/batch_rm_items.pl"><i class="fa fa-minus"></i> Batch remove reserves</a>
                         [% END %]
                     </div><!-- /toolbar -->
                     [% END %]
-
-                    <!--
-                    <div id="search-toolbar">
-                        <script type="text/javascript">
-                        //<![CDATA[
-                            function submitSearchForm(p_oEvent){
-                                $('#search_courses_form').submit();
-                            }
-
-                            $(document).ready(function(){
-                                newCourseButton = new YAHOO.widget.Button("search_courses");
-                                newCourseButton.on("click", submitSearchForm );
-                            });
-                        //]]>
-                        </script>
-                        <ul class="toolbar">
-                            <li><form id="search_courses_form"><input type="text" name="search_on" id="search_on"></form></li>
-                            <li><a id="search_courses">Search courses</a></li>
-                        </ul>
-                    </div>
-                    -->
 
                     <h1>Courses</h1>
                     <table id="course_reserves_table">
@@ -60,7 +52,7 @@
                                 <th>Instructors</th>
                                 <th>Staff note</th>
                                 <th>Public note</th>
-                                <th># of Students</th>
+                                <th># of students</th>
                                 <th>Enabled</th>
                             </tr>
                         </thead>
@@ -68,19 +60,19 @@
                         <tbody>
                             [% FOREACH c IN courses %]
                                 <tr>
-                                    <td><a href="course-details.pl?course_id=[% c.course_id %]">[% c.course_name %]</a></td>
-                                    <td>[% AuthorisedValues.GetByCode( 'DEPARTMENT', c.department ) %]</td>
-                                    <td>[% c.course_number %]</td>
-                                    <td>[% c.section %]</td>
-                                    <td>[% AuthorisedValues.GetByCode( 'TERM' c.term ) %]</td>
+                                    <td><a href="course-details.pl?course_id=[% c.course_id | uri %]">[% c.course_name | html %]</a></td>
+                                    <td>[% AuthorisedValues.GetByCode( 'DEPARTMENT', c.department ) | html %]</td>
+                                    <td>[% c.course_number | html %]</td>
+                                    <td>[% c.section | html %]</td>
+                                    <td>[% AuthorisedValues.GetByCode( 'TERM' c.term ) | html %]</td>
                                     <td>
                                         [% FOREACH i IN c.instructors %]
-                                            <div class="instructor"><a href="/cgi-bin/koha/members/moremember.pl?borrowernumber=[% i.borrowernumber %]">[% i.firstname %] [% i.surname %]</a></div>
+                                            <div class="instructor"><a href="/cgi-bin/koha/members/moremember.pl?borrowernumber=[% i.borrowernumber | uri %]">[% i.firstname | html %] [% i.surname | html %]</a></div>
                                         [% END %]
                                     </td>
-                                    <td>[% c.staff_note %]</td>
-                                    <td>[% c.public_note %]</td>
-                                    <td>[% c.students_count %]</td>
+                                    <td>[% c.staff_note | html %]</td>
+                                    <td>[% c.public_note | $raw %]</td>
+                                    <td>[% c.students_count | html %]</td>
                                     <td>
                                         [% IF c.enabled == 'yes' %]
                                             Yes
@@ -97,11 +89,14 @@
 
 [% MACRO jsinclude BLOCK %]
     [% INCLUDE 'datatables.inc' %]
-    <script type="text/javascript" id="js">
+    [% INCLUDE 'columns_settings.inc' %]
+    <script>
+        var columns_settings = [% TablesSettings.GetColumns( 'coursereserves', 'courses', 'course_reserves_table', 'json' ) | $raw %];
         $(document).ready(function() {
-            $("#course_reserves_table").dataTable($.extend(true, {}, dataTablesDefaults, {
-                "sPaginationType": "four_button"
-            }));
+            var ctable = KohaTable("course_reserves_table", {
+                "sPaginationType": "full",
+                "bAutoWidth": false
+            }, columns_settings );
         });
     </script>
 [% END %]

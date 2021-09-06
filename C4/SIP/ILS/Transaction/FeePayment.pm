@@ -49,43 +49,53 @@ sub pay {
     my $fee_id               = shift;
     my $is_writeoff          = shift;
     my $disallow_overpayment = shift;
+    my $register_id          = shift;
 
-    my $type = $is_writeoff ? 'writeoff' : undef;
-
-    warn("RECORD:$borrowernumber::$amt");
+    my $type = $is_writeoff ? 'WRITEOFF' : 'PAYMENT';
 
     my $account = Koha::Account->new( { patron_id => $borrowernumber } );
 
     if ($disallow_overpayment) {
-        return 0 if $account->balance < $amt;
+        return { ok => 0 } if $account->balance < $amt;
     }
 
     if ($fee_id) {
         my $fee = Koha::Account::Lines->find($fee_id);
         if ( $fee ) {
-            $account->pay(
+            my $pay_response = $account->pay(
                 {
-                    amount => $amt,
-                    sip    => $sip_type,
-                    type   => $type,
-                    lines  => [$fee],
+                    amount       => $amt,
+                    type         => $type,
+                    payment_type => 'SIP' . $sip_type,
+                    lines        => [$fee],
+                    interface    => C4::Context->interface
                 }
             );
-            return 1;
+            return {
+                ok           => 1,
+                pay_response => $pay_response
+            };
         }
         else {
-            return 0;
+            return {
+                ok => 0
+            };
         }
     }
     else {
-        $account->pay(
+        my $pay_response = $account->pay(
             {
-                amount => $amt,
-                sip    => $sip_type,
-                type   => $type,
+                amount        => $amt,
+                type          => $type,
+                payment_type  => 'SIP' . $sip_type,
+                interface     => C4::Context->interface,
+                cash_register => $register_id
             }
         );
-        return 1;
+        return {
+            ok           => 1,
+            pay_response => $pay_response
+        };
     }
 }
 

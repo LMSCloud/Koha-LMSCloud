@@ -43,7 +43,6 @@ my ( $template, $borrowernumber, $cookie ) = get_template_and_user(
         query           => $query,
         type            => "intranet",
         debug           => 1,
-        authnotrequired => 0,
         flagsrequired   => $needed_flags,
     }
 );
@@ -61,10 +60,6 @@ else {
         my $taglist = get_tag_rows( { term => $tag } );
         for ( @{$taglist} ) {
             my $dat    = &GetBiblioData( $_->{biblionumber} );
-            my $record = &GetMarcBiblio({ biblionumber => $_->{biblionumber} });
-            $dat->{'subtitle'} =
-              GetRecordValue( 'subtitle', $record,
-                GetFrameworkCode( $_->{biblionumber} ) );
             my @items = GetItemsInfo( $_->{biblionumber} );
             $dat->{biblionumber} = $_->{biblionumber};
             $dat->{tag_id}       = $_->{tag_id};

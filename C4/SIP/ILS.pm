@@ -6,7 +6,7 @@ package C4::SIP::ILS;
 
 use warnings;
 use strict;
-use Sys::Syslog qw(syslog);
+use C4::SIP::Sip qw(siplog);
 use Data::Dumper;
 
 use C4::SIP::ILS::Item;
@@ -48,7 +48,7 @@ sub new {
     my $type = ref($class) || $class;
     my $self = {};
 	$debug and warn "new ILS: INSTITUTION: " . Dumper($institution);
-    syslog("LOG_DEBUG", "new ILS '%s'", $institution->{id});
+    siplog("LOG_DEBUG", "new ILS '%s'", $institution->{id});
     $self->{institution} = $institution;
     return bless $self, $type;
 }
@@ -83,7 +83,7 @@ sub supports {
 sub check_inst_id {
     my ($self, $id, $whence) = @_;
     if ($id ne $self->{institution}->{id}) {
-        syslog("LOG_WARNING", "%s: received institution '%s', expected '%s'", $whence, $id, $self->{institution}->{id});
+        siplog("LOG_WARNING", "%s: received institution '%s', expected '%s'", $whence, $id, $self->{institution}->{id});
         # Just an FYI check, we don't expect the user to change location from that in SIPconfig.xml
     }
 }
@@ -127,7 +127,7 @@ sub offline_ok {
 # the response.
 #
 sub checkout {
-    my ( $self, $patron_id, $item_id, $sc_renew, $fee_ack ) = @_;
+    my ( $self, $patron_id, $item_id, $sc_renew, $fee_ack, $account ) = @_;
     my ( $patron, $item, $circ );
 
     $circ = C4::SIP::ILS::Transaction::Checkout->new();
@@ -151,33 +151,33 @@ sub checkout {
     elsif ( !$item ) {
         $circ->screen_msg("Invalid Item");
     }
-    elsif ( $item->{patron}
-        && !_ci_cardnumber_cmp( $item->{patron}, $patron_id ) )
+    elsif ( $item->{borrowernumber}
+        && !_ci_cardnumber_cmp( $item->{borrowernumber}, $patron->borrowernumber ) )
     {
         $circ->screen_msg("Item checked out to another patron");
     }
     else {
-        $circ->do_checkout();
+        $circ->do_checkout($account);
         if ( $circ->ok ) {
             $debug and warn "circ is ok";
 
             # If the item is already associated with this patron, then
             # we're renewing it.
-            $circ->renew_ok( $item->{patron}
-                  && _ci_cardnumber_cmp( $item->{patron}, $patron_id ) );
+            $circ->renew_ok( $item->{borrowernumber}
+                  && _ci_cardnumber_cmp( $item->{borrowernumber}, $patron->borrowernumber ) );
 
-            $item->{patron}   = $patron_id;
+            $item->{borrowernumber}   = $patron_id;
             $item->{due_date} = $circ->{due};
-            push( @{ $patron->{items} }, $item_id );
+            push( @{ $patron->{items} }, { barcode => $item_id } );
             $circ->desensitize( !$item->magnetic_media );
 
-            syslog(
+            siplog(
                 "LOG_DEBUG", "ILS::Checkout: patron %s has checked out %s",
-                $patron_id, join( ', ', @{ $patron->{items} } )
+                $patron_id, join( ', ', map{ $_->{barcode} } @{ $patron->{items} } )
             );
         }
         else {
-            syslog( "LOG_ERR", "ILS::Checkout Issue failed" );
+            siplog( "LOG_ERR", "ILS::Checkout Issue failed" );
         }
     }
 
@@ -201,7 +201,30 @@ sub test_cardnumber_compare {
 }
 
 sub checkin {
-    my ( $self, $item_id, $trans_date, $return_date, $current_loc, $item_props, $cancel, $checked_in_ok, $checkinOpts ) = @_;
+    my ( $self, $item_id, $trans_date, $return_date, $current_loc, $item_props, $cancel, $account ) = @_;
+
+    my $checked_in_ok     = $account->{checked_in_ok};
+    my $cv_triggers_alert = $account->{cv_triggers_alert};
+    my $holds_block_checkin  = $account->{holds_block_checkin};
+    
+    my $checkinOpts = {};
+    if ( $account->{only_local_checkins} ) {
+        $checkinOpts->{only_local_checkins} = 1;
+    }
+    if ( $account->{disabled_itypes_for_checkins} ) {
+        foreach my $itype( split(/\|/,$account->{disabled_itypes_for_checkins} ) ) {
+            $checkinOpts->{disabled_itypes_for_checkins}->{$itype} = $itype;
+        }
+    }
+    if ( $account->{disabled_ccodes_for_checkins} ) {
+        foreach my $ccode( split(/\|/,$account->{disabled_ccodes_for_checkins} ) ) {
+            $checkinOpts->{disabled_ccodes_for_checkins}->{$ccode} = $ccode;
+        }
+    }
+    if ( $account->{disable_checkins_with_holds} ) {
+        $checkinOpts->{disable_checkins_with_holds} = 1;
+    }
+
     my ( $patron, $item, $circ );
 
     $circ = C4::SIP::ILS::Transaction::Checkin->new();
@@ -211,6 +234,7 @@ sub checkin {
     # BEGIN TRANSACTION
     $circ->item( $item = C4::SIP::ILS::Item->new($item_id) );
 
+    my $data;
     if ($item) {
         if ( $checkinOpts && $checkinOpts->{only_local_checkins} ) {
             if ( $item->{issue_library} && $current_loc && $item->{issue_library} ne $current_loc ) {
@@ -249,7 +273,8 @@ sub checkin {
                 return $circ;
             }
         }
-        $circ->do_checkin( $current_loc, $return_date, $checked_in_ok );
+        $circ->do_checkin( $current_loc, $return_date, $account );
+        $data = $circ->do_checkin( $current_loc, $return_date, $account );
     }
     else {
         $circ->alert(1);
@@ -259,20 +284,29 @@ sub checkin {
         return $circ;
     }
 
-    if( !$circ->ok && $circ->alert_type && $circ->alert_type == 98 ) { # data corruption
+    if ( !$circ->ok && $circ->alert_type && $circ->alert_type == 98 ) { # data corruption
         $circ->screen_msg("Checkin failed: data problem");
-        syslog( "LOG_WARNING", "Problem with issue_id in issues and old_issues; check the about page" );
-    } elsif( !$item->{patron} ) {
-        if( $checked_in_ok ) { # Mark checkin ok although book not checked out
+        siplog( "LOG_WARNING", "Problem with issue_id in issues and old_issues; check the about page" );
+    } elsif ( $data->{messages}->{ResFound} && !$circ->ok && $holds_block_checkin ) {
+        $circ->screen_msg("Item is on hold, please return to circulation desk");
+        siplog ("LOG_DEBUG", "C4::SIP::ILS::Checkin - item on hold");
+    } elsif ( $data->{messages}->{withdrawn} && !$circ->ok && C4::Context->preference("BlockReturnOfWithdrawnItems") ) {
+            $circ->screen_msg("Item withdrawn, return not allowed");
+            siplog ("LOG_DEBUG", "C4::SIP::ILS::Checkin - item withdrawn");
+    } elsif ( $data->{messages}->{WasLost} && !$circ->ok && C4::Context->preference("BlockReturnOfLostItems") ) {
+            $circ->screen_msg("Item lost, return not allowed");
+            siplog("LOG_DEBUG", "C4::SIP::ILS::Checkin - item lost");
+    } elsif ( !$item->{borrowernumber} ) {
+        if ( $checked_in_ok ) { # Mark checkin ok although book not checked out
             $circ->ok( 1 );
-            syslog("LOG_DEBUG", "C4::SIP::ILS::Checkin - using checked_in_ok");
+            siplog("LOG_DEBUG", "C4::SIP::ILS::Checkin - using checked_in_ok");
         } else {
             $circ->screen_msg("Item not checked out");
-            syslog("LOG_DEBUG", "C4::SIP::ILS::Checkin - item not checked out");
+            siplog("LOG_DEBUG", "C4::SIP::ILS::Checkin - item not checked out");
         }
-    } elsif( $circ->ok ) {
-        $circ->patron( $patron = C4::SIP::ILS::Patron->new( $item->{patron} ) );
-        delete $item->{patron};
+    } elsif ( $circ->ok ) {
+        $circ->patron( $patron = C4::SIP::ILS::Patron->new( { borrowernumber => $item->{borrowernumber} } ) );
+        delete $item->{borrowernumber};
         delete $item->{due_date};
         $patron->{items} = [ grep { $_ ne $item_id } @{ $patron->{items} } ];
     } else {
@@ -280,7 +314,7 @@ sub checkin {
         # Bug 10748 with pref BlockReturnOfLostItems adds another case to come
         # here: returning a lost item when the pref is set.
         $circ->screen_msg("Checkin failed");
-        syslog( "LOG_WARNING", "Checkin failed: probably for Wrongbranch or withdrawn" );
+        siplog( "LOG_WARNING", "Checkin failed: probably for Wrongbranch or withdrawn" );
     }
 
     return $circ;
@@ -296,7 +330,7 @@ sub end_patron_session {
 }
 
 sub pay_fee {
-    my ($self, $patron_id, $patron_pwd, $fee_amt, $fee_type, $pay_type, $fee_id, $trans_id, $currency, $is_writeoff, $disallow_overpayment ) = @_;
+    my ($self, $patron_id, $patron_pwd, $fee_amt, $fee_type, $pay_type, $fee_id, $trans_id, $currency, $is_writeoff, $disallow_overpayment, $register_id) = @_;
 
     my $trans = C4::SIP::ILS::Transaction::FeePayment->new();
 
@@ -307,10 +341,14 @@ sub pay_fee {
         $trans->screen_msg('Invalid patron barcode.');
         return $trans;
     }
-    my $ok = $trans->pay( $patron->{borrowernumber}, $fee_amt, $pay_type, $fee_id, $is_writeoff, $disallow_overpayment );
+    my $trans_result = $trans->pay( $patron->{borrowernumber}, $fee_amt, $pay_type, $fee_id, $is_writeoff, $disallow_overpayment, $register_id );
+    my $ok = $trans_result->{ok};
     $trans->ok($ok);
 
-    return $trans;
+    return {
+        status       => $trans,
+        pay_response => $trans_result->{pay_response}
+    };
 }
 
 sub fee_debit {
@@ -522,10 +560,10 @@ sub renew {
 		my $count = scalar @{$patron->{items}};
 		foreach my $i (@{$patron->{items}}) {
             unless (defined $i->{barcode}) {    # FIXME: using data instead of objects may violate the abstraction layer
-                syslog("LOG_ERR", "No barcode for item %s of %s: $item_id", $j+1, $count);
+                siplog("LOG_ERR", "No barcode for item %s of %s: $item_id", $j+1, $count);
                 next;
             }
-            syslog("LOG_DEBUG", "checking item %s of %s: $item_id vs. %s", ++$j, $count, $i->{barcode});
+            siplog("LOG_DEBUG", "checking item %s of %s: $item_id vs. %s", ++$j, $count, $i->{barcode});
             if ($i->{barcode} eq $item_id) {
 				# We have it checked out
 				$item = C4::SIP::ILS::Item->new( $item_id );
@@ -559,9 +597,9 @@ sub renew_all {
 
     $trans->patron($patron = C4::SIP::ILS::Patron->new( $patron_id ));
     if (defined $patron) {
-        syslog("LOG_DEBUG", "ILS::renew_all: patron '%s': renew_ok: %s", $patron->name, $patron->renew_ok);
+        siplog("LOG_DEBUG", "ILS::renew_all: patron '%s': renew_ok: %s", $patron->name, $patron->renew_ok);
     } else {
-        syslog("LOG_DEBUG", "ILS::renew_all: Invalid patron id: '%s'", $patron_id);
+        siplog("LOG_DEBUG", "ILS::renew_all: Invalid patron id: '%s'", $patron_id);
     }
 
     if (!defined($patron)) {

@@ -25,10 +25,12 @@ use vars qw(@ISA @EXPORT);
 BEGIN {
 
     @ISA        = qw(Exporter);
-    @EXPORT     = qw(dt_build_orderby dt_build_having dt_get_params dt_build_query);
+    @EXPORT     = qw(dt_build_orderby dt_get_params);
 }
 
 =head1 NAME
+
+! DEPRECATED - This module is deprecated, the REST API route and REST API Datatables wrapper must be used instead!
 
 C4::Utils::DataTables - Utility subs for building query when DataTables source is AJAX
 
@@ -46,8 +48,6 @@ C4::Utils::DataTables - Utility subs for building query when DataTables source i
         FROM borrowers
         WHERE borrowernumber = ?
     };
-    my ($having, $having_params) = dt_build_having($vars);
-    $query .= $having;
     $query .= dt_build_orderby($vars);
     $query .= " LIMIT ?,? ";
 
@@ -85,8 +85,8 @@ sub dt_build_orderby {
     my $param = shift;
 
     my $i = 0;
-    my $orderby;
     my @orderbys;
+    my $dbh = C4::Context->dbh;
     while(exists $param->{'iSortCol_'.$i}){
         my $iSortCol = $param->{'iSortCol_'.$i};
         my $sSortDir = $param->{'sSortDir_'.$i};
@@ -102,84 +102,26 @@ sub dt_build_orderby {
         $i++;
     }
 
-    $orderby = " ORDER BY " . join(',', @orderbys) . " " if @orderbys;
-    return $orderby;
-}
+    return unless @orderbys;
 
-=head2 dt_build_having
+    my @sanitized_orderbys;
 
-    my ($having, $having_params) = dt_build_having($dt_params)
+    # Trick for virtualshelves, should not be extended
+    push @sanitized_orderbys, 'count asc' if grep {$_ eq 'count asc'} @orderbys;
+    push @sanitized_orderbys, 'count desc' if grep {$_ eq 'count desc'} @orderbys;
 
-    This function takes a reference to a hash containing DataTables parameters
-    and build the corresponding 'HAVING' clause.
-    This hash must contains the following keys:
-        sSearch is the text entered in the global filter
-        iColumns is the number of columns
-        bSearchable_N is a boolean value that is true if the column is searchable
-        mDataProp_N is a mapping between the column index, and the name of a SQL field
-        sSearch_N is the text entered in individual filter for column N
+    # Must be "branches.branchname asc", "borrowers.firstname desc", etc.
+    @orderbys = grep { /^\w+\.\w+ (asc|desc)$/ } @orderbys;
 
-=cut
-
-sub dt_build_having {
-    my $param = shift;
-
-    my @filters;
-    my @params;
-
-    # Global filter
-    if($param->{'sSearch'}) {
-        my $sSearch = $param->{'sSearch'};
-        my $i = 0;
-        my @gFilters;
-        my @gParams;
-        while($i < $param->{'iColumns'}) {
-            if($param->{'bSearchable_'.$i} eq 'true') {
-                my $mDataProp = $param->{'mDataProp_'.$i};
-                my @filter_fields = $param->{$mDataProp.'_filteron'}
-                    ? split(' ', $param->{$mDataProp.'_filteron'})
-                    : ();
-                if(@filter_fields > 0) {
-                    foreach my $field (@filter_fields) {
-                        push @gFilters, " $field LIKE ? ";
-                        push @gParams, "%$sSearch%";
-                    }
-                } else {
-                    push @gFilters, " $mDataProp LIKE ? ";
-                    push @gParams, "%$sSearch%";
-                }
-            }
-            $i++;
-        }
-        push @filters, " (" . join(" OR ", @gFilters) . ") ";
-        push @params, @gParams;
+    for my $orderby (@orderbys) {
+      my ($identifier, $direction) = split / /, $orderby, 2;
+      my ($table, $column) = split /\./, $identifier, 2;
+      my $sanitized_identifier = $dbh->quote_identifier(undef, $table, $column);
+      my $sanitized_direction = $direction eq 'asc' ? 'ASC' : 'DESC';
+      push @sanitized_orderbys, "$sanitized_identifier $sanitized_direction";
     }
 
-    # Individual filters
-    my $i = 0;
-    while($i < $param->{'iColumns'}) {
-        my $sSearch = $param->{'sSearch_'.$i};
-        if($sSearch) {
-            my $mDataProp = $param->{'mDataProp_'.$i};
-            my @filter_fields = $param->{$mDataProp.'_filteron'}
-                ? split(' ', $param->{$mDataProp.'_filteron'})
-                : ();
-            if(@filter_fields > 0) {
-                my @localfilters;
-                foreach my $field (@filter_fields) {
-                    push @localfilters, " $field LIKE ? ";
-                    push @params, "%$sSearch%";
-                }
-                push @filters, " ( ". join(" OR ", @localfilters) ." ) ";
-            } else {
-                push @filters, " $mDataProp LIKE ? ";
-                push @params, "%$sSearch%";
-            }
-        }
-        $i++;
-    }
-
-    return (\@filters, \@params);
+    return " ORDER BY " . join(',', @sanitized_orderbys) . " " if @sanitized_orderbys;
 }
 
 =head2 dt_get_params
@@ -207,77 +149,6 @@ sub dt_get_params {
         }
     }
     return %dtparam;
-}
-
-=head2 dt_build_query_simple
-
-    my ( $query, $params )= dt_build_query_simple( $value, $field )
-
-    This function takes a value and a field (table.field).
-
-    It returns (undef, []) if not $value.
-    Else, returns a SQL where string and an arrayref containing parameters
-    for the execute method of the statement.
-
-=cut
-sub dt_build_query_simple {
-    my ( $value, $field ) = @_;
-    my $query;
-    my @params;
-    if( $value ) {
-        $query .= " AND $field = ? ";
-        push @params, $value;
-    }
-    return ( $query, \@params );
-}
-
-=head2 dt_build_query_dates
-
-    my ( $query, $params )= dt_build_query_dates( $datefrom, $dateto, $field)
-
-    This function takes a datefrom, dateto and a field (table.field).
-
-    It returns (undef, []) if not $value.
-    Else, returns a SQL where string and an arrayref containing parameters
-    for the execute method of the statement.
-
-=cut
-sub dt_build_query_dates {
-    my ( $datefrom, $dateto, $field ) = @_;
-    my $query;
-    my @params;
-    if ( $datefrom ) {
-        $query .= " AND $field >= ? ";
-        push @params, eval { output_pref( { dt => dt_from_string( $datefrom ), dateonly => 1, dateformat => 'iso' } ); };
-    }
-    if ( $dateto ) {
-        $query .= " AND $field <= ? ";
-        push @params, eval { output_pref( { dt => dt_from_string( $dateto ), dateonly => 1, dateformat => 'iso' } ); };
-    }
-    return ( $query, \@params );
-}
-
-=head2 dt_build_query
-
-    my ( $query, $filter ) = dt_build_query( $type, @params )
-
-    This function takes a value and a list of parameters.
-
-    It calls dt_build_query_dates or dt_build_query_simple function of $type.
-
-    $type can contain 'simple' or 'range_dates'.
-    if $type is not matched it returns undef
-
-=cut
-sub dt_build_query {
-    my ( $type, @params ) = @_;
-    if ( $type =~ m/simple/ ) {
-        return dt_build_query_simple(@params);
-    }
-    elsif ( $type =~ m/range_dates/ ) {
-        return dt_build_query_dates(@params);
-    }
-    return;
 }
 
 1;

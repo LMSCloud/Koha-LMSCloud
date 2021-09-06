@@ -1,8 +1,8 @@
 [% USE Branches %]
 [% INCLUDE 'doc-head-open.inc' %]
-<title>Koha &rsaquo; Reports &rsaquo; Items with no checkouts</title>
+<title>Items with no checkouts &rsaquo; Reports &rsaquo; Koha</title>
 [% INCLUDE 'doc-head-close.inc' %]
-<style type="text/css">
+<style>
 	.sql {display: none;}
 </style>
 </head>
@@ -10,12 +10,26 @@
 [% INCLUDE 'header.inc' %]
 [% INCLUDE 'cat-search.inc' %]
 
-<div id="breadcrumbs"><a href="/cgi-bin/koha/mainpage.pl">Home</a> &rsaquo; <a href="/cgi-bin/koha/reports/reports-home.pl">Reports</a> &rsaquo; Items with no checkouts</div>
+<nav id="breadcrumbs" aria-label="Breadcrumb" class="breadcrumb">
+    <ol>
+        <li>
+            <a href="/cgi-bin/koha/mainpage.pl">Home</a>
+        </li>
+        <li>
+            <a href="/cgi-bin/koha/reports/reports-home.pl">Reports</a>
+        </li>
+        <li>
+            <a href="#" aria-current="page">
+                Items with no checkouts
+            </a>
+        </li>
+    </ol>
+</nav>
 
-<div id="doc3" class="yui-t2">
-   <div id="bd">
-	<div id="yui-main">
-	<div class="yui-b">
+<div class="main container-fluid">
+    <div class="row">
+        <div class="col-sm-10 col-sm-push-2">
+            <main>
 
 [% IF ( do_it ) %]
 	<h1>Items with no checkouts</h1>
@@ -27,7 +41,7 @@
 				[% ELSE %]<p>
 				[% END %]
 					[% IF ( loopfilte.sql ) %]<span class="sql">[% END %]
-					[% loopfilte.crit %] = [% loopfilte.filter %]
+					[% loopfilte.crit | html %] = [% loopfilte.filter | html %]
 					[% IF ( loopfilte.sql ) %]</span>[% END %]
 				</p>
 			[% END %]
@@ -39,23 +53,23 @@
                 <tr><th>Group</th><th>Call number range</th><th>Number of items displayed</th><th>Total items in group</th>
 				</tr>
 			[% FOREACH looptable IN mainloo.looptables %]
-				<tr><td><a href="#table[% looptable.coltitle %]">[% looptable.coltitle %]</a></td>
+                <tr><td><a href="#table[% looptable.coltitle | uri %]">[% looptable.coltitle | html %]</a></td>
 					<td>[% IF ( looptable.looptable_count ) %]
-						[% looptable.looptable_first %] to [% looptable.looptable_last %]
+						[% looptable.looptable_first | html %] to [% looptable.looptable_last | html %]
 						[% END %]
 					</td>
-					<td>[% looptable.looptable_count %]</td>
-					<td>[% looptable.coltitle_count %]</td>
+					<td>[% looptable.looptable_count | html %]</td>
+					<td>[% looptable.coltitle_count | html %]</td>
 				</tr>
 			[% END %]
-				<tr><th>TOTAL</th><th></th><th>[% mainloo.total_looptable_count %]</th><th>[% mainloo.total_coltitle_count %]</th>
+				<tr><th>TOTAL</th><th></th><th>[% mainloo.total_looptable_count | html %]</th><th>[% mainloo.total_coltitle_count | html %]</th>
 				</tr>
 			</table>
 
 		[% END %]
 		[% FOREACH looptable IN mainloo.looptables %]
-		<h3><a id="table[% looptable.coltitle %]"></a>
-			[% looptable.coltitle %]
+		<h3><a id="table[% looptable.coltitle | html %]"></a>
+			[% looptable.coltitle | html %]
 		</h3>
 		<table>
 			<tr>
@@ -68,16 +82,16 @@
 				[% FOREACH loopro IN looptable.looprow %]
                     <tr>
 		    
-						<td>[% loop.count %]</td>
-                        <td>[% IF ( loopro.itemcallnumber ) %][% loopro.itemcallnumber %][% ELSE %]No call number[% END %]</td>
-                        <td>[% IF ( loopro.barcode ) %][% loopro.barcode %][% ELSE %]No barcode[% END %]</td>
-                        <td><p><a href="/cgi-bin/koha/catalogue/detail.pl?biblionumber=[% loopro.biblionumber %]">[% IF ( loopro.title ) %][% loopro.title %][% ELSE %]NO TITLE[% END %]</a> [% IF ( loopro.author ) %] by [% loopro.author %][% END %]</p>
-                            [% IF ( loopro.branch ) %]at [% Branches.GetName( loopro.branch ) %][% END %]
+						<td>[% loop.count | html %]</td>
+                        <td>[% IF ( loopro.itemcallnumber ) %][% loopro.itemcallnumber | html %][% ELSE %]No call number[% END %]</td>
+                        <td>[% IF ( loopro.barcode ) %][% loopro.barcode | html %][% ELSE %]No barcode[% END %]</td>
+                        <td><p><a href="/cgi-bin/koha/catalogue/detail.pl?biblionumber=[% loopro.biblionumber | uri %]">[% IF ( loopro.title ) %][% loopro.title | html %][% ELSE %]NO TITLE[% END %]</a> [% IF ( loopro.author ) %] by [% loopro.author | html %][% END %]</p>
+                            [% IF ( loopro.branch ) %]at [% Branches.GetName( loopro.branch ) | html %][% END %]
 						</td>
 					</tr>
 				[% END %]
 				[% ELSE %]
-					<tr><td colspan="4">No items for [% looptable.coltitle %]</td>
+					<tr><td colspan="4">No items for [% looptable.coltitle | html %]</td>
 					</tr>
 				[% END %]
 		</table>
@@ -98,7 +112,7 @@
         <label for="documenttype">Item type: </label><select name="Filter" id="documenttype">
         <option value="">Any item type</option>
     [% FOREACH itemtype IN itemtypes %]
-        <option value="[% itemtype.itemtype %]">[% itemtype.translated_description %]</option>
+        <option value="[% itemtype.itemtype | html %]">[% itemtype.translated_description | html %]</option>
      [% END %] 
     </select>
     </li>
@@ -132,17 +146,21 @@
 
 	<fieldset class="action">
 	<input type="submit" value="Submit" />
-	<input type="hidden" name="report_name" value="[% report_name %]" />
+	<input type="hidden" name="report_name" value="[% report_name | html %]" />
     <input type="hidden" name="do_it" value="1" />
     <input type="hidden" name="output" value="screen" />
 	</fieldset>
 	</form>
 [% END %]
 
-</div>
-</div>
-<div class="yui-b">
-[% INCLUDE 'reports-menu.inc' %]
-</div>
-</div>
+            </main>
+        </div> <!-- /.col-sm-10.col-sm-push-2 -->
+
+        <div class="col-sm-2 col-sm-pull-10">
+            <aside>
+                [% INCLUDE 'reports-menu.inc' %]
+            </aside>
+        </div> <!-- /.col-sm-2.col-sm-pull-10 -->
+     </div> <!-- /.row -->
+
 [% INCLUDE 'intranet-bottom.inc' %]

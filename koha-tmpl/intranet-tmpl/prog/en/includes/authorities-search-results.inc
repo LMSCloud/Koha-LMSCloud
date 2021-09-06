@@ -1,3 +1,4 @@
+[% USE raw %]
 [% BLOCK showreference %]
 [%# Parameters: %]
 [%# heading: the heading itself %]
@@ -8,23 +9,28 @@
     [% SET searchurl = '/cgi-bin/koha/authorities/authorities-home.pl?op=do_search&type=intranet&marclist=any&operator=contains&orderby=HeadingAsc&value=' %]
 
     [% IF marcflavour == 'UNIMARC' %]
+        [% IF authid %]
+            [% link = BLOCK %]<a href="[% authidurl _ authid | url %]">[% heading | html %]</a>[% END %]
+        [% ELSE %]
+            [% link = BLOCK %][% heading | html %][% END %]
+        [% END %]
         [% SWITCH type %]
         [% CASE 'broader' %]
-            <span class="BT"><abbr title="Broader Term">BT</abbr>: [% heading | html %]</span>
+            <span class="BT"><abbr title="Broader Term">BT</abbr>: [% link | $raw %]</span>
         [% CASE 'narrower' %]
-            <span class="NT"><abbr title="Narrower Term">NT</abbr>: [% heading | html %]</span>
+            <span class="NT"><abbr title="Narrower Term">NT</abbr>: [% link | $raw %]</span>
         [% CASE 'seefrom' %]
-            <span class="UF"><abbr title="Used For">UF</abbr>: [% heading | html %]</span>
+            <span class="UF"><abbr title="Used For">UF</abbr>: [% link | $raw %]</span>
         [% CASE 'seealso' %]
-            <span class="RT"><abbr title="Related Term">RT</abbr>: [% heading | html %]</span>
+            <span class="RT"><abbr title="Related Term">RT</abbr>: [% link | $raw %]</span>
         [% END %]
     [% ELSE %]
         <span class="heading">
         [% IF ( linkType=='seealso' ) %]
             [% IF ( authid ) %]
-            <a href="[% authidurl | url %][% authid | url %]">[% heading | html %]</a>
+            <a href="[% authidurl | url %][% authid | uri %]">[% heading | html %]</a>
             [% ELSE %]
-            <a href="[% searchurl | url %][% heading | html %]">[% heading | html %]</a>
+            <a href="[% searchurl | url %][% heading | uri %]">[% heading | html %]</a>
             [% END %]
         [% ELSE %]
             [% heading | html %]
@@ -47,17 +53,20 @@
         [% END %]
     [% END %]
 [% END %]
+
 [% BLOCK authresult %]
     [% IF ( summary.label ) %][% summary.label | html %]:[% END %]
     [% IF summary.summary %]
       <div class="authority-summary">
-        [% summary.summary %]
+        [% summary.summary | html %]
       </div>
     [% END %]
     [% UNLESS ( summary.summaryonly ) %]
         <div class="authorizedheading">
           [% FOREACH authorize IN summary.authorized %]
-            <span class="authorizedheading">[% authorize.heading | html %]</span>
+            <span class="authorizedheading">
+                <a data-authid="[% authid | html %]" href="/cgi-bin/koha/authorities/detail.pl?authid=[% authid | uri %]">[% authorize.heading | html %]</a>
+            </span>
             [% UNLESS loop.last %] | [% END %]
           [% END %]
         </div>
@@ -72,7 +81,7 @@
           [% IF summary.seefrom %]
             <div class="authres_seefrom">
             [% FOREACH see IN summary.seefrom %]
-              [% PROCESS showreference heading=see.heading linkType="" type=see.type search='' %]
+              [% PROCESS showreference heading=see.heading linkType="" type=see.type authid=see.authid %]
               [% IF ! loop.last %] ; [% END %]
             [% END %]
             </div>
@@ -80,7 +89,7 @@
             [% IF summary.seealso %]
               <div class="authres_seealso">
               [% FOREACH see IN summary.seealso %]
-                 [% PROCESS showreference heading=see.heading linkType="" type=see.type search='' %]
+                 [% PROCESS showreference heading=see.heading linkType="" type=see.type authid=see.authid %]
                  [% IF ! loop.last %] ; [% END %]
               [% END %]
               </div>
@@ -89,7 +98,7 @@
               <div class="authres_otherscript">
               [% FOREACH other IN summary.otherscript %]
                 [% PROCESS language lang=other.lang | trim %]:
-                [% other.term %]
+                [% other.term | html %]
                 [% IF ! loop.last %] ; [% END %]
               [% END %]
               </div>
@@ -120,6 +129,7 @@
         [% END %]
     [% END %]
 [% END %]
+
 [% BLOCK language %]
   [% SWITCH lang %]
    [% CASE ['en', 'eng'] %]English
@@ -131,6 +141,6 @@
    [% CASE ['ara'] %]Arabic
    [% CASE ['gre'] %]Greek (modern)
    [% CASE ['grc'] %]Greek (to 1453)
-   [% CASE %][% lang %]
+   [% CASE %][% lang | html %]
   [% END %]
 [% END %]

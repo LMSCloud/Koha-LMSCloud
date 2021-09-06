@@ -40,7 +40,7 @@ use Koha::Virtualshelfshares;
 
 # if virtualshelves is disabled, leave immediately
 if ( ! C4::Context->preference('virtualshelves') ) {
-    my $query = new CGI;
+    my $query = CGI->new;
     print $query->redirect("/cgi-bin/koha/errors/404.pl");
     exit;
 }
@@ -54,14 +54,13 @@ if ( !$pvar->{errcode} ) {
     show_accept($pvar)    if $pvar->{op} eq 'accept';
 }
 load_template_vars($pvar);
-output_html_with_http_headers $pvar->{query}, $pvar->{cookie},
-  $pvar->{template}->output;
+output_html_with_http_headers $pvar->{query}, $pvar->{cookie}, $pvar->{template}->output, undef, { force_no_caching => 1 };
 
 #-------------------------------------------------------------------------------
 
 sub _init {
     my ($param) = @_;
-    my $query = new CGI;
+    my $query = CGI->new;
     $param->{query}       = $query;
     $param->{shelfnumber} = $query->param('shelfnumber') || 0;
     $param->{op}          = $query->param('op') || '';

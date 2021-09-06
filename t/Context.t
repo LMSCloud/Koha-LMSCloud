@@ -1,15 +1,69 @@
 #!/usr/bin/perl
 
+# This file is part of Koha.
+#
+# Koha is free software; you can redistribute it and/or modify it
+# under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 3 of the License, or
+# (at your option) any later version.
+#
+# Koha is distributed in the hope that it will be useful, but
+# WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with Koha; if not, see <http://www.gnu.org/licenses>.
+
 use Modern::Perl;
+
 use DBI;
-use Test::More tests => 26;
+use Test::More tests => 35;
 use Test::MockModule;
+use Test::Warn;
+use YAML::XS;
+
+use t::lib::Mocks;
 
 BEGIN {
     use_ok('C4::Context');
 }
 
-my $context = new Test::MockModule('C4::Context');
+subtest 'yaml_preference() tests' => sub {
+
+    plan tests => 3;
+
+    my $data = [ 'uno', 'dos', { 'tres' => 'cuatro' } ];
+
+    my $context = Test::MockModule->new( 'C4::Context' );
+    $context->mock( 'preference', YAML::XS::Dump($data) );
+
+    my $pref = C4::Context->new->yaml_preference( 'nothing' );
+
+    is_deeply( $pref, $data, 'yaml_preference returns the right structure' );
+
+    $context->mock( 'preference', qq{- uno: dsa\n\t- dos: asd} );
+    warning_like
+        { $pref = C4::Context->new->yaml_preference('nothing') }
+        qr/^Unable to parse nothing syspref/,
+        'Invalid YAML on syspref throws a warning';
+    is( $pref, undef, 'Invalid YAML on syspref makes it return undef' );
+
+    $context->unmock( 'preference' );
+};
+
+subtest 'needs_install() tests' => sub {
+
+    plan tests => 2;
+
+    t::lib::Mocks::mock_preference( 'Version', '3.0.0' );
+    is( C4::Context->needs_install, 0, 'Preference is defined, no need to install' );
+
+    t::lib::Mocks::mock_preference( 'Version', undef ); # the behaviour when ->preference fails to fetch
+    is( C4::Context->needs_install, 1, "->preference(Version) is not defined, need to install" );
+};
+
+my $context = Test::MockModule->new('C4::Context');
 my $userenv = {};
 
 $context->mock('userenv', sub {
@@ -62,3 +116,20 @@ is(C4::Context->interface, 'opac', 'interface still opac');
 #Bug 14751
 is( C4::Context->interface( 'SiP' ), 'sip', 'interface SiP' );
 is( C4::Context->interface( 'COMMANDLINE' ), 'commandline', 'interface commandline uc' );
+is( C4::Context->interface( 'CRON' ), 'cron', 'interface cron uc' );
+
+{
+    local %ENV = %ENV;
+    delete $ENV{HTTPS};
+    is( C4::Context->https_enabled, 0, "Undefined HTTPS env returns 0");
+    $ENV{HTTPS} = '1';
+    is( C4::Context->https_enabled, 0, "Invalid 1 HTTPS env returns 0");
+    $ENV{HTTPS} = 'off';
+    is( C4::Context->https_enabled, 0, "off HTTPS env returns 0");
+    $ENV{HTTPS} = 'OFF';
+    is( C4::Context->https_enabled, 0, "OFF HTTPS env returns 0");
+    $ENV{HTTPS} = 'on';
+    is( C4::Context->https_enabled, 1, "on HTTPS env returns 1");
+    $ENV{HTTPS} = 'ON';
+    is( C4::Context->https_enabled, 1, "ON HTTPS env returns 1");
+}

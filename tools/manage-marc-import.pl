@@ -39,7 +39,7 @@ use Koha::BiblioFrameworks;
 
 my $script_name = "/cgi-bin/koha/tools/manage-marc-import.pl";
 
-my $input = new CGI;
+my $input = CGI->new;
 my $op = $input->param('op') || '';
 my $completedJobID = $input->param('completedJobID');
 our $runinbackground = $input->param('runinbackground');
@@ -53,7 +53,6 @@ my ($template, $loggedinuser, $cookie)
     = get_template_and_user({template_name => "tools/manage-marc-import.tt",
                  query => $input,
                  type => "intranet",
-                 authnotrequired => 0,
                  flagsrequired => {tools => 'manage_staged_marc'},
                  debug => 1,
                  });
@@ -69,12 +68,12 @@ if ($op eq "create_labels") {
 	#create a batch of labels, then lose $op & $import_batch_id so we get back to import batch list.
 	my $label_batch_id = create_labelbatch_from_importbatch($import_batch_id);
         if ($label_batch_id == -1) {
-            $template->param(   label_batch_msg => "Error attempting to create label batch. Please ask your system administrator to check the log for more details.",
+            $template->param(   label_batch_msg => "error",
                                 message_type    => 'alert',
             );
         }
         else {
-            $template->param(   label_batch_msg => "Label batch #$label_batch_id created.",
+            $template->param(   label_batch_msg => $label_batch_id,
                                 message_type    => 'dialog',
             );
         }
@@ -217,6 +216,7 @@ sub import_batches_list {
             comments => $batch->{'comments'},
             can_clean => ($batch->{'import_status'} ne 'cleaned') ? 1 : 0,
             record_type => $batch->{'record_type'},
+            profile => $batch->{'profile'},
         };
     }
     $template->param(batch_list => \@list); 
@@ -391,6 +391,7 @@ sub batch_info {
     my ($template, $batch) = @_;
     $template->param(batch_info => 1);
     $template->param(file_name => $batch->{'file_name'});
+    $template->param(profile => $batch->{'profile'});
     $template->param(comments => $batch->{'comments'});
     $template->param(import_status => $batch->{'import_status'});
     $template->param(upload_timestamp => $batch->{'upload_timestamp'});

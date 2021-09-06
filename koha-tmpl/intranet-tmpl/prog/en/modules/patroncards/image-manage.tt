@@ -1,31 +1,40 @@
 [% SET footerjs = 1 %]
     [% INCLUDE 'doc-head-open.inc' %]
-    <title>Koha &rsaquo; Tools &rsaquo; Patron card creator &rsaquo; Images</title>
+    <title>Images &rsaquo; Patron card creator &rsaquo; Tools &rsaquo; Koha</title>
     [% INCLUDE 'doc-head-close.inc' %]
 </head>
 
 <body id="pcard_image-manage" class="tools pcard">
 [% INCLUDE 'header.inc' %]
 [% INCLUDE 'cat-search.inc' %]
-<div id="breadcrumbs">
-    <a href="/cgi-bin/koha/mainpage.pl">Home</a> &rsaquo;
-    <a href="/cgi-bin/koha/tools/tools-home.pl">Tools</a> &rsaquo;
-    <a href="/cgi-bin/koha/patroncards/home.pl">Patron card creator</a> &rsaquo;
-    Images
-</div>
-<div id="doc3" class="yui-t2">
-    <div id="bd">
-        <div id="yui-main">
-            <div class="yui-b">
-                    <div class="yui-g">
-                    [% INCLUDE 'patroncards-toolbar.inc' %]
-                        <div class="yui-u first">
+<nav id="breadcrumbs" aria-label="Breadcrumb" class="breadcrumb">
+    <ol>
+        <li>
+            <a href="/cgi-bin/koha/mainpage.pl">Home</a>
+        </li>
+        <li>
+            <a href="/cgi-bin/koha/tools/tools-home.pl">Tools</a>
+        </li>
+        <li>
+            <a href="/cgi-bin/koha/patroncards/home.pl">Patron card creator</a>
+        </li>
+        <li>
+            <a href="#" aria-current="page">
+                Images
+            </a>
+        </li>
+    </ol>
+</nav>
 
-                        </div>
-                    </div>
+<div class="main container-fluid">
+    <div class="row">
+        <div class="col-sm-10 col-sm-push-2">
+            <main>
+
+                [% INCLUDE 'patroncards-toolbar.inc' %]
                 [% INCLUDE 'patroncards-errors.inc' %]
-                <div class="yui-g">
-                    <div class="yui-u first">
+                <div class="row">
+                    <div class="col-sm-6">
                         <h1>Upload additional images for patron cards</h1>
                         <p>Manage additional images to use as logo, decoration or background on a patron card layout.</p>
                         <form name="upload_images" method="post" action="/cgi-bin/koha/patroncards/image-manage.pl" enctype="multipart/form-data">
@@ -56,15 +65,15 @@
                                 [% IF ( IMPORT_SUCCESSFUL ) %]
                                     <div class="dialog message">
                                     <h3>Image successfully uploaded</h3>
-                                    <ul><li>File: [% SOURCE_FILE %]</li>
-                                    <li>Image name: [% IMAGE_NAME %]</li></ul>
+                                    <ul><li>File: [% SOURCE_FILE | html %]</li>
+                                    <li>Image name: [% IMAGE_NAME | html %]</li></ul>
                                     </div>
                                 [% END %]
                             </fieldset>
 
                         </form>
                     </div>
-                    <div class="yui-u">
+                    <div class="col-sm-6">
                     <h1>Delete Images</h1>
                         [% IF ( TABLE ) %]
                         <form name="delete_images" method="post" action="/cgi-bin/koha/patroncards/image-manage.pl" enctype="multipart/form-data">
@@ -87,7 +96,7 @@
                                         [% CASE " " %]
                                             <th>Delete</th>
                                         [% CASE %]
-                                           <th>[% header_field.field_label %]</th>
+                                           <th>[% header_field.field_label | html %]</th>
                                     [% END %]
                                     [% END %]
                                     </tr>
@@ -96,11 +105,11 @@
                                     [% FOREACH text_field IN TABL.text_fields %]
                                     [% IF ( text_field.select_field ) %]
                                         <td>
-                                            <a class="delete_image btn btn-default btn-xs" href="/cgi-bin/koha/patroncards/image-manage.pl?op=delete&image_id=[% text_field.field_value %]"><i class="fa fa-trash"></i> Delete</a>
+                                            <a class="delete_image btn btn-default btn-xs" href="/cgi-bin/koha/patroncards/image-manage.pl?op=delete&image_id=[% text_field.field_value | html %]"><i class="fa fa-trash"></i> Delete</a>
                                         </td>
-                                        <td align="center"><input type="checkbox" name="action" value="[% text_field.field_value %]" /></td>
+                                        <td align="center"><input type="checkbox" name="action" value="[% text_field.field_value | html %]" /></td>
                                     [% ELSIF ( text_field.field_value ) %]
-                                        <td>[% text_field.field_value %]</td>
+                                        <td>[% text_field.field_value | html %]</td>
                                     [% ELSE %]
                                         <td>&nbsp;</td>
                                     [% END %]
@@ -134,12 +143,16 @@
                         [% END %]
                     </div>
                 </div>
-            </div>
-        </div>
-        <div class="yui-b">
-          [% INCLUDE 'tools-menu.inc' %]
-        </div>
-    </div>
+
+            </main>
+        </div> <!-- /.col-sm-10.col-sm-push-2 -->
+
+        <div class="col-sm-2 col-sm-pull-10">
+            <aside>
+                [% INCLUDE 'tools-menu.inc' %]
+            </aside>
+        </div> <!-- /.col-sm-2.col-sm-pull-10 -->
+     </div> <!-- /.row -->
 
 [% MACRO jsinclude BLOCK %]
     <script>

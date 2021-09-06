@@ -66,6 +66,7 @@ map ȃ			a
 map Ȃ			a
 map ⱥ			a
 map Ⱥ			a
+map ︡a                   a
 # AE
 map ӕ			(ae)
 map Ӕ			(ae)
@@ -125,6 +126,8 @@ map ʉ			u
 map Ʉ			u
 map ů			u
 map Ů			u
+map ů                   u
+map Ů                   u
 # E
 map ê			e
 map Ê			e
@@ -217,11 +220,14 @@ map ṉ			n
 map Ṉ			n
 map ṇ			n
 map Ṇ			n
+map Ŋ			n
+map ŋ			n
 # T
 map ṭ			t
 map Ṭ			t
 map ŧ			t
 map Ŧ			t
+map t︠                   t
 # D
 map ḍ			d
 map Ḍ			d
@@ -259,6 +265,10 @@ map ż			z
 map Ż			z
 map ƶ			z
 map Ƶ			z
+map Ž			z
+map ž			z
+map Ǯ			z
+map ǯ			z
 #C
 map ç			c
 map Ç			c
@@ -286,6 +296,8 @@ map ḵ			k
 map Ḵ			k
 map Ḱ			k
 map ḱ			k
+map Ǩ			k
+map ǩ			k
 # Y
 map ý			y
 map Ý			y

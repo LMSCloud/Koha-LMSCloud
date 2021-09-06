@@ -30,14 +30,13 @@ use Koha::Libraries;
 
 use Data::Dumper;
 
-my $input = new CGI;
+my $input = CGI->new;
 
 my ($template, $loggedinuser, $cookie)
     = get_template_and_user({template_name => "admin/transport-cost-matrix.tt",
                             query => $input,
                             type => "intranet",
-                            authnotrequired => 0,
-                            flagsrequired => {parameters => 1},
+                            flagsrequired => { parameters => 'manage_transfers' },
                             debug => 1,
                             });
 my $use_transport_cost_matrix = C4::Context->preference("UseTransportCostMatrix");
@@ -46,7 +45,7 @@ my $update = ( $input->param('op') // '' ) eq 'set-cost-matrix';
 
 my ($cost_matrix, $have_matrix);
 unless ($update) {
-    $cost_matrix = TransportCostMatrix();
+    $cost_matrix = TransportCostMatrix({ ignore_holds_queue_skip_closed => 1 });
     $have_matrix = keys %$cost_matrix if $cost_matrix;
 }
 

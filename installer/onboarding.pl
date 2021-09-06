@@ -22,19 +22,18 @@ use C4::Context;
 use C4::InstallAuth;
 use CGI qw ( -utf8 );
 use C4::Output;
-use C4::Members;
+use C4::Members qw(checkcardnumber);
 use Koha::Patrons;
 use Koha::Libraries;
 use Koha::Database;
 use Koha::DateUtils;
+use Koha::Patrons;
 use Koha::Patron::Categories;
-use Koha::Patron::Category;
 use Koha::ItemTypes;
-use Koha::IssuingRule;
-use Koha::IssuingRules;
+use Koha::CirculationRules;
 
 #Setting variables
-my $input = new CGI;
+my $input = CGI->new;
 
 unless ( C4::Context->preference('Version') ) {
     print $input->redirect("/cgi-bin/koha/installer/install.pl");
@@ -145,8 +144,14 @@ if ( $step == 3 ) {
         my $secondpassword = $input->param('password2') || '';
         my $cardnumber     = $input->param('cardnumber');
         my $userid         = $input->param('userid');
+        my $categorycode = $input->param('categorycode_entry');
+        my $patron_category =
+          Koha::Patron::Categories->find( $categorycode );
 
-        my ( $is_valid, $passworderror) = Koha::AuthUtils::is_password_valid( $firstpassword );
+        my ( $is_valid, $passworderror ) =
+          Koha::AuthUtils::is_password_valid( $firstpassword,
+            $patron_category );
+
 
         if ( my $error_code = checkcardnumber($cardnumber) ) {
             if ( $error_code == 1 ) {
@@ -172,28 +177,28 @@ if ( $step == 3 ) {
                 firstname    => scalar $input->param('firstname'),
                 cardnumber   => scalar $input->param('cardnumber'),
                 branchcode   => scalar $input->param('libraries'),
-                categorycode => scalar $input->param('categorycode_entry'),
+                categorycode => $categorycode,
                 userid       => scalar $input->param('userid'),
-                password     => scalar $input->param('password'),
-                password2    => scalar $input->param('password2'),
                 privacy      => "default",
                 address      => "",
                 city         => "",
-                flags => 1,    # Will be superlibrarian
+                flags        => 1,    # Will be superlibrarian
             };
 
-            my $patron_category =
-              Koha::Patron::Categories->find( $patron_data->{categorycode} );
             $patron_data->{dateexpiry} =
               $patron_category->get_expiry_date( $patron_data->{dateenrolled} );
 
-            my $borrowernumber = C4::Members::AddMember(%$patron_data);
+            eval {
+                my $patron = Koha::Patron->new($patron_data)->store;
+                $patron->set_password({ password =>  $firstpassword });
+            };
 
             #Error handling checking if the patron was created successfully
-            if ($borrowernumber) {
+            unless ($@) {
                 push @messages, { code => 'success_on_insert_patron' };
             }
             else {
+                warn $@;
                 push @messages, { code => 'error_on_insert_patron' };
             }
         }
@@ -241,6 +246,9 @@ if ( $step == 5 ) {
         my $lengthunit      = $input->param('lengthunit');
         my $renewalsallowed = $input->param('renewalsallowed');
         my $renewalperiod   = $input->param('renewalperiod');
+        my $reservesallowed = $input->param('reservesallowed');
+        my $holds_per_day   = $input->param('holds_per_day');
+        my $holds_per_record = $input->param('holds_per_record');
         my $onshelfholds    = $input->param('onshelfholds') || 0;
         $maxissueqty =~ s/\s//g;
         $maxissueqty = undef if $maxissueqty !~ /^\d+/;
@@ -250,26 +258,52 @@ if ( $step == 5 ) {
             branchcode      => $branchcode,
             categorycode    => $categorycode,
             itemtype        => $itemtype,
-            maxissueqty     => $maxissueqty,
-            renewalsallowed => $renewalsallowed,
-            renewalperiod   => $renewalperiod,
-            issuelength     => $issuelength,
-            lengthunit      => $lengthunit,
-            onshelfholds    => $onshelfholds,
+            rules => {
+                renewalsallowed                  => $renewalsallowed,
+                renewalperiod                    => $renewalperiod,
+                issuelength                      => $issuelength,
+                lengthunit                       => $lengthunit,
+                onshelfholds                     => $onshelfholds,
+                article_requests                 => "no",
+                auto_renew                       => 0,
+                cap_fine_to_replacement_price    => 0,
+                chargeperiod                     => 0,
+                chargeperiod_charge_at           => 0,
+                fine                             => 0,
+                finedays                         => 0,
+                firstremind                      => 0,
+                hardduedate                      => "",
+                hardduedatecompare               => -1,
+                holds_per_day                    => $holds_per_day,
+                holds_per_record                 => $holds_per_record,
+                maxissueqty                      => $maxissueqty,
+                maxonsiteissueqty                => "",
+                maxsuspensiondays                => "",
+                no_auto_renewal_after            => "",
+                no_auto_renewal_after_hard_limit => "",
+                norenewalbefore                  => "",
+                opacitemholds                    => "N",
+                overduefinescap                  => "",
+                rentaldiscount                   => 0,
+                reservesallowed                  => $reservesallowed,
+                suspension_chargeperiod          => undef,
+                decreaseloanholds                => undef,
+              }
         };
 
-        my $issuingrule = Koha::IssuingRule->new($params);
-        eval { $issuingrule->store; };
+        eval {
+            Koha::CirculationRules->set_rules($params);
+        };
 
-        unless ($@) {
-            push @messages, { code => 'success_on_insert_circ_rule' };
-        }
-        else {
+        if ($@) {
+            warn $@;
             push @messages, { code => 'error_on_insert_circ_rule' };
+        } else {
+            push @messages, { code => 'success_on_insert_circ_rule' };
         }
     }
 
-    $step++ if Koha::IssuingRules->count;
+    $step++ if Koha::CirculationRules->count;
 }
 
 my $libraries = Koha::Libraries->search( {}, { order_by => ['branchcode'] }, );
@@ -287,7 +321,6 @@ my ( $template, $loggedinuser );
         template_name   => "onboarding/onboardingstep${step}.tt",
         query           => $input,
         type            => "intranet",
-        authnotrequired => 0,
         debug           => 1,
     }
 );

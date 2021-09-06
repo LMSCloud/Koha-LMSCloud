@@ -10,6 +10,7 @@ BEGIN {
     eval { require "$FindBin::Bin/../kohalib.pl" };
 }
 
+use Koha::Script -cron;
 use C4::Koha;
 use C4::Context;
 use C4::Biblio;
@@ -21,7 +22,7 @@ use Getopt::Long;
 use C4::Log;
 
 my ( $input_marc_file, $number) = ('',0);
-my ($version, $confirm,$test_parameter,$field,$batch,$max_digits,$cloud_tag);
+my ($version, $confirm,$field,$batch,$max_digits,$cloud_tag);
 GetOptions(
 	'c' => \$confirm,
 	'h' => \$version,
@@ -134,7 +135,7 @@ if ($browser_tag) {
     print "inserting datas in browser table\n" unless $batch;
     # read existing classification table is possible
     my $classification;
-    if (C4::Context->preference('opaclanguages') =~ m/^fr/i && $browser_tag eq '676' & $browser_subfield eq 'a') {
+    if (C4::Context->preference('OPACLanguages') =~ m/^fr/i && $browser_tag eq '676' & $browser_subfield eq 'a') {
         $classification = dewey_french();
     }
 

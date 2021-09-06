@@ -32,7 +32,7 @@ use Koha::Reviews;
 use POSIX qw(ceil floor strftime);
 
 my $template_name;
-my $query = new CGI;
+my $query = CGI->new;
 my $format = $query->param("format") || '';
 my $count = C4::Context->preference('OPACnumSearchResults') || 20;
 my $results_per_page = $query->param('count') || $count;
@@ -85,19 +85,20 @@ my $reviews = Koha::Reviews->search(
 my $marcflavour      = C4::Context->preference("marcflavour");
 my $hits = Koha::Reviews->search({ approved => 1 })->count;
 my $i = 0;
-my $latest_comment_date;
 for my $result (@$reviews){
     my $biblionumber = $result->{biblionumber};
     my $biblio = Koha::Biblios->find( $biblionumber );
     my $biblioitem = $biblio->biblioitem;
     my $record = GetMarcBiblio({ biblionumber => $biblionumber });
-    my $frameworkcode = GetFrameworkCode($biblionumber);
 	$result->{normalized_upc} = GetNormalizedUPC($record,$marcflavour);
 	$result->{normalized_ean} = GetNormalizedEAN($record,$marcflavour);
 	$result->{normalized_oclc} = GetNormalizedOCLCNumber($record,$marcflavour);
 	$result->{normalized_isbn} = GetNormalizedISBN(undef,$record,$marcflavour);
     $result->{title} = $biblio->title;
-	$result->{subtitle} = GetRecordValue('subtitle', $record, $frameworkcode);
+    $result->{subtitle} = $biblio->subtitle;
+    $result->{medium} = $biblio->medium;
+    $result->{part_number} = $biblio->part_number;
+    $result->{part_name} = $biblio->part_name;
     $result->{author} = $biblio->author;
     $result->{place} = $biblioitem->place;
     $result->{publishercode} = $biblioitem->publishercode;
@@ -106,6 +107,8 @@ for my $result (@$reviews){
     $result->{size} = $biblioitem->size;
     $result->{notes} = $biblioitem->notes;
     $result->{timestamp} = $biblioitem->timestamp;
+
+    $result->{biblio_object} = $biblio; # TODO Use this variable directly in the template
 
     my $patron = Koha::Patrons->find( $result->{borrowernumber} );
     if ( $patron ) {

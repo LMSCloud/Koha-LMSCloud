@@ -26,21 +26,25 @@
 
 =head1 CGI PARAMETERS
 
+=over
+
 =item PT
 The Proxy Ticket, needed for check_api_auth, that will try to make the CAS Server validate it.
+
+=back
 
 =cut 
 
 use utf8;
 use Modern::Perl;
-binmode(STDOUT, ":utf8");
+binmode(STDOUT, ":encoding(UTF-8)");
 
 use C4::Auth qw(check_api_auth);
 use C4::Output;
 use C4::Context;
 use CGI qw ( -utf8 );
 
-my $cgi = new CGI;
+my $cgi = CGI->new;
 
 print CGI::header('-type'=>'text/plain', '-charset'=>'utf-8');
 

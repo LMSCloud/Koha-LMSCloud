@@ -1,6 +1,7 @@
+[% USE raw %]
 [% INCLUDE 'doc-head-open.inc' %]
 
-<title>Koha &rsaquo; Web installer &rsaquo;
+<title>
      [% IF ( proposeimport ) %]
          Set up database
      [% END %]
@@ -29,13 +30,9 @@
      [% END %]
      [% IF ( finish ) %]
         Installation complete
-     [% END %]
+     [% END %] &rsaquo; Web installer &rsaquo; Koha
 </title>
 
-[% IF ( finish ) %]
-    [%- metacontent= '10; url=/cgi-bin/koha/installer/onboarding.pl' -%]
-    <meta http-equiv="refresh" content="[% metacontent %]">
-[% END %]
 [% INCLUDE 'installer-doc-head-close.inc' %]
 </head>
 
@@ -47,7 +44,7 @@
                 [% IF ( finish ) %]
                     <h2>Web installer &rsaquo; Installation complete</h2>
                     <h3>Congratulations, installation complete</h3>
-                    <p>This page will redirect in 10 seconds. <a href="/cgi-bin/koha/installer/onboarding.pl">If not, click here to start onboarding process.</a></p>
+                    <p><a class="btn btn-primary" href="/cgi-bin/koha/installer/onboarding.pl">Begin the onboarding process</a></p>
                 [% END %]
 
                 [% IF ( choosemarc ) %]
@@ -57,16 +54,16 @@
                         <input type="hidden" name="step" value="3" />
                         <input type="hidden" name="op" value="selectframeworks" />
 
-                        <p>MARC stands for Machine Readable Cataloging. A MARC record contains bibliographic information about an item. MARC21 is used globally, UNIMARC tends to be used in a few European countries. </p>
+                        <p>MARC stands for Machine Readable Cataloging. A MARC record contains bibliographic record information about an item. MARC21 is used globally, UNIMARC tends to be used in a few European countries. </p>
 
                         [% FOREACH flavourloo IN flavourloop %]
                             [% IF ( flavourloo.label == "Unimarc") %]
                                  <p>
-                                     <label><input type="radio" name="marcflavour" value="[% flavourloo.code %]" /> [% flavourloo.label %]</label>
+                                     <label><input type="radio" name="marcflavour" value="[% flavourloo.code | html %]" /> [% flavourloo.label | html %]</label>
                                  </p>
                             [% ELSE %]
                                  <p>
-                                     <label><input type="radio" name="marcflavour" value="[% flavourloo.code %]" checked="checked" /> [% flavourloo.label %]</label>
+                                     <label><input type="radio" name="marcflavour" value="[% flavourloo.code | html %]" checked="checked" /> [% flavourloo.label | html %]</label>
                                  </p>
                             [% END %]
                         [% END %]
@@ -82,31 +79,36 @@
                         <input type="hidden" name="step" value="3" />
                         <input type="hidden" name="op" value="addframeworks" />
                         [% IF ( frameworksloop ) %]
-                            <h3>MARC frameworks: [% marcflavour %]</h3>
+                            <h3>MARC frameworks: [% marcflavour | html %]</h3>
                             [% IF ( en_marc_frameworks ) %]
                                 <h4><span class="error">No MARC frameworks are available for your language.
                                 Defaulting to the frameworks supplied for English (en)<span></h4>
                             [% END %]
                             [% FOREACH frameworksloo IN frameworksloop %]
-                                <h4>[% frameworksloo.label %]</h4>
+                                [%- SWITCH frameworksloo.label -%]
+                                  [%- CASE 'mandatory' -%]<h4>Mandatory</h4>
+                                  [%- CASE 'optional'  -%]<h4>Optional</h4>
+                                [%- END -%]
 
                                 <div class="checkboxes">
 
                                     <p>
-                                        <a class="selectall [% frameworksloo.label FILTER lower %]" href="#">Select all</a>
-                                        <a class="deselectall [% frameworksloo.label FILTER lower %]" href="#">Select none</a>
+                                        <a class="selectall [% frameworksloo.label FILTER lower | html %]" href="#">Select all</a>
+                                        <a class="deselectall [% frameworksloo.label FILTER lower | html %]" href="#">Select none</a>
                                     </p>
 
                                     [% FOREACH framework IN frameworksloo.frameworks %]
                                         <div class="checkbox">
                                             <label>
                                                 [% IF ( framework.checked ) %]
-                                                    <input type="checkbox" name="framework" value="[% framework.fwkfile %]" id ="[%framework.fwkname%]" checked="checked" />
+                                                    <input type="checkbox" name="framework" value="[% framework.fwkfile | html %]" id ="[% framework.fwkname | html %]" checked="checked" />
                                                 [% ELSE %]
-                                                    <input type="checkbox" name="framework" value="[% framework.fwkfile %]" id ="[%framework.fwkname%]" />
+                                                    <input type="checkbox" name="framework" value="[% framework.fwkfile | html %]" id ="[% framework.fwkname | html %]" />
                                                 [% END %]
-                                                [% framework.fwkdescription %]
-                                                <em>([% framework.fwkname %])</em>
+                                                [% FOREACH description IN framework.fwkdescription %]
+                                                    [% description | html %]<br />
+                                                [% END %]
+                                                <em>([% framework.fwkname | html %])</em>
                                             </label>
                                         </div>
                                         <hr />
@@ -123,25 +125,29 @@
                         [% END %]
 
                         [% FOREACH levelloo IN levelloop %]
-                            <h4>[% levelloo.label %]</h4>
+                            [%- SWITCH levelloo.label -%]
+                              [%- CASE 'mandatory' -%]<h4>Mandatory</h4>
+                              [%- CASE 'optional'  -%]<h4>Optional</h4>
+                            [%- END -%]
 
                             <div class="checkboxes">
 
                                 <p>
-                                    <a class="selectall [% levelloo.label FILTER lower %]" href="#">Select all</a>
-                                    <a class="deselectall [% levelloo.label FILTER lower %]" href="#">Select none</a>
+                                    <a class="selectall [% levelloo.label FILTER lower | html %]" href="#">Select all</a>
+                                    <a class="deselectall [% levelloo.label FILTER lower | html %]" href="#">Select none</a>
                                 </p>
 
                                 [% FOREACH framework IN levelloo.frameworks %]
                                     <div class="checkbox">
-                                        <label for="[% framework.fwkname %]">
+                                        <label for="[% framework.fwkname | html %]">
                                             [% IF ( framework.checked ) %]
-                                                <input type="checkbox" name="framework" value="[%framework.fwkfile %]" id="[%framework.fwkname%]" checked="checked" />
+                                                <input type="checkbox" name="framework" value="[% framework.fwkfile | html %]" id="[% framework.fwkname | html %]" checked="checked" />
                                             [% ELSE %]
-                                                <input type="checkbox" name="framework" value="[%framework.fwkfile %]" id="[%framework.fwkname%]" />
+                                                <input type="checkbox" name="framework" value="[% framework.fwkfile | html %]" id="[% framework.fwkname | html %]" />
                                             [% END %]
-                                            [% framework.fwkdescription %]
-                                            <em>([% framework.fwkname %])</em>
+                                            [% FOREACH description IN framework.fwkdescription %]
+                                                [% description | html %]<br />
+                                            [% END %]
                                         </label>
                                     </div> <!-- /div.checkbox -->
                                 [% END # / FOREACH framework %]
@@ -163,14 +169,16 @@
                             <h3>Optional data added</h3>
                         [% ELSIF lis.level == 'mysql' %]
                             <h3>MySQL data added</h3>
+                        [% ELSIF lis.level == 'localization' %]
+                            <h3>Localization data added</h3>
                         [% ELSE %]
-                            <h3>[% lis.level FILTER ucfirst %] data added</h3>
+                            <h3>[% lis.level FILTER ucfirst | html %] data added</h3>
                         [% END %]
                         <ul>
                             [% FOREACH fwklis IN lis.fwklist %]
                             <li>
-                                [% fwklis.fwkname %]
-                                [% IF ( fwklis.error ) %]<p class="bg-danger">[% fwklis.error %]</p>[% END %]
+                                [% fwklis.fwkname | html %]
+                                [% IF ( fwklis.error ) %]<p class="bg-danger">[% fwklis.error | html %]</p>[% END %]
                             </li>
                             [% END %]
                         </ul>
@@ -200,7 +208,7 @@
                 [% IF ( importdatastructure ) %]
                     [% IF ( error ) %]
                         <p>The following error occurred while importing the database structure:</p>
-                        <div class="alert alert-warning"><p>[% error %] </p></div>
+                        <div class="alert alert-warning"><p>[% error | html %] </p></div>
                         <p>Please contact your system administrator</p>
                     [% ELSE %]
                         <h2>Web installer &rsaquo; Success</h2>
@@ -225,7 +233,7 @@
                 [% IF ( default ) %]
                     [% IF ( upgrading ) %]
                         <h2>Web installer &rsaquo; Update database</h2>
-                        <p>We are upgrading from Koha [% dbversion %] to [% kohaversion %]</p>
+                        <p>We are upgrading from Koha [% dbversion | html %] to [% kohaversion | html %]</p>
                         <p><a href="install.pl?step=3&amp;op=updatestructure" class="btn btn-primary">Update your database</a></p>
                     [% ELSE %]
                         <h2>Web installer &rsaquo; Install basic configuration settings</h2>
@@ -239,8 +247,13 @@
                     [% IF ( has_update_succeeds ) %]
                         <p>Update report :</p>
                         <ul>
-                            [% FOREACH update_repor IN update_report %]
-                                <li>[% update_repor.line |html %]</li>
+                            [% FOREACH l IN update_report %]
+                                [% SET line = l.line %]
+                                [% IF line.match('^Upgrade to') %]
+                                    <li>[% line | $raw %]</li>
+                                [% ELSE %]
+                                    [% line | $raw %]<br/>
+                                [% END %]
                             [% END %]
                         </ul>
                     [% END %]
@@ -248,7 +261,7 @@
                         <p>Update errors :</p>
                         <ul>
                             [% FOREACH update_error IN update_errors %]
-                                <li class="update_error">[% update_error.line |html %]</li>
+                                <li class="update_error">[% update_error.line | html %]</li>
                             [% END %]
                         </ul>
                     [% END %]
@@ -259,23 +272,26 @@
                [% END # / IF updatestructure %]
             </div> <!-- / #installer-step3 -->
         </div> <!-- / .row -->
+    </div><!-- / .container-fluid -->
 
 [% IF ( selectframeworks ) %]
-    <script type="text/javascript">
-        $(document).ready(function(){
-            $(".selectall,.deselectall").on("click",function(e){
-                e.preventDefault();
-                var container = $(this).parent().parent();
-                if( $(this).hasClass("selectall") ){
-                    var state = true;
-                } else {
-                    var state = false;
-                }
-                $( container ).find("input").prop("checked", state);
-                $( container ).find(".selectall,.deselectall").toggle();
+    [% MACRO jsinclude BLOCK %]
+        <script>
+            $(document).ready(function(){
+                $(".selectall,.deselectall").on("click",function(e){
+                    e.preventDefault();
+                    var container = $(this).parent().parent();
+                    if( $(this).hasClass("selectall") ){
+                        var state = true;
+                    } else {
+                        var state = false;
+                    }
+                    $( container ).find("input").prop("checked", state);
+                    $( container ).find(".selectall,.deselectall").toggle();
+                });
             });
-        });
-    </script>
+        </script>
+    [% END %]
 [% END %]
 
-[% INCLUDE 'intranet-bottom.inc' %]
+[% INCLUDE 'installer-intranet-bottom.inc' %]

@@ -31,14 +31,14 @@ my ($auth_status, $sessionID);
 if (exists $cookies{'CGISESSID'}) {
     ($auth_status, $sessionID) = check_cookie_auth(
         $cookies{'CGISESSID'}->value,
-        { parameters => 'parameters_remaining_permissions' },
+        { parameters => 'manage_marc_frameworks' },
     );
 }
 if ($auth_status eq 'ok') {
     $authenticated = 1;
 }
 
-my $input = new CGI;
+my $input = CGI->new;
 
 unless ($authenticated) {
     print $input->header(-type => 'text/plain', -status => '403 Forbidden');
@@ -62,10 +62,6 @@ if ($action eq 'export' && $input->request_method() eq 'GET') {
         binmode(STDOUT,':encoding(UTF-8)');
         print $input->header(-type => 'application/vnd.ms-excel', -attachment => 'export_' . $framework_name . '.csv');
         print $strXml;
-    } elsif ($format eq 'excel') {
-        # Excel-xml file
-        print $input->header(-type => 'application/excel', -attachment => 'export_' . $framework_name . '.xml');
-        print $strXml;
     } else {
         # ODS file
         my $strODS = '';
@@ -79,7 +75,7 @@ if ($action eq 'export' && $input->request_method() eq 'GET') {
     my $fieldname = 'file_import_' . $framework_name;
     my $filename = $input->param($fieldname);
     # upload the input file
-    if ($filename && $filename =~ /\.(csv|ods|xml)$/i) {
+    if ($filename && $filename =~ /\.(csv|ods)$/i) {
         my $extension = $1;
         my $uploadFd = $input->upload($fieldname);
         if ($uploadFd && !$input->cgi_error) {

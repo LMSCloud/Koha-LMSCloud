@@ -1,8 +1,9 @@
+[% USE Koha %]
 [% USE KohaDates %]
 [% USE Branches %]
 [% SET footerjs = 1 %]
 [% INCLUDE 'doc-head-open.inc' %]
-<title>Koha &rsaquo; Circulation &rsaquo; Circulation statistics for [% title |html %]</title>
+<title>Circulation statistics for [% title | html %] &rsaquo; Circulation &rsaquo; Koha</title>
 [% INCLUDE 'doc-head-close.inc' %]
 </head>
 
@@ -10,28 +11,47 @@
 [% INCLUDE 'header.inc' %]
 [% INCLUDE 'circ-search.inc' %]
 
-<div id="breadcrumbs">
-    <a href="/cgi-bin/koha/mainpage.pl">Home</a>
-    &rsaquo; <a href="/cgi-bin/koha/circ/circulation-home.pl">Circulation</a>
-    [% UNLESS blocking_error %]&rsaquo; Circulation statistics for [% title |html %][% END %]
-</div>
+<nav id="breadcrumbs" aria-label="Breadcrumb" class="breadcrumb">
+    <ol>
+        <li>
+            <a href="/cgi-bin/koha/mainpage.pl">Home</a>
+        </li>
 
-<div id="doc3" class="yui-t2">
-   
-   <div id="bd">
-	<div id="yui-main">
-	<div class="yui-b">
+        [% IF blocking_error %]
+            <li>
+                <a href="#" aria-current="page">
+                    Circulation
+                </a>
+            </li>
+
+        [% ELSE %]
+            <li>
+                <a href="/cgi-bin/koha/circ/circulation-home.pl">Circulation</a>
+            </li>
+            <li>
+                <a href="#" aria-current="page">
+                    Circulation statistics for [% title |html %]
+                </a>
+            </li>
+        [% END %]
+    </ol>
+</nav>
+
+<div class="main container-fluid">
+    <div class="row">
+        <div class="col-sm-10 col-sm-push-2">
+            <main>
 
 [% INCLUDE 'blocking_errors.inc' %]
 <h2>[% title |html %] [% IF ( author ) %] by [% author |html %][% END %]</h2>
-<h3>Barcode [% barcode %]</h3>
+<h3>Barcode [% barcode | html %]</h3>
 <table>
         <tr><th>Home library</th><th>Current library</th><th>Date arrived<br />at current library </th><th>Number of checkouts<br />since last transfer</th></tr>
 
-        <tr><td>[% Branches.GetName( homebranch ) %]</td>
-            <td>[% Branches.GetName( holdingbranch ) %]</td>
+        <tr><td>[% Branches.GetName( homebranch ) | html %]</td>
+            <td>[% Branches.GetName( holdingbranch ) | html %]</td>
             <td>[% IF ( lastdate ) %][% lastdate | $KohaDates %][% ELSE %]Item has no transfer record[% END %]</td>
-            <td>[% count %]</td>
+            <td>[% count | html %]</td>
         </tr>
 </table>
 <table>
@@ -46,10 +66,10 @@
     [% ELSE %]
         <tr>
     [% END %]
-            <td>[% library.branchname %]</td>
-            <td>[% library.issues %]</td>
+            <td>[% library.branchname | html %]</td>
+            <td>[% library.issues | html %]</td>
             <td>[% IF library.seen %]
-                    [% library.seen | $KohaDates with_hours => 1 %]
+                    [% library.seen | $KohaDates  with_hours => 1 %]
                 [% ELSE %]
                     <span>Never</span>
                 [% END %]
@@ -58,15 +78,18 @@
     [% END %]
 </table>
 
-</div>
-</div>
-<div class="yui-b">
-[% INCLUDE 'biblio-view-menu.inc' %]
-</div>
-</div>
+            </main>
+        </div> <!-- /.col-sm-10.col-sm-push-2 -->
+
+        <div class="col-sm-2 col-sm-pull-10">
+            <aside>
+                [% INCLUDE 'biblio-view-menu.inc' %]
+            </aside>
+        </div> <!-- /.col-sm-2.col-sm-pull-10 -->
+     </div> <!-- /.row -->
 
 [% MACRO jsinclude BLOCK %]
-    <script type="text/javascript">
+    <script>
         $(document).ready(function(){
         $("tr.mybranch td").css("background-color", "#CFE7FF");
     });

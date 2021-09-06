@@ -1,31 +1,44 @@
 #!/usr/bin/perl
+
 package C4::SIP::SIPServer;
 
 use strict;
 use warnings;
 use FindBin qw($Bin);
 use lib "$Bin";
-use Sys::Syslog qw(syslog);
 use Net::Server::PreFork;
 use IO::Socket::INET;
 use Socket qw(:DEFAULT :crlf);
+use Scalar::Util qw(blessed);
 require UNIVERSAL::require;
 
+use C4::Context;
+use C4::SIP::Sip qw(siplog);
 use C4::SIP::Sip::Constants qw(:all);
 use C4::SIP::Sip::Configuration;
 use C4::SIP::Sip::Checksum qw(checksum verify_cksum);
 use C4::SIP::Sip::MsgType qw( handle login_core );
+use C4::SIP::Logger qw(set_logger);
+
+use Koha::Caches;
+
+use Koha::Logger;
+use C4::SIP::Trapper;
+tie *STDERR, "C4::SIP::Trapper";
 
 use base qw(Net::Server::PreFork);
 
 use constant LOG_SIP => "local6"; # Local alias for the logging facility
 
 #
-# Main	# not really, since package SIPServer
+# Main  # not really, since package SIPServer
 #
 # FIXME: Is this a module or a script?  
 # A script with no MAIN namespace?
 # A module that takes command line args?
+
+# Set interface to 'sip'
+C4::Context->interface('sip');
 
 my %transports = (
     RAW    => \&raw_transport,
@@ -63,7 +76,7 @@ foreach my $svc (keys %{$config->{listeners}}) {
 #
 if (defined($config->{'server-params'})) {
     while (my ($key, $val) = each %{$config->{'server-params'}}) {
-		push @parms, $key . '=' . $val;
+        push @parms, $key . '=' . $val;
     }
 }
 
@@ -87,6 +100,12 @@ sub process_request {
 
     $self->{config} = $config;
 
+    # Flushing L1 to make sure the request will be processed using the correct data
+    Koha::Caches->flush_L1_caches();
+
+    $self->{account} = undef;  # Clear out the account from the last request, it may be different
+    $self->{logger} = set_logger( Koha::Logger->get( { interface => 'sip' } ) );
+
     my $sockname = getsockname(STDIN);
 
     # Check if socket connection is IPv6 before resolving address
@@ -103,17 +122,17 @@ sub process_request {
     $self->{service} = $config->find_service($sockaddr, $port, $proto);
 
     if (!defined($self->{service})) {
-		syslog("LOG_ERR", "process_request: Unknown recognized server connection: %s:%s/%s", $sockaddr, $port, $proto);
-		die "process_request: Bad server connection";
+        siplog("LOG_ERR", "process_request: Unknown recognized server connection: %s:%s/%s", $sockaddr, $port, $proto);
+        die "process_request: Bad server connection";
     }
 
     $transport = $transports{$self->{service}->{transport}};
 
     if (!defined($transport)) {
-		syslog("LOG_WARNING", "Unknown transport '%s', dropping", $service->{transport});
-		return;
+        siplog("LOG_WARNING", "Unknown transport '%s', dropping", $service->{transport});
+        return;
     } else {
-		&$transport($self);
+        &$transport($self);
     }
     return;
 }
@@ -136,13 +155,13 @@ sub raw_transport {
     # In practice it should only iterate once but be prepared
     local $SIG{ALRM} = sub { die 'raw transport Timed Out!' };
     my $timeout = $self->get_timeout({ transport => 1 });
-    syslog('LOG_DEBUG', "raw_transport: timeout is $timeout");
+    siplog('LOG_DEBUG', "raw_transport: timeout is $timeout");
     alarm $timeout;
     while (!$self->{account}) {
         $input = read_request();
         if (!$input) {
             # EOF on the socket
-            syslog("LOG_INFO", "raw_transport: shutting down: EOF during login");
+            siplog("LOG_INFO", "raw_transport: shutting down: EOF during login");
             return;
         }
         $input =~ s/[\r\n]+$//sm; # Strip off trailing line terminator(s)
@@ -152,41 +171,50 @@ sub raw_transport {
     }
     alarm 0;
 
-    syslog("LOG_DEBUG", "raw_transport: uname/inst: '%s/%s'",
+    $self->{logger} = set_logger(
+        Koha::Logger->get(
+            {
+                interface => 'sip',
+                category  => $self->{account}->{id}, # Add id to namespace
+            }
+        )
+    );
+
+    siplog("LOG_DEBUG", "raw_transport: uname/inst: '%s/%s'",
         $self->{account}->{id},
         $self->{account}->{institution});
     if (! $self->{account}->{id}) {
-        syslog("LOG_ERR","Login failed shutting down");
+        siplog("LOG_ERR","Login failed shutting down");
         return;
     }
 
     $self->sip_protocol_loop();
-    syslog("LOG_INFO", "raw_transport: shutting down");
+    siplog("LOG_INFO", "raw_transport: shutting down");
     return;
 }
 
 sub get_clean_string {
-	my $string = shift;
-	if (defined $string) {
-		syslog("LOG_DEBUG", "get_clean_string  pre-clean(length %s): %s", length($string), $string);
-		chomp($string);
-		$string =~ s/^[^A-z0-9]+//;
-		$string =~ s/[^A-z0-9]+$//;
-		syslog("LOG_DEBUG", "get_clean_string post-clean(length %s): %s", length($string), $string);
-	} else {
-		syslog("LOG_INFO", "get_clean_string called on undefined");
-	}
-	return $string;
+    my $string = shift;
+    if (defined $string) {
+        siplog("LOG_DEBUG", "get_clean_string  pre-clean(length %s): %s", length($string), $string);
+        chomp($string);
+        $string =~ s/^[^A-z0-9]+//;
+        $string =~ s/[^A-z0-9]+$//;
+        siplog("LOG_DEBUG", "get_clean_string post-clean(length %s): %s", length($string), $string);
+    } else {
+        siplog("LOG_INFO", "get_clean_string called on undefined");
+    }
+    return $string;
 }
 
 sub get_clean_input {
-	local $/ = "\012";
-	my $in = <STDIN>;
-	$in = get_clean_string($in);
-	while (my $extra = <STDIN>){
-		syslog("LOG_ERR", "get_clean_input got extra lines: %s", $extra);
-	}
-	return $in;
+    local $/ = "\012";
+    my $in = <STDIN>;
+    $in = get_clean_string($in);
+    while (my $extra = <STDIN>){
+        siplog("LOG_ERR", "get_clean_input got extra lines: %s", $extra);
+    }
+    return $in;
 }
 
 sub telnet_transport {
@@ -197,56 +225,56 @@ sub telnet_transport {
     my $input;
     my $config  = $self->{config};
     my $timeout = $self->get_timeout({ transport => 1 });
-    syslog("LOG_DEBUG", "telnet_transport: timeout is $timeout");
+    siplog("LOG_DEBUG", "telnet_transport: timeout is $timeout");
 
     eval {
-	local $SIG{ALRM} = sub { die "telnet_transport: Timed Out ($timeout seconds)!\n"; };
-	local $| = 1;			# Unbuffered output
-	$/ = "\015";		# Internet Record Separator (lax version)
+    local $SIG{ALRM} = sub { die "telnet_transport: Timed Out ($timeout seconds)!\n"; };
+    local $| = 1;           # Unbuffered output
+    $/ = "\015";        # Internet Record Separator (lax version)
     # Until the terminal has logged in, we don't trust it
     # so use a timeout to protect ourselves from hanging.
 
-	while ($strikes--) {
-	    print "login: ";
-		alarm $timeout;
-		# $uid = &get_clean_input;
-		$uid = <STDIN>;
-	    print "password: ";
-	    # $pwd = &get_clean_input || '';
-		$pwd = <STDIN>;
-		alarm 0;
+    while ($strikes--) {
+        print "login: ";
+        alarm $timeout;
+        # $uid = &get_clean_input;
+        $uid = <STDIN>;
+        print "password: ";
+        # $pwd = &get_clean_input || '';
+        $pwd = <STDIN>;
+        alarm 0;
 
-		syslog("LOG_DEBUG", "telnet_transport 1: uid length %s, pwd length %s", length($uid), length($pwd));
-		$uid = get_clean_string ($uid);
-		$pwd = get_clean_string ($pwd);
-		syslog("LOG_DEBUG", "telnet_transport 2: uid length %s, pwd length %s", length($uid), length($pwd));
+        siplog("LOG_DEBUG", "telnet_transport 1: uid length %s, pwd length %s", length($uid), length($pwd));
+        $uid = get_clean_string ($uid);
+        $pwd = get_clean_string ($pwd);
+        siplog("LOG_DEBUG", "telnet_transport 2: uid length %s, pwd length %s", length($uid), length($pwd));
 
-	    if (exists ($config->{accounts}->{$uid})
-		&& ($pwd eq $config->{accounts}->{$uid}->{password})) {
-			$account = $config->{accounts}->{$uid};
-			if ( C4::SIP::Sip::MsgType::login_core($self,$uid,$pwd) ) {
+        if (exists ($config->{accounts}->{$uid})
+        && ($pwd eq $config->{accounts}->{$uid}->{password})) {
+            $account = $config->{accounts}->{$uid};
+            if ( C4::SIP::Sip::MsgType::login_core($self,$uid,$pwd) ) {
                 last;
             }
-	    }
-		syslog("LOG_WARNING", "Invalid login attempt: '%s'", ($uid||''));
-		print("Invalid login$CRLF");
-	}
+        }
+        siplog("LOG_WARNING", "Invalid login attempt: '%s'", ($uid||''));
+        print("Invalid login$CRLF");
+    }
     }; # End of eval
 
     if ($@) {
-		syslog("LOG_ERR", "telnet_transport: Login timed out");
-		die "Telnet Login Timed out";
+        siplog("LOG_ERR", "telnet_transport: Login timed out");
+        die "Telnet Login Timed out";
     } elsif (!defined($account)) {
-		syslog("LOG_ERR", "telnet_transport: Login Failed");
-		die "Login Failure";
+        siplog("LOG_ERR", "telnet_transport: Login Failed");
+        die "Login Failure";
     } else {
-		print "Login OK.  Initiating SIP$CRLF";
+        print "Login OK.  Initiating SIP$CRLF";
     }
 
     $self->{account} = $account;
-    syslog("LOG_DEBUG", "telnet_transport: uname/inst: '%s/%s'", $account->{id}, $account->{institution});
+    siplog("LOG_DEBUG", "telnet_transport: uname/inst: '%s/%s'", $account->{id}, $account->{institution});
     $self->sip_protocol_loop();
-    syslog("LOG_INFO", "telnet_transport: shutting down");
+    siplog("LOG_INFO", "telnet_transport: shutting down");
     return;
 }
 
@@ -276,7 +304,7 @@ sub sip_protocol_loop {
     # In short, we'll take any valid message here.
     eval {
         local $SIG{ALRM} = sub {
-            syslog( 'LOG_DEBUG', 'Inactive: timed out' );
+            siplog( 'LOG_DEBUG', 'Inactive: timed out' );
             die "Timed Out!\n";
         };
         my $previous_alarm = alarm($timeout);
@@ -288,14 +316,14 @@ sub sip_protocol_loop {
             alarm($timeout);
 
             unless ($inputbuf) {
-                syslog( "LOG_ERR", "sip_protocol_loop: empty input skipped" );
+                siplog( "LOG_ERR", "sip_protocol_loop: empty input skipped" );
                 print("96$CR");
                 next;
             }
 
             my $status = C4::SIP::Sip::MsgType::handle( $inputbuf, $self, q{} );
             if ( !$status ) {
-                syslog(
+                siplog(
                     "LOG_ERR",
                     "sip_protocol_loop: failed to handle %s",
                     substr( $inputbuf, 0, 2 )
@@ -334,16 +362,16 @@ sub read_request {
     # treat as one line to include the extra linebreaks we are trying to remove!
       }
       else {
-          syslog( 'LOG_DEBUG', 'EOF returned on read' );
+          siplog( 'LOG_DEBUG', 'EOF returned on read' );
           return;
       }
       my $len = length $buffer;
       if ( $len != $raw_length ) {
           my $trim = $raw_length - $len;
-          syslog( 'LOG_DEBUG', "read_request trimmed $trim character(s) " );
+          siplog( 'LOG_DEBUG', "read_request trimmed $trim character(s) " );
       }
 
-      syslog( 'LOG_INFO', "INPUT MSG: '$buffer'" );
+      siplog( 'LOG_INFO', "INPUT MSG: '$buffer'" );
       return $buffer;
 }
 
@@ -379,7 +407,7 @@ sub get_timeout {
         my $policy = $server->{policy} // {};
         my $rv = sprintf( "%03d", $policy->{timeout} // 0 );
         if( length($rv) != 3 ) {
-            syslog( "LOG_ERR", "Policy timeout has wrong size: '%s'", $rv );
+            siplog( "LOG_ERR", "Policy timeout has wrong size: '%s'", $rv );
             return '000';
         }
         return $rv;

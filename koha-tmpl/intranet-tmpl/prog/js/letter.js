@@ -1,7 +1,7 @@
 /* Variables defined in letter.tt: */
-/* global _ module add_form copy_form dataTablesDefaults no_op_set MSG_EMPTY_TITLE_AND_CONTENT MSG_EMPTY_TEMPLATES code MSG_CODE_EXISTS MSG_CODE_EXISTS_FOR_LIBRARY MSG_DT_LOADING_RECORDS interface theme */
+/* global _ module add_form copy_form no_op_set code interface theme KohaTable columns_settings */
 
-var modal_loading = "<div id=\"loading\"><img src=\"" + interface + "/" + theme + "/img/spinner-small.gif\" alt=\"\" /> "+ MSG_DT_LOADING_RECORDS +"</div>";
+var modal_loading = "<div id=\"loading\"><img src=\"" + interface + "/" + theme + "/img/spinner-small.gif\" alt=\"\" /> "+ __('Loading...') +"</div>";
 
 var editing = 0;
 if( add_form == 1 && code !== '' ){
@@ -18,9 +18,9 @@ function checkCodes( new_lettercode, new_branchcode ){
         success: function (data) {
             if ( data.letters.length > 0 ) {
                 if( new_branchcode === '' ) {
-                    alert( MSG_CODE_EXISTS.format(new_lettercode));
+                    alert(__("A default letter with the code '%s' already exists.").format(new_lettercode));
                 } else {
-                    alert( MSG_CODE_EXISTS_FOR_LIBRARY.format(new_lettercode, new_branchcode) );
+                    alert(__("A letter with the code '%s' already exists for '%s'.").format(new_lettercode, new_branchcode));
                 }
                 $(".spinner").hide();
             } else {
@@ -30,18 +30,22 @@ function checkCodes( new_lettercode, new_branchcode ){
     });
 }
 
+var Sticky;
+
 $(document).ready(function() {
     if( add_form || copy_form ){
-        $('#toolbar').fixFloat();
+        Sticky = $("#toolbar");
+        Sticky.hcSticky({
+            stickTo: ".main",
+            stickyClass: "floating"
+        });
     }
 
-    $("#lettert:has(tbody tr)").dataTable($.extend(true, {}, dataTablesDefaults, {
-        "sDom": 't',
-        "aoColumnDefs": [
-            { "bSortable": false, "bSearchable": false, 'aTargets': [ 'nosort' ] }
-        ],
-        "bPaginate": false
-    }));
+    var ntable = KohaTable("lettert", {
+        "autoWidth": false,
+        "paging": false,
+        "aaSorting": [[ 3, "asc" ]],
+    }, columns_settings);
 
     if( no_op_set ){
         $('#branch').change(function() {
@@ -80,7 +84,7 @@ $(document).ready(function() {
                 ) {
                     var mtt = $(this).find('input[name="message_transport_type"]').val();
                     at_least_one_exists = 1; // Only one template has to be filled in for form to be valid
-                    alert( MSG_EMPTY_TITLE_AND_CONTENT.format( mtt ) );
+                    alert(__("Please specify title and content for %s").format(mtt));
                     are_valid = 0;
                 } else if ( title.length > 0 && content.length > 0 ) {
                     at_least_one_exists = 1;
@@ -89,7 +93,7 @@ $(document).ready(function() {
 
             if ( ! at_least_one_exists ) {
                 // No templates were filled out
-                alert( MSG_EMPTY_TEMPLATES );
+                alert( __("Please fill at least one template.") );
                 return false;
             }
 
@@ -124,7 +128,19 @@ $(document).ready(function() {
         }
     });
 
-    $( ".transport-types" ).accordion({ collapsible: true, active:false, animate: 200 });
+    $( ".transport-types" ).accordion({
+        collapsible: true,
+        active: parseInt( $("#section").val(), 10),
+        animate: 200,
+        activate: function() {
+            var active = $( ".transport-types" ).accordion( "option", "active" );
+            if( active === false ){
+                $("#section").val("");
+            } else {
+                $("#section").val( active );
+            }
+        }
+    });
 
     $(".insert").on("click",function(){
         var containerid = $(this).data("containerid");
@@ -156,7 +172,7 @@ $(document).ready(function() {
         page += '&content='+encodeURIComponent(content);
         page += '&data_preview='+encodeURIComponent(data_preview);
         page += '&is_html='+encodeURIComponent(is_html);
-        $("#preview_template .modal-body").load(page + " #main");
+        $("#preview_template .modal-body").load(page + " .main");
         $('#preview_template').modal('show');
         $("#preview_template_button").attr("href", "/cgi-bin/koha/svc/letters/convert?module="+module+"&code="+code+"&mtt="+mtt+"&lang="+lang);
     });

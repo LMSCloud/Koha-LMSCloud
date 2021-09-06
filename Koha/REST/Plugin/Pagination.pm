@@ -2,18 +2,18 @@ package Koha::REST::Plugin::Pagination;
 
 # This file is part of Koha.
 #
-# Koha is free software; you can redistribute it and/or modify it under the
-# terms of the GNU General Public License as published by the Free Software
-# Foundation; either version 3 of the License, or (at your option) any later
-# version.
+# Koha is free software; you can redistribute it and/or modify it
+# under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 3 of the License, or
+# (at your option) any later version.
 #
-# Koha is distributed in the hope that it will be useful, but WITHOUT ANY
-# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
-# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+# Koha is distributed in the hope that it will be useful, but
+# WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+# GNU General Public License for more details.
 #
-# You should have received a copy of the GNU General Public License along
-# with Koha; if not, write to the Free Software Foundation, Inc.,
-# 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+# You should have received a copy of the GNU General Public License
+# along with Koha; if not, see <http://www.gnu.org/licenses>.
 
 use Modern::Perl;
 
@@ -50,7 +50,7 @@ sub register {
 
 Adds a Link header to the response message $c carries, following RFC5988, including
 the following relation types: 'prev', 'next', 'first' and 'last'.
-It also adds X-Total-Count, containing the total results count.
+It also adds X-Total-Count containing the total results count, and X-Base-Total-Count containing the total of the non-filtered results count.
 
 If page size is omitted, it defaults to the value of the RESTdefaultPageSize syspref.
 
@@ -61,20 +61,25 @@ If page size is omitted, it defaults to the value of the RESTdefaultPageSize sys
             my ( $c, $args ) = @_;
 
             my $total    = $args->{total};
-            my $req_page = $args->{params}->{_page};
+            my $base_total = $args->{base_total};
+            my $req_page = $args->{params}->{_page} // 1;
             my $per_page = $args->{params}->{_per_page} //
                             C4::Context->preference('RESTdefaultPageSize') // 20;
 
-            # do we need to paginate?
-            return $c unless $req_page;
-
-            my $pages = int $total / $per_page;
-            $pages++
-                if $total % $per_page > 0;
+            my $pages;
+            if ( $per_page == -1 ) {
+                $req_page = 1;
+                $pages    = 1;
+            }
+            else {
+                $pages = int $total / $per_page;
+                $pages++
+                    if $total % $per_page > 0;
+            }
 
             my @links;
 
-            if ( $pages > 1 and $req_page > 1 ) {    # Previous exists?
+            if ( $per_page != -1 and $pages > 1 and $req_page > 1 ) {    # Previous exists?
                 push @links,
                     _build_link(
                     $c,
@@ -86,7 +91,7 @@ If page size is omitted, it defaults to the value of the RESTdefaultPageSize sys
                     );
             }
 
-            if ( $pages > 1 and $req_page < $pages ) {    # Next exists?
+            if ( $per_page != -1 and $pages > 1 and $req_page < $pages ) {    # Next exists?
                 push @links,
                     _build_link(
                     $c,
@@ -110,6 +115,7 @@ If page size is omitted, it defaults to the value of the RESTdefaultPageSize sys
 
             # Add X-Total-Count header
             $c->res->headers->add( 'X-Total-Count' => $total );
+            $c->res->headers->add( 'X-Base-Total-Count' => $base_total );
             return $c;
         }
     );

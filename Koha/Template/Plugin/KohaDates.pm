@@ -23,6 +23,7 @@ use Template::Plugin::Filter;
 use base qw( Template::Plugin::Filter );
 
 use Koha::DateUtils;
+use C4::Context;
 our $DYNAMIC = 1;
 
 sub filter {
@@ -33,8 +34,17 @@ sub filter {
     my $dt = dt_from_string( $text, 'iso' );
 
     return $config->{as_due_date} ?
-        output_pref({ dt => $dt, as_due_date => 1 }) :
-        output_pref({ dt => $dt, dateonly => !$config->{with_hours} });
+        output_pref({ dt => $dt, as_due_date => 1, dateformat => $config->{dateformat} }) :
+        output_pref({ dt => $dt, dateonly => !$config->{with_hours}, dateformat => $config->{dateformat} });
+}
+
+sub output_preference {
+    my ( $self, @params ) = @_;
+    return output_pref( @params );
+}
+
+sub tz {
+    return C4::Context->tz->name;
 }
 
 1;

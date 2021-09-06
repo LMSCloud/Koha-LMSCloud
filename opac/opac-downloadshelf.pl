@@ -33,7 +33,7 @@ use Koha::RecordProcessor;
 use Koha::Virtualshelves;
 
 use utf8;
-my $query = new CGI;
+my $query = CGI->new;
 
 # if virtualshelves is disabled, leave immediately
 if ( ! C4::Context->preference('virtualshelves') ) {
@@ -49,6 +49,13 @@ my ( $template, $borrowernumber, $cookie ) = get_template_and_user (
         authnotrequired => ( C4::Context->preference("OpacPublic") ? 1 : 0 ),
     }
 );
+
+my $borcat = q{};
+if ( C4::Context->preference('OpacHiddenItemsExceptions') ) {
+    # we need to fetch the borrower info here, so we can pass the category
+    my $borrower = Koha::Patrons->find( { borrowernumber => $borrowernumber } );
+    $borcat = $borrower ? $borrower->categorycode : $borcat;
+}
 
 my $shelfnumber = $query->param('shelfnumber');
 my $format  = $query->param('format');
@@ -68,6 +75,13 @@ if ( $shelf and $shelf->can_be_viewed( $borrowernumber ) ) {
 
        # CSV
         if ($format =~ /^\d+$/) {
+
+            my $csv_profile = Koha::CsvProfiles->find($format);
+            if ( not $csv_profile or $csv_profile->staff_only ) {
+                print $query->redirect('/cgi-bin/koha/errors/404.pl');
+                exit;
+            }
+
             my @biblios;
             while ( my $content = $contents->next ) {
                 push @biblios, $content->biblionumber;
@@ -83,7 +97,9 @@ if ( $shelf and $shelf->can_be_viewed( $borrowernumber ) ) {
 
                 my $record = GetMarcBiblio({
                     biblionumber => $biblionumber,
-                    embed_items  => 1 });
+                    embed_items  => 1,
+                    opac         => 1,
+                    borcat       => $borcat });
                 my $framework = &GetFrameworkCode( $biblionumber );
                 $record_processor->options({
                     interface => 'opac',
@@ -131,7 +147,17 @@ if ( $shelf and $shelf->can_be_viewed( $borrowernumber ) ) {
         } else {
             $template->param(fullpage => 1);
         }
-        $template->param(csv_profiles => [ Koha::CsvProfiles->search({ type => 'marc', used_for => 'export_records' }) ]);
+        $template->param(
+            csv_profiles => [
+                Koha::CsvProfiles->search(
+                    {
+                        type       => 'marc',
+                        used_for   => 'export_records',
+                        staff_only => 0
+                    }
+                )
+            ]
+        );
         $template->param( shelf => $shelf );
         output_html_with_http_headers $query, $cookie, $template->output;
     }

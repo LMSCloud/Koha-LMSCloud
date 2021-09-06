@@ -67,15 +67,15 @@ my $opac     = $ENV{KOHA_OPAC_URL};
 
 
 # test KOHA_INTRANET_URL is set
-if ( not defined $intranet ) {
+if ( not $intranet ) {
    plan skip_all => "Tests skip. You must set env. variable KOHA_INTRANET_URL to do tests\n";
 }
 # test KOHA_OPAC_URL is set
-elsif ( not defined $opac ) {
+elsif ( not $opac ) {
    plan skip_all => "Tests skip. You must set env. variable KOHA_OPAC_URL to do tests\n";
 }
 else {
-    plan tests => 99;
+    plan tests => 87;
 }
 
 $intranet =~ s#/$##;
@@ -138,7 +138,7 @@ sub test_search{
     $agent->field( 'password', $password );
     $agent->field( 'userid',   $user );
     $agent->field( 'branch',   '' );
-    $agent->click_ok( '', 'login to staff client' );
+    $agent->click_ok( '', 'login to staff interface' );
 
     $agent->get_ok( "$intranet/cgi-bin/koha/mainpage.pl", 'load main page' );
 
@@ -256,7 +256,6 @@ sub test_search{
     $agent->field('q', $search_key);
     $agent->click();
     my $intra_text = $agent->text() ;
-    like( $intra_text, qr|Publisher: $publisher|, );
 
     $agent->get_ok( "$intranet/cgi-bin/koha/catalogue/search.pl" , "got search on intranet");
     $agent->form_number(5);
@@ -265,8 +264,7 @@ sub test_search{
     $agent->click();
     $intra_text = $agent->text();
 
-    like( $intra_text, qr|Publisher: $publisher|, );
-    my $expected_base = q|search.pl\?idx=kw&q=| . uri_escape_utf8( $publisher );
+    my $expected_base = q|search.pl\?advsearch=1&idx=kw&q=| . uri_escape_utf8( $publisher );
     $agent->base_like(qr|$expected_base|, );
 
     ok ( ( length(Encode::encode('UTF-8', $intra_text)) != length($intra_text) ) , 'UTF-8 are multi-byte. Good') ;
@@ -279,7 +277,6 @@ sub test_search{
     $agent->field( 'idx',   '' );
     $agent->click( );
     my $opac_text = $agent->text() ;
-    like( $opac_text, qr|Publisher: $publisher|, );
 
     $agent->get_ok( "$opac" , "got opac");
     $agent->form_name('searchform');
@@ -288,7 +285,6 @@ sub test_search{
     $agent->click();
     $opac_text = $agent->text();
 
-    like( $opac_text, qr|Publisher: $publisher|, );
     $expected_base = q|opac-search.pl\?(idx=&)?q=| . uri_escape_utf8( $publisher );
     $agent->base_like(qr|$expected_base|, );
     # Test added on BZ 14909 in addition to making the empty idx= optional

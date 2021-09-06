@@ -11,6 +11,7 @@ BEGIN {
     eval { require "$FindBin::Bin/kohalib.pl" };
 }
 
+use Koha::Script;
 use C4::Context;
 use C4::Biblio;
 use Getopt::Long;
@@ -35,6 +36,8 @@ my $want_help   = 0;
 my $auth_limit;
 my $bib_limit;
 my $commit = 100;
+my $tagtolink;
+my $allowrelink = C4::Context->preference("CatalogModuleRelink") || '';
 
 my $result = GetOptions(
     'v|verbose'      => \$verbose,
@@ -43,10 +46,11 @@ my $result = GetOptions(
     'a|auth-limit=s' => \$auth_limit,
     'b|bib-limit=s'  => \$bib_limit,
     'c|commit=i'     => \$commit,
+    'g|tagtolink=i'  => \$tagtolink,
     'h|help'         => \$want_help
 );
 
-binmode( STDOUT, ":utf8" );
+binmode( STDOUT, ":encoding(UTF-8)" );
 
 if ( not $result or $want_help ) {
     usage();
@@ -76,13 +80,15 @@ my %linked_headings;
 my %fuzzy_headings;
 my $dbh = C4::Context->dbh;
 $dbh->{AutoCommit} = 0;
-process_bibs( $linker, $bib_limit, $auth_limit, $commit );
+process_bibs( $linker, $bib_limit, $auth_limit, $commit, { tagtolink => $tagtolink, allowrelink => $allowrelink });
 $dbh->commit();
 
 exit 0;
 
 sub process_bibs {
-    my ( $linker, $bib_limit, $auth_limit, $commit ) = @_;
+    my ( $linker, $bib_limit, $auth_limit, $commit, $args ) = @_;
+    my $tagtolink = $args->{tagtolink};
+    my $allowrelink = $args->{allowrelink};
     my $bib_where = '';
     my $starttime = time();
     if ($bib_limit) {
@@ -92,9 +98,10 @@ sub process_bibs {
       "SELECT biblionumber FROM biblio $bib_where ORDER BY biblionumber ASC";
     my $sth = $dbh->prepare($sql);
     $sth->execute();
+    my $linker_args = { tagtolink => $tagtolink, allowrelink => $allowrelink };
     while ( my ($biblionumber) = $sth->fetchrow_array() ) {
         $num_bibs_processed++;
-        process_bib( $linker, $biblionumber );
+        process_bib( $linker, $biblionumber, $linker_args );
 
         if ( not $test_only and ( $num_bibs_processed % $commit ) == 0 ) {
             print_progress_and_commit($num_bibs_processed);
@@ -186,7 +193,9 @@ _FUZZY_HEADER_
 sub process_bib {
     my $linker       = shift;
     my $biblionumber = shift;
-
+    my $args = shift;
+    my $tagtolink    = $args->{tagtolink};
+    my $allowrelink = $args->{allowrelink};
     my $bib = GetMarcBiblio({ biblionumber => $biblionumber });
     unless ( defined $bib ) {
         print
@@ -195,9 +204,10 @@ sub process_bib {
         return;
     }
 
+    my $frameworkcode = GetFrameworkCode($biblionumber);
+
     my ( $headings_changed, $results ) =
-      LinkBibHeadingsToAuthorities( $linker, $bib,
-        GetFrameworkCode($biblionumber) );
+      LinkBibHeadingsToAuthorities( $linker, $bib, $frameworkcode, $allowrelink, $tagtolink );
     foreach my $key ( keys %{ $results->{'unlinked'} } ) {
         $unlinked_headings{$key} += $results->{'unlinked'}->{$key};
     }
@@ -211,11 +221,16 @@ sub process_bib {
     if ($headings_changed) {
         if ($verbose) {
             my $title = substr( $bib->title, 0, 20 );
-            print
-"Bib $biblionumber ($title): $headings_changed headings changed\n";
+            printf(
+                "Bib %12d (%-20s): %3d headings changed\n",
+                $biblionumber,
+                $title,
+                $headings_changed
+            );
         }
         if ( not $test_only ) {
-            ModBiblio( $bib, $biblionumber, GetFrameworkCode($biblionumber) );
+            ModBiblio( $bib, $biblionumber, $frameworkcode, 1 );
+            #Last param is to note ModBiblio was called from linking script and bib should not be linked again
             $num_bibs_modified++;
         }
     }
@@ -239,6 +254,7 @@ link_bibs_to_authorities.pl
   link_bibs_to_authorities.pl --commit=1000
   link_bibs_to_authorities.pl --auth-limit=STRING
   link_bibs_to_authorities.pl --bib-limit=STRING
+  link_bibs_to_authorities.pl -g=700
 
 =head1 DESCRIPTION
 
@@ -273,6 +289,10 @@ Only process those bib records that match the user-specified WHERE clause.
 =item B<--commit=N>
 
 Commit the results to the database after every N records are processed.
+
+=item B<-g=N>
+
+Only process those headings found in MARC field N.
 
 =item B<--test>
 

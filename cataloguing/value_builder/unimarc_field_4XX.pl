@@ -46,7 +46,7 @@ sub plugin_javascript {
     my ( $dbh, $record, $tagslib, $field_number, $tabloop ) = @_;
     my $function_name = $field_number;
     my $res           = "
-    <script type='text/javascript'>
+    <script>
         function Clic$function_name(i) {
             defaultvalue=document.getElementById(\"$field_number\").value;
             window.open(\"/cgi-bin/koha/cataloguing/plugin_launcher.pl?plugin_name=unimarc_field_4XX.pl&index=\" + i + \"&result=\"+defaultvalue,\"unimarc_field_4\"+i+\"\",'width=900,height=700,toolbar=false,scrollbars=yes');
@@ -69,7 +69,7 @@ sub plugin_javascript {
 sub plugin {
     my ($input)   = @_;
     my $dbh       = C4::Context->dbh;
-    my $query     = new CGI;
+    my $query     = CGI->new;
     my $op        = $query->param('op');
     my $type      = $query->param('type');
     my $startfrom = $query->param('startfrom');
@@ -89,7 +89,6 @@ sub plugin {
                   "cataloguing/value_builder/unimarc_field_4XX.tt",
                 query           => $query,
                 type            => "intranet",
-                authnotrequired => 0,
                 flagsrequired   => { editcatalogue => '*' },
                 debug           => 1,
             }
@@ -359,14 +358,7 @@ sub plugin {
         my $startfrom      = $query->param('startfrom');
         my $resultsperpage = $query->param('resultsperpage') || 20;
         my $orderby;
-        my $QParser;
-        $QParser = C4::Context->queryparser if (C4::Context->preference('UseQueryParser'));
-        my $op;
-        if ($QParser) {
-            $op = '&&';
-        } else {
-            $op = 'and';
-        }
+        my $op = 'and';
         $search = 'kw:'.$search." $op mc-itemtype:".$itype if $itype;
         my $searcher = Koha::SearchEngine::Search->new({index => $Koha::SearchEngine::BIBLIOS_INDEX});
         my ( $errors, $results, $total_hits ) = $searcher->simple_search_compat($search, $startfrom * $resultsperpage, $resultsperpage );
@@ -383,7 +375,6 @@ sub plugin {
                   "cataloguing/value_builder/unimarc_field_4XX.tt",
                 query           => $query,
                 type            => 'intranet',
-                authnotrequired => 0,
                 debug           => 1,
             }
         );
@@ -399,7 +390,7 @@ sub plugin {
         my @field_data = ($search);
          for (
              my $i = 0 ;
-             $i < $resultsperpage ;
+             $i < $total && $i < $resultsperpage ;
              $i++
            )
          {
@@ -512,7 +503,6 @@ sub plugin {
                   "cataloguing/value_builder/unimarc_field_4XX.tt",
                 query           => $query,
                 type            => "intranet",
-                authnotrequired => 0,
             }
         );
 

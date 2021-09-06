@@ -220,7 +220,7 @@ sub getAuth {
             }
         }
         else {
-            carp "C4::External::FilmFriend->simpleSearch() with URL $url returned with HTTP error code " . $response->error_as_HTML if (C4::Context->preference('FilmfriendTraceEnabled'));   
+            carp "C4::External::FilmFriend->getAuth() with URL $url and params " . Dumper($params) . " returned with HTTP error code " . $response->error_as_HTML if (C4::Context->preference('FilmfriendTraceEnabled'));   
         }
     }
     return $auth;
@@ -746,6 +746,6 @@ sub normalizeSearchRequest {
 
 1;
 
-
-my $filmfriendService = C4::External::FilmFriend->new();
-$filmfriendService->simpleSearch(1,"Maetzig",["Movie","Person"],10,0);
+#
+# my $filmfriendService = C4::External::FilmFriend->new();
+# $filmfriendService->simpleSearch(1,"Maetzig",["Movie","Person"],10,0);

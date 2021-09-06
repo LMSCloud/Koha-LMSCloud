@@ -32,7 +32,7 @@ BEGIN {
     $debug = $ENV{DEBUG} || 0;
 }
 
-my $input = new CGI;
+my $input = CGI->new;
 my $sessionID = $input->cookie("CGISESSID");
 my $session = get_session($sessionID);
 
@@ -45,7 +45,6 @@ my ( $template, $loggedinuser, $cookie ) = get_template_and_user(
         template_name   => "circ/printslip.tt",
         query           => $input,
         type            => "intranet",
-        authnotrequired => 0,
         flagsrequired   => { circulate => "circulate_remaining_permissions" },
         debug           => $debug,
     }

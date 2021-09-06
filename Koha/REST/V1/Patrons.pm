@@ -2,24 +2,24 @@ package Koha::REST::V1::Patrons;
 
 # This file is part of Koha.
 #
-# Koha is free software; you can redistribute it and/or modify it under the
-# terms of the GNU General Public License as published by the Free Software
-# Foundation; either version 3 of the License, or (at your option) any later
-# version.
+# Koha is free software; you can redistribute it and/or modify it
+# under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 3 of the License, or
+# (at your option) any later version.
 #
-# Koha is distributed in the hope that it will be useful, but WITHOUT ANY
-# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
-# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+# Koha is distributed in the hope that it will be useful, but
+# WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+# GNU General Public License for more details.
 #
-# You should have received a copy of the GNU General Public License along
-# with Koha; if not, write to the Free Software Foundation, Inc.,
-# 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+# You should have received a copy of the GNU General Public License
+# along with Koha; if not, see <http://www.gnu.org/licenses>.
 
 use Modern::Perl;
 
 use Mojo::Base 'Mojolicious::Controller';
 
-use C4::Members qw( AddMember ModMember );
+use Koha::Database;
 use Koha::DateUtils;
 use Koha::Patrons;
 
@@ -44,56 +44,24 @@ sub list {
     my $c = shift->openapi->valid_input or return;
 
     return try {
-        my $attributes = {};
-        my $args = $c->validation->output;
-        my ( $params, $reserved_params ) = $c->extract_reserved_params( $args );
 
-        # Merge sorting into query attributes
-        $c->dbic_merge_sorting({ attributes => $attributes, params => $reserved_params });
+        my $query = {};
+        my $restricted = delete $c->validation->output->{restricted};
+        $query->{debarred} = { '!=' => undef }
+            if $restricted;
 
-        # Merge pagination into query attributes
-        $c->dbic_merge_pagination({ filter => $attributes, params => $reserved_params });
+        my $patrons_rs = Koha::Patrons->search($query);
+        my $patrons    = $c->objects->search( $patrons_rs );
 
-        my $restricted = $args->{restricted};
-
-        $params = _to_model($params)
-            if defined $params;
-        # deal with string params
-        $params = $c->build_query_params( $params, $reserved_params );
-
-        # translate 'restricted' => 'debarred'
-        $params->{debarred} = { '!=' => undef }
-          if $restricted;
-
-        my $patrons = Koha::Patrons->search( $params, $attributes );
-        if ( $patrons->is_paged ) {
-            $c->add_pagination_headers(
-                {
-                    total  => $patrons->pager->total_entries,
-                    params => $args,
-                }
-            );
-        }
-        my @patrons = $patrons->as_list;
-        @patrons = map { _to_api( $_->TO_JSON ) } @patrons;
-        return $c->render( status => 200, openapi => \@patrons );
+        return $c->render(
+            status  => 200,
+            openapi => $patrons
+        );
     }
     catch {
-        if ( $_->isa('DBIx::Class::Exception') ) {
-            return $c->render(
-                status  => 500,
-                openapi => { error => $_->{msg} }
-            );
-        }
-        else {
-            return $c->render(
-                status  => 500,
-                openapi => { error => "Something went wrong, check the logs." }
-            );
-        }
+        $c->unhandled_exception($_);
     };
 }
-
 
 =head3 get
 
@@ -104,14 +72,25 @@ Controller function that handles retrieving a single Koha::Patron object
 sub get {
     my $c = shift->openapi->valid_input or return;
 
-    my $patron_id = $c->validation->param('patron_id');
-    my $patron    = Koha::Patrons->find($patron_id);
+    return try {
+        my $patron_id = $c->validation->param('patron_id');
+        my $patron    = $c->objects->find( Koha::Patrons->new, $patron_id );
 
-    unless ($patron) {
-        return $c->render( status => 404, openapi => { error => "Patron not found." } );
+        unless ($patron) {
+            return $c->render(
+                status  => 404,
+                openapi => { error => "Patron not found." }
+            );
+        }
+
+        return $c->render(
+            status  => 200,
+            openapi => $patron
+        );
     }
-
-    return $c->render( status => 200, openapi => _to_api( $patron->TO_JSON ) );
+    catch {
+        $c->unhandled_exception($_);
+    };
 }
 
 =head3 add
@@ -125,53 +104,99 @@ sub add {
 
     return try {
 
-        my $body = _to_model( $c->validation->param('body') );
+        Koha::Database->new->schema->txn_do(
+            sub {
 
-        # TODO: Use AddMember until it has been moved to Koha-namespace
-        my $patron_id = AddMember( %{ _to_model($body) } );
-        my $patron    = _to_api( Koha::Patrons->find($patron_id)->TO_JSON );
+                my $body = $c->validation->param('body');
 
-        return $c->render( status => 201, openapi => $patron );
+                my $extended_attributes = delete $body->{extended_attributes} // [];
+
+                my $patron = Koha::Patron->new_from_api($body)->store;
+                $patron->extended_attributes(
+                    [
+                        map { { code => $_->{type}, attribute => $_->{value} } }
+                          @$extended_attributes
+                    ]
+                );
+
+                $c->res->headers->location($c->req->url->to_string . '/' . $patron->borrowernumber);
+                return $c->render(
+                    status  => 201,
+                    openapi => $patron->to_api
+                );
+            }
+        );
     }
     catch {
-        unless ( blessed $_ && $_->can('rethrow') ) {
-            return $c->render(
-                status  => 500,
-                openapi => { error => "Something went wrong, check Koha logs for details." }
-            );
+
+        my $to_api_mapping = Koha::Patron->new->to_api_mapping;
+
+        if ( blessed $_ ) {
+            if ( $_->isa('Koha::Exceptions::Object::DuplicateID') ) {
+                return $c->render(
+                    status  => 409,
+                    openapi => { error => $_->error, conflict => $_->duplicate_id }
+                );
+            }
+            elsif ( $_->isa('Koha::Exceptions::Object::FKConstraint') ) {
+                return $c->render(
+                    status  => 400,
+                    openapi => {
+                            error => "Given "
+                            . $to_api_mapping->{ $_->broken_fk }
+                            . " does not exist"
+                    }
+                );
+            }
+            elsif ( $_->isa('Koha::Exceptions::BadParameter') ) {
+                return $c->render(
+                    status  => 400,
+                    openapi => {
+                            error => "Given "
+                            . $to_api_mapping->{ $_->parameter }
+                            . " does not exist"
+                    }
+                );
+            }
+            elsif (
+                $_->isa('Koha::Exceptions::Patron::MissingMandatoryExtendedAttribute')
+              )
+            {
+                return $c->render(
+                    status  => 400,
+                    openapi => { error => "$_" }
+                );
+            }
+            elsif (
+                $_->isa('Koha::Exceptions::Patron::Attribute::InvalidType')
+              )
+            {
+                return $c->render(
+                    status  => 400,
+                    openapi => { error => "$_" }
+                );
+            }
+            elsif (
+                $_->isa('Koha::Exceptions::Patron::Attribute::NonRepeatable')
+              )
+            {
+                return $c->render(
+                    status  => 400,
+                    openapi => { error => "$_" }
+                );
+            }
+            elsif (
+                $_->isa('Koha::Exceptions::Patron::Attribute::UniqueIDConstraint')
+              )
+            {
+                return $c->render(
+                    status  => 400,
+                    openapi => { error => "$_" }
+                );
+            }
         }
-        if ( $_->isa('Koha::Exceptions::Object::DuplicateID') ) {
-            return $c->render(
-                status  => 409,
-                openapi => { error => $_->error, conflict => $_->duplicate_id }
-            );
-        }
-        elsif ( $_->isa('Koha::Exceptions::Object::FKConstraint') ) {
-            return $c->render(
-                status  => 400,
-                openapi => {
-                          error => "Given "
-                        . $Koha::REST::V1::Patrons::to_api_mapping->{ $_->broken_fk }
-                        . " does not exist"
-                }
-            );
-        }
-        elsif ( $_->isa('Koha::Exceptions::BadParameter') ) {
-            return $c->render(
-                status  => 400,
-                openapi => {
-                          error => "Given "
-                        . $Koha::REST::V1::Patrons::to_api_mapping->{ $_->parameter }
-                        . " does not exist"
-                }
-            );
-        }
-        else {
-            return $c->render(
-                status  => 500,
-                openapi => { error => "Something went wrong, check Koha logs for details." }
-            );
-        }
+
+        $c->unhandled_exception($_);
     };
 }
 
@@ -196,25 +221,42 @@ sub update {
      }
 
     return try {
-        my $body = _to_model($c->validation->param('body'));
+        my $body = $c->validation->param('body');
+        my $user = $c->stash('koha.user');
 
-        ## TODO: Use ModMember until it has been moved to Koha-namespace
-        # Add borrowernumber to $body, as required by ModMember
-        $body->{borrowernumber} = $patron_id;
+        if (
+                $patron->is_superlibrarian
+            and !$user->is_superlibrarian
+            and (  exists $body->{email}
+                or exists $body->{secondary_email}
+                or exists $body->{altaddress_email} )
+          )
+        {
+            foreach my $email_field ( qw(email secondary_email altaddress_email) ) {
+                my $exists_email = exists $body->{$email_field};
+                next unless $exists_email;
 
-        if ( ModMember(%$body) ) {
-            # Fetch the updated Koha::Patron object
-            $patron->discard_changes;
-            return $c->render( status => 200, openapi => $patron );
+                # exists, verify if we are asked to change it
+                my $put_email      = $body->{$email_field};
+                # As of writing this patch, 'email' is the only unmapped field
+                # (i.e. it preserves its name, hence this fallback)
+                my $db_email_field = $patron->to_api_mapping->{$email_field} // 'email';
+                my $db_email       = $patron->$db_email_field;
+
+                return $c->render(
+                    status  => 403,
+                    openapi => { error => "Not enough privileges to change a superlibrarian's email" }
+                  )
+                  unless ( !defined $put_email and !defined $db_email )
+                  or (  defined $put_email
+                    and defined $db_email
+                    and $put_email eq $db_email );
+            }
         }
-        else {
-            return $c->render(
-                status  => 500,
-                openapi => {
-                    error => 'Something went wrong, check Koha logs for details.'
-                }
-            );
-        }
+
+        $patron->set_from_api($c->validation->param('body'))->store;
+        $patron->discard_changes;
+        return $c->render( status => 200, openapi => $patron->to_api );
     }
     catch {
         unless ( blessed $_ && $_->can('rethrow') ) {
@@ -235,7 +277,7 @@ sub update {
             return $c->render(
                 status  => 400,
                 openapi => { error => "Given " .
-                            $Koha::REST::V1::Patrons::to_api_mapping->{$_->broken_fk}
+                            $patron->to_api_mapping->{$_->broken_fk}
                             . " does not exist" }
             );
         }
@@ -264,13 +306,7 @@ sub update {
             );
         }
         else {
-            return $c->render(
-                status  => 500,
-                openapi => {
-                    error =>
-                      "Something went wrong, check Koha logs for details."
-                }
-            );
+            $c->unhandled_exception($_);
         }
     };
 }
@@ -284,227 +320,104 @@ Controller function that handles deleting a Koha::Patron object
 sub delete {
     my $c = shift->openapi->valid_input or return;
 
-    my $patron;
+    my $patron = Koha::Patrons->find( $c->validation->param('patron_id') );
+
+    unless ( $patron ) {
+        return $c->render(
+            status  => 404,
+            openapi => { error => "Patron not found" }
+        );
+    }
 
     return try {
-        $patron = Koha::Patrons->find( $c->validation->param('patron_id') );
 
-        # check if loans, reservations, debarrment, etc. before deletion!
-        my $res = $patron->delete;
-        return $c->render( status => 200, openapi => {} );
-    }
-    catch {
-        unless ($patron) {
+        $patron->delete;
+        return $c->render(
+            status  => 204,
+            openapi => q{}
+        );
+    } catch {
+        if ( blessed $_ && $_->isa('Koha::Exceptions::Patron::FailedDeleteAnonymousPatron') ) {
             return $c->render(
-                status  => 404,
-                openapi => { error => "Patron not found" }
+                status  => 403,
+                openapi => { error => "Anonymous patron cannot be deleted" }
+            );
+        }
+
+        $c->unhandled_exception($_);
+    };
+}
+
+=head3 guarantors_can_see_charges
+
+Method for setting whether guarantors can see the patron's charges.
+
+=cut
+
+sub guarantors_can_see_charges {
+    my $c = shift->openapi->valid_input or return;
+
+    return try {
+        if ( C4::Context->preference('AllowPatronToSetFinesVisibilityForGuarantor') ) {
+            my $patron = $c->stash( 'koha.user' );
+            my $privacy_setting = ($c->req->json->{allowed}) ? 1 : 0;
+
+            $patron->privacy_guarantor_fines( $privacy_setting )->store;
+
+            return $c->render(
+                status  => 200,
+                openapi => {}
             );
         }
         else {
             return $c->render(
-                status  => 500,
+                status  => 403,
                 openapi => {
                     error =>
-                      "Something went wrong, check Koha logs for details."
+                      'The current configuration doesn\'t allow the requested action.'
                 }
             );
         }
+    }
+    catch {
+        $c->unhandled_exception($_);
     };
 }
 
-=head3 _to_api
+=head3 guarantors_can_see_checkouts
 
-Helper function that maps unblessed Koha::Patron objects into REST api
-attribute names.
+Method for setting whether guarantors can see the patron's checkouts.
 
 =cut
 
-sub _to_api {
-    my $patron    = shift;
-    my $patron_id = $patron->{ borrowernumber };
+sub guarantors_can_see_checkouts {
+    my $c = shift->openapi->valid_input or return;
 
-    # Rename attributes
-    foreach my $column ( keys %{ $Koha::REST::V1::Patrons::to_api_mapping } ) {
-        my $mapped_column = $Koha::REST::V1::Patrons::to_api_mapping->{$column};
-        if (    exists $patron->{ $column }
-             && defined $mapped_column )
-        {
-            # key != undef
-            $patron->{ $mapped_column } = delete $patron->{ $column };
+    return try {
+        if ( C4::Context->preference('AllowPatronToSetCheckoutsVisibilityForGuarantor') ) {
+            my $patron = $c->stash( 'koha.user' );
+            my $privacy_setting = ( $c->req->json->{allowed} ) ? 1 : 0;
+
+            $patron->privacy_guarantor_checkouts( $privacy_setting )->store;
+
+            return $c->render(
+                status  => 200,
+                openapi => {}
+            );
         }
-        elsif (    exists $patron->{ $column }
-                && !defined $mapped_column )
-        {
-            # key == undef
-            delete $patron->{ $column };
+        else {
+            return $c->render(
+                status  => 403,
+                openapi => {
+                    error =>
+                      'The current configuration doesn\'t allow the requested action.'
+                }
+            );
         }
     }
-
-    # Calculate the 'restricted' field
-    my $patron_obj = Koha::Patrons->find( $patron_id );
-    $patron->{ restricted } = ($patron_obj->is_debarred) ? Mojo::JSON->true : Mojo::JSON->false;
-
-    return $patron;
+    catch {
+        $c->unhandled_exception($_);
+    };
 }
-
-=head3 _to_model
-
-Helper function that maps REST api objects into Koha::Patron
-attribute names.
-
-=cut
-
-sub _to_model {
-    my $patron = shift;
-
-    foreach my $attribute ( keys %{ $Koha::REST::V1::Patrons::to_model_mapping } ) {
-        my $mapped_attribute = $Koha::REST::V1::Patrons::to_model_mapping->{$attribute};
-        if (    exists $patron->{ $attribute }
-             && defined $mapped_attribute )
-        {
-            # key => !undef
-            $patron->{ $mapped_attribute } = delete $patron->{ $attribute };
-        }
-        elsif (    exists $patron->{ $attribute }
-                && !defined $mapped_attribute )
-        {
-            # key => undef / to be deleted
-            delete $patron->{ $attribute };
-        }
-    }
-
-    # TODO: Get rid of this once write operations are based on Koha::Patron
-    if ( exists $patron->{lost} ) {
-        $patron->{lost} = ($patron->{lost}) ? 1 : 0;
-    }
-
-    if ( exists $patron->{ gonenoaddress} ) {
-        $patron->{gonenoaddress} = ($patron->{gonenoaddress}) ? 1 : 0;
-    }
-
-    if ( exists $patron->{lastseen} ) {
-        $patron->{lastseen} = output_pref({ str => $patron->{lastseen}, dateformat => 'sql' });
-    }
-
-    if ( exists $patron->{updated_on} ) {
-        $patron->{updated_on} = output_pref({ str => $patron->{updated_on}, dateformat => 'sql' });
-    }
-
-    return $patron;
-}
-
-=head2 Global variables
-
-=head3 $to_api_mapping
-
-=cut
-
-our $to_api_mapping = {
-    borrowernotes       => 'staff_notes',
-    borrowernumber      => 'patron_id',
-    branchcode          => 'library_id',
-    categorycode        => 'category_id',
-    checkprevcheckout   => 'check_previous_checkout',
-    contactfirstname    => undef, # Unused
-    contactname         => undef, # Unused
-    contactnote         => 'altaddress_notes',
-    contacttitle        => undef, # Unused
-    dateenrolled        => 'date_enrolled',
-    dateexpiry          => 'expiry_date',
-    dateofbirth         => 'date_of_birth',
-    debarred            => undef, # replaced by 'restricted'
-    debarredcomment     => undef, # calculated, API consumers will use /restrictions instead
-    emailpro            => 'secondary_email',
-    flags               => undef, # permissions manipulation handled in /permissions
-    gonenoaddress       => 'incorrect_address',
-    guarantorid         => 'guarantor_id',
-    lastseen            => 'last_seen',
-    lost                => 'patron_card_lost',
-    opacnote            => 'opac_notes',
-    othernames          => 'other_name',
-    password            => undef, # password manipulation handled in /password
-    phonepro            => 'secondary_phone',
-    relationship        => 'relationship_type',
-    sex                 => 'gender',
-    smsalertnumber      => 'sms_number',
-    sort1               => 'statistics_1',
-    sort2               => 'statistics_2',
-    streetnumber        => 'street_number',
-    streettype          => 'street_type',
-    zipcode             => 'postal_code',
-    B_address           => 'altaddress_address',
-    B_address2          => 'altaddress_address2',
-    B_city              => 'altaddress_city',
-    B_country           => 'altaddress_country',
-    B_email             => 'altaddress_email',
-    B_phone             => 'altaddress_phone',
-    B_state             => 'altaddress_state',
-    B_streetnumber      => 'altaddress_street_number',
-    B_streettype        => 'altaddress_street_type',
-    B_zipcode           => 'altaddress_postal_code',
-    altcontactaddress1  => 'altcontact_address',
-    altcontactaddress2  => 'altcontact_address2',
-    altcontactaddress3  => 'altcontact_city',
-    altcontactcountry   => 'altcontact_country',
-    altcontacttitle     => 'altcontact_title',
-    altcontactfirstname => 'altcontact_firstname',
-    altcontactphone     => 'altcontact_phone',
-    altcontactsurname   => 'altcontact_surname',
-    altcontactstate     => 'altcontact_state',
-    altcontactzipcode   => 'altcontact_postal_code'
-};
-
-=head3 $to_model_mapping
-
-=cut
-
-our $to_model_mapping = {
-    altaddress_notes         => 'contactnote',
-    category_id              => 'categorycode',
-    check_previous_checkout  => 'checkprevcheckout',
-    date_enrolled            => 'dateenrolled',
-    date_of_birth            => 'dateofbirth',
-    expiry_date              => 'dateexpiry',
-    gender                   => 'sex',
-    guarantor_id             => 'guarantorid',
-    incorrect_address        => 'gonenoaddress',
-    last_seen                => 'lastseen',
-    library_id               => 'branchcode',
-    opac_notes               => 'opacnote',
-    other_name               => 'othernames',
-    patron_card_lost         => 'lost',
-    patron_id                => 'borrowernumber',
-    postal_code              => 'zipcode',
-    relationship_type        => 'relationship',
-    restricted               => undef,
-    secondary_email          => 'emailpro',
-    secondary_phone          => 'phonepro',
-    sms_number               => 'smsalertnumber',
-    staff_notes              => 'borrowernotes',
-    statistics_1             => 'sort1',
-    statistics_2             => 'sort2',
-    street_number            => 'streetnumber',
-    street_type              => 'streettype',
-    altaddress_address       => 'B_address',
-    altaddress_address2      => 'B_address2',
-    altaddress_city          => 'B_city',
-    altaddress_country       => 'B_country',
-    altaddress_email         => 'B_email',
-    altaddress_phone         => 'B_phone',
-    altaddress_state         => 'B_state',
-    altaddress_street_number => 'B_streetnumber',
-    altaddress_street_type   => 'B_streettype',
-    altaddress_postal_code   => 'B_zipcode',
-    altcontact_title         => 'altcontacttitle',
-    altcontact_firstname     => 'altcontactfirstname',
-    altcontact_surname       => 'altcontactsurname',
-    altcontact_address       => 'altcontactaddress1',
-    altcontact_address2      => 'altcontactaddress2',
-    altcontact_city          => 'altcontactaddress3',
-    altcontact_state         => 'altcontactstate',
-    altcontact_postal_code   => 'altcontactzipcode',
-    altcontact_country       => 'altcontactcountry',
-    altcontact_phone         => 'altcontactphone'
-};
 
 1;

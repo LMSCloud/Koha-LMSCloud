@@ -1,3 +1,4 @@
+[% USE raw %]
 [% USE Asset %]
 [% SET footerjs = 1 %]
 [% BLOCK pluginlist %]
@@ -5,8 +6,8 @@
 [% FOREACH plugin IN plugins %]
     <div class="plugin">
         <div class="pluginname">
-            [% IF plugin.enabled %]<input type="checkbox" checked="checked" id="checkbox_[% type %][% plugin.name %]">[% ELSE %]<input type="checkbox" id="checkbox_[% type %][% plugin.name %]">[% END %]
-            <label class='pluginlabel' for="checkbox_[% type %][% plugin.name %]">[% plugin.name %]</label></div>
+            [% IF plugin.enabled %]<input type="checkbox" checked="checked" id="checkbox_[% type | html %][% plugin.name | html %]">[% ELSE %]<input type="checkbox" id="checkbox_[% type | html %][% plugin.name | html %]">[% END %]
+            <label class='pluginlabel' for="checkbox_[% type | html %][% plugin.name | html %]">[% plugin.name | html %]</label></div>
         <div class="plugindesc">
         [% SWITCH plugin.name %]
         [% CASE 'AuthorityFile' %]
@@ -14,6 +15,8 @@
         [% CASE 'ExplodedTerms' %]
             Suggest that patrons expand their searches to include
             broader/narrower/related terms.
+        [% CASE 'LibrisSpellcheck' %]
+            Use the LIBRIS spellcheck API.
         [% END %]
         </div>
     </div>
@@ -21,56 +24,69 @@
 </div>
 [% END %]
 [% INCLUDE 'doc-head-open.inc' %]
-<title>Koha &rsaquo; Administration &rsaquo; Did you mean?</title>
+<title>Did you mean? &rsaquo; Administration &rsaquo; Koha</title>
 [% INCLUDE 'doc-head-close.inc' %]
 </head>
 
 <body id="admin_didyoumean" class="admin">
 [% INCLUDE 'header.inc' %]
 [% INCLUDE 'prefs-admin-search.inc' %]
-<div id="breadcrumbs"><a href="/cgi-bin/koha/mainpage.pl">Home</a> &rsaquo; <a href="/cgi-bin/koha/admin/admin-home.pl">Administration</a> &rsaquo; Did you mean?</div>
 
-<div id="doc3" class="yui-t2">
+<nav id="breadcrumbs" aria-label="Breadcrumb" class="breadcrumb">
+    <ol>
+        <li>
+            <a href="/cgi-bin/koha/mainpage.pl">Home</a>
+        </li>
+        <li>
+            <a href="/cgi-bin/koha/admin/admin-home.pl">Administration</a>
+        </li>
+        <li>
+            <a href="#" aria-current="page">
+                Did you mean?
+            </a>
+        </li>
+    </ol>
+</nav>
 
-    <div id="bd">
-    <div id="yui-main">
-    <div class="yui-b">
+<div class="main container-fluid">
+    <div class="row">
+        <div class="col-sm-10 col-sm-push-2">
+            <main>
+
         <h3>Did you mean?</h3>
         <noscript><div class="dialog alert"><strong>Please enable Javascript:</strong>
             Configuring 'Did you mean?' plugins requires Javascript. If
             you are unable to use Javascript, you may be able to enter the
-            configuration (which is stored in JSON in the OPACdidyoumean and
-            INTRAdidyoumean system preferences) in the Local Preferences tab in
+            configuration (which is stored in JSON in the OPACdidyoumean system preferences)
+            in the Local preferences tab in
             the system preference editor, but this is unsupported, not
             recommended, and likely will not work.</div></noscript>
         <div id="didyoumeanlegend">
             Please put the 'Did you mean?' plugins in order by significance, from
             most significant to least significant, and check the box to enable those
-            plugins that you want to use. (NOTE: 'Did you mean?' functionality
-            is not yet enabled on the staff client)
+            plugins that you want to use.
         </div>
         <form action="/cgi-bin/koha/admin/didyoumean.pl" method="post">
             <fieldset id="didyoumeanopac">
                 <legend>OPAC</legend>
                 [% PROCESS pluginlist plugins=OPACpluginlist type='opac' %]
             </fieldset>
-            <fieldset id="didyoumeanintranet">
-                <legend>Intranet</legend>
-                [% PROCESS pluginlist plugins=INTRApluginlist type='intranet' %]
-            </fieldset>
             <fieldset class="action"><button class="save-all submit" type="submit">Save configuration</button> <a href="/cgi-bin/koha/admin/didyoumean.pl" class="force_reload cancel">Cancel</a></fieldset>
         </form>
 
-        </div>
-        </div>
-<div class="yui-b">
-[% INCLUDE 'admin-menu.inc' %]
-</div>
-</div>
+            </main>
+        </div> <!-- /.col-sm-10.col-sm-push-2 -->
+
+        <div class="col-sm-2 col-sm-pull-10">
+            <aside>
+                [% INCLUDE 'admin-menu.inc' %]
+            </aside>
+        </div> <!-- /.col-sm-2.col-sm-pull-10 -->
+     </div> <!-- /.row -->
 
 [% MACRO jsinclude BLOCK %]
-    [% Asset.js("js/admin-menu.js") %]
-    <script type="text/javascript">
+    [% Asset.js("js/admin-menu.js") | $raw %]
+    <script>
         $(document).ready(function() {
             $( ".pluginlist" ).sortable();
             $( ".plugin" ).addClass( "ui-widget ui-widget-content ui-helper-clearfix ui-corner-all" )
@@ -90,9 +106,8 @@
 
         function yesimeant() {
             var OPACdidyoumean = serialize_plugins('opac');
-            var INTRAdidyoumean = serialize_plugins('intranet');
 
-            var data = "pref_OPACdidyoumean=" + encodeURIComponent(OPACdidyoumean) + "&pref_INTRAdidyoumean=" + encodeURIComponent(INTRAdidyoumean);
+            var data = "pref_OPACdidyoumean=" + encodeURIComponent(OPACdidyoumean);
 
             $.ajax({
                 data: data,

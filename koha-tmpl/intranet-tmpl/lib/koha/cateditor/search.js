@@ -23,7 +23,7 @@ define( [ 'koha-backend', 'marc-record' ], function( KohaBackend, MARC ) {
     var _last;
 
     var _pqfMapping = {
-        author: '1=1004', // s=al',
+        author: '1=1003', // s=al',
         cn_dewey: '1=13',
         cn_lc: '1=16',
         date: '1=30', // r=r',
@@ -73,8 +73,8 @@ define( [ 'koha-backend', 'marc-record' ], function( KohaBackend, MARC ) {
 
             var itemTag = KohaBackend.GetSubfieldForKohaField('items.itemnumber')[0];
 
-            $.each( servers, function ( id, info ) {
-                if ( info.checked ) Search.includedServers.push( id );
+            $.each( servers, function ( index, info ) {
+                if ( info.checked ) Search.includedServers.push( info.server_id );
             } );
 
             if ( Search.includedServers.length == 0 ) return false;

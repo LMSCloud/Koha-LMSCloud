@@ -19,8 +19,7 @@ package C4::Overdues;
 # You should have received a copy of the GNU General Public License
 # along with Koha; if not, see <http://www.gnu.org/licenses>.
 
-use strict;
-#use warnings; FIXME - Bug 2505
+use Modern::Perl;
 use Date::Calc qw/Today Date_to_Days/;
 use Date::Manip qw/UnixDate/;
 use List::MoreUtils qw( uniq );
@@ -36,8 +35,6 @@ use C4::Debug;
 use Koha::DateUtils;
 use Koha::Account::Lines;
 use Koha::Account::Offsets;
-use Koha::IssuingRules;
-use Koha::Checkouts;
 use Koha::Libraries;
 
 use vars qw(@ISA @EXPORT);
@@ -58,13 +55,6 @@ BEGIN {
       &GetOverdueMessageTransportTypes
       &parse_overdues_letter
     );
-
-    # subs to remove
-    push @EXPORT, qw(
-      &BorType
-    );
-
-    # check that an equivalent don't exist already before moving
 
     # subs to move to Circulation.pm
     push @EXPORT, qw(
@@ -192,7 +182,7 @@ sub checkoverdues {
 
 =head2 CalcFine
 
-    ($amount, $chargename,  $units_minus_grace, $chargeable_units) = &CalcFine($item,
+    ($amount, $units_minus_grace, $chargeable_units) = &CalcFine($item,
                                   $categorycode, $branch,
                                   $start_dt, $end_dt );
 
@@ -217,12 +207,9 @@ defining the date range over which to determine the fine.
 
 Fines scripts should just supply the date range over which to calculate the fine.
 
-C<&CalcFine> returns four values:
+C<&CalcFine> returns three values:
 
 C<$amount> is the fine owed by the patron (see above).
-
-C<$chargename> is the chargename field from the applicable record in
-the categoryitem table, whatever that is.
 
 C<$units_minus_grace> is the number of chargeable units minus the grace period
 
@@ -236,42 +223,59 @@ or "Final Notice".  But CalcFine never defined any value.
 
 sub CalcFine {
     my ( $item, $bortype, $branchcode, $due_dt, $end_date  ) = @_;
+
+    # Skip calculations if item is not overdue
+    return ( 0, 0, 0 ) unless (DateTime->compare( $due_dt, $end_date ) == -1);
+
     my $start_date = $due_dt->clone();
     # get issuingrules (fines part will be used)
     my $itemtype = $item->{itemtype} || $item->{itype};
-    my $issuing_rule = Koha::IssuingRules->get_effective_issuing_rule({ categorycode => $bortype, itemtype => $itemtype, branchcode => $branchcode });
+    my $issuing_rule = Koha::CirculationRules->get_effective_rules(
+        {
+            categorycode => $bortype,
+            itemtype     => $itemtype,
+            branchcode   => $branchcode,
+            rules => [
+                'lengthunit',
+                'firstremind',
+                'chargeperiod',
+                'chargeperiod_charge_at',
+                'fine',
+                'overduefinescap',
+                'cap_fine_to_replacement_price',
+            ]
+        }
+    );
 
     $itemtype = Koha::ItemTypes->find($itemtype);
 
     return unless $issuing_rule; # If not rule exist, there is no fine
 
-    my $fine_unit = $issuing_rule->lengthunit || 'days';
+    my $fine_unit = $issuing_rule->{lengthunit} || 'days';
 
     my $chargeable_units = get_chargeable_units($fine_unit, $start_date, $end_date, $branchcode);
-    my $units_minus_grace = $chargeable_units - $issuing_rule->firstremind;
+    my $units_minus_grace = $chargeable_units - ($issuing_rule->{firstremind} || 0);
     my $amount = 0;
-    if ( $issuing_rule->chargeperiod && ( $units_minus_grace > 0 ) ) {
+    if ( $issuing_rule->{chargeperiod} && ( $units_minus_grace > 0 ) ) {
         my $units = C4::Context->preference('FinesIncludeGracePeriod') ? $chargeable_units : $units_minus_grace;
-        my $charge_periods = $units / $issuing_rule->chargeperiod;
+        my $charge_periods = $units / $issuing_rule->{chargeperiod};
         # If chargeperiod_charge_at = 1, we charge a fine at the start of each charge period
         # if chargeperiod_charge_at = 0, we charge at the end of each charge period
-        $charge_periods = $issuing_rule->chargeperiod_charge_at == 1 ? ceil($charge_periods) : floor($charge_periods);
-        $amount = $charge_periods * $issuing_rule->fine;
+        $charge_periods = defined $issuing_rule->{chargeperiod_charge_at} && $issuing_rule->{chargeperiod_charge_at} == 1 ? ceil($charge_periods) : floor($charge_periods);
+        $amount = $charge_periods * $issuing_rule->{fine};
     } # else { # a zero (or null) chargeperiod or negative units_minus_grace value means no charge. }
 
-    $amount = $issuing_rule->overduefinescap if $issuing_rule->overduefinescap && $amount > $issuing_rule->overduefinescap;
+    $amount = $issuing_rule->{overduefinescap} if $issuing_rule->{overduefinescap} && $amount > $issuing_rule->{overduefinescap};
 
     # This must be moved to Koha::Item (see also similar code in C4::Accounts::chargelostitem
     $item->{replacementprice} ||= $itemtype->defaultreplacecost
       if $itemtype
-      && $item->{replacementprice} == 0
+      && ( ! defined $item->{replacementprice} || $item->{replacementprice} == 0 )
       && C4::Context->preference("useDefaultReplacementCost");
 
-    $amount = $item->{replacementprice} if ( $issuing_rule->cap_fine_to_replacement_price && $item->{replacementprice} && $amount > $item->{replacementprice} );
-
-    $debug and warn sprintf("CalcFine returning (%s, %s, %s, %s)", $amount, $issuing_rule->chargename, $units_minus_grace, $chargeable_units);
-    return ($amount, $issuing_rule->chargename, $units_minus_grace, $chargeable_units);
-    # FIXME: chargename is NEVER populated anywhere.
+    $amount = $item->{replacementprice} if ( $issuing_rule->{cap_fine_to_replacement_price} && $item->{replacementprice} && $amount > $item->{replacementprice} );
+    $debug and warn sprintf("CalcFine returning (%s, %s, %s)", $amount, $units_minus_grace, $chargeable_units);
+    return ($amount, $units_minus_grace, $chargeable_units);
 }
 
 
@@ -471,7 +475,15 @@ sub GetIssuesIteminfo {
 
 =head2 UpdateFine
 
-    &UpdateFine({ issue_id => $issue_id, itemnumber => $itemnumber, borrwernumber => $borrowernumber, amount => $amount, type => $type, $due => $date_due });
+    &UpdateFine(
+        {
+            issue_id       => $issue_id,
+            itemnumber     => $itemnumber,
+            borrowernumber => $borrowernumber,
+            amount         => $amount,
+            due            => $date_due
+        }
+    );
 
 (Note: the following is mostly conjecture and guesswork.)
 
@@ -483,8 +495,6 @@ C<$borrowernumber> is the borrower number of the patron who currently
 has the book on loan.
 
 C<$amount> is the current amount owed by the patron.
-
-C<$type> will be used in the description of the fine.
 
 C<$due> is the due date formatted to the currently specified date format
 
@@ -509,10 +519,9 @@ sub UpdateFine {
     my $itemnum        = $params->{itemnumber};
     my $borrowernumber = $params->{borrowernumber};
     my $amount         = $params->{amount};
-    my $type           = $params->{type};
-    my $due            = $params->{due};
+    my $due            = $params->{due} // q{};
 
-    $debug and warn "UpdateFine({ itemnumber => $itemnum, borrowernumber => $borrowernumber, type => $type, due => $due, issue_id => $issue_id})";
+    $debug and warn "UpdateFine({ itemnumber => $itemnum, borrowernumber => $borrowernumber, due => $due, issue_id => $issue_id})";
 
     unless ( $issue_id ) {
         carp("No issue_id passed in!");
@@ -520,94 +529,58 @@ sub UpdateFine {
     }
 
     my $dbh = C4::Context->dbh;
-    # FIXME - What exactly is this query supposed to do? It looks up an
-    # entry in accountlines that matches the given item and borrower
-    # numbers, where the description contains $due, and where the
-    # account type has one of several values, but what does this _mean_?
-    # Does it look up existing fines for this item?
-    # FIXME - What are these various account types? ("FU", "O", "F", "M")
-    #   "L"   is LOST item
-    #   "A"   is Account Management Fee
-    #   "N"   is New Card
-    #   "M"   is Sundry
-    #   "O"   is Overdue ??
-    #   "F"   is Fine (manually assigned)
-    #   "FU"  is Overdue Fines
-    #   "Pay" is Payment
-    #   "REF" is Cash Refund
-    #   "CL"1..5 are claim fees
-    #   "NOTF" is Notice fee
-    #   "CAN" is cancelled Fine
-    my $sth = $dbh->prepare(
-        "SELECT * FROM accountlines
-        WHERE borrowernumber=? AND
-        (( accounttype IN ('O','F','M','CL1','CL2','CL3','CL4','CL5','NOTF') AND amountoutstanding<>0 ) OR
-           accounttype = 'FU' )"
+    my $overdues = Koha::Account::Lines->search(
+        {
+            borrowernumber    => $borrowernumber,
+            debit_type_code   => 'OVERDUE'
+        }
     );
-    $sth->execute( $borrowernumber );
-    my $data;
+
+    my $accountline;
     my $total_amount_other = 0.00;
     my $due_qr = qr/$due/;
     # Cycle through the fines and
     # - find line that relates to the requested $itemnum
     # - accumulate fines for other items
     # so we can update $itemnum fine taking in account fine caps
-    while (my $rec = $sth->fetchrow_hashref) {
-        if ( $rec->{issue_id} == $issue_id && $rec->{accounttype} eq 'FU' ) {
-            if ($data) {
-                warn "Not a unique accountlines record for issue_id $issue_id";
+    while (my $overdue = $overdues->next) {
+        if ( defined $overdue->issue_id && $overdue->issue_id == $issue_id && $overdue->status eq 'UNRETURNED' ) {
+            if ($accountline) {
+                $debug and warn "Not a unique accountlines record for issue_id $issue_id";
                 #FIXME Should we still count this one in total_amount ??
             }
             else {
-                $data = $rec;
-                next;
+                $accountline = $overdue;
             }
         }
-        $total_amount_other += $rec->{'amountoutstanding'};
+        $total_amount_other += $overdue->amountoutstanding;
     }
 
-    if (my $maxfine = C4::Context->preference('MaxFine')) {
-        if ($total_amount_other + $amount > $maxfine) {
-            my $new_amount = $maxfine - $total_amount_other;
-            return if $new_amount <= 0.00;
-            warn "Reducing fine for item $itemnum borrower $borrowernumber from $amount to $new_amount - MaxFine reached";
-            $amount = $new_amount;
+    if ( my $maxfine = C4::Context->preference('MaxFine') ) {
+        my $maxIncrease = $maxfine - $total_amount_other;
+        return if Koha::Number::Price->new($maxIncrease)->round <= 0.00;
+        if ($accountline) {
+            if ( ( $amount - $accountline->amount ) > $maxIncrease ) {
+                my $new_amount = $accountline->amount + $maxIncrease;
+                $debug and warn "Reducing fine for item $itemnum borrower $borrowernumber from $amount to $new_amount - MaxFine reached";
+                $amount = $new_amount;
+            }
+        }
+        elsif ( $amount > $maxIncrease ) {
+            $debug and warn "Reducing fine for item $itemnum borrower $borrowernumber from $amount to $maxIncrease - MaxFine reached";
+            $amount = $maxIncrease;
         }
     }
 
-    if ( $data ) {
-        # we're updating an existing fine.  Only modify if amount changed
-        # Note that in the current implementation, you cannot pay against an accruing fine
-        # (i.e. , of accounttype 'FU').  Doing so will break accrual.
-        if ( $data->{'amount'} != $amount ) {
-            my $accountline = Koha::Account::Lines->find( $data->{accountlines_id} );
-            my $diff = $amount - $data->{'amount'};
-
-            #3341: diff could be positive or negative!
-            my $out   = $data->{'amountoutstanding'} + $diff;
-
-            # ... but $out may not be negative with Koha-LMSCloud! (see LCHN-570)
-            if ( $diff < 0.00 && $out < 0.00 ) {
-                return;
-            }
-
-            $accountline->set(
+    if ( $accountline ) {
+        if ( Koha::Number::Price->new($accountline->amount)->round != Koha::Number::Price->new($amount)->round ) {
+            $accountline->adjust(
                 {
-                    date          => dt_from_string(),
-                    amount        => $amount,
-                    amountoutstanding   => $out,
-                    lastincrement => $diff,
-                    accounttype   => 'FU',
+                    amount    => $amount,
+                    type      => 'overdue_update',
+                    interface => C4::Context->interface
                 }
-            )->store();
-
-            Koha::Account::Offset->new(
-                {
-                    debit_id => $accountline->id,
-                    type     => 'Fine Update',
-                    amount   => $diff,
-                }
-            )->store();
+            );
         }
     } else {
         if ( $amount ) { # Don't add new fines with an amount of 0
@@ -616,80 +589,24 @@ sub UpdateFine {
             );
             $sth4->execute($itemnum);
             my $title = $sth4->fetchrow;
+            my $desc = "$title $due";
 
-            my $nextaccntno = C4::Accounts::getnextacctno($borrowernumber);
-
-            my $desc = ( $type ? "$type " : '' ) . "$title $due";    # FIXEDME, avoid whitespace prefix on empty $type
-
-            my $issue = Koha::Checkouts->find( $issue_id );
-            my $branchcode = undef;
-            $branchcode  = $issue->branchcode() if ($issue);
-            
-            my $accountline = Koha::Account::Line->new(
+            my $account = Koha::Account->new({ patron_id => $borrowernumber });
+            $accountline = $account->add_debit(
                 {
-                    borrowernumber    => $borrowernumber,
-                    itemnumber        => $itemnum,
-                    date              => dt_from_string(),
-                    amount            => $amount,
-                    description       => $desc,
-                    accounttype       => 'FU',
-                    amountoutstanding => $amount,
-                    lastincrement     => $amount,
-                    accountno         => $nextaccntno,
-                    issue_id          => $issue_id,
-                    branchcode        => $branchcode,
+                    amount      => $amount,
+                    description => $desc,
+                    note        => undef,
+                    user_id     => undef,
+                    interface   => C4::Context->interface,
+                    library_id  => undef, #FIXME: Should we grab the checkout or circ-control branch here perhaps?
+                    type        => 'OVERDUE',
+                    item_id     => $itemnum,
+                    issue_id    => $issue_id,
                 }
-            )->store();
-            
-            Koha::Account::Offset->new(
-                {
-                    debit_id => $accountline->id,
-                    type     => 'Fine',
-                    amount   => $amount,
-                }
-            )->store();
-
-            Koha::Account::Offset->new(
-                {
-                    debit_id => $accountline->id,
-                    type     => 'Fine',
-                    amount   => $amount,
-                }
-            )->store();
+            );
         }
     }
-    # logging action
-    &logaction(
-        "FINES",
-        $type,
-        $borrowernumber,
-        "due=".$due."  amount=".$amount." itemnumber=".$itemnum
-        ) if C4::Context->preference("FinesLog");
-}
-
-=head2 BorType
-
-    $borrower = &BorType($borrowernumber);
-
-Looks up a patron by borrower number.
-
-C<$borrower> is a reference-to-hash whose keys are all of the fields
-from the borrowers and categories tables of the Koha database. Thus,
-C<$borrower> contains all information about both the borrower and
-category they belong to.
-
-=cut
-
-sub BorType {
-    my ($borrowernumber) = @_;
-    my $dbh              = C4::Context->dbh;
-    my $sth              = $dbh->prepare(
-        "SELECT * from borrowers
-      LEFT JOIN categories ON borrowers.categorycode=categories.categorycode 
-      WHERE borrowernumber=?"
-    );
-    $sth->execute($borrowernumber);
-    return $sth->fetchrow_hashref;
 }
 
 =head2 GetFine
@@ -707,16 +624,14 @@ C<$borrowernumber> is the borrowernumber
 sub GetFine {
     my ( $itemnum, $borrowernumber ) = @_;
     my $dbh   = C4::Context->dbh();
-    my $query = q|SELECT sum(a.amountoutstanding) as fineamount FROM accountlines a
-    where (a.accounttype like 'F%' or a.accounttype like 'CL%')
-    AND a.amountoutstanding > 0 AND 
-    (a.borrowernumber=? or a.borrowernumber IN (SELECT o.borrowernumber FROM borrowers o WHERE o.guarantorid = ?))|;
+    my $query = q|SELECT sum(amountoutstanding) as fineamount FROM accountlines
+    WHERE debit_type_code = 'OVERDUE'
+  AND amountoutstanding > 0 AND borrowernumber=?|;
     my @query_param;
-    push @query_param, $borrowernumber;
     push @query_param, $borrowernumber;
     if (defined $itemnum )
     {
-        $query .= " AND a.itemnumber=?";
+        $query .= " AND itemnumber=?";
         push @query_param, $itemnum;
     }
     my $sth = $dbh->prepare($query);
@@ -809,6 +724,10 @@ sub GetOverduesForBranch {
             borrowers.phone,
             borrowers.email,
                biblio.title,
+               biblio.subtitle,
+               biblio.medium,
+               biblio.part_number,
+               biblio.part_name,
                biblio.author,
                biblio.biblionumber,
                issues.date_due,
@@ -832,7 +751,8 @@ sub GetOverduesForBranch {
     LEFT JOIN itemtypes   ON itemtypes.itemtype       = $itype_link
     LEFT JOIN branches    ON  branches.branchcode     = issues.branchcode
     WHERE (accountlines.amountoutstanding  != '0.000000')
-      AND (accountlines.accounttype         = 'FU'      )
+      AND (accountlines.debit_type_code     = 'OVERDUE' )
+      AND (accountlines.status              = 'UNRETURNED' )
       AND (issues.branchcode =  ?   )
       AND (issues.date_due  < NOW())
     ";
@@ -873,7 +793,7 @@ sub GetOverdueMessageTransportTypes {
     # Put 'print' in first if exists
     # It avoid to sent a print notice with an email or sms template is no email or sms is defined
     @mtts = uniq( 'print', @mtts )
-        if grep {/^print$/} @mtts;
+        if grep { $_ eq 'print' } @mtts;
 
     return \@mtts;
 }

@@ -5,12 +5,14 @@
 
 use Modern::Perl;
 
-use Test::More tests => 3;
+use Test::More tests => 6;
+use List::MoreUtils qw(any none);
 use MARC::Record;
 use C4::Biblio;
 use C4::XISBN;
 use C4::Context;
 use C4::Search;
+use Koha::Database;
 use t::lib::Mocks;
 use Test::MockModule;
 
@@ -18,20 +20,20 @@ BEGIN {
     use_ok('C4::XISBN');
 }
 
-my $dbh = C4::Context->dbh;
-$dbh->{RaiseError} = 1;
-$dbh->{AutoCommit} = 0;
+my $schema = Koha::Database->new->schema;
+$schema->storage->txn_begin;
 
-my $search_module = new Test::MockModule('C4::Search');
+my $engine = C4::Context->preference("SearchEngine") // 'Zebra';
+my $search_module = Test::MockModule->new("Koha::SearchEngine::${engine}::Search");
 
-$search_module->mock('SimpleSearch', \&Mock_SimpleSearch );
-my $errors;
+$search_module->mock('simple_search_compat', \&Mock_simple_search_compat );
+
 my $context = C4::Context->new;
 
 my ( $biblionumber_tag, $biblionumber_subfield ) =
-  GetMarcFromKohaField( 'biblio.biblionumber', '' );
+  GetMarcFromKohaField( 'biblio.biblionumber' );
 my ( $isbn_tag, $isbn_subfield ) =
-  GetMarcFromKohaField( 'biblioitems.isbn', '' );
+  GetMarcFromKohaField( 'biblioitems.isbn' );
 
 # Harry Potter and the Sorcerer's Stone, 1st American ed. 1997
 my $isbn1 = '0590353403';
@@ -40,10 +42,13 @@ my $isbn2 = '0684843897';
 # XISBN match : Harry Potter and the Sorcerer's Stone,
 # 1. Scholastic mass market paperback printing1.
 my $isbn3 = '043936213X';
+# Finn Family Moomintroll, won't match to other isbns
+my $isbn4 = '014030150X';
 
 my $biblionumber1 = _add_biblio_with_isbn($isbn1);
 my $biblionumber2 = _add_biblio_with_isbn($isbn2);
 my $biblionumber3 = _add_biblio_with_isbn($isbn3);
+my $biblionumber4 = _add_biblio_with_isbn($isbn4);
 
 my $trial = C4::XISBN::_get_biblio_from_xisbn($isbn1);
 is( $trial->{biblionumber},
@@ -53,16 +58,32 @@ is( $trial->{biblionumber},
 t::lib::Mocks::mock_preference( 'ThingISBN', 1 );
 
 my $results_thingisbn;
-eval { $results_thingisbn = C4::XISBN::get_xisbns($isbn1); };
+eval { $results_thingisbn = C4::XISBN::get_xisbns($isbn1, $biblionumber4); };
+SKIP: {
+    skip "Problem retrieving ThingISBN", 2
+        unless $@ eq '';
+    ok( (any { $_->{'biblionumber'} eq $biblionumber1 } @$results_thingisbn),
+        "Gets correct biblionumber from a book with a similar isbn using ThingISBN." );
+    ok( (any { $_->{'biblionumber'} eq $biblionumber3 } @$results_thingisbn),
+        "Gets correct biblionumber from a book with a similar isbn using ThingISBN." );
+}
+
+eval { $results_thingisbn = C4::XISBN::get_xisbns($isbn1,$biblionumber1); };
 SKIP: {
     skip "Problem retrieving ThingISBN", 1
         unless $@ eq '';
     is( $results_thingisbn->[0]->{biblionumber},
         $biblionumber3,
-        "Gets correct biblionumber from a book with a similar isbn using ThingISBN." );
+        "Gets correct biblionumber from a different book with a similar isbn using ThingISBN." );
 }
 
-$dbh->rollback;
+eval { $results_thingisbn = C4::XISBN::get_xisbns($isbn1,$biblionumber3); };
+SKIP: {
+    skip "Problem retrieving ThingISBN", 1
+        unless $@ eq '';
+    ok( (none { $_->{'biblionumber'} eq $biblionumber3 } @$results_thingisbn),
+        "Doesn't get biblionumber if the biblionumber matches the one passed to the sub." );
+}
 
 # Util subs
 
@@ -79,20 +100,21 @@ sub _add_biblio_with_isbn {
 
 # Mocked subs
 
-# C4::Search::SimpleSearch
-sub Mock_SimpleSearch {
+# Koha::SearchEngine::${SearchEngine}::Search::simple_search_compat
+sub Mock_simple_search_compat {
+    my $self = shift;
     my $query = shift;
     my @results;
 
     $query =~ s/-//g;
     my $ret_biblionumber;
-    if ( $query =~ /$isbn1/ ) {
+    if ( $query eq "nb=$isbn1" ) {
         $ret_biblionumber = $biblionumber1;
     }
-    elsif ( $query =~ /$isbn2/ ) {
+    elsif ( $query eq "nb=$isbn2" ) {
         $ret_biblionumber = $biblionumber2;
     }
-    elsif ( $query =~ /$isbn3/ ) {
+    elsif ( $query eq "nb=$isbn3" ) {
         $ret_biblionumber = $biblionumber3;
     }
 
@@ -109,10 +131,7 @@ sub Mock_SimpleSearch {
     }
     $record->append_fields($biblionumber_field);
 
-    my $indexing_mode = C4::Context->config('zebra_bib_index_mode') // 'dom';
-    push @results, ( $indexing_mode eq 'dom' )
-                    ? $record->as_xml()
-                    : $record->as_usmarc() ;
+    push @results, $record->as_xml();
 
     return ( undef, \@results, 1 );
 }

@@ -1,5 +1,5 @@
 [% INCLUDE 'doc-head-open.inc' %]
-<title>Koha &rsaquo; Course reserves &rsaquo; Add items</title>
+<title>Add items &rsaquo; Course reserves &rsaquo; Koha</title>
 [% INCLUDE 'doc-head-close.inc' %]
 </head>
 <body id="courses_add_items_step1" class="course">
@@ -7,7 +7,21 @@
 [% INCLUDE 'header.inc' %]
 [% INCLUDE 'cat-search.inc' %]
 
-<div id="breadcrumbs"><a href="/cgi-bin/koha/mainpage.pl">Home</a> &rsaquo; <a href="/cgi-bin/koha/course_reserves/course-reserves.pl">Course reserves</a> &rsaquo; Add reserves for <i><a href="/cgi-bin/koha/course_reserves/course-details.pl?course_id=[% course.course_id %]">[% course.course_name %]</a></i></div>
+<nav id="breadcrumbs" aria-label="Breadcrumb" class="breadcrumb">
+    <ol>
+        <li>
+            <a href="/cgi-bin/koha/mainpage.pl">Home</a>
+        </li>
+        <li>
+            <a href="/cgi-bin/koha/course_reserves/course-reserves.pl">Course reserves</a>
+        </li>
+        <li>
+            <a href="#" aria-current="page">
+                Add reserves for <em>[% course.course_name | html %]</em>
+            </a>
+        </li>
+    </ol>
+</nav>
 
 <div class="main container-fluid">
     <div class="row">
@@ -15,14 +29,14 @@
 
         [% IF ERROR_ITEM_NOT_FOUND %]
             [% IF UNKNOWN_BARCODE %]
-                <div class="dialog alert">No item found with barcode [% UNKNOWN_BARCODE %]</div>
+                <div class="dialog alert">No item found with barcode [% UNKNOWN_BARCODE | html %]</div>
             [% ELSE %]
                  <div class="dialog alert">No item found</div>
             [% END %]
         [% END %]
 
         <form method="post" action="/cgi-bin/koha/course_reserves/add_items.pl">
-            <input type="hidden" name="course_id" value="[% course.course_id %]" />
+            <input type="hidden" name="course_id" value="[% course.course_id | html %]" />
             <input type="hidden" name="action" value="lookup" />
 
             <fieldset class="rows">
@@ -38,7 +52,7 @@
             <fieldset class="action">
                 <input type="submit" value="Submit" class="submit" />
 
-                <a href="/cgi-bin/koha/course_reserves/course-details.pl?course_id=[% course.course_id %]" class="cancel">Cancel</a>
+                <a href="/cgi-bin/koha/course_reserves/course-details.pl?course_id=[% course.course_id | uri %]" class="cancel">Cancel</a>
             </fieldset>
         </form>
     </div>

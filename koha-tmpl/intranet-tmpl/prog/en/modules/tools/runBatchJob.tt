@@ -1,3 +1,4 @@
+[% USE raw %]
 [% USE Asset %]
 [% USE Koha %]
 [% USE Branches %]
@@ -13,12 +14,26 @@
 
 [% branches = Branches.all( selected => branch, restrict => 'NoMobileStations' ) %]
 
-<div id="breadcrumbs"><a href="/cgi-bin/koha/mainpage.pl">Home</a> &rsaquo; <a href="/cgi-bin/koha/tools/tools-home.pl">Tools</a> &rsaquo; Run batch jobs</div>
+<nav id="breadcrumbs" aria-label="Breadcrumb" class="breadcrumb">
+    <ol>
+        <li>
+            <a href="/cgi-bin/koha/mainpage.pl">Home</a>
+        </li>
+        <li>
+            <a href="/cgi-bin/koha/tools/tools-home.pl">Tools</a>
+        </li>
+        <li>
+            <a href="#" aria-current="page">
+                Run batch jobs
+            </a>
+        </li>
+    </ol>
+</nav>
 
-<div id="doc3" class="yui-t2">
-    <div id="bd">
-        <div id="yui-main">
-            <div class="yui-b">
+<div class="main container-fluid">
+    <div class="row">
+        <div class="col-sm-10 col-sm-push-2">
+            <main>
             
                 <h1>Run batch jobs</h1>
                 <div class="help">
@@ -407,16 +422,18 @@ produced by other features of Koha. The message queue must be processed regularl
                 
                 </form>
             
-            </div><!-- yui-b -->
-        </div><!-- yui-main -->
-        <div class="yui-b noprint">
-            [% INCLUDE 'tools-menu.inc' %]
-        </div>
-    </div><!-- bd -->
+            </main>
+        </div> <!-- /.col-sm-10.col-sm-push-2 -->
+
+        <div class="col-sm-2 col-sm-pull-10">
+            <aside>
+                [% INCLUDE 'tools-menu.inc' %]
+            </aside>
+        </div> <!-- /.col-sm-2.col-sm-pull-10 -->
+     </div> <!-- /.row -->
     
 [% MACRO jsinclude BLOCK %]
     [% Asset.js("js/tools-menu.js") %]
-    [% Asset.js("lib/jquery/plugins/jquery.fixFloat.js") %]
     [% INCLUDE 'calendar.inc' %]
         <script type="text/javascript">
         function start(func) {

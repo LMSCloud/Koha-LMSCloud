@@ -17,12 +17,13 @@ package C4::Budgets;
 # You should have received a copy of the GNU General Public License
 # along with Koha; if not, see <http://www.gnu.org/licenses>.
 
-use strict;
-#use warnings; FIXME - Bug 2505
+use Modern::Perl;
 use C4::Context;
 use Koha::Database;
 use Koha::Patrons;
+use Koha::Acquisition::Invoice::Adjustments;
 use C4::Debug;
+use C4::Acquisition;
 use vars qw(@ISA @EXPORT);
 
 BEGIN {
@@ -207,23 +208,26 @@ sub SetOwnerToFundHierarchy {
 
 # -------------------------------------------------------------------
 sub GetBudgetsPlanCell {
-    my ( $cell, $period, $budget ) = @_;
+    my ( $cell, $period, $budget ) = @_; #FIXME we don't use $period
     my ($actual, $sth);
     my $dbh = C4::Context->dbh;
+    my $roundsql = C4::Acquisition::get_rounding_sql(qq|ecost_tax_included|);
     if ( $cell->{'authcat'} eq 'MONTHS' ) {
         # get the actual amount
+        # FIXME we should consider quantity
         $sth = $dbh->prepare( qq|
 
-            SELECT SUM(ecost_tax_included) AS actual FROM aqorders
+            SELECT SUM(| .  $roundsql . qq|) AS actual FROM aqorders
                 WHERE    budget_id = ? AND
                 entrydate like "$cell->{'authvalue'}%"  |
         );
         $sth->execute( $cell->{'budget_id'} );
     } elsif ( $cell->{'authcat'} eq 'BRANCHES' ) {
         # get the actual amount
+        # FIXME we should consider quantity
         $sth = $dbh->prepare( qq|
 
-            SELECT SUM(ecost_tax_included) FROM aqorders
+            SELECT SUM(| . $roundsql . qq|) FROM aqorders
                 LEFT JOIN aqorders_items
                 ON (aqorders.ordernumber = aqorders_items.ordernumber)
                 LEFT JOIN items
@@ -235,7 +239,7 @@ sub GetBudgetsPlanCell {
         # get the actual amount
         $sth = $dbh->prepare(  qq|
 
-            SELECT SUM( ecost_tax_included *  quantity) AS actual
+            SELECT SUM( | . $roundsql . qq| *  quantity) AS actual
                 FROM aqorders JOIN biblioitems
                 ON (biblioitems.biblionumber = aqorders.biblionumber )
                 WHERE aqorders.budget_id = ? and itemtype  = ? |
@@ -248,7 +252,7 @@ sub GetBudgetsPlanCell {
         # get the actual amount
         $sth = $dbh->prepare( qq|
 
-        SELECT  SUM(ecost_tax_included * quantity) AS actual
+        SELECT  SUM(| . $roundsql . qq| * quantity) AS actual
             FROM aqorders
             JOIN aqbudgets ON (aqbudgets.budget_id = aqorders.budget_id )
             WHERE  aqorders.budget_id = ? AND
@@ -332,13 +336,13 @@ sub GetBudgetSpent {
     # unitprice_tax_included should always been set here
     # we should not need to retrieve ecost_tax_included
     my $sth = $dbh->prepare(qq|
-        SELECT SUM( COALESCE(unitprice_tax_included, ecost_tax_included) * quantity ) AS sum FROM aqorders
+        SELECT SUM( | . C4::Acquisition::get_rounding_sql("COALESCE(unitprice_tax_included, ecost_tax_included)") . qq| * quantity ) AS sum FROM aqorders
             WHERE budget_id = ? AND
             quantityreceived > 0 AND
             datecancellationprinted IS NULL
     |);
 	$sth->execute($budget_id);
-	my $sum =  $sth->fetchrow_array;
+    my $sum = ( $sth->fetchrow_array || 0 ) + 0;
 
     $sth = $dbh->prepare(qq|
         SELECT SUM(shipmentcost) AS sum
@@ -348,7 +352,12 @@ sub GetBudgetSpent {
 
     $sth->execute($budget_id);
     my ($shipmentcost_sum) = $sth->fetchrow_array;
-    $sum += $shipmentcost_sum;
+    $sum += ( $shipmentcost_sum || 0 ) + 0;
+
+    my $adjustments = Koha::Acquisition::Invoice::Adjustments->search({budget_id => $budget_id, closedate => { '!=' => undef } },{ join => 'invoiceid' });
+    while ( my $adj = $adjustments->next ){
+        $sum += $adj->adjustment;
+    }
 
 	return $sum;
 }
@@ -358,13 +367,18 @@ sub GetBudgetOrdered {
 	my ($budget_id) = @_;
 	my $dbh = C4::Context->dbh;
 	my $sth = $dbh->prepare(qq|
-        SELECT SUM(ecost_tax_included *  quantity) AS sum FROM aqorders
+        SELECT SUM(| . C4::Acquisition::get_rounding_sql(qq|ecost_tax_included|) . qq| *  quantity) AS sum FROM aqorders
             WHERE budget_id = ? AND
             quantityreceived = 0 AND
             datecancellationprinted IS NULL
     |);
 	$sth->execute($budget_id);
-	my $sum =  $sth->fetchrow_array;
+    my $sum =  ( $sth->fetchrow_array || 0 ) + 0;
+
+    my $adjustments = Koha::Acquisition::Invoice::Adjustments->search({budget_id => $budget_id, encumber_open => 1, closedate => undef},{ join => 'invoiceid' });
+    while ( my $adj = $adjustments->next ){
+        $sum += $adj->adjustment;
+    }
 
 	return $sum;
 }
@@ -425,29 +439,15 @@ sub GetBudgetPeriods {
 }
 # -------------------------------------------------------------------
 sub GetBudgetPeriod {
-	my ($budget_period_id) = @_;
-	my $dbh = C4::Context->dbh;
-	## $total = number of records linked to the record that must be deleted
-	my $total = 0;
-	## get information about the record that will be deleted
-	my $sth;
-	if ($budget_period_id) {
-		$sth = $dbh->prepare( qq|
-              SELECT      *
-                FROM aqbudgetperiods
-                WHERE budget_period_id=? |
-		);
-		$sth->execute($budget_period_id);
-	} else {         # ACTIVE BUDGET
-		$sth = $dbh->prepare(qq|
-			  SELECT      *
-                FROM aqbudgetperiods
-                WHERE budget_period_active=1 |
-		);
-		$sth->execute();
-	}
-	my $data = $sth->fetchrow_hashref;
-	return $data;
+    my ($budget_period_id) = @_;
+    my $dbh = C4::Context->dbh;
+    my $sth = $dbh->prepare( qq|
+        SELECT      *
+        FROM aqbudgetperiods
+        WHERE budget_period_id=? |
+    );
+    $sth->execute($budget_period_id);
+    return $sth->fetchrow_hashref;
 }
 
 sub DelBudgetPeriod{
@@ -547,14 +547,14 @@ sub GetBudgetHierarchy {
     # Get all the budgets totals in as few queries as possible
     my $hr_budget_spent = $dbh->selectall_hashref(q|
         SELECT aqorders.budget_id, aqbudgets.budget_parent_id,
-               SUM( COALESCE(unitprice_tax_included, ecost_tax_included) * quantity ) AS budget_spent
+               SUM( | . C4::Acquisition::get_rounding_sql(qq|COALESCE(unitprice_tax_included, ecost_tax_included)|) . q| * quantity ) AS budget_spent
         FROM aqorders JOIN aqbudgets USING (budget_id)
         WHERE quantityreceived > 0 AND datecancellationprinted IS NULL
         GROUP BY budget_id, budget_parent_id
         |, 'budget_id');
     my $hr_budget_ordered = $dbh->selectall_hashref(q|
         SELECT aqorders.budget_id, aqbudgets.budget_parent_id,
-               SUM(ecost_tax_included *  quantity) AS budget_ordered
+               SUM( | . C4::Acquisition::get_rounding_sql(qq|ecost_tax_included|) . q| *  quantity) AS budget_ordered
         FROM aqorders JOIN aqbudgets USING (budget_id)
         WHERE quantityreceived = 0 AND datecancellationprinted IS NULL
         GROUP BY budget_id, budget_parent_id
@@ -563,37 +563,46 @@ sub GetBudgetHierarchy {
         SELECT shipmentcost_budgetid as budget_id,
                SUM(shipmentcost) as shipmentcost
         FROM aqinvoices
-        WHERE closedate IS NOT NULL
         GROUP BY shipmentcost_budgetid
         |, 'budget_id');
-    my $hr_budget_ordered_shipment = $dbh->selectall_hashref(q|
-        SELECT shipmentcost_budgetid as budget_id,
-               SUM(shipmentcost) as shipmentcost
-        FROM aqinvoices
-        WHERE closedate IS NULL
-        GROUP BY shipmentcost_budgetid
+    my $hr_budget_spent_adjustment = $dbh->selectall_hashref(q|
+        SELECT budget_id,
+               SUM(adjustment) as adjustments
+        FROM aqinvoice_adjustments
+        JOIN aqinvoices USING (invoiceid)
+        WHERE closedate IS NOT NULL
+        GROUP BY budget_id
+        |, 'budget_id');
+    my $hr_budget_ordered_adjustment = $dbh->selectall_hashref(q|
+        SELECT budget_id,
+               SUM(adjustment) as adjustments
+        FROM aqinvoice_adjustments
+        JOIN aqinvoices USING (invoiceid)
+        WHERE closedate IS NULL AND encumber_open = 1
+        GROUP BY budget_id
         |, 'budget_id');
 
 
     foreach my $budget (@sort) {
         if ( not defined $budget->{budget_parent_id} ) {
-            _recursiveAdd( $budget, undef, $hr_budget_spent, $hr_budget_spent_shipment, $hr_budget_ordered, $hr_budget_ordered_shipment );
+            _recursiveAdd( $budget, undef, $hr_budget_spent, $hr_budget_spent_shipment, $hr_budget_ordered, $hr_budget_spent_adjustment, $hr_budget_ordered_adjustment );
         }
     }
     return \@sort;
 }
 
 sub _recursiveAdd {
-    my ($budget, $parent, $hr_budget_spent, $hr_budget_spent_shipment, $hr_budget_ordered, $hr_budget_ordered_shipment ) = @_;
+    my ($budget, $parent, $hr_budget_spent, $hr_budget_spent_shipment, $hr_budget_ordered, $hr_budget_spent_adjustment, $hr_budget_ordered_adjustment ) = @_;
 
     foreach my $child (@{$budget->{children}}){
-        _recursiveAdd($child, $budget, $hr_budget_spent, $hr_budget_spent_shipment, $hr_budget_ordered, $hr_budget_ordered_shipment );
+        _recursiveAdd($child, $budget, $hr_budget_spent, $hr_budget_spent_shipment, $hr_budget_ordered, $hr_budget_spent_adjustment, $hr_budget_ordered_adjustment );
     }
 
-    $budget->{budget_spent} += $hr_budget_spent->{$budget->{budget_id}}->{budget_spent};
-    $budget->{budget_spent} += $hr_budget_spent_shipment->{$budget->{budget_id}}->{shipmentcost};
-    $budget->{budget_ordered} += $hr_budget_ordered->{$budget->{budget_id}}->{budget_ordered};
-    $budget->{budget_ordered} += $hr_budget_ordered_shipment->{$budget->{budget_id}}->{shipmentcost};
+    $budget->{budget_spent} += $hr_budget_spent->{$budget->{budget_id}}->{budget_spent}               || 0;
+    $budget->{budget_spent} += $hr_budget_spent_shipment->{$budget->{budget_id}}->{shipmentcost}      || 0;
+    $budget->{budget_spent} += $hr_budget_spent_adjustment->{$budget->{budget_id}}->{adjustments}     || 0;
+    $budget->{budget_ordered} += $hr_budget_ordered->{$budget->{budget_id}}->{budget_ordered}         || 0;
+    $budget->{budget_ordered} += $hr_budget_ordered_adjustment->{$budget->{budget_id}}->{adjustments} || 0;
 
     $budget->{total_spent} += $budget->{budget_spent};
     $budget->{total_ordered} += $budget->{budget_ordered};
@@ -618,30 +627,32 @@ sub _add_budget_children {
 }
 
 # -------------------------------------------------------------------
-
+# FIXME Must be replaced by Koha::Acquisition::Fund->store
 sub AddBudget {
     my ($budget) = @_;
     return unless ($budget);
 
-    undef $budget->{budget_encumb} if $budget->{budget_encumb} eq '';
-    undef $budget->{budget_owner_id} if $budget->{budget_owner_id} eq '';
+    undef $budget->{budget_encumb}   if defined $budget->{budget_encumb}   && $budget->{budget_encumb}   eq '';
+    undef $budget->{budget_owner_id} if defined $budget->{budget_owner_id} && $budget->{budget_owner_id} eq '';
     my $resultset = Koha::Database->new()->schema->resultset('Aqbudget');
     return $resultset->create($budget)->id;
 }
 
 # -------------------------------------------------------------------
+# FIXME Must be replaced by Koha::Acquisition::Fund->store
 sub ModBudget {
     my ($budget) = @_;
     my $result = Koha::Database->new()->schema->resultset('Aqbudget')->find($budget);
     return unless($result);
 
-    undef $budget->{budget_encumb} if $budget->{budget_encumb} eq '';
-    undef $budget->{budget_owner_id} if $budget->{budget_owner_id} eq '';
+    undef $budget->{budget_encumb}   if defined $budget->{budget_encumb}   && $budget->{budget_encumb}   eq '';
+    undef $budget->{budget_owner_id} if defined $budget->{budget_owner_id} && $budget->{budget_owner_id} eq '';
     $result = $result->update($budget);
     return $result->in_storage;
 }
 
 # -------------------------------------------------------------------
+# FIXME Must be replaced by Koha::Acquisition::Fund->delete
 sub DelBudget {
 	my ($budget_id) = @_;
 	my $dbh         = C4::Context->dbh;
@@ -791,14 +802,14 @@ sub GetBudgetsReport {
         ON bp.budget_period_id = b.budget_period_id
         INNER JOIN aqorders o
         ON b.budget_id = o.budget_id ';
-    if($activity ne ''){
+    if ( $activity && $activity ne '' ) {
         $query .= 'WHERE  bp.budget_period_active=? ';
     }
     $query .= 'AND (o.orderstatus != "cancelled")
                ORDER BY b.budget_name';
 
     my $sth = $dbh->prepare($query);
-    if($activity ne ''){
+    if ( $activity && $activity ne '' ) {
         $sth->execute($activity);
     }
     else{
@@ -1203,7 +1214,7 @@ sub CloneBudgetHierarchy {
     my @first_level_budgets =
       ( not defined $children_of )
       ? map { ( not $_->{budget_parent_id} )             ? $_ : () } @$budgets
-      : map { ( $_->{budget_parent_id} == $children_of ) ? $_ : () } @$budgets;
+      : map { ( defined $_->{budget_parent_id} && $_->{budget_parent_id} == $children_of ) ? $_ : () } @$budgets;
 
     # get only the columns of aqbudgets
     my @columns = Koha::Database->new()->schema->source('Aqbudget')->columns;

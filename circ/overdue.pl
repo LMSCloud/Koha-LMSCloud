@@ -30,7 +30,7 @@ use Koha::DateUtils;
 use DateTime;
 use DateTime::Format::MySQL;
 
-my $input = new CGI;
+my $input = CGI->new;
 my $showall         = $input->param('showall');
 my $bornamefilter   = $input->param('borname') || '';
 my $borcatfilter    = $input->param('borcat') || '';
@@ -39,15 +39,29 @@ my $borflagsfilter  = $input->param('borflag') || '';
 my $branchfilter    = $input->param('branch') || '';
 my $homebranchfilter    = $input->param('homebranch') || '';
 my $holdingbranchfilter = $input->param('holdingbranch') || '';
+my $dateduefrom     = $input->param('dateduefrom');
+my $datedueto       = $input->param('datedueto');
 my $op              = $input->param('op') || '';
 
-my ($dateduefrom, $datedueto);
-if ( $dateduefrom = $input->param('dateduefrom') ) {
+if ( $dateduefrom ) {
     $dateduefrom = dt_from_string( $dateduefrom );
 }
-if ( $datedueto = $input->param('datedueto') ) {
+if ( $datedueto ) {
     $datedueto = dt_from_string( $datedueto )->set_hour(23)->set_minute(59);
 }
+
+my $filters = {
+    itemtype      => $itemtypefilter,
+    borname       => $bornamefilter,
+    borcat        => $borcatfilter,
+    itemtype      => $itemtypefilter,
+    borflag       => $borflagsfilter,
+    branch        => $branchfilter,
+    homebranch    => $homebranchfilter,
+    holdingbranch => $holdingbranchfilter,
+    dateduefrom   => $dateduefrom,
+    datedueto     => $datedueto,
+};
 
 my $isfiltered      = $op =~ /apply/i && $op =~ /filter/i;
 my $noreport        = C4::Context->preference('FilterBeforeOverdueReport') && ! $isfiltered && $op ne "csv";
@@ -57,13 +71,12 @@ my ( $template, $loggedinuser, $cookie ) = get_template_and_user(
         template_name   => "circ/overdue.tt",
         query           => $input,
         type            => "intranet",
-        authnotrequired => 0,
         flagsrequired   => { circulate => "overdues_report" },
         debug           => 1,
     }
 );
 
-our $logged_in_user = Koha::Patrons->find( $loggedinuser ) or die "Not logged in";
+our $logged_in_user = Koha::Patrons->find( $loggedinuser );
 
 my $dbh = C4::Context->dbh;
 
@@ -181,16 +194,11 @@ if (@patron_attr_filter_loop) {
 
 $template->param(
     patron_attr_header_loop => [ map { { header => $_->{description} } } grep { ! $_->{isclone} } @patron_attr_filter_loop ],
-    branchfilter => $branchfilter,
-    homebranchfilter => $homebranchfilter,
-    holdingbranchfilter => $homebranchfilter,
+    filters => $filters,
     borcatloop=> \@borcatloop,
     itemtypeloop => \@itemtypeloop,
     patron_attr_filter_loop => \@patron_attr_filter_loop,
-    borname => $bornamefilter,
     showall => $showall,
-    dateduefrom => $dateduefrom,
-    datedueto   => $datedueto,
 );
 
 if ($noreport) {
@@ -205,7 +213,7 @@ if ($noreport) {
     #  FIX 2: ensure there are indexes for columns participating in the WHERE clauses, where feasible/reasonable
 
 
-    my $today_dt = DateTime->now(time_zone => C4::Context->tz);
+    my $today_dt = dt_from_string();
     $today_dt->truncate(to => 'minute');
     my $todaysdate = $today_dt->strftime('%Y-%m-%d %H:%M');
 
@@ -238,7 +246,9 @@ if ($noreport) {
         biblio.biblionumber,
         items.itemcallnumber,
         items.replacementprice,
-        items.enumchron
+        items.enumchron,
+        items.itemnotes_nonpublic,
+        items.itype
       FROM issues
     LEFT JOIN borrowers   ON (issues.borrowernumber=borrowers.borrowernumber )
     LEFT JOIN items       ON (issues.itemnumber=items.itemnumber)
@@ -298,7 +308,7 @@ if ($noreport) {
         }
 
         push @overduedata, {
-            patron                 => scalar Koha::Patrons->find( $data->{borrowernumber} ),
+            patron                 => Koha::Patrons->find( $data->{borrowernumber} ),
             duedate                => $data->{date_due},
             borrowernumber         => $data->{borrowernumber},
             cardnumber             => $data->{cardnumber},
@@ -321,11 +331,13 @@ if ($noreport) {
             biblionumber           => $data->{biblionumber},
             title                  => $data->{title},
             author                 => $data->{author},
-            homebranchcode         => $data->{homebranchcode},
-            holdingbranchcode      => $data->{holdingbranchcode},
+            homebranchcode         => $data->{homebranch},
+            holdingbranchcode      => $data->{holdingbranch},
             itemcallnumber         => $data->{itemcallnumber},
             replacementprice       => $data->{replacementprice},
+            itemnotes_nonpublic    => $data->{itemnotes_nonpublic},
             enumchron              => $data->{enumchron},
+            itemtype               => $data->{itype},
             patron_attr_value_loop => \@patron_attr_value_loop,
         };
     }
@@ -344,10 +356,8 @@ if ($noreport) {
     # generate parameter list for CSV download link
     my $new_cgi = CGI->new($input);
     $new_cgi->delete('op');
-    my $csv_param_string = $new_cgi->query_string();
 
     $template->param(
-        csv_param_string        => $csv_param_string,
         todaysdate              => output_pref($today_dt),
         overdueloop             => \@overduedata,
         nnoverdue               => scalar(@overduedata),
@@ -374,7 +384,7 @@ sub build_csv {
     # build header ...
     my @keys =
       qw ( duedate title author borrowertitle firstname surname phone barcode email address address2 zipcode city country
-      branchcode itemcallnumber biblionumber borrowernumber itemnum issuedate replacementprice streetnumber streettype);
+      branchcode itemcallnumber biblionumber borrowernumber itemnum issuedate replacementprice itemnotes_nonpublic streetnumber streettype);
     my $csv = Text::CSV_XS->new();
     $csv->combine(@keys);
     push @lines, $csv->string();

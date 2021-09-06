@@ -24,6 +24,7 @@ use Modern::Perl;
 
 use C4::Context;
 use C4::Barcodes::ValueBuilder;
+use C4::Biblio qw/GetMarcFromKohaField/;
 use Koha::DateUtils;
 
 use Algorithm::CheckDigits;
@@ -37,8 +38,8 @@ my $builder = sub {
 
 	# find today's date
     ($args{year}, $args{mon}, $args{day}) = split('-', output_pref({ dt => dt_from_string, dateformat => 'iso', dateonly => 1 }));
-    ($args{tag},$args{subfield})       =  GetMarcFromKohaField("items.barcode", '');
-    ($args{loctag},$args{locsubfield}) =  GetMarcFromKohaField("items.homebranch", '');
+    ($args{tag},$args{subfield})       =  GetMarcFromKohaField( "items.barcode" );
+    ($args{loctag},$args{locsubfield}) =  GetMarcFromKohaField( "items.homebranch" );
 
 	my $nextnum;
     my $scr;
@@ -46,7 +47,7 @@ my $builder = sub {
     warn "Barcode type = $autoBarcodeType" if $DEBUG;
 	if ((not $autoBarcodeType) or $autoBarcodeType eq 'OFF') {
         # don't return a value unless we have the appropriate syspref set
-        return q|<script type=\"text/javascript\"></script>|;
+        return q|<script></script>|;
     }
 	if ($autoBarcodeType eq 'annual') {
         ($nextnum, $scr) = C4::Barcodes::ValueBuilder::annual::get_barcode(\%args);
@@ -88,8 +89,7 @@ if (\$('#' + id).val() == '' || force) {
 END_OF_JS
 
     my $js  = <<END_OF_JS;
-<script type="text/javascript">
-//<![CDATA[
+<script>
 
 function Focus$function_name(id, force) {
 $scr
@@ -99,7 +99,6 @@ function Click$function_name(id) {
     Focus$function_name(id, 1);
     return false;
 }
-//]]>
 </script>
 END_OF_JS
     return $js;

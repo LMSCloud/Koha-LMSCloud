@@ -38,12 +38,11 @@ use C4::Serials;
 use Koha::Biblios;
 use Koha::DateUtils;
 
-my $input = new CGI;
+my $input = CGI->new;
 my ($template, $loggedinuser, $cookie, $flags) = get_template_and_user( {
     template_name   => 'serials/subscription-history.tt',
     query           => $input,
     type            => 'intranet',
-    authnotrequired => 0,
     flagsrequired   => { 'serials' => 'edit_subscription' },
     debug           => 1,
 } );

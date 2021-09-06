@@ -98,8 +98,9 @@ sub BuildReport {
         casLogout
         AllowPKIAuth
         DebugLevel
-        delimiter
+        CSVDelimiter
         noItemTypeImages
+        OpacNoItemTypeImages
         virtualshelves
         AutoLocation
         IndependentBranches
@@ -134,7 +135,7 @@ sub BuildReport {
         AgeRestrictionOverride
         AllFinesNeedOverride
         AllowFineOverride
-        AllowItemsOnHoldCheckout
+        AllowItemsOnHoldCheckoutSIP
         AllowItemsOnHoldCheckoutSCO
         AllowNotForLoanOverride
         AllowRenewalLimitOverride
@@ -144,7 +145,6 @@ sub BuildReport {
         AutoRemoveOverduesRestrictions
         CircControl
         HomeOrHoldingBranch
-        InProcessingToShelvingCart
         IssueLostItem
         IssuingInProcess
         ManInvInNoissuesCharge
@@ -153,10 +153,8 @@ sub BuildReport {
         RenewalSendNotice
         RentalsInNoissuesCharge
         ReturnBeforeExpiry
-        ReturnToShelvingCart
         TransfersMaxDaysWarning
         UseBranchTransferLimits
-        useDaysMode
         UseTransportCostMatrix
         UseCourseReserves
         finesCalendar
@@ -184,7 +182,7 @@ sub BuildReport {
         TransferWhenCancelAllWaitingHolds
         AllowAllMessageDeletion
         AllowOfflineCirculation
-        CircAutocompl
+        PatronAutoComplete
         CircAutoPrintQuickSlip
         DisplayClearScreenButton
         FilterBeforeOverdueReport
@@ -199,7 +197,7 @@ sub BuildReport {
         UpdateTotalIssuesOnCirc
         UseTablesortForCirc
         WaitingNotifyAtCheckin
-        AllowSelfCheckReturns
+        SCOAllowCheckin
         AutoSelfCheckAllowed
         FRBRizeEditions
         OPACFRBRizeEditions
@@ -209,26 +207,23 @@ sub BuildReport {
         BakerTaylorEnabled
         GoogleJackets
         HTML5MediaEnabled
-        IDreamBooksReadometer
-        IDreamBooksResults
-        IDreamBooksReviews
         LibraryThingForLibrariesEnabled
         LocalCoverImages
         OPACLocalCoverImages
         NovelistSelectEnabled
         OpenLibraryCovers
         OpenLibrarySearch
-        UseKohaPlugins
         SyndeticsEnabled
         TagsEnabled
         CalendarFirstDayOfWeek
         opaclanguagesdisplay
+        AcquisitionLog
         AuthoritiesLog
         BorrowersLog
         CataloguingLog
         FinesLog
         IssueLog
-        LetterLog
+        ClaimsLog
         ReturnLog
         SubscriptionLog
         BiblioDefaultView
@@ -267,12 +262,11 @@ sub BuildReport {
         opacuserlogin
         QuoteOfTheDay
         RequestOnOpac
-        reviewson
+        OPACComments
         ShowReviewer
         ShowReviewerPhoto
         SocialNetworks
         suggestion
-        AllowPurchaseSuggestionBranchChoice
         OpacAllowPublicListCreation
         OpacAllowSharingPrivateLists
         OpacRenewalAllowed
@@ -298,15 +292,13 @@ sub BuildReport {
         TalkingTechItivaPhoneNotification
         uppercasesurnames
         IncludeSeeFromInSearches
-        OpacGroupResults
         QueryAutoTruncate
         QueryFuzzy
         QueryStemming
         QueryWeightFields
         TraceCompleteSubfields
         TraceSubjectSubdivisions
-        UseICU
-        UseQueryParser
+        UseICUStyleQuotes
         defaultSortField
         displayFacetCount
         OPACdefaultSortField

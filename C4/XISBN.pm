@@ -17,6 +17,7 @@ package C4::XISBN;
 # You should have received a copy of the GNU General Public License
 # along with Koha; if not, see <http://www.gnu.org/licenses>.
 
+use Modern::Perl;
 use XML::Simple;
 #use LWP::Simple;
 use C4::Biblio;
@@ -30,8 +31,6 @@ use Koha::Biblios;
 use Koha::SearchEngine;
 use Koha::SearchEngine::Search;
 
-use strict;
-#use warnings; FIXME - Bug 2505
 use vars qw(@ISA @EXPORT @EXPORT_OK %EXPORT_TAGS);
 
 BEGIN {
@@ -72,14 +71,14 @@ sub _get_biblio_from_xisbn {
     return $biblio;
 }
 
-=head1 get_xisbns($isbn);
+=head1 get_xisbns($isbn, $biblionumber);
 
 =head2 $isbn is an ISBN string
 
 =cut
 
 sub get_xisbns {
-    my ( $isbn ) = @_;
+    my ( $isbn, $biblionumber ) = @_;
     my ($response,$thing_response,$syndetics_response,$errors);
     # THINGISBN
     if ( C4::Context->preference('ThingISBN') ) {
@@ -102,12 +101,11 @@ sub get_xisbns {
 
     # loop through each ISBN and scope to the local collection
     for my $response_data( @{ $response->{ isbn } } ) {
-        next if $response_data->{'content'} eq $isbn;
-        next if $isbn eq $response_data;
         next if $unique_xisbns->{ $response_data->{content} };
         $unique_xisbns->{ $response_data->{content} }++;
         my $xbiblio= _get_biblio_from_xisbn($response_data->{content});
-        push @xisbns, $xbiblio if $xbiblio;
+        next unless $xbiblio;
+        push @xisbns, $xbiblio if $xbiblio && $xbiblio->{biblionumber} ne $biblionumber;
     }
     if ( wantarray ) {
         return (\@xisbns, $errors);

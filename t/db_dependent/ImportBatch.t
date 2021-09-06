@@ -1,7 +1,8 @@
 #!/usr/bin/perl
 
 use Modern::Perl;
-use Test::More tests => 14;
+use Test::More tests => 16;
+use utf8;
 use File::Basename;
 use File::Temp qw/tempfile/;
 
@@ -67,6 +68,8 @@ delete $importbatch2->{upload_timestamp};
 delete $importbatch2->{import_batch_id};
 delete $importbatch2->{num_records};
 delete $importbatch2->{num_items};
+delete $importbatch2->{profile_id};
+delete $importbatch2->{profile};
 
 is_deeply( $importbatch2, $sample_import_batch2,
     "GetImportBatch returns the right informations about $sample_import_batch2" );
@@ -76,6 +79,8 @@ delete $importbatch1->{upload_timestamp};
 delete $importbatch1->{import_batch_id};
 delete $importbatch1->{num_records};
 delete $importbatch1->{num_items};
+delete $importbatch1->{profile_id};
+delete $importbatch1->{profile};
 
 is_deeply( $importbatch1, $sample_import_batch1,
     "GetImportBatch returns the right informations about $sample_import_batch1" );
@@ -86,7 +91,7 @@ my $record = MARC::Record->new;
 my $original_record = MARC::Record->new;
 $record->leader('03174nam a2200445 a 4500');
 $original_record->leader('03174nam a2200445 a 4500');
-my ($item_tag, $item_subfield) = C4::Biblio::GetMarcFromKohaField('items.itemnumber','');
+my ($item_tag, $item_subfield) = C4::Biblio::GetMarcFromKohaField( 'items.itemnumber' );
 my @fields = (
     MARC::Field->new(
         100, '1', ' ',
@@ -105,7 +110,7 @@ my @fields = (
     ),
     MARC::Field->new(
         $item_tag, ' ', ' ',
-        e => 'my edition',
+        e => 'my edition ❤',
         i => 'my item part',
     ),
     MARC::Field->new(
@@ -122,15 +127,22 @@ AddItemsToImportBiblio( $id_import_batch1, $import_record_id, $record, 0 );
 my $record_from_import_biblio_with_items = C4::ImportBatch::GetRecordFromImportBiblio( $import_record_id, 'embed_items' );
 $original_record->leader($record_from_import_biblio_with_items->leader());
 is_deeply( $record_from_import_biblio_with_items, $original_record, 'GetRecordFromImportBiblio should return the record with items if specified' );
+my $utf8_field = $record_from_import_biblio_with_items->subfield($item_tag, 'e');
+is($utf8_field, 'my edition ❤');
 $original_record->delete_fields($original_record->field($item_tag)); #Remove items fields
 my $record_from_import_biblio_without_items = C4::ImportBatch::GetRecordFromImportBiblio( $import_record_id );
 $original_record->leader($record_from_import_biblio_without_items->leader());
 is_deeply( $record_from_import_biblio_without_items, $original_record, 'GetRecordFromImportBiblio should return the record without items by default' );
 
+my $another_biblio = $builder->build_sample_biblio;
+C4::ImportBatch::SetMatchedBiblionumber( $import_record_id, $another_biblio->biblionumber );
+my $import_biblios = GetImportBiblios( $import_record_id );
+is( $import_biblios->[0]->{matched_biblionumber}, $another_biblio->biblionumber, 'SetMatchedBiblionumber  should set the correct biblionumber' );
+
 # Add a few tests for GetItemNumbersFromImportBatch
 my @a = GetItemNumbersFromImportBatch( $id_import_batch1 );
 is( @a, 0, 'No item numbers expected since we did not commit' );
-my $itemno = $builder->build({ source => 'Item' })->{itemnumber};
+my $itemno = $builder->build_sample_item->itemnumber;
 # Link this item to the import item to fool GetItemNumbersFromImportBatch
 my $sql = "UPDATE import_items SET itemnumber=? WHERE import_record_id=?";
 $dbh->do( $sql, undef, $itemno, $import_record_id );
@@ -187,7 +199,10 @@ subtest "RecordsFromMarcPlugin" => sub {
     close $fh;
 
     t::lib::Mocks::mock_config( 'enable_plugins', 1 );
-    my ( $plugin ) = Koha::Plugins->new->GetPlugins({ metadata => { name => 'MarcFieldValues' } });
+
+    my $plugins = Koha::Plugins->new;
+    $plugins->InstallPlugins;
+    my ($plugin) = $plugins->GetPlugins({ all => 1, metadata => { name => 'MarcFieldValues' } });
     isnt( $plugin, undef, "Plugin found" );
     my $records = C4::ImportBatch::RecordsFromMarcPlugin( $name, ref $plugin, 'UTF-8' );
     is( @$records, 2, 'Two results returned' );

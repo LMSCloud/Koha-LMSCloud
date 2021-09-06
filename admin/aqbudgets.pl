@@ -36,14 +36,13 @@ use C4::Debug;
 use Koha::Acquisition::Currencies;
 use Koha::Patrons;
 
-my $input = new CGI;
+my $input = CGI->new;
 my $dbh     = C4::Context->dbh;
 
 my ($template, $borrowernumber, $cookie, $staffflags ) = get_template_and_user(
     {   template_name   => "admin/aqbudgets.tt",
         query           => $input,
         type            => "intranet",
-        authnotrequired => 0,
         flagsrequired   => { acquisition => 'budget_manage' },
         debug           => 0,
     }
@@ -89,9 +88,6 @@ if ( $budget_period_id ) {
 
 # ------- get periods stuff ------------------
 
-# USED FOR PERMISSION COMPARISON LATER
-my $borrower_id         = $template->{VARS}->{'USER_INFO'}->{'borrowernumber'};
-
 $template->param(
     show_mine   => $show_mine,
     op  => $op,
@@ -118,6 +114,8 @@ if ($op eq 'add_form') {
         }
         $dropbox_disabled = BudgetHasChildren($budget_id);
         $budget->{budget_owner} = Koha::Patrons->find( $budget->{budget_owner_id} );
+    } elsif ( $period->{budget_period_locked} ) {
+        output_and_exit( $input, $cookie, $template, 'budget_is_locked' );
     }
 
     # build budget hierarchy
@@ -235,7 +233,7 @@ if ( $op eq 'list' ) {
     );
 
     my @budgets = @{
-        GetBudgetHierarchy( $$period{budget_period_id}, undef, ( $show_mine ? $borrower_id : 0 ))
+        GetBudgetHierarchy( $$period{budget_period_id}, undef, ( $show_mine ? $borrowernumber : 0 ))
     };
 
     my $period_total = 0;

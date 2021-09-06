@@ -482,13 +482,18 @@
     <target_index>pl:w</target_index>
     <target_index>Provider:w</target_index>
   </index_data_field>
-   <!-- Index for RDA 264 field-->
+  <!-- RDA 264$a      pl:w,pl:p-->
   <index_subfields tag="264" subfields="a">
     <target_index>pl:w</target_index>
     <target_index>pl:p</target_index>
   </index_subfields>
   <!-- Index for RDA 264 field -->
   <index_subfields tag="260" subfields="b">
+    <target_index>Publisher:w</target_index>
+    <target_index>Publisher:p</target_index>
+  </index_subfields>
+  <!-- RDA 264$b      Publisher:w,Publisher:p-->
+  <index_subfields tag="264" subfields="b">
     <target_index>Publisher:w</target_index>
     <target_index>Publisher:p</target_index>
   </index_subfields>
@@ -1532,6 +1537,9 @@
   </facet>
   <facet tag="952" subfields="y">
     <target_index>itype:0</target_index>
+  </facet>
+  <facet tag="952" subfields="8">
+    <target_index>ccode:0</target_index>
   </facet>
 
 </kohaidx:index_defs>

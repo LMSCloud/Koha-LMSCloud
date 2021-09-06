@@ -27,20 +27,20 @@ use Koha::Libraries;
 use Koha::Library::Group;
 use Koha::Library::Groups;
 
-my $cgi = new CGI;
+my $cgi = CGI->new;
 
 my ( $template, $loggedinuser, $cookie ) = get_template_and_user(
     {
         template_name   => "admin/library_groups.tt",
         query           => $cgi,
         type            => "intranet",
-        authnotrequired => 0,
-        flagsrequired   => { parameters => 'parameters_remaining_permissions' },
+        flagsrequired   => { parameters => 'manage_libraries' },
         debug           => 1,
     }
 );
 
 my $action = $cgi->param('action') || q{};
+my @messages;
 
 if ( $action eq 'add' ) {
     my $parent_id   = $cgi->param('parent_id')   || undef;
@@ -50,24 +50,32 @@ if ( $action eq 'add' ) {
     my $ft_hide_patron_info    = $cgi->param('ft_hide_patron_info')    || 0;
     my $ft_search_groups_opac  = $cgi->param('ft_search_groups_opac')  || 0;
     my $ft_search_groups_staff = $cgi->param('ft_search_groups_staff') || 0;
+    my $ft_local_hold_group = $cgi->param('ft_local_hold_group') || 0;
 
     if ( !$branchcode && Koha::Library::Groups->search( { title => $title } )->count() ) {
         $template->param( error_duplicate_title => $title );
     }
     else {
-        my $group = Koha::Library::Group->new(
-            {
-                parent_id   => $parent_id,
-                title       => $title,
-                description => $description,
-                ft_hide_patron_info    => $ft_hide_patron_info,
-                ft_search_groups_opac  => $ft_search_groups_opac,
-                ft_search_groups_staff => $ft_search_groups_staff,
-                branchcode  => $branchcode,
-            }
-        )->store();
-
-        $template->param( added => $group );
+        my $group = eval {
+            Koha::Library::Group->new(
+                {
+                    parent_id              => $parent_id,
+                    title                  => $title,
+                    description            => $description,
+                    ft_hide_patron_info    => $ft_hide_patron_info,
+                    ft_search_groups_opac  => $ft_search_groups_opac,
+                    ft_search_groups_staff => $ft_search_groups_staff,
+                    ft_local_hold_group    => $ft_local_hold_group,
+                    branchcode             => $branchcode,
+                }
+            )->store();
+        };
+        if ($@) {
+            push @messages, { type => 'alert', code => 'error_on_insert' };
+        }
+        else {
+            $template->param( added => $group );
+        }
     }
 }
 elsif ( $action eq 'edit' ) {
@@ -77,6 +85,7 @@ elsif ( $action eq 'edit' ) {
     my $ft_hide_patron_info    = $cgi->param('ft_hide_patron_info')    || 0;
     my $ft_search_groups_opac  = $cgi->param('ft_search_groups_opac')  || 0;
     my $ft_search_groups_staff = $cgi->param('ft_search_groups_staff') || 0;
+    my $ft_local_hold_group = $cgi->param('ft_local_hold_group') || 0;
 
     if ($id) {
         my $group = Koha::Library::Groups->find($id);
@@ -88,6 +97,7 @@ elsif ( $action eq 'edit' ) {
                 ft_hide_patron_info      => $ft_hide_patron_info,
                 ft_search_groups_opac    => $ft_search_groups_opac,
                 ft_search_groups_staff   => $ft_search_groups_staff,
+                ft_local_hold_group   => $ft_local_hold_group,
             }
         )->store();
 
@@ -114,6 +124,6 @@ elsif ( $action eq 'delete' ) {
 
 my $root_groups = Koha::Library::Groups->get_root_groups();
 
-$template->param( root_groups => $root_groups, );
+$template->param( root_groups => $root_groups, messages => \@messages, );
 
 output_html_with_http_headers $cgi, $cookie, $template->output;

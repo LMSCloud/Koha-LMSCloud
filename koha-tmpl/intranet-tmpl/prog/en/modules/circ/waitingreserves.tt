@@ -1,33 +1,48 @@
+[% USE raw %]
 [% USE Asset %]
 [% USE Koha %]
 [% USE KohaDates %]
 [% USE Branches %]
+[% USE TablesSettings %]
 [% SET footerjs = 1 %]
 [% INCLUDE 'doc-head-open.inc' %]
-<title>Koha &rsaquo; Circulation &rsaquo; Holds awaiting pickup</title>
+<title>Holds awaiting pickup &rsaquo; Circulation &rsaquo; Koha</title>
 [% INCLUDE 'doc-head-close.inc' %]
-[% Asset.css("css/datatables.css") %]
 </head>
 
 <body id="circ_waitingreserves" class="circ">
 [% INCLUDE 'header.inc' %]
 [% INCLUDE 'circ-search.inc' %]
 
-<div id="breadcrumbs"><a href="/cgi-bin/koha/mainpage.pl">Home</a>
-&rsaquo; <a href="/cgi-bin/koha/circ/circulation-home.pl">Circulation</a>
-&rsaquo; <a href="/cgi-bin/koha/circ/waitingreserves.pl">Holds awaiting pickup</a>
-</div>
+<nav id="breadcrumbs" aria-label="Breadcrumb" class="breadcrumb">
+    <ol>
+        <li>
+            <a href="/cgi-bin/koha/mainpage.pl">Home</a>
+        </li>
+        <li>
+            <a href="/cgi-bin/koha/circ/circulation-home.pl">Circulation</a>
+        </li>
+        <li>
+            <a href="#" aria-current="page">Holds awaiting pickup</a>
+        </li>
+    </ol>
+</nav>
 
-[% IF Koha.Preference('CircSidebar') %]<div id="doc3" class="yui-t2">[% ELSE %]<div id="doc3" class="yui-t7">[% END %]
+<div class="main container-fluid">
+    <div class="row">
+        <div class="col-sm-12">
+            <main>
+                <div class="row">
 
-   <div id="bd">
-    <div id="yui-main">
-    [% IF Koha.Preference('CircSidebar') %]<div class="yui-b">[% END %]
-    <div class="yui-g">
+                [% IF Koha.Preference('CircSidebar') %]
+                    <div class="col-sm-10 col-sm-push-2">
+                [% ELSE %]
+                    <div class="col-sm-12">
+                [% END %]
 
         <h2>Holds awaiting pickup for your library on: [% show_date | $KohaDates %]
             [% IF ( all_branches_link ) %]
-            <span style="margin-left:20px"><a href="[% all_branches_link %]">
+            <span style="margin-left:20px"><a href="[% all_branches_link | url %]">
             View all libraries</a></span>
             [% END %]
         </h2>
@@ -35,11 +50,11 @@
         [% FOREACH cancel_result %]
             [% IF ( messagetransfert ) %]
                 <div class="dialog message">
-                    <h2>This item is on hold for pick-up at [% Branches.GetName( branchname ) %]</h2>
-                    <p><strong>[% nextreservtitle %]</strong> is on hold for <strong> [% nextreservsurname %], [% nextreservfirstname %]</strong>.
+                    <h2>This item is on hold for pick-up at [% Branches.GetName( branchname ) | html %]</h2>
+                    <p><strong>[% nextreservtitle | html %]</strong> is on hold for <strong> [% nextreservsurname | html %], [% nextreservfirstname | html %]</strong>.
                     Please retain this item and check it in to process the hold.
                     </p>
-                    <form name="cancelReservewithtransfert" action="waitingreserves.pl#[% tab %]" method="post">
+                    <form name="cancelReservewithtransfert" action="waitingreserves.pl#[% tab | html %]" method="post">
                         <button type="submit" class="approve"><i class="fa fa-fw fa-check"></i> OK</button>
                     </form>
                 </div>
@@ -47,10 +62,10 @@
             [% IF ( waiting ) %]
                 <div class="dialog message">
                     <h2>This item is on hold for pick-up at your library</h2>
-                    <p><strong>[% nextreservtitle %]</strong> is on hold for <strong>[% nextreservsurname %], [% nextreservfirstname %]</strong>.
+                    <p><strong>[% nextreservtitle | html %]</strong> is on hold for <strong>[% nextreservsurname | html %], [% nextreservfirstname | html %]</strong>.
                     Please retain this item and check it in to process the hold.
                     </p>
-                    <form name="cancelReservewithwaiting" action="waitingreserves.pl#[% tab %]" method="post">
+                    <form name="cancelReservewithwaiting" action="waitingreserves.pl#[% tab | html %]" method="post">
                         <button type="submit" class="approve"><i class="fa fa-fw fa-check"></i> OK</button>
                     </form>
                 </div>
@@ -59,165 +74,79 @@
     [% ELSE %]
         <div id="resultlist" class="toptabs">
             <ul>
-                <li><a href="#holdswaiting">Holds waiting: [% reservecount %]</a></li>
+                <li><a href="#holdswaiting">Holds waiting: [% reservecount | html %]</a></li>
                 <li>
                     <a href="#holdsover">
-                        Holds waiting over [% ReservesMaxPickUpDelay %] days: [% overcount %]
+                        Holds waiting over [% Koha.Preference('ReservesMaxPickUpDelay') | html %] days: [% overcount | html %]
                     </a>
                 </li>
             </ul>
             <div id="holdswaiting">
-            [% IF ( reserveloop ) %]
-               <table id="holdst">
-               <thead><tr>
-                    <th class="title-string">Waiting since</th>
-                    <th class="title-string">Date hold placed</th>
-                    <th class="anti-the">Title</th>
-                    <th>Patron</th>
-                    <th>Home branch</th>
-                    <th>Current location</th>
-                    <th>Call number</th>
-                    <th>Copy number</th>
-                    <th>Enumeration</th>
-                    <th>Action</th>
-               </tr></thead>
-               <tbody>[% FOREACH reserveloo IN reserveloop %]
-                <tr>
-                    <td><span title="[% reserveloo.waitingdate %]">[% reserveloo.waitingdate | $KohaDates %]</span></td>
-                    <td><span title="[% reserveloo.reservedate %]">[% reserveloo.reservedate | $KohaDates %]</span></td>
-                    <td>[% INCLUDE 'biblio-default-view.inc' biblionumber = reserveloo.biblionumber %]
-                        [% reserveloo.title |html %] [% FOREACH subtitl IN reserveloo.subtitle %] [% subtitl.subfield %][% END %]
-                        </a>
-                            [% UNLESS ( item_level_itypes ) %][% IF ( reserveloo.itemtype ) %]&nbsp; (<b>[% reserveloo.itemtype %]</b>)[% END %][% END %]
-                            <br />Barcode: [% reserveloo.barcode %]
-                    </td>
-                    <td><a href="/cgi-bin/koha/members/moremember.pl?borrowernumber=[% reserveloo.patron.borrowernumber %]">[% reserveloo.patron.surname%], [% reserveloo.patron.firstname %]</a>
-                        [% IF ( reserveloo.patron.phone ) %]<br />[% reserveloo.patron.phone %][% END %]
-                        [% IF ( reserveloo.patron.first_valid_email_address ) %]<br /><a href="mailto:[% reserveloo.patron.first_valid_email_address %]?subject=Hold waiting: [% reserveloo.title %]">
-                        [% reserveloo.patron.first_valid_email_address %]</a>[% END %]
-                    </td>
-                    <td>[% Branches.GetName( reserveloo.homebranch ) %]</td>
-                    <td>[% Branches.GetName( reserveloo.holdingbranch ) %]</td>
-                    <td>[% reserveloo.itemcallnumber %]</td>
-                    <td>[% reserveloo.copynumber %]</td>
-                    <td>[% reserveloo.enumchron %]</td>
-                    <td>
-                        <form name="cancelReserve" action="waitingreserves.pl" method="post">
-                            <input type="hidden" name="borrowernumber" value="[% reserveloo.borrowernum %]" />
-                            <input type="hidden" name="itemnumber" value="[% reserveloo.itemnumber %]" />
-                            <input type="hidden" name="fbr" value="[% reserveloo.holdingbranch %]" />
-                            <input type="hidden" name="tbr" value="[% reserveloo.homebranch %]" />
-                            <input type="hidden" name="tab" value="holdswaiting">
-                            [% IF ( reserveloo.dotransfer ) %]
-                            <input type="submit" value="Cancel hold and return to : [% Branches.GetName( reserveloo.homebranch ) %]" />
-                            [% ELSE %]
-                            <input type="submit" value="Cancel hold" />
-                            [% END %]
-                       </form>
-                    </td>
-                </tr>
-                [% END %]</tbody>
-        </table>
+        [% IF ( reserveloop ) %]
+            [% INCLUDE waiting_holds.inc table_name='holdst' reserveloop=reserveloop tab='holdwaiting' %]
         [% ELSE %]
             <div class="dialog message">No holds found.</div>
         [% END %]
         </div>
         <div id="holdsover">
-                [% IF ( ReservesMaxPickUpDelay ) %]<p>Holds listed here have been awaiting pickup for more than [% ReservesMaxPickUpDelay %] days.</p>[% END %]
-               [% IF ( overloop ) %]
-               <form name="cancelAllReserve" action="waitingreserves.pl" method="post">
-                   <input type="hidden" name="cancelall" value="1" />
-                   <input type="hidden" name="allbranches" value="[% allbranches %]" />
-                   <input type="hidden" name="tab" value="holdsover">
-                   [% IF TransferWhenCancelAllWaitingHolds %]
-                       <input type="submit" value="Cancel and Transfer all" />
-                   [% ELSE %]
-                       <input type="submit" value="Cancel all" />
+            [% IF ( ReservesMaxPickUpDelay ) %]<p>Holds listed here have been awaiting pickup for more than [% ReservesMaxPickUpDelay | html %] days.</p>[% END %]
+            [% IF ( overloop ) %]
+                <span id="holdsover-cancel-all">
+                   <form name="cancelAllReserve" action="waitingreserves.pl" method="post">
+                       <input type="hidden" name="cancelall" value="1" />
+                       <input type="hidden" name="allbranches" value="[% allbranches | html %]" />
+                       <input type="hidden" name="tab" value="holdsover">
+                       [% IF TransferWhenCancelAllWaitingHolds %]
+                           <input type="submit" value="Cancel and Transfer all" />
+                       [% ELSE %]
+                           <input type="submit" value="Cancel all" />
+                       [% END %]
+                   </form>
+                   [% UNLESS TransferWhenCancelAllWaitingHolds %]
+                        Only items that need not be transferred will be cancelled (TransferWhenCancelAllWaitingHolds syspref)
                    [% END %]
-               </form>
-               [% UNLESS TransferWhenCancelAllWaitingHolds %]
-                    Only items that need not be transferred will be cancelled (TransferWhenCancelAllWaitingHolds sypref)
-               [% END %]
-
-               <table id="holdso">
-               <thead><tr>
-                    <th class="title-string">Waiting since</th>
-                    <th class="title-string">Date hold placed</th>
-                    <th class="anti-the">Title</th>
-                    <th>Patron</th>
-                    <th>Home branch</th>
-                    <th>Current location</th>
-                    <th>Call number</th>
-                    <th>Copy number</th>
-                    <th>Enumeration</th>
-                    <th>Action</th>
-               </tr></thead>
-               <tbody>[% FOREACH overloo IN overloop %]
-                    <tr>
-                        <td><span title="[% overloo.waitingdate %]">[% overloo.waitingdate | $KohaDates %]</span></td>
-                        <td><span title="[% overloo.reservedate %]">[% overloo.reservedate | $KohaDates %]</span></td>
-                        <td>[% INCLUDE 'biblio-default-view.inc' biblionumber = overloo.biblionumber %][% overloo.title |html %]
-                            [% FOREACH subtitl IN overloo.subtitle %] [% subtitl.subfield %][% END %]
-                        </a>
-                            [% UNLESS ( item_level_itypes ) %][% IF ( overloo.itemtype ) %]&nbsp; (<b>[% overloo.itemtype %]</b>)[% END %][% END %]
-                        <br />Barcode: [% overloo.barcode %]
-                    </td>
-                    <td><a href="/cgi-bin/koha/members/moremember.pl?borrowernumber=[% overloo.patron.borrowernumber %]">[% overloo.patron.surname %], [% overloo.patron.firstname %]</a><br />[% overloo.patron.phone %]<br />
-                        [% IF ( overloo.patron.first_valid_email_address ) %]<a href="mailto:[% overloo.patron.first_valid_email_address %]?subject=Reservation: [% overloo.title |url %]">
-        [% overloo.patron.first_valid_email_address %]</a>[% END %]
-                    </td>
-                    <td>[% Branches.GetName( overloo.homebranch ) %]</td>
-                    <td>[% Branches.GetName( overloo.holdingbranch ) %]</td>
-                    <td>[% overloo.itemcallnumber %]</td>
-                    <td>[% overloo.copynumber %]</td>
-                    <td>[% overloo.enumchron %]</td>
-                    <td><form name="cancelReserve" action="waitingreserves.pl" method="post">
-                            <input type="hidden" name="borrowernumber" value="[% overloo.borrowernum %]" />
-                            <input type="hidden" name="itemnumber" value="[% overloo.itemnumber %]" />
-                            <input type="hidden" name="fbr" value="[% overloo.holdingbranch %]" />
-                            <input type="hidden" name="tbr" value="[% overloo.homebranch %]" />
-                            <input type="hidden" name="tab" value="holdsover">
-                            [% IF ( overloo.dotransfer ) %]
-                            <input type="submit" value="Cancel hold and return to : [% Branches.GetName( overloo.homebranch ) %]" />
-                            [% ELSE %]
-                            <input type="submit" value="Cancel hold" />
-                            [% END %]
-                       </form>
-                    </td>
-                </tr>
-                [% END %]</tbody>
-        </table>
-        [% ELSE %]
-            <div class="dialog message">No holds found.</div>
-                [% END %]
+                </span>
+               [% INCLUDE waiting_holds.inc table_name='holdso' reserveloop=overloop tab='holdsover' %]
+            [% ELSE %]
+                <div class="dialog message">No holds found.</div>
+            [% END %]
         </div>
         </div>
     [% END %]
 
-</div>
-</div>
-[% IF Koha.Preference('CircSidebar') %]
-</div>
-<div class="yui-b noprint">
-    [% INCLUDE 'circ-nav.inc' %]
-</div>
-[% END %]
-</div>
+                    [% IF Koha.Preference('CircSidebar') %]
+                            </div> <!-- /.col-sm-10.col-sm-push-2 -->
+                            <div class="col-sm-2 col-sm-pull-10">
+                                <aside>
+                                    [% INCLUDE 'circ-nav.inc' %]
+                                </aside>
+                            </div> <!-- /.col-sm-2.col-sm-pull-10 -->
+                        </div> <!-- /.row -->
+                    [% END %]
+
+            </main>
+        </div> <!-- /.col-sm-12 -->
+    </div> <!-- /.row -->
 
 [% MACRO jsinclude BLOCK %]
     [% INCLUDE 'datatables.inc' %]
-    <script type="text/javascript">
+    [% INCLUDE 'columns_settings.inc' %]
+    <script>
+        var holdst_columns_settings = [% TablesSettings.GetColumns( 'circ', 'holds_awaiting_pickup', 'holdst', 'json' ) | $raw %];
+        var holdso_columns_settings = [% TablesSettings.GetColumns( 'circ', 'holds_awaiting_pickup', 'holdso', 'json' ) | $raw %];
+
         $(document).ready(function() {
+
+            KohaTable("holdst", {
+                "sPaginationType": "full"
+            }, holdst_columns_settings);
+
+            KohaTable("holdso", {
+                "sPaginationType": "full"
+            }, holdso_columns_settings);
+
             $('#resultlist').tabs();
-            $("th a").hide();
-            $("#holdst,#holdso").dataTable($.extend(true, {}, dataTablesDefaults, {
-                "aoColumnDefs": [
-                    { "aTargets": [ -1 ], "bSortable": false, "bSearchable": false },
-                    { "sType": "anti-the", "aTargets" : [ "anti-the" ] },
-                    { "sType": "title-string", "aTargets" : [ "title-string" ] }
-                ],
-                "sPaginationType": "four_button"
-            }));
+
         });
     </script>
 [% END %]

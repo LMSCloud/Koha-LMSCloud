@@ -25,7 +25,7 @@ use Module::Load::Conditional qw/check_install/;
 
 BEGIN {
     if ( check_install( module => 'Test::DBIx::Class' ) ) {
-        plan tests => 38;
+        plan tests => 39;
     } else {
         plan skip_all => "Need Test::DBIx::Class"
     }
@@ -81,6 +81,8 @@ eval {
     $isbn = C4::Koha::NormalizeISBN({ isbn => '0788893777 (2 DVD 45th ed)', format => 'ISBN-10', strip_hyphens => 1 });
 };
 ok($@ eq '', 'NormalizeISBN does not throw exception when parsing invalid ISBN (bug 12243)');
+$isbn = C4::Koha::NormalizeISBN({ isbn => '0788893777 (2 DVD 45th ed)', format => 'ISBN-10', strip_hyphens => 1, return_invalid =>1 });
+is($isbn, '0788893777 (2 DVD 45th ed)', 'NormalizeISBN returns original string when converting to ISBN10 an ISBN starting with 979 (bug 13167)');
 
 eval {
     $isbn = C4::Koha::NormalizeISBN({ isbn => '979-10-90085-00-8', format => 'ISBN-10', strip_hyphens => 1 });
@@ -89,7 +91,7 @@ ok($@ eq '', 'NormalizeISBN does not throw exception when converting to ISBN10 a
 ok(!defined $isbn, 'NormalizeISBN returns undef when converting to ISBN10 an ISBN starting with 979 (bug 13167)');
 
 @isbns = GetVariationsOfISBNs('abc');
-is(scalar(@isbns), 0, 'zero variations returned of invalid ISBN');
+is(@isbns == 1 && $isbns[0] eq 'abc', 1, 'The unaltered version should be returned if invalid');
 
 is( C4::Koha::GetNormalizedISBN('9780062059994 (hardcover bdg.) | 0062059998 (hardcover bdg.)'), '0062059998', 'Test GetNormalizedISBN' );
 is( C4::Koha::GetNormalizedISBN('9780385753067 (trade) | 0385753063 (trade) | 9780385753074 (lib. bdg.) | 0385753071 (lib. bdg.)'), '0385753063', 'Test GetNormalizedISBN' );

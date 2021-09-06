@@ -4,7 +4,7 @@ use DateTime::TimeZone;
 
 use C4::Context;
 
-use Test::More tests => 67;
+use Test::More tests => 79;
 
 use Test::MockModule;
 use Test::Warn;
@@ -48,6 +48,9 @@ cmp_ok $date_string, 'eq', '2011-06-16 12:00 PM', 'iso output 12hr';
 
 $date_string = output_pref({ dt => $dt, dateformat => 'rfc3339' });
 like($date_string, qr/2011-06-16T12:00:00\+|-\d\d:\d\d/, 'RFC3339 output');
+
+$date_string = output_pref({ dt => $dt, dateformat => 'rfc3339', dateonly => 1 });
+is($date_string, '2011-06-16', 'RFC3339 output');
 
 # "notime" doesn't actually mean anything in this context, but we
 # can't pass undef or output_pref will try to access the database
@@ -122,6 +125,18 @@ isa_ok( $dt0, 'DateTime',
     'dt_from_string returns a DateTime object passed a zero rfc3339 day' );
 cmp_ok( $dt0->ymd(), 'eq', $ymd, 'Returned object corrects rfc3339 day 0' );
 
+$dt0 = dt_from_string( '2012-01-01T23:59:00.0Z', 'rfc3339' );
+cmp_ok( $dt0->epoch(), 'eq', '1325462340', 'dt_from_string handles seconds with 1 decimal place' );
+
+$dt0 = dt_from_string( '2012-01-01T23:59:00.00Z', 'rfc3339' );
+cmp_ok( $dt0->epoch(), 'eq', '1325462340', 'dt_from_string handles seconds with 2 decimal places' );
+
+$dt0 = dt_from_string( '2012-01-01t23:59:59.999z', 'rfc3339' );
+cmp_ok( $dt0->epoch(), 'eq', '1325462399', 'dt_from_string handles seconds with 3 decimal places' );
+
+$dt0 = dt_from_string( '2012-01-01T23:59:59.999Z+02:00', 'rfc3339' );
+cmp_ok( $dt0->epoch(), 'eq', '1325462399', 'dt_from_string handles seconds with 3 decimal places and a timezone' );
+
 # Return undef if passed mysql 0 dates
 $dt0 = dt_from_string( '0000-00-00', 'iso' );
 is( $dt0, undef, "undefined returned for 0 iso date" );
@@ -173,7 +188,7 @@ cmp_ok $date_string, 'eq', '12/11/2013 06:35 PM', 'as_due_date with hours and ti
 my $now = DateTime->now;
 is( dt_from_string, $now, "Without parameter, dt_from_string should return today" );
 
-my $module_context = new Test::MockModule('C4::Context');
+my $module_context = Test::MockModule->new('C4::Context');
 $module_context->mock(
     'tz',
     sub {
@@ -233,6 +248,40 @@ is( output_pref( { dt => $dt, dateonly => 1 } ), '01/01/1900', 'dt_from_string s
 # fallback
 $dt = dt_from_string('2015-01-31 01:02:03');
 is( output_pref( {dt => $dt} ), '31/01/2015 01:02', 'dt_from_string should fallback to sql format' );
+
+# 12hr format
+$dt = dt_from_string('2015-01-31 01:02 AM');
+is( output_pref( {dt => $dt} ), '31/01/2015 01:02', 'dt_from_string ' );
+$dt = dt_from_string('2015-01-31 01:02:03 AM');
+is( output_pref( {dt => $dt} ), '31/01/2015 01:02', 'dt_from_string ' );
+$dt = dt_from_string('2015-01-31 01:02 PM');
+is( output_pref( {dt => $dt} ), '31/01/2015 13:02', 'dt_from_string ' );
+$dt = dt_from_string('2015-01-31 01:02:03 PM');
+is( output_pref( {dt => $dt} ), '31/01/2015 13:02', 'dt_from_string ' );
+$dt = dt_from_string('2015-01-31 12:02 AM');
+is( output_pref( {dt => $dt} ), '31/01/2015 00:02', 'dt_from_string ' );
+$dt = dt_from_string('2015-01-31 12:02:03 AM');
+is( output_pref( {dt => $dt} ), '31/01/2015 00:02', 'dt_from_string ' );
+
+subtest 'TimeFormat 12hr' => sub {
+    plan tests => 4;
+
+    $dt = DateTime->new( year => 2020, month => 5, day => 28, hour => 12, minute => 49 );
+    t::lib::Mocks::mock_preference('TimeFormat', '12hr');
+    my $output = output_pref({ dt => $dt, dateformat => 'iso' });
+    $dt = dt_from_string( $output, 'iso' );
+    is( output_pref( {dt => $dt} ), '28/05/2020 12:49 PM', "12 NOON formatted correctly in 12hr format" );
+    t::lib::Mocks::mock_preference('TimeFormat', '24hr');
+    is( output_pref( {dt => $dt} ), '28/05/2020 12:49' , "12 NOON formatted correctly in 24hr format" );
+
+    $dt = DateTime->new( year => 2020, month => 5, day => 28, hour => 0, minute => 49 );
+    t::lib::Mocks::mock_preference('TimeFormat', '12hr');
+    $output = output_pref({ dt => $dt, dateformat => 'iso' });
+    $dt = dt_from_string( $output, 'iso' );
+    is( output_pref( {dt => $dt} ), '28/05/2020 12:49 AM', "12 MIDNIGHT formatted correctly in 12hr format" );
+    t::lib::Mocks::mock_preference('TimeFormat', '24hr');
+    is( output_pref( {dt => $dt} ), '28/05/2020 00:49', "12 MIDNIGHT formatted correctly in 24hr format" );
+};
 
 # output_pref with no parameters, single parameter (no hash)
 is( output_pref(), undef, 'Call output_pref without parameters' );

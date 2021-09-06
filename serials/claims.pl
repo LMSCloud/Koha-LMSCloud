@@ -27,7 +27,7 @@ use C4::Context;
 use C4::Letters;
 use C4::Koha qw( GetAuthorisedValues );
 
-use Koha::AdditionalField;
+use Koha::AdditionalFields;
 use Koha::CsvProfiles;
 
 my $input = CGI->new;
@@ -43,7 +43,6 @@ my ($template, $loggedinuser, $cookie)
 = get_template_and_user({template_name => 'serials/claims.tt',
             query => $input,
             type => 'intranet',
-            authnotrequired => 0,
             flagsrequired => {serials => 'claim_serials'},
             debug => 1,
             });
@@ -57,13 +56,7 @@ for my $s (@{$supplierlist} ) {
     }
 }
 
-my $additional_fields = Koha::AdditionalField->all( { tablename => 'subscription', searchable => 1 } );
-for my $field ( @$additional_fields ) {
-    if ( $field->{authorised_value_category} ) {
-        $field->{authorised_value_choices} = GetAuthorisedValues( $field->{authorised_value_category} );
-    }
-}
-
+my $additional_fields = Koha::AdditionalFields->search( { tablename => 'subscription', searchable => 1 } );
 
 my @serialnums=$input->multi_param('serialid');
 if (@serialnums) { # i.e. they have been flagged to generate claims
@@ -91,11 +84,13 @@ my $letters = GetLetters({ module => 'claimissues' });
 
 my @missingissues;
 if ($supplierid) {
+    my $supplier = Koha::Acquisition::Booksellers->find( $supplierid );
     @missingissues = GetLateOrMissingIssues($supplierid);
     foreach my $issue (@missingissues) {
         $issue->{cannot_claim} = 1
           unless C4::Serials::can_claim_subscription($issue);
     }
+    $template->param( suppliername => $supplier->name );
 }
 
 $template->param(

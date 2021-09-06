@@ -1,7 +1,8 @@
+[% USE raw %]
 [% USE Asset %]
 [% SET footerjs = 1 %]
 [% INCLUDE 'doc-head-open.inc' %]
-<title>Koha &rsaquo; Circulation &rsaquo; Offline circulation file upload</title>
+<title>Offline circulation file upload &rsaquo; Circulation &rsaquo; Koha</title>
 [% INCLUDE 'doc-head-close.inc' %]
 </head>
 
@@ -9,7 +10,33 @@
 [% INCLUDE 'header.inc' %]
 [% INCLUDE 'circ-search.inc' %]
 
-<div id="breadcrumbs"><a href="/cgi-bin/koha/mainpage.pl">Home</a> &rsaquo; <a href="/cgi-bin/koha/circ/circulation-home.pl">Circulation</a> &rsaquo; [% IF ( transactions_loaded ) %] <a href="/cgi-bin/koha/offline_circ/process_koc.pl">Offline circulation file upload</a> &rsaquo; Results[% ELSE %] Offline circulation file upload[% END %]</div>
+<nav id="breadcrumbs" aria-label="Breadcrumb" class="breadcrumb">
+    <ol>
+        <li>
+            <a href="/cgi-bin/koha/mainpage.pl">Home</a>
+        </li>
+        <li>
+            <a href="/cgi-bin/koha/circ/circulation-home.pl">Circulation</a>
+        </li>
+
+        [% IF ( transactions_loaded ) %]
+            <li>
+                <a href="/cgi-bin/koha/offline_circ/process_koc.pl">Offline circulation file upload</a>
+            </li>
+            <li>
+                <a href="#" aria-current="page">
+                    Results
+                </a>
+            </li>
+        [% ELSE %]
+            <li>
+                <a href="#" aria-current="page">
+                    Offline circulation file upload
+                </a>
+            </li>
+        [% END %]
+    </ol>
+</nav>
 
 <div class="main container-fluid">
     <div class="row">
@@ -21,14 +48,14 @@
   [% FOREACH message IN messages %]
     [% IF ( message.message ) %]
 	<div class="dialog alert">
-		[% IF ( message.ERROR_file_version ) %]<p>Warning: This file is version [% message.upload_version %], but I only know how to import version [% message.current_version %]. I'll try my best.</p>[% END %]
+		[% IF ( message.ERROR_file_version ) %]<p>Warning: This file is version [% message.upload_version | html %], but I only know how to import version [% message.current_version | html %]. I'll try my best.</p>[% END %]
 	</div>
 	[% END %]
-	[% IF ( message.ERROR_no_borrower_from_item ) %]<p>Warning: Unable to determine patron from item barcode ([% message.badbarcode %]). Cannot check in.</p>[% END %]
-	[% IF ( message.issue ) %]<p>Checked out <a href="/cgi-bin/koha/catalogue/detail.pl?biblionumber=[% message.biblionumber %]">[% message.title |html %]</a> ([% message.barcode %]) to <a href="/cgi-bin/koha/members/moremember.pl?borrowernumber=[% message.borrowernumber %]">[% message.firstname %] [% message.surname %]</a> ([% message.cardnumber %]): [% message.datetime %]</p>[% END %]
-	[% IF ( message.renew ) %]<p>Renewed <a href="/cgi-bin/koha/catalogue/detail.pl?biblionumber=[% message.biblionumber %]">[% message.title |html %]</a>  ([% message.barcode %]) for <a href="/cgi-bin/koha/members/moremember.pl?borrowernumber=[% message.borrowernumber %]">[% message.firstname %] [% message.surname %]</a> ([% message.cardnumber %]): [% message.datetime %]</p>[% END %]
-	[% IF ( message.return ) %]<p>Checked in <a href="/cgi-bin/koha/catalogue/detail.pl?biblionumber=[% message.biblionumber %]">[% message.title |html %]</a> ([% message.barcode %]) from <a href="/cgi-bin/koha/members/moremember.pl?borrowernumber=[% message.borrowernumber %]">[% message.firstname %] [% message.surname %]</a> ([% message.cardnumber %]): [% message.datetime %]</p>[% END %]
-	[% IF ( message.payment ) %]<p>Accepted payment ([% message.amount %]) from <a href="/cgi-bin/koha/members/moremember.pl?borrowernumber=[% message.borrowernumber %]">[% message.firstname %] [% message.surname %]</a> ([% message.cardnumber %]): [% message.datetime %]</p>[% END %]
+	[% IF ( message.ERROR_no_borrower_from_item ) %]<p>Warning: Unable to determine patron from item barcode ([% message.badbarcode | html %]). Cannot check in.</p>[% END %]
+    [% IF ( message.issue ) %]<p>Checked out <a href="/cgi-bin/koha/catalogue/detail.pl?biblionumber=[% message.biblionumber | uri %]">[% message.title | html %]</a> ([% message.barcode | html %]) to <a href="/cgi-bin/koha/members/moremember.pl?borrowernumber=[% message.borrowernumber | html %]">[% message.firstname | html %] [% message.surname | html %]</a> ([% message.cardnumber | html %]): [% message.datetime | html %]</p>[% END %]
+    [% IF ( message.renew ) %]<p>Renewed <a href="/cgi-bin/koha/catalogue/detail.pl?biblionumber=[% message.biblionumber | uri %]">[% message.title | html %]</a>  ([% message.barcode | html %]) for <a href="/cgi-bin/koha/members/moremember.pl?borrowernumber=[% message.borrowernumber | html %]">[% message.firstname | html %] [% message.surname | html %]</a> ([% message.cardnumber | html %]): [% message.datetime | html %]</p>[% END %]
+    [% IF ( message.return ) %]<p>Checked in <a href="/cgi-bin/koha/catalogue/detail.pl?biblionumber=[% message.biblionumber | uri %]">[% message.title | html %]</a> ([% message.barcode | html %]) from <a href="/cgi-bin/koha/members/moremember.pl?borrowernumber=[% message.borrowernumber | html %]">[% message.firstname | html %] [% message.surname | html %]</a> ([% message.cardnumber | html %]): [% message.datetime | html %]</p>[% END %]
+    [% IF ( message.payment ) %]<p>Accepted payment ([% message.amount | html %]) from <a href="/cgi-bin/koha/members/moremember.pl?borrowernumber=[% message.borrowernumber | uri %]">[% message.firstname | html %] [% message.surname | html %]</a> ([% message.cardnumber | html %]): [% message.datetime | html %]</p>[% END %]
   [% END %]
 [% ELSE %]
    <h2>Upload offline circulation data</h2>
@@ -68,9 +95,9 @@
 </div>
 
 [% MACRO jsinclude BLOCK %]
-    [% Asset.js("js/background-job-progressbar.js") %]
-    [% Asset.js("js/file-upload.js") %]
-    <script type="text/javascript">
+    [% Asset.js("js/background-job-progressbar.js") | $raw %]
+    [% Asset.js("js/file-upload.js") | $raw %]
+    <script>
         var xhr;
         $(document).ready(function(){
             $("#enqueuefile").hide();

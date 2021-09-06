@@ -10,7 +10,8 @@
 #                    if enabled, start:
 #                      - a Zebra server (using koha-zebra)
 #                      - a Plack server (using koha-plack)
-#                      - a SIP server   (using koha-start-sip)
+#                      - a SIP server   (using koha-sip)
+#                      - a Z3950 server (using koha-z3950-responder)
 ### END INIT INFO
 
 # Author: Lars Wirzenius <lars@catalyst.net.nz>
@@ -58,8 +59,10 @@ do_start()
     # We insure all required directories exist, including disabled ones.
     koha-create-dirs $(koha-list)
     koha-zebra --start $(koha-list --enabled)
-    koha-start-sip $(koha-list --enabled)
+    koha-sip   --start $(koha-list --enabled --sip)
     koha-plack --start $(koha-list --enabled --plack)
+    koha-z3950-responder --start --quiet $(koha-list --enabled --z3950)
+    koha-worker --start $(koha-list --enabled)
 
     if [ "$USE_INDEXER_DAEMON" = "yes" ]; then
         koha-indexer --start --quiet $(koha-list --enabled)
@@ -73,8 +76,10 @@ do_stop()
 {
     # We stop everything, including disabled ones.
     koha-zebra --stop $(koha-list) || true
-    koha-stop-sip $(koha-list) || true
+    koha-sip   --stop $(koha-list --sip)
     koha-plack --stop --quiet $(koha-list --enabled --plack)
+    koha-z3950-responder --stop --quiet $(koha-list --enabled --z3950)
+    koha-worker --stop --quiet $(koha-list --enabled)
 
     if [ "$USE_INDEXER_DAEMON" = "yes" ]; then
         koha-indexer --stop --quiet $(koha-list --enabled)
@@ -86,9 +91,10 @@ do_stop()
 #
 do_reload() {
     koha-zebra --restart $(koha-list --enabled)
-    koha-stop-sip $(koha-list) || true
-    koha-start-sip $(koha-list --enabled)
+    koha-sip   --restart $(koha-list --enabled --sip)
     koha-plack --restart --quiet $(koha-list --enabled --plack)
+    koha-z3950-responder --restart --quiet $(koha-list --enabled --z3950)
+    koha-worker --restart --quiet $(koha-list --enabled)
 
     if [ "$USE_INDEXER_DAEMON" = "yes" ]; then
         koha-indexer --restart --quiet $(koha-list --enabled)
@@ -149,6 +155,24 @@ plack_status()
     done
 }
 
+#
+# Function that shows the status of the Z39.50/SRU server daemon for
+# enabled instances
+#
+z3950_status()
+{
+    for instance in $(koha-list --enabled --z3950); do
+
+        log_daemon_msg "Z39.50/SRU daemon running for instance ${instance}"
+
+        if is_z3950_running $instance ; then
+            log_end_msg 0
+        else
+            log_end_msg 1
+        fi
+    done
+}
+
 case "$1" in
   start)
 	[ "$VERBOSE" != no ] && log_daemon_msg "Starting $DESC" "$NAME"
@@ -191,6 +215,7 @@ case "$1" in
         zebra_status
         sip_status
         plack_status
+        z3950_status
         ;;
   *)
     echo "Usage: $SCRIPTNAME {start|stop|restart|force-reload|status}" >&2

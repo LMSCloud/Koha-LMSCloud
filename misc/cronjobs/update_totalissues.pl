@@ -30,6 +30,9 @@ BEGIN {
 
 use Getopt::Long;
 use Pod::Usage;
+
+use Koha::Script -cron;
+use Koha::DateUtils qw/ dt_from_string /;
 use C4::Context;
 use C4::Biblio;
 use C4::Log;
@@ -69,7 +72,7 @@ my $result = GetOptions(
     'h|help'       => \$want_help
 );
 
-binmode( STDOUT, ":utf8" );
+binmode( STDOUT, ":encoding(UTF-8)" );
 
 if ( defined $since && defined $interval ) {
     print "The --since and --interval options are mutually exclusive.\n\n";
@@ -120,7 +123,7 @@ sub process_items {
 
 sub process_stats {
     if ($interval) {
-        my $dt = DateTime->now;
+        my $dt = dt_from_string();
 
         my %units = (
             h => 'hours',
@@ -136,21 +139,15 @@ sub process_stats {
             $dt->subtract( $units{$unit} => $1 ) );
     }
     my $limit = '';
-    $limit = " AND statistics.datetime >= ?" if ( $interval || $since );
+    $limit = " WHERE statistics.datetime >= ?" if ( $interval || $since );
 
     my $query =
-"SELECT biblio.biblionumber, COUNT(statistics.itemnumber) FROM biblio LEFT JOIN items ON (biblio.biblionumber=items.biblionumber) LEFT JOIN statistics ON (items.itemnumber=statistics.itemnumber) WHERE statistics.type = 'issue' $limit GROUP BY biblio.biblionumber;";
+"SELECT biblio.biblionumber, COUNT(statistics.itemnumber) FROM biblio\
+ LEFT JOIN items ON (biblio.biblionumber=items.biblionumber)\
+ LEFT JOIN statistics ON (items.itemnumber=statistics.itemnumber AND statistics.type = 'issue')
+ $limit\
+ GROUP BY biblio.biblionumber";
     process_query( $query, $limit );
-
-    unless ($incremental) {
-        $query =
-"SELECT biblio.biblionumber, 0 FROM biblio LEFT JOIN items ON (biblio.biblionumber=items.biblionumber) LEFT JOIN statistics ON (items.itemnumber=statistics.itemnumber) WHERE statistics.itemnumber IS NULL GROUP BY biblio.biblionumber;";
-        process_query( $query, '' );
-
-        $query =
-"SELECT biblio.biblionumber, 0 FROM biblio LEFT JOIN items ON (biblio.biblionumber=items.biblionumber) WHERE items.itemnumber IS NULL GROUP BY biblio.biblionumber;";
-        process_query( $query, '' );
-    }
 
     $dbh->commit();
 }

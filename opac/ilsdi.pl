@@ -27,18 +27,19 @@ use C4::Context;
 use List::MoreUtils qw(any);
 use XML::Simple;
 use CGI qw ( -utf8 );
+use Net::Netmask;
 
 =head1 DLF ILS-DI for Koha
 
 This script is a basic implementation of ILS-DI protocol for Koha.
 It acts like a dispatcher, that get the CGI request, check required and 
-optionals arguments, call a function from C4::ILS-DI, and finaly
+optionals arguments, call a function from C4::ILS-DI, and finally
 outputs the returned hashref as XML.
 
 =cut
 
 # Instanciate the CGI request
-my $cgi = new CGI;
+my $cgi = CGI->new;
 
 # List of available services, sorted by level
 my @services = (
@@ -104,12 +105,12 @@ my %optional = (
     'GetAuthorityRecords' => ['schema'],
     'LookupPatron'        => ['id_type'],
     'AuthenticatePatron'  => [],
-    'GetPatronInfo'       => [ 'show_contact', 'show_fines', 'show_holds', 'show_loans', 'show_attributes' ],
+    'GetPatronInfo'       => [ 'show_contact', 'show_fines', 'show_holds', 'show_loans', 'loans_per_page', 'loans_page', 'show_attributes' ],
     'GetPatronStatus'     => [],
     'GetServices'         => [],
     'RenewLoan'           => ['desired_due_date'],
-    'HoldTitle'  => [ 'pickup_location', 'needed_before_date', 'pickup_expiry_date' ],
-    'HoldItem'   => [ 'pickup_location', 'needed_before_date', 'pickup_expiry_date' ],
+    'HoldTitle'  => [ 'pickup_location', 'start_date', 'expiry_date' ],
+    'HoldItem'   => [ 'pickup_location', 'start_date', 'expiry_date' ],
     'CancelHold' => [],
 );
 
@@ -126,6 +127,14 @@ unless ( $cgi->param('service') ) {
     output_html_with_http_headers $cgi, $cookie, $template->output;
     exit 0;
 }
+
+# Set the userenv
+C4::Context->_new_userenv( 'ILSDI_'.time() );
+C4::Context->set_userenv(
+    undef, undef, undef, 'ILSDI', 'ILSDI',
+    undef, undef, undef, undef, undef,
+);
+C4::Context->interface('opac');
 
 # If user requested a service description, then display it
 if ( scalar $cgi->param('service') eq "Describe" and any { scalar $cgi->param('verb') eq $_ } @services ) {
@@ -155,12 +164,20 @@ unless ( C4::Context->preference('ILS-DI') ) {
 }
 
 # If the remote address is not allowed, redirect to 403
-my @AuthorizedIPs = split(/,/, C4::Context->preference('ILS-DI:AuthorizedIPs'));
-if ( @AuthorizedIPs # If no filter set, allow access to everybody
-    and not any { $ENV{'REMOTE_ADDR'} eq $_ } @AuthorizedIPs # IP Check
-    ) {
-    $out->{'code'} = "NotAllowed";
-    $out->{'message'} = "Unauthorized IP address: ".$ENV{'REMOTE_ADDR'}.".";
+my @AuthorizedIPs = split( /,/, C4::Context->preference('ILS-DI:AuthorizedIPs') );
+if (@AuthorizedIPs) {    # If no filter set, allow access to everybody
+    my $authorized = 0;
+    foreach my $ip (@AuthorizedIPs) {
+        my $netmask = Net::Netmask->new2($ip);
+        if ( $netmask && $netmask->match( $ENV{REMOTE_ADDR} ) ) {
+            $authorized = 1;
+            last;
+        }
+    }
+    unless ($authorized) {
+        $out->{'code'} = "NotAllowed";
+        $out->{'message'} = "Unauthorized IP address: $ENV{REMOTE_ADDR}.";
+    }
 }
 
 my $service = $cgi->param('service') || "ilsdi";

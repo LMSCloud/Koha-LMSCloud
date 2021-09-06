@@ -30,6 +30,7 @@ use Koha::Patron::Attribute;
 use Koha::Patron::Modification;
 
 use JSON;
+use List::Util qw /any none/;
 
 use base qw(Koha::Objects);
 
@@ -116,7 +117,12 @@ sub pending {
 
     my @m;
     while ( my $row = $sth->fetchrow_hashref() ) {
+        my @changed_keys = split /,/, $row->{changed_fields};
         foreach my $key ( keys %$row ) {
+            if ($key eq 'changed_fields') {
+                delete $row->{$key};
+                next;
+            }
             if ( defined $row->{$key} && $key eq 'extended_attributes' ) {
                 my $attributes = from_json( $row->{$key} );
                 my @pending_attributes;
@@ -125,14 +131,16 @@ sub pending {
                         Koha::Patron::Attribute->new(
                         {   borrowernumber => $row->{borrowernumber},
                             code           => $attr->{code},
-                            attribute      => $attr->{value}
+                            attribute      => exists $attr->{attribute} ? $attr->{attribute} : $attr->{value},
                         }
                         );
                 }
 
                 $row->{$key} = \@pending_attributes;
             }
-            delete $row->{$key} unless defined $row->{$key};
+            if (none { $_ eq $key } @changed_keys) {
+                delete $row->{$key} unless defined $row->{$key};
+            }
         }
 
         push( @m, $row );

@@ -1,16 +1,19 @@
 use Modern::Perl;
 
-use Test::More tests => 96;
+use Test::More tests => 126;
 
+use Koha::Database;
 use Koha::SimpleMARC;
+
+use t::lib::Mocks;
 
 use_ok("MARC::Field");
 use_ok("MARC::Record");
 use_ok("C4::MarcModificationTemplates");
 
+my $schema = Koha::Database->new->schema;
+$schema->storage->txn_begin;
 my $dbh = C4::Context->dbh;
-$dbh->{AutoCommit} = 0;
-$dbh->{RaiseError} = 1;
 
 $dbh->do(q|DELETE FROM marc_modification_templates|);
 
@@ -42,9 +45,17 @@ is( AddModificationTemplateAction(
     'Copy field 606$a to 607$a unless 606$a matches RegEx m^AJAX'
 ), 1, "Add third action");
 
+is( AddModificationTemplateAction(
+    $template_id, 'add_field', 0,
+    '650', 'a', 'Additional', '', '',
+    '', '', '',
+    'unless', '650', 'a', 'exists', '', '',
+    'Add field 650$aAdditional unless 650$a exists'
+), 1, "Add fourth action");
 # Getter
+
 my @actions = GetModificationTemplateActions( $template_id );
-is( @actions, 3, "3 actions are insered");
+is( @actions, 4, "4 actions are inserted");
 
 for my $action ( @actions ) {
     isnt( GetModificationTemplateAction( $action->{mmta_id} ), undef, "action with id $action->{mmta_id} exists" );
@@ -73,7 +84,7 @@ is( $second_action->{conditional_comparison}, 'equals', "test conditional_compar
 
 my $third_action = $actions[2];
 is( $third_action->{ordering}, 3, "test ordering for third action" );
-is( $third_action->{action}, 'copy_field', "test  factionor third action" );
+is( $third_action->{action}, 'copy_field', "test action for third action" );
 is( $third_action->{from_field}, '606', "test from_field for third action" );
 is( $third_action->{from_subfield}, 'a', "test from_subfield for third action" );
 is( $third_action->{to_field}, '607', "test to_field for third action" );
@@ -84,6 +95,18 @@ is( $third_action->{conditional_subfield}, 'a', "test conditional_subfield for t
 is( $third_action->{conditional_comparison}, 'not_equals', "test conditional_comparison for third action" );
 is( $third_action->{conditional_value}, '^AJAX', "test conditional_value for third action" );
 
+my $fourth_action = $actions[3];
+is( $fourth_action->{ordering}, 4, "test ordering for fourth action" );
+is( $fourth_action->{action}, 'add_field', "test action for fourth action" );
+is( $fourth_action->{from_field}, '650', "test from_field for fourth action" );
+is( $fourth_action->{from_subfield}, 'a', "test from_subfield for fourth action" );
+is( $fourth_action->{to_field}, '', "test to_field for fourth action" );
+is( $fourth_action->{to_subfield}, '', "test to_subfield for fourth action" );
+is( $fourth_action->{conditional}, 'unless', "test conditional for fourth action" );
+is( $fourth_action->{conditional_field}, '650', "test conditional_field for fourth action" );
+is( $fourth_action->{conditional_subfield}, 'a', "test conditional_subfield for fourth action" );
+is( $fourth_action->{conditional_comparison}, 'exists', "test conditional_comparison for fourth action" );
+is( $fourth_action->{conditional_value}, '', "test conditional_value for fourth action" );
 
 # Modifications
 is( ModModificationTemplateAction(
@@ -111,42 +134,34 @@ is( $second_action->{conditional_comparison}, 'equals', "test conditional_compar
 is( MoveModificationTemplateAction( $actions[2]->{mmta_id}, 'top' ), '1', 'Move the third action on top' );
 is( MoveModificationTemplateAction( $actions[0]->{mmta_id}, 'bottom' ), '1', 'Move the first action on bottom' );
 
-is( GetModificationTemplateAction( $actions[0]->{mmta_id} )->{ordering}, '3', 'First becomes third' );
+is( GetModificationTemplateAction( $actions[0]->{mmta_id} )->{ordering}, '4', 'First becomes fourth' );
 is( GetModificationTemplateAction( $actions[1]->{mmta_id} )->{ordering}, '2', 'Second stays second' );
 is( GetModificationTemplateAction( $actions[2]->{mmta_id} )->{ordering}, '1', 'Third becomes first' );
+is( GetModificationTemplateAction( $actions[3]->{mmta_id} )->{ordering}, '3', 'Fourth becomes third' );
 
+is( MoveModificationTemplateAction( $actions[0]->{mmta_id}, 'up' ), '1', 'Move up the first action (was fourth)' );
 is( MoveModificationTemplateAction( $actions[0]->{mmta_id}, 'up' ), '1', 'Move up the first action (was third)' );
-is( MoveModificationTemplateAction( $actions[0]->{mmta_id}, 'up' ), '1', 'Move up the first action (was second)' );
-is( MoveModificationTemplateAction( $actions[2]->{mmta_id}, 'down' ), '1', 'Move down the third action (was second)' );
+is( MoveModificationTemplateAction( $actions[2]->{mmta_id}, 'down' ), '1', 'Move down the third action (was first)' );
 
 is( GetModificationTemplateAction( $actions[0]->{mmta_id} )->{ordering}, '1', 'First becomes again first' );
-is( GetModificationTemplateAction( $actions[1]->{mmta_id} )->{ordering}, '2', 'Second stays again second' );
-is( GetModificationTemplateAction( $actions[2]->{mmta_id} )->{ordering}, '3', 'Third becomes again third' );
+is( GetModificationTemplateAction( $actions[1]->{mmta_id} )->{ordering}, '3', 'Second becomes third' );
+is( GetModificationTemplateAction( $actions[2]->{mmta_id} )->{ordering}, '2', 'Third becomes second' );
+is( GetModificationTemplateAction( $actions[3]->{mmta_id} )->{ordering}, '4', 'Fourth becomes again fourth' );
 
 # Cleaning
-is( DelModificationTemplateAction( $actions[0]->{mmta_id} ), 2, "Delete the first action, 2 others are reordered" );
+is( DelModificationTemplateAction( $actions[0]->{mmta_id} ), 3, "Delete the first action, 2 others are reordered" );
 is( GetModificationTemplateAction( $actions[0]->{mmta_id} ), undef, "first action does not exist anymore" );
 
 is( DelModificationTemplate( $template_id ), 1, "The template has been deleted" );
 
 is( GetModificationTemplateAction( $actions[1]->{mmta_id} ), undef, "second action does not exist anymore" );
 is( GetModificationTemplateAction( $actions[2]->{mmta_id} ), undef, "third action does not exist anymore" );
+is( GetModificationTemplateAction( $actions[3]->{mmta_id} ), undef, "fourth action does not exist anymore" );
 
 is( GetModificationTemplateActions( $template_id ), 0, "There is no action for deleted template" );
 
 # ModifyRecordWithTemplate
-my @USERENV = (
-    1,
-    'test',
-    'MASTERTEST',
-    'Test',
-    'Test',
-    't',
-    'Test',
-    0,
-);
-C4::Context->_new_userenv ('DUMMY_SESSION_ID');
-C4::Context->set_userenv ( @USERENV );
+t::lib::Mocks::mock_userenv();
 
 $template_id = AddModificationTemplate("new_template_test");
 like( $template_id, qr|^\d+$|, "new template returns an id" );
@@ -215,8 +230,31 @@ is( AddModificationTemplateAction(
     'Update non existent field 999$a with "non existent"'
 ), 1, 'Add eighth action: update field non existent 999$a with "non existent."');
 
-my $record = new_record();
+is( AddModificationTemplateAction(
+    $template_id, 'update_field', 0,
+    '999', 'a', 'existent - updated.', '', '',
+    '', '', '',
+    '', '', '', '', '', '',
+    'Update existent field 999$a with "existent - updated."'
+), 1, 'Add ninth action: update field non existent 999$a with "existent - updated."');
 
+is( AddModificationTemplateAction(
+    $template_id, 'add_field', 0,
+    '999', 'a', 'additional existent.', '', '',
+    '', '', '',
+    '', '', '', '', '', '',
+    'Add new existent field 999$a with "additional existent"'
+), 1, 'Add tenth action: add additional field existent 999$a with "additional existent."');
+
+is( AddModificationTemplateAction(
+    $template_id, 'add_field', 0,
+    '007', '', 'vxcdq', '', '',
+    '', '', '',
+    '', '', '', '', '', '',
+    'Add new existent field 999$a with "additional existent"'
+), 1, 'Add eleventh action: add additional field existent 007');
+
+my $record = new_record();
 is( ModifyRecordWithTemplate( $template_id, $record ), undef, "The ModifyRecordWithTemplate returns undef" );
 
 my $expected_record = expected_record_1();
@@ -377,6 +415,51 @@ subtest "not_equals" => sub {
     is_deeply( $record, $expected_record, 'None 650 have been moved, no $650$b exists' );
 };
 
+subtest "when conditional field doesn't match the from field" => sub {
+    plan tests => 3;
+    $dbh->do(q|DELETE FROM marc_modification_templates|);
+    my $template_id = AddModificationTemplate("template_name");
+    AddModificationTemplateAction(
+        $template_id, 'delete_field', 0,
+        '650', '9', '', '', '',
+        '', '', '',
+        'if', '245', 'a', 'equals', 'Bad title', '',
+        'Delete fields 650$9 if 245$a == "Bad title"'
+    );
+    my $record = new_record();
+    ModifyRecordWithTemplate( $template_id, $record );
+    my $expected_record = expected_record_3();
+    is_deeply( $record, $expected_record, '650$9 fields have been deleted when 245$a == "Bad title"' );
+
+    $dbh->do(q|DELETE FROM marc_modification_templates|);
+    $template_id = AddModificationTemplate("template_name");
+    AddModificationTemplateAction(
+        $template_id, 'delete_field', 0,
+        '650', '9', '', '', '',
+        '', '', '',
+        'if', '245', 'a', 'exists', '', '',
+        'Delete fields 650$9 if 245$a exists'
+    );
+    $record = new_record();
+    ModifyRecordWithTemplate( $template_id, $record );
+    $expected_record = expected_record_3();
+    is_deeply( $record, $expected_record, '650$9 fields have been deleted because 245$a exists' );
+
+    $dbh->do(q|DELETE FROM marc_modification_templates|);
+    $template_id = AddModificationTemplate("template_name");
+    AddModificationTemplateAction(
+        $template_id, 'delete_field', 1,
+        '650', '', '', '', '',
+        '', '', '',
+        'if', '245', 'a', 'exists', '', '',
+        'Delete 1st field 650 if 245$a exists'
+    );
+    $record = new_record();
+    ModifyRecordWithTemplate( $template_id, $record );
+    $expected_record = expected_record_4();
+    is_deeply( $record, $expected_record, '1st 650 field has been deleted because 245$a exists' );
+};
+
 sub new_record {
     my $record = MARC::Record->new;
     $record->leader('03174nam a2200445 a 4500');
@@ -454,7 +537,14 @@ sub expected_record_1 {
         ),
         MARC::Field->new(
             999, ' ', ' ',
-            a => 'non existent.',
+            a => 'existent - updated.',
+        ),
+        MARC::Field->new(
+            999, ' ', ' ',
+            a => 'additional existent.',
+        ),
+        MARC::Field->new(
+           '007', 'vxcdq',
         ),
     );
     $record->append_fields(@fields);
@@ -502,7 +592,219 @@ sub expected_record_2 {
     return $record;
 }
 
-# C4::Context->userenv
-sub Mock_userenv {
-    return { branchcode => 'CPL' };
+sub expected_record_3 {
+    my $record = MARC::Record->new;
+    $record->leader('03174nam a2200445 a 4500');
+    my @fields = (
+        MARC::Field->new(
+            100, '1', ' ',
+            a => 'Knuth, Donald Ervin',
+            d => '1938',
+        ),
+        MARC::Field->new(
+            245, '1', '4',
+            a => 'The art of computer programming',
+            c => 'Donald E. Knuth.',
+        ),
+        MARC::Field->new(
+            245, '1', '4',
+            a => 'Bad title',
+            c => 'Donald E. Knuth.',
+        ),
+        MARC::Field->new(
+            650, ' ', '0',
+            a => 'Computer programming.',
+        ),
+        MARC::Field->new(
+            650, ' ', '0',
+            a => 'Computer programming.',
+        ),
+        MARC::Field->new(
+            952, ' ', ' ',
+            p => '3010023917',
+            y => 'BK',
+            c => 'GEN',
+            d => '2001-06-25',
+        ),
+    );
+    $record->append_fields(@fields);
+    return $record;
 }
+
+sub expected_record_4 {
+    my $record = MARC::Record->new;
+    $record->leader('03174nam a2200445 a 4500');
+    my @fields = (
+        MARC::Field->new(
+            100, '1', ' ',
+            a => 'Knuth, Donald Ervin',
+            d => '1938',
+        ),
+        MARC::Field->new(
+            245, '1', '4',
+            a => 'The art of computer programming',
+            c => 'Donald E. Knuth.',
+        ),
+        MARC::Field->new(
+            245, '1', '4',
+            a => 'Bad title',
+            c => 'Donald E. Knuth.',
+        ),
+        MARC::Field->new(
+            650, ' ', '0',
+            a => 'Computer programming.',
+            9 => '499',
+        ),
+        MARC::Field->new(
+            952, ' ', ' ',
+            p => '3010023917',
+            y => 'BK',
+            c => 'GEN',
+            d => '2001-06-25',
+        ),
+    );
+    $record->append_fields(@fields);
+    return $record;
+}
+
+# Tests related to use of subfield 0 ($0)
+
+sub new_record_0 {
+    my $record = MARC::Record->new;
+    $record->leader('03174nam a2200445 a 4500');
+    my @fields = (
+        MARC::Field->new(
+            100, '1', ' ',
+            0 => '12345',
+            a => 'Knuth, Donald Ervin',
+            d => '1938',
+        ),
+        MARC::Field->new(
+            245, '1', '4',
+            0 => '12345',
+            a => 'The art of computer programming',
+            c => 'Donald E. Knuth.',
+        ),
+        MARC::Field->new(
+            650, ' ', '0',
+            0 => '42',
+            a => 'Computer programming.',
+            9 => '462',
+        ),
+    );
+    $record->append_fields(@fields);
+    return $record;
+}
+
+sub expected_record_0 {
+    my $record = MARC::Record->new;
+    $record->leader('03174nam a2200445 a 4500');
+    my @fields = (
+        MARC::Field->new(
+            100, '1', ' ',
+            a => 'Knuth, Donald Ervin',
+            d => '1938',
+        ),
+        MARC::Field->new(
+            245, '1', '4',
+            0 => '12345',
+            a => 'The art of computer programming',
+            c => 'Donald E. Knuth.',
+        ),
+        MARC::Field->new(
+            650, ' ', '0',
+            0 => '42',
+            a => 'Computer programming.',
+            9 => '462',
+        ),
+        MARC::Field->new(
+            600, ' ', ' ',
+            0 => 'TestUpdated',
+        ),
+        MARC::Field->new(
+            600, ' ', ' ',
+            0 => 'TestUpdated',
+        ),
+        MARC::Field->new(
+            100, ' ', ' ',
+            0 => 'TestUpdated',
+        ),
+        MARC::Field->new(
+            100, ' ', ' ',
+            0 => 'TestUpdated',
+        ),
+        MARC::Field->new(
+            700, ' ', ' ',
+            0 => '12345',
+        ),
+    );
+    $record->append_fields(@fields);
+    return $record;
+}
+
+$record = new_record_0();
+is( ModifyRecordWithTemplate( $template_id, $record ), undef, "The ModifyRecordWithTemplate returns undef" );
+
+$template_id = AddModificationTemplate("template_test_subfield_0");
+like( $template_id, qr|^\d+$|, "new template returns an id" );
+
+# Delete subfield 100$0
+is( AddModificationTemplateAction(
+    $template_id, 'delete_field', 0,
+    '100', '0', '', '', '',
+    '', '', '',
+    '', '', '', '', '', '',
+    'Action 1: Delete subfield 100$0'
+), 1, 'Action 1: Delete subfield 100$0');
+
+# Add new subfield 100$0 with value "Test"
+is( AddModificationTemplateAction(
+    $template_id, 'add_field', 0,
+    '100', '0', 'Test', '', '',
+    '', '', '',
+    '', '', '', '', '', '',
+    'Action 2: Add new subfield 100$0 with value "Test"'
+), 1, 'Action 2: Add new subfield 100$0');
+
+# Update existing or add new subfield 100$0 with value "TestUpdated"
+is( AddModificationTemplateAction(
+    $template_id, 'update_field', 0,
+    '100', '0', 'TestUpdated', '', '',
+    '', '', '',
+    '', '', '', '', '', '',
+    'Action 3: Update existing or add new subfield 100$0 with value "TestUpdated"'
+), 1, 'Action 3: Update existing or add new subfield 100$0 with value "TestUpdated"');
+
+# Move subfield 100$0 to 600$0
+is( AddModificationTemplateAction(
+    $template_id, 'move_field', 0,
+    '100', '0', '', '600', '0',
+    '', '', '',
+    '', '', '', '', '', '',
+    'Action 4: Move subfield 100$0 to 600$0'
+), 1, 'Action 4: Move subfield 100$0 to 600$0');
+
+# Copy subfield 600$0 to 100$0
+is( AddModificationTemplateAction(
+    $template_id, 'copy_field', 0,
+    '600', '0', '', '100', '0',
+    '', '', '',
+    '', '', '', '', '', '',
+    'Action 5: Copy subfield 600$0 to 100$0'
+), 1, 'Action 5: Copy subfield 600$0 to 100$0');
+
+# Copy and replace subfield 245$0 to 700$0
+is( AddModificationTemplateAction(
+    $template_id, 'copy_and_replace_field', 0,
+    '245', '0', '', '700', '0',
+    '', '', '',
+    '', '', '', '', '', '',
+    'Action 6: Copy and replace subfield 245$0 to 700$0'
+), 1, 'Action 6: Copy and replace subfield 245$0 to 700$0');
+
+my @actions_0 = GetModificationTemplateActions( $template_id );
+is( @actions_0, 6, "6 actions are inserted");
+
+ModifyRecordWithTemplate( $template_id, $record );
+my $expected_record_0 = expected_record_0();
+is_deeply( $record, $expected_record_0, '100$0 has been deleted, added back, updated, moved to 600$0, and copied back to 100$0; finally, 245$0 has been copied and replaced to 700$0' );

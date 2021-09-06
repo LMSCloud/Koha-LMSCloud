@@ -4,9 +4,10 @@ use Modern::Perl;
 
 use List::MoreUtils 'any';
 
-use Test::More tests => 19;
+use Test::More tests => 21;
 
 use t::lib::TestBuilder;
+use Koha::Database;
 
 BEGIN {
     use FindBin;
@@ -15,9 +16,9 @@ BEGIN {
     use_ok('Koha::Library::Groups');
 }
 
-our $dbh = C4::Context->dbh;
-$dbh->{AutoCommit} = 0;
-$dbh->{RaiseError} = 1;
+my $schema = Koha::Database->new->schema;
+$schema->storage->txn_begin;
+my $dbh = C4::Context->dbh;
 
 $dbh->do(q|DELETE FROM issues|);
 $dbh->do(q|DELETE FROM library_groups|);
@@ -107,6 +108,23 @@ subtest 'Koha::Library::Group->has_child' => sub {
     #is( $groupA->has_child( $groupA1_library2->branchcode ), 1, 'groupA1_library2 should be considered as a child of groupA (it is a grandchild)' );
 };
 
+subtest 'Koha::Library::Group->get_search_groups' => sub {
+    plan tests => 2;
+
+    #Enable as search groups
+    $groupA->ft_search_groups_opac(1)->store();
+    $groupB->ft_search_groups_staff(1)->store();
+
+    #Update the objects
+    $groupA = Koha::Library::Groups->find( $groupA->id );
+    $groupB = Koha::Library::Groups->find( $groupB->id );
+
+    my @groups = Koha::Library::Groups->get_search_groups({ interface => 'opac' });
+    is_deeply( $groups[0]->unblessed, $groupA->unblessed, 'Get search groups opac should return enabled group' );
+    @groups = Koha::Library::Groups->get_search_groups({ interface => 'staff' });
+    is_deeply( $groups[0]->unblessed, $groupB->unblessed, 'Get search groups staff should return enabled group' );
+};
+
 my $groupX = Koha::Library::Group->new( { title => "Group X" } )->store();
 my $groupX_library1 = Koha::Library::Group->new({ parent_id => $groupX->id,  branchcode => $library1->{branchcode} })->store();
 my $groupX_library2 = Koha::Library::Group->new({ parent_id => $groupX->id,  branchcode => $library2->{branchcode} })->store();
@@ -126,3 +144,22 @@ is( ref($groupX->libraries), 'Koha::Libraries', '->libraries should return a Koh
 @group_branchcodes = sort( map { $_->branchcode } $groupX->all_libraries );
 is_deeply( \@branchcodes, \@group_branchcodes, "Group all_libraries are returned correctly" );
 is( ref(($groupX->all_libraries)[0]), 'Koha::Library', '->all_libraries should return a list of Koha::Library - in the future it should be fixed to return a Koha::Libraries iterator instead'); # FIXME
+
+subtest 'Koha::Library::Groups->get_root_ancestor' => sub {
+    plan tests => 2;
+
+    my $groupY = Koha::Library::Group->new( { title => "Group Y" } )->store();
+    my $groupY_library1 = Koha::Library::Group->new({ parent_id => $groupY->id,  branchcode => $library1->{branchcode} })->store();
+    my $groupY1 = Koha::Library::Group->new( { parent_id => $groupY->id, title => "Group Y1" } )->store();
+    my $groupY1_library2 = Koha::Library::Group->new({ parent_id => $groupY1->id,  branchcode => $library2->{branchcode} })->store();
+    my $groupZ = Koha::Library::Group->new({ title => "Group Z" })->store();
+    my $groupZ1 = Koha::Library::Group->new({ parent_id => $groupZ->id,  title => "Group Z1" })->store();
+    my $groupZ2 = Koha::Library::Group->new({ parent_id => $groupZ1->id,  title => "Group Z2" })->store();
+    my $groupZ2_library2 = Koha::Library::Group->new({ parent_id => $groupZ2->id,  branchcode => $library2->{branchcode} })->store();
+
+    my $ancestor1 = Koha::Library::Groups->get_root_ancestor($groupY1_library2->unblessed);
+    my $ancestor2 = Koha::Library::Groups->get_root_ancestor($groupZ2_library2->unblessed);
+
+    is($ancestor1->id, $groupY->id, "Get root ancestor should return group's root ancestor");
+    ok($ancestor1->id ne $ancestor2->id, "Both root groups should have different ids");
+};

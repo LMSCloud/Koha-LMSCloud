@@ -31,7 +31,7 @@ use C4::Koha;
 use Koha::Acquisition::Booksellers;
 use Koha::BiblioFrameworks;
 
-my $input           = new CGI;
+my $input           = CGI->new;
 my $biblionumber    = $input->param('biblionumber')||0;
 my $frameworkcode   = $input->param('frameworkcode') || q{};
 my $title           = $input->param('title');
@@ -45,6 +45,7 @@ my $srchany         = $input->param('srchany');
 my $stdid           = $input->param('stdid');
 my $dewey           = $input->param('dewey');
 my $controlnumber   = $input->param('controlnumber');
+my $publicationyear = $input->param('publicationyear');
 my $op              = $input->param('op')||'';
 my $booksellerid    = $input->param('booksellerid');
 my $basketno        = $input->param('basketno');
@@ -84,6 +85,7 @@ $template->param(
         subject      => $subject,
         srchany      => $srchany,
         stdid        => $stdid,
+        publicationyear => $publicationyear,
 );
 
 if ( $op ne "do_search" ) {
@@ -126,6 +128,7 @@ my $pars= {
         controlnumber => $controlnumber,
         stdid => $stdid,
         srchany => $srchany,
+        publicationyear => $publicationyear,
 };
 Z3950Search($pars, $template);
 output_html_with_http_headers $input, $cookie, $template->output;

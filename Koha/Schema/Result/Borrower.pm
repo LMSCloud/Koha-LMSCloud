@@ -29,131 +29,172 @@ __PACKAGE__->table("borrowers");
   is_auto_increment: 1
   is_nullable: 0
 
+primary key, Koha assigned ID number for patrons/borrowers
+
 =head2 cardnumber
 
   data_type: 'varchar'
   is_nullable: 1
   size: 32
 
+unique key, library assigned ID number for patrons/borrowers
+
 =head2 surname
 
   data_type: 'longtext'
   is_nullable: 1
+
+patron/borrower's last name (surname)
 
 =head2 firstname
 
   data_type: 'mediumtext'
   is_nullable: 1
 
+patron/borrower's first name
+
 =head2 title
 
   data_type: 'longtext'
   is_nullable: 1
+
+patron/borrower's title, for example: Mr. or Mrs.
 
 =head2 othernames
 
   data_type: 'longtext'
   is_nullable: 1
 
+any other names associated with the patron/borrower
+
 =head2 initials
 
   data_type: 'mediumtext'
   is_nullable: 1
 
+initials for your patron/borrower
+
 =head2 streetnumber
 
-  data_type: 'varchar'
+  data_type: 'tinytext'
   is_nullable: 1
-  size: 10
+
+the house number for your patron/borrower's primary address
 
 =head2 streettype
 
-  data_type: 'varchar'
+  data_type: 'tinytext'
   is_nullable: 1
-  size: 50
+
+the street type (Rd., Blvd, etc) for your patron/borrower's primary address
 
 =head2 address
 
   data_type: 'longtext'
   is_nullable: 1
 
+the first address line for your patron/borrower's primary address
+
 =head2 address2
 
   data_type: 'mediumtext'
   is_nullable: 1
+
+the second address line for your patron/borrower's primary address
 
 =head2 city
 
   data_type: 'longtext'
   is_nullable: 1
 
+the city or town for your patron/borrower's primary address
+
 =head2 state
 
   data_type: 'mediumtext'
   is_nullable: 1
 
+the state or province for your patron/borrower's primary address
+
 =head2 zipcode
 
-  data_type: 'varchar'
+  data_type: 'tinytext'
   is_nullable: 1
-  size: 25
+
+the zip or postal code for your patron/borrower's primary address
 
 =head2 country
 
   data_type: 'mediumtext'
   is_nullable: 1
 
+the country for your patron/borrower's primary address
+
 =head2 email
 
   data_type: 'longtext'
   is_nullable: 1
+
+the primary email address for your patron/borrower's primary address
 
 =head2 phone
 
   data_type: 'mediumtext'
   is_nullable: 1
 
+the primary phone number for your patron/borrower's primary address
+
 =head2 mobile
 
-  data_type: 'varchar'
+  data_type: 'tinytext'
   is_nullable: 1
-  size: 50
+
+the other phone number for your patron/borrower's primary address
 
 =head2 fax
 
   data_type: 'longtext'
   is_nullable: 1
 
+the fax number for your patron/borrower's primary address
+
 =head2 emailpro
 
   data_type: 'mediumtext'
   is_nullable: 1
+
+the secondary email addres for your patron/borrower's primary address
 
 =head2 phonepro
 
   data_type: 'mediumtext'
   is_nullable: 1
 
+the secondary phone number for your patron/borrower's primary address
+
 =head2 B_streetnumber
 
   accessor: 'b_streetnumber'
-  data_type: 'varchar'
+  data_type: 'tinytext'
   is_nullable: 1
-  size: 10
+
+the house number for your patron/borrower's alternate address
 
 =head2 B_streettype
 
   accessor: 'b_streettype'
-  data_type: 'varchar'
+  data_type: 'tinytext'
   is_nullable: 1
-  size: 50
+
+the street type (Rd., Blvd, etc) for your patron/borrower's alternate address
 
 =head2 B_address
 
   accessor: 'b_address'
-  data_type: 'varchar'
+  data_type: 'mediumtext'
   is_nullable: 1
-  size: 100
+
+the first address line for your patron/borrower's alternate address
 
 =head2 B_address2
 
@@ -161,11 +202,15 @@ __PACKAGE__->table("borrowers");
   data_type: 'mediumtext'
   is_nullable: 1
 
+the second address line for your patron/borrower's alternate address
+
 =head2 B_city
 
   accessor: 'b_city'
   data_type: 'longtext'
   is_nullable: 1
+
+the city or town for your patron/borrower's alternate address
 
 =head2 B_state
 
@@ -173,12 +218,15 @@ __PACKAGE__->table("borrowers");
   data_type: 'mediumtext'
   is_nullable: 1
 
+the state for your patron/borrower's alternate address
+
 =head2 B_zipcode
 
   accessor: 'b_zipcode'
-  data_type: 'varchar'
+  data_type: 'tinytext'
   is_nullable: 1
-  size: 25
+
+the zip or postal code for your patron/borrower's alternate address
 
 =head2 B_country
 
@@ -186,11 +234,15 @@ __PACKAGE__->table("borrowers");
   data_type: 'mediumtext'
   is_nullable: 1
 
+the country for your patron/borrower's alternate address
+
 =head2 B_email
 
   accessor: 'b_email'
   data_type: 'mediumtext'
   is_nullable: 1
+
+the patron/borrower's alternate email address
 
 =head2 B_phone
 
@@ -198,11 +250,15 @@ __PACKAGE__->table("borrowers");
   data_type: 'longtext'
   is_nullable: 1
 
+the patron/borrower's alternate phone number
+
 =head2 dateofbirth
 
   data_type: 'date'
   datetime_undef_if_invalid: 1
   is_nullable: 1
+
+the patron/borrower's date of birth (YYYY-MM-DD)
 
 =head2 branchcode
 
@@ -212,6 +268,8 @@ __PACKAGE__->table("borrowers");
   is_nullable: 0
   size: 10
 
+foreign key from the branches table, includes the code of the patron/borrower's home branch
+
 =head2 categorycode
 
   data_type: 'varchar'
@@ -220,11 +278,15 @@ __PACKAGE__->table("borrowers");
   is_nullable: 0
   size: 10
 
+foreign key from the categories table, includes the code of the patron category
+
 =head2 dateenrolled
 
   data_type: 'date'
   datetime_undef_if_invalid: 1
   is_nullable: 1
+
+date the patron was added to Koha (YYYY-MM-DD)
 
 =head2 dateexpiry
 
@@ -232,21 +294,29 @@ __PACKAGE__->table("borrowers");
   datetime_undef_if_invalid: 1
   is_nullable: 1
 
+date the patron/borrower's card is set to expire (YYYY-MM-DD)
+
 =head2 date_renewed
 
   data_type: 'date'
   datetime_undef_if_invalid: 1
   is_nullable: 1
 
+date the patron/borrower's card was last renewed
+
 =head2 gonenoaddress
 
   data_type: 'tinyint'
   is_nullable: 1
 
+set to 1 for yes and 0 for no, flag to note that library marked this patron/borrower as having an unconfirmed address
+
 =head2 lost
 
   data_type: 'tinyint'
   is_nullable: 1
+
+set to 1 for yes and 0 for no, flag to note that library marked this patron/borrower as having lost their card
 
 =head2 debarred
 
@@ -254,42 +324,43 @@ __PACKAGE__->table("borrowers");
   datetime_undef_if_invalid: 1
   is_nullable: 1
 
+until this date the patron can only check-in (no loans, no holds, etc.), is a fine based on days instead of money (YYYY-MM-DD)
+
 =head2 debarredcomment
 
   data_type: 'varchar'
   is_nullable: 1
   size: 255
 
+comment on the stop of the patron
+
 =head2 contactname
 
   data_type: 'longtext'
   is_nullable: 1
+
+used for children and profesionals to include surname or last name of guarantor or organization name
 
 =head2 contactfirstname
 
   data_type: 'mediumtext'
   is_nullable: 1
 
+used for children to include first name of guarantor
+
 =head2 contacttitle
 
   data_type: 'mediumtext'
   is_nullable: 1
 
-=head2 guarantorid
-
-  data_type: 'integer'
-  is_nullable: 1
+used for children to include title (Mr., Mrs., etc) of guarantor
 
 =head2 borrowernotes
 
   data_type: 'longtext'
   is_nullable: 1
 
-=head2 relationship
-
-  data_type: 'varchar'
-  is_nullable: 1
-  size: 100
+a note on the patron/borrower's account that is only visible in the staff interface
 
 =head2 sex
 
@@ -297,16 +368,22 @@ __PACKAGE__->table("borrowers");
   is_nullable: 1
   size: 1
 
+patron/borrower's gender
+
 =head2 password
 
   data_type: 'varchar'
   is_nullable: 1
   size: 60
 
+patron/borrower's Bcrypt encrypted password
+
 =head2 flags
 
   data_type: 'integer'
   is_nullable: 1
+
+will include a number associated with the staff member's permissions
 
 =head2 userid
 
@@ -314,10 +391,14 @@ __PACKAGE__->table("borrowers");
   is_nullable: 1
   size: 75
 
+patron/borrower's opac and/or staff interface log in
+
 =head2 opacnote
 
   data_type: 'longtext'
   is_nullable: 1
+
+a note on the patron/borrower's account that is visible in the OPAC and staff interface
 
 =head2 contactnote
 
@@ -325,11 +406,15 @@ __PACKAGE__->table("borrowers");
   is_nullable: 1
   size: 255
 
+a note related to the patron/borrower's alternate address
+
 =head2 sort1
 
   data_type: 'varchar'
   is_nullable: 1
   size: 80
+
+a field that can be used for any information unique to the library
 
 =head2 sort2
 
@@ -337,63 +422,75 @@ __PACKAGE__->table("borrowers");
   is_nullable: 1
   size: 80
 
+a field that can be used for any information unique to the library
+
 =head2 altcontactfirstname
 
-  data_type: 'varchar'
+  data_type: 'mediumtext'
   is_nullable: 1
-  size: 255
+
+first name of alternate contact for the patron/borrower
 
 =head2 altcontactsurname
 
-  data_type: 'varchar'
+  data_type: 'mediumtext'
   is_nullable: 1
-  size: 255
+
+surname or last name of the alternate contact for the patron/borrower
 
 =head2 altcontacttitle
 
-  data_type: 'varchar'
+  data_type: 'mediumtext'
   is_nullable: 1
-  size: 255
 
 =head2 altcontactaddress1
 
-  data_type: 'varchar'
+  data_type: 'mediumtext'
   is_nullable: 1
-  size: 255
+
+the first address line for the alternate contact for the patron/borrower
 
 =head2 altcontactaddress2
 
-  data_type: 'varchar'
+  data_type: 'mediumtext'
   is_nullable: 1
-  size: 255
+
+the second address line for the alternate contact for the patron/borrower
 
 =head2 altcontactaddress3
 
-  data_type: 'varchar'
+  data_type: 'mediumtext'
   is_nullable: 1
-  size: 255
+
+the city for the alternate contact for the patron/borrower
 
 =head2 altcontactstate
 
   data_type: 'mediumtext'
   is_nullable: 1
 
+the state for the alternate contact for the patron/borrower
+
 =head2 altcontactzipcode
 
-  data_type: 'varchar'
+  data_type: 'mediumtext'
   is_nullable: 1
-  size: 50
+
+the zipcode for the alternate contact for the patron/borrower
 
 =head2 altcontactcountry
 
   data_type: 'mediumtext'
   is_nullable: 1
 
+the country for the alternate contact for the patron/borrower
+
 =head2 altcontactphone
 
-  data_type: 'varchar'
+  data_type: 'mediumtext'
   is_nullable: 1
-  size: 50
+
+the phone number for the alternate contact for the patron/borrower
 
 =head2 smsalertnumber
 
@@ -401,11 +498,15 @@ __PACKAGE__->table("borrowers");
   is_nullable: 1
   size: 50
 
+the mobile phone number where the patron/borrower would like to receive notices (if SMS turned on)
+
 =head2 sms_provider_id
 
   data_type: 'integer'
   is_foreign_key: 1
   is_nullable: 1
+
+the provider of the mobile phone number defined in smsalertnumber
 
 =head2 privacy
 
@@ -413,11 +514,23 @@ __PACKAGE__->table("borrowers");
   default_value: 1
   is_nullable: 0
 
+patron/borrower's privacy settings related to their checkout history
+
+=head2 privacy_guarantor_fines
+
+  data_type: 'tinyint'
+  default_value: 0
+  is_nullable: 0
+
+controls if relatives can see this patron's fines
+
 =head2 privacy_guarantor_checkouts
 
   data_type: 'tinyint'
   default_value: 0
   is_nullable: 0
+
+controls if relatives can see this patron's checkouts
 
 =head2 checkprevcheckout
 
@@ -426,6 +539,8 @@ __PACKAGE__->table("borrowers");
   is_nullable: 0
   size: 7
 
+produce a warning for this patron if this item has previously been checked out to this patron if 'yes', not if 'no', defer to category setting if 'inherit'.
+
 =head2 updated_on
 
   data_type: 'timestamp'
@@ -433,11 +548,15 @@ __PACKAGE__->table("borrowers");
   default_value: current_timestamp
   is_nullable: 1
 
+time of last change could be useful for synchronization with external systems (among others)
+
 =head2 lastseen
 
   data_type: 'datetime'
   datetime_undef_if_invalid: 1
   is_nullable: 1
+
+last time a patron has been seen (connected at the OPAC or staff interface)
 
 =head2 lang
 
@@ -446,16 +565,38 @@ __PACKAGE__->table("borrowers");
   is_nullable: 0
   size: 25
 
+lang to use to send notices to this patron
+
 =head2 login_attempts
 
   data_type: 'integer'
   default_value: 0
-  is_nullable: 1
+  is_nullable: 0
+
+number of failed login attemps
 
 =head2 overdrive_auth_token
 
   data_type: 'mediumtext'
   is_nullable: 1
+
+persist OverDrive auth token
+
+=head2 anonymized
+
+  data_type: 'tinyint'
+  default_value: 0
+  is_nullable: 0
+
+flag for data anonymization
+
+=head2 autorenew_checkouts
+
+  data_type: 'tinyint'
+  default_value: 1
+  is_nullable: 0
+
+flag for allowing auto-renewal
 
 =cut
 
@@ -475,9 +616,9 @@ __PACKAGE__->add_columns(
   "initials",
   { data_type => "mediumtext", is_nullable => 1 },
   "streetnumber",
-  { data_type => "varchar", is_nullable => 1, size => 10 },
+  { data_type => "tinytext", is_nullable => 1 },
   "streettype",
-  { data_type => "varchar", is_nullable => 1, size => 50 },
+  { data_type => "tinytext", is_nullable => 1 },
   "address",
   { data_type => "longtext", is_nullable => 1 },
   "address2",
@@ -487,7 +628,7 @@ __PACKAGE__->add_columns(
   "state",
   { data_type => "mediumtext", is_nullable => 1 },
   "zipcode",
-  { data_type => "varchar", is_nullable => 1, size => 25 },
+  { data_type => "tinytext", is_nullable => 1 },
   "country",
   { data_type => "mediumtext", is_nullable => 1 },
   "email",
@@ -495,7 +636,7 @@ __PACKAGE__->add_columns(
   "phone",
   { data_type => "mediumtext", is_nullable => 1 },
   "mobile",
-  { data_type => "varchar", is_nullable => 1, size => 50 },
+  { data_type => "tinytext", is_nullable => 1 },
   "fax",
   { data_type => "longtext", is_nullable => 1 },
   "emailpro",
@@ -503,26 +644,11 @@ __PACKAGE__->add_columns(
   "phonepro",
   { data_type => "mediumtext", is_nullable => 1 },
   "B_streetnumber",
-  {
-    accessor => "b_streetnumber",
-    data_type => "varchar",
-    is_nullable => 1,
-    size => 10,
-  },
+  { accessor => "b_streetnumber", data_type => "tinytext", is_nullable => 1 },
   "B_streettype",
-  {
-    accessor => "b_streettype",
-    data_type => "varchar",
-    is_nullable => 1,
-    size => 50,
-  },
+  { accessor => "b_streettype", data_type => "tinytext", is_nullable => 1 },
   "B_address",
-  {
-    accessor => "b_address",
-    data_type => "varchar",
-    is_nullable => 1,
-    size => 100,
-  },
+  { accessor => "b_address", data_type => "mediumtext", is_nullable => 1 },
   "B_address2",
   { accessor => "b_address2", data_type => "mediumtext", is_nullable => 1 },
   "B_city",
@@ -530,12 +656,7 @@ __PACKAGE__->add_columns(
   "B_state",
   { accessor => "b_state", data_type => "mediumtext", is_nullable => 1 },
   "B_zipcode",
-  {
-    accessor => "b_zipcode",
-    data_type => "varchar",
-    is_nullable => 1,
-    size => 25,
-  },
+  { accessor => "b_zipcode", data_type => "tinytext", is_nullable => 1 },
   "B_country",
   { accessor => "b_country", data_type => "mediumtext", is_nullable => 1 },
   "B_email",
@@ -580,12 +701,8 @@ __PACKAGE__->add_columns(
   { data_type => "mediumtext", is_nullable => 1 },
   "contacttitle",
   { data_type => "mediumtext", is_nullable => 1 },
-  "guarantorid",
-  { data_type => "integer", is_nullable => 1 },
   "borrowernotes",
   { data_type => "longtext", is_nullable => 1 },
-  "relationship",
-  { data_type => "varchar", is_nullable => 1, size => 100 },
   "sex",
   { data_type => "varchar", is_nullable => 1, size => 1 },
   "password",
@@ -603,31 +720,33 @@ __PACKAGE__->add_columns(
   "sort2",
   { data_type => "varchar", is_nullable => 1, size => 80 },
   "altcontactfirstname",
-  { data_type => "varchar", is_nullable => 1, size => 255 },
+  { data_type => "mediumtext", is_nullable => 1 },
   "altcontactsurname",
-  { data_type => "varchar", is_nullable => 1, size => 255 },
+  { data_type => "mediumtext", is_nullable => 1 },
   "altcontacttitle",
-  { data_type => "varchar", is_nullable => 1, size => 255 },
+  { data_type => "mediumtext", is_nullable => 1 },
   "altcontactaddress1",
-  { data_type => "varchar", is_nullable => 1, size => 255 },
+  { data_type => "mediumtext", is_nullable => 1 },
   "altcontactaddress2",
-  { data_type => "varchar", is_nullable => 1, size => 255 },
+  { data_type => "mediumtext", is_nullable => 1 },
   "altcontactaddress3",
-  { data_type => "varchar", is_nullable => 1, size => 255 },
+  { data_type => "mediumtext", is_nullable => 1 },
   "altcontactstate",
   { data_type => "mediumtext", is_nullable => 1 },
   "altcontactzipcode",
-  { data_type => "varchar", is_nullable => 1, size => 50 },
+  { data_type => "mediumtext", is_nullable => 1 },
   "altcontactcountry",
   { data_type => "mediumtext", is_nullable => 1 },
   "altcontactphone",
-  { data_type => "varchar", is_nullable => 1, size => 50 },
+  { data_type => "mediumtext", is_nullable => 1 },
   "smsalertnumber",
   { data_type => "varchar", is_nullable => 1, size => 50 },
   "sms_provider_id",
   { data_type => "integer", is_foreign_key => 1, is_nullable => 1 },
   "privacy",
   { data_type => "integer", default_value => 1, is_nullable => 0 },
+  "privacy_guarantor_fines",
+  { data_type => "tinyint", default_value => 0, is_nullable => 0 },
   "privacy_guarantor_checkouts",
   { data_type => "tinyint", default_value => 0, is_nullable => 0 },
   "checkprevcheckout",
@@ -658,9 +777,13 @@ __PACKAGE__->add_columns(
     size => 25,
   },
   "login_attempts",
-  { data_type => "integer", default_value => 0, is_nullable => 1 },
+  { data_type => "integer", default_value => 0, is_nullable => 0 },
   "overdrive_auth_token",
   { data_type => "mediumtext", is_nullable => 1 },
+  "anonymized",
+  { data_type => "tinyint", default_value => 0, is_nullable => 0 },
+  "autorenew_checkouts",
+  { data_type => "tinyint", default_value => 1, is_nullable => 0 },
 );
 
 =head1 PRIMARY KEY
@@ -702,6 +825,66 @@ __PACKAGE__->add_unique_constraint("cardnumber", ["cardnumber"]);
 __PACKAGE__->add_unique_constraint("userid", ["userid"]);
 
 =head1 RELATIONS
+
+=head2 accountlines
+
+Type: has_many
+
+Related object: L<Koha::Schema::Result::Accountline>
+
+=cut
+
+__PACKAGE__->has_many(
+  "accountlines",
+  "Koha::Schema::Result::Accountline",
+  { "foreign.borrowernumber" => "self.borrowernumber" },
+  { cascade_copy => 0, cascade_delete => 0 },
+);
+
+=head2 accountlines_managers
+
+Type: has_many
+
+Related object: L<Koha::Schema::Result::Accountline>
+
+=cut
+
+__PACKAGE__->has_many(
+  "accountlines_managers",
+  "Koha::Schema::Result::Accountline",
+  { "foreign.manager_id" => "self.borrowernumber" },
+  { cascade_copy => 0, cascade_delete => 0 },
+);
+
+=head2 advanced_editor_macros
+
+Type: has_many
+
+Related object: L<Koha::Schema::Result::AdvancedEditorMacro>
+
+=cut
+
+__PACKAGE__->has_many(
+  "advanced_editor_macros",
+  "Koha::Schema::Result::AdvancedEditorMacro",
+  { "foreign.borrowernumber" => "self.borrowernumber" },
+  { cascade_copy => 0, cascade_delete => 0 },
+);
+
+=head2 alerts
+
+Type: has_many
+
+Related object: L<Koha::Schema::Result::Alert>
+
+=cut
+
+__PACKAGE__->has_many(
+  "alerts",
+  "Koha::Schema::Result::Alert",
+  { "foreign.borrowernumber" => "self.borrowernumber" },
+  { cascade_copy => 0, cascade_delete => 0 },
+);
 
 =head2 api_keys
 
@@ -760,6 +943,21 @@ __PACKAGE__->has_many(
   "aqorder_users",
   "Koha::Schema::Result::AqorderUser",
   { "foreign.borrowernumber" => "self.borrowernumber" },
+  { cascade_copy => 0, cascade_delete => 0 },
+);
+
+=head2 aqorders
+
+Type: has_many
+
+Related object: L<Koha::Schema::Result::Aqorder>
+
+=cut
+
+__PACKAGE__->has_many(
+  "aqorders",
+  "Koha::Schema::Result::Aqorder",
+  { "foreign.created_by" => "self.borrowernumber" },
   { cascade_copy => 0, cascade_delete => 0 },
 );
 
@@ -838,18 +1036,33 @@ __PACKAGE__->has_many(
   { cascade_copy => 0, cascade_delete => 0 },
 );
 
-=head2 borrower_syncs
+=head2 borrower_relationships_guarantees
 
 Type: has_many
 
-Related object: L<Koha::Schema::Result::BorrowerSync>
+Related object: L<Koha::Schema::Result::BorrowerRelationship>
 
 =cut
 
 __PACKAGE__->has_many(
-  "borrower_syncs",
-  "Koha::Schema::Result::BorrowerSync",
-  { "foreign.borrowernumber" => "self.borrowernumber" },
+  "borrower_relationships_guarantees",
+  "Koha::Schema::Result::BorrowerRelationship",
+  { "foreign.guarantee_id" => "self.borrowernumber" },
+  { cascade_copy => 0, cascade_delete => 0 },
+);
+
+=head2 borrower_relationships_guarantors
+
+Type: has_many
+
+Related object: L<Koha::Schema::Result::BorrowerRelationship>
+
+=cut
+
+__PACKAGE__->has_many(
+  "borrower_relationships_guarantors",
+  "Koha::Schema::Result::BorrowerRelationship",
+  { "foreign.guarantor_id" => "self.borrowernumber" },
   { cascade_copy => 0, cascade_delete => 0 },
 );
 
@@ -883,20 +1096,36 @@ __PACKAGE__->has_many(
   { cascade_copy => 0, cascade_delete => 0 },
 );
 
-=head2 cash_registers
+=head2 cash_register_definitions
 
 Type: has_many
 
-Related object: L<Koha::Schema::Result::CashRegister>
+Related object: L<Koha::Schema::Result::CashRegisterDefinition>
 
 =cut
 
 __PACKAGE__->has_many(
   "cash_registers",
-  "Koha::Schema::Result::CashRegister",
+  "Koha::Schema::Result::CashRegisterDefinition",
   { "foreign.manager_id" => "self.borrowernumber" },
   { cascade_copy => 0, cascade_delete => 0 },
 );
+
+=head2 cash_register_actions
+
+Type: has_many
+
+Related object: L<Koha::Schema::Result::CashRegisterAction>
+
+=cut
+
+__PACKAGE__->has_many(
+  "cash_register_actions",
+  "Koha::Schema::Result::CashRegisterAction",
+  { "foreign.manager_id" => "self.borrowernumber" },
+  { cascade_copy => 0, cascade_delete => 0 },
+);
+
 
 =head2 categorycode
 
@@ -925,6 +1154,21 @@ __PACKAGE__->has_many(
   "club_enrollments",
   "Koha::Schema::Result::ClubEnrollment",
   { "foreign.borrowernumber" => "self.borrowernumber" },
+  { cascade_copy => 0, cascade_delete => 0 },
+);
+
+=head2 club_holds_to_patron_holds
+
+Type: has_many
+
+Related object: L<Koha::Schema::Result::ClubHoldsToPatronHold>
+
+=cut
+
+__PACKAGE__->has_many(
+  "club_holds_to_patron_holds",
+  "Koha::Schema::Result::ClubHoldsToPatronHold",
+  { "foreign.patron_id" => "self.borrowernumber" },
   { cascade_copy => 0, cascade_delete => 0 },
 );
 
@@ -1048,6 +1292,21 @@ __PACKAGE__->has_many(
   { cascade_copy => 0, cascade_delete => 0 },
 );
 
+=head2 illcomments
+
+Type: has_many
+
+Related object: L<Koha::Schema::Result::Illcomment>
+
+=cut
+
+__PACKAGE__->has_many(
+  "illcomments",
+  "Koha::Schema::Result::Illcomment",
+  { "foreign.borrowernumber" => "self.borrowernumber" },
+  { cascade_copy => 0, cascade_delete => 0 },
+);
+
 =head2 illrequests
 
 Type: has_many
@@ -1075,6 +1334,21 @@ __PACKAGE__->has_many(
   "issues",
   "Koha::Schema::Result::Issue",
   { "foreign.borrowernumber" => "self.borrowernumber" },
+  { cascade_copy => 0, cascade_delete => 0 },
+);
+
+=head2 issues_issuers
+
+Type: has_many
+
+Related object: L<Koha::Schema::Result::Issue>
+
+=cut
+
+__PACKAGE__->has_many(
+  "issues_issuers",
+  "Koha::Schema::Result::Issue",
+  { "foreign.issuer_id" => "self.borrowernumber" },
   { cascade_copy => 0, cascade_delete => 0 },
 );
 
@@ -1123,6 +1397,21 @@ __PACKAGE__->has_many(
   { cascade_copy => 0, cascade_delete => 0 },
 );
 
+=head2 messages_borrowernumbers
+
+Type: has_many
+
+Related object: L<Koha::Schema::Result::Message>
+
+=cut
+
+__PACKAGE__->has_many(
+  "messages_borrowernumbers",
+  "Koha::Schema::Result::Message",
+  { "foreign.borrowernumber" => "self.borrowernumber" },
+  { cascade_copy => 0, cascade_delete => 0 },
+);
+
 =head2 old_issues
 
 Type: has_many
@@ -1135,6 +1424,21 @@ __PACKAGE__->has_many(
   "old_issues",
   "Koha::Schema::Result::OldIssue",
   { "foreign.borrowernumber" => "self.borrowernumber" },
+  { cascade_copy => 0, cascade_delete => 0 },
+);
+
+=head2 old_issues_issuers
+
+Type: has_many
+
+Related object: L<Koha::Schema::Result::OldIssue>
+
+=cut
+
+__PACKAGE__->has_many(
+  "old_issues_issuers",
+  "Koha::Schema::Result::OldIssue",
+  { "foreign.issuer_id" => "self.borrowernumber" },
   { cascade_copy => 0, cascade_delete => 0 },
 );
 
@@ -1164,6 +1468,21 @@ Related object: L<Koha::Schema::Result::OpacNews>
 __PACKAGE__->has_many(
   "opac_news",
   "Koha::Schema::Result::OpacNews",
+  { "foreign.borrowernumber" => "self.borrowernumber" },
+  { cascade_copy => 0, cascade_delete => 0 },
+);
+
+=head2 patron_consents
+
+Type: has_many
+
+Related object: L<Koha::Schema::Result::PatronConsent>
+
+=cut
+
+__PACKAGE__->has_many(
+  "patron_consents",
+  "Koha::Schema::Result::PatronConsent",
   { "foreign.borrowernumber" => "self.borrowernumber" },
   { cascade_copy => 0, cascade_delete => 0 },
 );
@@ -1213,6 +1532,21 @@ __PACKAGE__->might_have(
   { cascade_copy => 0, cascade_delete => 0 },
 );
 
+=head2 problem_reports
+
+Type: has_many
+
+Related object: L<Koha::Schema::Result::ProblemReport>
+
+=cut
+
+__PACKAGE__->has_many(
+  "problem_reports",
+  "Koha::Schema::Result::ProblemReport",
+  { "foreign.borrowernumber" => "self.borrowernumber" },
+  { cascade_copy => 0, cascade_delete => 0 },
+);
+
 =head2 ratings
 
 Type: has_many
@@ -1240,6 +1574,66 @@ __PACKAGE__->has_many(
   "reserves",
   "Koha::Schema::Result::Reserve",
   { "foreign.borrowernumber" => "self.borrowernumber" },
+  { cascade_copy => 0, cascade_delete => 0 },
+);
+
+=head2 return_claims_borrowernumbers
+
+Type: has_many
+
+Related object: L<Koha::Schema::Result::ReturnClaim>
+
+=cut
+
+__PACKAGE__->has_many(
+  "return_claims_borrowernumbers",
+  "Koha::Schema::Result::ReturnClaim",
+  { "foreign.borrowernumber" => "self.borrowernumber" },
+  { cascade_copy => 0, cascade_delete => 0 },
+);
+
+=head2 return_claims_created_by
+
+Type: has_many
+
+Related object: L<Koha::Schema::Result::ReturnClaim>
+
+=cut
+
+__PACKAGE__->has_many(
+  "return_claims_created_by",
+  "Koha::Schema::Result::ReturnClaim",
+  { "foreign.created_by" => "self.borrowernumber" },
+  { cascade_copy => 0, cascade_delete => 0 },
+);
+
+=head2 return_claims_resolved_by
+
+Type: has_many
+
+Related object: L<Koha::Schema::Result::ReturnClaim>
+
+=cut
+
+__PACKAGE__->has_many(
+  "return_claims_resolved_by",
+  "Koha::Schema::Result::ReturnClaim",
+  { "foreign.resolved_by" => "self.borrowernumber" },
+  { cascade_copy => 0, cascade_delete => 0 },
+);
+
+=head2 return_claims_updated_by
+
+Type: has_many
+
+Related object: L<Koha::Schema::Result::ReturnClaim>
+
+=cut
+
+__PACKAGE__->has_many(
+  "return_claims_updated_by",
+  "Koha::Schema::Result::ReturnClaim",
+  { "foreign.updated_by" => "self.borrowernumber" },
   { cascade_copy => 0, cascade_delete => 0 },
 );
 
@@ -1290,6 +1684,81 @@ __PACKAGE__->has_many(
   "subscriptionroutinglists",
   "Koha::Schema::Result::Subscriptionroutinglist",
   { "foreign.borrowernumber" => "self.borrowernumber" },
+  { cascade_copy => 0, cascade_delete => 0 },
+);
+
+=head2 suggestions_acceptedbies
+
+Type: has_many
+
+Related object: L<Koha::Schema::Result::Suggestion>
+
+=cut
+
+__PACKAGE__->has_many(
+  "suggestions_acceptedbies",
+  "Koha::Schema::Result::Suggestion",
+  { "foreign.acceptedby" => "self.borrowernumber" },
+  { cascade_copy => 0, cascade_delete => 0 },
+);
+
+=head2 suggestions_lastmodificationbies
+
+Type: has_many
+
+Related object: L<Koha::Schema::Result::Suggestion>
+
+=cut
+
+__PACKAGE__->has_many(
+  "suggestions_lastmodificationbies",
+  "Koha::Schema::Result::Suggestion",
+  { "foreign.lastmodificationby" => "self.borrowernumber" },
+  { cascade_copy => 0, cascade_delete => 0 },
+);
+
+=head2 suggestions_managedbies
+
+Type: has_many
+
+Related object: L<Koha::Schema::Result::Suggestion>
+
+=cut
+
+__PACKAGE__->has_many(
+  "suggestions_managedbies",
+  "Koha::Schema::Result::Suggestion",
+  { "foreign.managedby" => "self.borrowernumber" },
+  { cascade_copy => 0, cascade_delete => 0 },
+);
+
+=head2 suggestions_rejectedbies
+
+Type: has_many
+
+Related object: L<Koha::Schema::Result::Suggestion>
+
+=cut
+
+__PACKAGE__->has_many(
+  "suggestions_rejectedbies",
+  "Koha::Schema::Result::Suggestion",
+  { "foreign.rejectedby" => "self.borrowernumber" },
+  { cascade_copy => 0, cascade_delete => 0 },
+);
+
+=head2 suggestions_suggestedbies
+
+Type: has_many
+
+Related object: L<Koha::Schema::Result::Suggestion>
+
+=cut
+
+__PACKAGE__->has_many(
+  "suggestions_suggestedbies",
+  "Koha::Schema::Result::Suggestion",
+  { "foreign.suggestedby" => "self.borrowernumber" },
   { cascade_copy => 0, cascade_delete => 0 },
 );
 
@@ -1424,18 +1893,15 @@ Composing rels: L</aqorder_users> -> ordernumber
 __PACKAGE__->many_to_many("ordernumbers", "aqorder_users", "ordernumber");
 
 
-# Created by DBIx::Class::Schema::Loader v0.07042 @ 2018-11-26 14:02:54
-# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:VpDiasxfgk4polUF/ZOe2A
-
-__PACKAGE__->belongs_to(
-    "guarantor",
-    "Koha::Schema::Result::Borrower",
-    { borrowernumber => "guarantorid" },
-);
+# Created by DBIx::Class::Schema::Loader v0.07046 @ 2021-05-10 13:50:02
+# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:mrHF9QG7qY32EnjukdNZRw
 
 __PACKAGE__->add_columns(
-    '+lost' => { is_boolean => 1 },
-    '+gonenoaddress' => { is_boolean => 1 }
+    '+anonymized'    => { is_boolean => 1 },
+    '+lost'          => { is_boolean => 1 },
+    '+gonenoaddress' => { is_boolean => 1 },
+    '+privacy_guarantor_fines' => { is_boolean => 1 },
+    '+autorenew_checkouts' => { is_boolean => 1 }
 );
 
 sub koha_objects_class {

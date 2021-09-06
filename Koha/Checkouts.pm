@@ -1,29 +1,32 @@
 package Koha::Checkouts;
 
 # Copyright ByWater Solutions 2015
+# Updated LMSCloud 2021
 #
 # This file is part of Koha.
 #
-# Koha is free software; you can redistribute it and/or modify it under the
-# terms of the GNU General Public License as published by the Free Software
-# Foundation; either version 3 of the License, or (at your option) any later
-# version.
+# Koha is free software; you can redistribute it and/or modify it
+# under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 3 of the License, or
+# (at your option) any later version.
 #
-# Koha is distributed in the hope that it will be useful, but WITHOUT ANY
-# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
-# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+# Koha is distributed in the hope that it will be useful, but
+# WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+# GNU General Public License for more details.
 #
-# You should have received a copy of the GNU General Public License along
-# with Koha; if not, write to the Free Software Foundation, Inc.,
-# 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+# You should have received a copy of the GNU General Public License
+# along with Koha; if not, see <http://www.gnu.org/licenses>.
 
 use Modern::Perl;
 
 use Carp;
 
-use Koha::Database;
-
+use C4::Context;
+use C4::Circulation;
 use Koha::Checkout;
+use Koha::Database;
+use Koha::DateUtils;
 
 use Koha::DateUtils;
 
@@ -36,6 +39,14 @@ Koha::Checkouts - Koha Checkout object set class
 =head1 API
 
 =head2 Class Methods
+
+=cut
+
+=head3 get_issue_dates_and_branches
+
+my $issue_dates = Koha::Checkouts::new()->get_issue_dates_and_branches();
+
+returns a hash reference with due dates if items containing information of branches and counts 
 
 =cut
 
@@ -86,6 +97,19 @@ sub get_issue_dates_and_branches {
     return $result;
 }
 
+=head3 get_issue_due_on_selected_date
+
+my $params = {};
+
+$params->{branchcode} = 'MAIN';
+$params->{datedue} = '20271201';
+
+my $issues = Koha::Checkouts::new()->get_issue_due_on_selected_date($params);
+
+select issues that due on a specific date
+
+=cut
+
 sub get_issue_due_on_selected_date {
     my ($self,$params) = @_;
     
@@ -112,6 +136,57 @@ sub get_issue_due_on_selected_date {
     $result = $self->search($where);
     
     return $result;
+}
+
+=head3 calculate_dropbox_date
+
+my $dt = Koha::Checkouts::calculate_dropbox_date();
+
+=cut
+
+sub calculate_dropbox_date {
+    my $userenv    = C4::Context->userenv;
+    my $branchcode = $userenv->{branch} // q{};
+
+    my $daysmode = Koha::CirculationRules->get_effective_daysmode(
+        {
+            categorycode => undef,
+            itemtype     => undef,
+            branchcode   => $branchcode,
+        }
+    );
+    my $calendar     = Koha::Calendar->new( branchcode => $branchcode, days_mode => $daysmode );
+    my $today        = dt_from_string;
+    my $dropbox_date = $calendar->addDuration( $today, -1 );
+
+    return $dropbox_date;
+}
+
+=head3 automatic_checkin
+
+my $automatic_checkins = Koha::Checkouts->automatic_checkin()
+
+Checks in every due issue which itemtype has automatic_checkin enabled
+
+=cut
+
+sub automatic_checkin {
+    my ($self, $params) = @_;
+
+    my $current_date = dt_from_string;
+
+    my $dtf = Koha::Database->new->schema->storage->datetime_parser;
+    my $due_checkouts = $self->search(
+        { date_due => { '<=' => $dtf->format_datetime($current_date) } },
+        { prefetch => 'item'}
+    );
+
+    while ( my $checkout = $due_checkouts->next ) {
+        if ( $checkout->item->itemtype->automatic_checkin ) {
+            C4::Circulation::AddReturn( $checkout->item->barcode,
+                $checkout->branchcode, undef, dt_from_string($checkout->date_due) );
+        }
+    }
 }
 
 =head3 type

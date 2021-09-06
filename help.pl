@@ -1,6 +1,6 @@
 #!/usr/bin/perl
 
-# Copyright 2010 Koha Development team
+# Copyright 2017 Koha Development team
 #
 # This file is part of Koha.
 #
@@ -18,60 +18,30 @@
 # along with Koha; if not, see <http://www.gnu.org/licenses>.
 
 use Modern::Perl;
-use C4::Templates;
-use C4::Output;
-# use C4::Auth;
-use C4::Context;
 use CGI qw ( -utf8 );
 
-sub _help_template_file_of_url {
-    my $url = shift;
-    my $file;
-    if ($url =~ /koha\/(.*)\.pl/) {
-        $file = $1;
-    } else {
-        $file = 'mainpage';
+use C4::Auth;
+use C4::Context;
+use Koha::Manual;
+
+my $query = CGI->new;
+
+# We need to call get_template_and_user to let it does the job correctly
+# for the language
+my ( $template, $loggedinuser, $cookie, $flags ) = get_template_and_user(
+    {
+        template_name   => "intranet-main.tt", # Just a valid template path
+        query           => $query,
+        type            => "intranet",
+        authnotrequired => 1,
     }
-    $file =~ s/[^a-zA-Z0-9_\-\/]*//g;
-    return "help/$file.tt";
-}
-
-my $query = new CGI;
-
-# Init the interface to get the correct language.
-# This is usually set by get_template_and_user
-C4::Context->interface('intranet');
+);
 
 # find the script that called the online help using the CGI referer()
 our $refer = $query->param('url');
 $refer = $query->referer()  if !$refer || $refer eq 'undefined';
-my $from = _help_template_file_of_url($refer);
-my $htdocs = C4::Context->config('intrahtdocs');
 
-#
-# checking that the help file exist, otherwise, display nohelp.tt page
-#
-my ( $theme, $lang ) = C4::Templates::themelanguage( $htdocs, $from, "intranet", $query );
-unless ( -e "$htdocs/$theme/$lang/modules/$from" ) {
-    $from = "help/nohelp.tt";
-    ( $theme, $lang ) = C4::Templates::themelanguage( $htdocs, $from, "intranet", $query );
-}
+my $language = C4::Languages::getlanguage( $query );
+my $manual_url = Koha::Manual::get_url($refer, $language);
 
-my $template = C4::Templates::gettemplate($from, 'intranet', $query);
-$template->param(
-    referer => $refer,
-    intranetstylesheet => C4::Context->preference("intranetstylesheet"),
-    intranetcolorstylesheet => C4::Context->preference("intranetcolorstylesheet"),
-);
-
-my $help_version = C4::Context->preference("Version");
-if ( $help_version =~ m|^(\d+)\.(\d{2}).*$| ) {
-    my $version = $1;
-    my $major = $2;
-    unless ( $major % 2 ) { $major-- };
-    $major = sprintf("%02d", $major);
-    $help_version = "$version.$major";
-}
-$template->param( helpVersion => $help_version );
-
-output_html_with_http_headers $query, "", $template->output;
+print $query->redirect($manual_url);

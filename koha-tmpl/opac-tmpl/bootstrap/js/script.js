@@ -1,7 +1,6 @@
+/* global enquire readCookie updateBasket delCookie */
 enquire.register("screen and (max-width:608px)", {
     match : function() {
-        $("#masthead_search").insertAfter("#select_library");
-        $(".sort_by").removeClass("pull-right");
         if($("body.scrollto").length > 0){
             $("body.scrollto").animate({
                 scrollTop: $(".maincontent").offset().top
@@ -9,24 +8,45 @@ enquire.register("screen and (max-width:608px)", {
         }
     },
     unmatch : function() {
-        $(".sort_by").addClass("pull-right");
     }
 });
 
 enquire.register("screen and (min-width:768px)", {
     match : function() {
-        $(".menu-collapse").show();
+        facetMenu( "show" );
     },
     unmatch : function() {
-        $(".menu-collapse").hide();
+        facetMenu( "hide" );
     }
 });
+
+function facetMenu( action ){
+    if( action == "show" ){
+        $(".menu-collapse-toggle").unbind("click", facetHandler )
+        $(".menu-collapse").show();
+    } else {
+        $(".menu-collapse-toggle").bind("click", facetHandler ).removeClass("menu-open");
+        $(".menu-collapse").hide();
+    }
+}
+
+var facetHandler = function(e){
+    e.preventDefault();
+    $(this).toggleClass("menu-open");
+    $(".menu-collapse").toggle();
+};
 
 $(document).ready(function(){
     $(".close").click(function(){
         window.close();
     });
     $(".focus").focus();
+    $(".js-show").show();
+    $(".js-hide").hide();
+
+    if( $(window).width() < 768 ){
+        facetMenu("hide");
+    }
 
     // clear the basket when user logs out
     $("#logout").click(function(){
@@ -40,27 +60,11 @@ $(document).ready(function(){
             return true;
         }
     });
-    $("#user-menu-trigger").on("click",function(){
-        var mem = $("#members");
-        if(mem.is(":hidden")){
-            mem.show();
-        } else {
-            mem.removeAttr("style");
-        }
-    });
-    $(".menu-collapse-toggle").on("click",function(e){
-        e.preventDefault();
-        $(this).toggleClass("menu-open");
-        $(this).closest("div").find(".menu-collapse").toggle();
-    });
     $(".loginModal-trigger").on("click",function(e){
         e.preventDefault();
         $("#loginModal").modal("show");
-        $("#members").removeAttr("style");
     });
-    $("#loginModal").on("hide",function(){
-        if($("#user-menu-trigger").is(":hidden")){
-            $("#members").removeAttr("style");
-        }
+    $("#loginModal").on("shown.bs.modal", function(){
+        $("#muserid").focus();
     });
 });

@@ -25,14 +25,13 @@ use C4::Output;
 use C4::Context;
 use Koha::Patron::Discharge;
 
-my $input = new CGI;
+my $input = CGI->new;
 my $op = $input->param('op') // 'list';
 
 my ( $template, $loggedinuser, $cookie, $flags ) = get_template_and_user({
     template_name   => "members/discharges.tt",
     query           => $input,
     type            => "intranet",
-    authnotrequired => 0,
     flagsrequired   => { borrowers => 'edit_borrowers' },
 });
 
@@ -44,7 +43,7 @@ my $branchcode =
 
 if( $op eq 'allow' ) {
     my $borrowernumber = $input->param('borrowernumber');
-    my $logged_in_user = Koha::Patrons->find( $loggedinuser ) or die "Not logged in";
+    my $logged_in_user = Koha::Patrons->find( $loggedinuser );
     my $patron         = Koha::Patrons->find($borrowernumber);
     output_and_exit_if_error( $input, $cookie, $template, { module => 'members', logged_in_user => $logged_in_user, current_patron => $patron } );
     Koha::Patron::Discharge::discharge({

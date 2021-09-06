@@ -32,9 +32,11 @@ use Modern::Perl;
 use CGI qw ( -utf8 );
 use C4::Auth;
 use C4::Output;
+use Koha::Acquisition::Invoice::Adjustments;
+use C4::Acquisition;
 
 my $dbh     = C4::Context->dbh;
-my $input   = new CGI;
+my $input   = CGI->new;
 my $fund_id = $input->param('fund');
 my $fund_code = $input->param('fund_code');
 
@@ -43,7 +45,6 @@ my ( $template, $loggedinuser, $cookie ) = get_template_and_user(
         template_name   => "acqui/ordered.tt",
         query           => $input,
         type            => "intranet",
-        authnotrequired => 0,
         flagsrequired   => { acquisition => '*' },
         debug           => 1,
     }
@@ -53,12 +54,13 @@ my $query = <<EOQ;
 SELECT
     aqorders.biblionumber, aqorders.basketno, aqorders.ordernumber,
     quantity-quantityreceived AS tleft,
-    ecost, budgetdate, entrydate,
+    ecost_tax_included, budgetdate, entrydate,
     aqbasket.booksellerid,
     aqbooksellers.name as vendorname,
-    itype,
+    GROUP_CONCAT(DISTINCT itype SEPARATOR '|') AS itypes,
     title
-FROM (aqorders, aqbasket)
+FROM aqorders
+JOIN aqbasket USING (basketno)
 LEFT JOIN biblio ON
     biblio.biblionumber=aqorders.biblionumber
 LEFT JOIN aqorders_items ON
@@ -68,12 +70,15 @@ LEFT JOIN items ON
 LEFT JOIN aqbooksellers ON
     aqbasket.booksellerid = aqbooksellers.id
 WHERE
-    aqorders.basketno=aqbasket.basketno AND
     budget_id=? AND
-    (datecancellationprinted IS NULL OR
-        datecancellationprinted='0000-00-00') AND
+    datecancellationprinted IS NULL AND
     (quantity > quantityreceived OR quantityreceived IS NULL)
-    GROUP BY aqorders.ordernumber
+    GROUP BY aqorders.biblionumber, aqorders.basketno, aqorders.ordernumber,
+             tleft,
+             ecost_tax_included, budgetdate, entrydate,
+             aqbasket.booksellerid,
+             aqbooksellers.name,
+             title
 EOQ
 
 my $sth = $dbh->prepare($query);
@@ -86,24 +91,32 @@ my @ordered;
 
 my $total = 0;
 while ( my $data = $sth->fetchrow_hashref ) {
+    $data->{'itemtypes'} = [split('\|', $data->{itypes})];
     my $left = $data->{'tleft'};
     if ( !$left || $left eq '' ) {
         $left = $data->{'quantity'};
     }
     if ( $left && $left > 0 ) {
-        my $subtotal = $left * $data->{'ecost'};
+        my $subtotal = $left * get_rounded_price( $data->{'ecost_tax_included'} );
         $data->{subtotal} = sprintf( "%.2f", $subtotal );
         $data->{'left'} = $left;
         push @ordered, $data;
         $total += $subtotal;
     }
 }
+
+my $adjustments = Koha::Acquisition::Invoice::Adjustments->search({budget_id => $fund_id, closedate => undef, encumber_open => 1 }, { prefetch => 'invoiceid' } );
+while ( my $adj = $adjustments->next ){
+    $total += $adj->adjustment;
+}
+
 $total = sprintf( "%.2f", $total );
 
 $template->{VARS}->{'fund'}    = $fund_id;
 $template->{VARS}->{'ordered'} = \@ordered;
 $template->{VARS}->{'total'}   = $total;
 $template->{VARS}->{'fund_code'} = $fund_code;
+$template->{VARS}->{'adjustments'} = $adjustments;
 
 $sth->finish;
 

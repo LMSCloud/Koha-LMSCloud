@@ -4,18 +4,18 @@ package Koha::AuthorisedValues;
 #
 # This file is part of Koha.
 #
-# Koha is free software; you can redistribute it and/or modify it under the
-# terms of the GNU General Public License as published by the Free Software
-# Foundation; either version 3 of the License, or (at your option) any later
-# version.
+# Koha is free software; you can redistribute it and/or modify it
+# under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 3 of the License, or
+# (at your option) any later version.
 #
-# Koha is distributed in the hope that it will be useful, but WITHOUT ANY
-# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
-# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+# Koha is distributed in the hope that it will be useful, but
+# WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+# GNU General Public License for more details.
 #
-# You should have received a copy of the GNU General Public License along
-# with Koha; if not, write to the Free Software Foundation, Inc.,
-# 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+# You should have received a copy of the GNU General Public License
+# along with Koha; if not, see <http://www.gnu.org/licenses>.
 
 use Modern::Perl;
 
@@ -27,7 +27,7 @@ use Koha::AuthorisedValue;
 use Koha::MarcSubfieldStructures;
 use Koha::Cache::Memory::Lite;
 
-use base qw(Koha::Objects);
+use base qw(Koha::Objects Koha::Objects::Limit::Library);
 
 =head1 NAME
 
@@ -38,33 +38,6 @@ Koha::AuthorisedValues - Koha Authorised value Object set class
 =head2 Class Methods
 
 =cut
-
-=head3 Koha::AuthorisedValues->search();
-
-my @objects = Koha::AuthorisedValues->search($params);
-
-=cut
-
-sub search {
-    my ( $self, $params, $attributes ) = @_;
-
-    my $branchcode = $params->{branchcode};
-    delete( $params->{branchcode} );
-
-    my $or =
-      $branchcode
-      ? {
-        '-or' => [
-            'authorised_values_branches.branchcode' => undef,
-            'authorised_values_branches.branchcode' => $branchcode,
-        ]
-      }
-      : {};
-    my $join = $branchcode ? { join => 'authorised_values_branches' } : {};
-    $attributes //= {};
-    $attributes = { %$attributes, %$join };
-    return $self->SUPER::search( { %$params, %$or, }, $attributes );
-}
 
 sub search_by_marc_field {
     my ( $self, $params ) = @_;

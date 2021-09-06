@@ -17,8 +17,7 @@
 # You should have received a copy of the GNU General Public License
 # along with Koha; if not, see <http://www.gnu.org/licenses>.
 
-use strict;
-use warnings;
+use Modern::Perl;
 
 use CGI qw ( -utf8 );
 use URI::Escape;
@@ -39,7 +38,7 @@ use Koha::SearchEngine::QueryBuilder;
 use Koha::Token;
 use Koha::Z3950Servers;
 
-my $query = new CGI;
+my $query = CGI->new;
 my $dbh   = C4::Context->dbh;
 my $op           = $query->param('op')           || '';
 my $authtypecode = $query->param('authtypecode') || '';
@@ -55,16 +54,16 @@ if ( $op eq "delete" ) {
             template_name   => "authorities/authorities-home.tt",
             query           => $query,
             type            => 'intranet',
-            authnotrequired => 0,
             flagsrequired   => { catalogue => 1 },
             debug           => 1,
         }
     );
 
-    die "Wrong CSRF token" unless Koha::Token->new->check_csrf({
-        session_id => scalar $query->cookie('CGISESSID'),
-        token  => scalar $query->param('csrf_token'),
-    });
+    output_and_exit( $query, $cookie, $template, 'wrong_csrf_token' )
+        unless Koha::Token->new->check_csrf({
+            session_id => scalar $query->cookie('CGISESSID'),
+            token  => scalar $query->param('csrf_token'),
+        });
 
     DelAuthority({ authid => $authid });
 
@@ -105,12 +104,12 @@ if ( $op eq "do_search" ) {
             template_name   => "authorities/searchresultlist.tt",
             query           => $query,
             type            => 'intranet',
-            authnotrequired => 0,
             flagsrequired   => { catalogue => 1 },
             debug           => 1,
         }
     );
 
+    $template->param( search_query => $search_query ) if C4::Context->preference('DumpSearchQueryTemplate');
     $template->param(
         csrf_token => Koha::Token->new->generate_csrf({
             session_id => scalar $query->cookie('CGISESSID'),
@@ -203,7 +202,6 @@ if ( $op eq '' ) {
             template_name   => "authorities/authorities-home.tt",
             query           => $query,
             type            => 'intranet',
-            authnotrequired => 0,
             flagsrequired   => { catalogue => 1 },
             debug           => 1,
         }

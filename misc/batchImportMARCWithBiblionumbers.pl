@@ -12,6 +12,7 @@ BEGIN {
 
 # Koha modules used
 
+use Koha::Script;
 use C4::Context;
 use C4::Biblio;
 use MARC::Record;
@@ -52,7 +53,7 @@ my $fh = IO::File->new($input_marc_file); # don't let MARC::Batch open the file,
 my $batch = MARC::Batch->new( 'USMARC', $fh );
 $batch->warnings_off();
 $batch->strict_off();
-my ($tagfield,$biblionumtagsubfield) = &GetMarcFromKohaField("biblio.biblionumber","");
+my ($tagfield,$biblionumtagsubfield) = &GetMarcFromKohaField( "biblio.biblionumber" );
 
 my $i=0;
 while ( my $record = $batch->next() ) {
@@ -77,7 +78,7 @@ sub search {
 		return("error",undef);
 	}
 	my $oAResult;
-	my $Anewq= new ZOOM::Query::PQF($nquery);
+	my $Anewq= ZOOM::Query::PQF->new($nquery);
 	eval {
 	$oAResult= $oAuth->search_pqf($nquery) ; 
 	};

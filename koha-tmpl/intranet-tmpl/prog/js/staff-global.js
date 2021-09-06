@@ -1,4 +1,5 @@
-// staff-global.js
+/* global shortcut delCookie delBasket Sticky */
+/* exported paramOfUrl addBibToContext delBibToContext */
 if ( KOHA === undefined ) var KOHA = {};
 
 function _(s) { return s; } // dummy function for gettext
@@ -15,19 +16,44 @@ function formatstr(str, col) {
     });
 }
 
+var HtmlCharsToEscape = {
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;'
+};
+String.prototype.escapeHtml = function() {
+    return this.replace(/[&<>]/g, function(c) {
+        return HtmlCharsToEscape[c] || c;
+    });
+};
+function escape_str(s){
+    return s != null ? s.escapeHtml() : "";
+}
+
+/*
+ * Void method for numbers, for consistency
+ */
+Number.prototype.escapeHtml = function() {
+    return this;
+};
+function escape_price(p){
+    return p != null ? p.escapeHtml().format_price() : "";
+}
 
 // http://stackoverflow.com/questions/14859281/select-tab-by-name-in-jquery-ui-1-10-0/16550804#16550804
 $.fn.tabIndex = function () {
     return $(this).parent().children('div').index(this);
 };
 $.fn.selectTabByID = function (tabID) {
-    $(this).tabs("option", "active", $(tabID).tabIndex());
+    $(this).tabs("option", "active", $( tabID ).tabIndex());
 };
 
  $(document).ready(function() {
     $('#header_search').tabs().on( "tabsactivate", function(e, ui) { $(this).find("div:visible").find('input').eq(0).focus(); });
 
     $(".close").click(function(){ window.close(); });
+
+    $("#checkin_search form").preventDoubleFormSubmit();
 
     if($("#header_search #checkin_search").length > 0){ shortcut.add('Alt+r',function (){ $("#header_search").selectTabByID("#checkin_search"); $("#ret_barcode").focus(); }); } else { shortcut.add('Alt+r',function (){ location.href="/cgi-bin/koha/circ/returns.pl"; }); }
     if($("#header_search #circ_search").length > 0){ shortcut.add('Alt+u',function (){ $("#header_search").selectTabByID("#circ_search"); $("#findborrower").focus(); }); } else { shortcut.add('Alt+u',function(){ location.href="/cgi-bin/koha/circ/circulation.pl"; }); }
@@ -61,6 +87,9 @@ $.fn.selectTabByID = function (tabID) {
     $(".toggle_element").on("click",function(e){
         e.preventDefault();
         $( $(this).data("element") ).toggle();
+        if (typeof Sticky !== "undefined" && typeof hcSticky === "function") {
+            Sticky.hcSticky('update');
+        }
     });
 
     var navmenulist = $("#navmenulist");
@@ -74,7 +103,77 @@ $.fn.selectTabByID = function (tabID) {
         $("a[href$=\"/" + path + params + "\"]", navmenulist).addClass("current");
     }
 
+    $("#catalog-search-link a").on("hover", function(){
+        $("#catalog-search-dropdown a").toggleClass("catalog-search-dropdown-hover");
+    });
+
+    if ( localStorage.getItem("lastborrowernumber") ){
+        if( $("#hiddenborrowernumber").val() != localStorage.getItem("lastborrowernumber") ) {
+            $("#lastborrower-window").detach().appendTo("#breadcrumbs");
+            $("#lastborrowerlink").show();
+            $("#lastborrowerlink").prop("title", localStorage.getItem("lastborrowername") + " (" + localStorage.getItem("lastborrowercard") + ")");
+            $("#lastborrowerlink").prop("href", "/cgi-bin/koha/circ/circulation.pl?borrowernumber=" + localStorage.getItem("lastborrowernumber"));
+            $("#lastborrower-window").css("display", "inline-block");
+        }
+    }
+
+    if( !localStorage.getItem("lastborrowernumber") || ( $("#hiddenborrowernumber").val() != localStorage.getItem("lastborrowernumber") && localStorage.getItem("currentborrowernumber") != $("#hiddenborrowernumber").val())) {
+        if( $("#hiddenborrowernumber").val() ){
+            localStorage.setItem("lastborrowernumber", $("#hiddenborrowernumber").val() );
+            localStorage.setItem("lastborrowername", $("#hiddenborrowername").val() );
+            localStorage.setItem("lastborrowercard", $("#hiddenborrowercard").val() );
+        }
+    }
+
+    if( $("#hiddenborrowernumber").val() ){
+        localStorage.setItem("currentborrowernumber", $("#hiddenborrowernumber").val() );
+    }
+
+    $("#lastborrower-remove").click(function() {
+        removeLastBorrower();
+        $("#lastborrower-window").hide();
+    });
+
+    /* Search results browsing */
+    /* forms with action leading to search */
+    $("form[action*='search.pl']").submit(function(){
+        $('[name^="limit"]').each(function(){
+            if( $(this).val() == '' ){
+                $(this).prop("disabled","disabled");
+            }
+        });
+        var disabledPrior = false;
+        $(".search-term-row").each(function(){
+            if( disabledPrior ){
+                $(this).find('select[name="op"]').prop("disabled","disabled");
+                disabledPrior = false;
+            }
+            if( $(this).find('input[name="q"]').val() == "" ){
+                $(this).find('input').prop("disabled","disabled");
+                $(this).find('select').prop("disabled","disabled");
+                disabledPrior = true;
+            }
+        });
+        resetSearchContext();
+        saveOrClearSimpleSearchParams();
+    });
+    /* any link to launch a search except navigation links */
+    $("[href*='search.pl?']").not(".nav").not('.searchwithcontext').click(function(){
+        resetSearchContext();
+    });
+    /* any link to a detail page from the results page. */
+    $("#bookbag_form a[href*='detail.pl?']").click(function(){
+        resetSearchContext();
+    });
+
 });
+
+function removeLastBorrower(){
+    localStorage.removeItem("lastborrowernumber");
+    localStorage.removeItem("lastborrowername");
+    localStorage.removeItem("lastborrowercard");
+    localStorage.removeItem("currentborrowernumber");
+}
 
 // http://jennifermadden.com/javascript/stringEnterKeyDetector.html
 function checkEnter(e){ //e is event object passed from function invocation
@@ -84,8 +183,10 @@ function checkEnter(e){ //e is event object passed from function invocation
     } else {
         characterCode = e.keyCode; //character code is contained in IE's keyCode property
     }
-
-    if(characterCode == 13){ //if generated character code is equal to ascii 13 (if enter key)
+    if( characterCode == 13 //if generated character code is equal to ascii 13 (if enter key)
+        && e.target.nodeName == "INPUT"
+        && e.target.type != "submit" // Allow enter to submit using the submit button
+    ){
         return false;
     } else {
         return true;
@@ -101,10 +202,13 @@ function logOut(){
         delBasket('main', true);
     }
     clearHoldFor();
+    removeLastBorrower();
+    localStorage.removeItem("sql_reports_activetab");
+    localStorage.removeItem("searches");
 }
 
 function openHelp(){
-    openWindow("/cgi-bin/koha/help.pl","KohaHelp",600,600);
+    window.open( "/cgi-bin/koha/help.pl", "_blank");
 }
 
 jQuery.fn.preventDoubleFormSubmit = function() {
@@ -184,4 +288,79 @@ function keep_text(clicked_index) {
     for (i = 0; i < searchboxes.length; i++) {
         searchboxes[i].value = persist;
     }
+}
+
+// Extends jQuery API
+jQuery.extend({uniqueArray:function(array){
+    return $.grep(array, function(el, index) {
+        return index === $.inArray(el, array);
+    });
+}});
+
+function removeByValue(arr, val) {
+    for(var i=0; i<arr.length; i++) {
+        if(arr[i] == val) {
+            arr.splice(i, 1);
+            break;
+        }
+    }
+}
+
+function paramOfUrl( url, param ) {
+    param = param.replace(/[\[]/,"\\\[").replace(/[\]]/,"\\\]");
+    var regexS = "[\\?&]"+param+"=([^&#]*)";
+    var regex = new RegExp( regexS );
+    var results = regex.exec( url );
+    if( results == null ) {
+        return "";
+    } else {
+        return results[1];
+    }
+}
+
+function addBibToContext( bibnum ) {
+    bibnum = parseInt(bibnum, 10);
+    var bibnums = getContextBiblioNumbers();
+    bibnums.push(bibnum);
+    setContextBiblioNumbers( bibnums );
+    setContextBiblioNumbers( $.uniqueArray( bibnums ) );
+}
+
+function delBibToContext( bibnum ) {
+    var bibnums = getContextBiblioNumbers();
+    removeByValue( bibnums, bibnum );
+    setContextBiblioNumbers( $.uniqueArray( bibnums ) );
+}
+
+function setContextBiblioNumbers( bibnums ) {
+    $.cookie('bibs_selected', JSON.stringify( bibnums ));
+}
+
+function getContextBiblioNumbers() {
+    var r = $.cookie('bibs_selected');
+    if ( r ) {
+        return JSON.parse(r);
+    }
+    r = new Array();
+    return r;
+}
+
+function resetSearchContext() {
+    setContextBiblioNumbers( new Array() );
+}
+
+function saveOrClearSimpleSearchParams() {
+    // Simple masthead search - pass value for display on details page
+    if( $("#cat-search-block select.advsearch").length ){
+        pulldown_selection = $("#cat-search-block select.advsearch").val();
+    } else {
+        pulldown_selection ="";
+    }
+    if( $("#cat-search-block #search-form").length ){
+        searchbox_value = $("#cat-search-block #search-form").val();
+    } else {
+        searchbox_value ="";
+    }
+    localStorage.setItem('cat_search_pulldown_selection', pulldown_selection );
+    localStorage.setItem('searchbox_value', searchbox_value );
 }

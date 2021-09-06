@@ -23,7 +23,7 @@ use C4::Auth;
 use C4::Output;
 use Koha::Patrons;
 
-my $query = new CGI;
+my $query = CGI->new;
 
 unless ( C4::Context->preference('RoutingSerials') ) {
     print $query->redirect("/cgi-bin/koha/errors/404.pl");
@@ -36,17 +36,11 @@ my ( $template, $borrowernumber, $cookie ) = get_template_and_user(
         template_name   => "opac-routing-lists.tt",
         query           => $query,
         type            => "opac",
-        authnotrequired => 0,
         debug           => 1,
     }
 );
 
 my $patron = Koha::Patrons->find( $borrowernumber );
-my $category = $patron->category;
-my $borrower= $patron->unblessed;
-$borrower->{description} = $category->description;
-$borrower->{category_type} = $category->category_type;
-$template->param( BORROWER_INFO => $borrower );
 
 $template->param(
     routinglistsview => 1,

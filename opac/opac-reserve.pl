@@ -37,7 +37,7 @@ use C4::Debug;
 use Koha::AuthorisedValues;
 use Koha::Biblios;
 use Koha::DateUtils;
-use Koha::IssuingRules;
+use Koha::CirculationRules;
 use Koha::Items;
 use Koha::ItemTypes;
 use Koha::Checkouts;
@@ -48,7 +48,7 @@ use List::MoreUtils qw/uniq/;
 
 my $maxreserves = C4::Context->preference("maxreserves");
 
-my $query = new CGI;
+my $query = CGI->new;
 
 # if RequestOnOpac (for placing holds) is disabled, leave immediately
 if ( ! C4::Context->preference('RequestOnOpac') ) {
@@ -61,7 +61,6 @@ my ( $template, $borrowernumber, $cookie ) = get_template_and_user(
         template_name   => "opac-reserve.tt",
         query           => $query,
         type            => "opac",
-        authnotrequired => 0,
         debug           => 1,
     }
 );
@@ -72,37 +71,34 @@ for ( C4::Context->preference("OPACShowHoldQueueDetails") ) {
     m/priority/ and $show_priority = 1;
 }
 
-sub get_out {
-	output_html_with_http_headers(shift,shift,shift); # $query, $cookie, $template->output;
-	exit;
-}
-
-my $patron = Koha::Patrons->find( $borrowernumber );
+my $patron = Koha::Patrons->find( $borrowernumber, { prefetch => ['categorycode'] } );
+my $category = $patron->category;
 
 my $can_place_hold_if_available_at_pickup = C4::Context->preference('OPACHoldsIfAvailableAtPickup');
 unless ( $can_place_hold_if_available_at_pickup ) {
-    my @patron_categories = split '\|', C4::Context->preference('OPACHoldsIfAvailableAtPickupExceptions');
+    my @patron_categories = split ',', C4::Context->preference('OPACHoldsIfAvailableAtPickupExceptions');
     if ( @patron_categories ) {
         my $categorycode = $patron->categorycode;
-        $can_place_hold_if_available_at_pickup = grep /^$categorycode$/, @patron_categories;
+        $can_place_hold_if_available_at_pickup = grep { $_ eq $categorycode } @patron_categories;
     }
 }
 
 # check if this user can place a reserve, -1 means use sys pref, 0 means dont block, 1 means block
-if ( $patron->category->effective_BlockExpiredPatronOpacActions ) {
+if ( $category->effective_BlockExpiredPatronOpacActions ) {
 
     if ( $patron->is_expired ) {
 
         # cannot reserve, their card has expired and the rules set mean this is not allowed
         $template->param( message => 1, expired_patron => 1 );
-        get_out( $query, $cookie, $template->output );
+        output_html_with_http_headers $query, $cookie, $template->output, undef, { force_no_caching => 1 };
+        exit;
     }
 }
 
 # Pass through any reserve charge
-my $reservefee = $patron->category->reservefee;
+my $reservefee = $category->reservefee;
 if ( $reservefee > 0){
-    $template->param( RESERVE_CHARGE => sprintf("%.2f",$reservefee));
+    $template->param( RESERVE_CHARGE => $reservefee);
 }
 
 my $itemtypes = { map { $_->{itemtype} => $_ } @{ Koha::ItemTypes->search_with_localization->unblessed } };
@@ -121,7 +117,8 @@ if (! $biblionumbers) {
 
 if ((! $biblionumbers) && (! $query->param('place_reserve'))) {
     $template->param(message=>1, no_biblionumber=>1);
-    &get_out($query, $cookie, $template->output);
+    output_html_with_http_headers $query, $cookie, $template->output, undef, { force_no_caching => 1 };
+    exit;
 }
 
 # Pass the numbers to the page so they can be fed back
@@ -133,18 +130,14 @@ my @biblionumbers = split /\//, $biblionumbers;
 if (($#biblionumbers < 0) && (! $query->param('place_reserve'))) {
     # TODO: New message?
     $template->param(message=>1, no_biblionumber=>1);
-    &get_out($query, $cookie, $template->output);
+    output_html_with_http_headers $query, $cookie, $template->output, undef, { force_no_caching => 1 };
+    exit;
 }
 
 
 # pass the pickup branch along....
 my $branch = $query->param('branch') || $patron->branchcode || C4::Context->userenv->{branch} || '' ;
 $template->param( branch => $branch );
-
-# Is the person allowed to choose their branch
-my $OPACChooseBranch = (C4::Context->preference("OPACAllowUserToChooseBranch")) ? 1 : 0;
-
-$template->param( choose_branch => $OPACChooseBranch);
 
 #
 #
@@ -179,6 +172,7 @@ foreach my $biblioNumber (@biblionumbers) {
 
     # Compute the priority rank.
     my $biblio = Koha::Biblios->find( $biblioNumber );
+    $biblioData->{object} = $biblio;
     my $holds = $biblio->holds;
     my $rank = $holds->count;
     $biblioData->{reservecount} = 1;    # new reserve
@@ -229,7 +223,8 @@ if ( $query->param('place_reserve') ) {
     my $selectionCount = @selectedItems;
     if (($selectionCount == 0) || (($selectionCount % 3) != 0)) {
         $template->param(message=>1, bad_data=>1);
-        &get_out($query, $cookie, $template->output);
+        output_html_with_http_headers $query, $cookie, $template->output, undef, { force_no_caching => 1 };
+        exit;
     }
 
     my $failed_holds = 0;
@@ -241,9 +236,25 @@ if ( $query->param('place_reserve') ) {
         my $canreserve = 0;
 
         my $singleBranchMode = Koha::Libraries->search->count == 1;
-        if ( $singleBranchMode || !$OPACChooseBranch )
+        if ( $singleBranchMode || ! C4::Context->preference("OPACAllowUserToChooseBranch") )
         {    # single branch mode or disabled user choosing
             $branch = $patron->branchcode;
+        }
+
+        # When choosing a specific item, the default pickup library should be dictated by the default hold policy
+        if ( ! C4::Context->preference("OPACAllowUserToChooseBranch") && $itemNum ) {
+            my $item = Koha::Items->find( $itemNum );
+            my $type = $item->effective_itemtype;
+            my $rule = GetBranchItemRule( $patron->branchcode, $type );
+
+            if ( $rule->{hold_fulfillment_policy} eq 'any' || $rule->{hold_fulfillment_policy} eq 'patrongroup' ) {
+                $branch = $patron->branchcode;
+            } elsif ( $rule->{hold_fulfillment_policy} eq 'holdgroup' ){
+                $branch = $item->homebranch;
+            } else {
+                my $policy = $rule->{hold_fulfillment_policy};
+                $branch = $item->$policy;
+            }
         }
 
 #item may belong to a host biblio, if yes change biblioNum to hosts bilbionumber
@@ -270,11 +281,11 @@ if ( $query->param('place_reserve') ) {
 
         my $rank = $biblioData->{rank};
         if ( $itemNum ne '' ) {
-            $canreserve = 1 if CanItemBeReserved( $borrowernumber, $itemNum ) eq 'OK';
+            $canreserve = 1 if CanItemBeReserved( $borrowernumber, $itemNum, $branch )->{status} eq 'OK';
             
-            my $item = GetItem($itemNum);
+            my $item = Koha::Items->find( $itemNum )->unblessed;
             
-            if ( C4::Context->preference('SetPickupLocationOfReservedItems') && !$OPACChooseBranch ) {
+            if ( C4::Context->preference('SetPickupLocationOfReservedItems') && C4::Context->preference("OPACAllowUserToChooseBranch") ) {
                 my $pickUpBranch = C4::Context->preference('SetPickupLocationOfReservedItems');
                 if ( $pickUpBranch && exists($item->{$pickUpBranch}) ) {
                     $branch = $item->{$pickUpBranch};
@@ -282,7 +293,7 @@ if ( $query->param('place_reserve') ) {
             }
         }
         else {
-            $canreserve = 1 if CanBookBeReserved( $borrowernumber, $biblioNum ) eq 'OK';
+            $canreserve = 1 if CanBookBeReserved( $borrowernumber, $biblioNum, $branch )->{status} eq 'OK';
 
             # Inserts a null into the 'itemnumber' field of 'reserves' table.
             $itemNum = undef;
@@ -310,10 +321,19 @@ if ( $query->param('place_reserve') ) {
         # Here we actually do the reserveration. Stage 3.
         if ($canreserve) {
             my $reserve_id = AddReserve(
-                $branch,          $borrowernumber, $biblioNum,
-                [$biblioNum],     $rank,           $startdate,
-                $expiration_date, $notes,          $biblioData->{title},
-                $itemNum,         $found,          $itemtype,
+                {
+                    branchcode       => $branch,
+                    borrowernumber   => $borrowernumber,
+                    biblionumber     => $biblioNum,
+                    priority         => $rank,
+                    reservation_date => $startdate,
+                    expiration_date  => $expiration_date,
+                    notes            => $notes,
+                    title            => $biblioData->{title},
+                    itemnumber       => $itemNum,
+                    found            => $found,
+                    itemtype         => $itemtype,
+                }
             );
             $failed_holds++ unless $reserve_id;
             ++$reserve_cnt;
@@ -397,14 +417,14 @@ unless ($noreserves) {
 my $biblioLoop = [];
 my $numBibsAvailable = 0;
 my $itemdata_enumchron = 0;
+my $itemdata_ccode = 0;
 my $anyholdable = 0;
 my $itemLevelTypes = C4::Context->preference('item-level_itypes');
+my $pickup_locations = Koha::Libraries->search({ pickup_location => 1 });
 $template->param('item_level_itypes' => $itemLevelTypes);
 
 foreach my $biblioNum (@biblionumbers) {
 
-    my @not_available_at = ();
-    my $record = GetMarcBiblio({ biblionumber => $biblioNum });
     # Init the bib item with the choices for branch pickup
     my %biblioLoopIter;
 
@@ -412,13 +432,23 @@ foreach my $biblioNum (@biblionumbers) {
     my $biblioData = $biblioDataHash{$biblioNum};
     if (! $biblioData) {
         $template->param(message=>1, bad_biblionumber=>$biblioNum);
-        &get_out($query, $cookie, $template->output);
+        output_html_with_http_headers $query, $cookie, $template->output, undef, { force_no_caching => 1 };
+        exit;
+    }
+
+    my @not_available_at = ();
+    my $biblio = $biblioData->{object};
+    foreach my $library ( $pickup_locations->as_list ) {
+        push( @not_available_at, $library->branchcode ) unless $biblio->can_be_transferred({ to => $library });
     }
 
     my $frameworkcode = GetFrameworkCode( $biblioData->{biblionumber} );
     $biblioLoopIter{biblionumber} = $biblioData->{biblionumber};
     $biblioLoopIter{title} = $biblioData->{title};
-    $biblioLoopIter{subtitle} = GetRecordValue('subtitle', $record, $frameworkcode);
+    $biblioLoopIter{subtitle} = $biblioData->{'subtitle'};
+    $biblioLoopIter{medium} = $biblioData->{medium};
+    $biblioLoopIter{part_number} = $biblioData->{part_number};
+    $biblioLoopIter{part_name} = $biblioData->{part_name};
     $biblioLoopIter{author} = $biblioData->{author};
     $biblioLoopIter{rank} = $biblioData->{rank};
     $biblioLoopIter{reservecount} = $biblioData->{reservecount};
@@ -444,12 +474,18 @@ foreach my $biblioNum (@biblionumbers) {
     my @notforloan_avs = Koha::AuthorisedValues->search_by_koha_field({ kohafield => 'items.notforloan', frameworkcode => $frameworkcode });
     my $notforloan_label_of = { map { $_->authorised_value => $_->opac_description } @notforloan_avs };
 
+    my $visible_items = { map { $_->itemnumber => $_ } $biblio->items->filter_by_visible_in_opac( { patron => $patron } )->as_list };
+
+    # Only keep the items that are visible in the opac (i.e. those in %visible_items)
+    # FIXME: We should get rid of itemInfos altogether and use $visible_items
+    $biblioData->{itemInfos} = [ grep { $visible_items->{ $_->{itemnumber} } } @{ $biblioData->{itemInfos} } ];
+
     $biblioLoopIter{itemLoop} = [];
     my $numCopiesAvailable = 0;
     my $numCopiesOPACAvailable = 0;
     foreach my $itemInfo (@{$biblioData->{itemInfos}}) {
         my $itemNum = $itemInfo->{itemnumber};
-        my $item = Koha::Items->find( $itemNum );
+        my $item = $visible_items->{$itemNum};
         my $itemLoopIter = {};
 
         $itemLoopIter->{itemnumber} = $itemNum;
@@ -457,6 +493,7 @@ foreach my $biblioNum (@biblionumbers) {
         $itemLoopIter->{homeBranchName} = $itemInfo->{homebranch};
         $itemLoopIter->{callNumber} = $itemInfo->{itemcallnumber};
         $itemLoopIter->{enumchron} = $itemInfo->{enumchron};
+        $itemLoopIter->{ccode} = $itemInfo->{ccode};
         $itemLoopIter->{copynumber} = $itemInfo->{copynumber};
         if ($itemLevelTypes) {
             $itemLoopIter->{translated_description} = $itemInfo->{translated_description};
@@ -509,7 +546,7 @@ foreach my $biblioNum (@biblionumbers) {
             $itemInfo->{backgroundcolor} = 'other';
         }
 
-        # Check of the transfered documents
+        # Check of the transferred documents
         my ( $transfertwhen, $transfertfrom, $transfertto ) =
           GetTransfers($itemNum);
         if ( $transfertwhen && ($transfertwhen ne '') ) {
@@ -534,11 +571,11 @@ foreach my $biblioNum (@biblionumbers) {
 
         my $policy_holdallowed = !$itemLoopIter->{already_reserved};
         $policy_holdallowed &&=
-            IsAvailableForItemLevelRequest($itemInfo,$patron_unblessed) &&
-            CanItemBeReserved($borrowernumber,$itemNum) eq 'OK';
+            IsAvailableForItemLevelRequest($item, $patron) &&
+            CanItemBeReserved( $borrowernumber, $itemNum )->{status} eq 'OK';
 
         if ($policy_holdallowed) {
-            my $opac_hold_policy = Koha::IssuingRules->get_opacitemholds_policy( { item => $item, patron => $patron } );
+            my $opac_hold_policy = Koha::CirculationRules->get_opacitemholds_policy( { item => $item, patron => $patron } );
             if ( $opac_hold_policy ne 'N' ) { # If Y or F
                 $itemLoopIter->{available} = 1;
                 $numCopiesOPACAvailable++;
@@ -561,10 +598,17 @@ foreach my $biblioNum (@biblionumbers) {
         if ($itemLoopIter->{enumchron}) {
             $itemdata_enumchron = 1;
         }
+    # Show collection when needed
+        if ($itemLoopIter->{ccode}) {
+            $itemdata_ccode = 1;
+        }
 
         push @{$biblioLoopIter{itemLoop}}, $itemLoopIter;
     }
-    $template->param( itemdata_enumchron => $itemdata_enumchron );
+    $template->param(
+        itemdata_enumchron => $itemdata_enumchron,
+        itemdata_ccode     => $itemdata_ccode,
+    );
 
     if ($numCopiesAvailable > 0) {
         $numBibsAvailable++;
@@ -576,11 +620,6 @@ foreach my $biblioNum (@biblionumbers) {
         $biblioLoopIter{holdable} = undef;
         $biblioLoopIter{itemholdable} = undef;
     }
-    if(not C4::Context->preference('AllowHoldsOnPatronsPossessions') and CheckIfIssuedToPatron($borrowernumber,$biblioNum)) {
-        $biblioLoopIter{holdable} = undef;
-        $biblioLoopIter{already_patron_possession} = 1;
-    }
-
     if ( $biblioLoopIter{holdable} ) {
         @not_available_at = uniq @not_available_at;
         $biblioLoopIter{not_available_at} = \@not_available_at ;
@@ -595,7 +634,9 @@ foreach my $biblioNum (@biblionumbers) {
         }
     }
 
-    $biblioLoopIter{holdable} &&= CanBookBeReserved($borrowernumber,$biblioNum) eq 'OK';
+    my $status = CanBookBeReserved( $borrowernumber, $biblioNum )->{status};
+    $biblioLoopIter{holdable} &&= $status eq 'OK';
+    $biblioLoopIter{already_patron_possession} = $status eq 'alreadypossession';
 
     # For multiple holds per record, if a patron has previously placed a hold,
     # the patron can only place more holds of the same type. That is, if the
@@ -612,6 +653,7 @@ foreach my $biblioNum (@biblionumbers) {
     if ($forced_hold_level) {
         $biblioLoopIter{force_hold}   = 1 if $forced_hold_level eq 'item';
         $biblioLoopIter{itemholdable} = 0 if $forced_hold_level eq 'record';
+        $biblioLoopIter{forced_hold_level} = $forced_hold_level;
     }
 
 
@@ -620,6 +662,14 @@ foreach my $biblioNum (@biblionumbers) {
     $anyholdable = 1 if $biblioLoopIter{holdable};
 }
 
+unless ($pickup_locations->count) {
+    $numBibsAvailable = 0;
+    $anyholdable = 0;
+    $template->param(
+        message => 1,
+        no_pickup_locations => 1
+    );
+}
 
 if ( $numBibsAvailable == 0 || $anyholdable == 0) {
     $template->param( none_available => 1 );

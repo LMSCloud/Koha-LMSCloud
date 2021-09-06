@@ -28,8 +28,11 @@ BEGIN {
 
 # possible modules to use
 use Getopt::Long;
+
+use Koha::Script;
 use C4::Context;
 use C4::Items;
+use Koha::Items;
 use Pod::Usage;
 
 
@@ -67,32 +70,42 @@ if ($whereclause) {
 }
 
 # output log or STDOUT
+my $fh;
 if (defined $outfile) {
-   open (OUT, ">$outfile") || die ("Cannot open output file");
+   open ($fh, '>', $outfile) || die ("Cannot open output file");
 } else {
-   open(OUT, ">&STDOUT") || die ("Couldn't duplicate STDOUT: $!");
+   open($fh, '>&', \*STDOUT) || die ("Couldn't duplicate STDOUT: $!");
 }
 
+# FIXME Would be better to call Koha::Items->search here
 my $sth_fetch = $dbh->prepare("SELECT biblionumber, itemnumber, itemcallnumber FROM items $whereclause");
 $sth_fetch->execute();
 
 # fetch info from the search
 while (my ($biblionumber, $itemnumber, $itemcallnumber) = $sth_fetch->fetchrow_array){
-   
-  eval { ModItem({itemcallnumber => $itemcallnumber}, $biblionumber, $itemnumber); };
+
+  my $item = Koha::Items->find($itemnumber);
+  next unless $item;
+
+  for my $c (qw( itemcallnumber cn_source ) ){
+      $item->make_column_dirty($c);
+  }
+
+  eval { $item->store };
   my $modok = $@ ? 0 : 1;
 
   if ($modok) {
      $goodcount++;
-     print OUT "Touched item $itemnumber\n" if (defined $verbose);
+     print $fh "Touched item $itemnumber\n" if (defined $verbose);
   } else {
      $badcount++;
-     print OUT "ERROR WITH ITEM $itemnumber !!!!\n";
+     print $fh "ERROR WITH ITEM $itemnumber !!!!\n";
   }
 
   $totalcount++;
 
 }
+close($fh);
 
 # Benchmarking
 my $endtime = time();

@@ -149,4 +149,58 @@ subtest 'new() tests' => sub {
     is_deeply( $filter_params, $parameters, 'Initialization parameters' );
 };
 
+subtest 'options() tests' => sub {
+
+    plan tests => 6;
+
+    # Create a processor with some options
+    my $record_processor = Koha::RecordProcessor->new(
+        {
+            filters => ['EmbedSeeFromHeadings','Null'],
+            options => {
+                dummy => 'something'
+            }
+        }
+    );
+
+    my $filter = $record_processor->filters->[0];
+
+    is(
+        ref( $filter ),
+        'Koha::Filter::MARC::EmbedSeeFromHeadings',
+        'Correct second filter initialized'
+    );
+
+    is_deeply(
+        $filter->params->{options},
+        { dummy => 'something' },
+        'Options are set correctly'
+    );
+
+    # Update the chosen options
+    my $ret = $record_processor->options(
+        {
+            dummy => 'something else'
+        }
+    );
+
+    is( ref($ret), 'Koha::RecordProcessor', 'The setter return the object for chaining calls' );
+    is_deeply( $record_processor->options, { dummy => 'something else' }, 'The getter works as expected' );
+
+    # Re-fetch the filter
+    $filter = $record_processor->filters->[0];
+
+    is(
+        ref( $filter ),
+        'Koha::Filter::MARC::EmbedSeeFromHeadings',
+        'Correct second filter initialized'
+    );
+
+    is_deeply(
+        $filter->params->{options},
+        { dummy => 'something else' },
+        'Options are updated correctly'
+    );
+};
+
 done_testing();

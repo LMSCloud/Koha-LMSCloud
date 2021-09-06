@@ -4,18 +4,18 @@ package Koha::SearchEngine::Elasticsearch::Search;
 #
 # This file is part of Koha.
 #
-# Koha is free software; you can redistribute it and/or modify it under the
-# terms of the GNU General Public License as published by the Free Software
-# Foundation; either version 3 of the License, or (at your option) any later
-# version.
+# Koha is free software; you can redistribute it and/or modify it
+# under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 3 of the License, or
+# (at your option) any later version.
 #
-# Koha is distributed in the hope that it will be useful, but WITHOUT ANY
-# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
-# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+# Koha is distributed in the hope that it will be useful, but
+# WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+# GNU General Public License for more details.
 #
-# You should have received a copy of the GNU General Public License along
-# with Koha; if not, write to the Free Software Foundation, Inc.,
-# 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+# You should have received a copy of the GNU General Public License
+# along with Koha; if not, see <http://www.gnu.org/licenses>.
 
 =head1 NAME
 
@@ -47,11 +47,12 @@ use Koha::ItemTypes;
 use Koha::AuthorisedValues;
 use Koha::SearchEngine::QueryBuilder;
 use Koha::SearchEngine::Search;
+use Koha::Exceptions::Elasticsearch;
 use MARC::Record;
-use Catmandu::Store::ElasticSearch;
-
+use MARC::File::XML;
 use Data::Dumper; #TODO remove
 use Carp qw(cluck);
+use MIME::Base64;
 
 Koha::SearchEngine::Elasticsearch::Search->mk_accessors(qw( store ));
 
@@ -81,24 +82,21 @@ Returns
 sub search {
     my ($self, $query, $page, $count, %options) = @_;
 
-    my $params = $self->get_elasticsearch_params();
-    my %paging;
     # 20 is the default number of results per page
-    $paging{limit} = $count || 20;
-    # ES/Catmandu doesn't want pages, it wants a record to start from.
+    $query->{size} = $count // 20;
+    # ES doesn't want pages, it wants a record to start from.
     if (exists $options{offset}) {
-        $paging{start} = $options{offset};
+        $query->{from} = $options{offset};
     } else {
         $page = (!defined($page) || ($page <= 0)) ? 0 : $page - 1;
-        $paging{start} = $page * $paging{limit};
+        $query->{from} = $page * $query->{size};
     }
-    $self->store(
-        Catmandu::Store::ElasticSearch->new(
-            %$params,
-        )
-    ) unless $self->store;
+    my $elasticsearch = $self->get_elasticsearch();
     my $results = eval {
-        $self->store->bag->search( %$query, %paging );
+        $elasticsearch->search(
+            index => $self->index_name,
+            body => $query
+        );
     };
     if ($@) {
         die $self->process_error($@);
@@ -117,22 +115,23 @@ faster than pulling all the data in, usually.
 
 sub count {
     my ( $self, $query ) = @_;
+    my $elasticsearch = $self->get_elasticsearch();
 
-    my $params = $self->get_elasticsearch_params();
-    $self->store(
-        Catmandu::Store::ElasticSearch->new( %$params, trace_calls => 0, ) )
-      unless $self->store;
+    # TODO: Probably possible to exclude results
+    # and just return number of hits
+    my $result = $elasticsearch->search(
+        index => $self->index_name,
+        body => $query
+    );
 
-    my $search = $self->store->bag->search( %$query);
-    my $count = $search->total() || 0;
-    return $count;
+    return $result->{hits}->{total};
 }
 
 =head2 search_compat
 
     my ( $error, $results, $facets ) = $search->search_compat(
         $query,            $simple_query, \@sort_by,       \@servers,
-        $results_per_page, $offset,       $expanded_facet, $branches,
+        $results_per_page, $offset,       undef,           $item_types,
         $query_type,       $scan
       )
 
@@ -144,40 +143,44 @@ get ignored here, along with some other things (like C<@servers>.)
 
 sub search_compat {
     my (
-        $self,     $query,            $simple_query, $sort_by,
-        $servers,  $results_per_page, $offset,       $expanded_facet,
-        $branches, $query_type,       $scan
+        $self,       $query,            $simple_query, $sort_by,
+        $servers,    $results_per_page, $offset,       $branches,
+        $item_types, $query_type,       $scan
     ) = @_;
+
+    if ( $scan ) {
+        return $self->_aggregation_scan( $query, $results_per_page, $offset );
+    }
+
     my %options;
     if ( !defined $offset or $offset < 0 ) {
         $offset = 0;
     }
     $options{offset} = $offset;
-    $options{expanded_facet} = $expanded_facet;
     my $results = $self->search($query, undef, $results_per_page, %options);
 
     # Convert each result into a MARC::Record
-    my (@records, $index);
-    $index = $offset; # opac-search expects results to be put in the
-        # right place in the array, according to $offset
-    $results->each(sub {
-            # The results come in an array for some reason
-            my $marc_json = $_[0]->{record};
-            my $marc = $self->json2marc($marc_json);
-            $records[$index++] = $marc;
-        });
+    my @records;
+    # opac-search expects results to be put in the
+    # right place in the array, according to $offset
+    my $index = $offset;
+    my $hits = $results->{'hits'};
+    foreach my $es_record (@{$hits->{'hits'}}) {
+        $records[$index++] = $self->decode_record_from_result($es_record->{'_source'});
+    }
+
     # consumers of this expect a name-spaced result, we provide the default
     # configuration.
     my %result;
-    $result{biblioserver}{hits} = $results->total;
+    $result{biblioserver}{hits} = $hits->{'total'};
     $result{biblioserver}{RECORDS} = \@records;
-    return (undef, \%result, $self->_convert_facets($results->{aggregations}, $expanded_facet));
+    return (undef, \%result, $self->_convert_facets($results->{aggregations}));
 }
 
 =head2 search_auth_compat
 
     my ( $results, $total ) =
-      $searcher->search_auth_compat( $query, $page, $count, %options );
+      $searcher->search_auth_compat( $query, $offset, $count, $skipmetadata, %options );
 
 This has a similar calling convention to L<search>, however it returns its
 results in a form the same as L<C4::AuthoritiesMarc::SearchAuthorities>.
@@ -185,32 +188,37 @@ results in a form the same as L<C4::AuthoritiesMarc::SearchAuthorities>.
 =cut
 
 sub search_auth_compat {
-    my $self = shift;
+    my ($self, $query, $offset, $count, $skipmetadata, %options) = @_;
 
-    # TODO handle paging
+    if ( !defined $offset or $offset <= 0 ) {
+        $offset = 1;
+    }
+    # Uh, authority search uses 1-based offset..
+    $options{offset} = $offset - 1;
     my $database = Koha::Database->new();
     my $schema   = $database->schema();
-    my $res      = $self->search(@_);
+    my $res      = $self->search($query, undef, $count, %options);
+
     my $bib_searcher = Koha::SearchEngine::Elasticsearch::Search->new({index => 'biblios'});
     my @records;
-    $res->each(
-        sub {
-            my %result;
-            my $record    = $_[0];
-            my $marc_json = $record->{record};
+    my $hits = $res->{'hits'};
+    foreach my $es_record (@{$hits->{'hits'}}) {
+        my $record = $es_record->{'_source'};
+        my %result;
 
-            # I wonder if these should be real values defined in the mapping
-            # rather than hard-coded conversions.
-            # Handle legacy nested arrays indexed with splitting enabled.
-            my $authid = $record->{ 'Local-number' }[0];
-            $authid = @$authid[0] if (ref $authid eq 'ARRAY');
-            $result{authid} = $authid;
+        # We are using the authid to create links, we should honor the authid as stored in the db, not
+        # the 001 which, in some circumstances, can contain other data
+        my $authid = $es_record->{_id};
 
+
+        $result{authid} = $authid;
+
+        if (!defined $skipmetadata || !$skipmetadata) {
             # TODO put all this info into the record at index time so we
             # don't have to go and sort it all out now.
             my $authtypecode = $record->{authtype};
             my $rs           = $schema->resultset('AuthType')
-              ->search( { authtypecode => $authtypecode } );
+            ->search( { authtypecode => $authtypecode } );
 
             # FIXME there's an assumption here that we will get a result.
             # the original code also makes an assumption that some provided
@@ -219,7 +227,7 @@ sub search_auth_compat {
             # it's not reproduced here yet.
             my $authtype           = $rs->single;
             my $auth_tag_to_report = $authtype ? $authtype->auth_tag_to_report : "";
-            my $marc               = $self->json2marc($marc_json);
+            my $marc               = $self->decode_record_from_result($record);
             my $mainentry          = $marc->field($auth_tag_to_report);
             my $reported_tag;
             if ($mainentry) {
@@ -233,13 +241,13 @@ sub search_auth_compat {
 
             # Reimplementing BuildSummary is out of scope because it'll be hard
             $result{summary} =
-              C4::AuthoritiesMarc::BuildSummary( $marc, $result{authid},
+            C4::AuthoritiesMarc::BuildSummary( $marc, $result{authid},
                 $authtypecode );
             $result{used} = $self->count_auth_use($bib_searcher, $authid);
-            push @records, \%result;
         }
-    );
-    return ( \@records, $res->total );
+        push @records, \%result;
+    }
+    return ( \@records, $hits->{'total'} );
 }
 
 =head2 count_auth_use
@@ -259,7 +267,7 @@ sub count_auth_use {
         query => {
             bool => {
 #                query  => { match_all => {} },
-                filter => { term      => { an => $authid } }
+                filter => { term      => { 'koha-auth-number' => $authid } }
             }
         }
     };
@@ -337,13 +345,11 @@ sub simple_search_compat {
     }
     my $results = $self->search($query, undef, $max_results, %options);
     my @records;
-    $results->each(sub {
-            # The results come in an array for some reason
-            my $marc_json = $_[0]->{record};
-            my $marc = $self->json2marc($marc_json);
-            push @records, $marc;
-        });
-    return (undef, \@records, $results->total);
+    my $hits = $results->{'hits'};
+    foreach my $es_record (@{$hits->{'hits'}}) {
+        push @records, $self->decode_record_from_result($es_record->{'_source'});
+    }
+    return (undef, \@records, $hits->{'total'});
 }
 
 =head2 extract_biblionumber
@@ -361,43 +367,55 @@ sub extract_biblionumber {
     return Koha::SearchEngine::Search::extract_biblionumber( $searchresultrecord );
 }
 
-=head2 json2marc
+=head2 decode_record_from_result
+    my $marc_record = $self->decode_record_from_result(@result);
 
-    my $marc = $self->json2marc($marc_json);
-
-Converts the form of marc (based on its JSON, but as a Perl structure) that
-Catmandu stores into a MARC::Record object.
+Extracts marc data from Elasticsearch result and decodes to MARC::Record object
 
 =cut
 
-sub json2marc {
-    my ( $self, $marcjson ) = @_;
-
-    my $marc = MARC::Record->new();
-    $marc->encoding('UTF-8');
-
-    # fields are like:
-    # [ '245', '1', '2', 'a' => 'Title', 'b' => 'Subtitle' ]
-    # or
-    # [ '001', undef, undef, '_', 'a value' ]
-    # conveniently, this is the form that MARC::Field->new() likes
-    foreach my $field (@$marcjson) {
-        next if @$field < 5;
-        if ( $field->[0] eq 'LDR' ) {
-            $marc->leader( $field->[4] );
-        }
-        else {
-            my $tag = $field->[0];
-            my $marc_field;
-            if ( MARC::Field->is_controlfield_tag( $field->[0] ) ) {
-                $marc_field = MARC::Field->new($field->[0], $field->[4]);
-            } else {
-                $marc_field = MARC::Field->new(@$field);
-            }
-            $marc->append_fields($marc_field);
-        }
+sub decode_record_from_result {
+    # Result is passed in as array, will get flattened
+    # and first element will be $result
+    my ( $self, $result ) = @_;
+    if ($result->{marc_format} eq 'base64ISO2709') {
+        return MARC::Record->new_from_usmarc(decode_base64($result->{marc_data}));
     }
-    return $marc;
+    elsif ($result->{marc_format} eq 'MARCXML') {
+        return MARC::Record->new_from_xml($result->{marc_data}, 'UTF-8', uc C4::Context->preference('marcflavour'));
+    }
+    elsif ($result->{marc_format} eq 'ARRAY') {
+        return $self->_array_to_marc($result->{marc_data_array});
+    }
+    else {
+        Koha::Exceptions::Elasticsearch->throw("Missing marc_format field in Elasticsearch result");
+    }
+}
+
+=head2 max_result_window
+
+Returns the maximum number of results that can be fetched
+
+This directly requests Elasticsearch for the setting index.max_result_window (or
+the default value for this setting in case it is not set)
+
+=cut
+
+sub max_result_window {
+    my ($self) = @_;
+
+    my $elasticsearch = $self->get_elasticsearch();
+
+    my $response = $elasticsearch->indices->get_settings(
+        index => $self->index_name,
+        flat_settings => 'true',
+        include_defaults => 'true'
+    );
+
+    my $max_result_window = $response->{$self->index_name}->{settings}->{'index.max_result_window'};
+    $max_result_window //= $response->{$self->index_name}->{defaults}->{'index.max_result_window'};
+
+    return $max_result_window;
 }
 
 =head2 max_result_window
@@ -430,14 +448,11 @@ sub max_result_window {
 
 =head2 _convert_facets
 
-    my $koha_facets = _convert_facets($es_facets, $expanded_facet);
+    my $koha_facets = _convert_facets($es_facets);
 
 Converts elasticsearch facets types to the form that Koha expects.
 It expects the ES facet name to match the Koha type, for example C<itype>,
 C<au>, C<su-to>, etc.
-
-C<$expanded_facet> is the facet that we want to show FacetMaxCount entries for, rather
-than just 5 like normal.
 
 =cut
 
@@ -448,18 +463,26 @@ sub _convert_facets {
 
     # These should correspond to the ES field names, as opposed to the CCL
     # things that zebra uses.
-    # TODO let the library define the order using the interface.
-    my %type_to_label = (
-        author   => { order => 1, label => 'Authors', },
-        itype    => { order => 2, label => 'ItemTypes', },
-        location => { order => 3, label => 'Location', },
-        'su-geo' => { order => 4, label => 'Places', },
-        se       => { order => 5, label => 'Series', },
-        subject  => { order => 6, label => 'Topics', },
-        ccode    => { order => 7, label => 'CollectionCodes',},
-        holdingbranch => { order => 8, label => 'HoldingLibrary' },
-        homebranch => { order => 9, label => 'HomeLibrary' }
+    my %type_to_label;
+    my %label = (
+        author         => 'Authors',
+        itype          => 'ItemTypes',
+        location       => 'Location',
+        'su-geo'       => 'Places',
+        'title-series' => 'Series',
+        subject        => 'Topics',
+        ccode          => 'CollectionCodes',
+        holdingbranch  => 'HoldingLibrary',
+        homebranch     => 'HomeLibrary',
+        ln             => 'Language',
     );
+    my @facetable_fields =
+      Koha::SearchEngine::Elasticsearch->get_facetable_fields;
+    for my $f (@facetable_fields) {
+        next unless defined $f->facet_order;
+        $type_to_label{ $f->name } =
+          { order => $f->facet_order, label => $label{ $f->name } };
+    }
 
     # We also have some special cases, e.g. itypes that need to show the
     # value rather than the code.
@@ -480,12 +503,9 @@ sub _convert_facets {
         next if !exists( $type_to_label{$type} );
 
         # We restrict to the most popular $limit !results
-        my $limit = ( $type eq $exp_facet ) ? C4::Context->preference('FacetMaxCount') : 5;
+        my $limit = C4::Context->preference('FacetMaxCount');
         my $facet = {
             type_id    => $type . '_id',
-            expand     => $type,
-            expandable => ( $type ne $exp_facet )
-              && ( @{ $data->{buckets} } > $limit ),
             "type_label_$type_to_label{$type}{label}" => 1,
             type_link_value                    => $type,
             order      => $type_to_label{$type}{order},
@@ -513,9 +533,71 @@ sub _convert_facets {
         push @facets, $facet if exists $facet->{facets};
     }
 
-    @facets = sort { $a->{order} cmp $b->{order} } @facets;
+    @facets = sort { $a->{order} <=> $b->{order} } @facets;
     return \@facets;
 }
 
+=head2 _aggregation_scan
+
+    my $result = $self->_aggregration_scan($query, 10, 0);
+
+Perform an aggregation request for scan purposes.
+
+=cut
+
+sub _aggregation_scan {
+    my ($self, $query, $results_per_page, $offset) = @_;
+
+    if (!scalar(keys %{$query->{aggregations}})) {
+        my %result = {
+            biblioserver => {
+                hits => 0,
+                RECORDS => undef
+            }
+        };
+        return (undef, \%result, undef);
+    }
+    my ($field) = keys %{$query->{aggregations}};
+    $query->{aggregations}{$field}{terms}{size} = 1000;
+    my $results = $self->search($query, 1, 0);
+
+    # Convert each result into a MARC::Record
+    my (@records, $index);
+    # opac-search expects results to be put in the
+    # right place in the array, according to $offset
+    $index = $offset - 1;
+
+    my $count = scalar(@{$results->{aggregations}{$field}{buckets}});
+    for (my $index = $offset; $index - $offset < $results_per_page && $index < $count; $index++) {
+        my $bucket = $results->{aggregations}{$field}{buckets}->[$index];
+        # Scan values are expressed as:
+        # - MARC21: 100a (count) and 245a (term)
+        # - UNIMARC: 200f (count) and 200a (term)
+        my $marc = MARC::Record->new;
+        $marc->encoding('UTF-8');
+        if (C4::Context->preference('marcflavour') eq 'UNIMARC') {
+            $marc->append_fields(
+                MARC::Field->new((200, ' ',  ' ', 'f' => $bucket->{doc_count}))
+            );
+            $marc->append_fields(
+                MARC::Field->new((200, ' ',  ' ', 'a' => $bucket->{key}))
+            );
+        } else {
+            $marc->append_fields(
+                MARC::Field->new((100, ' ',  ' ', 'a' => $bucket->{doc_count}))
+            );
+            $marc->append_fields(
+                MARC::Field->new((245, ' ',  ' ', 'a' => $bucket->{key}))
+            );
+        }
+        $records[$index] = $marc->as_usmarc();
+    };
+    # consumers of this expect a namespaced result, we provide the default
+    # configuration.
+    my %result;
+    $result{biblioserver}{hits} = $count;
+    $result{biblioserver}{RECORDS} = \@records;
+    return (undef, \%result, undef);
+}
 
 1;

@@ -26,7 +26,6 @@ use Plack::Request;
 use Mojo::Server::PSGI;
 
 # Pre-load libraries
-use C4::Boolean;
 use C4::Koha;
 use C4::Languages;
 use C4::Letters;
@@ -36,7 +35,9 @@ use Koha::Caches;
 use Koha::Cache::Memory::Lite;
 use Koha::Database;
 use Koha::DateUtils;
+use Koha::Logger;
 
+use Log::Log4perl;
 use CGI qw(-utf8 ); # we will loose -utf8 under plack, otherwise
 {
     no warnings 'redefine';
@@ -65,14 +66,59 @@ my $apiv1  = builder {
     $server->to_psgi_app;
 };
 
+Koha::Logger->_init;
+
 builder {
     enable "ReverseProxy";
     enable "Plack::Middleware::Static";
+
     # + is required so Plack doesn't try to prefix Plack::Middleware::
     enable "+Koha::Middleware::SetEnv";
+    enable "+Koha::Middleware::RealIP";
 
-    mount '/opac'          => $opac;
-    mount '/intranet'      => $intranet;
-    mount '/api/v1/app.pl' => $apiv1;
-
+    mount '/opac'          => builder {
+        #NOTE: it is important that these are relative links
+        enable 'ErrorDocument',
+            400 => 'errors/400.pl',
+            401 => 'errors/401.pl',
+            402 => 'errors/402.pl',
+            403 => 'errors/403.pl',
+            404 => 'errors/404.pl',
+            500 => 'errors/500.pl',
+            subrequest => 1;
+        #NOTE: Without this middleware to catch fatal errors, ErrorDocument won't be able to render a 500 document
+        #NOTE: This middleware must be closer to the PSGI app than ErrorDocument
+        enable "HTTPExceptions";
+        if ( Log::Log4perl->get_logger('plack-opac')->has_appenders ){
+            enable 'Log4perl', category => 'plack-opac';
+            enable 'LogWarn';
+        }
+        $opac;
+    };
+    mount '/intranet'      => builder {
+        #NOTE: it is important that these are relative links
+        enable 'ErrorDocument',
+            400 => 'errors/400.pl',
+            401 => 'errors/401.pl',
+            402 => 'errors/402.pl',
+            403 => 'errors/403.pl',
+            404 => 'errors/404.pl',
+            500 => 'errors/500.pl',
+            subrequest => 1;
+        #NOTE: Without this middleware to catch fatal errors, ErrorDocument won't be able to render a 500 document
+        #NOTE: This middleware must be closer to the PSGI app than ErrorDocument
+        enable "HTTPExceptions";
+        if ( Log::Log4perl->get_logger('plack-intranet')->has_appenders ){
+            enable 'Log4perl', category => 'plack-intranet';
+            enable 'LogWarn';
+        }
+        $intranet;
+    };
+    mount '/api/v1/app.pl' => builder {
+        if ( Log::Log4perl->get_logger('plack-api')->has_appenders ){
+            enable 'Log4perl', category => 'plack-api';
+            enable 'LogWarn';
+        }
+        $apiv1;
+    };
 };

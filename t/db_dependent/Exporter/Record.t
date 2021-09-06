@@ -17,7 +17,7 @@
 
 use Modern::Perl;
 
-use Test::More tests => 5;
+use Test::More tests => 6;
 use Test::Warn;
 use t::lib::TestBuilder;
 
@@ -34,7 +34,7 @@ use Koha::Database;
 use Koha::Biblio;
 use Koha::Biblioitem;
 use Koha::Exporter::Record;
-use Koha::Biblio::Metadata;
+use Koha::Biblio::Metadatas;
 
 my $schema  = Koha::Database->new->schema;
 $schema->storage->txn_begin;
@@ -59,36 +59,29 @@ $biblio_2->append_fields(
 my ($biblionumber_2, $biblioitemnumber_2) = AddBiblio($biblio_2, '');
 
 my $bad_biblio = Koha::Biblio->new()->store();
-Koha::Biblio::Metadata->new( { biblionumber => $bad_biblio->id, format => 'marcxml', metadata => 'something wrong', marcflavour => C4::Context->preference('marcflavour') } )->store();
+Koha::Biblio::Metadata->new( { biblionumber => $bad_biblio->id, format => 'marcxml', metadata => 'something wrong', schema => C4::Context->preference('marcflavour') } )->store();
 my $bad_biblionumber = $bad_biblio->id;
 
 my $builder = t::lib::TestBuilder->new;
-my $item_1_1 = $builder->build({
-    source => 'Item',
-    value => {
+my $item_1_1 = $builder->build_sample_item(
+    {
         biblionumber => $biblionumber_1,
-        more_subfields_xml => '',
     }
-});
-my $item_1_2 = $builder->build({
-    source => 'Item',
-    value => {
+)->unblessed;
+my $item_1_2 = $builder->build_sample_item(
+    {
         biblionumber => $biblionumber_1,
-        more_subfields_xml => '',
     }
-});
-my $item_2_1 = $builder->build({
-    source => 'Item',
-    value => {
+)->unblessed;
+my $item_2_1 = $builder->build_sample_item(
+    {
         biblionumber => $biblionumber_2,
-        more_subfields_xml => '',
     }
-});
-my $bad_item = $builder->build({
+)->unblessed;
+my $bad_item = $builder->build({ # Cannot call build_sample_item, we want inconsistent data on purpose
     source => 'Item',
     value => {
         biblionumber => $bad_biblionumber,
-        more_subfields_xml => '',
     }
 });
 
@@ -223,24 +216,16 @@ subtest '_get_biblio_for_export' => sub {
     my ( $biblionumber, $biblioitemnumber ) = AddBiblio( $biblio, '' );
     my $branch_a = $builder->build({source => 'Branch',});
     my $branch_b = $builder->build({source => 'Branch',});
-    my $item_branch_a = $builder->build(
+    my $item_branch_a = $builder->build_sample_item(
         {
-            source => 'Item',
-            value  => {
-                biblionumber       => $biblionumber,
-                homebranch         => $branch_a->{branchcode},
-                more_subfields_xml => '',
-            }
+            biblionumber => $biblionumber,
+            library      => $branch_a->{branchcode},
         }
     );
-    my $item_branch_b = $builder->build(
+    my $item_branch_b = $builder->build_sample_item(
         {
-            source => 'Item',
-            value  => {
-                biblionumber       => $biblionumber,
-                homebranch         => $branch_b->{branchcode},
-                more_subfields_xml => '',
-            }
+            biblionumber => $biblionumber,
+            library      => $branch_b->{branchcode},
         }
     );
 
@@ -281,8 +266,129 @@ subtest '_get_biblio_for_export' => sub {
 
 };
 
+subtest '_get_record_for_export MARC field conditions' => sub {
+    plan tests => 11;
+
+    my $biblio = MARC::Record->new();
+    $biblio->leader('00266nam a22001097a 4500');
+    $biblio->append_fields(
+        MARC::Field->new( '100', ' ', ' ', a => 'Thurber, James' ),
+        MARC::Field->new( '245', ' ', ' ', a => 'The 13 Clocks' ),
+        MARC::Field->new( '080', ' ', ' ', a => '12345' ),
+        MARC::Field->new( '035', ' ', ' ', a => '(TEST)123' ),
+        MARC::Field->new( '035', ' ', ' ', a => '(TEST)1234' ),
+    );
+    my ( $biblionumber ) = AddBiblio( $biblio, '' );
+    my $record;
+
+    $record = Koha::Exporter::Record::_get_record_for_export(
+        {
+            record_id => $biblionumber,
+            record_conditions => [['080', 'a', '=', '12345']],
+            record_type => 'bibs',
+        }
+    );
+    ok( $record, "Record condition \"080a=12345\" should match" );
+
+    $record = Koha::Exporter::Record::_get_record_for_export(
+        {
+            record_id => $biblionumber,
+            record_conditions => [['080', 'a', '!=', '12345']],
+            record_type => 'bibs',
+        }
+    );
+    is( $record, undef, "Record condition \"080a!=12345\" should not match" );
+
+    $record = Koha::Exporter::Record::_get_record_for_export(
+        {
+            record_id => $biblionumber,
+            record_conditions => [['080', 'a', '>', '1234']],
+            record_type => 'bibs',
+        }
+    );
+    ok( $record, "Record condition \"080a>1234\" should match" );
+
+    $record = Koha::Exporter::Record::_get_record_for_export(
+        {
+            record_id => $biblionumber,
+            record_conditions => [['080', 'a', '<', '123456']],
+            record_type => 'bibs',
+        }
+    );
+    ok( $record, "Record condition \"080a<123456\" should match" );
+
+    $record = Koha::Exporter::Record::_get_record_for_export(
+        {
+            record_id => $biblionumber,
+            record_conditions => [['080', 'a', '>', '123456']],
+            record_type => 'bibs',
+        }
+    );
+    is( $record, undef, "Record condition \"080a>123456\" should not match" );
 
 
+    ## Multiple subfields
+
+    $record = Koha::Exporter::Record::_get_record_for_export(
+        {
+            record_id => $biblionumber,
+            record_conditions => [['035', 'a', '!=', 'TEST(12345)']],
+            record_type => 'bibs',
+        }
+    );
+    ok( $record, "Record condition \"035a!=TEST(12345)\" should match" );
+
+    $record = Koha::Exporter::Record::_get_record_for_export(
+        {
+            record_id => $biblionumber,
+            record_conditions => [['035', 'a', '=', 'TEST(1234)']],
+            record_type => 'bibs',
+        }
+    );
+    is( $record, undef, "Record condition \"035a=TEST(1234)\" should not match" ); # Since matching all subfields required
+
+
+    ## Multiple conditions
+
+    $record = Koha::Exporter::Record::_get_record_for_export(
+        {
+            record_id => $biblionumber,
+            record_conditions => [['035', 'a', '!=', 'TEST(12345)'], ['080', 'a', '>', '1234']],
+            record_type => 'bibs',
+        }
+    );
+    ok( $record, "Record condition \"035a!=TEST(12345),080a>1234\" should match" );
+
+    $record = Koha::Exporter::Record::_get_record_for_export(
+        {
+            record_id => $biblionumber,
+            record_conditions => [['035', 'a', '!=', 'TEST(12345)'], ['080', 'a', '<', '1234']],
+            record_type => 'bibs',
+        }
+    );
+    is( $record, undef, "Record condition \"035a!=TEST(12345),080a<1234\" should not match" );
+
+
+    ## exists/not_exists
+
+    $record = Koha::Exporter::Record::_get_record_for_export(
+        {
+            record_id => $biblionumber,
+            record_conditions => [['035', 'a', '?']],
+            record_type => 'bibs',
+        }
+    );
+    ok( $record, "Record condition \"exists(035a)\" should match" );
+
+    $record = Koha::Exporter::Record::_get_record_for_export(
+        {
+            record_id => $biblionumber,
+            record_conditions => [['035', 'a', '!?']],
+            record_type => 'bibs',
+            record_type => 'bibs',
+        }
+    );
+    is( $record, undef, "Record condition \"not_exists(035a)\" should not match" );
+};
 
 $schema->storage->txn_rollback;
-

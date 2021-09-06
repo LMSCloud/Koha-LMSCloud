@@ -1,12 +1,13 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<!DOCTYPE stylesheet [<!ENTITY nbsp "&#160;" >]>
+<!DOCTYPE stylesheet>
 
 <xsl:stylesheet version="1.0"
   xmlns:marc="http://www.loc.gov/MARC21/slim"
   xmlns:items="http://www.koha-community.org/items"
   xmlns:xsl="http://www.w3.org/1999/XSL/Transform"
-  exclude-result-prefixes="marc items">
+  xmlns:str="http://exslt.org/strings"
+  exclude-result-prefixes="marc items str">
 
 <xsl:import href="UNIMARCslimUtils.xsl"/>
 <xsl:output method = "html" indent="yes" omit-xml-declaration = "yes" encoding="UTF-8"/>
@@ -22,10 +23,8 @@
   <xsl:variable name="leader" select="marc:leader"/>
   <xsl:variable name="leader6" select="substring($leader,7,1)"/>
   <xsl:variable name="leader7" select="substring($leader,8,1)"/>
-  <xsl:variable name="biblionumber"
-   select="marc:datafield[@tag=090]/marc:subfield[@code='a']"/>
-  <xsl:variable name="isbn"
-   select="marc:datafield[@tag=010]/marc:subfield[@code='a']"/>
+  <xsl:variable name="biblionumber" select="marc:controlfield[@tag=001]"/>
+  <xsl:variable name="isbn" select="marc:datafield[@tag=010]/marc:subfield[@code='a']"/>
   <xsl:variable name="OPACResultsLibrary" select="marc:sysprefs/marc:syspref[@name='OPACResultsLibrary']"/>
   <xsl:variable name="BiblioDefaultView" select="marc:sysprefs/marc:syspref[@name='BiblioDefaultView']"/>
   <xsl:variable name="hidelostitems" select="marc:sysprefs/marc:syspref[@name='hidelostitems']"/>
@@ -83,6 +82,55 @@
         </xsl:for-each>
     </xsl:for-each>
   </xsl:if>
+
+  <!-- OpenURL -->
+  <xsl:variable name="OPACShowOpenURL" select="marc:sysprefs/marc:syspref[@name='OPACShowOpenURL']" />
+  <xsl:variable name="OpenURLImageLocation" select="marc:sysprefs/marc:syspref[@name='OpenURLImageLocation']" />
+  <xsl:variable name="OpenURLText" select="marc:sysprefs/marc:syspref[@name='OpenURLText']" />
+  <xsl:variable name="OpenURLResolverURL" select="marc:variables/marc:variable[@name='OpenURLResolverURL']" />
+
+  <xsl:if test="$OPACShowOpenURL = 1 and $OpenURLResolverURL != ''">
+    <xsl:variable name="openurltext">
+      <xsl:choose>
+        <xsl:when test="$OpenURLText != ''">
+          <xsl:value-of select="$OpenURLText" />
+        </xsl:when>
+        <xsl:otherwise>
+          <xsl:text>OpenURL</xsl:text>
+        </xsl:otherwise>
+      </xsl:choose>
+    </xsl:variable>
+
+    <span class="results_summary"><a>
+      <xsl:attribute name="href">
+        <xsl:value-of select="$OpenURLResolverURL" />
+      </xsl:attribute>
+      <xsl:attribute name="title">
+        <xsl:value-of select="$openurltext" />
+      </xsl:attribute>
+      <xsl:attribute name="class">
+        <xsl:text>OpenURL</xsl:text>
+      </xsl:attribute>
+      <xsl:if test="$OPACURLOpenInNewWindow='1'">
+        <xsl:attribute name="target">
+          <xsl:text>_blank</xsl:text>
+        </xsl:attribute>
+      </xsl:if>
+      <xsl:choose>
+        <xsl:when test="$OpenURLImageLocation != ''">
+          <img>
+            <xsl:attribute name="src">
+              <xsl:value-of select="$OpenURLImageLocation" />
+            </xsl:attribute>
+          </img>
+        </xsl:when>
+        <xsl:otherwise>
+          <xsl:value-of select="$openurltext" />
+        </xsl:otherwise>
+      </xsl:choose>
+    </a></span>
+  </xsl:if>
+  <!-- End of OpenURL -->
 
   <xsl:call-template name="tag_title">
     <xsl:with-param name="tag">454</xsl:with-param>
@@ -144,7 +192,7 @@
       </xsl:when>
       <xsl:when test="count(key('item-by-status', 'available'))>0">
         <span class="available">
-          <b><xsl:text>Items available for loan: </xsl:text></b>
+          <strong><xsl:text>Items available for loan: </xsl:text></strong>
           <xsl:variable name="available_items" select="key('item-by-status', 'available')"/>
       <xsl:choose>
       <xsl:when test="$singleBranchMode=1">
@@ -203,7 +251,7 @@
     <xsl:choose>
       <xsl:when test="count(key('item-by-status', 'reference'))>0">
         <span class="available">
-          <b><xsl:text>Items available for reference: </xsl:text></b>
+          <strong><xsl:text>Items available for reference: </xsl:text></strong>
           <xsl:variable name="reference_items"
                         select="key('item-by-status', 'reference')"/>
           <xsl:for-each select="$reference_items[generate-id() = generate-id(key('item-by-status-and-branch-home', concat(items:status, ' ', items:homebranch))[1])]">

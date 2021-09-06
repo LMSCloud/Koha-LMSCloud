@@ -504,6 +504,29 @@ definition file (probably something like {biblio,authority}-koha-indexdefs.xml) 
       </xslo:if>
     </xslo:for-each>
   </xslo:template>
+  <xslo:template mode="index_subfields" match="marc:datafield[@tag='264']">
+    <xslo:for-each select="marc:subfield">
+      <xslo:if test="contains('a', @code)">
+        <z:index name="pl:w pl:p">
+          <xslo:value-of select="."/>
+        </z:index>
+      </xslo:if>
+    </xslo:for-each>
+    <xslo:for-each select="marc:subfield">
+      <xslo:if test="contains('b', @code)">
+        <z:index name="Publisher:w Publisher:p">
+          <xslo:value-of select="."/>
+        </z:index>
+      </xslo:if>
+    </xslo:for-each>
+    <xslo:for-each select="marc:subfield">
+      <xslo:if test="contains('c', @code)">
+        <z:index name="copydate:w copydate:s">
+          <xslo:value-of select="."/>
+        </z:index>
+      </xslo:if>
+    </xslo:for-each>
+  </xslo:template>
   <xslo:template mode="index_subfields" match="marc:datafield[@tag='400']">
     <xslo:for-each select="marc:subfield">
       <xslo:if test="contains('a', @code)">
@@ -2932,6 +2955,9 @@ definition file (probably something like {biblio,authority}-koha-indexdefs.xml) 
       </z:index>
       <z:index name="itype:0">
         <xslo:value-of select="marc:subfield[@code='y']"/>
+      </z:index>
+      <z:index name="ccode:0">
+        <xslo:value-of select="marc:subfield[@code='8']"/>
       </z:index>
     </xslo:if>
   </xslo:template>

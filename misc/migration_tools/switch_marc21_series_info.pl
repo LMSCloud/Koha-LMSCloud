@@ -29,6 +29,7 @@ BEGIN {
     eval { require "$FindBin::Bin/../kohalib.pl" };
 }
 
+use Koha::Script;
 use C4::Biblio;
 use C4::Context;
 use Getopt::Long;
@@ -63,7 +64,7 @@ my $count_sth = $dbh->prepare(
     SELECT COUNT(biblionumber)
     FROM biblio_metadata
     WHERE format='marcxml'
-        AND marcflavour=?
+        AND `schema`=?
         AND (
             ExtractValue(metadata,'//datafield[@tag="440"]/subfield[@code="a"]')
                 OR ExtractValue(metadata,'//datafield[@tag="440"]/subfield[@code="v"]')
@@ -79,7 +80,7 @@ my $bibs_sth = $dbh->prepare(
     SELECT biblionumber
     FROM biblio_metadata
     WHERE format='marcxml'
-        AND marcflavour=?
+        AND `schema`=?
         AND (
             ExtractValue(metadata,'//datafield[@tag="440"]/subfield[@code="a"]')
                 OR ExtractValue(metadata,'//datafield[@tag="440"]/subfield[@code="v"]')
@@ -221,7 +222,7 @@ while ( my ( $biblionumber ) = $bibs_sth->fetchrow ) {
     else {
         print ".";
     }
-    ModBiblioMarc( $biblio, $biblionumber, $framework );
+    ModBiblioMarc( $biblio, $biblionumber );
 }
 print "\n";
 
@@ -230,22 +231,26 @@ if ( $update_frameworks ) {
 
     # set new mappings for koha fields
     $dbh->do(
-"UPDATE marc_subfield_structure SET kohafield='seriestitle'
+"UPDATE marc_subfield_structure SET kohafield='biblio.seriestitle'
   WHERE tagfield='490' AND tagsubfield='a'"
     );
     $dbh->do(
-"UPDATE marc_subfield_structure SET kohafield='volume'
+"UPDATE marc_subfield_structure SET kohafield='biblioitems.volume'
   WHERE tagfield='490' AND tagsubfield='v'"
     );
 
     # empty old koha fields
     $dbh->do(
 "UPDATE marc_subfield_structure SET kohafield=''
-  WHERE kohafield='seriestitle' AND tagfield='440' AND tagsubfield='a'"
+  WHERE kohafield='biblio.seriestitle' AND tagfield='440' AND tagsubfield='a'"
         );
     $dbh->do(
 "UPDATE marc_subfield_structure SET kohafield=''
-  WHERE kohafield='volume' AND tagfield='440' AND tagsubfield='v'"
+  WHERE kohafield='biblioitems.volume' AND tagfield='440' AND tagsubfield='v'"
+        );
+    $dbh->do(
+"UPDATE marc_subfield_structure SET kohafield=''
+  WHERE kohafield='biblioitems.number' AND tagfield='440' AND tagsubfield='n'"
         );
 }
 

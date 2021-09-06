@@ -41,13 +41,12 @@ use Koha::Patrons;
 
 use Koha::DateUtils;
 
-my $input = new CGI;
+my $input = CGI->new;
 
 my ( $template, $loggedinuser, $cookie, $flags ) = get_template_and_user({
     template_name   => 'members/discharge.tt',
     query           => $input,
     type            => 'intranet',
-    authnotrequired => 0,
     flagsrequired   => { 'borrowers' => 'edit_borrowers' },
 });
 
@@ -58,7 +57,7 @@ unless ( C4::Context->preference('useDischarge') ) {
    exit;
 }
 
-my $logged_in_user = Koha::Patrons->find( $loggedinuser ) or die "Not logged in";
+my $logged_in_user = Koha::Patrons->find( $loggedinuser );
 my $patron = Koha::Patrons->find( $borrowernumber );
 output_and_exit_if_error( $input, $cookie, $template, { module => 'members', logged_in_user => $logged_in_user, current_patron => $patron } );
 
@@ -90,11 +89,13 @@ if ( $input->param('discharge') and $can_be_discharged ) {
         my @lines = <$fh>;
         close $fh;
         print @lines;
-        exit;
     };
     if ( $@ ) {
         carp $@;
         $template->param( messages => [ {type => 'error', code => 'unable_to_generate_pdf'} ] );
+    } else {
+        # no error, pdf is sent, so stop sending data to browser
+        exit;
     }
 }
 

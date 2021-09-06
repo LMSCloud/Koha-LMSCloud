@@ -28,7 +28,7 @@ use C4::Output;
 use Koha::Authorities;
 use Koha::Authority::Types;
 
-my $input        = new CGI;
+my $input        = CGI->new;
 my $authtypecode = $input->param('authtypecode');
 my $op           = $input->param('op') || 'list';
 my @messages;
@@ -36,8 +36,7 @@ my ( $template, $borrowernumber, $cookie ) = get_template_and_user(
     {   template_name   => "admin/authtypes.tt",
         query           => $input,
         type            => "intranet",
-        authnotrequired => 0,
-        flagsrequired   => { parameters => 'parameters_remaining_permissions' },
+        flagsrequired   => { parameters => 'manage_marc_frameworks' },
         debug           => 1,
     }
 );

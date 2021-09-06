@@ -23,30 +23,43 @@
 [% END %]
 
     [% INCLUDE 'doc-head-open.inc' %]
-    <title>Koha &rsaquo; Tools &rsaquo; Patron card creator &rsaquo; [% PROCESS translate_card_element element=card_element_title %]</title>
+    <title>[% PROCESS translate_card_element element=card_element_title %] &rsaquo; Patron card creator &rsaquo; Tools &rsaquo; Koha</title>
     [% INCLUDE 'doc-head-close.inc' %]
 </head>
 
 <body id="pcard_manage" class="tools pcard">
     [% INCLUDE 'header.inc' %]
     [% INCLUDE 'cat-search.inc' %]
-    <div id="breadcrumbs">
-        <a href="/cgi-bin/koha/mainpage.pl">Home</a> &rsaquo;
-        <a href="/cgi-bin/koha/tools/tools-home.pl">Tools</a> &rsaquo;
-        <a href="/cgi-bin/koha/patroncards/home.pl">Patron card creator</a> &rsaquo;
-        [% PROCESS translate_card_element element=card_element_title %]
-    </div>
-    <div id="doc3" class="yui-t2">
-        <div id="bd">
-            <div id="yui-main">
-                <div class="yui-b">
+
+    <nav id="breadcrumbs" aria-label="Breadcrumb" class="breadcrumb">
+        <ol>
+            <li>
+                <a href="/cgi-bin/koha/mainpage.pl">Home</a>
+            </li>
+            <li>
+                <a href="/cgi-bin/koha/tools/tools-home.pl">Tools</a>
+            </li>
+            <li>
+                <a href="/cgi-bin/koha/patroncards/home.pl">Patron card creator</a>
+            </li>
+            <li>
+                <a href="#" aria-current="page">
+                    [% PROCESS translate_card_element element=card_element_title %]
+                </a>
+            </li>
+        </ol>
+    </nav>
+
+    <div class="main container-fluid">
+        <div class="row">
+            <div class="col-sm-10 col-sm-push-2">
+                <main>
+
                     [% INCLUDE 'patroncards-toolbar.inc' %]
                     [% INCLUDE 'patroncards-errors.inc' %]
-                    <div class="yui-gc">
-                        <div class="yui-u first" id="manage-patroncards-layouts">
-                            <div class="hint">Current library: [% LoginBranchname %]</div>
+                        <div id="manage-patroncards-layouts">
                             [% IF ( table_loop ) %]
-                            <form name="layouts" action="/cgi-bin/koha/manage.pl?card_element=[% card_element %]">
+                            <form name="layouts" action="/cgi-bin/koha/manage.pl?card_element=[% card_element | html %]">
                             <h2>Currently available [% PROCESS translate_card_element element=card_element_title FILTER lower %]</h2>
                             <table>
                                 [% FOREACH table_loo IN table_loop %]
@@ -57,7 +70,7 @@
                                         [%-  CASE 'Layout ID'     -%]<th>Layout ID</th>
                                         [%-  CASE 'Layout'        -%]<th>Layout</th>
                                         [%-  CASE 'Action'        -%]<th>Action</th>
-                                        [%-  CASE 'Actions'       -%]<th>Actions</th>
+                                        [%-  CASE 'Actions'       -%]<th class="noExport">Actions</th>
                                         [%-  CASE 'Select'        -%][% IF ( print ) %]<th>Select</th>[% END %]
                                         [%-  CASE 'Template ID'   -%]<th>Template ID</th>
                                         [%-  CASE 'Template Name' -%]<th>Template name</th>
@@ -67,7 +80,7 @@
                                         [%-  CASE 'Paper Bin'     -%]<th>Paper bin</th>
                                         [%-  CASE 'Batch ID'      -%]<th>Batch ID</th>
                                         [%-  CASE 'Patron Count'  -%]<th>Patron count</th>
-                                        [%-  CASE                 -%]<th>[% header_field.field_label %]</th>
+                                        [%-  CASE                 -%]<th>[% header_field.field_label | html %]</th>
                                     [% END -%]
                                 [% END %]
                                 </tr>
@@ -76,13 +89,13 @@
                                 [% FOREACH text_field IN table_loo.text_fields %]
                                 [% IF ( text_field.select_field ) %]
                                     <td>
-                                      <a class="btn btn-default btn-xs" href="/cgi-bin/koha/patroncards/edit-[% card_element %].pl?op=edit&element_id=[% text_field.field_value %]"><i class="fa fa-edit"></i> Edit</a>
+                                      <a class="btn btn-default btn-xs" href="/cgi-bin/koha/patroncards/edit-[% card_element | html %].pl?op=edit&element_id=[% text_field.field_value | html %]"><i class="fa fa-edit"></i> Edit</a>
                                       [% IF ( print ) %]<a class="btn btn-default btn-xs export" data-batch-id="[% text_field.field_value |url %]" href="/cgi-bin/koha/patroncards/print.pl?batch_id=[% text_field.field_value |url %]"><i class="fa fa-share-square-o"></i> Export</a>[% END %]
-                                      <a class="btn btn-default btn-xs delete" href="/cgi-bin/koha/patroncards/manage.pl?op=delete&card_element=[% card_element %]&element_id=[% text_field.field_value %]"><i class="fa fa-trash"></i> Delete</a>
+                                      <a class="btn btn-default btn-xs delete" href="/cgi-bin/koha/patroncards/manage.pl?op=delete&card_element=[% card_element | html %]&element_id=[% text_field.field_value | html %]"><i class="fa fa-trash"></i> Delete</a>
                                     </td>
-                                    [% IF ( print ) %]<td><input type="checkbox" name="action" value="[% text_field.field_value %]" /></td>[% END %]
+                                    [% IF ( print ) %]<td><input type="checkbox" name="action" value="[% text_field.field_value | html %]" /></td>[% END %]
                                 [% ELSIF ( text_field.field_value ) %]
-                                    <td>[% text_field.field_value %]</td>
+                                    <td>[% text_field.field_value | html %]</td>
                                 [% ELSE %]
                                     <td>&nbsp;</td>
                                 [% END %]
@@ -103,7 +116,7 @@
                                         <select id="patron_list_id" name="patron_list_id">
                                             <option value=""></option>
                                             [% FOREACH pl IN patron_lists %]
-                                                <option value="[% pl.patron_list_id %]">[% pl.name %]</option>
+                                                <option value="[% pl.patron_list_id | html %]">[% pl.name | html %]</option>
                                             [% END %]
                                         </select>
                                     </li>
@@ -121,13 +134,16 @@
                             <p>Use the toolbar above to create a new [% PROCESS translate_card_element element=card_element %].</p></div>
                             [% END %]
                         </div>
-                    </div>
-                </div>
-            </div>
-            <div class="yui-b">
-              [% INCLUDE 'tools-menu.inc' %]
-            </div>
-        </div>
+
+            </main>
+        </div> <!-- /.col-sm-10.col-sm-push-2 -->
+
+        <div class="col-sm-2 col-sm-pull-10">
+            <aside>
+                [% INCLUDE 'tools-menu.inc' %]
+            </aside>
+        </div> <!-- /.col-sm-2.col-sm-pull-10 -->
+     </div> <!-- /.row -->
 
 [% MACRO jsinclude BLOCK %]
     [% INCLUDE 'greybox.inc' %]
@@ -153,7 +169,7 @@
                     }
                 }
 
-                window.location = "/cgi-bin/koha/patroncards/manage.pl?op=delete&card_element=[% card_element %]&element_id=" + elements;
+                window.location = "/cgi-bin/koha/patroncards/manage.pl?op=delete&card_element=[% card_element | html %]&element_id=" + elements;
             }
             else {
                 return; // abort delete
@@ -164,7 +180,7 @@
         function Edit() {
             var element_id = selected_layouts("edit");
             if (element_id>-1) {
-                window.location = "/cgi-bin/koha/patroncards/edit-[% card_element %].pl?op=edit&element_id=" + element_id;
+                window.location = "/cgi-bin/koha/patroncards/edit-[% card_element | html %].pl?op=edit&element_id=" + element_id;
             }
             else {
                 return;     // no layout selected

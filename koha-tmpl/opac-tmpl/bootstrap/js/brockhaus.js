@@ -30,7 +30,7 @@ function getBrockhausFacet(query_desc,maxHitCount,prevPageText,nextPageText) {
     maxHitCountBrockhaus  = maxHitCount;
     $.ajax({
     url: "/cgi-bin/koha/opac-brockhaus.pl",
-        type: "POST",
+        method: "POST",
         cache: false,
         data: { 'search' : query_desc, 'maxcount' : 0 },
         dataType: "json",
@@ -49,7 +49,7 @@ function getBrockhausResult(facetID, offset) {
     var collection = brockhausData['results'][facetID].searchType;
     $.ajax({
     url: "/cgi-bin/koha/opac-brockhaus.pl",
-        type: "POST",
+        method: "POST",
         cache: false,
         data: { 'search' : query_desc, 'maxcount' : maxHitCountBrockhaus, 'offset' : offset, 'collection' : collection  },
         dataType: "json",

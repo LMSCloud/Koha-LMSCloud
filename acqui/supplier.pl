@@ -59,7 +59,6 @@ my ( $template, $loggedinuser, $cookie ) = get_template_and_user(
     {   template_name   => 'acqui/supplier.tt',
         query           => $query,
         type            => 'intranet',
-        authnotrequired => 0,
         flagsrequired   => { acquisition => '*' },
         debug           => 1,
     }
@@ -101,10 +100,10 @@ if ( $op eq 'display' ) {
 } else {
     my @currencies = Koha::Acquisition::Currencies->search;
 
-    # get option values from gist syspref
+    # get option values from TaxRates syspref
     my @gst_values = map {
         option => $_ + 0.0
-    }, split( '\|', C4::Context->preference("gist") );
+    }, split( '\|', C4::Context->preference("TaxRates") );
 
     $template->param(
         # set active ON by default for supplier add (id empty for add)

@@ -4,18 +4,18 @@ package Koha::Util::Normalize;
 #
 # This file is part of Koha.
 #
-# Koha is free software; you can redistribute it and/or modify it under the
-# terms of the GNU General Public License as published by the Free Software
-# Foundation; either version 3 of the License, or (at your option) any later
-# version.
+# Koha is free software; you can redistribute it and/or modify it
+# under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 3 of the License, or
+# (at your option) any later version.
 #
-# Koha is distributed in the hope that it will be useful, but WITHOUT ANY
-# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
-# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+# Koha is distributed in the hope that it will be useful, but
+# WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+# GNU General Public License for more details.
 #
-# You should have received a copy of the GNU General Public License along
-# with Koha; if not, write to the Free Software Foundation, Inc.,
-# 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+# You should have received a copy of the GNU General Public License
+# along with Koha; if not, see <http://www.gnu.org/licenses>.
 
 use Modern::Perl;
 
@@ -26,6 +26,7 @@ our @EXPORT = qw(
   remove_spaces
   upper_case
   lower_case
+  ISBN
 );
 
 =head1 NAME
@@ -97,6 +98,27 @@ sub lower_case {
     $string = lc $string;
 
     return $string;
+}
+
+=head2 ISBN
+
+Normalization function converting ISBN strings to ISBN13
+If string is not a valid ISBN we pass it through unaltered
+
+=cut
+
+sub ISBN {
+    my ( $string ) = @_;
+    return if !defined( $string );
+
+    my $isbn = C4::Koha::NormalizeISBN({
+        isbn => $string,
+        format => 'ISBN-13',
+        strip_hyphens  => 1,
+        return_invalid => 1,
+    });
+
+    return $isbn;
 }
 
 1;

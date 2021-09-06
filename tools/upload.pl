@@ -25,6 +25,10 @@ use C4::Auth;
 use C4::Output;
 use Koha::UploadedFiles;
 
+use constant ERR_READING     => 'UPLERR_FILE_NOT_READ';
+use constant ALERT_DELETED   => 'UPL_FILE_DELETED'; # alert, no error
+use constant ERR_NOT_DELETED => 'UPLERR_FILE_NOT_DELETED';
+
 my $input  = CGI::->new;
 my $op     = $input->param('op') // 'new';
 my $plugin = $input->param('plugin');
@@ -32,12 +36,12 @@ my $index  = $input->param('index');         # MARC editor input field id
 my $term   = $input->param('term');
 my $id     = $input->param('id');
 my $msg    = $input->param('msg');
+my $browsecategory = $input->param('browsecategory');
 
 my ( $template, $loggedinuser, $cookie ) = get_template_and_user(
     {   template_name   => "tools/upload.tt",
         query           => $input,
         type            => "intranet",
-        authnotrequired => 0,
         flagsrequired   => { tools => 'upload_general_files' },
     }
 );
@@ -52,6 +56,22 @@ $template->param(
 if ( $op eq 'new' ) {
     $template->param(
         mode             => 'new',
+    );
+    output_html_with_http_headers $input, $cookie, $template->output;
+
+} elsif ( $op eq 'browse' ) {
+    my $uploads;
+    if ($browsecategory){
+        $uploads = Koha::UploadedFiles->search({
+            uploadcategorycode => $browsecategory,
+            $plugin? ( public => 1 ): (),
+        })->unblessed;
+    }
+
+    $template->param(
+        mode    => 'report',
+        msg     => $msg,
+        uploads => $uploads,
     );
     output_html_with_http_headers $input, $cookie, $template->output;
 
@@ -87,9 +107,9 @@ if ( $op eq 'new' ) {
     my $delete = $rec ? $rec->delete : undef;
     #TODO Improve error handling
     my $msg = $delete
-        ? JSON::to_json({ $fn => { code => 6 }})
+        ? JSON::to_json({ $fn => { code => ALERT_DELETED }})
         : $id
-        ? JSON::to_json({ $fn || $id, { code => 7 }})
+        ? JSON::to_json({ $fn || $id, { code => ERR_NOT_DELETED }})
         : '';
     $template->param(
         mode             => 'deleted',
@@ -104,7 +124,7 @@ if ( $op eq 'new' ) {
     if ( !$rec || !$fh ) {
         $template->param(
             mode             => 'new',
-            msg              => JSON::to_json({ $id => { code => 5 }}),
+            msg              => JSON::to_json({ $id => { code => ERR_READING }}),
         );
         output_html_with_http_headers $input, $cookie, $template->output;
     } else {

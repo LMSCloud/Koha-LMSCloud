@@ -17,15 +17,13 @@
 
 use Modern::Perl;
 
-use Test::More tests => 50;
+use Test::More tests => 53;
 
 use C4::Context;
 use C4::Members;
 
-use C4::Members::Attributes;
-use C4::Members::AttributeTypes;
-
 use Koha::Library;
+use Koha::Patrons;
 use Koha::Patron::Categories;
 
 use t::lib::Mocks;
@@ -45,7 +43,7 @@ my $library = $builder->build({
 });
 
 my $patron = $builder->build_object({ class => 'Koha::Patrons', value => { flags => 1 } });
-set_logged_in_user( $patron );
+t::lib::Mocks::mock_userenv({ patron => $patron });
 
 my $branchcode=$library->{branchcode};
 
@@ -57,7 +55,9 @@ my $john_doe = $builder->build({
             surname      => 'Doe',
             branchcode   => $branchcode,
             dateofbirth  => '1983-03-01',
-            userid       => 'john.doe'
+            userid       => 'john.doe',
+            initials     => 'pacman',
+            flags        => 0,
         },
 });
 
@@ -69,7 +69,8 @@ my $john_smith = $builder->build({
             surname      => 'Smith',
             branchcode   => $branchcode,
             dateofbirth  => '1982-02-01',
-            userid       => 'john.smith'
+            userid       => 'john.smith',
+            flags        => 0,
         },
 });
 
@@ -81,7 +82,8 @@ my $jane_doe = $builder->build({
             surname      => 'Doe',
             branchcode   => $branchcode,
             dateofbirth  => '1983-03-01',
-            userid       => 'jane.doe'
+            userid       => 'jane.doe',
+            flags        => 0,
         },
 });
 my $jeanpaul_dupont = $builder->build({
@@ -92,7 +94,8 @@ my $jeanpaul_dupont = $builder->build({
             surname      => 'Dupont',
             branchcode   => $branchcode,
             dateofbirth  => '1982-02-01',
-            userid       => 'jeanpaul.dupont'
+            userid       => 'jeanpaul.dupont',
+            flags        => 0,
         },
 });
 my $dupont_brown = $builder->build({
@@ -103,7 +106,8 @@ my $dupont_brown = $builder->build({
             surname      => 'Brown',
             branchcode   => $branchcode,
             dateofbirth  => '1979-01-01',
-            userid       => 'dupont.brown'
+            userid       => 'dupont.brown',
+            flags        => 0,
         },
 });
 
@@ -112,6 +116,8 @@ my %dt_params = (
     iDisplayLength   => 10,
     iDisplayStart    => 0
 );
+
+t::lib::Mocks::mock_preference('DefaultPatronSearchFields', '');
 
 # Search "John Doe"
 my $search_results = C4::Utils::DataTables::Members::search({
@@ -272,19 +278,37 @@ $search_results = C4::Utils::DataTables::Members::search({
 is( $search_results->{ iTotalDisplayRecords }, 0,
     "No members are found by userid, surname search");
 
-my $attribute_type = C4::Members::AttributeTypes->new( 'ATM_1', 'my attribute type' );
-$attribute_type->{staff_searchable} = 1;
-$attribute_type->store;
+my $attribute_type = Koha::Patron::Attribute::Type->new(
+    {
+        code             => 'ATM_1',
+        description      => 'my attribute type',
+        staff_searchable => 1
+    }
+)->store;
 
-
-C4::Members::Attributes::SetBorrowerAttributes(
-    $john_doe->{borrowernumber}, [ { code => $attribute_type->{code}, value => 'the default value for a common user' } ]
+Koha::Patrons->find( $john_doe->{borrowernumber} )->extended_attributes(
+    [
+        {
+            code      => $attribute_type->code,
+            attribute => 'the default value for a common user'
+        }
+    ]
 );
-C4::Members::Attributes::SetBorrowerAttributes(
-    $jane_doe->{borrowernumber}, [ { code => $attribute_type->{code}, value => 'the default value for another common user' } ]
+Koha::Patrons->find( $jane_doe->{borrowernumber} )->extended_attributes(
+    [
+        {
+            code      => $attribute_type->code,
+            attribute => 'the default value for another common user'
+        }
+    ]
 );
-C4::Members::Attributes::SetBorrowerAttributes(
-    $john_smith->{borrowernumber}, [ { code => $attribute_type->{code}, value => 'Attribute which not appears even if contains "Dupont"' } ]
+Koha::Patrons->find( $john_smith->{borrowernumber} )->extended_attributes(
+    [
+        {
+            code      => $attribute_type->code,
+            attribute => 'Attribute which not appears even if contains "Dupont"'
+        }
+    ]
 );
 
 t::lib::Mocks::mock_preference('ExtendedPatronAttributes', 1);
@@ -461,17 +485,114 @@ subtest 'ExtendedPatronAttributes' => sub {
         "'Dupont' is contained in 2 surnames and a patron attribute. Patron attribute one should not be displayed if searching in specific fields (Bug 18094)");
 };
 
+subtest 'Search by any borrowers field (bug 17374)' => sub {
+    plan tests => 2;
+
+    my $search_results = C4::Utils::DataTables::Members::search({
+        searchmember     => "pacman",
+        searchfieldstype => 'initials',
+        searchtype       => 'contain',
+        branchcode       => $branchcode,
+        dt_params        => \%dt_params
+    });
+    is( $search_results->{ iTotalDisplayRecords }, 1, "We find only 1 patron when searching for initials 'pacman'" );
+
+    is( $search_results->{ patrons }[0]->{ cardnumber }, $john_doe->{cardnumber}, "We find the correct patron when sesrching by initials" )
+};
+
+subtest 'Search with permissions' => sub {
+    plan tests => 4;
+
+    my $superlibrarian = $builder->build_object(
+        {
+            class => 'Koha::Patrons',
+            value => { branchcode => $branchcode, flags => 1 }
+        }
+    );
+    my $librarian_with_full_permission = $builder->build_object(
+        {
+            class => 'Koha::Patrons',
+            value => { branchcode => $branchcode, flags => 4100 }
+        }
+    );    # 4100 = 4096 (2^12 suggestions) + 4 (2^2 catalogue)
+    my $librarian_with_subpermission = $builder->build_object(
+        { class => 'Koha::Patrons', value => { branchcode => $branchcode } } );
+    C4::Context->dbh->do(
+        q|INSERT INTO user_permissions(borrowernumber, module_bit, code) VALUES(?,?,?)|,
+        undef,
+        $librarian_with_subpermission->borrowernumber,
+        12,
+        'suggestions_manage'
+    );
+
+    my $search_results = C4::Utils::DataTables::Members::search(
+        {
+            searchmember     => "",
+            searchfieldstype => 'standard',
+            searchtype       => 'contain',
+            branchcode       => $branchcode,
+            has_permission   => {
+                permission    => 'suggestions',
+                subpermission => 'suggestions_manage'
+            },
+            dt_params => { iDisplayLength => 3, iDisplayStart => 0 },
+        }
+    );
+    is( $search_results->{iTotalDisplayRecords},
+        3, "We find 3 patrons with suggestions_manage permission" );
+    is_deeply(
+        [ sort map { $_->{borrowernumber} } @{ $search_results->{patrons} } ],
+        [
+            $superlibrarian->borrowernumber,
+            $librarian_with_full_permission->borrowernumber,
+            $librarian_with_subpermission->borrowernumber
+        ],
+        'We got the 3 patrons we expected'
+    );
+
+    C4::Context->dbh->do(
+        q|INSERT INTO user_permissions(borrowernumber, module_bit, code) VALUES(?,?,?)|,
+        undef,
+        $librarian_with_subpermission->borrowernumber,
+        13,
+        'moderate_comments'
+    );
+    $search_results = C4::Utils::DataTables::Members::search(
+        {
+            searchmember     => "",
+            searchfieldstype => 'standard',
+            searchtype       => 'contain',
+            branchcode       => $branchcode,
+            has_permission   => {
+                permission    => 'suggestions',
+                subpermission => 'suggestions_manage'
+            },
+            dt_params => { iDisplayLength => 3, iDisplayStart => 0 },
+        }
+    );
+    is( $search_results->{iTotalDisplayRecords},
+        3, "We find 3 patrons with suggestions_manage permission" );
+    is_deeply(
+        [ sort map { $_->{borrowernumber} } @{ $search_results->{patrons} } ],
+        [
+            $superlibrarian->borrowernumber,
+            $librarian_with_full_permission->borrowernumber,
+            $librarian_with_subpermission->borrowernumber
+        ],
+        'We got the 3 patrons we expected'
+    );
+
+};
+
+subtest 'return values' => sub {
+    plan tests => 1;
+    my $search_results = C4::Utils::DataTables::Members::search({
+        searchmember     => "John Doe",
+        searchfieldstype => 'standard',
+        searchtype       => 'contain',
+    });
+    ok(exists $search_results->{patrons}->[0]->{othernames}, 'othernames should have been retrieved' );
+};
+
 # End
 $schema->storage->txn_rollback;
-
-sub set_logged_in_user {
-    my ($patron) = @_;
-    C4::Context->_new_userenv('xxx');
-    C4::Context->set_userenv(
-        $patron->borrowernumber, $patron->userid,
-        $patron->cardnumber,     'firstname',
-        'surname',               $patron->library->branchcode,
-        'Midway Public Library', $patron->flags,
-        '',                      ''
-    );
-}

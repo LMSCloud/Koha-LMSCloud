@@ -30,7 +30,7 @@ use Koha::Patrons;
 use Koha::Patron::Discharge;
 use Koha::DateUtils;
 
-my $input = new CGI;
+my $input = CGI->new;
 
 unless ( C4::Context->preference('useDischarge') ) {
     print $input->redirect("/cgi-bin/koha/errors/404.pl");
@@ -99,11 +99,13 @@ elsif ( $op eq 'get' ) {
         my @lines = <$fh>;
         close $fh;
         print @lines;
-        exit;
     };
     if ( $@ ) {
         carp $@;
         $template->param( messages => [ {type => 'error', code => 'unable_to_generate_pdf'} ] );
+    } else {
+        # no error, pdf is sent, so stop sending data to browser
+        exit;
     }
 }
 else {

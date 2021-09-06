@@ -20,6 +20,8 @@
 
 use CGI qw ( -utf8 );
 use Modern::Perl;
+use Try::Tiny;
+
 use C4::Auth;
 use C4::Output;
 use C4::Biblio;
@@ -34,14 +36,17 @@ use C4::Members;
 use MARC::File::XML;
 use List::MoreUtils qw/uniq/;
 
+use Koha::Database;
+use Koha::Exceptions::Exception;
 use Koha::AuthorisedValues;
 use Koha::Biblios;
 use Koha::DateUtils;
 use Koha::Items;
 use Koha::ItemTypes;
 use Koha::Patrons;
+use Koha::SearchEngine::Indexer;
 
-my $input = new CGI;
+my $input = CGI->new;
 my $dbh = C4::Context->dbh;
 my $error        = $input->param('error');
 my @itemnumbers  = $input->multi_param('itemnumber');
@@ -50,9 +55,9 @@ my $op           = $input->param('op');
 my $del          = $input->param('del');
 my $del_records  = $input->param('del_records');
 my $completedJobID = $input->param('completedJobID');
-my $runinbackground = $input->param('runinbackground');
 my $src          = $input->param('src');
 my $use_default_values = $input->param('use_default_values');
+my $exclude_from_local_holds_priority = $input->param('exclude_from_local_holds_priority');
 
 my $template_name;
 my $template_flag;
@@ -65,14 +70,14 @@ if (!defined $op) {
     $template_flag = ($del) ? { tools => 'items_batchdel' }   : { tools => 'items_batchmod' };
 }
 
-
 my ($template, $loggedinuser, $cookie)
     = get_template_and_user({template_name => $template_name,
                  query => $input,
                  type => "intranet",
-                 authnotrequired => 0,
                  flagsrequired => $template_flag,
                  });
+
+$template->param( searchid => scalar $input->param('searchid'), );
 
 # Does the user have a restricted item edition permission?
 my $uid = $loggedinuser ? Koha::Patrons->find( $loggedinuser )->userid : undef;
@@ -82,7 +87,6 @@ $restrictededition = 0 if ($restrictededition != 0 && C4::Context->IsSuperLibrar
 
 $template->param(del       => $del);
 
-my $itemrecord;
 my $nextop="";
 my @errors; # store errors found while checking data BEFORE saving item.
 my $items_display_hashref;
@@ -105,6 +109,9 @@ if ($op eq "action") {
     my @tags      = $input->multi_param('tag');
     my @subfields = $input->multi_param('subfield');
     my @values    = $input->multi_param('field_value');
+    my @searches  = $input->multi_param('regex_search');
+    my @replaces  = $input->multi_param('regex_replace');
+    my @modifiers = $input->multi_param('regex_modifiers');
     my @disabled  = $input->multi_param('disable_input');
     # build indicator hash.
     my @ind_tag   = $input->multi_param('ind_tag');
@@ -112,49 +119,41 @@ if ($op eq "action") {
 
     # Is there something to modify ?
     # TODO : We shall use this var to warn the user in case no modification was done to the items
-    my $values_to_modify = scalar(grep {!/^$/} @values);
+    my $values_to_modify = scalar(grep {!/^$/} @values) || scalar(grep {!/^$/} @searches);
     my $values_to_blank  = scalar(@disabled);
+
     my $marcitem;
 
     # Once the job is done
     if ($completedJobID) {
 	# If we have a reasonable amount of items, we display them
-    if (scalar(@itemnumbers) <= ( C4::Context->preference("MaxItemsToDisplayForBatchDel") // 1000 ) ) {
-	    $items_display_hashref=BuildItemsData(@itemnumbers);
-	} else {
-	    # Else, we only display the barcode
-        my @simple_items_display = map {
-            my $itemnumber = $_;
-            my $item = Koha::Items->find($itemnumber);
-            {
-                itemnumber   => $itemnumber,
-                barcode      => $item ? ( $item->barcode // q{} ) : q{},
-                biblionumber => $item ? $item->biblio->biblionumber : q{},
-            };
-        } @itemnumbers;
-	    $template->param("simple_items_display" => \@simple_items_display);
-	}
-
-	# Setting the job as done
-	my $job = C4::BackgroundJob->fetch($sessionID, $completedJobID);
-
-	# Calling the template
-        add_saved_job_results_to_template($template, $completedJobID);
+    my $max_items = $del ? C4::Context->preference("MaxItemsToDisplayForBatchDel") : C4::Context->preference("MaxItemsToDisplayForBatchMod");
+    if (scalar(@itemnumbers) <= $max_items ){
+        if (scalar(@itemnumbers) <= 1000 ) {
+            $items_display_hashref=BuildItemsData(@itemnumbers);
+        } else {
+            # Else, we only display the barcode
+            my @simple_items_display = map {
+                my $itemnumber = $_;
+                my $item = Koha::Items->find($itemnumber);
+                {
+                    itemnumber   => $itemnumber,
+                    barcode      => $item ? ( $item->barcode // q{} ) : q{},
+                    biblionumber => $item ? $item->biblio->biblionumber : q{},
+                };
+            } @itemnumbers;
+            $template->param("simple_items_display" => \@simple_items_display);
+        }
+    } else {
+        $template->param( "too_many_items_display" => scalar(@itemnumbers) );
+        $template->param( "job_completed" => 1 );
+    }
 
     } else {
     # While the job is getting done
 
-	# Job size is the number of items we have to process
-	my $job_size = scalar(@itemnumbers);
-	my $job = undef;
-
-	# If we asked for background processing
-	if ($runinbackground) {
-	    $job = put_in_background($job_size);
-	}
-
 	#initializing values for updates
-	my (  $itemtagfield,   $itemtagsubfield) = &GetMarcFromKohaField("items.itemnumber", "");
+    my (  $itemtagfield,   $itemtagsubfield) = &GetMarcFromKohaField( "items.itemnumber" );
 	if ($values_to_modify){
 	    my $xml = TransformHtmlToXml(\@tags,\@subfields,\@values,\@indicator,\@ind_tag, 'ITEM');
 	    $marcitem = MARC::Record::new_from_xml($xml, 'UTF-8');
@@ -171,60 +170,165 @@ if ($op eq "action") {
 	    }
         }
 
-	# For each item
-	my $i = 1; 
-	foreach my $itemnumber(@itemnumbers){
+        my $upd_biblionumbers;
+        my $del_biblionumbers;
+        try {
+            my $schema = Koha::Database->new->schema;
+            $schema->txn_do(
+                sub {
+                    # For each item
+                    my $i = 1;
+                    foreach my $itemnumber (@itemnumbers) {
+                        my $item = Koha::Items->find($itemnumber);
+                        next
+                          unless $item
+                          ; # Should have been tested earlier, but just in case...
+                        my $itemdata = $item->unblessed;
+                        if ($del) {
+                            my $return = $item->safe_delete;
+                            if ( ref( $return ) ) {
+                                $deleted_items++;
+                                push @$upd_biblionumbers, $itemdata->{'biblionumber'};
+                            }
+                            else {
+                                $not_deleted_items++;
+                                push @not_deleted,
+                                  {
+                                    biblionumber => $itemdata->{'biblionumber'},
+                                    itemnumber   => $itemdata->{'itemnumber'},
+                                    barcode      => $itemdata->{'barcode'},
+                                    title        => $itemdata->{'title'},
+                                    reason       => $return,
+                                  };
+                            }
 
-		$job->progress($i) if $runinbackground;
-		my $itemdata = GetItem($itemnumber);
-        if ( $del ){
-            my $return = DelItemCheck( $itemdata->{'biblionumber'}, $itemdata->{'itemnumber'});
-			if ($return == 1) {
-			    $deleted_items++;
-			} else {
-			    $not_deleted_items++;
-			    push @not_deleted,
-				{ biblionumber => $itemdata->{'biblionumber'},
-				  itemnumber => $itemdata->{'itemnumber'},
-				  barcode => $itemdata->{'barcode'},
-				  title => $itemdata->{'title'},
-				  $return => 1
-				};
-			}
-
-			# If there are no items left, delete the biblio
-			if ( $del_records ) {
-                            my $itemscount = Koha::Biblios->find( $itemdata->{'biblionumber'} )->items->count;
-                            if ( $itemscount == 0 ) {
-			        my $error = DelBiblio($itemdata->{'biblionumber'});
-			        $deleted_records++ unless ( $error );
+                            # If there are no items left, delete the biblio
+                            if ($del_records) {
+                                my $itemscount = Koha::Biblios->find( $itemdata->{'biblionumber'} )->items->count;
+                                if ( $itemscount == 0 ) {
+                                    my $error = DelBiblio( $itemdata->{'biblionumber'}, { skip_record_index => 1 } );
+                                    unless ($error) {
+                                        $deleted_records++;
+                                        push @$del_biblionumbers, $itemdata->{'biblionumber'};
+                                        if ( $src eq 'CATALOGUING' ) {
+                                            # We are coming catalogue/detail.pl, there were items from a single bib record
+                                            $template->param( biblio_deleted => 1 );
+                                        }
+                                    }
+                                }
                             }
                         }
-		} else {
-            if ($values_to_modify || $values_to_blank) {
-                my $localmarcitem = Item2Marc($itemdata);
+                        else {
+                            my $modified_holds_priority = 0;
+                            if ( defined $exclude_from_local_holds_priority && $exclude_from_local_holds_priority ne "" ) {
+                                if(!defined $item->exclude_from_local_holds_priority || $item->exclude_from_local_holds_priority != $exclude_from_local_holds_priority) {
+                                $item->exclude_from_local_holds_priority($exclude_from_local_holds_priority)->store;
+                                $modified_holds_priority = 1;
+                            }
+                            }
+                            my $modified = 0;
+                            if ( $values_to_modify || $values_to_blank ) {
+                                my $localmarcitem = Item2Marc($itemdata);
 
-                my $modified = UpdateMarcWith( $marcitem, $localmarcitem );
-                if ( $modified ) {
-                    eval {
-                        if ( my $item = ModItemFromMarc( $localmarcitem, $itemdata->{biblionumber}, $itemnumber ) ) {
-                            LostItem($itemnumber, 'batchmod') if $item->{itemlost} and not $itemdata->{itemlost};
+                                for ( my $i = 0 ; $i < @tags ; $i++ ) {
+                                    my $search = $searches[$i];
+                                    next unless $search;
+
+                                    my $tag = $tags[$i];
+                                    my $subfield = $subfields[$i];
+                                    my $replace = $replaces[$i];
+
+                                    my $value = $localmarcitem->field( $tag )->subfield( $subfield );
+                                    my $old_value = $value;
+
+                                    my @available_modifiers = qw( i g );
+                                    my $retained_modifiers = q||;
+                                    for my $modifier ( split //, $modifiers[$i] ) {
+                                        $retained_modifiers .= $modifier
+                                            if grep {/$modifier/} @available_modifiers;
+                                    }
+                                    if ( $retained_modifiers =~ m/^(ig|gi)$/ ) {
+                                        $value =~ s/$search/$replace/ig;
+                                    }
+                                    elsif ( $retained_modifiers eq 'i' ) {
+                                        $value =~ s/$search/$replace/i;
+                                    }
+                                    elsif ( $retained_modifiers eq 'g' ) {
+                                        $value =~ s/$search/$replace/g;
+                                    }
+                                    else {
+                                        $value =~ s/$search/$replace/;
+                                    }
+
+                                    my @fields_to = $localmarcitem->field($tag);
+                                    foreach my $field_to_update ( @fields_to ) {
+                                        unless ( $old_value eq $value ) {
+                                            $modified++;
+                                            $field_to_update->update( $subfield => $value );
+                                        }
+                                    }
+                                }
+
+                                $modified += UpdateMarcWith( $marcitem, $localmarcitem );
+                                if ($modified) {
+                                    eval {
+                                        if (
+                                            my $item = ModItemFromMarc(
+                                                $localmarcitem,
+                                                $itemdata->{biblionumber},
+                                                $itemnumber,
+                                                { skip_record_index => 1 },
+                                            )
+                                          )
+                                        {
+                                            LostItem(
+                                                $itemnumber,
+                                                'batchmod',
+                                                undef,
+                                                { skip_record_index => 1 }
+                                            ) if $item->{itemlost}
+                                              and not $itemdata->{itemlost};
+                                        }
+                                    };
+                                    push @$upd_biblionumbers, $itemdata->{'biblionumber'};
+                                }
+                            }
+                            $modified_items++ if $modified || $modified_holds_priority;
+                            $modified_fields += $modified + $modified_holds_priority;
                         }
-                    };
+                        $i++;
+                    }
+                    if (@not_deleted) {
+                        Koha::Exceptions::Exception->throw(
+                            'Some items have not been deleted, rolling back');
+                    }
                 }
-                if ( $runinbackground ) {
-                    $modified_items++ if $modified;
-                    $modified_fields += $modified;
-                    $job->set({
-                        modified_items  => $modified_items,
-                        modified_fields => $modified_fields,
-                    });
-                }
-		    }
-		}
-		$i++;
-	}
+            );
+        }
+        catch {
+            if ( $_->isa('Koha::Exceptions::Exception') ) {
+                $template->param( deletion_failed => 1 );
+            }
+            die "Something terrible has happened!"
+                if ($_ =~ /Rollback failed/); # Rollback failed
+        };
+        $upd_biblionumbers = [ uniq @$upd_biblionumbers ]; # Only update each bib once
+
+        # Don't send specialUpdate for records we are going to delete
+        my %del_bib_hash = map{ $_ => undef } @$del_biblionumbers;
+        @$upd_biblionumbers = grep( ! exists( $del_bib_hash{$_} ), @$upd_biblionumbers );
+
+        my $indexer = Koha::SearchEngine::Indexer->new({ index => $Koha::SearchEngine::BIBLIOS_INDEX });
+        $indexer->index_records( $upd_biblionumbers, 'specialUpdate', "biblioserver", undef ) if @$upd_biblionumbers;
+        $indexer->index_records( $del_biblionumbers, 'recordDelete', "biblioserver", undef ) if @$del_biblionumbers;
     }
+
+    # Calling the template
+    $template->param(
+        modified_items => $modified_items,
+        modified_fields => $modified_fields,
+    );
+
 }
 #
 #-------------------------------------------------------------------------------
@@ -236,64 +340,57 @@ if ($op eq "show"){
     my $filecontent = $input->param('filecontent');
     my ( @notfoundbarcodes, @notfounditemnumbers);
 
-    my @contentlist;
+    my $split_chars = C4::Context->preference('BarcodeSeparators');
     if ($filefh){
         binmode $filefh, ':encoding(UTF-8)';
+        my @contentlist;
         while (my $content=<$filefh>){
             $content =~ s/[\r\n]*$//;
             push @contentlist, $content if $content;
         }
 
-        @contentlist = uniq @contentlist;
         if ($filecontent eq 'barcode_file') {
-            foreach my $barcode (@contentlist) {
-
-                my $itemnumber = GetItemnumberFromBarcode($barcode);
-                if ($itemnumber) {
-                    push @itemnumbers,$itemnumber;
-                } else {
-                    push @notfoundbarcodes, $barcode;
-                }
-            }
+            @contentlist = grep /\S/, ( map { split /[$split_chars]/ } @contentlist );
+            @contentlist = uniq @contentlist;
+            # Note: adding lc for case insensitivity
+            my %itemdata = map { lc($_->{barcode}) => $_->{itemnumber} } @{ Koha::Items->search({ barcode => \@contentlist }, { columns => [ 'itemnumber', 'barcode' ] } )->unblessed };
+            @itemnumbers = map { exists $itemdata{lc $_} ? $itemdata{lc $_} : () } @contentlist;
+            @notfoundbarcodes = grep { !exists $itemdata{lc $_} } @contentlist;
         }
         elsif ( $filecontent eq 'itemid_file') {
-            @itemnumbers = Koha::Items->search({ itemnumber => \@contentlist })->get_column('itemnumber');
-            my %exists = map {$_=>1} @itemnumbers;
-            @notfounditemnumbers = grep { !$exists{$_} } @contentlist;
+            @contentlist = uniq @contentlist;
+            my %itemdata = map { $_->{itemnumber} => 1 } @{ Koha::Items->search({ itemnumber => \@contentlist }, { columns => [ 'itemnumber' ] } )->unblessed };
+            @itemnumbers = grep { exists $itemdata{$_} } @contentlist;
+            @notfounditemnumbers = grep { !exists $itemdata{$_} } @contentlist;
         }
     } else {
-        if (defined $biblionumber){
+        if (defined $biblionumber && !@itemnumbers){
             my @all_items = GetItemsInfo( $biblionumber );
             foreach my $itm (@all_items) {
                 push @itemnumbers, $itm->{itemnumber};
             }
         }
-        if ( my $list=$input->param('barcodelist')){
-            push my @barcodelist, uniq( split(/\s\n/, $list) );
-
-            foreach my $barcode (@barcodelist) {
-
-                my $itemnumber = GetItemnumberFromBarcode($barcode);
-                if ($itemnumber) {
-                    push @itemnumbers,$itemnumber;
-                } else {
-                    push @notfoundbarcodes, $barcode;
-                }
-            }
-
+        if ( my $list = $input->param('barcodelist') ) {
+            my @barcodelist = grep /\S/, ( split /[$split_chars]/, $list );
+            @barcodelist = uniq @barcodelist;
+            # Note: adding lc for case insensitivity
+            my %itemdata = map { lc($_->{barcode}) => $_->{itemnumber} } @{ Koha::Items->search({ barcode => \@barcodelist }, { columns => [ 'itemnumber', 'barcode' ] } )->unblessed };
+            @itemnumbers = map { exists $itemdata{lc $_} ? $itemdata{lc $_} : () } @barcodelist;
+            @notfoundbarcodes = grep { !exists $itemdata{lc $_} } @barcodelist;
         }
     }
 
     # Flag to tell the template there are valid results, hidden or not
     if(scalar(@itemnumbers) > 0){ $template->param("itemresults" => 1); }
     # Only display the items if there are no more than pref MaxItemsToProcessForBatchMod or MaxItemsToDisplayForBatchDel
-    my $max_items = $del
+    my $max_display_items = $del
         ? C4::Context->preference("MaxItemsToDisplayForBatchDel")
-        : C4::Context->preference("MaxItemsToProcessForBatchMod");
-    if (scalar(@itemnumbers) <= ( $max_items // 1000 ) ) {
+        : C4::Context->preference("MaxItemsToDisplayForBatchMod");
+    $template->param("too_many_items_process" => scalar(@itemnumbers)) if !$del && scalar(@itemnumbers) > C4::Context->preference("MaxItemsToProcessForBatchMod");
+    if (scalar(@itemnumbers) <= ( $max_display_items // 1000 ) ) {
         $items_display_hashref=BuildItemsData(@itemnumbers);
     } else {
-        $template->param("too_many_items" => scalar(@itemnumbers));
+        $template->param("too_many_items_display" => scalar(@itemnumbers));
         # Even if we do not display the items, we need the itemnumbers
         $template->param(itemnumbers_array => \@itemnumbers);
     }
@@ -324,9 +421,8 @@ foreach my $tag (sort keys %{$tagslib}) {
         next if IsMarcStructureInternal( $tagslib->{$tag}{$subfield} );
         next if (not $allowAllSubfields and $restrictededition && !grep { $tag . '$' . $subfield eq $_ } @subfieldsToAllow );
     	next if ($tagslib->{$tag}->{$subfield}->{'tab'} ne "10");
-        # barcode and stocknumber are not meant to be batch-modified
-    	next if $tagslib->{$tag}->{$subfield}->{'kohafield'} eq 'items.barcode';
-    	next if $tagslib->{$tag}->{$subfield}->{'kohafield'} eq 'items.stocknumber';
+        # barcode is not meant to be batch-modified
+        next if $tagslib->{$tag}->{$subfield}->{'kohafield'} eq 'items.barcode';
 	my %subfield_data;
  
 	my $index_subfield = int(rand(1000000)); 
@@ -340,9 +436,8 @@ foreach my $tag (sort keys %{$tagslib}) {
 	$subfield_data{marc_lib}   ="<span id=\"error$i\" title=\"".$tagslib->{$tag}->{$subfield}->{lib}."\">".$tagslib->{$tag}->{$subfield}->{lib}."</span>";
 	$subfield_data{mandatory}  = $tagslib->{$tag}->{$subfield}->{mandatory};
 	$subfield_data{repeatable} = $tagslib->{$tag}->{$subfield}->{repeatable};
-	my ($x,$value);
-	$value =~ s/"/&quot;/g;
-   if ( !$value && $use_default_values) {
+    my $value;
+    if ( $use_default_values) {
 	    $value = $tagslib->{$tag}->{$subfield}->{defaultvalue};
 	    # get today date & replace YYYY, MM, DD if provided in the default value
             my $today = dt_from_string;
@@ -399,7 +494,13 @@ foreach my $tag (sort keys %{$tagslib}) {
       else {
           push @authorised_values, ""; # unless ( $tagslib->{$tag}->{$subfield}->{mandatory} );
 
-          my @avs = Koha::AuthorisedValues->search({ category => $tagslib->{$tag}->{$subfield}->{authorised_value}, branchcode => $branch_limit });
+          my @avs = Koha::AuthorisedValues->search_with_library_limits(
+              {
+                  category   => $tagslib->{$tag}->{$subfield}->{authorised_value}
+              },
+              { order_by => 'lib' },
+              $branch_limit
+          );
           for my $av ( @avs ) {
               push @authorised_values, $av->authorised_value;
               $authorised_lib{$av->authorised_value} = $av->lib;
@@ -538,10 +639,12 @@ sub BuildItemsData{
 		my %witness; #---- stores the list of subfields used at least once, with the "meaning" of the code
 		my @big_array;
 		#---- finds where items.itemnumber is stored
-		my (  $itemtagfield,   $itemtagsubfield) = &GetMarcFromKohaField("items.itemnumber", "");
-		my ($branchtagfield, $branchtagsubfield) = &GetMarcFromKohaField("items.homebranch", "");
+    my (  $itemtagfield,   $itemtagsubfield) = &GetMarcFromKohaField( "items.itemnumber" );
+    my ($branchtagfield, $branchtagsubfield) = &GetMarcFromKohaField( "items.homebranch" );
 		foreach my $itemnumber (@itemnumbers){
-			my $itemdata=GetItem($itemnumber);
+            my $itemdata = Koha::Items->find($itemnumber);
+            next unless $itemdata; # Should have been tested earlier, but just in case...
+            $itemdata = $itemdata->unblessed;
 			my $itemmarc=Item2Marc($itemdata);
 			my %this_row;
 			foreach my $field (grep {$_->tag() eq $itemtagfield} $itemmarc->fields()) {
@@ -579,6 +682,9 @@ sub BuildItemsData{
             $this_row{author}       = $biblio->author;
             $this_row{isbn}         = $biblio->biblioitem->isbn;
             $this_row{biblionumber} = $biblio->biblionumber;
+            $this_row{holds}        = $biblio->holds->count;
+            $this_row{item_holds}   = Koha::Holds->search( { itemnumber => $itemnumber } )->count;
+            $this_row{item}         = Koha::Items->find($itemnumber);
 
 			if (%this_row) {
 				push(@big_array, \%this_row);
@@ -602,6 +708,9 @@ sub BuildItemsData{
       $row_data{title} = $row->{title};
       $row_data{isbn} = $row->{isbn};
       $row_data{biblionumber} = $row->{biblionumber};
+      $row_data{holds}        = $row->{holds};
+      $row_data{item_holds}   = $row->{item_holds};
+      $row_data{item}         = $row->{item};
       my $is_on_loan = C4::Circulation::IsItemIssued( $row->{itemnumber} );
       $row_data{onloan} = $is_on_loan ? 1 : 0;
 			push(@item_value_loop,\%row_data);
@@ -618,10 +727,13 @@ sub BuildItemsData{
 # And $tag>10
 sub UpdateMarcWith {
   my ($marcfrom,$marcto)=@_;
-    my (  $itemtag,   $itemtagsubfield) = &GetMarcFromKohaField("items.itemnumber", "");
+    my (  $itemtag,   $itemtagsubfield) = &GetMarcFromKohaField( "items.itemnumber" );
     my $fieldfrom=$marcfrom->field($itemtag);
     my @fields_to=$marcto->field($itemtag);
     my $modified = 0;
+
+    return $modified unless $fieldfrom;
+
     foreach my $subfield ( $fieldfrom->subfields() ) {
         foreach my $field_to_update ( @fields_to ) {
             if ( $subfield->[1] ) {
@@ -654,65 +766,3 @@ sub find_value {
     }
     return($indicator,$result);
 }
-
-# ----------------------------
-# Background functions
-
-
-sub add_results_to_template {
-    my $template = shift;
-    my $results = shift;
-    $template->param(map { $_ => $results->{$_} } keys %{ $results });
-}
-
-sub add_saved_job_results_to_template {
-    my $template = shift;
-    my $completedJobID = shift;
-    my $job = C4::BackgroundJob->fetch($sessionID, $completedJobID);
-    my $results = $job->results();
-    add_results_to_template($template, $results);
-
-    my $fields = $job->get("modified_fields");
-    my $items = $job->get("modified_items");
-    $template->param(
-        modified_items => $items,
-        modified_fields => $fields,
-    );
-}
-
-sub put_in_background {
-    my $job_size = shift;
-
-    my $job = C4::BackgroundJob->new($sessionID, "test", '/cgi-bin/koha/tools/batchMod.pl', $job_size);
-    my $jobID = $job->id();
-
-    # fork off
-    if (my $pid = fork) {
-        # parent
-        # return job ID as JSON
-
-        # prevent parent exiting from
-        # destroying the kid's database handle
-        # FIXME: according to DBI doc, this may not work for Oracle
-        $dbh->{InactiveDestroy}  = 1;
-
-        my $reply = CGI->new("");
-        print $reply->header(-type => 'text/html');
-        print '{"jobID":"' . $jobID . '"}';
-        exit 0;
-    } elsif (defined $pid) {
-        # child
-        # close STDOUT to signal to Apache that
-        # we're now running in the background
-        close STDOUT;
-        close STDERR;
-    } else {
-        # fork failed, so exit immediately
-        warn "fork failed while attempting to run tools/batchMod.pl as a background job";
-        exit 0;
-    }
-    return $job;
-}
-
-
-

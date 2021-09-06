@@ -27,7 +27,7 @@ use C4::Biblio;
 use C4::Items;
 use XML::Simple;
 
-my $query = new CGI;
+my $query = CGI->new;
 binmode STDOUT, ':encoding(UTF-8)';
 
 my ($status, $cookie, $sessionID) = check_api_auth($query, { editcatalogue => 'edit_catalogue'} );
@@ -80,6 +80,7 @@ sub update_bib {
     my $query = shift;
     my $biblionumber = shift;
     my $old_record = GetMarcBiblio({ biblionumber => $biblionumber });
+    my $frameworkcode = $query->url_param('frameworkcode') // GetFrameworkCode($biblionumber);
     unless  (defined $old_record) {
         print $query->header(-type => 'text/xml', -status => '404 Not Found');
         return;
@@ -89,7 +90,7 @@ sub update_bib {
     my $inxml = $query->param('POSTDATA');
     print $query->header(-type => 'text/xml', -charset => 'utf-8');
 
-    my $record = eval {MARC::Record::new_from_xml( $inxml, "utf8", C4::Context->preference('marcflavour'))};
+    my $record = eval {MARC::Record::new_from_xml( $inxml, "UTF-8", C4::Context->preference('marcflavour'))};
     my $do_not_escape = 0;
     if ($@) {
         $result->{'status'} = "failed";
@@ -97,7 +98,7 @@ sub update_bib {
     } else {
         my $fullrecord = $record->clone();
         my ( $itemtag, $itemsubfield ) =
-          GetMarcFromKohaField( "items.itemnumber", '' );
+          GetMarcFromKohaField( "items.itemnumber" );
 
         # delete any item tags
         foreach my $field ( $record->field($itemtag) ) {
@@ -113,7 +114,7 @@ sub update_bib {
             }
         }
 
-        ModBiblio( $record, $biblionumber, '' );
+        ModBiblio( $record, $biblionumber, $frameworkcode );
         my $new_record = GetMarcBiblio({
             biblionumber => $biblionumber,
             embed_items  => scalar $query->url_param('items') });

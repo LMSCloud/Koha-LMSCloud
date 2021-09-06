@@ -17,11 +17,14 @@
 
 use Modern::Perl;
 
-use Test::More tests => 51;
+use Test::More tests => 53;
 use C4::Context;
 use C4::RotatingCollections;
 use C4::Biblio;
+use Koha::Database;
 use Koha::Library;
+
+use t::lib::TestBuilder;
 
 BEGIN {
 }
@@ -44,10 +47,9 @@ can_ok(
       )
 );
 
-#Start transaction
+my $schema = Koha::Database->new->schema;
+$schema->storage->txn_begin;
 my $dbh = C4::Context->dbh;
-$dbh->{RaiseError} = 1;
-$dbh->{AutoCommit} = 0;
 
 #Start Tests
 $dbh->do(q|DELETE FROM issues |);
@@ -57,6 +59,8 @@ $dbh->do(q|DELETE FROM collections_tracking |);
 $dbh->do(q|DELETE FROM collections |);
 $dbh->do(q|DELETE FROM branches |);
 $dbh->do(q|DELETE FROM categories|);
+
+my $builder = t::lib::TestBuilder->new;
 
 #Test CreateCollection
 my $collections     = GetCollections();
@@ -186,12 +190,12 @@ my $samplebranch = {
     branchemail    => 'sample email',
     branchurl      => 'sample url',
     branchip       => 'sample ip',
-    branchprinter  => undef,
     branchnotes    => 'sample note',
     opac_info      => 'sample opac',
 };
 Koha::Library->new($samplebranch)->store;
-is( TransferCollection( $collection_id1, $samplebranch->{branchcode} ),
+my ( $transferred, $messages ) = TransferCollection( $collection_id1, $samplebranch->{branchcode} );
+is( $transferred,
     1, "Collection1 has been transfered in the branch SAB" );
 @collection1 = GetCollection($collection_id1);
 is_deeply(
@@ -202,12 +206,11 @@ is_deeply(
     ],
     "Collection1 belongs to the sample branch (SAB)"
 );
-is( TransferCollection, "NO_ID", "TransferCollection without ID" );
-is(
-    TransferCollection($collection_id1),
-    'NO_BRANCHCODE',
-    "TransferCollection without branchcode"
-);
+( $transferred, $messages ) = TransferCollection();
+is( $messages->[0]->{code}, "NO_ID", "TransferCollection without ID" );
+( $transferred, $messages ) = TransferCollection($collection_id1);
+is( $messages->[0]->{code},
+    'NO_BRANCHCODE', "TransferCollection without branchcode" );
 
 #Test AddItemToCollection
 my $record = MARC::Record->new();
@@ -219,26 +222,23 @@ $record->append_fields(
     )
 );
 my ( $biblionumber, $biblioitemnumber ) = C4::Biblio::AddBiblio( $record, '', );
-my @sampleitem1 = C4::Items::AddItem(
+my $item_id1 = $builder->build_sample_item(
     {
-        barcode        => 1,
+        biblionumber => $biblionumber,
+        library      => $samplebranch->{branchcode},
+        barcode        => 1,              # FIXME This must not be hardcoded!
         itemcallnumber => 'callnumber1',
-        homebranch     => $samplebranch->{branchcode},
-        holdingbranch  => $samplebranch->{branchcode}
-    },
-    $biblionumber
-);
-my $item_id1    = $sampleitem1[2];
-my @sampleitem2 = C4::Items::AddItem(
+    }
+)->itemnumber;
+my $item_id2 = $builder->build_sample_item(
     {
-        barcode        => 2,
+        biblionumber => $biblionumber,
+        library      => $samplebranch->{branchcode},
+        barcode        => 2,              # FIXME This must not be hardcoded!
         itemcallnumber => 'callnumber2',
-        homebranch     => $samplebranch->{branchcode},
-        holdingbranch  => $samplebranch->{branchcode}
-    },
-    $biblionumber
-);
-my $item_id2 = $sampleitem2[2];
+    }
+)->itemnumber;
+
 is( AddItemToCollection( $collection_id1, $item_id1 ),
     1, "Sampleitem1 has been added to Collection1" );
 is( AddItemToCollection( $collection_id1, $item_id2 ),
@@ -316,6 +316,9 @@ is( C4::RotatingCollections::isItemInThisCollection($item_id1),
 is( C4::RotatingCollections::isItemInThisCollection(),
     0, "isItemInThisCollection returns 0 if no params given" );
 
+#Re-add item to test deletion of collection
+AddItemToCollection( $collection_id1, $item_id1 );
+
 #Test DeleteCollection
 is( DeleteCollection($collection_id2), 1, "Collection2 deleted" );
 is( DeleteCollection($collection_id1), 1, "Collection1 deleted" );
@@ -331,6 +334,14 @@ is(
     "Two Collections have been deleted"
 );
 
-#End transaction
-$dbh->rollback;
+is( C4::RotatingCollections::isItemInAnyCollection($item_id1),
+    0, "Item1 is no longer in a collection after it is deleted" );
+is(
+    C4::RotatingCollections::isItemInThisCollection(
+        $item_id1, $collection_id1
+    ),
+    0,
+    "Item1 is not in the deleted Collection1"
+);
 
+$schema->storage->txn_rollback;

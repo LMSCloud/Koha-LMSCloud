@@ -1,15 +1,20 @@
+[% USE raw %]
+[% USE To %]
 [% USE Asset %]
 [% USE KohaDates %]
 [% USE Branches %]
+[% USE Koha %]
 [% SET footerjs = 1 %]
 [% INCLUDE 'doc-head-open.inc' %]
-<title>Koha &rsaquo; Serials &rsaquo; [% IF ( modify ) %][% bibliotitle |html %] &rsaquo; Modify subscription[% ELSE %]New subscription[% END %]</title>
+<title>[% IF ( modify ) %][% bibliotitle | html %] &rsaquo; Modify subscription[% ELSE %]New subscription[% END %] &rsaquo; Serials &rsaquo; Koha</title>
 [% INCLUDE 'doc-head-close.inc' %]
-<style type="text/css">
+<style>
 fieldset.rows li.radio { width: 100%; } /* override staff-global.css */
-.yui-u li p label.widelabel {
-    width: 300px;  /* not enough for IE7 apparently */
-}
+#mana_comment_errortext { font-weight: bold; font-family: monospace;}
+/* Prevents Bootstrap menus from being hidden inside modal */
+#mana_search_result .modal { overflow: visible; }
+#mana_search_result .modal-body { overflow-y: visible; }
+fieldset.rows table { clear: none; margin: 0; }
 </style>
 </head>
 
@@ -17,50 +22,81 @@ fieldset.rows li.radio { width: 100%; } /* override staff-global.css */
 [% INCLUDE 'header.inc' %]
 [% INCLUDE 'serials-search.inc' %]
 
-<div id="breadcrumbs">
-    <a href="/cgi-bin/koha/mainpage.pl">Home</a>
-    &rsaquo; <a href="/cgi-bin/koha/serials/serials-home.pl">Serials</a>
-    [% UNLESS blocking_error %]
-        &rsaquo; [% IF ( modify ) %]<a href="/cgi-bin/koha/serials/subscription-detail.pl?subscriptionid=[% subscriptionid | uri %]"><i>[% bibliotitle | html %]</i></a>
-        &rsaquo; Modify subscription[% ELSE %]New subscription[% END %]
-    [% END %]
-</div>
+<nav id="breadcrumbs" aria-label="Breadcrumb" class="breadcrumb">
+    <ol>
+        <li>
+            <a href="/cgi-bin/koha/mainpage.pl">Home</a>
+        </li>
+
+        [% IF blocking_error %]
+            <li>
+                <a href="#" aria-current="page">
+                    Serials
+                </a>
+            </li>
+        [% ELSE %]
+            <li>
+                <a href="/cgi-bin/koha/serials/serials-home.pl">Serials</a>
+            </li>
+            [% IF ( modify ) %]
+                <li>
+                    <a href="/cgi-bin/koha/serials/subscription-detail.pl?subscriptionid=[% subscriptionid | uri %]"><em>[% bibliotitle | html %]</em></a>
+                </li>
+                <li>
+                    <a href="#" aria-current="page">
+                        Modify subscription
+                    </a>
+                </li>
+            [% ELSE %]
+                <li>
+                    <a href="#" aria-current="page">
+                        New subscription
+                    </a>
+                </li>
+            [% END %]
+        [% END %]
+    </ol>
+</nav>
+
 [% INCLUDE 'blocking_errors.inc' %]
 
 <div class="main container-fluid">
     <div class="row">
-
-            <h1>[% IF ( modify ) %] Modify subscription for <i>[% bibliotitle |html %]</i>[% ELSE %]Add a new subscription[% END %] (<span id="page_number">1/2</span>)</h1>
-            <form method="post" id="subscription_add_form" name="f" action="/cgi-bin/koha/serials/subscription-add.pl" class="validated">
-                [% IF ( modify ) %]
-                    <input type="hidden" name="op" value="modsubscription" />
-                    <input type="hidden" name="subscriptionid" value="[% subscriptionid %]" />
-                [% ELSE %]
-                        <input type="hidden" name="op" value="addsubscription" />
-                [% END %]
-                <input type="hidden" name="user" value="[% logged_in_user.userid | html %]" />
-                <input type="hidden" name="irreg_check" value="0" />
-
-                <div id="page_1">
-                    <div class="col-md-6">
+        <div class="col-md-10 col-md-offset-1 col-lg-8 col-lg-offset-2">
+            <h1>[% IF ( modify ) %] Modify subscription for <em>[% bibliotitle | html %]</em>[% ELSE %]Add a new subscription[% END %] (<span id="page_number">1/2</span>)</h1>
+        </div>
+    </div>
+    <form method="post" id="subscription_add_form" name="f" action="/cgi-bin/koha/serials/subscription-add.pl" class="validated">
+                <div class="row" id="page_1">
+                    <div class="col-md-10 col-md-offset-1 col-lg-8 col-lg-offset-2">
+                        [% IF ( modify ) %]
+                            <input type="hidden" name="op" value="modsubscription" />
+                            <input type="hidden" name="subscriptionid" value="[% subscriptionid | html %]" />
+                        [% ELSE %]
+                                <input type="hidden" name="op" value="addsubscription" />
+                        [% END %]
+                        <input type="hidden" name="user" value="[% logged_in_user.userid | html %]" />
+                        <input type="hidden" name="irreg_check" value="0" />
                         <fieldset id="subscription_add_information" class="rows">
                             <legend>Subscription details</legend>
                             <ol>
                                 [% IF ( subscriptionid ) %]
-                                    <li><span class="label">Subscription #</span> [% subscriptionid %]</li>
+                                    <li><span class="label">Subscription number: </span> [% subscriptionid | html %]</li>
                                 [% END %]
                                 <li>
                                     <label for="aqbooksellerid">Vendor: </label>
-                                    <input type="text" name="aqbooksellerid" id="aqbooksellerid" value="[% aqbooksellerid %]" size="8" /> (<input type="text" name="aqbooksellername" id="aqbooksellername" value="[% aqbooksellername %]" disabled="disabled" readonly="readonly" />) <a href="#" id="vendor_search"><i class="fa fa-search"></i> Search for a vendor</a>
+                                    <input type="text" name="aqbooksellerid" id="aqbooksellerid" value="[% aqbooksellerid | html %]" size="8" /> (<input type="text" name="aqbooksellername" id="aqbooksellername" value="[% aqbooksellername | html %]" disabled="disabled" readonly="readonly" />) <a href="#" id="vendor_search"><i class="fa fa-search"></i> Search for a vendor</a>
                                 </li>
                                 <li>
-                                    <label for="biblionumber" class="required" title="Subscriptions must be associated with a bibliographic record">Record:</label>
-                                    <input type="text" name="biblionumber" id="biblionumber" value="[% bibnum %]" size="8" />
-                                    (<input type="text" name="title" value="[% bibliotitle %]" disabled="disabled" readonly="readonly" />) <span class="required" title="Subscriptions must be associated with a bibliographic record">Required</span>
+                                    <label for="biblionumber" class="required">Record:</label>
+                                    <input type="text" name="biblionumber" id="biblionumber" value="[% bibnum | html %]" size="8" />
+                                    (<input type="text" name="title" value="[% bibliotitle | html %]" disabled="disabled" readonly="readonly" />) <span class="required" title="Subscriptions must be associated with a bibliographic record">Required</span>
+                                    <span id="error_bib_not_exist"></span>
+                                    <div class="hint">Subscriptions must be associated with a bibliographic record</div>
                                     <div class="inputnote"> <a href="#" id="record_search"><i class="fa fa-search"></i> Search for record</a>
                                         [% IF ( CAN_user_editcatalogue ) %]
                                             [% IF ( modify ) %]
-                                            | <a href="#" id="biblio_add_edit" data-biblionumber="[% bibnum %]"><i class="fa fa-pencil"></i> Edit record</a>
+                                            | <a href="#" id="biblio_add_edit" data-biblionumber="[% bibnum | html %]"><i class="fa fa-pencil"></i> Edit record</a>
                                             [% ELSE %]
                                             | <a href="#" id="biblio_add_edit"><i class="fa fa-plus"></i> Create record</a>
                                             [% END %]
@@ -69,11 +105,11 @@ fieldset.rows li.radio { width: 100%; } /* override staff-global.css */
                                 </li>
                                 <li class="radio">
                                     [% IF ( serialsadditems ) %]
-                                        <p><input type="radio" id="serialsadditems-yes" name="serialsadditems" value="1" checked="checked" /><label class="widelabel" for="serialsadditems-yes">create an item record when receiving this serial</label></p>
-                                        <p><input type="radio" id="serialsadditems-no" name="serialsadditems" value="0" /><label class="widelabel" for="serialsadditems-no">do not create an item record when receiving this serial </label></p>
+                                        <p><input type="radio" id="serialsadditems-yes" name="serialsadditems" value="1" checked="checked" /><label class="widelabel" for="serialsadditems-yes"> Create an item record when receiving this serial</label></p>
+                                        <p><input type="radio" id="serialsadditems-no" name="serialsadditems" value="0" /><label class="widelabel" for="serialsadditems-no"> Do not create an item record when receiving this serial </label></p>
                                     [% ELSE %]
-                                        <p><input type="radio" id="serialsadditems-yes" name="serialsadditems" value="1"/><label class="widelabel" for="serialsadditems-yes">create an item record when receiving this serial</label></p>
-                                        <p><input type="radio" id="serialsadditems-no" name="serialsadditems" value="0" checked="checked" /><label class="widelabel" for="serialsadditems-no">do not create an item record when receiving this serial</label></p>
+                                        <p><input type="radio" id="serialsadditems-yes" name="serialsadditems" value="1"/><label class="widelabel" for="serialsadditems-yes"> Create an item record when receiving this serial</label></p>
+                                        <p><input type="radio" id="serialsadditems-no" name="serialsadditems" value="0" checked="checked" /><label class="widelabel" for="serialsadditems-no"> Do not create an item record when receiving this serial</label></p>
                                     [% END %]
                                 </li>
                                 <li class="radio">
@@ -108,11 +144,11 @@ fieldset.rows li.radio { width: 100%; } /* override staff-global.css */
                                 </li>
                                 <li>
                                     <label for="callnumber">Call number:</label>
-                                    <input type="text" name="callnumber" id="callnumber" value="[% callnumber %]" size="20" />
+                                    <input type="text" name="callnumber" id="callnumber" value="[% callnumber | html %]" size="20" />
                                 </li>
                                 <li>
                                     <label for="branchcode">Library:</label>
-                                    <select name="branchcode" id="branchcode" style="width: 20em;">
+                                    <select name="branchcode" id="branchcode">
                                         [% UNLESS ( Independentbranches ) %]
                                             <option value="">None</option>
                                         [% END %]
@@ -121,15 +157,15 @@ fieldset.rows li.radio { width: 100%; } /* override staff-global.css */
                                         [% ELSE %]
                                             [% PROCESS options_for_libraries libraries => Branches.all( selected => branchcode, restrict => 'NoMobileStations' ) %]
                                         [% END %]
-                                    </select> (select a library)
+                                    </select>
                                 </li>
                                 <li>
                                     <label for="notes">Public note:</label>
-                                    <textarea name="notes" id="notes" cols="30" rows="2">[% notes %]</textarea>
+                                    <textarea name="notes" id="notes" cols="30" rows="2">[% notes | html %]</textarea>
                                 </li>
                                 <li>
                                     <label for="internalnotes">Nonpublic note:</label>
-                                    <textarea name="internalnotes" id="internalnotes" cols="30" rows="2">[% internalnotes %]</textarea>
+                                    <textarea name="internalnotes" id="internalnotes" cols="30" rows="2">[% internalnotes | html %]</textarea>
                                 </li>
                                 <li>
                                     [% IF ( letterloop ) %]
@@ -138,9 +174,9 @@ fieldset.rows li.radio { width: 100%; } /* override staff-global.css */
                                             <option value="">None</option>
                                             [% FOREACH letterloo IN letterloop %]
                                                 [% IF ( letterloo.selected ) %]
-                                                    <option value="[% letterloo.value %]" selected="selected">[% letterloo.lettername %]</option>
+                                                    <option value="[% letterloo.value | html %]" selected="selected">[% letterloo.lettername | html %]</option>
                                                 [% ELSE %]
-                                                    <option value="[% letterloo.value %]">[% letterloo.lettername %]</option>
+                                                    <option value="[% letterloo.value | html %]">[% letterloo.lettername | html %]</option>
                                                 [% END %]
                                             [% END %]
                                         </select>
@@ -156,9 +192,9 @@ fieldset.rows li.radio { width: 100%; } /* override staff-global.css */
                                         <option value="">None</option>
                                         [% FOREACH locations_loo IN locations_loop %]
                                             [% IF locations_loo.authorised_value == location %]
-                                                <option value="[% locations_loo.authorised_value %]" selected="selected">[% locations_loo.lib %]</option>
+                                                <option value="[% locations_loo.authorised_value | html %]" selected="selected">[% locations_loo.lib | html %]</option>
                                             [% ELSE %]
-                                                <option value="[% locations_loo.authorised_value %]">[% locations_loo.lib %]</option>
+                                                <option value="[% locations_loo.authorised_value | html %]">[% locations_loo.lib | html %]</option>
                                             [% END %]
                                         [% END %]
                                     </select>
@@ -169,9 +205,9 @@ fieldset.rows li.radio { width: 100%; } /* override staff-global.css */
                                         <option value=""></option>
                                         [% FOREACH type IN typeloop %]
                                             [% IF ( type.selected ) %]
-                                                <option value="[% type.code %]" selected="selected">[% type.value %]</option>
+                                                <option value="[% type.code | html %]" selected="selected">[% type.value | html %]</option>
                                             [% ELSE %]
-                                                <option value="[% type.code %]">[% type.value %]</option>
+                                                <option value="[% type.code | html %]">[% type.value | html %]</option>
                                             [% END %]
                                         [% END %]
                                     </select>
@@ -183,9 +219,9 @@ fieldset.rows li.radio { width: 100%; } /* override staff-global.css */
                                             <option value=""></option>
                                         [% FOREACH previous IN previoustypeloop %]
                                             [% IF ( previous.selected ) %]
-                                                <option value="[% previous.code %]" selected="selected">[% previous.value %]</option>
+                                                <option value="[% previous.code | html %]" selected="selected">[% previous.value | html %]</option>
                                             [% ELSE %]
-                                                <option value="[% previous.code %]">[% previous.value %]</option>
+                                                <option value="[% previous.code | html %]">[% previous.value | html %]</option>
                                             [% END %]
                                         [% END %]
                                     </select>
@@ -193,38 +229,46 @@ fieldset.rows li.radio { width: 100%; } /* override staff-global.css */
                                 [% END %]
                                     <li>
                                     <label for="graceperiod">Grace period:</label>
-                                    <input type="text" name="graceperiod" id="graceperiod" value="[% graceperiod %]" size="5"/> day(s)
+                                    <input type="text" name="graceperiod" id="graceperiod" value="[% graceperiod | html %]" size="5"/> day(s)
                                 </li>
                                 <li>
                                      <label class="widelabel" for="staffdisplaycount">Number of issues to display to staff: </label>
-                                     <input type="text" name="staffdisplaycount" id="staffdisplaycount" value="[% staffdisplaycount %]" size="4"/>
+                                     <input type="text" name="staffdisplaycount" id="staffdisplaycount" value="[% staffdisplaycount | html %]" size="4"/>
                                  </li>
                                  <li>
                                     <label class="widelabel" for="opacdisplaycount">Number of issues to display to the public: </label>
-                                    <input type="text" name="opacdisplaycount" id="opacdisplaycount" value="[% opacdisplaycount %]" size="4"/>
+                                    <input type="text" name="opacdisplaycount" id="opacdisplaycount" value="[% opacdisplaycount | html %]" size="4"/>
                                 </li>
                             </ol>
                         </fieldset>
                         <fieldset class="action">
-                            <input type="button" value="Next &gt;&gt;" id="subscription_add_next" style="float:right;" />
+                            <button type="button" id="subscription_add_next" style="float:right;">Next <i class="fa fa-long-arrow-right"></i></button>
                         </fieldset>
-                    </div>
-                </div>
-
-                <div id="page_2">
-                    <div class="col-md-6">
+                    </div> <!-- /.col-md-10 col-md-offset-1 col-lg-8 col-lg-offset-2 -->
+                </div> <!-- /.row#page_1 -->
+                <div class="row" id="page_2">
+                    <div class="col-md-10 col-md-offset-1 col-lg-8 col-lg-offset-2">
+                [% IF ( Koha.Preference('Mana') == 1) && !mana_url %]
+                    <fieldset>
+                        <p><center>The Mana Knowledge Base can be used to import subscription patterns submitted by other libraries and save you extra work. Ask your system administrator to configure this service and complete the configuration, or remove this message by disabling the system preference
+                        <a href=/cgi-bin/koha/admin/preferences.pl?tab=&op=search&searchfield=request+to+mana+webservice>here</a></center></p>
+                    </fieldset>
+                [% END %]
+                        <div hidden id="mana_search" class="dialog message">
+                        </div>
                         <div id="subscription_form_planning">
                             <fieldset class="rows">
                                 <legend>Serials planning</legend>
                                 <ol>
                                     <li>
-                                        <label for="firstacquidate" class="required">First issue publication date:</label>
+                                        <label for="acqui_date" class="required">First issue publication date:</label>
                                         [% UNLESS (more_than_one_serial) %]
                                           <input type="text" size="10" id="acqui_date" name="firstacquidate" value="[% firstacquidate | $KohaDates %]" class="datepicker required" required="required" />
                                         [% ELSE %]
                                           [% firstacquidate | $KohaDates %]
-                                          <input type="hidden" size="10" id="acqui_date" name="firstacquidate" value="[% firstacquidate | $KohaDates %]"/>
+                                          <input type="hidden" id="acqui_date" name="firstacquidate" value="[% firstacquidate | $KohaDates %]"/>
                                         [% END %]
+                                        <span class="required">Required</span>
                                     </li>
                                     [% IF (more_than_one_serial) %]
                                       <li>
@@ -234,15 +278,15 @@ fieldset.rows li.radio { width: 100%; } /* override staff-global.css */
                                     [% END %]
                                     <li>
                                         <label for="frequency" class="required">Frequency:</label>
-                                        <select name="frequency" size="1" id="frequency" class="required" required="required">
+                                        <select name="frequency" id="frequency" class="required" required="required">
                                             <option value="">-- please choose --</option>
                                             [% FOREACH frequency IN frequencies %]
                                                 [% IF (frequency.selected) %]
-                                                    <option value="[% frequency.id %]" selected="selected">
+                                                    <option value="[% frequency.id | html %]" selected="selected">
                                                 [% ELSE %]
-                                                    <option value="[% frequency.id %]">
+                                                    <option value="[% frequency.id | html %]">
                                                 [% END %]
-                                                    [% frequency.label %]
+                                                    [% frequency.label | html %]
                                                 </option>
                                             [% END %]
                                         </select>
@@ -273,36 +317,37 @@ fieldset.rows li.radio { width: 100%; } /* override staff-global.css */
                                                             <option value="months">
                                                         [% END %]
                                                         months
-                                                    [% CASE %][% st %]
+                                                    [% CASE %][% st | html %]
                                                 [% END %]
                                                 </option>
                                             [% END %]
                                         </select>
-                                        <input type="text" name="sublength" id="sublength" value="[% sublength %]" size="3" maxlength="5" /> (enter amount in numerals)
+                                        <input type="text" name="sublength" id="sublength" value="[% sublength | html %]" size="3" /> (enter amount in numerals)
                                         <input type="hidden" name="issuelengthcount">
                                     </li>
                                     <li>
-                                        <label for="startdate" class="required"> Subscription start date:</label>
+                                        <label for="from" class="required"> Subscription start date:</label>
                                         <input type="text" size="10" id="from" name="startdate" value="[% startdate | $KohaDates %]" class="datepickerfrom required" required="required" />
                                     </li>
                                     <li>
-                                        <label for="enddate">Subscription end date:</label>
+                                        <label for="to">Subscription end date:</label>
                                         <input type="text" size="10" id="to" name="enddate" value="[% enddate | $KohaDates %]" class="datepickerto" />
                                     </li>
                                     <li>
                                         <label for="numberpattern" class="required">Numbering pattern:</label>
-                                        <select name="numbering_pattern" size="1" id="numberpattern" class="required" required="required">
+                                        <select name="numbering_pattern" id="numberpattern" class="required" required="required">
                                             <option value="">-- please choose --</option>
                                             [% FOREACH numberpattern IN numberpatterns %]
                                                 [% IF (numberpattern.selected) %]
-                                                    <option value="[% numberpattern.id %]" selected="selected">
+                                                    <option value="[% numberpattern.id | html %]" selected="selected">
                                                 [% ELSE %]
-                                                    <option value="[% numberpattern.id %]">
+                                                    <option value="[% numberpattern.id | html %]">
                                                 [% END %]
-                                                    [% numberpattern.label %]
+                                                    [% numberpattern.label | html %]
                                                 </option>
                                             [% END %]
                                         </select>
+                                        <span class="required">Required</span>
                                     </li>
                                     <li>
                                         <label for="locale">Locale:</label>
@@ -310,15 +355,16 @@ fieldset.rows li.radio { width: 100%; } /* override staff-global.css */
                                             <option value=""></option>
                                             [% FOREACH l IN locales %]
                                                 [% IF l.language == locale %]
-                                                    <option value="[% l.language %]" selected="selected">[% l.description %]</option>
+                                                    <option value="[% l.language | html %]" selected="selected">[% l.description | html %]</option>
                                                 [% ELSE %]
-                                                    <option value="[% l.language %]">[% l.description %]</option>
+                                                    <option value="[% l.language | html %]">[% l.description | html %]</option>
                                                 [% END %]
                                             [% END %]
                                         </select>
-                                        <span class="hint">If empty, English is used</span>
+                                        <div class="hint">If empty, English is used</div>
                                     </li>
                                     <li id="more_options">
+                                        <span class="label">&nbsp;</span>
                                         <table id="moreoptionst">
                                             <thead>
                                                 <tr>
@@ -330,44 +376,48 @@ fieldset.rows li.radio { width: 100%; } /* override staff-global.css */
                                             </thead>
                                             <tbody>
                                                 <tr>
-                                                    <td>
+                                                    <th scope="row">
                                                       [% IF (more_than_one_serial) %]
-                                                        Last value
+                                                        Last value:
                                                       [% ELSE %]
-                                                        Begins with
+                                                        Begins with:
                                                       [% END %]
-                                                    </td>
-                                                    <td id="beginsX"><input type="text" id="lastvaluetemp1" name="lastvaluetemp1" value="[% lastvalue1 %]" /></td>
-                                                    <td id="beginsY"><input type="text" id="lastvaluetemp2" name="lastvaluetemp2" value="[% lastvalue2 %]" /></td>
-                                                    <td id="beginsZ"><input type="text" id="lastvaluetemp3" name="lastvaluetemp3" value="[% lastvalue3 %]" /></td>
+                                                    </th>
+                                                    <td id="beginsX"><input type="text" id="lastvaluetemp1" name="lastvaluetemp1" value="[% lastvalue1 | html %]" /></td>
+                                                    <td id="beginsY"><input type="text" id="lastvaluetemp2" name="lastvaluetemp2" value="[% lastvalue2 | html %]" /></td>
+                                                    <td id="beginsZ"><input type="text" id="lastvaluetemp3" name="lastvaluetemp3" value="[% lastvalue3 | html %]" /></td>
                                                 </tr>
                                                 <tr>
-                                                    <td>Inner counter</td>
-                                                    <td id="innerX"><input type="text" id="innerlooptemp1" name="innerlooptemp1" value="[% innerloop1 %]" /></td>
-                                                    <td id="innerY"><input type="text" id="innerlooptemp2" name="innerlooptemp2" value="[% innerloop2 %]" /></td>
-                                                    <td id="innerZ"><input type="text" id="innerlooptemp3" name="innerlooptemp3" value="[% innerloop3 %]" /></td>
+                                                    <th scope="row">Inner counter:</th>
+                                                    <td id="innerX"><input type="text" id="innerlooptemp1" name="innerlooptemp1" value="[% innerloop1 | html %]" /></td>
+                                                    <td id="innerY"><input type="text" id="innerlooptemp2" name="innerlooptemp2" value="[% innerloop2 | html %]" /></td>
+                                                    <td id="innerZ"><input type="text" id="innerlooptemp3" name="innerlooptemp3" value="[% innerloop3 | html %]" /></td>
                                                 </tr>
                                             </tbody>
                                         </table>
                                     </li>
                                     <li>
+                                        <span class="label">&nbsp;</span>
                                         <a href="#" class="toggle_advanced_pattern show_advanced_pattern"><i class="fa fa-plus-square"></i> Show advanced pattern</a>
                                         <a href="#" style="display:none;" class="toggle_advanced_pattern hide_advanced_pattern"><i class="fa fa-minus-square"></i> Hide advanced pattern</a>
                                     </li>
+                                </ol>
+
                                     <div id="advancedpredictionpattern" style="display:none">
+                                        <ol>
                                       <li>
                                         <label for="patternname" class="required">Pattern name:</label>
                                         <input id="patternname" name="patternname" type="text" readonly="readonly" class="required" required="required" />
+                                        <span class="required">Required</span>
                                       </li>
                                       <li>
                                         <label for="numberingmethod">Numbering formula:</label>
-                                        <input readonly="readonly" type="text" name="numberingmethod" id="numberingmethod" size="50" value="[% numberingmethod %]" />
+                                        <input readonly="readonly" type="text" name="numberingmethod" id="numberingmethod" size="50" value="[% numberingmethod | html %]" />
                                       </li>
+                                      <li>
+                                        <span class="label">Advanced prediction pattern: </span>
                                         <table id="advancedpredictionpatternt">
                                             <thead>
-                                                <tr>
-                                                    <th colspan="4">Advanced prediction pattern</th>
-                                                </tr>
                                                 <tr>
                                                     <th>&nbsp;</th>
                                                     <th>X</th>
@@ -377,50 +427,50 @@ fieldset.rows li.radio { width: 100%; } /* override staff-global.css */
                                             </thead>
                                             <tbody>
                                                 <tr>
-                                                    <td>Label</td>
+                                                    <th scope="row">Label: </th>
                                                     <td><input type="text" readonly="readonly" id="label1" name="label1" /></td>
                                                     <td><input type="text" readonly="readonly" id="label2" name="label2" /></td>
                                                     <td><input type="text" readonly="readonly" id="label3" name="label3" /></td>
                                                 </tr>
                                                 <tr>
-                                                    <td>Begins with</td>
+                                                    <th scope="row">Begins with: </th>
                                                     <td><input type="text" readonly="readonly" id="lastvalue1" name="lastvalue1" /></td>
                                                     <td><input type="text" readonly="readonly" id="lastvalue2" name="lastvalue2" /></td>
                                                     <td><input type="text" readonly="readonly" id="lastvalue3" name="lastvalue3" /></td>
                                                 </tr>
                                                 <tr>
-                                                    <td>Add</td>
+                                                    <th scope="row">Add: </th>
                                                     <td><input type="text" readonly="readonly" id="add1" name="add1" /></td>
                                                     <td><input type="text" readonly="readonly" id="add2" name="add2" /></td>
                                                     <td><input type="text" readonly="readonly" id="add3" name="add3" /></td>
                                                 </tr>
                                                 <tr>
-                                                    <td>Every</td>
+                                                    <th scope="row">Every: </th>
                                                     <td><input type="text" readonly="readonly" id="every1" name="every1" /></td>
                                                     <td><input type="text" readonly="readonly" id="every2" name="every2" /></td>
                                                     <td><input type="text" readonly="readonly" id="every3" name="every3" /></td>
                                                 </tr>
                                                 <tr>
-                                                    <td>Set back to</td>
+                                                    <th scope="row">Set back to: </th>
                                                     <td><input type="text" readonly="readonly" id="setto1" name="setto1" /></td>
                                                     <td><input type="text" readonly="readonly" id="setto2" name="setto2" /></td>
                                                     <td><input type="text" readonly="readonly" id="setto3" name="setto3" /></td>
                                                 </tr>
                                                 <tr>
-                                                    <td>When more than</td>
+                                                    <th scope="row">When more than: </th>
                                                     <td><input type="text" readonly="readonly" id="whenmorethan1" name="whenmorethan1" /></td>
                                                     <td><input type="text" readonly="readonly" id="whenmorethan2" name="whenmorethan2" /></td>
                                                     <td><input type="text" readonly="readonly" id="whenmorethan3" name="whenmorethan3" /></td>
                                                 </tr>
                                                 <tr>
-                                                    <td>Inner counter</td>
+                                                    <th scope="row">Inner counter: </th>
                                                     <td><input type="text" readonly="readonly" id="innerloop1" name="innerloop1" /></td>
                                                     <td><input type="text" readonly="readonly" id="innerloop2" name="innerloop2" /></td>
                                                     <td><input type="text" readonly="readonly" id="innerloop3" name="innerloop3" /></td>
                                                 </tr>
                                                 <tr>
                                                     [% BLOCK numbering_select %]
-                                                        <select disabled="disabled" id="[% name %]" name="[% name %]">
+                                                        <select disabled="disabled" id="[% name | html %]" name="[% name | html %]">
                                                             <option value=""></option>
                                                             <option value="dayname">Name of day</option>
                                                             <option value="dayabrv">Name of day (abbreviated)</option>
@@ -430,95 +480,115 @@ fieldset.rows li.radio { width: 100%; } /* override staff-global.css */
                                                             <option value="seasonabrv">Name of season (abbreviated)</option>
                                                         </select>
                                                     [% END %]
-                                                    <td>Formatting</td>
+                                                    <th scope="row">Formatting:</th>
                                                     <td>[% PROCESS numbering_select name="numbering1" %]</td>
                                                     <td>[% PROCESS numbering_select name="numbering2" %]</td>
                                                     <td>[% PROCESS numbering_select name="numbering3" %]</td>
                                                 </tr>
                                             </tbody>
                                         </table>
-                                        <input id="modifyadvancedpatternbutton" type="button" value="Modify pattern" />
-                                        <input id="restoreadvancedpatternbutton" type="button" value="Cancel modifications" style="display:none" />
-                                        <input id="saveadvancedpatternbutton" type="button" value="Save as new pattern" style="display:none" />
-                                    </div>
-                                </ol>
+                                    </li>
+                                    <li>
+                                        <span class="label">&nbsp;</span>
+                                        <a href="#" id="modifyadvancedpatternbutton"><i class="fa fa-pencil"></i> Modify pattern</a>
+                                        <button type="button" class="btn btn-default btn-xs" id="saveadvancedpatternbutton" style="display:none"><i class="fa fa-save"></i> Save as new pattern</button>
+                                        <a class="cancel" href="#" id="restoreadvancedpatternbutton" style="display:none">Cancel modifications</a>
+                                    </li>
+                                    </ol>
+                                </div> <!-- /#advancedpredictionpattern -->
+                                <fieldset class="action">
+                                    <button type="button" id="testpatternbutton" class="btn btn-default btn-sm"><i class="fa fa-play"></i> Test prediction pattern</button>
+                                </fieldset>
                             </fieldset>
 
-                            [% IF additional_fields_for_subscription %]
-                              <div id="subscription_additional_fields">
-                                <fieldset class="rows">
-                                  <legend>Additional fields</legend>
-                                  <ol>
-                                    [% FOR field IN additional_fields_for_subscription %]
-                                      <li>
-                                        <label for="additional_field_[% field.id %]"> [% field.name %]: </label>
-                                        [% IF field.authorised_value_choices %]
-                                          <select name="additional_field_[% field.id %]" id="additional_field_[% field.id %]">
-                                            [% FOREACH av IN field.authorised_value_choices %]
-                                              [% IF av.authorised_value == additional_fields.${field.name} %]
-                                                <option value="[% av.authorised_value %]" selected="selected">[% av.lib %]</option>
-                                              [% ELSE %]
-                                                <option value="[% av.authorised_value %]">[% av.lib %]</option>
-                                              [% END %]
-                                            [% END %]
-                                          </select> (Authorised values for [% field.authorised_value_category %])
-                                        [% ELSE %]
-                                          [% IF field.marcfield %]
-                                            <input type="text" value="[% additional_fields.${field.name} %]" id="additional_field_[% field.id %]" name="additional_field_[% field.id %]" readonly="readonly" />
-                                            This value will be filled with the [% field.marcfield %] subfield of the selected biblio.
-                                          [% ELSE %]
-                                            <input type="text" value="[% additional_fields.${field.name} %]" id="additional_field_[% field.id %]" name="additional_field_[% field.id %]" />
-                                          [% END %]
-                                        [% END %]
-                                      </li>
-                                    [% END %]
-                                  </ol>
-                                </fieldset>
-                              </div>
+                            [% IF additional_fields %]
+                                <div id="subscription_additional_fields">
+                                    [% INCLUDE 'additional-fields-entry.inc' available=additional_fields values=additional_field_values %]
+                                </div>
                             [% END %]
 
+                            <input type="hidden" id="mana_id"  name="mana_id" value=""/>
+                            <input type="hidden" id="sndescription"  name="sndescription" value=""/>
+                            <input type="hidden" id="sfdescription"  name="sfdescription" value=""/>
+                            <input type="hidden" id="unit"  name="unit" value=""/>
+                            <input type="hidden" id="unitsperissue"  name="unitsperissue" value=""/>
+                            <input type="hidden" id="issuesperunit"  name="issuesperunit" value=""/>
                             <fieldset class="action">
-                                <input type="button" id="subscription_add_previous" value="&lt;&lt; Previous" style="float:left;"/>
-                                <input id="testpatternbutton" type="button" value="Test prediction pattern" />
-                                <input type="submit" value="Save subscription" style="float:right;" accesskey="w" />
+                                <button type="button" id="subscription_add_previous" style="float:left"><i class="fa fa-long-arrow-left"></i> Previous</button>
+                                <input id="save-subscription" type="submit" value="Save subscription" style="float:right;" accesskey="w"/>
                             </fieldset>
                         </div>
                     </div>
                     <div class="col-md-6">
-                        <li id="displayexample"></li>
+                        <fieldset id="displayexample"></fieldset>
                     </div>
-                </div>
+                </div> <!-- /.row#page_2 -->
             </form>
         </div>
 
+        <!-- Mana Search Result Modal -->
+        <div class="modal" id="mana_search_result" tabindex="-1" role="dialog" aria-labelledby="mana_search_result_label">
+            <div class="modal-dialog modal-lg" role="document">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <button type="button" class="closebtn" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+                        <h4 class="modal-title" id="mana_search_result_label">Modal title</h4>
+                    </div>
+                    <div class="modal-body">
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+                    </div>
+                </div>
+             </div>
+         </div>
+
 [% MACRO jsinclude BLOCK %]
     [% INCLUDE 'calendar.inc' %]
-    <script type="text/javascript">
-        var subscriptionid = "[% subscriptionid %]";
-        var irregularity = "[% irregularity %]";
-        var more_than_one_serial = "[% more_than_one_serial %]";
+    [% INCLUDE 'datatables.inc' %]
+    [% Asset.js("js/mana.js") | $raw %]
+    <script>
+        var subscriptionid = "[% subscriptionid | html %]";
+        var irregularity = "[% irregularity | html %]";
+        var more_than_one_serial = "[% more_than_one_serial | html %]";
         var tags = [];
+        var interface = "[% interface | html %]";
+        var theme = "[% theme | html %]";
         [% FOREACH field IN dont_export_field_loop %]
-            tags.push("[% field.fieldid %]");
+            tags.push("[% field.fieldid | html %]");
         [% END %]
+        [%- IF (Koha.Preference('Mana') == 1 && mana_url) -%]
+            var mana_enabled = 1;
+        [%- ELSE -%]
+            var mana_enabled = 0;
+        [%- END -%]
         var MSG_LINK_TO_VENDOR = _("If you wish to claim late or missing issues you must link this subscription to a vendor. Click OK to ignore or Cancel to return and enter a vendor");
         var MSG_LINK_BIBLIO = _("You must choose or create a bibliographic record");
+        var MSG_BIBLIO_NOT_EXIST = _("Bibliographic record does not exist!");
         var MSG_REQUIRED_SUB_LENGTH = _("You must choose a subscription length or an end date.");
         var MSG_TEST_PREDICTION = _("Please click on 'Test prediction pattern' before saving subscription.");
         var MSG_REQUIRED_PUB_DATE = _("You must choose a first publication date");
-        var MSG = _("You have modified the advanced prediction pattern. Please save your work or cancel modifications.");
-        var MSG_PATTERN_IRREG = _("Warning! Present pattern has planned irregularities. Click on 'Test prediction pattern' to check if it's still valid")
+        var MSG_SAVE_PREDICTION_PATTERN = _("You have modified the advanced prediction pattern. Please save your work or cancel modifications.");
+        var MSG_PATTERN_IRREG = _("Warning! Present pattern has planned irregularities. Click on 'Test prediction pattern' to check if it's still valid");
         var MSG_PATTERN_NAME = _("Please enter a name for this pattern");
         var MSG_PATTERN_NAME_EXISTS = _("This pattern name already exists. Do you want to modify it?");
-        var MSG_OVERWRITE_PATTERNS = _("Warning: it will modify the pattern for all subscriptions that are using it.");
+        var MSG_OVERWRITE_PATTERNS = _("Warning: This will modify the pattern for all subscriptions that are using it.");
         var MSG_PATTERN_CREATE_FAILED = _("Something went wrong. Unable to create a new numbering pattern.");
         var MSG_PATTERN_TEST_FAILED = _("Cannot test prediction pattern for the following reason(s): %s");
         var MSG_FREQUENCY_UNDEFINED = _("Frequency is not defined");
         var MSG_PUB_DATE_UNDEFINED = _("First publication date is not defined");
         var MSG_NEXT_ISSUE_UNDEFINED = _("Next issue publication date is not defined");
+        var MSG_MANA_SEARCHING = _("Searching for subscription in Mana Knowledge Base");
+        var MSG_MANA_RESULTS = _("Results from Mana Knowledge Base");
+        var MSG_MANA_SUBSCRIPTION_FOUND = _("Subscription found on Mana Knowledge Base:");
+        var MSG_MANA_SHOW_DETAILS = _("Show Mana results");
+        var MSG_MANA_NO_SUBSCRIPTION_FOUND = _("No subscription found on Mana Knowledge Base");
+        var MSG_MANA_SHARE_PATTERN = _("Please feel free to share your pattern with all others librarians once you are done");
+
+        var BOOKSELLER_IDS = [% To.json( bookseller_ids ) || '[]' | $raw %];
     </script>
-    [% Asset.js("js/subscription-add.js") %]
-    [% Asset.js("js/showpredictionpattern.js") %]
+    [% Asset.js("js/subscription-add.js") | $raw %]
+    [% Asset.js("js/showpredictionpattern.js") | $raw %]
 [% END %]
 
 [% INCLUDE 'intranet-bottom.inc' %]

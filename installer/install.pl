@@ -17,8 +17,7 @@
 # You should have received a copy of the GNU General Public License
 # along with Koha; if not, see <http://www.gnu.org/licenses>.
 
-use strict;
-use warnings;
+use Modern::Perl;
 use diagnostics;
 
 use C4::InstallAuth;
@@ -30,10 +29,11 @@ use C4::Output;
 use C4::Templates;
 use C4::Languages qw(getAllLanguages getTranslatedLanguages);
 use C4::Installer;
+use C4::Installer::PerlModules;
 
 use Koha;
 
-my $query = new CGI;
+my $query = CGI->new;
 my $step  = $query->param('step');
 
 my $language = $query->param('language');
@@ -49,7 +49,6 @@ if ( defined($language) ) {
         template_name => "installer/step" . ( $step ? $step : 1 ) . ".tt",
         query         => $query,
         type          => "intranet",
-        authnotrequired => 0,
         debug           => 1,
     }
 );
@@ -101,25 +100,42 @@ if ( $step && $step == 1 ) {
     my $perl_modules = C4::Installer::PerlModules->new;
     $perl_modules->versions_info;
 
-    my $modules = $perl_modules->get_attr('missing_pm');
-    if ( scalar(@$modules) ) {
-        my @components  = ();
-        foreach (@$modules) {
+    my $missing_modules = $perl_modules->get_attr('missing_pm');
+    my $upgrade_modules = $perl_modules->get_attr('upgrade_pm');
+    if ( scalar(@$missing_modules) || scalar(@$upgrade_modules) ) {
+        my @missing  = ();
+        my @upgrade = ();
+        foreach (@$missing_modules) {
             my ( $module, $stats ) = each %$_;
             $checkmodule = 0 if $stats->{'required'};
             push(
-                @components,
+                @missing,
                 {
                     name    => $module,
-                    version => $stats->{'min_ver'},
-                    require => $stats->{'required'},
-                    usage   => $stats->{'usage'},
+                    min_version => $stats->{'min_ver'},
+                    max_version => $stats->{'max_ver'},
+                    require => $stats->{'required'}
                 }
             );
         }
-        @components = sort { $a->{'name'} cmp $b->{'name'} } @components;
+        foreach (@$upgrade_modules) {
+            my ( $module, $stats ) = each %$_;
+            $checkmodule = 0 if $stats->{'required'};
+            push(
+                @upgrade,
+                {
+                    name    => $module,
+                    min_version => $stats->{'min_ver'},
+                    max_version => $stats->{'max_ver'},
+                    require => $stats->{'required'}
+                }
+            );
+        }
+        @missing = sort { $a->{'name'} cmp $b->{'name'} } @missing;
+        @upgrade = sort { $a->{'name'} cmp $b->{'name'} } @upgrade;
         $template->param(
-            missing_modules => \@components,
+            missing_modules => \@missing,
+            upgrade_modules => \@upgrade,
             checkmodule     => $checkmodule,
             op              => $op
         );
@@ -204,14 +220,20 @@ elsif ( $step && $step == 3 ) {
 
     my $op = $query->param('op');
     if ( $op && $op eq 'finished' ) {
-        #
+        # Remove the HandleError set at the beginning of the installer process
+        C4::Context->dbh->disconnect;
+
         # we have finished, just redirect to mainpage.
-        #
         print $query->redirect("/cgi-bin/koha/mainpage.pl");
         exit;
     }
     elsif ( $op && $op eq 'finish' ) {
         $installer->set_version_syspref();
+
+        my $langchoice = $query->param('fwklanguage');
+        $langchoice = $query->cookie('KohaOpacLanguage') unless ($langchoice);
+        $langchoice =~ s/[^a-zA-Z_-]*//g;
+        $installer->set_languages_syspref($langchoice);
 
 # Installation is finished.
 # We just deny anybody access to install
@@ -223,9 +245,12 @@ elsif ( $step && $step == 3 ) {
     elsif ( $op && $op eq 'addframeworks' ) {
 
         # 1ST install, 3rd sub-step : insert the SQL files the user has selected
+        my $langchoice = $query->param('fwklanguage');
+        $langchoice = $query->cookie('KohaOpacLanguage') unless ($langchoice);
+        $langchoice =~ s/[^a-zA-Z_-]*//g;
 
         my ( $fwk_language, $list ) =
-          $installer->load_sql_in_order( $all_languages,
+          $installer->load_sql_in_order( $langchoice, $all_languages,
             $query->multi_param('framework') );
         $template->param(
             "fwklanguage" => $fwk_language,
@@ -292,7 +317,7 @@ elsif ( $step && $step == 3 ) {
 # Where <level> is a category of requirement : required, recommended optional
 # level should contain :
 #   SQL File for import With a readable name.
-#   txt File taht explains what this SQL File is meant for.
+#   txt File that explains what this SQL File is meant for.
 # Could be VERY useful to have A Big file for a kind of library.
 # But could also be useful to have some Authorised values data set prepared here.
 # Marcflavour Selection is achieved through radiobuttons.
@@ -381,7 +406,7 @@ elsif ( $step && $step == 3 ) {
         close $fh;
         if (@report) {
             $template->param( update_report =>
-                  [ map { { line => $_ } } split( /\n/, join( '', @report ) ) ]
+                  [ map { { line => $_ =~ s/\t/&emsp;&emsp;/gr } } split( /\n/, join( '', @report ) ) ]
             );
             $template->param( has_update_succeeds => 1 );
         }

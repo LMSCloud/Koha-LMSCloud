@@ -28,7 +28,7 @@ use Koha::DateUtils;
 
 use Koha::Library;
 
-my $input = new CGI;
+my $input = CGI->new;
 
 my $dbh = C4::Context->dbh();
 # Get the template to use
@@ -36,7 +36,6 @@ my ($template, $loggedinuser, $cookie)
     = get_template_and_user({template_name => "tools/holidays.tt",
                              type => "intranet",
                              query => $input,
-                             authnotrequired => 0,
                              flagsrequired => {tools => 'edit_calendar'},
                              debug => 1,
                            });
@@ -123,8 +122,7 @@ foreach my $yearMonthDay (keys %$single_holidays) {
 ########################################
 #  Read library groups
 ########################################
-my @search_groups =
-  Koha::Library::Groups->get_search_groups( { interface => 'staff' } );
+my @search_groups = Koha::Library::Groups->get_search_groups( { interface => 'staff' }, );
 @search_groups = sort { $a->title cmp $b->title } @search_groups;
 
 $template->param(

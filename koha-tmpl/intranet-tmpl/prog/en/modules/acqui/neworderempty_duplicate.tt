@@ -1,5 +1,5 @@
 [% INCLUDE 'doc-head-open.inc' %]
-<title>Koha &rsaquo; Acquisitions &rsaquo; Basket [% basketno %] &rsaquo; Duplicate warning</title>
+<title>Duplicate warning &rsaquo; Basket [% basketno | html %] &rsaquo; Acquisitions &rsaquo; Koha</title>
 [% INCLUDE 'doc-head-close.inc' %]
 </head>
 <body id="acq_neworderempty_duplicate" class="acq">
@@ -7,55 +7,72 @@
 [% INCLUDE 'header.inc' %]
 [% INCLUDE 'acquisitions-search.inc' %]
 
-<div id="breadcrumbs"><a href="/cgi-bin/koha/mainpage.pl">Home</a> &rsaquo; <a href="/cgi-bin/koha/acqui/acqui-home.pl">Acquisitions</a> &rsaquo; <a href="/cgi-bin/koha/acqui/basket.pl?basketno=[% basketno %]">Basket [% basketno %]</a> &rsaquo; Duplicate warning</div>
 
-<div id="doc3" class="yui-t2">
+<nav id="breadcrumbs" aria-label="Breadcrumb" class="breadcrumb">
+    <ol>
+        <li>
+            <a href="/cgi-bin/koha/mainpage.pl">Home</a>
+        </li>
+        <li>
+            <a href="/cgi-bin/koha/acqui/acqui-home.pl">Acquisitions</a>
+        </li>
+        <li>
+            <a href="/cgi-bin/koha/acqui/basket.pl?basketno=[% basketno | uri %]">Basket [% basketno | html %]</a>
+        </li>
+        <li>
+            <a href="#" aria-current="page">
+                Duplicate warning
+            </a>
+        </li>
+    </ol>
+</nav>
 
-<div id="bd">
-    <div id="yui-main">
-    <div class="yui-b">
+<div class="main container-fluid">
+    <div class="row">
+        <div class="col-sm-10 col-sm-push-2">
+            <main>
 
 <div class="dialog alert">
 <h4>Duplicate warning</h4>
-<p>You selected a record from an external source that matches an existing record in your catalog: [% IF ( BiblioDefaultViewmarc ) %]<a class="popup" target="_blank" title="Open in new window" href="/cgi-bin/koha/catalogue/MARCdetail.pl?biblionumber=[% biblionumber |url %]">
-[% ELSIF ( BiblioDefaultViewlabeled_marc ) %]<a class="popup" target="_blank" title="Open in new window" href="/cgi-bin/koha/catalogue/labeledMARCdetail.pl?biblionumber=[% biblionumber |url %]">
-[% ELSIF ( BiblioDefaultViewisbd ) %]<a class="popup" target="_blank" title="Open in new window" href="/cgi-bin/koha/catalogue/ISBDdetail.pl?biblionumber=[% biblionumber |url %]">
-[% ELSE %]<a class="popup" target="_blank" title="Open in new window" href="/cgi-bin/koha/catalogue/detail.pl?biblionumber=[% biblionumber |url %]">[% END %][% duplicatetitle %]</a></p>
+<p>You selected a record from an external source that matches an existing record in your catalog: [% IF ( BiblioDefaultViewmarc ) %]<a target="_blank" title="Open in new window" href="/cgi-bin/koha/catalogue/MARCdetail.pl?biblionumber=[% biblionumber |url %]">
+[% ELSIF ( BiblioDefaultViewlabeled_marc ) %]<a target="_blank" title="Open in new window" href="/cgi-bin/koha/catalogue/labeledMARCdetail.pl?biblionumber=[% biblionumber |url %]">
+[% ELSIF ( BiblioDefaultViewisbd ) %]<a target="_blank" title="Open in new window" href="/cgi-bin/koha/catalogue/ISBDdetail.pl?biblionumber=[% biblionumber |url %]">
+[% ELSE %]<a target="_blank" title="Open in new window" href="/cgi-bin/koha/catalogue/detail.pl?biblionumber=[% biblionumber |url %]">[% END %] <i class="fa fa-window-restore"></i> [% duplicatetitle | html %]</a></p>
 </div>
 
-<div class="yui-gb">
-<div class="yui-u first">
+<div class="row">
+<div class="col-sm-4">
 <div style="border: 1px solid #DDD; padding:1em;">
 <form action="/cgi-bin/koha/acqui/neworderempty.pl">
 <h4>Use existing record</h4>
 <p>Do not create a duplicate record. Add an order from the existing record in your catalog.</p>
-<input type="hidden" name="booksellerid" value="[% booksellerid %]" />
-<input type="hidden" name="basketno" value="[% basketno %]" />
-<input type="hidden" name="biblionumber" value="[% biblionumber %]" />
+<input type="hidden" name="booksellerid" value="[% booksellerid | html %]" />
+<input type="hidden" name="basketno" value="[% basketno | html %]" />
+<input type="hidden" name="biblionumber" value="[% biblionumber | html %]" />
 <input type="submit" value="Use Existing" />
 </form>
 </div>
 </div>
 
-<div class="yui-u">
+<div class="col-sm-4">
 <div style="border: 1px solid #DDD; padding:1em;">
 <form action="/cgi-bin/koha/acqui/basket.pl">
 <h4>Cancel and return to order</h4>
 <p>Return to the basket without making a new order.</p>
-<input type="hidden" name="basketno" value="[% basketno %]" />
+<input type="hidden" name="basketno" value="[% basketno | html %]" />
 <input type="submit" value="Cancel" />
 </form>
 </div>
 </div>
 
-<div class="yui-u">
+<div class="col-sm-4">
 <div style="border: 1px solid #DDD; padding:1em;">
 <form action="/cgi-bin/koha/acqui/neworderempty.pl">
 <h4>Create new record</h4>
 <p>Create a new record by importing the external (duplicate) record.</p>
-<input type="hidden" name="booksellerid" value="[% booksellerid %]" />
-<input type="hidden" name="basketno" value="[% basketno %]" />
-<input type="hidden" name="breedingid" value="[% breedingid %]" />
+<input type="hidden" name="booksellerid" value="[% booksellerid | html %]" />
+<input type="hidden" name="basketno" value="[% basketno | html %]" />
+<input type="hidden" name="breedingid" value="[% breedingid | html %]" />
 <input type="hidden" name="use_external_source" value="1" />
 <input type="submit" value="Create New" />
 </form>
@@ -64,10 +81,14 @@
 
 </div>
 
-</div>
-</div>
-<div class="yui-b">
-[% INCLUDE 'acquisitions-menu.inc' %]
-</div>
-</div>
+</main>
+</div> <!-- /.col-sm-10.col-sm-push-2 -->
+
+<div class="col-sm-2 col-sm-pull-10">
+    <aside>
+        [% INCLUDE 'acquisitions-menu.inc' %]
+    </aside>
+</div> <!-- /.col-sm-2.col-sm-pull-10 -->
+</div> <!-- /.row -->
+
 [% INCLUDE 'intranet-bottom.inc' %]

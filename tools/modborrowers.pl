@@ -30,28 +30,26 @@ use CGI qw ( -utf8 );
 use C4::Auth;
 use C4::Koha;
 use C4::Members;
-use C4::Members::Attributes;
-use C4::Members::AttributeTypes qw/GetAttributeTypes_hashref/;
 use C4::Output;
 use List::MoreUtils qw /any uniq/;
 use Koha::DateUtils qw( dt_from_string );
 use Koha::List::Patron;
 use Koha::Libraries;
 use Koha::Patron::Categories;
+use Koha::Patron::Debarments;
 use Koha::Patrons;
 
-my $input = new CGI;
+my $input = CGI->new;
 my $op = $input->param('op') || 'show_form';
 my ( $template, $loggedinuser, $cookie ) = get_template_and_user(
     {   template_name   => "tools/modborrowers.tt",
         query           => $input,
         type            => "intranet",
-        authnotrequired => 0,
         flagsrequired   => { tools => "edit_patrons" },
     }
 );
 
-my $logged_in_user = Koha::Patrons->find( $loggedinuser ) or die "Not logged in";
+my $logged_in_user = Koha::Patrons->find( $loggedinuser );
 
 my %cookies   = parse CGI::Cookie($cookie);
 my $sessionID = $cookies{'CGISESSID'}->value;
@@ -64,10 +62,9 @@ if ( $op eq 'show' ) {
     my $patron_list_id = $input->param('patron_list_id');
     my @borrowers;
     my @cardnumbers;
-    my ( @notfoundcardnumbers, @from_another_group_of_libraries );
+    my @notfoundcardnumbers;
 
     # Get cardnumbers from a file or the input area
-    my @contentlist;
     if ($filefh) {
         while ( my $content = <$filefh> ) {
             $content =~ s/[\r\n]*$//g;
@@ -91,11 +88,12 @@ if ( $op eq 'show' ) {
         my $patron = Koha::Patrons->find( { cardnumber => $cardnumber } );
         if ( $patron ) {
             if ( $logged_in_user->can_see_patron_infos( $patron ) ) {
-                $patron = $patron->unblessed;
-                $patron->{patron_attributes} = C4::Members::Attributes::GetBorrowerAttributes( $patron->{borrowernumber} );
-                $max_nb_attr = scalar( @{ $patron->{patron_attributes} } )
-                    if scalar( @{ $patron->{patron_attributes} } ) > $max_nb_attr;
-                push @borrowers, $patron;
+                my $borrower = $patron->unblessed;
+                my $attributes = $patron->extended_attributes;
+                $borrower->{patron_attributes} = $attributes->as_list;
+                $borrower->{patron_attributes_count} = $attributes->count;
+                $max_nb_attr = $borrower->{patron_attributes_count} if $borrower->{patron_attributes_count} > $max_nb_attr;
+                push @borrowers, $borrower;
             } else {
                 push @notfoundcardnumbers, $cardnumber;
             }
@@ -106,38 +104,38 @@ if ( $op eq 'show' ) {
 
     # Just for a correct display
     for my $borrower ( @borrowers ) {
-        my $length = scalar( @{ $borrower->{patron_attributes} } );
+        my $length = $borrower->{patron_attributes_count};
         push @{ $borrower->{patron_attributes} }, {} for ( $length .. $max_nb_attr - 1);
     }
 
     # Construct the patron attributes list
     my @patron_attributes_values;
     my @patron_attributes_codes;
-    my $patron_attribute_types = C4::Members::AttributeTypes::GetAttributeTypes_hashref('all');
-    my @patron_categories = Koha::Patron::Categories->search_limited({}, {order_by => ['description']});
-    for ( values %$patron_attribute_types ) {
-        my $attr_type = C4::Members::AttributeTypes->fetch( $_->{code} );
+    my $library_id = C4::Context->userenv ? C4::Context->userenv->{'branch'} : undef;
+    my $patron_attribute_types = Koha::Patron::Attribute::Types->search_with_library_limits({}, {}, $library_id);
+    my @patron_categories = Koha::Patron::Categories->search_with_library_limits({}, {order_by => ['description']});
+    while ( my $attr_type = $patron_attribute_types->next ) {
         # TODO Repeatable attributes are not correctly managed and can cause data lost.
         # This should be implemented.
-        next if $attr_type->{repeatable};
-        next if $attr_type->{unique_id}; # Don't display patron attributes that must be unqiue
+        next if $attr_type->repeatable;
+        next if $attr_type->unique_id; # Don't display patron attributes that must be unqiue
         my $options = $attr_type->authorised_value_category
             ? GetAuthorisedValues( $attr_type->authorised_value_category )
             : undef;
         push @patron_attributes_values,
             {
-                attribute_code => $_->{code},
+                attribute_code => $attr_type->code,
                 options        => $options,
             };
 
-        my $category_code = $_->{category_code};
+        my $category_code = $attr_type->category_code;
         my ( $category_lib ) = map {
-            ( defined $category_code and $_->categorycode eq $category_code ) ? $_->description : ()
+            ( defined $category_code and $attr_type->category_code eq $category_code ) ? $attr_type->description : ()
         } @patron_categories;
         push @patron_attributes_codes,
             {
-                attribute_code => $_->{code},
-                attribute_lib  => $_->{description},
+                attribute_code => $attr_type->code,
+                attribute_lib  => $attr_type->description,
                 category_lib   => $category_lib,
                 type           => $attr_type->authorised_value_category ? 'select' : 'text',
             };
@@ -202,6 +200,24 @@ if ( $op eq 'show' ) {
         }
         ,
         {
+            name => "streetnumber",
+            type => "text",
+            mandatory => ( grep /streetnumber/, @mandatoryFields ) ? 1 : 0,
+        }
+        ,
+        {
+            name => "address",
+            type => "text",
+            mandatory => ( grep /address/, @mandatoryFields ) ? 1 : 0,
+        }
+        ,
+        {
+            name => "address2",
+            type => "text",
+            mandatory => ( grep /address2/, @mandatoryFields ) ? 1 : 0,
+        }
+        ,
+        {
             name => "city",
             type => "text",
             mandatory => ( grep /city/, @mandatoryFields ) ? 1 : 0,
@@ -223,6 +239,24 @@ if ( $op eq 'show' ) {
             name => "country",
             type => "text",
             mandatory => ( grep /country/, @mandatoryFields ) ? 1 : 0,
+        }
+        ,
+        {
+            name => "email",
+            type => "text",
+            mandatory => ( grep /email/, @mandatoryFields ) ? 1 : 0,
+        }
+        ,
+        {
+            name => "phone",
+            type => "text",
+            mandatory => ( grep /phone/, @mandatoryFields ) ? 1 : 0,
+        }
+        ,
+        {
+            name => "mobile",
+            type => "text",
+            mandatory => ( grep /mobile/, @mandatoryFields ) ? 1 : 0,
         }
         ,
         {
@@ -262,6 +296,18 @@ if ( $op eq 'show' ) {
             type => "text",
             mandatory => ( grep /opacnote/, @mandatoryFields ) ? 1 : 0,
         }
+        ,
+        {
+            name => "debarred",
+            type => "date",
+            mandatory => ( grep /debarred/, @mandatoryFields ) ? 1 : 0,
+        }
+        ,
+        {
+            name => "debarredcomment",
+            type => "text",
+            mandatory => ( grep /debarredcomment/, @mandatoryFields ) ? 1 : 0,
+        },
     );
 
     $template->param('patron_attributes_codes', \@patron_attributes_codes);
@@ -275,13 +321,13 @@ if ( $op eq 'do' ) {
 
     my @disabled = $input->multi_param('disable_input');
     my $infos;
-    for my $field ( qw/surname firstname branchcode categorycode city state zipcode country sort1 sort2 dateenrolled dateexpiry borrowernotes opacnote/ ) {
+    for my $field ( qw/surname firstname branchcode categorycode streetnumber address address2 city state zipcode country email phone mobile sort1 sort2 dateenrolled dateexpiry borrowernotes opacnote debarred debarredcomment/ ) {
         my $value = $input->param($field);
         $infos->{$field} = $value if $value;
-        $infos->{$field} = "" if grep { /^$field$/ } @disabled;
+        $infos->{$field} = "" if grep { $_ eq $field } @disabled;
     }
 
-    for my $field ( qw( dateenrolled dateexpiry ) ) {
+    for my $field ( qw( dateenrolled dateexpiry debarred ) ) {
         $infos->{$field} = dt_from_string($infos->{$field}) if $infos->{$field};
     }
 
@@ -294,34 +340,60 @@ if ( $op eq 'do' ) {
     for my $borrowernumber ( @borrowernumbers ) {
         # If at least one field are filled, we want to modify the borrower
         if ( defined $infos ) {
+            # If a debarred date or debarred comment has been submitted make a new debarment
+            if ( $infos->{debarred} || $infos->{debarredcomment} ) {
+                AddDebarment(
+                    {
+                        borrowernumber => $borrowernumber,
+                        type           => 'MANUAL',
+                        comment        => $infos->{debarredcomment},
+                        expiration     => $infos->{debarred},
+                    });
+            }
+
+            # If debarment date or debarment comment are disabled then remove all debarrments
+            if ( grep { /debarred/ } @disabled ) {
+                eval {
+                   my $debarrments = GetDebarments( { borrowernumber => $borrowernumber } );
+                   foreach my $debarment (@$debarrments) {
+                      DelDebarment( $debarment->{'borrower_debarment_id'} );
+                   }
+                };
+            }
+
             $infos->{borrowernumber} = $borrowernumber;
-            my $success = ModMember(%$infos);
-            if (!$success) {
+            eval { Koha::Patrons->find( $borrowernumber )->set($infos)->store; };
+            if ( $@ ) { # FIXME We could provide better error handling here
                 my $patron = Koha::Patrons->find( $borrowernumber );
                 $infos->{cardnumber} = $patron ? $patron->cardnumber || '' : '';
                 push @errors, { error => "can_not_update", borrowernumber => $infos->{borrowernumber}, cardnumber => $infos->{cardnumber} };
             }
         }
 
-        my $borrower_categorycode = Koha::Patrons->find( $borrowernumber )->categorycode;
+        my $patron = Koha::Patrons->find( $borrowernumber );
         my $i=0;
         for ( @attributes ) {
+            next unless $_;
             my $attribute;
             $attribute->{code} = $_;
             $attribute->{attribute} = $attr_values[$i];
-            my $attr_type = C4::Members::AttributeTypes->fetch( $_ );
+            my $attr_type = Koha::Patron::Attribute::Types->find($_);
             # If this borrower is not in the category of this attribute, we don't want to modify this attribute
-            ++$i and next if $attr_type->{category_code} and $attr_type->{category_code} ne $borrower_categorycode;
+            ++$i and next if $attr_type->category_code and $attr_type->category_code ne $patron->categorycode;
             my $valuename = "attr" . $i . "_value";
-            if ( grep { /^$valuename$/ } @disabled ) {
+            if ( grep { $_ eq $valuename } @disabled ) {
                 # The attribute is disabled, we remove it for this borrower !
                 eval {
-                    C4::Members::Attributes::DeleteBorrowerAttribute( $borrowernumber, $attribute );
+                    $patron->get_extended_attribute($attribute->{code})->delete;
                 };
                 push @errors, { error => $@ } if $@;
             } else {
                 eval {
-                    C4::Members::Attributes::UpdateBorrowerAttribute( $borrowernumber, $attribute );
+                    # Note:
+                    # We should not need to filter by branch, but stay on the safe side
+                    # Repeatable are not supported so we can do that - TODO
+                    $patron->extended_attributes->search({'me.code' => $attribute->{code}})->filter_by_branch_limitations->delete;
+                    $patron->add_extended_attribute($attribute);
                 };
                 push @errors, { error => $@ } if $@;
             }
@@ -337,12 +409,12 @@ if ( $op eq 'do' ) {
         my $patron = Koha::Patrons->find( $borrowernumber );
         if ( $patron ) {
             my $category_description = $patron->category->description;
-            $patron = $patron->unblessed;
-            $patron->{category_description} = $category_description;
-            $patron->{patron_attributes} = C4::Members::Attributes::GetBorrowerAttributes( $patron->{borrowernumber} );
-            $max_nb_attr = scalar( @{ $patron->{patron_attributes} } )
-                if scalar( @{ $patron->{patron_attributes} } ) > $max_nb_attr;
-            push @borrowers, $patron;
+            my $borrower = $patron->unblessed;
+            $borrower->{category_description} = $category_description;
+            my $attributes = $patron->extended_attributes;
+            $borrower->{patron_attributes} = $attributes->as_list;
+            $max_nb_attr = $attributes->count if $attributes->count > $max_nb_attr;
+            push @borrowers, $borrower;
         }
     }
     my @patron_attributes_option;
@@ -360,7 +432,6 @@ if ( $op eq 'do' ) {
     $template->param( borrowers => \@borrowers );
     $template->param( attributes_header => \@attributes_header );
 
-    $template->param( borrowers => \@borrowers );
     $template->param( errors => \@errors );
 } else {
 

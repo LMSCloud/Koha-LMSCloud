@@ -32,9 +32,7 @@ It is called by :
 
 =over
 
-=item neworderbiblio.pl to add an order from nothing.
-
-=item neworderempty.pl to add an order from an existing biblio.
+=item neworderempty.pl to add an order from an existing record or from nothing.
 
 =item newordersuggestion.pl to add an order from an existing suggestion.
 
@@ -121,6 +119,7 @@ if it is an order from an existing suggestion : the id of this suggestion.
 
 use Modern::Perl;
 use CGI qw ( -utf8 );
+use JSON qw ( to_json );
 use C4::Auth;           # get_template_and_user
 use C4::Acquisition;    # ModOrder
 use C4::Suggestions;    # ModStatus
@@ -128,8 +127,10 @@ use C4::Biblio;         # AddBiblio TransformKohaToMarc
 use C4::Budgets;
 use C4::Items;
 use C4::Output;
+use C4::Log qw(logaction);
 use Koha::Acquisition::Currencies;
 use Koha::Acquisition::Orders;
+use Koha::Acquisition::Baskets;
 use C4::Barcodes;
 
 ### "-------------------- addorder.pl ----------"
@@ -137,7 +138,7 @@ use C4::Barcodes;
 # FIXME: This needs to do actual error checking and possibly return user to the same form,
 # not just blindly call C4 functions and print a redirect.  
 
-my $input = new CGI;
+my $input = CGI->new;
 my $use_ACQ_framework = $input->param('use_ACQ_framework');
 
 # Check if order total amount exceed allowed budget
@@ -161,7 +162,6 @@ unless($confirm_budget_exceeding) {
             template_name   => "acqui/addorder.tt",
             query           => $input,
             type            => "intranet",
-            authnotrequired => 0,
             flagsrequired   => {acquisition => 'order_manage'},
         });
 
@@ -218,7 +218,6 @@ my ( $template, $loggedinuser, $cookie ) = get_template_and_user(
         template_name   => "acqui/booksellers.tt",
         query           => $input,
         type            => "intranet",
-        authnotrequired => 0,
         flagsrequired   => { acquisition => 'order_manage' },
         debug           => 1,
     }
@@ -269,11 +268,19 @@ if ( $basket->{is_standing} || $orderinfo->{quantity} ne '0' ) {
 
         # create the record in catalogue, with framework ''
         my ($biblionumber,$bibitemnum) = AddBiblio($record,'');
-        # change suggestion status if applicable
-        if ($$orderinfo{suggestionid}) {
-            ModSuggestion( {suggestionid=>$$orderinfo{suggestionid}, STATUS=>'ORDERED', biblionumber=>$biblionumber} );
-        }
+
         $orderinfo->{biblionumber}=$biblionumber;
+    }
+
+    # change suggestion status if applicable
+    if ( $orderinfo->{suggestionid} ) {
+        ModSuggestion(
+            {
+                suggestionid => $orderinfo->{suggestionid},
+                biblionumber => $orderinfo->{biblionumber},
+                STATUS       => 'ORDERED',
+            }
+        );
     }
 
     $orderinfo->{unitprice} = $orderinfo->{ecost} if not defined $orderinfo->{unitprice} or $orderinfo->{unitprice} eq '';
@@ -354,6 +361,16 @@ if ( $basket->{is_standing} || $orderinfo->{quantity} ne '0' ) {
         }
     }
 
+}
+
+if (C4::Context->preference("AcquisitionLog") && $basketno) {
+    my $modified = Koha::Acquisition::Baskets->find( $basketno );
+    logaction(
+        'ACQUISITIONS',
+        'MODIFY_BASKET',
+        $basketno,
+        to_json($modified->unblessed)
+    );
 }
 
 my $booksellerid=$$orderinfo{booksellerid};

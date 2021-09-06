@@ -30,39 +30,45 @@ use strict;
 use warnings;
 use 5.010;
 
+use Koha::Script -cron;
 use C4::Context;
 use C4::Overdues;
 use Getopt::Long;
 use Carp;
 use File::Spec;
+use Try::Tiny;
 
 use Koha::Calendar;
 use Koha::DateUtils;
+use Koha::Patrons;
 use C4::Log;
 
 my $help;
 my $verbose;
 my $output_dir;
 my $log;
+my $maxdays;
 
 GetOptions(
     'h|help'    => \$help,
     'v|verbose' => \$verbose,
     'l|log'     => \$log,
     'o|out:s'   => \$output_dir,
+    'm|maxdays:i' => \$maxdays,
 );
 my $usage = << 'ENDUSAGE';
 
 This script calculates and charges overdue fines
 to patron accounts.  The Koha system preference 'finesMode' controls
 whether the fines are calculated and charged to the patron accounts ("Calculate and charge");
-calculated and emailed to the admin but not applied ("Calculate (but only for mailing to the admin)"); or not calculated ("Don't calculate").
+or not calculated ("Don't calculate").
 
 This script has the following parameters :
     -h --help: this message
     -l --log: log the output to a file (optional if the -o parameter is given)
     -o --out:  ouput directory for logs (defaults to env or /tmp if !exist)
     -v --verbose
+    -m --maxdays: how many days back of overdues to process
 
 ENDUSAGE
 
@@ -71,19 +77,32 @@ if ($help) {
     exit;
 }
 
+my $script_handler = Koha::Script->new({ script => $0 });
+
+try {
+    $script_handler->lock_exec;
+}
+catch {
+    my $message = "Skipping execution of $0 ($_)";
+    print STDERR "$message\n"
+        if $verbose;
+    cronlogaction( $message );
+    exit;
+};
+
 cronlogaction();
 
 my @borrower_fields =
   qw(cardnumber categorycode surname firstname email phone address citystate);
 my @item_fields  = qw(itemnumber barcode date_due);
-my @other_fields = qw(type days_overdue fine);
+my @other_fields = qw(days_overdue fine);
 my $libname      = C4::Context->preference('LibraryName');
 my $control      = C4::Context->preference('CircControl');
 my $mode         = C4::Context->preference('finesMode');
-my $delim = "\t";    # ?  C4::Context->preference('delimiter') || "\t";
+my $delim = "\t";    # ?  C4::Context->preference('CSVDelimiter') || "\t";
 
 my %is_holiday;
-my $today = DateTime->now( time_zone => C4::Context->tz() );
+my $today = dt_from_string();
 my $filename;
 if ($log or $output_dir) {
     $filename = get_filename($output_dir);
@@ -96,7 +115,10 @@ if ($filename) {
     print {$fh} "\n";
 }
 my $counted = 0;
-my $overdues = Getoverdues();
+my $updated = 0;
+my $params;
+$params->{maximumdays} = $maxdays if $maxdays;
+my $overdues = Getoverdues($params);
 for my $overdue ( @{$overdues} ) {
     next if $overdue->{itemlost};
 
@@ -105,10 +127,10 @@ for my $overdue ( @{$overdues} ) {
 "ERROR in Getoverdues : issues.borrowernumber IS NULL.  Repair 'issues' table now!  Skipping record.\n";
         next;
     }
-    my $borrower = BorType( $overdue->{borrowernumber} );
+    my $patron = Koha::Patrons->find( $overdue->{borrowernumber} );
     my $branchcode =
         ( $control eq 'ItemHomeLibrary' ) ? $overdue->{homebranch}
-      : ( $control eq 'PatronLibrary' )   ? $borrower->{branchcode}
+      : ( $control eq 'PatronLibrary' )   ? $patron->branchcode
       :                                     $overdue->{branchcode};
 
 # In final case, CircControl must be PickupLibrary. (branchcode comes from issues table here).
@@ -122,34 +144,38 @@ for my $overdue ( @{$overdues} ) {
     }
     ++$counted;
 
-    my ( $amount, $type, $unitcounttotal ) =
-      CalcFine( $overdue, $borrower->{categorycode},
+    my ( $amount, $unitcounttotal, $unitcount ) =
+      CalcFine( $overdue, $patron->categorycode,
         $branchcode, $datedue, $today );
-    $type ||= q{};
 
     # Don't update the fine if today is a holiday.
     # This ensures that dropbox mode will remove the correct amount of fine.
-    if ( $mode eq 'production' && !$is_holiday{$branchcode} ) {
-        if ( $amount && $amount > 0 ) {
-            UpdateFine(
-                {
-                    issue_id       => $overdue->{issue_id},
-                    itemnumber     => $overdue->{itemnumber},
-                    borrowernumber => $overdue->{borrowernumber},
-                    amount         => $amount,
-                    type           => $type,
-                    due            => output_pref($datedue),
-                }
-            );
-        }
+    if (
+        $mode eq 'production'
+        && ( !$is_holiday{$branchcode}
+            || C4::Context->preference('ChargeFinesOnClosedDays') )
+        && ( $amount && $amount > 0 )
+      )
+    {
+        UpdateFine(
+            {
+                issue_id       => $overdue->{issue_id},
+                itemnumber     => $overdue->{itemnumber},
+                borrowernumber => $overdue->{borrowernumber},
+                amount         => $amount,
+                due            => output_pref($datedue),
+            }
+        );
+        $updated++;
     }
+    my $borrower = $patron->unblessed;
     if ($filename) {
         my @cells;
         push @cells,
           map { defined $borrower->{$_} ? $borrower->{$_} : q{} }
           @borrower_fields;
         push @cells, map { $overdue->{$_} } @item_fields;
-        push @cells, $type, $unitcounttotal, $amount;
+        push @cells, $unitcounttotal, $amount;
         say {$fh} join $delim, @cells;
     }
 }
@@ -169,6 +195,7 @@ EOM
 Number of Overdue Items:
      counted $overdue_items
     reported $counted
+     updated $updated
 
 EOM
 }
@@ -183,7 +210,7 @@ sub set_holiday {
 sub get_filename {
     my $directory = shift;
     if ( !$directory ) {
-        $directory = File::Spec->tmpdir();
+        $directory = C4::Context::temporary_directory;
     }
     if ( !-d $directory ) {
         carp "Could not write to $directory ... does not exist!";

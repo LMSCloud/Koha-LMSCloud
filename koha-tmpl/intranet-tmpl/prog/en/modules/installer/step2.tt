@@ -1,5 +1,5 @@
 [% USE HtmlTags %]
-[% INCLUDE 'doc-head-open.inc' %]<title>Koha &rsaquo; Web installer &rsaquo; Database settings</title>
+[% INCLUDE 'doc-head-open.inc' %]<title>Database settings &rsaquo; Web installer &rsaquo; Koha</title>
 [% INCLUDE 'installer-doc-head-close.inc' %]
 </head>
 
@@ -14,7 +14,7 @@
                 <ul>
                     <li><em>Database type: </em> [%- dbms | $HtmlTags tag=>'code' -%]</li>
                     <li><em>Database name: </em> [%- dbname | $HtmlTags tag=>'code' -%]</li>
-                    <li><em>Database host: </em> [%- hostname | $HtmlTags tag=>'code'-%]</li>
+                    <li><em>Database host: </em> [%- hostname | $HtmlTags tag=>'code' -%]</li>
                     <li><em>Database port: </em> [%- port| $HtmlTags tag=>'code' -%] (probably okay if blank)</li>
                     <li><em>Database user: </em> [%- user | $HtmlTags tag=>'code' -%]</li>
                 </ul>
@@ -25,19 +25,15 @@
                             <div class="alert alert-success" role="alert"><p>Connection established.</p></div>
                             [% IF ( checkdatabasecreated ) %]
                                 <ul>
-                                    <li>Database [% dbname | $HtmlTags tag=>'code'%] exists.</li>
+                                    <li>Database [% dbname | $HtmlTags tag=>'code' %] exists.</li>
                                 [% IF ( checkgrantaccess ) %]
                                     <li>User [% user | $HtmlTags tag=>'code' %]  has all required privileges on database [% dbname | $HtmlTags tag=>'code' %].</li>
                                     </ul>
                                 [% ELSE %]
                                     </ul>
-                                    <p class="error">User [% user | $HtmlTags tag=>'code' %] doesn't have enough privilege on database [% dbname | $HtmlTags tag=>'code'%].</p>
+                                    <p class="error">User [% user | $HtmlTags tag=>'code' %] doesn't have enough privilege on database [% dbname | $HtmlTags tag=>'code' %].</p>
                                     <p class="tip">Ask for or make a change in the user's privileges. User [% user | $HtmlTags tag=>'code' %] must have USAGE, INSERT, UPDATE, DELETE, DROP and CREATE privileges on database [% dbname | $HtmlTags tag=>'code' %].</p>
-                                    <p>Need help? See manual for [% IF ( mysql ) %]
-                                            <a href="http://dev.mysql.com/doc/refman/4.1/en/grant.html">MySQL</a>
-                                        [% ELSE %]
-                                            <a href="http://www.postgresql.org/docs/8.2/interactive/sql-createrole.html">PostgreSQL</a>
-                                        [% END %]
+                                    <p>Need help? For help with granting permissions, please search online for "[% dbms | $HtmlTags tag=>'code' %] manual grant permissions"
                                     </p>
                                 [% END %]
                             [% ELSE %]
@@ -45,7 +41,7 @@
                                 <p>Please create the database before continuing.</p>
                             [% END %]
                         [% ELSE %]
-                            <div class="alert alert-warning" role="alert">[% error %] : [% message %]</div>
+                            <div class="alert alert-warning" role="alert">[% error | html %] : [% message | html %]</div>
                             <div class="tip">
                                 <ul>
                                     <li>Check that your database is running.</li>
@@ -69,5 +65,6 @@
                 [% END # / IF dbconnection %]
             </div> <!-- / #installer-step2 -->
         </div> <!-- / .row -->
+    </div><!-- / .container-fluid -->
 
-[% INCLUDE 'intranet-bottom.inc' %]
+[% INCLUDE 'installer-intranet-bottom.inc' %]

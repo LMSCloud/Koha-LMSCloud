@@ -159,10 +159,6 @@
       "readOnly": true,
       "description": "If any restriction applies to the patron"
     },
-    "guarantor_id": {
-      "type": ["integer", "null"],
-      "description": "patron_id used for children or professionals to link them to guarantor or organizations"
-    },
     "staff_notes": {
       "type": ["string", "null"],
       "description": "a note on the patron's account"
@@ -181,7 +177,7 @@
     },
     "opac_notes": {
       "type": ["string", "null"],
-      "description": "a note on the patron's account visible in OPAC and staff client"
+      "description": "a note on the patron's account visible in OPAC and staff interface"
     },
     "altaddress_notes": {
       "type": ["string", "null"],
@@ -194,6 +190,10 @@
     "statistics_2": {
       "type": ["string", "null"],
       "description": "a field that can be used for any information unique to the library"
+    },
+    "autorenew_checkouts": {
+      "type": "boolean",
+      "description": "indicate whether auto-renewal is allowed for patron"
     },
     "altcontact_title": {
       "type": ["string", "null"],
@@ -245,11 +245,15 @@
     },
     "privacy": {
       "type": "integer",
-      "description": "patron's privacy settings related to their reading history"
+      "description": "patron's privacy settings related to their checkout history"
     },
     "privacy_guarantor_checkouts": {
       "type": "integer",
       "description": "controls if relatives can see this patron's checkouts"
+    },
+    "privacy_guarantor_fines": {
+      "type": "boolean",
+      "description": "controls if relatives can see this patron's fines"
     },
     "check_previous_checkout": {
       "type": "string",
@@ -276,6 +280,18 @@
     "overdrive_auth_token": {
       "type": ["string", "null"],
       "description": "persist OverDrive auth token"
+    },
+    "anonymized": {
+      "type": "boolean",
+      "readOnly": true,
+      "description": "If the patron has been anonymized"
+    },
+    "extended_attributes": {
+      "type": "array",
+      "description": "patron's extended attributes",
+      "items": {
+        "$ref": "patron_extended_attribute.json"
+      }
     }
   },
   "additionalProperties": false,

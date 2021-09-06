@@ -41,7 +41,7 @@ Plugin that shows a stats on borrowers
 
 =cut
 
-my $input          = new CGI;
+my $input          = CGI->new;
 my $do_it          = $input->param('do_it');
 my $fullreportname = "reports/acquisitions_stats.tt";
 my $line           = $input->param("Line");
@@ -66,7 +66,6 @@ my ( $template, $borrowernumber, $cookie ) = get_template_and_user(
         template_name   => $fullreportname,
         query           => $input,
         type            => "intranet",
-        authnotrequired => 0,
         flagsrequired   => { reports => '*' },
         debug           => 1,
     }
@@ -426,7 +425,6 @@ sub calculate {
     }
 
     my $i = 0;
-    my @totalcol;
     my $hilighted = -1;
 
     #Initialization of cell values.....

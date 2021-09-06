@@ -19,8 +19,9 @@ package C4::Auth;
 
 use strict;
 use warnings;
+use Carp qw/croak/;
+
 use Digest::MD5 qw(md5_base64);
-use File::Spec;
 use JSON qw/encode_json/;
 use URI;
 use URI::QueryParam;
@@ -35,16 +36,23 @@ use C4::Search::History;
 use Koha;
 use Koha::Caches;
 use Koha::AuthUtils qw(get_script_name hash_password);
+use Koha::Checkouts;
 use Koha::DateUtils qw(dt_from_string);
 use Koha::Library::Groups;
 use Koha::Libraries;
+use Koha::Cash::Registers;
+use Koha::Desks;
 use Koha::Patrons;
+use Koha::Patron::Consents;
 use POSIX qw/strftime/;
 use List::MoreUtils qw/ any /;
 use Encode qw( encode is_utf8);
+use C4::Auth_with_shibboleth;
+use Net::CIDR;
+use C4::Log qw/logaction/;
 
 # use utf8;
-use vars qw(@ISA @EXPORT @EXPORT_OK %EXPORT_TAGS $debug $ldap $cas $caslogout $shib $shib_login);
+use vars qw(@ISA @EXPORT @EXPORT_OK %EXPORT_TAGS $debug $ldap $cas $caslogout);
 
 BEGIN {
     sub psgi_env { any { /^psgi\./ } keys %ENV }
@@ -54,39 +62,23 @@ BEGIN {
         else            { exit }
     }
 
+    C4::Context->set_remote_address;
+
     $debug     = $ENV{DEBUG};
     @ISA       = qw(Exporter);
     @EXPORT    = qw(&checkauth &get_template_and_user &haspermission &get_user_subpermissions);
     @EXPORT_OK = qw(&check_api_auth &get_session &check_cookie_auth &checkpw &checkpw_internal &checkpw_hash
-      &get_all_subpermissions &get_user_subpermissions track_login_daily
+      &get_all_subpermissions &get_user_subpermissions track_login_daily &in_iprange
     );
     %EXPORT_TAGS = ( EditPermissions => [qw(get_all_subpermissions get_user_subpermissions)] );
     $ldap      = C4::Context->config('useldapserver') || 0;
     $cas       = C4::Context->preference('casAuthentication');
-    $shib      = C4::Context->config('useshibboleth') || 0;
     $caslogout = C4::Context->preference('casLogout');
     require C4::Auth_with_cas;    # no import
 
     if ($ldap) {
         require C4::Auth_with_ldap;
         import C4::Auth_with_ldap qw(checkpw_ldap);
-    }
-    if ($shib) {
-        require C4::Auth_with_shibboleth;
-        import C4::Auth_with_shibboleth
-          qw(shib_ok checkpw_shib logout_shib login_shib_url get_login_shib);
-
-        # Check for good config
-        if ( shib_ok() ) {
-
-            # Get shibboleth login attribute
-            $shib_login = get_login_shib();
-        }
-
-        # Bad config, disable shibboleth
-        else {
-            $shib = 0;
-        }
     }
     if ($cas) {
         import C4::Auth_with_cas qw(check_api_auth_cas checkpw_cas login_cas logout_cas login_cas_url logout_if_required);
@@ -104,7 +96,7 @@ C4::Auth - Authenticates Koha users
   use C4::Auth;
   use C4::Output;
 
-  my $query = new CGI;
+  my $query = CGI->new;
 
   my ($template, $borrowernumber, $cookie)
     = get_template_and_user(
@@ -147,7 +139,7 @@ See C<&checkauth> for an explanation of these parameters.
 
 The C<template_name> is then used to find the correct template for
 the page. The authenticated users details are loaded onto the
-template in the HTML::Template LOOP variable C<USER_INFO>. Also the
+template in the logged_in_user variable (which is a Koha::Patron object). Also the
 C<sessionID> is passed to the template. This can be used in templates
 if cookies are disabled. It needs to be put as and input to every
 authenticated page.
@@ -161,6 +153,10 @@ sub get_template_and_user {
 
     my $in = shift;
     my ( $user, $cookie, $sessionID, $flags );
+
+    # Get shibboleth login attribute
+    my $shib = C4::Context->config('useshibboleth') && shib_ok();
+    my $shib_login = $shib ? get_login_shib() : undef;
 
     C4::Context->interface( $in->{type} );
 
@@ -178,8 +174,27 @@ sub get_template_and_user {
             $in->{'query'},
             $in->{'authnotrequired'},
             $in->{'flagsrequired'},
-            $in->{'type'}
+            $in->{'type'},
+            undef,
+            $in->{template_name},
         );
+    }
+
+    # If we enforce GDPR and the user did not consent, redirect
+    # Exceptions for consent page itself and SCI/SCO system
+    if( $in->{type} eq 'opac' && $user &&
+        $in->{'template_name'} !~ /^(opac-patron-consent|sc[io]\/)/ &&
+        C4::Context->preference('GDPR_Policy') eq 'Enforced' )
+    {
+        my $consent = Koha::Patron::Consents->search({
+            borrowernumber => getborrowernumber($user),
+            type => 'GDPR_PROCESSING',
+            given_on => { '!=', undef },
+        })->next;
+        if( !$consent ) {
+            print $in->{query}->redirect(-uri => '/cgi-bin/koha/opac-patron-consent.pl', -cookie => $cookie);
+            safe_exit;
+        }
     }
 
     if ( $in->{type} eq 'opac' && $user ) {
@@ -188,7 +203,7 @@ sub get_template_and_user {
         if (
 # If the user logged in is the SCO user and they try to go out of the SCO module,
 # log the user out removing the CGISESSID cookie
-               $in->{template_name} !~ m|sco/|
+            $in->{template_name} !~ m|sco/| && $in->{template_name} !~ m|errors/errorpage.tt|
             && C4::Context->preference('AutoSelfCheckID')
             && $user eq C4::Context->preference('AutoSelfCheckID')
           )
@@ -220,6 +235,7 @@ sub get_template_and_user {
                 -value    => '',
                 -expires  => '',
                 -HttpOnly => 1,
+                -secure => ( C4::Context->https_enabled() ? 1 : 0 ),
             );
 
             $template->param(
@@ -287,12 +303,10 @@ sub get_template_and_user {
             );
         }
 
-        $template->param( "USER_INFO" => $patron->unblessed ) if $borrowernumber != 0;
-
         my $all_perms = get_all_subpermissions();
 
         my @flagroots = qw(circulate catalogue parameters borrowers permissions reserveforothers borrow
-          editcatalogue updatecharges management tools editauthorities serials reports acquisition clubs);
+          editcatalogue updatecharges tools editauthorities serials reports acquisition clubs problem_reports);
 
         # We are going to use the $flags returned by checkauth
         # to create the template's parameters that will indicate
@@ -307,16 +321,20 @@ sub get_template_and_user {
             $template->param( CAN_user_editcatalogue    => 1 );
             $template->param( CAN_user_updatecharges    => 1 );
             $template->param( CAN_user_acquisition      => 1 );
-            $template->param( CAN_user_management       => 1 );
+            $template->param( CAN_user_suggestions      => 1 );
             $template->param( CAN_user_tools            => 1 );
             $template->param( CAN_user_editauthorities  => 1 );
             $template->param( CAN_user_serials          => 1 );
             $template->param( CAN_user_reports          => 1 );
             $template->param( CAN_user_staffaccess      => 1 );
-            $template->param( CAN_user_plugins          => 1 );
             $template->param( CAN_user_coursereserves   => 1 );
+            $template->param( CAN_user_plugins          => 1 );
+            $template->param( CAN_user_lists            => 1 );
             $template->param( CAN_user_clubs            => 1 );
             $template->param( CAN_user_ill              => 1 );
+            $template->param( CAN_user_stockrotation    => 1 );
+            $template->param( CAN_user_cash_management  => 1 );
+            $template->param( CAN_user_problem_reports  => 1 );
 
             foreach my $module ( keys %$all_perms ) {
                 foreach my $subperm ( keys %{ $all_perms->{$module} } ) {
@@ -343,9 +361,6 @@ sub get_template_and_user {
             foreach my $module ( keys %$flags ) {
                 if ( $flags->{$module} == 1 or ref( $flags->{$module} ) ) {
                     $template->param( "CAN_user_$module" => 1 );
-                    if ( $module eq "parameters" ) {
-                        $template->param( CAN_user_management => 1 );
-                    }
                 }
             }
         }
@@ -430,6 +445,25 @@ sub get_template_and_user {
         }
     }
 
+    # Sysprefs disabled via URL param
+    # Note that value must be defined in order to override via ENV
+    foreach my $syspref (
+        qw(
+            OPACUserCSS
+            OPACUserJS
+            IntranetUserCSS
+            IntranetUserJS
+            OpacAdditionalStylesheet
+            opaclayoutstylesheet
+            intranetcolorstylesheet
+            intranetstylesheet
+        )
+      )
+    {
+        $ENV{"OVERRIDE_SYSPREF_$syspref"} = q{}
+          if $in->{'query'}->param("DISABLE_SYSPREF_$syspref");
+    }
+
     # Anonymous opac search history
     # If opac search history is enabled and at least one search has already been performed
     if ( C4::Context->preference('EnableOpacSearchHistory') ) {
@@ -447,11 +481,6 @@ sub get_template_and_user {
 
     # these template parameters are set the same regardless of $in->{'type'}
 
-    # Set the using_https variable for templates
-    # FIXME Under Plack the CGI->https method always returns 'OFF'
-    my $https = $in->{query}->https();
-    my $using_https = ( defined $https and $https ne 'OFF' ) ? 1 : 0;
-
     my $minPasswordLength = C4::Context->preference('minPasswordLength');
     $minPasswordLength = 3 if not $minPasswordLength or $minPasswordLength < 3;
     $template->param(
@@ -460,7 +489,6 @@ sub get_template_and_user {
         GoogleJackets                                                      => C4::Context->preference("GoogleJackets"),
         OpenLibraryCovers                                                  => C4::Context->preference("OpenLibraryCovers"),
         KohaAdminEmailAddress                                              => "" . C4::Context->preference("KohaAdminEmailAddress"),
-        LoginBranchcode => ( C4::Context->userenv ? C4::Context->userenv->{"branch"}    : undef ),
         LoginFirstname  => ( C4::Context->userenv ? C4::Context->userenv->{"firstname"} : "Bel" ),
         LoginSurname    => C4::Context->userenv ? C4::Context->userenv->{"surname"}      : "Inconnu",
         emailaddress    => C4::Context->userenv ? C4::Context->userenv->{"emailaddress"} : undef,
@@ -471,7 +499,6 @@ sub get_template_and_user {
         singleBranchMode   => ( Koha::Libraries->search->count == 1 ),
         XSLTDetailsDisplay => C4::Context->preference("XSLTDetailsDisplay"),
         XSLTResultsDisplay => C4::Context->preference("XSLTResultsDisplay"),
-        using_https        => $using_https,
         noItemTypeImages   => C4::Context->preference("noItemTypeImages"),
         marcflavour        => C4::Context->preference("marcflavour"),
         OPACBaseURL        => C4::Context->preference('OPACBaseURL'),
@@ -482,13 +509,12 @@ sub get_template_and_user {
             AmazonCoverImages                                                          => C4::Context->preference("AmazonCoverImages"),
             AutoLocation                                                               => C4::Context->preference("AutoLocation"),
             "BiblioDefaultView" . C4::Context->preference("IntranetBiblioDefaultView") => 1,
-            CircAutocompl                                                              => C4::Context->preference("CircAutocompl"),
+            PatronAutoComplete                                                       => C4::Context->preference("PatronAutoComplete"),
             FRBRizeEditions                                                            => C4::Context->preference("FRBRizeEditions"),
             IndependentBranches                                                        => C4::Context->preference("IndependentBranches"),
             IntranetNav                                                                => C4::Context->preference("IntranetNav"),
             IntranetmainUserblock                                                      => C4::Context->preference("IntranetmainUserblock"),
             LibraryName                                                                => C4::Context->preference("LibraryName"),
-            LoginBranchname                                                            => ( C4::Context->userenv ? C4::Context->userenv->{"branchname"} : undef ),
             advancedMARCEditor                                                         => C4::Context->preference("advancedMARCEditor"),
             canreservefromotherbranches                                                => C4::Context->preference('canreservefromotherbranches'),
             intranetcolorstylesheet                                                    => C4::Context->preference("intranetcolorstylesheet"),
@@ -497,7 +523,6 @@ sub get_template_and_user {
             intranetstylesheet                                                         => C4::Context->preference("intranetstylesheet"),
             IntranetUserCSS                                                            => C4::Context->preference("IntranetUserCSS"),
             IntranetUserJS                                                             => C4::Context->preference("IntranetUserJS"),
-            intranetbookbag                                                            => C4::Context->preference("intranetbookbag"),
             suggestion                                                                 => C4::Context->preference("suggestion"),
             virtualshelves                                                             => C4::Context->preference("virtualshelves"),
             StaffSerialIssueDisplayCount                                               => C4::Context->preference("StaffSerialIssueDisplayCount"),
@@ -506,9 +531,9 @@ sub get_template_and_user {
             OPACLocalCoverImages                                                       => C4::Context->preference('OPACLocalCoverImages'),
             AllowMultipleCovers                                                        => C4::Context->preference('AllowMultipleCovers'),
             EnableBorrowerFiles                                                        => C4::Context->preference('EnableBorrowerFiles'),
-            UseKohaPlugins                                                             => C4::Context->preference('UseKohaPlugins'),
             UseCourseReserves                                                          => C4::Context->preference("UseCourseReserves"),
-            useDischarge                                                               => C4::Context->preference('useDischarge')
+            useDischarge                                                               => C4::Context->preference('useDischarge'),
+            pending_checkout_notes                                                     => scalar Koha::Checkouts->search({ noteseen => 0 }),
         );
     }
     else {
@@ -539,8 +564,8 @@ sub get_template_and_user {
         my $opac_limit_override = $ENV{'OPAC_LIMIT_OVERRIDE'};
         my $opac_name           = '';
         if (
-            ( $opac_limit_override && $opac_search_limit && $opac_search_limit =~ /branch:(\w+)/ ) ||
-            ( $in->{'query'}->param('limit') && $in->{'query'}->param('limit') =~ /branch:(\w+)/ ) ||
+            ( $opac_limit_override && $opac_search_limit && $opac_search_limit =~ /branch:([\w-]+)/ ) ||
+            ( $in->{'query'}->param('limit') && $in->{'query'}->param('limit') =~ /branch:([\w-]+)/ ) ||
             ( $in->{'query'}->param('multibranchlimit') && $in->{'query'}->param('multibranchlimit') =~ /multibranchlimit-(\w+)/ )
           ) {
             $opac_name = $1;    # opac_search_limit is a branch, so we use it.
@@ -565,13 +590,11 @@ sub get_template_and_user {
 
         my @search_groups = Koha::Library::Groups->get_search_groups({ interface => 'opac' });
         $template->param(
-            OpacAdditionalStylesheet                   => C4::Context->preference("OpacAdditionalStylesheet"),
             AnonSuggestions                       => "" . C4::Context->preference("AnonSuggestions"),
             LibrarySearchGroups                   => \@search_groups,
             opac_name                             => $opac_name,
             LibraryName                           => "" . C4::Context->preference("LibraryName"),
             LibraryNameTitle                      => "" . $LibraryNameTitle,
-            LoginBranchname                       => C4::Context->userenv ? C4::Context->userenv->{"branchname"} : "",
             OPACAmazonCoverImages                 => C4::Context->preference("OPACAmazonCoverImages"),
             OPACFRBRizeEditions                   => C4::Context->preference("OPACFRBRizeEditions"),
             OpacHighlightedWords                  => C4::Context->preference("OpacHighlightedWords"),
@@ -585,9 +608,7 @@ sub get_template_and_user {
             OpacBrowser                           => C4::Context->preference("OpacBrowser"),
             OpacCloud                             => C4::Context->preference("OpacCloud"),
             OpacKohaUrl                           => C4::Context->preference("OpacKohaUrl"),
-            OpacMainUserBlock                     => "" . C4::Context->preference("OpacMainUserBlock"),
             OpacNav                               => "" . C4::Context->preference("OpacNav"),
-            OpacNavRight                          => "" . C4::Context->preference("OpacNavRight"),
             OpacNavBottom                         => "" . C4::Context->preference("OpacNavBottom"),
             OpacPasswordChange                    => C4::Context->preference("OpacPasswordChange"),
             OpacRenewCard                         => $opac_renew_card,
@@ -599,11 +620,8 @@ sub get_template_and_user {
             'Version'                             => C4::Context->preference('Version'),
             hidelostitems                         => C4::Context->preference("hidelostitems"),
             mylibraryfirst                        => ( C4::Context->preference("SearchMyLibraryFirst") && C4::Context->userenv ) ? C4::Context->userenv->{'branch'} : '',
-            opaclayoutstylesheet                  => "" . C4::Context->preference("opaclayoutstylesheet"),
             opacbookbag                           => "" . C4::Context->preference("opacbookbag"),
-            opaccredits                           => "" . C4::Context->preference("opaccredits"),
             OpacFavicon                           => C4::Context->preference("OpacFavicon"),
-            opacheader                            => "" . C4::Context->preference("opacheader"),
             opaclanguagesdisplay                  => "" . C4::Context->preference("opaclanguagesdisplay"),
             opacreadinghistory                    => C4::Context->preference("opacreadinghistory"),
             OPACUserJS                            => C4::Context->preference("OPACUserJS"),
@@ -786,24 +804,52 @@ sub _session_log {
 }
 
 sub _timeout_syspref {
-    my $timeout = C4::Context->preference('timeout') || 600;
+    my $default_timeout = 600;
+    my $timeout = C4::Context->preference('timeout') || $default_timeout;
 
     # value in days, convert in seconds
-    if ( $timeout =~ /(\d+)[dD]/ ) {
+    if ( $timeout =~ /^(\d+)[dD]$/ ) {
         $timeout = $1 * 86400;
     }
+    # value in hours, convert in seconds
+    elsif ( $timeout =~ /^(\d+)[hH]$/ ) {
+        $timeout = $1 * 3600;
+    }
+    elsif ( $timeout !~ m/^\d+$/ ) {
+        warn "The value of the system preference 'timeout' is not correct, defaulting to $default_timeout";
+        $timeout = $default_timeout;
+    }
+
     return $timeout;
 }
 
 sub checkauth {
     my $query = shift;
     $debug and warn "Checking Auth";
+
+    # Get shibboleth login attribute
+    my $shib = C4::Context->config('useshibboleth') && shib_ok();
+    my $shib_login = $shib ? get_login_shib() : undef;
+
     # $authnotrequired will be set for scripts which will run without authentication
     my $authnotrequired = shift;
     my $flagsrequired   = shift;
     my $type            = shift;
     my $emailaddress    = shift;
+    my $template_name   = shift;
     $type = 'opac' unless $type;
+
+    unless ( C4::Context->preference("OpacPublic") ) {
+        my @allowed_scripts_for_private_opac = qw(
+          opac-memberentry.tt
+          opac-registration-email-sent.tt
+          opac-registration-confirmation.tt
+          opac-memberentry-update-submitted.tt
+          opac-password-recovery.tt
+        );
+        $authnotrequired = 0 unless grep { $_ eq $template_name }
+          @allowed_scripts_for_private_opac;
+    }
 
     my $dbh     = C4::Context->dbh;
     my $timeout = _timeout_syspref();
@@ -842,6 +888,7 @@ sub checkauth {
             -value    => '',
             -expires  => '',
             -HttpOnly => 1,
+            -secure => ( C4::Context->https_enabled() ? 1 : 0 ),
         );
         $loggedin = 1;
     }
@@ -861,8 +908,10 @@ sub checkauth {
                 $session->param('cardnumber'),   $session->param('firstname'),
                 $session->param('surname'),      $session->param('branch'),
                 $session->param('branchname'),   $session->param('flags'),
-                $session->param('emailaddress'), $session->param('branchprinter'),
-                $session->param('shibboleth'),   $session->param('branchcategory')
+                $session->param('emailaddress'), $session->param('shibboleth'),
+                $session->param('desk_id'),      $session->param('desk_name'),
+                $session->param('register_id'),  $session->param('register_name'),
+                $session->param('branchcategory')
             );
             C4::Context::set_shelves_userenv( 'bar', $session->param('barshelves') );
             C4::Context::set_shelves_userenv( 'pub', $session->param('pubshelves') );
@@ -906,9 +955,7 @@ sub checkauth {
             }
 
             # If we are in a shibboleth session (shibboleth is enabled, a shibboleth match attribute is set and matches koha matchpoint)
-            if ( $shib and $shib_login and $shibSuccess and $type eq 'opac' ) {
-
-                # (Note: $type eq 'opac' condition should be removed when shibboleth authentication for intranet will be implemented)
+            if ( $shib and $shib_login and $shibSuccess) {
                 logout_shib($query);
             }
         }
@@ -944,7 +991,8 @@ sub checkauth {
             $cookie = $query->cookie(
                 -name     => 'CGISESSID',
                 -value    => $session->id,
-                -HttpOnly => 1
+                -HttpOnly => 1,
+                -secure => ( C4::Context->https_enabled() ? 1 : 0 ),
             );
             $session->param( 'lasttime', time() );
             unless ( $sessiontype && $sessiontype eq 'anon' ) {    #if this is an anonymous session, we want to update the session, but not behave as if they are logged in...
@@ -973,7 +1021,8 @@ sub checkauth {
         $cookie = $query->cookie(
             -name     => 'CGISESSID',
             -value    => $session->id,
-            -HttpOnly => 1
+            -HttpOnly => 1,
+            -secure => ( C4::Context->https_enabled() ? 1 : 0 ),
         );
         my $pki_field = C4::Context->preference('AllowPKIAuth');
         if ( !defined($pki_field) ) {
@@ -991,7 +1040,7 @@ sub checkauth {
             my ( $return, $cardnumber );
 
             # If shib is enabled and we have a shib login, does the login match a valid koha user
-            if ( $shib && $shib_login && $type eq 'opac' ) {
+            if ( $shib && $shib_login ) {
                 my $retuserid;
 
                 # Do not pass password here, else shib will not be checked in checkpw.
@@ -1065,11 +1114,31 @@ sub checkauth {
                 }
                 else {
                     my $retuserid;
-                    ( $return, $cardnumber, $retuserid, $cas_ticket ) =
-                      checkpw( $dbh, $q_userid, $password, $query, $type );
-                    $userid = $retuserid if ($retuserid);
-                    $info{'invalid_username_or_password'} = 1 unless ($return);
+                    my $request_method = $query->request_method();
+                    if ($request_method eq 'POST'){
+                        ( $return, $cardnumber, $retuserid, $cas_ticket ) =
+                          checkpw( $dbh, $q_userid, $password, $query, $type );
+                        $userid = $retuserid if ($retuserid);
+                        $info{'invalid_username_or_password'} = 1 unless ($return);
+                    }
                 }
+            }
+
+            # If shib configured and shibOnly enabled, we should ignore anything other than a shibboleth type login.
+            if (
+                   $shib
+                && !$shibSuccess
+                && (
+                    (
+                        ( $type eq 'opac' )
+                        && C4::Context->preference('OPACShibOnly')
+                    )
+                    || ( ( $type ne 'opac' )
+                        && C4::Context->preference('staffShibOnly') )
+                )
+              )
+            {
+                $return = 0;
             }
 
             # $return: 1 = valid user
@@ -1084,14 +1153,13 @@ sub checkauth {
                     C4::Context->_unset_userenv($sessionID);
                 }
                 my ( $borrowernumber, $firstname, $surname, $userflags,
-                    $branchcode, $branchname, $branchprinter, $emailaddress );
+                    $branchcode, $branchname, $emailaddress, $desk_id,
+                    $desk_name, $register_id, $register_name );
 
                 if ( $return == 1 ) {
                     my $select = "
                     SELECT borrowernumber, firstname, surname, flags, borrowers.branchcode,
-                    branches.branchname    as branchname,
-                    branches.branchprinter as branchprinter,
-                    email
+                    branches.branchname    as branchname, email
                     FROM borrowers
                     LEFT JOIN branches on borrowers.branchcode=branches.branchcode
                     ";
@@ -1112,7 +1180,7 @@ sub checkauth {
                     }
                     if ( $sth->rows ) {
                         ( $borrowernumber, $firstname, $surname, $userflags,
-                            $branchcode, $branchname, $branchprinter, $emailaddress ) = $sth->fetchrow;
+                            $branchcode, $branchname, $emailaddress ) = $sth->fetchrow;
                         $debug and print STDERR "AUTH_3 results: " .
                           "$cardnumber,$borrowernumber,$userid,$firstname,$surname,$userflags,$branchcode,$emailaddress\n";
                     } else {
@@ -1130,8 +1198,23 @@ sub checkauth {
                         my $library = Koha::Libraries->find($branchcode);
                         $branchname = $library? $library->branchname: '';
                     }
+                    if ( $query->param('desk_id') ) {
+                        $desk_id = $query->param('desk_id');
+                        my $desk = Koha::Desks->find($desk_id);
+                        $desk_name = $desk ? $desk->desk_name : '';
+                    }
+                    if ( C4::Context->preference('UseCashRegisters') ) {
+                        my $register =
+                          $query->param('register_id')
+                          ? Koha::Cash::Registers->find($query->param('register_id'))
+                          : Koha::Cash::Registers->search(
+                            { branch => $branchcode, branch_default => 1 },
+                            { rows   => 1 } )->single;
+                        $register_id   = $register->id   if ($register);
+                        $register_name = $register->name if ($register);
+                    }
                     my $branches = { map { $_->branchcode => $_->unblessed } Koha::Libraries->search };
-                    if ( $type ne 'opac' and C4::Context->boolean_preference('AutoLocation') ) {
+                    if ( $type ne 'opac' and C4::Context->preference('AutoLocation') ) {
 
                         # we have to check they are coming from the right ip range
                         my $domain = $branches->{$branchcode}->{'branchip'};
@@ -1141,7 +1224,8 @@ sub checkauth {
                             $cookie = $query->cookie(
                                 -name     => 'CGISESSID',
                                 -value    => '',
-                                -HttpOnly => 1
+                                -HttpOnly => 1,
+                                -secure => ( C4::Context->https_enabled() ? 1 : 0 ),
                             );
                             $info{'wrongip'} = 1;
                         }
@@ -1154,8 +1238,7 @@ sub checkauth {
                         if ( $domain && $ip =~ /^$domain/ ) {
                             $branchcode = $branches->{$br}->{'branchcode'};
 
-                            # new op dev : add the branchprinter and branchname in the cookie
-                            $branchprinter = $branches->{$br}->{'branchprinter'};
+                            # new op dev : add the branchname to the cookie
                             $branchname    = $branches->{$br}->{'branchname'};
                         }
                     }
@@ -1166,11 +1249,16 @@ sub checkauth {
                     $session->param( 'surname',      $surname );
                     $session->param( 'branch',       $branchcode );
                     $session->param( 'branchname',   $branchname );
+                    $session->param( 'desk_id',      $desk_id);
+                    $session->param( 'desk_name',     $desk_name);
                     $session->param( 'flags',        $userflags );
                     $session->param( 'emailaddress', $emailaddress );
                     $session->param( 'ip',           $session->remote_addr() );
                     $session->param( 'lasttime',     time() );
+                    $session->param( 'interface',    $type);
                     $session->param( 'shibboleth',   $shibSuccess );
+                    $session->param( 'register_id',  $register_id );
+                    $session->param( 'register_name',  $register_name );
                     $debug and printf STDERR "AUTH_4: (%s)\t%s %s - %s\n", map { $session->param($_) } qw(cardnumber firstname surname branch);
                 }
                 $session->param('cas_ticket', $cas_ticket) if $cas_ticket;
@@ -1179,8 +1267,10 @@ sub checkauth {
                     $session->param('cardnumber'),   $session->param('firstname'),
                     $session->param('surname'),      $session->param('branch'),
                     $session->param('branchname'),   $session->param('flags'),
-                    $session->param('emailaddress'), $session->param('branchprinter'),
-                    $session->param('shibboleth'),   $session->param('branchcategory')
+                    $session->param('emailaddress'), $session->param('shibboleth'),
+                    $session->param('desk_id'),      $session->param('desk_name'),
+                    $session->param('register_id'),  $session->param('register_name'),
+                    $session->param('branchcategory')
                 );
 
             }
@@ -1195,6 +1285,7 @@ sub checkauth {
                 $session->param( 'lasttime', time() );
                 $session->param( 'ip',       $session->remote_addr() );
                 $session->param( 'sessiontype', 'anon' );
+                $session->param( 'interface', $type);
             }
         }    # END if ( $q_userid
         elsif ( $type eq "opac" ) {
@@ -1207,6 +1298,7 @@ sub checkauth {
             $session->param( 'ip',          $session->remote_addr() );
             $session->param( 'lasttime',    time() );
             $session->param( 'sessiontype', 'anon' );
+            $session->param( 'interface', $type);
         }
     }    # END unless ($userid)
 
@@ -1218,18 +1310,17 @@ sub checkauth {
             $cookie = $query->cookie(
                 -name     => 'CGISESSID',
                 -value    => '',
-                -HttpOnly => 1
+                -HttpOnly => 1,
+                -secure => ( C4::Context->https_enabled() ? 1 : 0 ),
             );
         }
 
         track_login_daily( $userid );
-        
+
         # In case, that this request was a login attempt, we want to prevent that users can repost the opac login
         # request. We therefore redirect the user to the requested page again without the login parameters.
         # See Post/Redirect/Get (PRG) design pattern: https://en.wikipedia.org/wiki/Post/Redirect/Get
-        if ( $type eq "opac" && $query->param('koha_login_context') && $query->param('koha_login_context') ne 'sco' 
-             && $query->param('password') && $query->param('userid') ) 
-        {
+        if ( $type eq "opac" && $query->param('koha_login_context') && $query->param('koha_login_context') ne 'sco' && $query->param('password') && $query->param('userid') ) {
             my $uri = URI->new($query->url(-relative=>1, -query_string=>1));
             $uri->query_param_delete('userid');
             $uri->query_param_delete('password');
@@ -1261,11 +1352,9 @@ sub checkauth {
     $LibraryNameTitle =~ s/<(?:\/?)(?:br|p)\s*(?:\/?)>/ /sgi;
     $LibraryNameTitle =~ s/<(?:[^<>'"]|'(?:[^']*)'|"(?:[^"]*)")*>//sg;
 
-    my $template_name = ( $type eq 'opac' ) ? 'opac-auth.tt' : 'auth.tt';
-    my $template = C4::Templates::gettemplate( $template_name, $type, $query );
+    my $auth_template_name = ( $type eq 'opac' ) ? 'opac-auth.tt' : 'auth.tt';
+    my $template = C4::Templates::gettemplate( $auth_template_name, $type, $query );
     $template->param(
-        OpacAdditionalStylesheet                   => C4::Context->preference("OpacAdditionalStylesheet"),
-        opaclayoutstylesheet                  => C4::Context->preference("opaclayoutstylesheet"),
         login                                 => 1,
         INPUTS                                => \@inputs,
         script_name                           => get_script_name(),
@@ -1278,9 +1367,7 @@ sub checkauth {
         LibraryNameTitle                      => "" . $LibraryNameTitle,
         opacuserlogin                         => C4::Context->preference("opacuserlogin"),
         OpacNav                               => C4::Context->preference("OpacNav"),
-        OpacNavRight                          => C4::Context->preference("OpacNavRight"),
         OpacNavBottom                         => C4::Context->preference("OpacNavBottom"),
-        opaccredits                           => C4::Context->preference("opaccredits"),
         OpacFavicon                           => C4::Context->preference("OpacFavicon"),
         opacreadinghistory                    => C4::Context->preference("opacreadinghistory"),
         opaclanguagesdisplay                  => C4::Context->preference("opaclanguagesdisplay"),
@@ -1290,12 +1377,10 @@ sub checkauth {
         OpacTopissue                          => C4::Context->preference("OpacTopissue"),
         OpacAuthorities                       => C4::Context->preference("OpacAuthorities"),
         OpacBrowser                           => C4::Context->preference("OpacBrowser"),
-        opacheader                            => C4::Context->preference("opacheader"),
         TagsEnabled                           => C4::Context->preference("TagsEnabled"),
         OPACUserCSS                           => C4::Context->preference("OPACUserCSS"),
         intranetcolorstylesheet               => C4::Context->preference("intranetcolorstylesheet"),
         intranetstylesheet                    => C4::Context->preference("intranetstylesheet"),
-        intranetbookbag                       => C4::Context->preference("intranetbookbag"),
         IntranetNav                           => C4::Context->preference("IntranetNav"),
         IntranetFavicon                       => C4::Context->preference("IntranetFavicon"),
         IntranetUserCSS                       => C4::Context->preference("IntranetUserCSS"),
@@ -1350,6 +1435,13 @@ sub checkauth {
     }
 
     if ($shib) {
+        #If shibOnly is enabled just go ahead and redirect directly
+        if ( (($type eq 'opac') && C4::Context->preference('OPACShibOnly')) || (($type ne 'opac') && C4::Context->preference('staffShibOnly')) ) {
+            my $redirect_url = login_shib_url( $query );
+            print $query->redirect( -uri => "$redirect_url", -status => 303 );
+            safe_exit;
+        }
+
         $template->param(
             shibbolethAuthentication => $shib,
             shibbolethLoginUrl       => login_shib_url($query),
@@ -1456,12 +1548,15 @@ sub check_api_auth {
         my $session = get_session($sessionID);
         C4::Context->_new_userenv($sessionID);
         if ($session) {
+            C4::Context->interface($session->param('interface'));
             C4::Context->set_userenv(
                 $session->param('number'),       $session->param('id'),
                 $session->param('cardnumber'),   $session->param('firstname'),
                 $session->param('surname'),      $session->param('branch'),
                 $session->param('branchname'),   $session->param('flags'),
-                $session->param('emailaddress'), $session->param('branchprinter')
+                $session->param('emailaddress'), $session->param('shibboleth'),
+                $session->param('desk_id'),      $session->param('desk_name'),
+                $session->param('register_id'),  $session->param('register_name')
             );
 
             my $ip       = $session->param('ip');
@@ -1490,6 +1585,7 @@ sub check_api_auth {
                     -name     => 'CGISESSID',
                     -value    => $session->id,
                     -HttpOnly => 1,
+                    -secure => ( C4::Context->https_enabled() ? 1 : 0 ),
                 );
                 $session->param( 'lasttime', time() );
                 my $flags = haspermission( $userid, $flagsrequired );
@@ -1544,40 +1640,41 @@ sub check_api_auth {
                 -name     => 'CGISESSID',
                 -value    => $sessionID,
                 -HttpOnly => 1,
+                -secure => ( C4::Context->https_enabled() ? 1 : 0 ),
             );
             if ( $return == 1 ) {
                 my (
                     $borrowernumber, $firstname,  $surname,
                     $userflags,      $branchcode, $branchname,
-                    $branchprinter,  $emailaddress
+                    $emailaddress
                 );
                 my $sth =
                   $dbh->prepare(
-"select borrowernumber, firstname, surname, flags, borrowers.branchcode, branches.branchname as branchname,branches.branchprinter as branchprinter, email from borrowers left join branches on borrowers.branchcode=branches.branchcode where userid=?"
+"select borrowernumber, firstname, surname, flags, borrowers.branchcode, branches.branchname as branchname, email from borrowers left join branches on borrowers.branchcode=branches.branchcode where userid=?"
                   );
                 $sth->execute($userid);
                 (
                     $borrowernumber, $firstname,  $surname,
                     $userflags,      $branchcode, $branchname,
-                    $branchprinter,  $emailaddress
+                    $emailaddress
                 ) = $sth->fetchrow if ( $sth->rows );
 
                 unless ( $sth->rows ) {
                     my $sth = $dbh->prepare(
-"select borrowernumber, firstname, surname, flags, borrowers.branchcode, branches.branchname as branchname, branches.branchprinter as branchprinter, email from borrowers left join branches on borrowers.branchcode=branches.branchcode where cardnumber=?"
+"select borrowernumber, firstname, surname, flags, borrowers.branchcode, branches.branchname as branchname, email from borrowers left join branches on borrowers.branchcode=branches.branchcode where cardnumber=?"
                     );
                     $sth->execute($cardnumber);
                     (
                         $borrowernumber, $firstname,  $surname,
                         $userflags,      $branchcode, $branchname,
-                        $branchprinter,  $emailaddress
+                        $emailaddress
                     ) = $sth->fetchrow if ( $sth->rows );
 
                     unless ( $sth->rows ) {
                         $sth->execute($userid);
                         (
                             $borrowernumber, $firstname,  $surname,       $userflags,
-                            $branchcode,     $branchname, $branchprinter, $emailaddress
+                            $branchcode,     $branchname, $emailaddress
                         ) = $sth->fetchrow if ( $sth->rows );
                     }
                 }
@@ -1598,8 +1695,7 @@ sub check_api_auth {
                     if ( $domain && $ip =~ /^$domain/ ) {
                         $branchcode = $branches->{$br}->{'branchcode'};
 
-                        # new op dev : add the branchprinter and branchname in the cookie
-                        $branchprinter = $branches->{$br}->{'branchprinter'};
+                        # new op dev : add the branchname to the cookie
                         $branchname    = $branches->{$br}->{'branchname'};
                     }
                 }
@@ -1615,6 +1711,7 @@ sub check_api_auth {
                 $session->param( 'emailaddress', $emailaddress );
                 $session->param( 'ip',           $session->remote_addr() );
                 $session->param( 'lasttime',     time() );
+                $session->param( 'interface',    'api'  );
             }
             $session->param( 'cas_ticket', $cas_ticket);
             C4::Context->set_userenv(
@@ -1622,7 +1719,9 @@ sub check_api_auth {
                 $session->param('cardnumber'),   $session->param('firstname'),
                 $session->param('surname'),      $session->param('branch'),
                 $session->param('branchname'),   $session->param('flags'),
-                $session->param('emailaddress'), $session->param('branchprinter')
+                $session->param('emailaddress'), $session->param('shibboleth'),
+                $session->param('desk_id'),      $session->param('desk_name'),
+                $session->param('register_id'),  $session->param('register_name')
             );
             return ( "ok", $cookie, $sessionID );
         } else {
@@ -1636,7 +1735,11 @@ sub check_api_auth {
   ($status, $sessionId) = check_api_auth($cookie, $userflags);
 
 Given a CGISESSID cookie set during a previous login to Koha, determine
-if the user has the privileges specified by C<$userflags>.
+if the user has the privileges specified by C<$userflags>. C<$userflags>
+is passed unaltered into C<haspermission> and as such accepts all options
+avaiable to that routine with the one caveat that C<check_api_auth> will
+also allow 'undef' to be passed and in such a case the permissions check
+will be skipped altogether.
 
 C<check_cookie_auth> is meant for authenticating special services
 such as tools/upload-file.pl that are invoked by other pages that
@@ -1700,12 +1803,15 @@ sub check_cookie_auth {
     my $session   = get_session($sessionID);
     C4::Context->_new_userenv($sessionID);
     if ($session) {
+        C4::Context->interface($session->param('interface'));
         C4::Context->set_userenv(
             $session->param('number'),       $session->param('id'),
             $session->param('cardnumber'),   $session->param('firstname'),
             $session->param('surname'),      $session->param('branch'),
             $session->param('branchname'),   $session->param('flags'),
-            $session->param('emailaddress'), $session->param('branchprinter')
+            $session->param('emailaddress'), $session->param('shibboleth'),
+            $session->param('desk_id'),      $session->param('desk_name'),
+            $session->param('register_id'),  $session->param('register_name')
         );
 
         my $ip       = $session->param('ip');
@@ -1731,7 +1837,7 @@ sub check_cookie_auth {
             return ( "expired", undef );
         } else {
             $session->param( 'lasttime', time() );
-            my $flags = haspermission( $userid, $flagsrequired );
+            my $flags = defined($flagsrequired) ? haspermission( $userid, $flagsrequired ) : 1;
             if ($flags) {
                 return ( "ok", $sessionID );
             } else {
@@ -1779,7 +1885,7 @@ sub _get_session_params {
     }
     else {
         # catch all defaults to tmp should work on all systems
-        my $dir = File::Spec->tmpdir;
+        my $dir = C4::Context::temporary_directory;
         my $instance = C4::Context->config( 'database' ); #actually for packages not exactly the instance name, but generally safer to leave it as it is
         return { dsn => "driver:File;serializer:yaml;id:md5", dsn_args => { Directory => "$dir/cgisess_$instance" } };
     }
@@ -1788,7 +1894,7 @@ sub _get_session_params {
 sub get_session {
     my $sessionID      = shift;
     my $params = _get_session_params();
-    return new CGI::Session( $params->{dsn}, $sessionID, $params->{dsn_args} );
+    return CGI::Session->new( $params->{dsn}, $sessionID, $params->{dsn_args} );
 }
 
 
@@ -1800,8 +1906,16 @@ sub checkpw {
     my ( $dbh, $userid, $password, $query, $type, $no_set_userenv ) = @_;
     $type = 'opac' unless $type;
 
+    # Get shibboleth login attribute
+    my $shib = C4::Context->config('useshibboleth') && shib_ok();
+    my $shib_login = $shib ? get_login_shib() : undef;
+
     my @return;
-    my $patron = Koha::Patrons->find({ userid => $userid });
+    my $patron;
+    if ( defined $userid ){
+        $patron = Koha::Patrons->find({ userid => $userid });
+        $patron = Koha::Patrons->find({ cardnumber => $userid }) unless $patron;
+    }
     my $check_internal_as_fallback = 0;
     my $passwd_ok = 0;
     # Note: checkpw_* routines returns:
@@ -1867,10 +1981,18 @@ sub checkpw {
     if( $patron ) {
         if ( $passwd_ok ) {
             $patron->update({ login_attempts => 0 });
-        } else {
+        } elsif( !$patron->account_locked ) {
             $patron->update({ login_attempts => $patron->login_attempts + 1 });
         }
     }
+
+    # Optionally log success or failure
+    if( $patron && $passwd_ok && C4::Context->preference('AuthSuccessLog') ) {
+        logaction( 'AUTH', 'SUCCESS', $patron->id, "Valid password for $userid", $type );
+    } elsif( !$passwd_ok && C4::Context->preference('AuthFailureLog') ) {
+        logaction( 'AUTH', 'FAILURE', $patron ? $patron->id : 0, "Wrong password for $userid", $type );
+    }
+
     return @return;
 }
 
@@ -2050,42 +2172,98 @@ sub get_all_subpermissions {
 
 =head2 haspermission
 
+  $flagsrequired = '*';                                 # Any permission at all
+  $flagsrequired = 'a_flag';                            # a_flag must be satisfied (all subpermissions)
+  $flagsrequired = [ 'a_flag', 'b_flag' ];              # a_flag OR b_flag must be satisfied
+  $flagsrequired = { 'a_flag => 1, 'b_flag' => 1 };     # a_flag AND b_flag must be satisfied
+  $flagsrequired = { 'a_flag' => 'sub_a' };             # sub_a of a_flag must be satisfied
+  $flagsrequired = { 'a_flag' => [ 'sub_a, 'sub_b' ] }; # sub_a OR sub_b of a_flag must be satisfied
+
   $flags = ($userid, $flagsrequired);
 
 C<$userid> the userid of the member
-C<$flags> is a hashref of required flags like C<$borrower-&lt;{authflags}> 
+C<$flags> is a query structure similar to that used by SQL::Abstract that
+denotes the combination of flags required. It is a required parameter.
+
+The main logic of this method is that things in arrays are OR'ed, and things
+in hashes are AND'ed. The `*` character can be used, at any depth, to denote `ANY`
 
 Returns member's flags or 0 if a permission is not met.
 
 =cut
 
+sub _dispatch {
+    my ($required, $flags) = @_;
+
+    my $ref = ref($required);
+    if ($ref eq '') {
+        if ($required eq '*') {
+            return 0 unless ( $flags or ref( $flags ) );
+        } else {
+            return 0 unless ( $flags and (!ref( $flags ) || $flags->{$required} ));
+        }
+    } elsif ($ref eq 'HASH') {
+        foreach my $key (keys %{$required}) {
+            next if $flags == 1;
+            my $require = $required->{$key};
+            my $rflags  = $flags->{$key};
+            return 0 unless _dispatch($require, $rflags);
+        }
+    } elsif ($ref eq 'ARRAY') {
+        my $satisfied = 0;
+        foreach my $require ( @{$required} ) {
+            my $rflags =
+              ( ref($flags) && !ref($require) && ( $require ne '*' ) )
+              ? $flags->{$require}
+              : $flags;
+            $satisfied++ if _dispatch( $require, $rflags );
+        }
+        return 0 unless $satisfied;
+    } else {
+        croak "Unexpected structure found: $ref";
+    }
+
+    return $flags;
+};
+
 sub haspermission {
     my ( $userid, $flagsrequired ) = @_;
+
+    #Koha::Exceptions::WrongParameter->throw('$flagsrequired should not be undef')
+    #  unless defined($flagsrequired);
+
     my $sth = C4::Context->dbh->prepare("SELECT flags FROM borrowers WHERE userid=?");
     $sth->execute($userid);
     my $row = $sth->fetchrow();
     my $flags = getuserflags( $row, $userid );
 
+    return $flags unless defined($flagsrequired);
     return $flags if $flags->{superlibrarian};
-
-    foreach my $module ( keys %$flagsrequired ) {
-        my $subperm = $flagsrequired->{$module};
-        if ( $subperm eq '*' ) {
-            return 0 unless ( $flags->{$module} == 1 or ref( $flags->{$module} ) );
-        } else {
-            return 0 unless (
-                ( defined $flags->{$module} and
-                    $flags->{$module} == 1 )
-                or
-                ( ref( $flags->{$module} ) and
-                    exists $flags->{$module}->{$subperm} and
-                    $flags->{$module}->{$subperm} == 1 )
-            );
-        }
-    }
-    return $flags;
+    return _dispatch($flagsrequired, $flags);
 
     #FIXME - This fcn should return the failed permission so a suitable error msg can be delivered.
+}
+
+=head2 in_iprange
+
+  $flags = ($iprange);
+
+C<$iprange> A space separated string describing an IP range. Can include single IPs or ranges
+
+Returns 1 if the remote address is in the provided iprange, or 0 otherwise.
+
+=cut
+
+sub in_iprange {
+    my ($iprange) = @_;
+    my $result = 1;
+    my @allowedipranges = $iprange ? split(' ', $iprange) : ();
+    if (scalar @allowedipranges > 0) {
+        my @rangelist;
+        eval { @rangelist = Net::CIDR::range2cidr(@allowedipranges); }; return 0 if $@;
+        eval { $result = Net::CIDR::cidrlookup($ENV{'REMOTE_ADDR'}, @rangelist) } || ( $ENV{DEBUG} && warn 'cidrlookup failed for ' . join(' ',@rangelist) );
+     }
+     return $result ? 1 : 0;
 }
 
 sub getborrowernumber {

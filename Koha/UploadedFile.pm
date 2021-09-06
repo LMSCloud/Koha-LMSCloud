@@ -4,18 +4,18 @@ package Koha::UploadedFile;
 #
 # This file is part of Koha.
 #
-# Koha is free software; you can redistribute it and/or modify it under the
-# terms of the GNU General Public License as published by the Free Software
-# Foundation; either version 3 of the License, or (at your option) any later
-# version.
+# Koha is free software; you can redistribute it and/or modify it
+# under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 3 of the License, or
+# (at your option) any later version.
 #
-# Koha is distributed in the hope that it will be useful, but WITHOUT ANY
-# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
-# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+# Koha is distributed in the hope that it will be useful, but
+# WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+# GNU General Public License for more details.
 #
-# You should have received a copy of the GNU General Public License along
-# with Koha; if not, write to the Free Software Foundation, Inc.,
-# 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+# You should have received a copy of the GNU General Public License
+# along with Koha; if not, see <http://www.gnu.org/licenses>.
 
 use Modern::Perl;
 use File::Spec;
@@ -75,13 +75,6 @@ sub delete {
     my $file = $self->full_path;
 
     my $retval = $self->SUPER::delete;
-    if( !defined($retval) ) { # undef is Unknown (-1)
-        $retval = -1;
-    } elsif( $retval eq '0' ) { # 0 => 0E0
-        $retval = "0E0";
-    } elsif( $retval !~ /^(0E0|1)$/ ) { # Unknown too
-        $retval = -1;
-    }
     return $retval if $params->{keep_file};
 
     if( ! -e $file ) {
@@ -102,8 +95,9 @@ Returns the fully qualified path name for an uploaded file.
 sub full_path {
     my ( $self ) = @_;
     my $path = File::Spec->catfile(
-        $self->permanent?
-            $self->permanent_directory: $self->temporary_directory,
+        $self->permanent
+            ? $self->permanent_directory
+            : C4::Context->temporary_directory,
         $self->dir,
         $self->hashvalue. '_'. $self->filename,
     );
@@ -137,7 +131,7 @@ sub httpheaders {
     if( $self->filename =~ /\.pdf$/ ) {
         return (
             '-type'       => 'application/pdf',
-            'Content-Disposition' => 'inline; filename='.$self->filename,
+            'Content-Disposition' => 'inline; filename="'.$self->filename.'"',
         );
     } else {
         return (
@@ -158,17 +152,6 @@ Returns root directory for permanent storage
 sub permanent_directory {
     my ( $class ) = @_;
     return C4::Context->config('upload_path');
-}
-
-=head3 tmp_directory
-
-Returns root directory for temporary storage
-
-=cut
-
-sub temporary_directory {
-    my ( $class ) = @_;
-    return C4::Context->config('tmp_path') || File::Spec->tmpdir;
 }
 
 =head3 _type

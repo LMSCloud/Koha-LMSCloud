@@ -10,6 +10,7 @@ export PERL_MM_USE_DEFAULT=1
 
 override_dh_gencontrol:
 	debian/bd-to-depends >> debian/koha-common.substvars
+	debian/bd-to-depends >> debian/koha-core.substvars
 	dh_gencontrol
 
 override_dh_auto_install:
@@ -17,14 +18,13 @@ override_dh_auto_install:
 	rm $(TMP)/etc/koha/README.txt
 	rm $(TMP)/etc/koha/SIPconfig.xml
 	rm $(TMP)/etc/koha/log4perl.conf
+	rm $(TMP)/etc/koha/apache.conf
+	rm $(TMP)/etc/koha/nginx.conf
+	rm $(TMP)/etc/koha/koha-worker.service
 	rm -r $(TMP)/usr/share/koha/doc
 	rm -r $(TMP)/var/run
 	rm -r $(TMP)/var/lock
 	rm $(TMP)/var/log/koha/README
-	rm -r \
-		$(TMP)/usr/share/koha/intranet/htdocs/intranet-tmpl/lib/tiny_mce
-	ln -s /usr/share/tinymce/www \
-              $(TMP)/usr/share/koha/intranet/htdocs/intranet-tmpl/lib/tiny_mce
 	install -d $(TMP)/etc/apache2/sites-available
 	install -d $(TMP)/etc/apache2/sites-enabled
 	install -d $(TMP)/etc/apache2/conf.d
@@ -45,4 +45,4 @@ override_dh_auto_install:
 
 override_dh_compress:
 	# exclude history.txt from compression as about.pl needs it uncompressed
-	dh_compress --exclude=history.txt
+	dh_compress --exclude=history.txt --exclude=contributors.yaml --exclude=teams.yaml

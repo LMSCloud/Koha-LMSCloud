@@ -24,6 +24,7 @@ use Modern::Perl;
 use CGI qw ( -utf8 );
 my $input = CGI->new;
 my $uploadbarcodes = $input->param('uploadbarcodes');
+my $barcodelist = $input->param('barcodelist');
 
 use C4::Auth;
 use C4::Context;
@@ -39,25 +40,29 @@ use Koha::Biblios;
 use Koha::DateUtils;
 use Koha::AuthorisedValues;
 use Koha::BiblioFrameworks;
+use Koha::ClassSources;
+use Koha::Items;
 use List::MoreUtils qw( none );
 
 my $minlocation=$input->param('minlocation') || '';
 my $maxlocation=$input->param('maxlocation');
+my $class_source=$input->param('class_source');
 $maxlocation=$minlocation.'Z' unless ( $maxlocation || ! $minlocation );
 my $location=$input->param('location') || '';
 my $ignoreissued=$input->param('ignoreissued');
+my $ignore_waiting_holds = $input->param('ignore_waiting_holds');
 my $datelastseen = $input->param('datelastseen'); # last inventory date
 my $branchcode = $input->param('branchcode') || '';
 my $branch     = $input->param('branch');
 my $op         = $input->param('op');
 my $compareinv2barcd = $input->param('compareinv2barcd');
 my $dont_checkin = $input->param('dont_checkin');
+my $out_of_order = $input->param('out_of_order');
 
 my ( $template, $borrowernumber, $cookie ) = get_template_and_user(
     {   template_name   => "tools/inventory.tt",
         query           => $input,
         type            => "intranet",
-        authnotrequired => 0,
         flagsrequired   => { tools => 'inventory' },
         debug           => 1,
     }
@@ -114,6 +119,21 @@ for my $authvfield (@$statuses) {
     }
 }
 
+# if there's a list of not for loans types selected use it rather than
+# the full set.
+@notforloans = @{$staton->{'items.notforloan'}} if defined $staton->{'items.notforloan'} and scalar @{$staton->{'items.notforloan'}} > 0;
+
+my @class_sources = Koha::ClassSources->search({ used => 1 });
+my $pref_class = C4::Context->preference("DefaultClassificationSource");
+
+my @itemtypes = Koha::ItemTypes->search;
+my @selected_itemtypes;
+foreach my $itemtype ( @itemtypes ) {
+    if ( defined $input->param('itemtype-' . $itemtype->itemtype) ) {
+        push @selected_itemtypes, "'" . $itemtype->itemtype . "'";
+    }
+}
+
 $template->param(
     authorised_values        => \@authorised_value_list,
     today                    => dt_from_string,
@@ -125,7 +145,11 @@ $template->param(
     branch                   => $branch,
     datelastseen             => $datelastseen,
     compareinv2barcd         => $compareinv2barcd,
-    uploadedbarcodesflag     => $uploadbarcodes ? 1 : 0,
+    uploadedbarcodesflag     => ($uploadbarcodes || $barcodelist) ? 1 : 0,
+    ignore_waiting_holds     => $ignore_waiting_holds,
+    class_sources            => \@class_sources,
+    pref_class               => $pref_class,
+    itemtypes                => \@itemtypes,
 );
 
 # Walk through uploaded barcodes, report errors, mark as seen, check in
@@ -133,10 +157,10 @@ my $results = {};
 my @scanned_items;
 my @errorloop;
 my $moddatecount = 0;
-if ( $uploadbarcodes && length($uploadbarcodes) > 0 ) {
+if ( ($uploadbarcodes && length($uploadbarcodes) > 0) || ($barcodelist && length($barcodelist) > 0) ) {
     my $dbh = C4::Context->dbh;
-    my $date = dt_from_string( scalar $input->param('setdate') );
-    $date = output_pref ( { dt => $date, dateformat => 'iso' } );
+    my $date = $input->param('setdate');
+    my $date_dt = dt_from_string($date);
 
     my $strsth  = "select * from issues, items where items.itemnumber=issues.itemnumber and items.barcode =?";
     my $qonloan = $dbh->prepare($strsth);
@@ -152,9 +176,15 @@ if ( $uploadbarcodes && length($uploadbarcodes) > 0 ) {
     my $err_length=0;
     my $err_data=0;
     my $lines_read=0;
-    binmode($uploadbarcodes, ":encoding(UTF-8)");
-    while (my $barcode=<$uploadbarcodes>) {
-        push @uploadedbarcodes, grep { /\S/ } split( /[\n\r,;|-]/, $barcode );
+    if ($uploadbarcodes && length($uploadbarcodes) > 0) {
+        binmode($uploadbarcodes, ":encoding(UTF-8)");
+        while (my $barcode=<$uploadbarcodes>) {
+            my $split_chars = C4::Context->preference('BarcodeSeparators');
+            push @uploadedbarcodes, grep { /\S/ } split( /[$split_chars]/, $barcode );
+        }
+    } else {
+        push @uploadedbarcodes, split(/\s\n/, $input->param('barcodelist') );
+        $uploadbarcodes = $barcodelist;
     }
     for my $barcode (@uploadedbarcodes) {
         next unless $barcode;
@@ -184,34 +214,32 @@ if ( $uploadbarcodes && length($uploadbarcodes) > 0 ) {
         if ( $qwithdrawn->execute($barcode) && $qwithdrawn->rows ) {
             push @errorloop, { 'barcode' => $barcode, 'ERR_WTHDRAWN' => 1 };
         } else {
-            my $item = GetItem( '', $barcode );
-            if ( defined $item && $item->{'itemnumber'} ) {
+            my $item = Koha::Items->find({barcode => $barcode});
+            if ( $item ) {
                 # Modify date last seen for scanned items, remove lost status
-                ModItem( { itemlost => 0, datelastseen => $date }, undef, $item->{'itemnumber'} );
+                $item->set({ itemlost => 0, datelastseen => $date_dt })->store;
+                my $item_unblessed = $item->unblessed;
                 $moddatecount++;
-                # update item hash accordingly
-                $item->{itemlost} = 0;
-                $item->{datelastseen} = $date;
                 unless ( $dont_checkin ) {
                     $qonloan->execute($barcode);
                     if ($qonloan->rows){
                         my $data = $qonloan->fetchrow_hashref;
                         my ($doreturn, $messages, $iteminformation, $borrower) =AddReturn($barcode, $data->{homebranch});
                         if( $doreturn ) {
-                            $item->{onloan} = undef;
-                            $item->{datelastseen} = dt_from_string;
+                            $item_unblessed->{onloan} = undef;
+                            $item_unblessed->{datelastseen} = dt_from_string;
                         } else {
                             push @errorloop, { barcode => $barcode, ERR_ONLOAN_NOT_RET => 1 };
                         }
                     }
                 }
-                push @scanned_items, $item;
+                push @scanned_items, $item_unblessed;
             } else {
                 push @errorloop, { barcode => $barcode, ERR_BARCODE => 1 };
             }
         }
     }
-    $template->param( date => $date );
+    $template->param( date => output_pref ( { str => $date, dateformat => 'iso' } ) );
     $template->param( errorloop => \@errorloop ) if (@errorloop);
 }
 
@@ -222,6 +250,7 @@ if ( $op && ( !$uploadbarcodes || $compareinv2barcd )) {
     ( $inventorylist ) = GetItemsForInventory({
       minlocation  => $minlocation,
       maxlocation  => $maxlocation,
+      class_source => $class_source,
       location     => $location,
       ignoreissued => $ignoreissued,
       datelastseen => $datelastseen,
@@ -229,6 +258,8 @@ if ( $op && ( !$uploadbarcodes || $compareinv2barcd )) {
       branch       => $branch,
       offset       => 0,
       statushash   => $staton,
+      ignore_waiting_holds => $ignore_waiting_holds,
+      itemtypes    => \@selected_itemtypes,
     });
 }
 # Build rightplacelist used to check if a scanned item is in the right place.
@@ -236,6 +267,7 @@ if( @scanned_items ) {
     ( $rightplacelist ) = GetItemsForInventory({
       minlocation  => $minlocation,
       maxlocation  => $maxlocation,
+      class_source => $class_source,
       location     => $location,
       ignoreissued => undef,
       datelastseen => undef,
@@ -243,6 +275,8 @@ if( @scanned_items ) {
       branch       => $branch,
       offset       => 0,
       statushash   => undef,
+      ignore_waiting_holds => $ignore_waiting_holds,
+      itemtypes    => \@selected_itemtypes,
     });
     # Convert the structure to a hash on barcode
     $rightplacelist = {
@@ -252,7 +286,10 @@ if( @scanned_items ) {
 
 # Report scanned items that are on the wrong place, or have a wrong notforloan
 # status, or are still checked out.
-foreach my $item ( @scanned_items ) {
+for ( my $i = 0; $i < @scanned_items; $i++ ) {
+
+    my $item = $scanned_items[$i];
+
     $item->{notforloancode} = $item->{notforloan}; # save for later use
     my $fc = $item->{'frameworkcode'} || '';
 
@@ -269,6 +306,24 @@ foreach my $item ( @scanned_items ) {
     if( none { $item->{'notforloancode'} eq $_ } @notforloans ) {
         $item->{problems}->{changestatus} = 1;
         additemtoresults( $item, $results );
+    }
+
+    # Check for items shelved out of order
+    if ($out_of_order) {
+        unless ( $i == 0 ) {
+            my $previous_item = $scanned_items[ $i - 1 ];
+            if ( $previous_item && $item->{cn_sort} lt $previous_item->{cn_sort} ) {
+                $item->{problems}->{out_of_order} = 1;
+                additemtoresults( $item, $results );
+            }
+        }
+        unless ( $i == scalar(@scanned_items) ) {
+            my $next_item = $scanned_items[ $i + 1 ];
+            if ( $next_item && $item->{cn_sort} gt $next_item->{cn_sort} ) {
+                $item->{problems}->{out_of_order} = 1;
+                additemtoresults( $item, $results );
+            }
+        }
     }
 
     # Report an item that is checked out (unusual!) or wrongly placed
@@ -290,7 +345,7 @@ if ( $compareinv2barcd ) {
         my $barcode = $item->{barcode};
         if( !$barcode ) {
             $item->{problems}->{no_barcode} = 1;
-        } elsif ( grep /^$barcode$/, @scanned_barcodes ) {
+        } elsif ( grep { $_ eq $barcode } @scanned_barcodes ) {
             next;
         } else {
             $item->{problems}->{not_scanned} = 1;

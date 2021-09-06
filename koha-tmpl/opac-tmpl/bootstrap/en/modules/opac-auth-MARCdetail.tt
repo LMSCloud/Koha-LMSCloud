@@ -1,8 +1,9 @@
+[% USE raw %]
 [% USE Asset %]
 [% USE Koha %]
 [% PROCESS 'opac-authorities.inc' %]
 [% INCLUDE 'doc-head-open.inc' %]
-<title>[% IF ( LibraryNameTitle ) %][% LibraryNameTitle %][% ELSE %]Koha online[% END %] catalog &rsaquo;  Entry [% authtypetext %]</title>
+<title>Entry [% authtypetext | html %] &rsaquo; [% IF ( LibraryNameTitle ) %][% LibraryNameTitle | html %][% ELSE %]Koha online[% END %] catalog</title>
 [% INCLUDE 'doc-head-close.inc' %]
 [% BLOCK cssinclude %][% END %]
 </head>
@@ -10,28 +11,36 @@
 [% INCLUDE 'masthead.inc' %]
 
     <div class="main">
-        <ul class="breadcrumb">
-            <li><a href="/cgi-bin/koha/opac-main.pl">Home</a> <span class="divider">&rsaquo;</span></li>
-            <li><a href="/cgi-bin/koha/opac-authorities-home.pl">Authority search</a> <span class="divider">&rsaquo;</span></li>
-            <li><a href="#">Entry [% authtypetext %]</a></li>
-        </ul>
+        <nav aria-label="breadcrumb">
+            <ul class="breadcrumb">
+                <li class="breadcrumb-item">
+                    <a href="/cgi-bin/koha/opac-main.pl">Home</a>
+                </li>
+                <li class="breadcrumb-item">
+                    <a href="/cgi-bin/koha/opac-authorities-home.pl">Authority search</a>
+                </li>
+                <li class="breadcrumb-item" aria-current="page">
+                    <a href="#">Entry [% authtypetext | html %]</a>
+                </li>
+            </ul>
+        </nav>
 
         <div class="container-fluid">
-            <div class="row-fluid">
+            <div class="row">
                 [% IF ( OpacNav || OpacNavBottom ) %]
-                    <div class="span2">
+                    <div class="col-lg-2">
                         <div id="navigation">
                             [% INCLUDE 'navigation.inc' %]
                         </div>
                     </div>
-                    <div class="span10">
+                    <div class="col-lg-10 order-first order-md-first order-lg-2">
                 [% ELSE %]
-                    <div class="span12">
+                    <div class="col order-first order-md-first order-lg-2">
                 [% END %]
                     <div id="userauthMARCdetails" class="maincontent">
                         <div id="views">
                             <span class="view">
-                                <a id="Normalview" href="/cgi-bin/koha/opac-authoritiesdetail.pl?authid=[% authid %]">Normal view</a>
+                                <a id="Normalview" href="/cgi-bin/koha/opac-authoritiesdetail.pl?authid=[% authid | html %]">Normal view</a>
                             </span>
                             <span class="view">
                                 <span id="MARCview">MARC view</span>
@@ -44,29 +53,28 @@
                             </div>
                         [% END %]
 
-                        <h1>Entry [% authtypetext %]</h1>
-                        <p><a href="opac-search.pl?type=opac&amp;q=[% authid %]&amp;idx=an,phr">Number of records used in: [% count %]</a></p>
+                        <h1>Entry [% authtypetext | html %]</h1>
+                        <p><a href="opac-search.pl?type=opac&amp;q=[% authid | uri %]&amp;idx=an,phr">Number of records used in: [% count | html %]</a></p>
                             [% FOREACH Tag0X IN Tab0XX %]
-                                <p><b>[% Tag0X.tag %]</b></p>
+                                <p><strong>[% Tag0X.tag | html %]</strong></p>
                                 <ul>
                                 [% FOREACH subfiel IN Tag0X.subfield %]
-                                    <li><b>[% subfiel.marc_lib %]:</b>
-                                    [% IF subfiel.isurl %]<a href="[% subfiel.marc_value %]">[% subfiel.marc_value %]</a>
-                                    [% ELSE %][% subfiel.marc_value %][% END %]</li>
+                                    <li><strong>[% subfiel.marc_lib | $raw %]:</strong>
+                                    [% IF subfiel.isurl %]<a href="[% subfiel.marc_value | url %]">[% subfiel.marc_value | html %]</a>
+                                    [% ELSE %][% subfiel.marc_value | html %][% END %]</li>
                                 [% END %]
                                 </ul>
                             [% END %]
                     </div> <!-- / #userauthMARCdetails -->
-                </div> <!-- / .span10/12 -->
-            </div> <!-- / .row-fluid -->
+                </div> <!-- / .col-lg-10/12 -->
+            </div> <!-- / .row -->
         </div> <!-- / .container-fluid -->
     </div> <!-- / .main -->
 
 [% INCLUDE 'opac-bottom.inc' %]
 [% BLOCK jsinclude %]
-[% Asset.js("lib/jquery/plugins/jquery.jstree.js") %]
-<script>
-    //<![CDATA[
+    [% Asset.js("lib/jquery/plugins/jquery.jstree.js") | $raw %]
+    <script>
         $(document).ready(function() {
             [% IF ( displayhierarchy ) %]
                 var current_nodes = [];
@@ -81,6 +89,5 @@
                     });
             [% END %]
         });
-    //]]>
-</script>
+    </script>
 [% END %]

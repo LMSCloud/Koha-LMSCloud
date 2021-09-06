@@ -30,8 +30,7 @@ use C4::Reserves qw(CheckReserves);
 use Koha::Database;
 
 use DBI;
-
-use Data::Dumper;
+use Try::Tiny;
 
 use vars qw(@ISA @EXPORT);
 
@@ -67,7 +66,8 @@ BEGIN {
 
 =head2  CreateCollection
  ( $success, $errorcode, $errormessage ) = CreateCollection( $title, $description );
- Creates a new collection
+
+Creates a new collection
 
  Input:
    $title: short description of the club or service
@@ -166,7 +166,8 @@ sub UpdateCollection {
 =head2 DeleteCollection
 
  ( $success, $errorcode, $errormessage ) = DeleteCollection( $colId );
- Deletes a collection of the given id
+
+Deletes a collection of the given id
 
  Input:
    $colId : id of the Archetype to be deleted
@@ -202,7 +203,8 @@ sub DeleteCollection {
 =head2 GetCollections
 
  $collections = GetCollections();
- Returns data about all collections
+
+Returns data about all collections
 
  Output:
   On Success:
@@ -232,8 +234,8 @@ sub GetCollections {
 
  ( $results, $success, $errorcode, $errormessage ) = GetItemsInCollection( $colId );
 
- Returns information about the items in the given collection
- 
+Returns information about the items in the given collection
+
  Input:
    $colId: The id of the collection
 
@@ -400,7 +402,7 @@ sub RemoveItemFromCollection {
 
 =head2 TransferCollection
 
- ( $success, $errorcode, $errormessage ) = TransferCollection( $colId, $colBranchcode );
+ ( $success, $messages ) = TransferCollection( $colId, $colBranchcode );
 
 Transfers a collection to another branch
 
@@ -410,8 +412,7 @@ Transfers a collection to another branch
 
  Output:
    $success: 1 if all database operations were successful, 0 otherwise
-   $errorCode: Code for reason of failure, good for translating errors in templates
-   $errorMessage: English description of error
+   $messages: Arrayref of messages for user feedback
 
 =cut
 
@@ -420,10 +421,10 @@ sub TransferCollection {
 
     ## Check for all necessary parameters
     if ( !$colId ) {
-        return ( 0, 1, "NO_ID" );
+        return ( 0, [{ type => 'error', code => 'NO_ID' }] );
     }
     if ( !$colBranchcode ) {
-        return ( 0, 2, "NO_BRANCHCODE" );
+        return ( 0, [{ type => 'error', code => 'NO_BRANCHCODE' }] );
     }
 
     my $dbh = C4::Context->dbh;
@@ -435,7 +436,8 @@ sub TransferCollection {
                         colBranchcode = ? 
                         WHERE colId = ?"
     );
-    $sth->execute( $colBranchcode, $colId ) or return ( 0, 4, $sth->errstr() );
+    $sth->execute( $colBranchcode, $colId ) or return 0;
+    my $to_library = Koha::Libraries->find( $colBranchcode );
 
     $sth = $dbh->prepare(q{
         SELECT items.itemnumber, items.barcode FROM collections_tracking
@@ -444,16 +446,70 @@ sub TransferCollection {
         WHERE issues.borrowernumber IS NULL
           AND collections_tracking.colId = ?
     });
-    $sth->execute($colId) or return ( 0, 4, $sth->errstr );
-    my @results;
+    $sth->execute($colId) or return 0;
+    my $messages;
     while ( my $item = $sth->fetchrow_hashref ) {
-        my ($status) = CheckReserves( $item->{itemnumber} );
-        my @transfers = C4::Circulation::GetTransfers( $item->{itemnumber} );
-        C4::Circulation::transferbook( $colBranchcode, $item->{barcode}, my $ignore_reserves = 1 ) unless ( $status eq 'Waiting' || @transfers );
+        my $item_object = Koha::Items->find( $item->{itemnumber} );
+        try {
+            $item_object->request_transfer(
+                {
+                    to            => $to_library,
+                    reason        => 'RotatingCollection',
+                    ignore_limits => 0
+                }
+            );    # Request transfer
+        }
+        catch {
+            if ( $_->isa('Koha::Exceptions::Item::Transfer::InQueue') ) {
+                my $exception      = $_;
+                my $found_transfer = $_->transfer;
+                if (   $found_transfer->in_transit
+                    || $found_transfer->reason eq 'Reserve' )
+                {
+                    my $transfer = $item_object->request_transfer(
+                        {
+                            to            => $to_library,
+                            reason        => "RotatingCollection",
+                            ignore_limits => 0,
+                            enqueue       => 1
+                        }
+                    );    # Queue transfer
+                    push @{$messages},
+                      {
+                        type           => 'alert',
+                        code           => 'enqueued',
+                        item           => $item_object,
+                        found_transfer => $found_transfer
+                      };
+                }
+                else {
+                    my $transfer = $item_object->request_transfer(
+                        {
+                            to            => $to_library,
+                            reason        => "RotatingCollection",
+                            ignore_limits => 0,
+                            replace       => 1
+                        }
+                    );    # Replace transfer
+                    # NOTE: If we just replaced a StockRotationAdvance,
+                    # it will get enqueued afresh on the next cron run
+                }
+            }
+            elsif ( $_->isa('Koha::Exceptions::Item::Transfer::Limit') ) {
+                push @{$messages},
+                  {
+                    type => 'error',
+                    code => 'limits',
+                    item => $item_object
+                  };
+            }
+            else {
+                $_->rethrow();
+            }
+        };
     }
 
-    return 1;
-
+    return (1, $messages);
 }
 
 =head2 GetCollectionItemBranches
@@ -508,7 +564,7 @@ sub isItemInThisCollection {
 
 =head2 isItemInAnyCollection
 
-$inCollection = isItemInAnyCollection( $itemnumber );
+  my $inCollection = isItemInAnyCollection( $itemnumber );
 
 =cut
 
@@ -518,7 +574,7 @@ sub isItemInAnyCollection {
     my $dbh = C4::Context->dbh;
 
     my $sth = $dbh->prepare(
-        "SELECT itemnumber FROM collections_tracking WHERE itemnumber = ?");
+        "SELECT itemnumber FROM collections_tracking JOIN collections USING (colId) WHERE itemnumber = ?");
     $sth->execute($itemnumber) or return (0);
 
     my $row = $sth->fetchrow_hashref;

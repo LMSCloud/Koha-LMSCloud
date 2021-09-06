@@ -34,7 +34,7 @@ plugin that shows a stats on serials
 
 =cut
 
-my $input      = new CGI;
+my $input      = CGI->new;
 my $templatename   = "reports/serials_stats.tt";
 my $do_it      = $input->param("do_it");
 my $bookseller = $input->param("bookseller");
@@ -50,7 +50,6 @@ my ($template, $borrowernumber, $cookie)
 	= get_template_and_user({template_name => $templatename,
 				query => $input,
 				type => "intranet",
-				authnotrequired => 0,
 				flagsrequired => {reports => '*'},
 				debug => 1,
 				});
@@ -138,7 +137,8 @@ if($do_it){
     my $sth = $dbh->prepare("SELECT aqbooksellerid, aqbooksellers.name 
                                 FROM subscription 
                                   LEFT JOIN aqbooksellers ON (subscription.aqbooksellerid=aqbooksellers.id ) 
-                                GROUP BY aqbooksellerid");
+                                ORDER BY aqbooksellers.name ASC
+				");
     $sth->execute();
     
     while(my $row = $sth->fetchrow_hashref){

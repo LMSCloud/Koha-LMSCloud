@@ -45,26 +45,31 @@ sub new {
     my $self = bless( $args, $class );
 
     my $plugin_version = $self->get_metadata->{version};
-    my $database_version = $self->retrieve_data('__INSTALLED_VERSION__');
+    my $database_version = $self->retrieve_data('__INSTALLED_VERSION__') || 0;
 
     ## Run the installation method if it exists and hasn't been run before
     if ( $self->can('install') && !$self->retrieve_data('__INSTALLED__') ) {
         if ( $self->install() ) {
-            $self->store_data( { '__INSTALLED__' => 1 } );
+            $self->store_data( { '__INSTALLED__' => 1, '__ENABLED__' => 1 } );
             if ( my $version = $plugin_version ) {
                 $self->store_data({ '__INSTALLED_VERSION__' => $version });
             }
         } else {
             warn "Plugin $class failed during installation!";
         }
-    } elsif ( $self->can('upgrade') && $plugin_version && $database_version ) {
+    } elsif ( $self->can('upgrade') ) {
         if ( _version_compare( $plugin_version, $database_version ) == 1 ) {
             if ( $self->upgrade() ) {
                 $self->store_data({ '__INSTALLED_VERSION__' => $plugin_version });
+            } else {
                 warn "Plugin $class failed during upgrade!";
             }
         }
+    } elsif ( $plugin_version ne $database_version ) {
+        $self->store_data({ '__INSTALLED_VERSION__' => $plugin_version });
     }
+
+    $self->{_bundle_path} = abs_path($self->mbf_dir);
 
     return $self;
 }
@@ -114,6 +119,32 @@ sub retrieve_data {
 get_template returns a Template object. Eventually this will probably be calling
 C4:Template, but at the moment, it does not.
 
+The returned template contains 3 variables that can be used in the plugin
+templates:
+
+=over 8
+
+=item B<CLASS>
+
+The name of the plugin class.
+
+=item B<METHOD>
+
+Then name of the plugin method used. For example 'tool' or 'report'.
+
+=item B<PLUGIN_PATH>
+
+The URL path to the plugin. It can be used in templates in order to localize
+ressources like images in html tags, or other templates.
+
+=item B<PLUGIN_DIR>
+
+The absolute pathname to the plugin directory. Necessary to include other
+templates from a template with the [% INCLUDE %] directive.
+
+=back
+
+
 =cut
 
 sub get_template {
@@ -132,11 +163,12 @@ sub get_template {
             authnotrequired => 1,
         }
     );
-
     $template->param(
         CLASS       => $self->{'class'},
         METHOD      => scalar $self->{'cgi'}->param('method'),
         PLUGIN_PATH => $self->get_plugin_http_path(),
+        PLUGIN_DIR  => $self->bundle_path(),
+        LANG        => C4::Languages::getlanguage($self->{'cgi'}),
     );
 
     return $template;
@@ -145,7 +177,10 @@ sub get_template {
 sub get_metadata {
     my ( $self, $args ) = @_;
 
-    return $self->{'metadata'};
+    #FIXME: Why another encoding issue? For metadata containing non latin characters.
+    my $metadata = $self->{metadata};
+    $metadata->{$_} && utf8::decode($metadata->{$_}) for keys %$metadata;
+    return $metadata;
 }
 
 =head2 get_qualified_table_name
@@ -207,6 +242,20 @@ sub output_html {
     output_with_http_headers( $self->{cgi}, undef, $data, 'html', $status, $extra_options );
 }
 
+=head2 bundle_path
+
+    my $bundle_path = $self->bundle_path
+
+Returns the directory in which bundled files are.
+
+=cut
+
+sub bundle_path {
+    my ($self) = @_;
+
+    return $self->{_bundle_path};
+}
+
 =head2 output
 
    $self->output( $data, $content_type[, $status[, $extra_options]]);
@@ -246,8 +295,14 @@ if ( _version_compare( '2.6.26', '2.6.0' ) == 1 ) {
 =cut
 
 sub _version_compare {
-    my $ver1 = shift || 0;
-    my $ver2 = shift || 0;
+    my @args = @_;
+
+    if ( $args[0]->isa('Koha::Plugins::Base') ) {
+        shift @args;
+    }
+
+    my $ver1 = shift @args || 0;
+    my $ver2 = shift @args || 0;
 
     my @v1 = split /[.+:~-]/, $ver1;
     my @v2 = split /[.+:~-]/, $ver2;
@@ -267,6 +322,52 @@ sub _version_compare {
         }
     }
     return 0;
+}
+
+=head2 is_enabled
+
+Method that returns wether the plugin is enabled or not
+
+$plugin->enable
+
+=cut
+
+sub is_enabled {
+    my ($self) = @_;
+
+    return $self->retrieve_data( '__ENABLED__' );
+}
+
+=head2 enable
+
+Method for enabling plugin
+
+$plugin->enable
+
+=cut
+
+sub enable {
+    my ($self) = @_;
+
+    $self->store_data( {'__ENABLED__' => 1}  );
+
+    return $self;
+}
+
+=head2 disable
+
+Method for disabling plugin
+
+$plugin->disable
+
+=cut
+
+sub disable {
+    my ($self) = @_;
+
+    $self->store_data( {'__ENABLED__' => 0}  );
+
+    return $self;
 }
 
 1;

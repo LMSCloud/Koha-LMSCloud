@@ -25,9 +25,12 @@ BEGIN {
     use FindBin;
     eval { require "$FindBin::Bin/../kohalib.pl" };
 }
+
+use Koha::Script -cron;
 use C4::Letters;
 use C4::Log;
 use Getopt::Long;
+use Try::Tiny;
 
 my $username = undef;
 my $password = undef;
@@ -36,6 +39,7 @@ my $method = 'LOGIN';
 my $help = 0;
 my $verbose = 0;
 my $type = q{};
+my $letter_code;
 
 GetOptions(
     'u|username:s'      => \$username,
@@ -45,6 +49,7 @@ GetOptions(
     'h|help|?'          => \$help,
     'v|verbose'         => \$verbose,
     't|type:s'          => \$type,
+    'c|code:s'          => \$letter_code,
 );
 my $usage = << 'ENDUSAGE';
 
@@ -58,6 +63,7 @@ This script has the following parameters :
     -u --username: username of mail account
     -p --password: password of mail account
     -t --type: If supplied, only processes this type of message ( email, sms )
+    -c --code: If supplied, only processes messages with this letter code
     -l --limit: The maximum number of messages to process for this run
     -m --method: authentication method required by SMTP server (See perldoc Sendmail.pm for supported authentication types.)
     -h --help: this message
@@ -68,14 +74,32 @@ die $usage if $help;
 
 cronlogaction();
 
+if ( C4::Context->config("enable_plugins") ) {
+    my @plugins = Koha::Plugins->new->GetPlugins({
+        method => 'before_send_messages',
+    });
+
+    if (@plugins) {
+        foreach my $plugin ( @plugins ) {
+            try {
+                $plugin->before_send_messages();
+            }
+            catch {
+                warn "$_";
+            };
+        }
+    }
+}
+
 C4::Letters::SendQueuedMessages(
     {
-        verbose  => $verbose,
-        username => $username,
-        password => $password,
-        method   => $method,
-        limit    => $limit,
-        type     => $type,
+        verbose     => $verbose,
+        username    => $username,
+        password    => $password,
+        method      => $method,
+        limit       => $limit,
+        type        => $type,
+        letter_code => $letter_code,
     }
 );
 

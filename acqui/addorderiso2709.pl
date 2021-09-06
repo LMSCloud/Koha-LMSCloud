@@ -24,8 +24,9 @@
 use Modern::Perl;
 use CGI qw ( -utf8 );
 use Carp;
-use YAML qw/Load/;
+use YAML::XS;
 use List::MoreUtils qw/uniq/;
+use Encode;
 
 use C4::Context;
 use C4::Auth;
@@ -50,12 +51,11 @@ use Koha::Acquisition::Orders;
 use Koha::Acquisition::Booksellers;
 use Koha::Patrons;
 
-my $input = new CGI;
+my $input = CGI->new;
 my ($template, $loggedinuser, $cookie, $userflags) = get_template_and_user({
     template_name => "acqui/addorderiso2709.tt",
     query => $input,
     type => "intranet",
-    authnotrequired => 0,
     flagsrequired   => { acquisition => 'order_manage' },
     debug => 1,
 });
@@ -140,6 +140,7 @@ if ($op eq ""){
     my @import_record_id_selected = $input->multi_param("import_record_id");
     my @quantities = $input->multi_param('quantity');
     my @prices = $input->multi_param('price');
+    my @orderreplacementprices = $input->multi_param('replacementprice');
     my @budgets_id = $input->multi_param('budget_id');
     my @discount = $input->multi_param('discount');
     my @sort1 = $input->multi_param('sort1');
@@ -182,7 +183,7 @@ if ($op eq ""){
             my $bibitemnum;
 
             # remove ISBN -
-            my ( $isbnfield, $isbnsubfield ) = GetMarcFromKohaField( 'biblioitems.isbn', '' );
+            my ( $isbnfield, $isbnsubfield ) = GetMarcFromKohaField( 'biblioitems.isbn' );
             if ( $marcrecord->field($isbnfield) ) {
                 foreach my $field ( $marcrecord->field($isbnfield) ) {
                     foreach my $subfield ( $field->subfield($isbnsubfield) ) {
@@ -197,6 +198,8 @@ if ($op eq ""){
         } else {
             SetImportRecordStatus( $biblio->{'import_record_id'}, 'imported' );
         }
+
+        SetMatchedBiblionumber( $biblio->{import_record_id}, $biblionumber );
 
         # Add items from MarcItemFieldsToOrder
         my @homebranches = $input->multi_param('homebranch_' . $biblio_count);
@@ -219,22 +222,25 @@ if ($op eq ""){
         my @itemnumbers;
         for (my $i = 0; $i < $count; $i++) {
             $itemcreation = 1;
-            my ($item_bibnum, $item_bibitemnum, $itemnumber) = AddItem({
-                homebranch => $homebranches[$i],
-                holdingbranch => $holdingbranches[$i],
-                itemnotes_nonpublic => $nonpublic_notes[$i],
-                itemnotes => $public_notes[$i],
-                location => $locs[$i],
-                ccode => $ccodes[$i],
-                itype => $itypes[$i],
-                notforloan => $notforloans[$i],
-                uri => $uris[$i],
-                copynumber => $copynos[$i],
-                price => $itemprices[$i],
-                replacementprice => $replacementprices[$i],
-                itemcallnumber => $itemcallnumbers[$i],
-            }, $biblionumber);
-            push( @itemnumbers, $itemnumber );
+            my $item = Koha::Item->new(
+                {
+                    biblionumber        => $biblionumber,
+                    homebranch          => $homebranches[$i],
+                    holdingbranch       => $holdingbranches[$i],
+                    itemnotes_nonpublic => $nonpublic_notes[$i],
+                    itemnotes           => $public_notes[$i],
+                    location            => $locs[$i],
+                    ccode               => $ccodes[$i],
+                    itype               => $itypes[$i],
+                    notforloan          => $notforloans[$i],
+                    uri                 => $uris[$i],
+                    copynumber          => $copynos[$i],
+                    price               => $itemprices[$i],
+                    replacementprice    => $replacementprices[$i],
+                    itemcallnumber      => $itemcallnumbers[$i],
+                }
+            )->store;
+            push( @itemnumbers, $item->itemnumber );
         }
         if ($itemcreation == 1) {
             # Group orderlines from MarcItemFieldsToOrder
@@ -242,6 +248,7 @@ if ($op eq ""){
             for (my $i = 0; $i < $count; $i++) {
                 $budget_hash->{$budget_codes[$i]}->{quantity} += 1;
                 $budget_hash->{$budget_codes[$i]}->{price} = $itemprices[$i];
+                $budget_hash->{$budget_codes[$i]}->{replacementprice} = $replacementprices[$i];
                 $budget_hash->{$budget_codes[$i]}->{itemnumbers} //= [];
                 push @{ $budget_hash->{$budget_codes[$i]}->{itemnumbers} }, $itemnumbers[$i];
             }
@@ -279,6 +286,7 @@ if ($op eq ""){
                     } else {
                         $orderinfo{listprice} = 0;
                     }
+                    $orderinfo{replacementprice} = $infos->{replacementprice} || 0;
 
                     # remove uncertainprice flag if we have found a price in the MARC record
                     $orderinfo{uncertainprice} = 0 if $orderinfo{listprice};
@@ -315,6 +323,7 @@ if ($op eq ""){
                 order_internalnote => $cgiparams->{'all_order_internalnote'},
                 order_vendornote   => $cgiparams->{'all_order_vendornote'},
                 currency           => $cgiparams->{'all_currency'},
+                replacementprice   => shift( @orderreplacementprices ),
             );
             # get the price if there is one.
             my $price= shift( @prices ) || GetMarcPrice($marcrecord, C4::Context->preference('marcflavour'));
@@ -384,6 +393,12 @@ if ($op eq ""){
         }
         $imported++;
     }
+
+    # If all bibliographic records from the batch have been imported we modifying the status of the batch accordingly
+    SetImportBatchStatus( $import_batch_id, 'imported' )
+        if    @{ GetImportRecordsRange( $import_batch_id, undef, undef, 'imported' )}
+           == @{ GetImportRecordsRange( $import_batch_id )};
+
     # go to basket page
     if ( $imported ) {
         print $input->redirect("/cgi-bin/koha/acqui/basket.pl?basketno=".$cgiparams->{'basketno'}."&amp;duplinbatch=$duplinbatch");
@@ -404,9 +419,6 @@ my $budget_loop = [];
 my $budgets_hierarchy = GetBudgetHierarchy;
 foreach my $r ( @{$budgets_hierarchy} ) {
     next unless (CanUserUseBudget($patron, $r, $userflags));
-    if ( !defined $r->{budget_amount} || $r->{budget_amount} == 0 ) {
-        next;
-    }
     push @{$budget_loop},
       { b_id  => $r->{budget_id},
         b_txt => $r->{budget_name},
@@ -447,6 +459,7 @@ sub import_batches_list {
                 };
             } else {
                 # if there are no more line to includes, set the status to imported
+                # FIXME This should be removed in the future.
                 SetImportBatchStatus( $batch->{'import_batch_id'}, 'imported' );
             }
         }
@@ -507,8 +520,9 @@ sub import_biblios_list {
         my ( $marcblob, $encoding ) = GetImportRecordMarc( $biblio->{'import_record_id'} );
         my $marcrecord = MARC::Record->new_from_usmarc($marcblob) || die "couldn't translate marc information";
 
-        my $infos = get_infos_syspref('MarcFieldsToOrder', $marcrecord, ['price', 'quantity', 'budget_code', 'discount', 'sort1', 'sort2']);
+        my $infos = get_infos_syspref('MarcFieldsToOrder', $marcrecord, ['price', 'quantity', 'budget_code', 'discount', 'sort1', 'sort2','replacementprice']);
         my $price = $infos->{price};
+        my $replacementprice = $infos->{replacementprice};
         my $quantity = $infos->{quantity};
         my $budget_code = $infos->{budget_code};
         my $discount = $infos->{discount};
@@ -569,7 +583,7 @@ sub import_biblios_list {
                         'quantity' => $item_quantity,
                         'budget_id' => $item_budget_id || $budget_id,
                         'itemprice' => $item_price || $price,
-                        'replacementprice' => $item_replacement_price,
+                        'replacementprice' => $item_replacement_price || $replacementprice,
                         'itemcallnumber' => $item_callnumber,
                     );
                     $all_items_quantity++;
@@ -586,6 +600,7 @@ sub import_biblios_list {
 
         if ($alliteminfos == -1 || scalar(@$alliteminfos) == 0) {
             $cellrecord{price} = $price || '';
+            $cellrecord{replacementprice} = $replacementprice || '';
             $cellrecord{quantity} = $quantity || '';
             $cellrecord{budget_id} = $budget_id || '';
             $cellrecord{discount} = $discount || '';
@@ -666,7 +681,7 @@ sub get_infos_syspref {
     my $syspref = C4::Context->preference($syspref_name);
     $syspref = "$syspref\n\n"; # YAML is anal on ending \n. Surplus does not hurt
     my $yaml = eval {
-        YAML::Load($syspref);
+        YAML::XS::Load(Encode::encode_utf8($syspref));
     };
     if ( $@ ) {
         warn "Unable to parse $syspref syspref : $@";
@@ -712,7 +727,7 @@ sub get_infos_syspref_on_item {
     my $syspref = C4::Context->preference($syspref_name);
     $syspref = "$syspref\n\n"; # YAML is anal on ending \n. Surplus does not hurt
     my $yaml = eval {
-        YAML::Load($syspref);
+        YAML::XS::Load(Encode::encode_utf8($syspref));
     };
     if ( $@ ) {
         warn "Unable to parse $syspref syspref : $@";

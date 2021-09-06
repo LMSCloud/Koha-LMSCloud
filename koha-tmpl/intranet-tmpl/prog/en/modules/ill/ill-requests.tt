@@ -1,511 +1,132 @@
+[% USE raw %]
 [% USE Asset %]
 [% USE Branches %]
 [% USE Koha %]
 [% USE KohaDates %]
+[% SET footerjs = 1 %]
+[% USE AuthorisedValues %]
+[% USE TablesSettings %]
+[% USE Price %]
 
 [% INCLUDE 'doc-head-open.inc' %]
-<title>Koha &rsaquo; ILL requests  &rsaquo;</title>
+<title>ILL requests &rsaquo; Koha</title>
 [% INCLUDE 'doc-head-close.inc' %]
-[% Asset.js("lib/jquery/plugins/jquery.checkboxes.min.js") %]
-[% Asset.css("css/datatables.css") %]
-[% INCLUDE 'datatables.inc' %]
-<script type="text/javascript">
-    //<![CDATA[
-    var mypatrons;    // introduced for efficiency reasons in method illlist
-    var mybranches;    // introduced for efficiency reasons in method illlist
-    var mybackendcapabilities;    // introduced for efficiency reasons in method illlist
+[% USE raw %]
+[% USE Asset %]
+[% USE Branches %]
+[% USE Koha %]
+[% USE KohaDates %]
+[% SET footerjs = 1 %]
+[% USE AuthorisedValues %]
+[% USE TablesSettings %]
+[% USE Price %]
 
-    $(document).ready(function() {
-
-        // language dependent update of backend designation
-        updateBackendNamesInDropDown();
-        [% IF query_type == 'illlist' %]
-            // language dependent update of backend hit header text
-            updateHitHeaderText();
-        [% ELSIF query_type == 'illview' %]
-            // language dependent update of labels etc. for 'Details from Supplier' header line
-            updateDetailsFromSupplier();
-        [% END %]
-
-        // Illview Datatable setup
-
-        // Fields we don't want to display
-        var ignore = [
-            'accessurl',
-            'branchcode',
-            'completed',
-            'capabilities',
-            'cost',
-            'notesopac',
-            'notesstaff',
-            'placed',
-            'replied'
-        ];
-
-        // Fields we need to expand (flatten)
-        var expand = [
-            'metadata',
-            'patron'
-        ];
-
-        // Expanded fields
-        // This is auto populated
-        var expanded = {};
-
-        // The core fields that should be displayed first
-        var core = [
-            'orderid',
-            'backend',
-            'medium',
-            'metadata_Author',
-            'metadata_Title',
-            'borrowername',
-            'library',
-            'status',
-            'updated',
-            'metadata_checkedBy',
-            'illrequest_id',
-            'action'
-        ];
-
-        // Remove any fields we're ignoring
-        var removeIgnore = function(dataObj) {
-            dataObj.forEach(function(thisRow) {
-                ignore.forEach(function(thisIgnore) {
-                    if (thisRow.hasOwnProperty(thisIgnore)) {
-                        delete thisRow[thisIgnore];
-                    }
-                });
-            });
-        };
-
-        // Expand any fields we're expanding
-        var expandExpand = function(row) {
-            expand.forEach(function(thisExpand) {
-                if (row.hasOwnProperty(thisExpand)) {
-                    if (!expanded.hasOwnProperty(thisExpand)) {
-                        expanded[thisExpand] = [];
-                    }
-                    var expandObj = row[thisExpand];
-                    Object.keys(expandObj).forEach(
-                        function(thisExpandCol) {
-                            var expColName = thisExpand + '_' + thisExpandCol;
-                            // Keep a list of fields that have been expanded
-                            // so we can create toggle links for them
-                            if (expanded[thisExpand].indexOf(expColName) == -1) {
-                                expanded[thisExpand].push(expColName);
-                            }
-                            expandObj[expColName] =
-                                expandObj[thisExpandCol];
-                            delete expandObj[thisExpandCol];
-                        }
-                    );
-                    $.extend(true, row, expandObj);
-                    delete row[thisExpand];
-                }
-            });
-        };
-
-        // Build a de-duped list of all column names
-        var allCols = {};
-        core.map(function(thisCore) {
-            allCols[thisCore] = 1;
-        });
-
-        // Strip the expand prefix if it exists, we do this for display
-        var stripPrefix = function(value) {
-            expand.forEach(function(thisExpand) {
-                var regex = new RegExp(thisExpand + '_', 'g');
-                value = value.replace(regex, '');
-            });
-            return value;
-        };
-
-        // Our 'render' function for biblio link
-        var createBiblioLink = function(data, type, row) {
-            var ret = '';
-            if ( row.biblio_id  && row.status !== 'COMP' ) {
-                ret = '<a title="' + _("View title details") + '" ' +
-                    'href="/cgi-bin/koha/catalogue/detail.pl?' +
-                    'biblionumber='+row.biblio_id+'">' +
-                    row.metadata_Title + 
-                    '</a>';
-            } else {
-                ret = row.metadata_Title;
-            }
-            return ret;
-        };
-
-        // Our 'render' function for borrowerlink
-        var createPatronLink = function(data, type, row) {
-            var patronLink = '';
-            if ( row.borrowernumber ) {
-                patronLink = '<a title="' + _("View borrower details") + '" ' +
-                'href="/cgi-bin/koha/members/moremember.pl?' +
-                'borrowernumber='+row.borrowernumber+'">';
-                if ( row.patron_firstname ) {
-                    patronLink = patronLink + row.patron_firstname + ' ';
-                }
-                patronLink = patronLink + row.patron_surname + '</a>';
-            } else {
-                if ( row.patron_cardnumber ) {
-                    patronLink = row.patron_cardnumber;
-                }
-                if ( row.patron_surname ) {
-                    if ( patronLink.length ) {
-                        patronLink = patronLink + ' ';
-                    }
-                    patronLink = patronLink + row.patron_surname;
-                }
-            }
-            return patronLink;
-        };
-
-        // Our 'render' function for the library name
-        var createLibrary = function(data, type, row) {
-            return row.library.branchname;
-        };
-
-        // Render function for orderid
-        var createOrderId = function(data, type, row) {
-            return row.id_prefix + row.orderid;
-        };
-
-        // Render function for medium type
-        var createMediumType = function(data, type, row) {
-            var res = row.medium;
-            if ( res ) {
-                var medium = row.medium;
-                switch( medium ) {
-                    case "Book":
-                        $medium = _("Book");
-                    break;
-                    case "Article":
-                        $medium = _("Article");
-                    break;
-                    case "Journal":
-                        $medium = _("Journal");
-                    break;
-                    case "Other":
-                        $medium = _("Other");
-                    break;
-                    default:
-                        $medium = $medium;
-                }
-                //res = row.id_prefix + $medium;    # XXXWH
-                res = $medium;
-            }
-            return res;
-        };
-
-        // Render function for request ID
-        var createRequestId = function(data, type, row) {
-            return row.id_prefix + row.illrequest_id;
-        };
-
-        // Render function for request status
-        var createStatus = function(data, type, row, meta) {
-            var res = 'undef';
-            if ( row.status ) {
-                res = row.status;
-            }
-            var origData = meta.settings.oInit.originalData;
-            if ( origData && 
-                 origData.length > 0 && 
-                 origData[meta.row] && 
-                 origData[meta.row].capabilities && 
-                 origData[meta.row].capabilities[row.status] && 
-                 origData[meta.row].capabilities[row.status].name ) {
-
-                var status_name = origData[meta.row].capabilities[row.status].name;
-                switch( status_name ) {
-                    case "New request":
-                        res = _("New request");
-                    break;
-                    case "Requested":
-                        res = _("Requested");
-                    break;
-                    case "Requested from partners":
-                        res = _("Requested from partners");
-                    break;
-                    case "Request reverted":
-                        res = _("Request reverted");
-                    break;
-                    case "Queued request":
-                        res = _("Queued request");
-                    break;
-                    case "Cancellation requested":
-                        res = _("Cancellation requested");
-                    break;
-                    case "Completed":
-                        res = _("Completed");
-                    break;
-                    case "Delete request":
-                        res = _("Delete request");
-                    break;
-                    default:
-                        res = status_name;
-                }
-            }
-            return res;
-        };
-
-        // Render function for backend designation
-        var createBackendDesignation = function(data, type, row, meta) {
-            var backend_designation = backendNameToDesignation(row.backend);
-            return backend_designation;
-        };
-
-        // Render function for creating a row's action link
-        var createActionLink = function(data, type, row) {
-            return '<a class="btn btn-default btn-sm" ' +
-                'href="/cgi-bin/koha/ill/ill-requests.pl?' +
-                'method=illview&amp;illrequest_id=' +
-                row.illrequest_id +
-                '">' + _("Manage request") + '</a>';
-        };
-
-        // Render function for field illrequests.updated,
-        // displaying dates conforming to locale, 
-        // but sorting dates by using 'sType': "title-string", 'aTargets': [ 'title-string'] feature of DataTable
-        var createUpdatedOn = function(data, type, row) {
-            var ret = '<span title="' + row.updated + '">' + row.updated_formatted + '</span>';
-            return ret;
-        };
-
-        // Render function for Checked by
-        var createCheckedBy = function(data, type, row) {
-            var res = '';
-            if ( row.metadata_checkedBy ) {
-                res = row.metadata_checkedBy;
-            }
-            return res;
-        };
-
-        // Columns that require special treatment
-        var specialCols = {
-            action: {
-                name: '',
-                func: createActionLink
-            },
-            borrowername: {
-                name: _("Patron"),
-                func: createPatronLink
-            },
-            orderid: {
-                name: _("Order ID"),
-                func: createOrderId
-            },
-            medium: {
-                name: _("Type"),
-                func: createMediumType
-            },
-            illrequest_id: {
-                name: _("Request number"),
-                func: createRequestId
-            },
-            status: {
-                name: _("Status"),
-                func: createStatus
-            },
-            metadata_Title: {
-                name: _("Title"),
-                func: createBiblioLink
-            },
-            library: {
-                name: _("Library"),
-                func: createLibrary
-            },
-            updated: {
-                name: _("Updated on"),
-                func: createUpdatedOn
-            },
-            metadata_checkedBy: {
-                name: _("ILL order last checked by"),
-                func: createCheckedBy
-            },
-            backend: {
-                name: _("ILL backend type"),
-                func: createBackendDesignation
-            }
-        };
-
-        // Toggle request attributes in Illview
-        $('#toggle_requestattributes').on('click', function(e) {
-            e.preventDefault();
-            $('#requestattributes').toggleClass('content_hidden');
-        });
-
-        // Filter partner list
-        $('#partner_filter').keyup(function() {
-            var needle = $('#partner_filter').val();
-            $('#partners > option').each(function() {
-                var regex = new RegExp(needle, 'i');
-                if (
-                    needle.length == 0 ||
-                    $(this).is(':selected') ||
-                    $(this).text().match(regex)
-                ) {
-                    $(this).show();
-                } else {
-                    $(this).hide();
-                }
-            });
-        });
-
-        // Get our data from the API and process it prior to passing
-        // it to datatables
-
-        [% IF ( query_type == 'illlist' ) %]    // call ajax only if method = illlist
-            [% SET prefilterselections = '' %]
-            [% IF prefilters %]
-                [% FOREACH select IN prefilters %]
-                    [% SET prefilterselections = '&' _ select.name _ '=' _ select.value %]
-                [% END %]
-            [% END %]
-
-            [% IF infilter %]
-                [% SET restApiUrl = '/api/v1/illrequests?embed=metadata,patron,capabilities,library&infilter=' _ infilter _ prefilterselections %]
-//alert(" ajax AJAX URL1: /api/v1/illrequests?embed=metadata,patron,capabilities,library&infilter=[% infilter %][% prefilterselections %]");
-//alert(" ajax AJAX URL1: [% restApiUrl %]");
-            [% ELSE %]
-                [% SET restApiUrl = '/api/v1/illrequests?embed=metadata,patron,capabilities,library' _ prefilterselections %]
-//alert(" ajax AJAX UR2: /api/v1/illrequests?embed=metadata,patron,capabilities,library[% prefilterselections %]");
-//alert(" ajax AJAX URL1: [% restApiUrl %]");
-            [% END %]
-
-            var ajax = $.ajax(
-                    '[% restApiUrl %]'
-                ).done(function() {
-//alert(" ajax done ");
-                    var dataAll = JSON.parse(ajax.responseText);
-                    var data = dataAll[0];    // all illrequests fields and some illrequestattributes fields
-                    mypatrons = dataAll[1];    // all required  patrons
-                    mybranches = dataAll[2];    // all required  branches
-                    mybackendcapabilities = dataAll[3];    // all required  backend capabilities
-
-                    // links from illrequests to patrons, branches, backend capabilities
-                    $.each(data, function(k, row) {
-                        var illrequests_borrowernumber = row.borrowernumber;
-                        if ( !illrequests_borrowernumber || !mypatrons[illrequests_borrowernumber] ) {
-                            var patronObj = {
-                                patron_id: '',
-                                firstname: '',
-                                surname: '',
-                                cardnumber: ''
-                            };
-                            mypatrons[illrequests_borrowernumber] = patronObj;
-                        }
-                        row.patron = mypatrons[illrequests_borrowernumber];
-
-                        var illrequests_branchcode = row.branchcode;
-                        if ( !illrequests_branchcode || !mybranches[illrequests_branchcode] ) {
-                            if ( illrequests_branchcode ) {
-                                mybranches[illrequests_branchcode].branchname = illrequests_branchcode;
-                            } else {
-                                mybranches[illrequests_branchcode].branchname = 'branchcode not set';
-                            }
-                        }
-                        row.library = mybranches[illrequests_branchcode];
-
-                        var illrequests_backend = row.backend;
-                        if ( !illrequests_backend || !mybackendcapabilities[illrequests_backend] ) {
-                            row.capabilities = undefined;
-                        } else {
-                            row.capabilities = mybackendcapabilities[illrequests_backend];
-                        }
-
-                    });
-
-
-                    // Make a copy, we'll be removing columns next and need
-                    // to be able to refer to data that has been removed
-                    var dataCopy = $.extend(true, [], data);
-                    // Remove all columns we're not interested in
-                    removeIgnore(dataCopy);
-                    // Expand columns that need it and create an array
-                    // of all column names
-                    $.each(dataCopy, function(k, row) {
-                        expandExpand(row);
-                    });
-
-                    // Assemble an array of column definitions for passing
-                    // to datatables
-                    var colData = [];
-                    Object.keys(allCols).forEach(function(thisCol) {
-                        // Create the base column object
-                        var colObj = {
-                            name: thisCol,
-                            className: thisCol
-                        };
-                        // We may need to process the data going in this
-                        // column, so do it if necessary
-                        if (
-                            specialCols.hasOwnProperty(thisCol) &&
-                            specialCols[thisCol].hasOwnProperty('func')
-                        ) {
-                            colObj.render = specialCols[thisCol].func;
-                        } else {
-                            colObj.data = thisCol;
-                        }
-                        colData.push(colObj);
-                    });
-
-                    // Initialise the datatable
-                    $('#ill-requests').DataTable($.extend(true, {}, dataTablesDefaults, {
-                        'aoColumnDefs': [  // Last column shouldn't be sortable or searchable
-                            {
-                                'aTargets': [ 'actions' ],
-                                'bSortable': false,
-                                'bSearchable': false
-                            },
-                            {
-                                'sType': "title-string",
-                                'aTargets': [ 'title-string']
-                            }
-                        ],
-                        'aaSorting': [[ 8, 'desc' ]], // Default sort, updated descending
-                        'processing': true, // Display a message when manipulating
-                        'iDisplayLength': 10, // 10 results per page
-                        'sPaginationType': "full_numbers", // Pagination display
-                        'deferRender': true, // Improve performance on big datasets
-                        'data': dataCopy,
-                        'columns': colData,
-                        'originalData': data // Enable render functions to access
-                                           // our original data
-                    }));
-
-                    // focus on Search input field
-                    $('div.dataTables_filter input').focus();
-                }
-
-            );
-        [% END %]
-
-    });
-    //]]>
-</script>
+[% INCLUDE 'doc-head-open.inc' %]
+<title>ILL requests &rsaquo; Koha</title>
+[% INCLUDE 'doc-head-close.inc' %]
 </head>
 
 <body id="illrequests" class="ill">
 [% INCLUDE 'header.inc' %]
 [% INCLUDE 'cat-search.inc' %]
 
-<div id="breadcrumbs">
-    <a href="/cgi-bin/koha/mainpage.pl">Home</a> &rsaquo;
-    <a href="/cgi-bin/koha/ill/ill-requests.pl">ILL requests</a>
-    [% IF query_type == 'create' %]
-         &rsaquo; New request
-    [% ELSIF query_type == 'status' %]
-         &rsaquo; Status
-    [% END %]
-</div>
+<nav id="breadcrumbs" aria-label="Breadcrumb" class="breadcrumb">
+    <ol>
+        <li>
+            <a href="/cgi-bin/koha/mainpage.pl">Home</a> &rsaquo;
+        </li>
 
-<div id="doc3" class="yui-t2">
-    <div id="bd">
-        <div id="yui-main">
-            <div id="interlibraryloans" class="yui-b">
-        [% IF !backends_available %]
+        [% IF query_type == 'create' %]
+            <li>
+                <a href="/cgi-bin/koha/ill/ill-requests.pl">ILL requests</a>
+            </li>
+            <li>
+                <a href="#" aria-current="page">
+                    New request
+                </a>
+            </li>
+        [% ELSIF query_type == 'status' %]
+            <li>
+                <a href="/cgi-bin/koha/ill/ill-requests.pl">ILL requests</a>
+            </li>
+            <li>
+                <a href="#" aria-current="page">
+                    Status
+                </a>
+            </li>
+        [% ELSE %]
+            <li>
+                <a href="#" aria-current="page">
+                    ILL requests
+                </a>
+            </li>
+        [% END %]
+    </ol>
+</nav>
+
+<div class="main container-fluid">
+    <div class="row">
+
+        [% IF query_type == 'illlist' %]
+            <div class="col-sm-2">
+                <aside>
+                    <form method="get" id="illfilter_form">
+                        <fieldset class="brief">
+                            <h3>Filters</h3>
+                            <ol>
+                                <li>
+                                    <label for="illfilter_keyword">Keyword:</label>
+                                    <input type="text" name="illfilter_keyword" id="illfilter_keyword" />
+                                </li>
+                                <li>
+                                    <label for="illfilter_status">Status:</label>
+                                    <select name="illfilter_status" id="illfilter_status">
+                                        <option value=""></option>
+                                    </select>
+                                </li>
+                                <li>
+                                    <label for="illfilter_dateplaced_start">Date placed between:</label>
+                                    <input type="text" name="illfilter_dateplaced_start" id="illfilter_dateplaced_start" class="datepicker" />
+                                </li>
+                                <li>
+                                    <label for="illfilter_dateplaced_end">and:</label>
+                                    <input type="text" name="illfilter_dateplaced_end" id="illfilter_dateplaced_end" class="datepicker" />
+                                </li>
+                                <li>
+                                    <label for="illfilter_datemodified_start">Updated between:</label>
+                                    <input type="text" name="illfilter_datemodified_start" id="illfilter_datemodified_start" class="datepicker" />
+                                </li>
+                                <li>
+                                    <label for="illfilter_datemodified_end">and:</label>
+                                    <input type="text" name="illfilter_datemodified_end" id="illfilter_datemodified_end" class="datepicker" />
+                                </li>
+                                <li>
+                                    <label for="illfilter_branchname">Library:</label>
+                                    <select name="illfilter_branchname" id="illfilter_branchname">
+                                        <option value=""></option>
+                                    </select>
+                                </li>
+                                <li>
+                                    <label for="illfilter_patron">Patron:</label>
+                                    <input type="text" name="illfilter_patron" id="illfilter_patron" />
+                                </li>
+                            </ol>
+                            <fieldset class="action">
+                                <input type="submit" value="Search" />
+                                <input type="button" value="Clear" id="clear_search" />
+                            </fieldset>
+                        </fieldset>
+                    </form> <!-- /#illfilter_form -->
+                </aside>
+            </div> <!-- /.col-sm-2 -->
+            <div class="col-sm-10">
+                <main>
+        [% ELSE %]
+            <div class="col-sm-10 col-sm-offset-2">
+                <main>
+        [% END %]
+            <div id="interlibraryloans">
+        [% IF !backends_available || !has_branch %]
             <div class="dialog message">ILL module configuration problem. Take a look at the <a href="/cgi-bin/koha/about.pl#sysinfo">about page</a></div>
         [% ELSE %]
                 [% INCLUDE 'ill-toolbar.inc' %]
@@ -515,8 +136,12 @@
                     <!-- Dispatch on Status -->
                     <p>We encountered an error:</p>
                     <p>
-                      <pre>[% whole.message %] ([% whole.status %])</pre>
+                      <pre>[% whole.message | html %] ([% whole.status | html %])</pre>
                     </p>
+                [% END %]
+
+                [% IF whole.success %]
+                    <p>[% whole.success | html %]</p>
                 [% END %]
 
                 [% IF query_type == 'create' %]
@@ -530,6 +155,152 @@
                 [% ELSIF query_type == 'cancel' and !whole.error %]
                     <h1>Cancel a confirmed request</h1>
                     [% PROCESS $whole.template %]
+
+                [% ELSIF query_type == 'check_out' and !whole.error %]
+                    [% IF !whole.stage || whole.stage == 'form' %]
+                        <h1 id="ill-issue-title">Issue requested item to [% INCLUDE 'patron-title.inc' patron = request.patron %]</h1>
+                        [% IF !request.biblio_id || request.biblio_id.length == 0 %]
+                        <div class="alert">This item cannot be issued as it has no biblio record associated with it</div>
+                        [% END %]
+                        [% IF whole.value.errors.itemcount %]
+                        <div class="alert">The bibliographic record for this request has multiple items, it should only have one. Please fix this then try again.</div>
+                        [% END %]
+                        [% IF whole.value.errors.item_creation %]
+                        <div class="alert">An unknown error occurred while trying to add an item</div>
+                        [% END %]
+                        [% IF whole.value.errors.item_check_out %]
+                        <div class="alert">An unknown error occurred while trying to check out the item</div>
+                        [% END %]
+                        [% IF whole.value.check_out_errors %]
+                            [% IF whole.value.check_out_errors.error.STATS %]
+                            <div class="alert">
+                                Local use recorded
+                            </div>
+                            [% ELSE %]
+                            <div class="alert">
+                                There was a problem checking this item out, please check for problems with the <a href="/cgi-bin/koha/members/moremember.pl?borrowernumber=[% whole.value.patron.borrowernumber | uri %]">patron's account</a>
+                            </div>
+                            [% END %]
+                        [% END %]
+                        [% IF request.biblio_id && request.biblio_id.length > 0  && !whole.value.check_out_errors.error.STATS %]
+                            <form method="POST" action="/cgi-bin/koha/ill/ill-requests.pl">
+                                <fieldset class="rows">
+                                    <legend>Check out details</legend>
+                                    [% items = whole.value.biblio.items.unblessed %]
+                                    [% IF items.size == 1 %]
+                                        <p>The bibliographic record for this request already has an item attached to it, you are about to check it out</p>
+                                    [% ELSE %]
+                                        <p>A bibliographic record for this request exists, but no item. You are about to create an item and check it out</p>
+                                    [% END %]
+                                    <ol>
+                                        <li class="ill_checkout_inhouse">
+                                            <label for="inhouse" class="ill_checkout_inhouse_label">Statistical patron:</label>
+                                            <select id="ill_checkout_inhouse_select" name="inhouse" class="ill_checkout_inhouse_select">
+                                                <option value=""></option>
+                                                [% FOREACH stat IN whole.value.statistical %]
+                                                    [% IF stat.borrowernumber == params.inhouse %]
+                                                        <option value="[% stat.cardnumber | html %]" selected>[% INCLUDE 'patron-title.inc' patron = stat %]</option>
+                                                    [% ELSE %]
+                                                        <option value="[% stat.cardnumber | html %]">[% INCLUDE 'patron-title.inc' patron = stat %]</option>
+                                                    [% END %]
+                                                [% END %]
+                                            </select>
+                                            [% IF whole.value.errors.inhouse %]
+                                            <span class="required">You must choose a valid patron</span>
+                                            [% END %]
+                                            <div class="hint">If you do not wish to check out the item to [% INCLUDE 'patron-title.inc' patron = request.patron %] and would rather issue it to an in-house statistical patron, choose the patron here</div>
+                                        </li>
+                                        <li class="ill_checkout_item_type">
+                                            <label for="item_type" class="ill_checkout_item_type_label required">Item type:</label>
+                                            [% IF items.size != 1 %]
+                                                <select id="ill_checkout_item_type_select" name="item_type" required>
+                                                    [% FOREACH type IN whole.value.itemtypes %]
+                                                        [% IF type.itemtype == params.item_type %]
+                                                        <option value="[% type.itemtype | html %]" selected>
+                                                        [% ELSE %]
+                                                        <option value="[% type.itemtype | html %]">
+                                                        [% END %]
+                                                            [% type.description | html %]
+                                                        </option>
+                                                    [% END %]
+                                                </select>
+                                            [% ELSE %]
+                                                [% FOREACH type IN whole.value.itemtypes %]
+                                                    [% IF type.itemtype == items.0.itype %]
+                                                        [% type.description | html %]
+                                                    [% END %]
+                                                [% END %]
+                                            [% END %]
+                                            [% IF whole.value.errors.item_type %]
+                                            <span class="required">You must choose an item type</span>
+                                            [% END %]
+                                        </li>
+                                        [% IF items.size == 1 %]
+                                            <li>
+                                                <label for="barcode" class="ill_checkout_barcode_label">Item barcode:</label>
+                                                [% items.0.barcode | html %]
+                                            </li>
+                                        [% END %]
+                                        <li class="ill_checkout_branchcode">
+                                            <label for="branchcode" class="ill_checkout_branchcode_label required">Library:</label>
+                                            [% branchcode = items.size == 1 ? items.0.homebranch : params.branchcode ? params.branchcode : request.branchcode %]
+                                            [% IF items.size != 1 %]
+                                                <select name="branchcode" id="ill_checkout_branchcode_select" required>
+                                                    [% PROCESS options_for_libraries libraries => Branches.all( selected => branchcode ) %]
+                                                </select>
+                                            [% ELSE %]
+                                                [% FOREACH branch IN whole.value.libraries.unblessed %]
+                                                    [% IF branch.branchcode == branchcode %]
+                                                        [% branch.branchname | html %]
+                                                    [% END %]
+                                                [% END %]
+                                            [% END %]
+                                            [% IF whole.value.errors.branchcode %]
+                                            <span class="required">You must choose a branch</span>
+                                            [% END %]
+                                        </li>
+                                        <li class="ill_checkout_due_date">
+                                            <label for="duedate" class="ill_checkout_duedate_label">Due date:</label>
+                                            <input name="duedate" id="ill_checkout_duedate_input" type="text" value="[% params.duedate | html %]"> [% INCLUDE 'date-format.inc' %]
+                                            <div class="hint">If you do not specify a due date, it will be set according to circulation rules</p>
+                                        </li>
+                                    </ol>
+                                </fieldset>
+                                <fieldset class="action">
+                                    <input type="hidden" value="check_out" name="method">
+                                    <input type="hidden" value="form" name="stage">
+                                    [% IF items.size == 1 %]
+                                        <input name="branchcode" type="hidden" value="[% branchcode | html %]">
+                                        <input name="item_type" type="hidden" value="[% items.0.itype | html %]">
+                                    [% END %]
+                                    <input type="hidden" value="[% request.illrequest_id | html %]" name="illrequest_id">
+                                    <input type="submit" value="Submit">
+                                    <a class="cancel" href="/cgi-bin/koha/ill/ill-requests.pl?method=illview&amp;illrequest_id=[% request.id | html %]">Cancel</a>
+                                </fieldset>
+                            </form>
+                        [% END %]
+                        [% IF whole.value.check_out_errors.error.STATS %]
+                            <a class="cancel" href="/cgi-bin/koha/ill/ill-requests.pl?method=illview&amp;illrequest_id=[% request.id | html %]">Return to request</a>
+                        [% END %]
+                    [% ELSIF whole.stage == 'done_check_out' %]
+                        <h1>Item checked out</h1>
+                        <fieldset class="rows">
+                            <legend>Check out details</legend>
+                            <ol>
+                                <li>
+                                    <label>Checked out to:</label>
+                                    [% INCLUDE 'patron-title.inc' patron = whole.value.patron %]
+                                </li>
+                                <li>
+                                    <label>Due date:</label>
+                                    [% whole.value.check_out.date_due | $KohaDates with_hours => 1 %]
+                                </li>
+                            </ol>
+                        </fieldset>
+                        <fieldset class="action">
+                            <a class="cancel" href="/cgi-bin/koha/ill/ill-requests.pl?method=illview&amp;illrequest_id=[% request.id | html %]">Return to request</a>
+                        </fieldset>
+                    [% END %]
 
                 [% ELSIF query_type == 'generic_confirm' %]
                     <h1>Place request with partner libraries</h1>
@@ -558,43 +329,73 @@
                                 <ol>
                                     <li>
                                         <label for="partner_filter">Filter partner libraries:</label>
-                                        <input type="text" id="partner_filter">
+                                        <input type="text" id="partner_filter" />
                                     </li>
                                     <li>
                                         <label for="partners" class="required">Select partner libraries:</label>
                                         <select size="5" multiple="true" id="partners" name="partners" required="required">
                                             [% FOREACH partner IN whole.value.partners %]
-                                                <option value=[% partner.email %]>
-                                                    [% partner.branchcode _ " - " _ partner.surname %]
-                                                </option>
+                                                [% IF partner.email && partner.email.length > 0 %]
+                                                    <option data-partner-id="[% partner.id | html %]" value=[% partner.email | html %]>
+                                                        [% partner.branchcode _ " - " _ partner.surname %]
+                                                    </option>
+                                                [% END %]
                                             [% END %]
                                         </select>
-
+                                        [% IF Koha.Preference('ILLCheckAvailability') %]
+                                            <div id="generic_confirm_search_count">Partners available for searching: <span id="generic_confirm_enabled">none</span></div>
+                                            <div id="generic_confirm_search">
+                                                <button type="button">Search selected partners</button>
+                                            </div>
+                                        [% END %]
                                     </li>
                                     <li>
-                                        <label for="subject" class="required">Subject Line</label>
-                                        <input type="text" name="subject" id="subject" type="text" value="[% whole.value.draft.subject %]" required="required" />
+                                        <label for="subject" class="required">Subject line:</label>
+                                        <input type="text" name="subject" id="subject" type="text" value="[% whole.value.draft.subject | html %]" required="required" />
                                     </li>
                                     <li>
                                         <label for="body" class="required">Email text:</label>
-                                        <textarea name="body" id="body" rows="20" cols="80" required="required">[% whole.value.draft.body %]</textarea>
+                                        <textarea name="body" id="body" rows="20" cols="80" required="required">[% whole.value.draft.body | html %]</textarea>
                                     </li>
                                 </ol>
                                 <input type="hidden" value="generic_confirm" name="method">
                                 <input type="hidden" value="draft" name="stage">
-                                <input type="hidden" value="[% request.illrequest_id %]" name="illrequest_id">
+                                <input type="hidden" value="[% request.illrequest_id | html %]" name="illrequest_id">
                             </fieldset>
                             <fieldset class="action">
                                 <input type="submit" class="btn btn-default" value="Send email"/>
-                                <span><a href="[% ill_url %]" title="Return to request details">Cancel</a></span>
+                                <span><a href="[% ill_url | url %]" title="Return to request details">Cancel</a></span>
                             </fieldset>
                         </form>
+                        [% IF Koha.Preference('ILLCheckAvailability') %]
+                            <div id="partnerSearch" class="modal fade" tabindex="-1" role="dialog" aria-labelledby="partnerSearchLabel" aria-hidden="true">
+                                <div class="modal-dialog">
+                                    <div class="modal-content">
+                                        <div class="modal-header">
+                                            <button type="button" class="closebtn" data-dismiss="modal" aria-hidden="true">×</button>
+                                            <h3 id="partnerSearchLabel"> Search partners</h3>
+                                        </div>
+                                        <div class="modal-body">
+                                            [% FOR service IN services %]
+                                                <h4 class="ill_availability_sourcename">[% service.name | html %]</h4>
+                                                [% INCLUDE 'ill-availability-table.inc' service=service %]
+                                            [% END %]
+                                            <span id="service_id_restrict" data-service_id_restrict_plugin="ILL availability - z39.50" data-service_id_restrict_ids=""></span>
+                                        </div>
+                                        <div class="modal-footer">
+                                            <button class="btn btn-default" data-dismiss="modal" aria-hidden="true">Close</button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        [% END %]
+
                     [% ELSE %]
                         <fieldset class="rows">
                             <legend>Interlibrary loan request details</legend>
                             <p>No partners have been defined yet. Please create appropriate patron records (by default ILLLIBS category).</p>
                             <p>Be sure to provide email addresses for these patrons.</p>
-                            <p><span><a href="[% ill_url %]" title="Return to request details">Cancel</a></span></p>
+                            <p><span><a href="[% ill_url | url %]" title="Return to request details">Cancel</a></span></p>
                         </fieldset>
                     [% END %]
                 <!-- generic_confirm ends here -->
@@ -604,13 +405,14 @@
                         <fieldset class="rows">
                             <legend>Request details</legend>
                             <ol>
+                                [% type = request.get_type %]
                                 <li class="borrowernumber">
                                     <label for="borrowernumber">Patron ID:</label>
-                                    <input name="borrowernumber" id="borrowernumber" type="text" value="[% request.borrowernumber %]">
+                                    [% request.borrowernumber | html %]
                                 </li>
                                 <li class="biblio_id">
-                                    <label for="biblio_id" class="biblio_id">Biblio ID:</label>
-                                    <input name="biblio_id" id="biblio_id" type="text" value="[% request.biblio_id %]">
+                                    <label for="biblio_id" class="biblio_id">Bibliographic record ID:</label>
+                                    <input name="biblio_id" id="biblio_id" type="text" value="[% request.biblio_id | html %]">
                                 </li>
                                 <li class="branchcode">
                                     <label for="library" class="branchcode">Library:</label>
@@ -621,27 +423,49 @@
                                 <li class="status">
                                     <label class="status">Status:</label>
                                     [% stat = request.status %]
-                                    [% request.capabilities.$stat.name %]
+                                    [% current_alias = request.status_alias %]
+                                    <select id="status_alias" name="status_alias">
+                                        [% IF !current_alias %]
+                                        <option value="" selected>
+                                        [% ELSE %]
+                                        <option value="">
+                                        [% END %]
+                                            [% request.capabilities.$stat.name | html %]
+                                        </option>
+                                        [% FOREACH alias IN AuthorisedValues.Get('ILLSTATUS') %]
+                                            [% IF alias.authorised_value == current_alias %]
+                                            <option value="[% alias.authorised_value | html %]" selected>
+                                            [% ELSE %]
+                                            <option value="[% alias.authorised_value | html %]">
+                                            [% END %]
+                                                [% alias.lib | html %]
+                                            </option>
+                                        [% END %]
+                                    </select>
                                 </li>
                                 <li class="updated">
                                     <label class="updated">Last updated:</label>
-                                    [% request.updated | $KohaDates with_hours => 1 %]
+                                    [% request.updated | $KohaDates  with_hours => 1 %]
                                 </li>
                                 <li class="medium">
                                     <label class="medium">Request type:</label>
-                                    [% request.medium %]
+                                    [% IF type %][% type | html %][% ELSE %]<span>N/A</span>[% END %]
                                 </li>
                                 <li class="cost">
                                     <label class="cost">Cost:</label>
-                                    [% request.cost || 'N/A' %]
+                                    [% IF request.cost %][% request.cost | $Price %][% ELSE %]<span>N/A</span>[% END %]
+                                </li>
+                                <li class="price_paid">
+                                    <label class="price_paid">Price paid:</label>
+                                    <input name="price_paid" id="price_paid" type="text" value="[% request.price_paid | html %]">
                                 </li>
                                 <li class="req_id">
                                     <label class="req_id">Request number:</label>
-                                    [% request.id_prefix _ request.illrequest_id %]
+                                    [% request.id_prefix _ request.illrequest_id | html %]
                                 </li>
                                 <li class="notesstaff">
                                     <label for="notesstaff" class="notesstaff">Staff notes:</label>
-                                    <textarea name="notesstaff" id="notesstaff" rows="5">[% request.notesstaff %]</textarea>
+                                    <textarea name="notesstaff" id="notesstaff" rows="5">[% request.notesstaff | html %]</textarea>
                                 </li>
                                 <li class="notesopac">
                                     <label for="notesopac" class="notesopac">Opac notes:</label>
@@ -652,9 +476,10 @@
                         <fieldset class="action">
                             <input type="hidden" value="edit_action" name="method">
                             <input type="hidden" value="form" name="stage">
-                            <input type="hidden" value="[% request.illrequest_id %]" name="illrequest_id">
+                            <input type="hidden" value="[% request.illrequest_id | html %]" name="illrequest_id">
+                            <input type="hidden" value="[% request.borrowernumber | html %]" name="borrowernumber">
                             <input type="submit" value="Submit">
-                            <a class="cancel" href="/cgi-bin/koha/ill/ill-requests.pl?method=illview&amp;illrequest_id=[% request.id %]">Cancel</a>
+                            <a class="cancel" href="/cgi-bin/koha/ill/ill-requests.pl?method=illview&amp;illrequest_id=[% request.id | html %]">Cancel</a>
                         </fieldset>
                     </form>
 
@@ -665,138 +490,315 @@
                         <form action="/cgi-bin/koha/ill/ill-requests.pl" method="post">
                             <input type="hidden" name="method" value="delete" />
                             <input type="hidden" name="confirmed" value="1" />
-                            <input type="hidden" name="illrequest_id" value="[% request.id %]" />
-                            <button type="submit" class="btn btn-default btn-sm approve"><i class="fa fa-fw fa-check"></i> Yes, delete</button>
+                            <input type="hidden" name="illrequest_id" value="[% request.id | html %]" />
+                            <button type="submit" class="btn btn-default approve"><i class="fa fa-fw fa-check"></i> Yes, delete</button>
                         </form>
-                        <a class="btn btn-default btn-sm deny" href="/cgi-bin/koha/ill/ill-requests.pl?method=illview&amp;illrequest_id=[% request.id %]"><i class="fa fa-fw fa-remove"></i>No, do not delete</a>
+                        <a class="btn btn-default deny" href="/cgi-bin/koha/ill/ill-requests.pl?method=illview&amp;illrequest_id=[% request.id | html %]"><i class="fa fa-fw fa-remove"></i>No, do not delete</a>
                     </div>
 
                 [% ELSIF query_type == 'illview' %]
-                    [% actions = request.available_actions %]
-                    [% capabilities = request.capabilities %]
                     [% req_status = request.status %]
+
+                    [% IF error %]
+                      [% IF error == 'migrate_target' %]
+                          <div class="alert">
+                              The backend you tried to migrate to does not yet support migrations, please try again with an alternative target.
+                          </div>
+                      [% END %]
+                    [% END %]
+
+                    [% IF tran_success %]
+                        [% succ_methods = [] %]
+                        [% IF tran_success.match('email') %]
+                            [% succ_methods.push('email') %]
+                        [% END %]
+                        [% IF tran_success.match('sms') %]
+                            [% succ_methods.push('SMS') %]
+                        [% END %]
+                        <div class="alert">
+                            The requested notice was queued for delivery by [% succ_methods.join(', ') | html %]
+                        </div>
+                    [% END %]
+                    [% IF tran_fail %]
+                        [% fail_methods = [] %]
+                        [% IF tran_fail.match('email') %]
+                            [% fail_methods.push('email') %]
+                        [% END %]
+                        [% IF tran_fail.match('sms') %]
+                            [% fail_methods.push('SMS') %]
+                        [% END %]
+                        <div class="alert">
+                            The requested notice was NOT queued for delivery by [% fail_methods.join(', ') | html %]
+                        </div>
+                    [% END %]
+
                     <h1>Manage ILL request</h1>
-                    <div id="toolbar" class="btn-toolbar">
-                        <a title="Edit request" id="ill-toolbar-btn-edit-action" class="btn btn-sm btn-default" href="/cgi-bin/koha/ill/ill-requests.pl?method=edit_action&amp;illrequest_id=[% request.illrequest_id %]">
+                    <div id="request-toolbar" class="btn-toolbar">
+                        <a title="Edit request" id="ill-toolbar-btn-edit-action" class="btn btn-default" href="/cgi-bin/koha/ill/ill-requests.pl?method=edit_action&amp;illrequest_id=[% request.illrequest_id | html %]">
                         <span class="fa fa-pencil"></span>
                         Edit request
                         </a>
-                        [% FOREACH action IN actions %]
-                            [% IF action.method != 0 %]
-                                <a title="[% action.ui_method_name %]" id="ill-toolbar-btn-[% action.id | lower %]" class="btn btn-sm btn-default" href="/cgi-bin/koha/ill/ill-requests.pl?method=[% action.method %]&amp;illrequest_id=[% request.illrequest_id %]">
-                                <span class="fa [% action.ui_method_icon %]"></span>
-                                [% action.ui_method_name %]
+                        [% FOREACH action IN request.available_actions %]
+                            [% needs_prefs = action.needs_prefs.size ? action.needs_prefs : [] %]
+                            [% needs_perms = action.needs_perms.size ? action.needs_perms : [] %]
+                            [% needs_all = action.needs_all.size ? action.needs_all : [] %]
+                            [% has_prefs_count = 0 %]
+                            [% has_perms_count = 0 %]
+                            [% has_all_count = 0 %]
+                            [% FOREACH pref IN needs_prefs %]
+                                [% IF Koha.Preference(pref) %]
+                                    [% has_prefs_count = has_prefs_count + 1 %]
+                                [% END %]
+                            [% END %]
+                            [% FOREACH perm IN needs_perms %]
+                                [% perm_name = 'CAN_' _ perm %]
+                                [% IF ($perm_name) %]
+                                    [% has_perms_count = has_perms_count + 1 %]
+                                [% END %]
+                            [% END %]
+                            [% FOREACH func IN needs_all %]
+                                [% IF func(request) %]
+                                    [% has_all_count = has_all_count + 1 %]
+                                [% END %]
+                            [% END %]
+                            [% NEXT IF has_prefs_count < needs_prefs.size || has_perms_count < needs_perms.size || has_all_count < needs_all.size %]
+                            [% IF action.method == 'migrate' %]
+                                [% IF backends.size > 2 %]
+                                    <div class="dropdown btn-group">
+                                        <button class="btn btn-default dropdown-toggle" type="button" id="ill-migrate-dropdown" data-toggle="dropdown" aria-haspopup="true" aria-expanded="true">
+                                            <i class="fa [% action.ui_method_icon | html %]"></i> [% action.ui_method_name | html %] <span class="caret"></span>
+                                        </button>
+                                        <ul class="dropdown-menu" aria-labelledby="ill-migrate-dropdown">
+                                            [% FOREACH backend IN backends %]
+                                                [% IF backend != request.backend %]
+                                                    <li><a href="/cgi-bin/koha/ill/ill-requests.pl?method=[% action.method | uri %]&amp;illrequest_id=[% request.illrequest_id | uri %]&amp;backend=[% backend | uri %]">[% backend | html %]</a></li>
+                                                [% END %]
+                                            [% END %]
+                                        </ul>
+                                    </div>
+                                [% ELSIF backends.size == 2 %]
+                                    [% FOREACH backend IN backends %]
+                                        [% IF backend != request.backend %]
+                                            <a title="[% action.ui_method_name | html %]" id="ill-toolbar-btn-[% action.id | lower | html %]" class="btn btn-default" href="/cgi-bin/koha/ill/ill-requests.pl?method=[% action.method | uri %]&amp;illrequest_id=[% request.illrequest_id | uri %]&amp;backend=[% backend | uri %]">
+                                            <span class="fa [% action.ui_method_icon | html %]"></span>
+                                            [% action.ui_method_name | html %]
+                                            </a>
+                                        [% END %]
+                                    [% END %]
+                                [% END %]
+                            [% ELSIF action.method != 0 %]
+                                <a title="[% action.ui_method_name | html %]" id="ill-toolbar-btn-[% action.id | lower | html %]" class="btn btn-default" href="/cgi-bin/koha/ill/ill-requests.pl?method=[% action.method | uri %]&amp;illrequest_id=[% request.illrequest_id | uri %]">
+                                <span class="fa [% action.ui_method_icon | html %]"></span>
+                                [% action.ui_method_name | html %]
                                 </a>
                             [% END %]
                         [% END %]
+                        <div class="dropdown btn-group">
+                            <button class="btn btn-default dropdown-toggle" type="button" id="ill-notice-dropdown" data-toggle="dropdown" aria-haspopup="true" aria-expanded="true">
+                                <i class="fa fa-envelope"></i> Send notice to patron <span class="caret"></span>
+                            </button>
+                            <ul class="dropdown-menu" aria-labelledby="ill-notice-dropdown">
+                                [% FOREACH notice IN notices %]
+                                    <li><a href="/cgi-bin/koha/ill/ill-requests.pl?method=send_notice&amp;illrequest_id=[% request.illrequest_id | uri %]&amp;notice_code=[% notice.code | uri %]">[% notice.name | html %]</a></li>
+                                [% END %]
+                            </ul>
+                        </div>
+                        <a title="Display supplier metadata" id="ill-request-display-metadata" class="btn btn-default pull-right" href="#">
+                            <span class="fa fa-eye"></span>
+                            Display supplier metadata
+                        </a>
+                        <a title="ILL request log" id="ill-request-display-log" class="btn btn-default pull-right" href="#">
+                            <span class="fa fa-calendar"></span>
+                            ILL request log
+                        </a>
                     </div>
-                    <div id="ill-view-panel" class="panel panel-default">
+                    <div class="ill-view-panel panel panel-default">
                         <div class="panel-heading">
                             <h3>Request details</h3>
                         </div>
                         <div class="panel-body">
                             <h4>Details from library</h4>
                             <div class="rows">
-                                <div class="orderid">
-                                    <!-- <span class="label orderid">Order ID:</span>
-                                    [% request.orderid || "N/A" %] -->
-                                    <span class="label orderid">Order ID:</span>
-                                    [% IF ( request_orderidlink ) %]
-                                        <a target="_blank" href="[% request_orderidlink %]" title="View order details">
-                                        [% request.orderid %]
+                                <ol>
+                                    <li class="orderid">
+                                        <!-- <span class="label orderid">Order ID:</span>
+                                        [% IF request.orderid %][% request.orderid | html %][% ELSE %]<span>N/A</span>[% END %] -->
+                                        <span class="label orderid">Order ID:</span>
+                                        [% IF ( request_orderidlink ) %]
+                                            <a target="_blank" href="[% request_orderidlink | url %]" title="View order details">
+                                            [% request.orderid | html %]
+                                            </a>
+                                        [% ELSE %]
+                                            [% IF request.orderid %][% request.orderid | html %][% ELSE %]<span>N/A</span>[% END %]
+                                        [% END %]
+                                    </li>
+                                    <li class="borrowernumber">
+                                        <span class="label borrowernumber">Patron:</span>
+                                        [% IF request.patron.borrowernumber %]
+                                        [% borrowerlink = "/cgi-bin/koha/members/moremember.pl" _ "?borrowernumber=" _ request.patron.borrowernumber %]
+                                        <a href="[% borrowerlink | url %]" title="View borrower details">
+                                        [% request.patron.firstname _ " " _ request.patron.surname _ " [" _ request.patron.cardnumber _ "]" | html %]
                                         </a>
-                                    [% ELSE %]
-                                        [% request.orderid || "N/A" %]
-                                    [% END %]
-                                </div>
-                                <div class="borrowernumber">
-                                    <span class="label borrowernumber">Patron:</span>
-                                    [% IF request.patron.borrowernumber %]
-                                    [% borrowerlink = "/cgi-bin/koha/members/moremember.pl" _ "?borrowernumber=" _ request.patron.borrowernumber %]
-                                    <a target="_blank" href="[% borrowerlink %]" title="View borrower details">
-                                    [% request.patron.firstname _ " " _ request.patron.surname _ " [" _ request.patron.cardnumber _ "]" %]
-                                    </a>
-                                    [% ELSE %]
-                                        N/A
-                                    [% END %]
-                                </div>
+                                        [% ELSE %]
+                                            <span>N/A</span>
+                                        [% END %]
+                                    </li>
 
-                                <div class="biblio_id">
-                                    <span class="label biblio_id">Biblio ID:</span>
-                                    [% IF request.biblio_id %]
-                                        [% bibliolink = "/cgi-bin/koha/catalogue/detail.pl" _ "?biblionumber=" _ request.biblio_id %]
-                                        <a target="_blank" href="[% bibliolink %]" title="View biblio details">
-                                        [% request.biblio_id %]
-                                        </a>
-                                    [% ELSE %]
-                                        N/A
-                                    [% END %]
-                                </div>
-                                <div class="branchcode">
-                                    <span class="label branchcode">Library:</span>
-                                    [% Branches.GetName(request.branchcode) %]
-                                </div>
-                                <div class="status">
-                                    <span class="label status">Status:</span>
-                                    [% capabilities.$req_status.name %]
-                                </div>
-                                <div class="updated">
-                                    <span class="label updated">Last updated:</span>
-                                    [% request.updated | $KohaDates with_hours => 1 %]
-                                </div>
-                                <div class="medium">
-                                    <span class="label medium">Request type:</span>
-                                    [% SWITCH request.medium %]
-                                        [% CASE 'Book' %]
-                                            Book
-                                        [% CASE 'Article' %]
-                                            Article
-                                        [% CASE 'Journal' %]
-                                            Journal
-                                        [% CASE 'Other' %]
-                                            Other
-                                        [% CASE %]
-                                            [% request.medium %]
-                                    [% END %]
-                                </div>
-                                <div class="cost">
-                                    <span class="label cost">Cost:</span>
-                                    [% request.cost || "N/A" %]
-                                </div>
-                                <div class="req_id">
-                                    <span class="label req_id">Request number:</span>
-                                    [% request.id_prefix _ request.illrequest_id %]
-                                </div>
-                                <div class="notesstaff">
-                                    <span class="label notes_staff">Staff notes:</span>
-                                    <pre>[% request.notesstaff %]</pre>
-                                </div>
-                                <div class="notesopac">
-                                    <span class="label notes_opac">Notes:</span>
-                                    <pre>[% request.notesopac | html %]</pre>
-                                </div>
+                                    <li class="biblio_id">
+                                        <span class="label biblio_id">Bibliographic record ID:</span>
+                                        [% IF request.biblio_id %]
+                                            <a href="/cgi-bin/koha/catalogue/detail.pl?biblionumber=[% request.biblio_id | uri %]" title="View biblio details">[% request.biblio_id | html %]</a>
+                                        [% ELSE %]
+                                            <span>N/A</span>
+                                        [% END %]
+                                    </li>
+                                    <li class="branchcode">
+                                        <span class="label branchcode">Library:</span>
+                                        [% Branches.GetName(request.branchcode) | html %]
+                                    </li>
+                                    <li class="status">
+                                        <span class="label status">Status:</span>
+                                        [% IF request.statusalias %]
+                                            [% request.statusalias.lib | html %]
+                                        [% ELSE %]
+                                            [% request.capabilities.$req_status.name | html%]
+                                            [% IF request.requested_partners.length > 0 %]
+                                                ([% request.requested_partners | html %])
+                                            [% END %]
+                                        [% END %]
+                                    </li>
+                                    <li class="updated">
+                                        <span class="label updated">Last updated:</span>
+                                        [% request.updated | $KohaDates  with_hours => 1 %]
+                                    </li>
+                                    <li class="medium">
+                                        <span class="label medium">Request type:</span>
+                                        [% type = request.get_type %]
+                                        [% IF type %][% type | html %][% ELSE %]<span>N/A</span>[% END %]
+<!-- XXXWH TODO: for medium/type: adapt to translation solution via new ill-list-table-strings.inc -->
+                                    </li>
+                                    <li class="cost">
+                                        <span class="label cost">Cost:</span>
+                                        [% IF request.cost %][% request.cost | $Price %][% ELSE %]<span>N/A</span>[% END %]
+                                    </li>
+                                    <li class="price_paid">
+                                        <span class="label price_paid">Price paid:</span>
+                                        [% IF request.price_paid %][% request.price_paid | $Price %][% ELSE %]<span>N/A</span>[% END %]
+                                    </li>
+                                    <li class="req_id">
+                                        <span class="label req_id">Request number:</span>
+                                        [% request.id_prefix _ request.illrequest_id | html %]
+                                    </li>
+                                    <li class="notesstaff">
+                                        <span class="label notes_staff">Staff notes:</span>
+                                        <p>[% request.notesstaff | html %]</p>
+                                    </li>
+                                    <li class="notesopac">
+                                        <span class="label notes_opac">Notes:</span>
+                                        <p>[% request.notesopac | html %]</p>
+                                    </li>
+                                </ol>
                             </div>
                             <div class="rows">
-                                <h4 id="MetaDataSupplierDetailsHeader">Details from supplier ([% request.backend %])</h4>
-                                [% FOREACH meta IN request.metadata %]
-                                    <div class="requestmeta-[% meta.key %]">
-                                        <span class="label" id="labelForMetaData[% meta.key %]">[% meta.key %]:</span>
-                                        [% meta.value %]
+                                <h4>Details from supplier ([% request.backend | html %])</h4>
+                                <ol>
+                                    [% FOREACH meta IN request.metadata %]
+                                        <li class="requestmeta-[% meta.key.replace('\s','_') | html %]">
+                                            <span class="label">[% meta.key | html %]:</span>
+                                            [% meta.value | html %]
+                                        </li>
+                                    [% END %]
+                                </ol>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="dataPreview" class="modal fade" tabindex="-1" role="dialog" aria-labelledby="dataPreviewLabel" aria-hidden="true">
+                        <div class="modal-dialog">
+                            <div class="modal-content">
+                                <div class="modal-header">
+                                    <button type="button" class="closebtn" data-dismiss="modal" aria-hidden="true">×</button>
+                                    <h3 id="dataPreviewLabel"> Supplier metadata</h3>
+                                </div>
+                                <div class="modal-body">
+                                    <div id="requestattributes">
+                                        [% FOREACH attr IN request.illrequestattributes %]
+                                        <div class="requestattr-[% attr.type | html %]">
+                                            <span class="label">[% attr.type | html %]:</span>
+                                            [% attr.value | html %]
+                                        </div>
+                                            [% END %]
+                                    </div>
+                                </div>
+                                <div class="modal-footer">
+                                    <button class="btn btn-default" data-dismiss="modal" aria-hidden="true">Close</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="requestLog" class="modal fade" tabindex="-1" role="dialog" aria-labelledby="dataPreviewLabel" aria-hidden="true">
+                        <div class="modal-dialog">
+                            <div class="modal-content">
+                                <div class="modal-header">
+                                    <button type="button" class="closebtn" data-dismiss="modal" aria-hidden="true">×</button>
+                                    <h3 id="requestLogLabel"> Request log</h3>
+                                </div>
+                                <div class="modal-body">
+                                [% IF request.logs.size > 0 %]
+                                    [% FOREACH log IN request.logs %]
+                                        [% tpl = log.template %]
+                                        [% INCLUDE $tpl log=log %]
+                                    [% END %]
+                                [% ELSE %]
+                                    There are no recorded logs for this request
+                                [% END %]
+                                </div>
+                                <div class="modal-footer">
+                                    <button class="btn btn-default" data-dismiss="modal" aria-hidden="true">Close</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="ill-view-panel panel panel-default">
+                        <div class="panel-heading">
+                            <h3>[% request.illcomments.count | html %] comments</h3>
+                        </div>
+                        <div class="panel-body">
+                            [% IF request.illcomments.count && request.illcomments.count > 0 %]
+                                [% FOREACH comment IN request.illcomments %]
+                                    <div class="rows comment_[% comment.patron.categorycode | html %]">
+                                    <h5>Comment by:
+                                    <a href="[% borrowerlink | url %]" title="View borrower details">
+                                    [% comment.patron.firstname _ " " _ comment.patron.surname _ " [" _ comment.patron.cardnumber _ "]" | html %]</a>
+                                    [% comment.timestamp | $KohaDates with_hours => 1 %]</h5>
+                                    <p>[% comment.comment | html %]</p>
                                     </div>
                                 [% END %]
-                            </div>
-                            <div class="rows">
-                                <h3><a id="toggle_requestattributes" href="#">Toggle full supplier metadata</a></h3>
-                                <div id="requestattributes" class="content_hidden">
-                                    [% FOREACH attr IN request.illrequestattributes %]
-                                        <div class="requestattr-[% attr.type %]">
-                                            <span class="label">[% attr.type %]:</span>
-                                            [% attr.value %]
-                                        </div>
-                                    [% END %]
+                            [% END %]
+                                <div class="rows">
+                                    <h3><a id="toggle_addcomment" href="#">Add comment</a></h3>
+                                    <div id="addcomment" class="content_hidden">
+                                        <form class="validated" method="post" action="/cgi-bin/koha/ill/ill-requests.pl">
+                                            <input type="hidden" value="save_comment" name="method">
+                                            <input type="hidden" value="[% csrf_token | html %]" name="csrf_token">
+                                            <input type="hidden" value="[% request.illrequest_id | html %]" name="illrequest_id">
+                                            <fieldset class="rows">
+                                                <ol>
+                                                    <li>
+                                                        <label class="required" for="comment">Comment: </label>
+                                                        <textarea class="required" required="required" cols="80" rows="10" id="comment" name="comment"></textarea>
+                                                        <span class="required">Required</span>
+                                                    </li>
+                                                </ol>
+                                            </fieldset>
+                                            <fieldset class="action">
+                                                <input type="submit" value="Submit">
+                                            </fieldset>
+                                        </form>
+                                    </div>
                                 </div>
-
-                            </div>
                         </div>
                     </div>
 
@@ -805,38 +807,105 @@
                     <h1>View ILL requests</h1>
                     <div id="results">
                         <h3 id="hitheader" name="hitheader" >[% IF hitname %][% hitname %][% ELSE %]Details for all requests[% END %]</h3>
+                        [% INCLUDE 'ill-list-table.inc' %]
+<!-- XXXWH TODO: add the special LMSCloud columns <th>Order ID</th> and <th>ILL order last checked by</th> to intranet/htdocs/intranet-tmpl/prog/en/includes/ill-list-table.inc-->
 
-                        <table id="ill-requests">
-                            <thead>
-                                <tr id="illview-header">
-                                    <th>Order ID</th>
-                                    <th>ILL backend type</th>
-                                    <th>Type</th>
-                                    <th>Author</th>
-                                    <th>Title</th>
-                                    <th>Patron</th>
-                                    <th>Library</th>
-                                    <th>Status</th>
-                                    <th class="title-string" >Updated on</th>
-                                    <th>ILL order last checked by</th>
-                                    <th>Request number</th>
-                                    <th class="actions"></th>
-                                </tr>
-                            </thead>
-                            <tbody id="illview-body">
-                            </tbody>
-                        </table>
+                    </div> <!-- /#results -->
+                [% ELSIF query_type == 'availability' %]
+                    <!-- availability -->
+                    <h1>Availability</h1>
+                    <div id="results">
+                        <h3>Displaying availability results</h3>
+                        <form method="POST" action="/cgi-bin/koha/ill/ill-requests.pl">
+                            [% FOREACH key IN whole.keys %]
+                                [% value = whole.$key %]
+                                [% IF key != 'method' && key != 'custom_key' && key != 'custom_value' %]
+                                <input type="hidden" name="[% key | html %]" value="[% value | html %]">
+                                [% END %]
+                            [% END %]
+                            [% custom_keys = whole.custom_key.split('\0') %]
+                            [% custom_values = whole.custom_value.split('\0') %]
+                            [% i = 0 %]
+                            [% FOREACH custom_key IN custom_keys %]
+                                <input type="hidden" name="custom_key" value="[% custom_key | html %]">
+                                <input type="hidden" name="custom_value" value="[% custom_values.$i | html %]">
+                            [% i = i + 1 %]
+                            [% END %]
+                            <input type="hidden" name="method" value="create">
+                            <input type="hidden" name="stage" value="form">
+                            <input type="hidden" name="checked_availability" value="1">
+                            <div id="continue-request-row" class="alert">
+                                If you can't find what you are looking for, you can
+                                <button class="button" type="submit">continue creating your request</button> or
+                                <a href="/cgi-bin/koha/ill/ill-requests.pl">cancel your request</a>
+                            </div>
+                        </form>
+                        [% FOR service IN services %]
+                            <h4 class="ill_availability_sourcename">[% service.name | html %]</h4>
+                            [% INCLUDE 'ill-availability-table.inc' service=service %]
+                        [% END %]
                     </div>
                 [% ELSE %]
                 <!-- Custom Backend Action -->
-                [% INCLUDE $whole.template %]
+                [% PROCESS $whole.template %]
 
                 [% END %]
         [% END %]
-            </div>
-        </div>
-    </div>
-</div>
+                </div> <!-- /#interlibraryloans -->
+            </main>
+        </div> <!-- /.col-sm-10 -->
+    </div> <!-- /.row -->
+
+
+[% MACRO jsinclude BLOCK %]
+    [% INCLUDE 'datatables.inc' %]
+    [% INCLUDE 'columns_settings.inc' %]
+    [% INCLUDE 'calendar.inc' %]
+    [% Asset.js("lib/jquery/plugins/jquery-ui-timepicker-addon.min.js") | $raw %]
+    <script>
+        var prefilters = '[% prefilters | $raw %]';
+        // Set column settings
+        var columns_settings = [% TablesSettings.GetColumns( 'illrequests', 'ill-requests', 'ill-requests', 'json' ) %];
+        $("#ill_checkout_duedate_input").datetimepicker({
+            hour: 23,
+            minute: 59
+        }).on("change", function(e, value) {
+            if ( ! is_valid_date( $(this).val() ) ) {$(this).val("");}
+        });
+        [% IF services_json.length > 0 %]
+        var services = [% services_json | $raw %];
+        [% ELSE %]
+        var services = [];
+        [% END %]
+        [% IF metadata.length > 0 %]
+        var metadata = "[% metadata | $raw %]";
+        [% END %]
+    </script>
+    <script>
+        $('#ill_checkout_inhouse_select').on('change', function() {
+            if ($(this).val().length > 0) {
+                $('.ill_checkout_due_date').hide();
+            } else {
+                $('.ill_checkout_due_date').show();
+            }
+        });
+    </script>
+    [% INCLUDE 'ill-list-table-strings.inc' %]
+    [% Asset.js("js/ill-list-table.js") | $raw %]
+    [% IF (query_type == 'availability' || query_type == 'generic_confirm') && Koha.Preference('ILLCheckAvailability') %]
+        [% Asset.js("js/ill-availability.js") | $raw %]
+    [% END %]
+    [% IF query_type == 'availability' && Koha.Preference('ILLCheckAvailability') %]
+        <script>
+            $(document).ready(function() {
+                window.doSearch();
+            });
+        </script>
+    [% END %]
+    [% IF query_type == 'generic_confirm' && Koha.Preference('ILLCheckAvailability') %]
+        [% Asset.js("js/ill-availability-partner.js") | $raw %]
+    [% END %]
+[% END %]
 
 [% TRY %]
 [% PROCESS backend_jsinclude %]

@@ -28,11 +28,10 @@ use C4::Letters;
 use C4::Serials;
 
 
-my $query = new CGI;
+my $query = CGI->new;
 my $op    = $query->param('op') || '';
 my $dbh   = C4::Context->dbh;
 
-my $sth;
 my ( $template, $loggedinuser, $cookie );
 my $subscriptionid = $query->param('subscriptionid');
 my $referer      = $query->param('referer') || 'detail';
@@ -90,4 +89,4 @@ else {
         biblionumber   => $biblionumber,
     );
 }
-output_html_with_http_headers $query, $cookie, $template->output;
+output_html_with_http_headers $query, $cookie, $template->output, undef, { force_no_caching => 1 };

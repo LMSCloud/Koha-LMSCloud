@@ -23,13 +23,12 @@ use C4::Output;
 use C4::Tags qw/get_count_by_tag_status/;
 use Koha::Reviews;
 
-my $query = new CGI;
+my $query = CGI->new;
 my ( $template, $loggedinuser, $cookie ) = get_template_and_user(
     {
         template_name   => "tools/tools-home.tt",
         query           => $query,
         type            => "intranet",
-        authnotrequired => 0,
         flagsrequired   => { tools => '*' },
         debug           => 1,
     }
@@ -42,5 +41,12 @@ $template->param(
     pendingcomments => $pendingcomments,
     pendingtags     => $pendingtags
 );
+
+if ( C4::Context->config('enable_plugins') ) {
+    my @tool_plugins = Koha::Plugins->new()->GetPlugins({
+        method => 'tool',
+    });
+    $template->param( tool_plugins => \@tool_plugins );
+}
 
 output_html_with_http_headers $query, $cookie, $template->output;

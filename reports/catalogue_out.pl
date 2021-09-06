@@ -33,7 +33,7 @@ Report that shows unborrowed items.
 
 =cut
 
-my $input   = new CGI;
+my $input   = CGI->new;
 my $do_it   = $input->param('do_it');
 my $limit   = $input->param("Limit") || 10;
 my $column  = $input->param("Criteria");
@@ -44,7 +44,6 @@ my ( $template, $borrowernumber, $cookie ) = get_template_and_user(
         template_name   => "reports/catalogue_out.tt",
         query           => $input,
         type            => "intranet",
-        authnotrequired => 0,
         flagsrequired   => { reports => 'execute_reports' },
         debug           => 1,
     }
@@ -66,8 +65,6 @@ output_html_with_http_headers $input, $cookie, $template->output;
 
 sub calculate {
     my ( $limit, $column, $filters ) = @_;
-    my @loopline;
-    my @looprow;
     my %globalline;
     my %columns = ();
     my $dbh     = C4::Context->dbh;

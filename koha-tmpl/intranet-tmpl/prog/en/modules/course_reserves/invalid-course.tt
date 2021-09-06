@@ -1,12 +1,23 @@
 [% INCLUDE 'doc-head-open.inc' %]
-<title>Koha &rsaquo; Course reserves</title>
+<title>Course reserves &rsaquo; Koha</title>
 [% INCLUDE 'doc-head-close.inc' %]
 <body id="courses_invalid_course" class="course">
 
 [% INCLUDE 'header.inc' %]
 [% INCLUDE 'cat-search.inc' %]
 
-<div id="breadcrumbs"><a href="/cgi-bin/koha/mainpage.pl">Home</a> &rsaquo; <a href="/cgi-bin/koha/course_reserves/course-reserves.pl">Course reserves</a></div>
+<nav id="breadcrumbs" aria-label="Breadcrumb" class="breadcrumb">
+    <ol>
+        <li>
+            <a href="/cgi-bin/koha/mainpage.pl">Home</a>
+        </li>
+        <li>
+            <a href="#" aria-current="page">
+                Course reserves
+            </a>
+        </li>
+    </ol>
+</nav>
 
 <div class="main container-fluid">
     <div class="row">

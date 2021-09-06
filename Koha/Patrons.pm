@@ -5,18 +5,18 @@ package Koha::Patrons;
 #
 # This file is part of Koha.
 #
-# Koha is free software; you can redistribute it and/or modify it under the
-# terms of the GNU General Public License as published by the Free Software
-# Foundation; either version 3 of the License, or (at your option) any later
-# version.
+# Koha is free software; you can redistribute it and/or modify it
+# under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 3 of the License, or
+# (at your option) any later version.
 #
-# Koha is distributed in the hope that it will be useful, but WITHOUT ANY
-# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
-# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+# Koha is distributed in the hope that it will be useful, but
+# WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+# GNU General Public License for more details.
 #
-# You should have received a copy of the GNU General Public License along
-# with Koha; if not, write to the Free Software Foundation, Inc.,
-# 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+# You should have received a copy of the GNU General Public License
+# along with Koha; if not, see <http://www.gnu.org/licenses>.
 
 use Modern::Perl;
 
@@ -28,6 +28,9 @@ use Koha::DateUtils;
 use Koha::ArticleRequests;
 use Koha::ArticleRequest::Status;
 use Koha::Patron;
+use Koha::Exceptions::Patron;
+use Koha::Patron::Categories;
+use Date::Calc qw( Today Add_Delta_YMD );
 
 use base qw(Koha::Objects);
 
@@ -124,18 +127,6 @@ sub search_upcoming_membership_expires {
     );
 }
 
-=head3 guarantor
-
-Returns a Koha::Patron object for this borrower's guarantor
-
-=cut
-
-sub guarantor {
-    my ( $self ) = @_;
-
-    return Koha::Patrons->find( $self->guarantorid() );
-}
-
 =head3 search_patrons_to_anonymise
 
     my $patrons = Koha::Patrons->search_patrons_to_anonymise( { before => $older_than_date, [ library => $library ] } );
@@ -153,6 +144,7 @@ sub search_patrons_to_anonymise {
       ( C4::Context->preference('IndependentBranches') && C4::Context->userenv && !C4::Context->IsSuperLibrarian() && C4::Context->userenv->{branch} )
       ? C4::Context->userenv->{branch}
       : undef;
+    my $anonymous_patron = C4::Context->preference('AnonymousPatron') || undef;
 
     my $dtf = Koha::Database->new->schema->storage->datetime_parser;
     my $rs = $class->_resultset->search(
@@ -160,6 +152,7 @@ sub search_patrons_to_anonymise {
             'old_issues.borrowernumber' => { 'not' => undef },
             privacy                     => { '<>'  => 0 },                  # Keep forever
             ( $library ? ( 'old_issues.branchcode' => $library ) : () ),
+            ( $anonymous_patron ? ( 'old_issues.borrowernumber' => { '!=' => $anonymous_patron } ) : () ),
         },
         {   join     => ["old_issues"],
             distinct => 1,
@@ -207,6 +200,289 @@ sub anonymise_issue_history {
     return $nb_rows;
 }
 
+=head3 delete
+
+    Koha::Patrons->search({ some filters here })->delete({ move => 1 });
+
+    Delete passed set of patron objects.
+    Wrapper for Koha::Patron->delete. (We do not want to bypass Koha::Patron
+    and let DBIx do the job without further housekeeping.)
+    Includes a move to deletedborrowers if move flag set.
+
+    Just like DBIx, the delete will only succeed when all entries could be
+    deleted. Returns true or throws an exception.
+
+=cut
+
+sub delete {
+    my ( $self, $params ) = @_;
+    my $patrons_deleted;
+    $self->_resultset->result_source->schema->txn_do( sub {
+        my ( $set, $params ) = @_;
+        my $count = $set->count;
+        while ( my $patron = $set->next ) {
+
+            next unless $patron->in_storage;
+
+            $patron->move_to_deleted if $params->{move};
+            $patron->delete;
+
+            $patrons_deleted++;
+        }
+    }, $self, $params );
+    return $patrons_deleted;
+}
+
+=head3 filter_by_expiration_date
+
+    Koha::Patrons->filter_by_expiration_date{{ days => $x });
+
+    Returns set of Koha patron objects expired $x days.
+
+=cut
+
+sub filter_by_expiration_date {
+    my ( $class, $params ) = @_;
+
+    return $class->filter_by_last_update(
+        {
+            timestamp_column_name => 'dateexpiry',
+            days                  => $params->{days} || 0,
+            days_inclusive        => 1,
+        }
+    );
+}
+
+=head3 search_unsubscribed
+
+    Koha::Patrons->search_unsubscribed;
+
+    Returns a set of Koha patron objects for patrons that recently
+    unsubscribed and are not locked (candidates for locking).
+    Depends on UnsubscribeReflectionDelay.
+
+=cut
+
+sub search_unsubscribed {
+    my ( $class ) = @_;
+
+    my $delay = C4::Context->preference('UnsubscribeReflectionDelay');
+    if( !defined($delay) || $delay eq q{} ) {
+        # return empty set
+        return $class->search({ borrowernumber => undef });
+    }
+    my $parser = Koha::Database->new->schema->storage->datetime_parser;
+    my $dt = dt_from_string()->subtract( days => $delay );
+    my $str = $parser->format_datetime($dt);
+    my $fails = C4::Context->preference('FailedLoginAttempts') || 0;
+    my $cond = [ undef, 0, 1..$fails-1 ]; # NULL, 0, 1..fails-1 (if fails>0)
+    return $class->search(
+        {
+            'patron_consents.refused_on' => { '<=' => $str },
+            'login_attempts' => $cond,
+        },
+        { join => 'patron_consents' },
+    );
+}
+
+=head3 search_anonymize_candidates
+
+    Koha::Patrons->search_anonymize_candidates({ locked => 1 });
+
+    Returns a set of Koha patron objects for patrons whose account is expired
+    and locked (if parameter set). These are candidates for anonymizing.
+    Depends on PatronAnonymizeDelay.
+
+=cut
+
+sub search_anonymize_candidates {
+    my ( $class, $params ) = @_;
+
+    my $delay = C4::Context->preference('PatronAnonymizeDelay');
+    if( !defined($delay) || $delay eq q{} ) {
+        # return empty set
+        return $class->search({ borrowernumber => undef });
+    }
+    my $cond = {};
+    my $parser = Koha::Database->new->schema->storage->datetime_parser;
+    my $dt = dt_from_string()->subtract( days => $delay );
+    my $str = $parser->format_datetime($dt);
+    $cond->{dateexpiry} = { '<=' => $str };
+    $cond->{anonymized} = 0; # not yet done
+    if( $params->{locked} ) {
+        my $fails = C4::Context->preference('FailedLoginAttempts') || 0;
+        $cond->{login_attempts} = [ -and => { '!=' => undef }, { -not_in => [0, 1..$fails-1 ] } ]; # -not_in does not like undef
+    }
+    return $class->search( $cond );
+}
+
+=head3 search_anonymized
+
+    Koha::Patrons->search_anonymized;
+
+    Returns a set of Koha patron objects for patron accounts that have been
+    anonymized before and could be removed.
+    Depends on PatronRemovalDelay.
+
+=cut
+
+sub search_anonymized {
+    my ( $class ) = @_;
+
+    my $delay = C4::Context->preference('PatronRemovalDelay');
+    if( !defined($delay) || $delay eq q{} ) {
+        # return empty set
+        return $class->search({ borrowernumber => undef });
+    }
+    my $cond = {};
+    my $parser = Koha::Database->new->schema->storage->datetime_parser;
+    my $dt = dt_from_string()->subtract( days => $delay );
+    my $str = $parser->format_datetime($dt);
+    $cond->{dateexpiry} = { '<=' => $str };
+    $cond->{anonymized} = 1;
+    return $class->search( $cond );
+}
+
+=head3 lock
+
+    Koha::Patrons->search({ some filters })->lock({ expire => 1, remove => 1 })
+
+    Lock the passed set of patron objects. Optionally expire and remove holds.
+    Wrapper around Koha::Patron->lock.
+
+=cut
+
+sub lock {
+    my ( $self, $params ) = @_;
+    my $count = $self->count;
+    while( my $patron = $self->next ) {
+        $patron->lock($params);
+    }
+}
+
+=head3 anonymize
+
+    Koha::Patrons->search({ some filters })->anonymize();
+
+    Anonymize passed set of patron objects.
+    Wrapper around Koha::Patron->anonymize.
+
+=cut
+
+sub anonymize {
+    my ( $self ) = @_;
+    my $count = $self->count;
+    while( my $patron = $self->next ) {
+        $patron->anonymize;
+    }
+}
+
+=head3 search_patrons_to_update_category
+
+    my $patrons = Koha::Patrons->search_patrons_to_update_category( {
+                      from          => $from_category,
+                      fine_max      => $fine_max,
+                      fine_min      => $fin_min,
+                      too_young     => $too_young,
+                      too_old      => $too_old,
+                  });
+
+This method returns all patron who should be updated from one category to another meeting criteria:
+
+from          - borrower categorycode
+fine_min      - with fines totaling at least this amount
+fine_max      - with fines above this amount
+too_young     - if passed, select patrons who are under the age limit for the current category
+too_old       - if passed, select patrons who are over the age limit for the current category
+
+=cut
+
+sub search_patrons_to_update_category {
+    my ( $self, $params ) = @_;
+    my %query;
+    my $search_params;
+
+    my $cat_from = Koha::Patron::Categories->find($params->{from});
+    $search_params->{categorycode}=$params->{from};
+    if ($params->{too_young} || $params->{too_old}){
+        my $dtf = Koha::Database->new->schema->storage->datetime_parser;
+        if( $cat_from->dateofbirthrequired && $params->{too_young} ) {
+            my $date_after = dt_from_string()->subtract( years => $cat_from->dateofbirthrequired);
+            $search_params->{dateofbirth}{'>'} = $dtf->format_datetime( $date_after );
+        }
+        if( $cat_from->upperagelimit && $params->{too_old} ) {
+            my $date_before = dt_from_string()->subtract( years => $cat_from->upperagelimit);
+            $search_params->{dateofbirth}{'<'} = $dtf->format_datetime( $date_before );
+        }
+    }
+    if ($params->{fine_min} || $params->{fine_max}) {
+        $query{join} = ["accountlines"];
+        $query{columns} = ["borrowernumber"];
+        $query{group_by} = ["borrowernumber"];
+        $query{having} = \['COALESCE(sum(accountlines.amountoutstanding),0) <= ?',$params->{fine_max}] if defined $params->{fine_max};
+        $query{having} = \['COALESCE(sum(accountlines.amountoutstanding),0) >= ?',$params->{fine_min}] if defined $params->{fine_min};
+    }
+    return $self->search($search_params,\%query);
+}
+
+=head3 update_category_to
+
+    Koha::Patrons->search->update_category_to( {
+            category   => $to_category,
+        });
+
+Update supplied patrons from current category to another and take care of guarantor info.
+To make sure all the conditions are met, the caller has the responsibility to
+call search_patrons_to_update to filter the Koha::Patrons set
+
+=cut
+
+sub update_category_to {
+    my ( $self, $params ) = @_;
+    my $counter = 0;
+    while( my $patron = $self->next ) {
+        $counter++;
+        $patron->categorycode($params->{category})->store();
+    }
+    return $counter;
+}
+
+=head3 filter_by_attribute_type
+
+my $patrons = Koha::Patrons->filter_by_attribute_type($attribute_type_code);
+
+Return a Koha::Patrons set with patrons having the attribute defined.
+
+=cut
+
+sub filter_by_attribute_type {
+    my ( $self, $attribute_type ) = @_;
+    my $rs = Koha::Patron::Attributes->search( { code => $attribute_type } )
+      ->_resultset()->search_related('borrowernumber');
+    return Koha::Patrons->_new_from_dbic($rs);
+}
+
+=head3 filter_by_attribute_value
+
+my $patrons = Koha::Patrons->filter_by_attribute_value($attribute_value);
+
+Return a Koha::Patrons set with patrong having the attribute value passed in parameter.
+
+=cut
+
+sub filter_by_attribute_value {
+    my ( $self, $attribute_value ) = @_;
+    my $rs = Koha::Patron::Attributes->search(
+        {
+            'borrower_attribute_types.staff_searchable' => 1,
+            attribute => { like => "%$attribute_value%" }
+        },
+        { join => 'borrower_attribute_types' }
+    )->_resultset()->search_related('borrowernumber');
+    return Koha::Patrons->_new_from_dbic($rs);
+}
+
+
 =head3 _type
 
 =cut
@@ -214,6 +490,10 @@ sub anonymise_issue_history {
 sub _type {
     return 'Borrower';
 }
+
+=head3 object_class
+
+=cut
 
 sub object_class {
     return 'Koha::Patron';

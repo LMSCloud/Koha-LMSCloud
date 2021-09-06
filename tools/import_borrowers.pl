@@ -44,6 +44,7 @@ use Koha::DateUtils;
 use Koha::Token;
 use Koha::Libraries;
 use Koha::Patron::Categories;
+use Koha::Patron::Attribute::Types;
 use Koha::List::Patron;
 
 use Koha::Patrons::Import;
@@ -57,29 +58,26 @@ use Text::CSV;
 
 use CGI qw ( -utf8 );
 
-my ( @errors, @feedback );
 my $extended = C4::Context->preference('ExtendedPatronAttributes');
 
 my @columnkeys = map { $_ ne 'borrowernumber' ? $_ : () } Koha::Patrons->columns();
 push( @columnkeys, 'patron_attributes' ) if $extended;
+push( @columnkeys, qw( guarantor_relationship guarantor_id ) );
 
 my $input = CGI->new();
-
-#push @feedback, {feedback=>1, name=>'backend', value=>$csv->backend, backend=>$csv->backend}; #XXX
 
 my ( $template, $loggedinuser, $cookie ) = get_template_and_user(
     {
         template_name   => "tools/import_borrowers.tt",
         query           => $input,
         type            => "intranet",
-        authnotrequired => 0,
         flagsrequired   => { tools => 'import_patrons' },
         debug           => 1,
     }
 );
 
 # get the patron categories and pass them to the template
-my @patron_categories = Koha::Patron::Categories->search_limited({}, {order_by => ['description']});
+my @patron_categories = Koha::Patron::Categories->search_with_library_limits({}, {order_by => ['description']});
 $template->param( categories => \@patron_categories );
 my $columns = C4::Templates::GetColumnDefs( $input )->{borrowers};
 $columns = [ grep { $_->{field} ne 'borrowernumber' ? $_ : () } @$columns ];
@@ -111,7 +109,7 @@ my $patronlistname = $uploadborrowers . ' (' . $timestamp .')';
 $template->param( SCRIPT_NAME => '/cgi-bin/koha/tools/import_borrowers.pl' );
 
 if ( $uploadborrowers && length($uploadborrowers) > 0 ) {
-    die "Wrong CSRF token"
+    output_and_exit( $input, $cookie, $template, 'wrong_csrf_token' )
         unless Koha::Token->new->check_csrf({
             session_id => scalar $input->cookie('CGISESSID'),
             token  => scalar $input->param('csrf_token'),
@@ -119,14 +117,15 @@ if ( $uploadborrowers && length($uploadborrowers) > 0 ) {
 
     my $handle   = $input->upload('uploadborrowers');
     my %defaults = $input->Vars;
-
+    my $overwrite_passwords = defined $input->param('overwrite_passwords') ? 1 : 0;
     my $return = $Import->import_patrons(
         {
             file                         => $handle,
             defaults                     => \%defaults,
             matchpoint                   => $matchpoint,
-            overwrite_cardnumber         => $input->param('overwrite_cardnumber'),
-            preserve_extended_attributes => $input->param('ext_preserve') || 0,
+            overwrite_cardnumber         => scalar $input->param('overwrite_cardnumber'),
+            overwrite_passwords          => $overwrite_passwords,
+            preserve_extended_attributes => scalar $input->param('ext_preserve') || 0,
         }
     );
 
@@ -166,9 +165,9 @@ if ( $uploadborrowers && length($uploadborrowers) > 0 ) {
 else {
     if ($extended) {
         my @matchpoints = ();
-        my @attr_types = C4::Members::AttributeTypes::GetAttributeTypes( undef, 1 );
-        foreach my $type (@attr_types) {
-            my $attr_type = C4::Members::AttributeTypes->fetch( $type->{code} );
+        my $attribute_types = Koha::Patron::Attribute::Types->search;
+
+        while ( my $attr_type = $attribute_types->next ) {
             if ( $attr_type->unique_id() ) {
                 push @matchpoints,
                   { code => "patron_attribute_" . $attr_type->code(), description => $attr_type->description() };

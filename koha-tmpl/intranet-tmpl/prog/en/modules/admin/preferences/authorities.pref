@@ -4,13 +4,13 @@ Authorities:
             - pref: AuthDisplayHierarchy
               default: no
               choices:
-                  yes: Display
-                  no: "Don't display"
+                  1: Display
+                  0: "Don't display"
             - broader term/narrower term hierarchies when viewing authorities.
         -
-            - Use the following text to edit how authority records control indicators of attached biblio fields (and possibly subfield $2).<br>
+            - Use the following text to edit how authority records control indicators of attached bibliographic fields (and possibly subfield $2).<br>
             - "Lines starting with a comment symbol (#) are skipped. Each line should be of the form: (marc21|unimarc), tag, ind1:(auth1|auth2|some_value), ind2:(auth1|auth2|thesaurus|some_value).<br>"
-            - Here auth1 and auth2 refer to the indicators of the authority record, tag is a biblio field number or an asterisk (*), and some_value is a fixed value (one character).<br>
+            - Here auth1 and auth2 refer to the indicators of the authority record, tag is a bibliographic field number or an asterisk (*), and some_value is a fixed value (one character).<br>
             - The MARC21 option thesaurus refers to indicators controlled by authority field 008/11 and 040$f.
             - pref: AuthorityControlledIndicators
               type: textarea
@@ -19,24 +19,25 @@ Authorities:
             - pref: BiblioAddsAuthorities
               default: no
               choices:
-                  yes: allow
-                  no: "don't allow"
+                  1: allow
+                  0: "don't allow"
             - them to automatically create new authority records if needed, rather than having to reference existing authorities.
         -
             - When editing records,
             - pref: AutoCreateAuthorities
               default: yes
               choices:
-                  yes: generate
-                  no: "do not generate"
-            - authority records that are missing (BiblioAddsAuthorities must be set to "allow" for this to have any effect).
+                  1: generate
+                  0: "don't generate"
+            - authority records that are missing (<a href="/cgi-bin/koha/admin/preferences.pl?op=search&searchfield=BiblioAddsAuthorities">BiblioAddsAuthorities</a> must be set to "allow" for this to have any effect).
         -
-            - When modifying an authority record, do not update attached biblio records if the number exceeds
+            - When modifying an authority record, do not update attached bibliographic records if the number exceeds
             - pref: AuthorityMergeLimit
               default: 50
             - records. (Above this limit, the merge_authority cron job will merge them.)
+            - "<br><strong>NOTE:</strong> This system preference requires the <code>misc/cronjobs/merge_authorities.pl</code> cronjob. Ask your system administrator to schedule it."
         -
-            - Use the following text for the contents of MARC21 authority control field 008 position 06-39 (fixed length data elements). Do NOT include the date (position 00-05).
+            - "Use the following text for the contents of MARC21 authority control field 008 position 06-39 (fixed length data elements). Do NOT include the date (position 00-05):"
             - pref: MARCAuthorityControlField008
               default: "|| aca||aabn           | a|a     d"
               type: textarea
@@ -45,17 +46,17 @@ Authorities:
             - pref: UseAuthoritiesForTracings
               default: yes
               choices:
-                  yes: Use
-                  no: "Don't use"
+                  1: Use
+                  0: "Don't use"
             - authority record numbers instead of text strings for searches from subject tracings.
         -
-            - Use the following text for the contents of UNIMARC authority field 100 position 08-35 (fixed length data elements). Do NOT include the date (position 00-07).
+            - "Use the following text for the contents of UNIMARC authority field 100 position 08-35 (fixed length data elements). Do NOT include the date (position 00-07):"
             - pref: UNIMARCAuthorityField100
               default: "afrey50      ba0"
               type: textarea
               class: code
         -
-            - When updating biblio records from an attached authority record ("merging"), handle subfields of relevant biblio record fields in
+            - When updating bibliographic records from an attached authority record ("merging"), handle subfields of relevant bibliographic record fields in
             - pref: AuthorityMergeMode
               default: "loose"
               choices:
@@ -69,33 +70,33 @@ Authorities:
             - pref: LinkerModule
               default: Default
               choices:
-                  Default: Default
-                  FirstMatch: "First Match"
-                  LastMatch: "Last Match"
+                  Default: default
+                  FirstMatch: "first match"
+                  LastMatch: "last match"
             - linker module for matching headings to authority records.
         -
-            - Set the following options for the authority linker
+            - "Set the following options for the authority linker:"
             - pref: LinkerOptions
               class: multi
-            - (separate options with |)
+            - (separate options with |).
         -
             - pref: LinkerRelink
               default: yes
               choices:
-                  yes: Do
-                  no: "Do not"
+                  1: Do
+                  0: "Don't"
             - relink headings that have previously been linked to authority records.
         -
             - pref: LinkerKeepStale
               default: no
               choices:
-                  yes: Do
-                  no: "Do not"
+                  1: Do
+                  0: "Don't"
             - keep existing links to authority records for headings where the linker is unable to find a match.
         -
             - pref: CatalogModuleRelink
               default: no
               choices:
-                  yes: Do
-                  no: "Do not"
+                  1: Do
+                  0: "Don't"
             - automatically relink headings that have previously been linked when saving records in the cataloging module.

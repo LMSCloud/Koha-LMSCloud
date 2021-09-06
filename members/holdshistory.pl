@@ -33,8 +33,7 @@ my @all_holds;
 my ($template, $loggedinuser, $cookie)= get_template_and_user({template_name => "members/holdshistory.tt",
                 query => $input,
                 type => "intranet",
-                authnotrequired => 0,
-                flagsrequired => {borrowers => 1},
+                flagsrequired => {borrowers => 'edit_borrowers'},
                 debug => 1,
                 });
 
@@ -72,12 +71,6 @@ if ( $borrowernumber eq C4::Context->preference('AnonymousPatron') ){
     while (my $hold = $old_holds->next) {
         push @all_holds, $hold;
     }
-}
-
-if ( $patron->is_child) {
-    my $patron_categories = Koha::Patron::Categories->search_limited({ category_type => 'A' }, {order_by => ['categorycode']});
-    $template->param( 'CATCODE_MULTI' => 1) if $patron_categories->count > 1;
-    $template->param( 'catcode' => $patron_categories->next->categorycode )  if $patron_categories->count == 1;
 }
 
 $template->param(

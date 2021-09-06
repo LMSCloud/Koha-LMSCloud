@@ -24,7 +24,7 @@ use MARC::Record;
 use Koha::SearchEngine;
 use Koha::SearchEngine::Search;
 use Koha::SearchEngine::QueryBuilder;
-use Koha::Util::Normalize qw/legacy_default remove_spaces upper_case lower_case/;
+use Koha::Util::Normalize qw/legacy_default remove_spaces upper_case lower_case ISBN/;
 
 =head1 NAME
 
@@ -44,7 +44,7 @@ C4::Matcher - find MARC records matching another one
   $matcher->add_matchpoint('isbn', 1000, [ { tag => '020', subfields => 'a', norms => [] } ]);
 
   $matcher->add_simple_required_check('245', 'a', -1, 0, '', '245', 'a', -1, 0, '');
-  $matcher->add_required_check([ { tag => '245', subfields => 'a', norms => [] } ], 
+  $matcher->add_required_check([ { tag => '245', subfields => 'a', norms => [] } ],
                                [ { tag => '245', subfields => 'a', norms => [] } ]);
 
   my @matches = $matcher->get_matches($marc_record, $max_matches);
@@ -165,7 +165,7 @@ sub fetch {
     $sth->execute($id);
     my $row = $sth->fetchrow_hashref;
     $sth->finish();
-    return undef unless defined $row;
+    return unless defined $row;
 
     my $self = {};
     $self->{'id'} = $row->{'matcher_id'};
@@ -331,7 +331,7 @@ sub _store_matchpoint {
     my $matcher_id = $self->{'id'};
     $sth = $dbh->prepare_cached("INSERT INTO matchpoints (matcher_id, search_index, score)
                                  VALUES (?, ?, ?)");
-    $sth->execute($matcher_id, $matchpoint->{'index'}, $matchpoint->{'score'});
+    $sth->execute($matcher_id, $matchpoint->{'index'}, $matchpoint->{'score'}||0);
     my $matchpoint_id = $dbh->{'mysql_insertid'};
     my $seqnum = 0;
     foreach my $component (@{ $matchpoint->{'components'} }) {
@@ -343,7 +343,7 @@ sub _store_matchpoint {
         $sth->bind_param(2, $seqnum);
         $sth->bind_param(3, $component->{'tag'});
         $sth->bind_param(4, join "", sort keys %{ $component->{'subfields'} });
-        $sth->bind_param(5, $component->{'offset'});
+        $sth->bind_param(5, $component->{'offset'}||0);
         $sth->bind_param(6, $component->{'length'});
         $sth->execute();
         my $matchpoint_component_id = $dbh->{'mysql_insertid'};
@@ -621,28 +621,19 @@ sub get_matches {
     my ($source_record, $max_matches) = @_;
 
     my $matches = {};
-    my $marcframework_used = ''; # use the default framework
 
-    my $QParser;
-    $QParser = C4::Context->queryparser if (C4::Context->preference('UseQueryParser'));
     foreach my $matchpoint ( @{ $self->{'matchpoints'} } ) {
         my @source_keys = _get_match_keys( $source_record, $matchpoint );
 
         next if scalar(@source_keys) == 0;
 
-        # FIXME - because of a bug in QueryParser, an expression ofthe
-        # format 'isbn:"isbn1" || isbn:"isbn2" || isbn"isbn3"...'
-        # does not get parsed correctly, so we will not
-        # do AggressiveMatchOnISBN if UseQueryParser is on
         @source_keys = C4::Koha::GetVariationsOfISBNs(@source_keys)
           if ( $matchpoint->{index} =~ /^isbn$/i
-            && C4::Context->preference('AggressiveMatchOnISBN') )
-            && !C4::Context->preference('UseQueryParser');
+            && C4::Context->preference('AggressiveMatchOnISBN') );
 
         @source_keys = C4::Koha::GetVariationsOfISSNs(@source_keys)
           if ( $matchpoint->{index} =~ /^issn$/i
-            && C4::Context->preference('AggressiveMatchOnISSN') )
-            && !C4::Context->preference('UseQueryParser');
+            && C4::Context->preference('AggressiveMatchOnISSN') );
 
         # build query
         my $query;
@@ -651,20 +642,15 @@ sub get_matches {
         my $total_hits;
         if ( $self->{'record_type'} eq 'biblio' ) {
 
-            #NOTE: The QueryParser can't handle the CCL syntax of 'qualifier','qualifier', so fallback to non-QueryParser.
-            #NOTE: You can see this in C4::Search::SimpleSearch() as well in a different way.
-            if ($QParser && $matchpoint->{'index'} !~ m/\w,\w/) {
-                $query = join( " || ",
-                    map { "$matchpoint->{'index'}:$_" } @source_keys );
-            }
-            else {
-                my $phr = ( C4::Context->preference('AggressiveMatchOnISBN') || C4::Context->preference('AggressiveMatchOnISSN') )  ? ',phr' : q{};
-                $query = join( " or ",
-                    map { "$matchpoint->{'index'}$phr=\"$_\"" } @source_keys );
-                    #NOTE: double-quote the values so you don't get a "Embedded truncation not supported" error when a term has a ? in it.
-            }
+            my $phr = ( C4::Context->preference('AggressiveMatchOnISBN') || C4::Context->preference('AggressiveMatchOnISSN') )  ? ',phr' : q{};
+            $query = join( " OR ",
+                map { "$matchpoint->{'index'}$phr=\"$_\"" } @source_keys );
+                #NOTE: double-quote the values so you don't get a "Embedded truncation not supported" error when a term has a ? in it.
 
-            my $searcher = Koha::SearchEngine::Search->new({index => $Koha::SearchEngine::BIBLIOS_INDEX});
+            # Use state variables to avoid recreating the objects every time.
+            # With Elasticsearch this also avoids creating a massive amount of
+            # ES connectors that would eventually run out of file descriptors.
+            state $searcher = Koha::SearchEngine::Search->new({index => $Koha::SearchEngine::BIBLIOS_INDEX});
             ( $error, $searchresults, $total_hits ) =
               $searcher->simple_search_compat( $query, 0, $max_matches, undef, skip_normalize => 1 );
 
@@ -672,21 +658,14 @@ sub get_matches {
                 warn "search failed ($query) $error";
             }
             else {
-                if ( C4::Context->preference('SearchEngine') eq 'Elasticsearch' ) {
-                    foreach my $matched ( @{$searchresults} ) {
-                        my ( $biblionumber_tag, $biblionumber_subfield ) = C4::Biblio::GetMarcFromKohaField( "biblio.biblionumber", $marcframework_used );
-                        my $id = ( $biblionumber_tag > 10 ) ?
-                            $matched->field($biblionumber_tag)->subfield($biblionumber_subfield) :
-                            $matched->field($biblionumber_tag)->data();
-                        $matches->{$id}->{score} += $matchpoint->{score};
-                        $matches->{$id}->{record} = $matched;
-                    }
-                }
-                else {
-                    foreach my $matched ( @{$searchresults} ) {
-                        $matches->{$matched}->{score} += $matchpoint->{'score'};
-                        $matches->{$matched}->{record} = $matched;
-                    }
+                foreach my $matched ( @{$searchresults} ) {
+                    my $target_record = C4::Search::new_record_from_zebra( 'biblioserver', $matched );
+                    my ( $biblionumber_tag, $biblionumber_subfield ) = C4::Biblio::GetMarcFromKohaField( "biblio.biblionumber" );
+                    my $id = ( $biblionumber_tag > 10 ) ?
+                        $target_record->field($biblionumber_tag)->subfield($biblionumber_subfield) :
+                        $target_record->field($biblionumber_tag)->data();
+                    $matches->{$id}->{score} += $matchpoint->{score};
+                    $matches->{$id}->{record} = $target_record;
                 }
             }
 
@@ -703,8 +682,11 @@ sub get_matches {
                 push @operator, 'exact';
                 push @value,    $key;
             }
-            my $builder  = Koha::SearchEngine::QueryBuilder->new({index => $Koha::SearchEngine::AUTHORITIES_INDEX});
-            my $searcher = Koha::SearchEngine::Search->new({index => $Koha::SearchEngine::AUTHORITIES_INDEX});
+            # Use state variables to avoid recreating the objects every time.
+            # With Elasticsearch this also avoids creating a massive amount of
+            # ES connectors that would eventually run out of file descriptors.
+            state $builder  = Koha::SearchEngine::QueryBuilder->new({index => $Koha::SearchEngine::AUTHORITIES_INDEX});
+            state $searcher = Koha::SearchEngine::Search->new({index => $Koha::SearchEngine::AUTHORITIES_INDEX});
             my $search_query = $builder->build_authorities_query_compat(
                 \@marclist, \@and_or, \@excluding, \@operator,
                 \@value, undef, 'AuthidAsc'
@@ -728,17 +710,15 @@ sub get_matches {
         # get rid of any that don't meet the required checks
         $matches = {
             map {
-                _passes_required_checks( $source_record, $_, $self->{'required_checks'} )
+                _passes_required_checks( $source_record, $matches->{$_}->{'record'}, $self->{'required_checks'} )
                   ? ( $_ => $matches->{$_} )
                   : ()
             } keys %$matches
         };
 
         foreach my $id ( keys %$matches ) {
-            my $target_record = C4::Search::new_record_from_zebra( 'biblioserver', $matches->{$id}->{record} );
-            my $result = C4::Biblio::TransformMarcToKoha( $target_record, $marcframework_used );
             push @results, {
-                record_id => $result->{biblionumber},
+                record_id => $id,
                 score     => $matches->{$id}->{score}
             };
         }
@@ -794,8 +774,7 @@ sub dump {
 }
 
 sub _passes_required_checks {
-    my ($source_record, $target_blob, $matchchecks) = @_;
-    my $target_record = MARC::Record->new_from_usmarc($target_blob); # FIXME -- need to avoid parsing record twice
+    my ($source_record, $target_record, $matchchecks) = @_;
 
     # no checks supplied == automatic pass
     return 1 if $#{ $matchchecks } == -1;
@@ -833,13 +812,26 @@ sub _get_match_keys {
     for (my $i = 0; $i <= $#{ $matchpoint->{'components'} }; $i++) {
         my $component = $matchpoint->{'components'}->[$i];
         my $j = -1;
-        FIELD: foreach my $field ($source_record->field($component->{'tag'})) {
+
+        my @fields = ();
+        my $tag = $component->{'tag'};
+        if ($tag && $tag eq 'LDR'){
+            $fields[0] = $source_record->leader();
+        }
+        else {
+            @fields = $source_record->field($tag);
+        }
+
+        FIELD: foreach my $field (@fields) {
             $j++;
             last FIELD if $j > 0 and $check_only_first_repeat;
             last FIELD if $i > 0 and $j > $#keys;
 
             my $string;
-            if ( $field->is_control_field() ) {
+            if ( ! ref $field ){
+                $string = "$field";
+            }
+            elsif ( $field->is_control_field() ) {
                 $string = $field->data();
             } else {
                 $string = $field->as_string(
@@ -869,6 +861,9 @@ sub _get_match_keys {
                     }
                     elsif ( $norm eq 'legacy_default' ) {
                         $key = legacy_default($key);
+                    }
+                    elsif ( $norm eq 'ISBN' ) {
+                        $key = ISBN($key);
                     }
                 } else {
                     warn "Invalid normalization routine required ($norm)"
@@ -906,7 +901,8 @@ sub valid_normalization_routines {
         'remove_spaces',
         'upper_case',
         'lower_case',
-        'legacy_default'
+        'legacy_default',
+        'ISBN'
     );
 }
 

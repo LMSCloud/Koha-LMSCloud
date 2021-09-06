@@ -4,18 +4,18 @@ package Koha::Library;
 #
 # This file is part of Koha.
 #
-# Koha is free software; you can redistribute it and/or modify it under the
-# terms of the GNU General Public License as published by the Free Software
-# Foundation; either version 3 of the License, or (at your option) any later
-# version.
+# Koha is free software; you can redistribute it and/or modify it
+# under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 3 of the License, or
+# (at your option) any later version.
 #
-# Koha is distributed in the hope that it will be useful, but WITHOUT ANY
-# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
-# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+# Koha is distributed in the hope that it will be useful, but
+# WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+# GNU General Public License for more details.
 #
-# You should have received a copy of the GNU General Public License along
-# with Koha; if not, write to the Free Software Foundation, Inc.,
-# 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+# You should have received a copy of the GNU General Public License
+# along with Koha; if not, see <http://www.gnu.org/licenses>.
 
 use Modern::Perl;
 
@@ -24,6 +24,8 @@ use Carp;
 use C4::Context;
 
 use Koha::Database;
+use Koha::StockRotationStages;
+use Koha::SMTP::Servers;
 
 use base qw(Koha::Object);
 
@@ -35,11 +37,47 @@ Koha::Library - Koha Library Object class
 
 =head2 Class methods
 
-=head3 get_categories
+=head3 stockrotationstages
 
-TODO: Ask the author to add a proper description
+  my $stages = Koha::Library->stockrotationstages;
+
+Returns the stockrotation stages associated with this Library.
 
 =cut
+
+sub stockrotationstages {
+    my ( $self ) = @_;
+    my $rs = $self->_result->stockrotationstages;
+    return Koha::StockRotationStages->_new_from_dbic( $rs );
+}
+
+=head3 outgoing_transfers
+
+  my $outgoing_transfers = Koha::Library->outgoing_transfers;
+
+Returns the outgoing item transfers associated with this Library.
+
+=cut
+
+sub outgoing_transfers {
+    my ( $self ) = @_;
+    my $rs = $self->_result->branchtransfers_frombranches;
+    return Koha::Item::Transfers->_new_from_dbic( $rs );
+}
+
+=head3 inbound_transfers
+
+  my $inbound_transfers = Koha::Library->inbound_transfers;
+
+Returns the inbound item transfers associated with this Library.
+
+=cut
+
+sub inbound_transfers {
+    my ( $self ) = @_;
+    my $rs = $self->_result->branchtransfers_tobranches;
+    return Koha::Item::Transfers->_new_from_dbic( $rs );
+}
 
 =head3 get_effective_marcorgcode
 
@@ -56,6 +94,92 @@ sub get_effective_marcorgcode {
     return $self->marcorgcode || C4::Context->preference("MARCOrgCode");
 }
 
+=head3 smtp_server
+
+    my $smtp_server = $library->smtp_server;
+    $library->smtp_server({ smtp_server => $smtp_server });
+    $library->smtp_server({ smtp_server => undef });
+
+Accessor for getting and setting the library's SMTP server.
+
+Returns the effective SMTP server configuration to be used on the library. The returned
+value is always a I<Koha::SMTP::Server> object.
+
+Setting it to undef will remove the link to a specific SMTP server and effectively
+make the library use the default setting
+
+=cut
+
+sub smtp_server {
+    my ( $self, $params ) = @_;
+
+    my $library_smtp_server_rs = $self->_result->library_smtp_server;
+
+    if ( exists $params->{smtp_server} ) {
+
+        $self->_result->result_source->schema->txn_do( sub {
+            $library_smtp_server_rs->delete
+                if $library_smtp_server_rs;
+
+            if ( defined $params->{smtp_server} ) {
+                # Set the new server
+                # Remove any already set SMTP server
+
+                my $smtp_server = $params->{smtp_server};
+                $smtp_server->_result->add_to_library_smtp_servers({ library_id => $self->id });
+            }
+        });
+    } # else => reset to default
+    else {
+        # Getter
+        if ( $library_smtp_server_rs ) {
+            return Koha::SMTP::Servers->find(
+                $library_smtp_server_rs->smtp_server_id );
+        }
+
+        return Koha::SMTP::Servers->get_default;
+    }
+
+    return $self;
+}
+
+=head3 inbound_email_address
+
+  my $to_email = Koha::Library->inbound_email_address;
+
+Returns an effective email address which should be accessible to librarians at the branch.
+
+=cut
+
+sub inbound_email_address {
+    my ($self) = @_;
+
+    return
+         $self->branchreplyto
+      || $self->branchemail
+      || C4::Context->preference('ReplytoDefault')
+      || C4::Context->preference('KohaAdminEmailAddress')
+      || undef;
+}
+
+=head3 inbound_ill_address
+
+  my $to_email = Koha::Library->inbound_ill_address;
+
+Returns an effective email address which should be accessible to librarians at the branch
+for inter library loans communication.
+
+=cut
+
+sub inbound_ill_address {
+    my ($self) = @_;
+
+    return
+         $self->branchillemail
+      || C4::Context->preference('ILLDefaultStaffEmail')
+      || $self->inbound_email_address;
+}
+
 =head3 library_groups
 
 Return the Library groups of this library
@@ -66,6 +190,90 @@ sub library_groups {
     my ( $self ) = @_;
     my $rs = $self->_result->library_groups;
     return Koha::Library::Groups->_new_from_dbic( $rs );
+}
+
+=head3 cash_registers
+
+Return Cash::Registers associated with this Library
+
+=cut
+
+sub cash_registers {
+    my ( $self ) = @_;
+    my $rs = $self->_result->cash_registers;
+    return Koha::Cash::Registers->_new_from_dbic( $rs );
+}
+
+=head3 to_api_mapping
+
+This method returns the mapping for representing a Koha::Library object
+on the API.
+
+=cut
+
+sub to_api_mapping {
+    return {
+        branchcode       => 'library_id',
+        branchname       => 'name',
+        branchaddress1   => 'address1',
+        branchaddress2   => 'address2',
+        branchaddress3   => 'address3',
+        branchzip        => 'postal_code',
+        branchcity       => 'city',
+        branchstate      => 'state',
+        branchcountry    => 'country',
+        branchphone      => 'phone',
+        branchfax        => 'fax',
+        branchemail      => 'email',
+        branchillemail   => 'illemail',
+        branchreplyto    => 'reply_to_email',
+        branchreturnpath => 'return_path_email',
+        branchurl        => 'url',
+        issuing          => undef,
+        branchip         => 'ip',
+        branchnotes      => 'notes',
+        marcorgcode      => 'marc_org_code',
+    };
+}
+
+=head3 get_hold_libraries
+
+Return all libraries (including self) that belong to the same hold groups
+
+=cut
+
+sub get_hold_libraries {
+    my ( $self ) = @_;
+    my $library_groups = $self->library_groups;
+    my @hold_libraries;
+    while ( my $library_group = $library_groups->next ) {
+        my $root = Koha::Library::Groups->get_root_ancestor({id => $library_group->id});
+        if($root->ft_local_hold_group) {
+            push @hold_libraries, $root->all_libraries;
+        }
+    }
+
+    my %seen;
+    @hold_libraries =
+      grep { !$seen{ $_->id }++ } @hold_libraries;
+
+    return Koha::Libraries->search({ branchcode => { '-in' => [ keys %seen ] } });
+}
+
+=head3 validate_hold_sibling
+
+Return if given library is a valid hold group member
+
+=cut
+
+sub validate_hold_sibling {
+    my ( $self, $params ) = @_;
+
+    return 1 if $params->{branchcode} eq $self->id;
+
+    my $branchcode = $params->{branchcode};
+    return $self->get_hold_libraries->search( { branchcode => $branchcode } )
+      ->count > 0;
 }
 
 =head2 Internal methods

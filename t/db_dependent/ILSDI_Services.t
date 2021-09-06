@@ -19,10 +19,13 @@ use Modern::Perl;
 
 use CGI qw ( -utf8 );
 
-use Test::More tests => 4;
+use Test::More tests => 10;
 use Test::MockModule;
 use t::lib::Mocks;
 use t::lib::TestBuilder;
+
+use C4::Items qw( ModItemTransfer );
+use C4::Circulation;
 
 use Koha::AuthUtils;
 
@@ -57,7 +60,7 @@ subtest 'AuthenticatePatron test' => sub {
         }
     });
 
-    my $query = new CGI;
+    my $query = CGI->new;
     $query->param( 'username', $borrower->{userid});
     $query->param( 'password', $plain_password);
 
@@ -103,7 +106,7 @@ subtest 'AuthenticatePatron test' => sub {
 
 subtest 'GetPatronInfo/GetBorrowerAttributes test for extended patron attributes' => sub {
 
-    plan tests => 2;
+    plan tests => 5;
 
     $schema->storage->txn_begin;
 
@@ -113,6 +116,7 @@ subtest 'GetPatronInfo/GetBorrowerAttributes test for extended patron attributes
     $schema->resultset( 'BorrowerAttributeType' )->delete_all;
     $schema->resultset( 'Category' )->delete_all;
     $schema->resultset( 'Item' )->delete_all; # 'Branch' deps. on this
+    $schema->resultset( 'Club' )->delete_all;
     $schema->resultset( 'Branch' )->delete_all;
 
     # Configure Koha to enable ILS-DI server and extended attributes:
@@ -191,47 +195,53 @@ subtest 'GetPatronInfo/GetBorrowerAttributes test for extended patron attributes
         }
     } );
 
-    $builder->build(
+    my $fine = $builder->build(
         {
             source => 'Accountline',
             value  => {
                 borrowernumber    => $brwr->{borrowernumber},
-                accountno         => 1,
-                accounttype       => 'xxx',
+                debit_type_code   => 'OVERDUE',
                 amountoutstanding => 10
             }
         }
     );
 
     # Prepare and send web request for IL-SDI server:
-    my $query = new CGI;
+    my $query = CGI->new;
     $query->param( 'service', 'GetPatronInfo' );
     $query->param( 'patron_id', $brwr->{'borrowernumber'} );
     $query->param( 'show_attributes', '1' );
+    $query->param( 'show_fines', '1' );
 
     my $reply = C4::ILSDI::Services::GetPatronInfo( $query );
 
     # Build a structure for comparison:
     my $cmp = {
-        category_code     => $attr_type_visible->{'category_code'},
-        class             => $attr_type_visible->{'class'},
-        code              => $attr_shown->{'code'},
-        description       => $attr_type_visible->{'description'},
-        display_checkout  => $attr_type_visible->{'display_checkout'},
+        borrowernumber    => $brwr->{borrowernumber},
         value             => $attr_shown->{'attribute'},
-        value_description => undef,
+        value_description => $attr_shown->{'attribute'},
+        %$attr_type_visible,
+        %$attr_shown,
     };
 
     is( $reply->{'charges'}, '10.00',
         'The \'charges\' attribute should be correctly filled (bug 17836)' );
 
+    is( scalar( @{$reply->{fines}->{fine}}), 1, 'There should be only 1 account line');
+    is(
+        $reply->{fines}->{fine}->[0]->{accountlines_id},
+        $fine->{accountlines_id},
+        "The accountline should be the correct one"
+    );
+
     # Check results:
     is_deeply( $reply->{'attributes'}, [ $cmp ], 'Test GetPatronInfo - show_attributes parameter' );
+
+    ok( exists $reply->{is_expired}, 'There should be the is_expired information');
 
     # Cleanup
     $schema->storage->txn_rollback;
 };
-
 
 subtest 'LookupPatron test' => sub {
 
@@ -285,5 +295,486 @@ subtest 'LookupPatron test' => sub {
     }
 
     # Cleanup
+    $schema->storage->txn_rollback;
+};
+
+subtest 'Holds test' => sub {
+
+    plan tests => 9;
+
+    $schema->storage->txn_begin;
+
+    t::lib::Mocks::mock_preference( 'AllowHoldsOnDamagedItems', 0 );
+
+    my $patron = $builder->build({
+        source => 'Borrower',
+    });
+
+    my $item = $builder->build_sample_item(
+        {
+            damaged => 1
+        }
+    );
+
+    my $query = CGI->new;
+    $query->param( 'patron_id', $patron->{borrowernumber});
+    $query->param( 'bib_id', $item->biblionumber);
+
+    my $reply = C4::ILSDI::Services::HoldTitle( $query );
+    is( $reply->{code}, 'damaged', "Item damaged" );
+
+    $item->damaged(0)->store;
+
+    my $hold = $builder->build({
+        source => 'Reserve',
+        value => {
+            borrowernumber => $patron->{borrowernumber},
+            biblionumber => $item->biblionumber,
+            itemnumber => $item->itemnumber
+        }
+    });
+
+    $reply = C4::ILSDI::Services::HoldTitle( $query );
+    is( $reply->{code}, 'itemAlreadyOnHold', "Item already on hold" );
+
+    my $biblio_with_no_item = $builder->build_sample_biblio;
+
+    $query = CGI->new;
+    $query->param( 'patron_id', $patron->{borrowernumber});
+    $query->param( 'bib_id', $biblio_with_no_item->biblionumber);
+
+    $reply = C4::ILSDI::Services::HoldTitle( $query );
+    is( $reply->{code}, 'NoItems', 'Biblio has no item' );
+
+    my $item2 = $builder->build_sample_item(
+        {
+            damaged => 0,
+        }
+    );
+
+    t::lib::Mocks::mock_preference( 'ReservesControlBranch', 'PatronLibrary' );
+    Koha::CirculationRules->set_rule(
+        {
+            categorycode => $patron->{categorycode},
+            itemtype     => $item2->{itype},
+            branchcode   => $patron->{branchcode},
+            rule_name    => 'reservesallowed',
+            rule_value   => 1,
+        }
+    );
+
+    $query = CGI->new;
+    $query->param( 'patron_id', $patron->{borrowernumber});
+    $query->param( 'bib_id', $item2->biblionumber);
+    $query->param( 'item_id', $item2->itemnumber);
+
+    $reply = C4::ILSDI::Services::HoldItem( $query );
+    is( $reply->{code}, 'tooManyReserves', "Too many reserves" );
+
+    Koha::CirculationRules->set_rule(
+        {
+            categorycode => $patron->{categorycode},
+            itemtype     => $item2->{itype},
+            branchcode   => $patron->{branchcode},
+            rule_name    => 'reservesallowed',
+            rule_value   => 0,
+        }
+    );
+
+    $query = CGI->new;
+    $query->param( 'patron_id', $patron->{borrowernumber});
+    $query->param( 'bib_id', $item2->biblionumber);
+    $query->param( 'item_id', $item2->itemnumber);
+
+    $reply = C4::ILSDI::Services::HoldItem( $query );
+    is( $reply->{code}, 'noReservesAllowed', "No reserves allowed" );
+
+    my $origin_branch = $builder->build(
+        {
+            source => 'Branch',
+            value  => {
+                pickup_location => 1,
+            }
+        }
+    );
+
+    # Adding a holdable item.
+    my $item3 = $builder->build_sample_item(
+       {
+           barcode => '123456789',
+           library => $origin_branch->{branchcode}
+       });
+
+    my $item4 = $builder->build_sample_item(
+        {
+           biblionumber => $item3->biblionumber,
+           damaged => 1,
+           library => $origin_branch->{branchcode}
+       });
+
+    Koha::CirculationRules->set_rule(
+        {
+            categorycode => $patron->{categorycode},
+            itemtype     => $item3->{itype},
+            branchcode   => $patron->{branchcode},
+            rule_name    => 'reservesallowed',
+            rule_value   => 10,
+        }
+    );
+
+    $query = CGI->new;
+    $query->param( 'patron_id', $patron->{borrowernumber});
+    $query->param( 'bib_id', $item4->biblionumber);
+    $query->param( 'item_id', $item4->itemnumber);
+
+    $reply = C4::ILSDI::Services::HoldItem( $query );
+    is( $reply->{code}, 'damaged', "Item is damaged" );
+
+    my $module = Test::MockModule->new('C4::Context');
+    $module->mock('userenv', sub { { patron => $patron } });
+    my $issue = C4::Circulation::AddIssue($patron, $item3->barcode);
+    t::lib::Mocks::mock_preference( 'AllowHoldsOnPatronsPossessions', '0' );
+
+    $query = CGI->new;
+    $query->param( 'patron_id', $patron->{borrowernumber});
+    $query->param( 'bib_id', $item3->biblionumber);
+    $query->param( 'item_id', $item3->itemnumber);
+    $query->param( 'pickup_location', $origin_branch->{branchcode});
+    $reply = C4::ILSDI::Services::HoldItem( $query );
+
+    is( $reply->{code}, 'alreadypossession', "Patron has issued same book" );
+    is( $reply->{pickup_location}, undef, "No reserve placed");
+
+    # Test Patron cannot reserve if expired and BlockExpiredPatronOpacActions
+    my $category = $builder->build({
+        source => 'Category',
+        value => { BlockExpiredPatronOpacActions => -1 }
+        });
+
+    my $branch_1 = $builder->build({ source => 'Branch' })->{ branchcode };
+
+    my $expired_borrowernumber = Koha::Patron->new({
+        firstname =>  'Expired',
+        surname => 'Patron',
+        categorycode => $category->{categorycode},
+        branchcode => $branch_1,
+        dateexpiry => '2000-01-01',
+    })->store->borrowernumber;
+
+    t::lib::Mocks::mock_preference('BlockExpiredPatronOpacActions', 1);
+
+    my $item5 = $builder->build({
+        source => 'Item',
+        value => {
+            biblionumber => $biblio_with_no_item->biblionumber,
+            damaged => 0,
+        }
+    });
+
+    $query = CGI->new;
+    $query->param( 'patron_id', $expired_borrowernumber);
+    $query->param( 'bib_id', $biblio_with_no_item->biblionumber);
+    $query->param( 'item_id', $item5->{itemnumber});
+
+    $reply = C4::ILSDI::Services::HoldItem( $query );
+    is( $reply->{code}, 'PatronExpired', "Patron is expired" );
+
+    $schema->storage->txn_rollback;
+};
+
+subtest 'Holds test for branch transfer limits' => sub {
+
+    plan tests => 6;
+
+    $schema->storage->txn_begin;
+
+    # Test enforement of branch transfer limits
+    t::lib::Mocks::mock_preference( 'UseBranchTransferLimits', '1' );
+    t::lib::Mocks::mock_preference( 'BranchTransferLimitsType', 'itemtype' );
+
+    my $patron = $builder->build({
+        source => 'Borrower',
+    });
+
+    my $origin_branch = $builder->build(
+        {
+            source => 'Branch',
+            value  => {
+                pickup_location => 1,
+            }
+        }
+    );
+    my $pickup_branch = $builder->build(
+        {
+            source => 'Branch',
+            value  => {
+                pickup_location => 1,
+            }
+        }
+    );
+
+    my $item = $builder->build_sample_item(
+        {
+            library => $origin_branch->{branchcode},
+        }
+    );
+
+    Koha::CirculationRules->set_rule(
+        {
+            categorycode => undef,
+            itemtype     => undef,
+            branchcode   => undef,
+            rule_name    => 'reservesallowed',
+            rule_value   => 99,
+        }
+    );
+
+    my $limit = Koha::Item::Transfer::Limit->new({
+        toBranch => $pickup_branch->{branchcode},
+        fromBranch => $item->holdingbranch,
+        itemtype => $item->effective_itemtype,
+    })->store();
+
+    my $query = CGI->new;
+    $query->param( 'pickup_location', $pickup_branch->{branchcode} );
+    $query->param( 'patron_id', $patron->{borrowernumber});
+    $query->param( 'bib_id', $item->biblionumber);
+    $query->param( 'item_id', $item->itemnumber);
+
+    my $reply = C4::ILSDI::Services::HoldItem( $query );
+    is( $reply->{code}, 'cannotBeTransferred', "Item hold, Item cannot be transferred" );
+
+    $reply = C4::ILSDI::Services::HoldTitle( $query );
+    is( $reply->{code}, 'cannotBeTransferred', "Record hold, Item cannot be transferred" );
+
+    t::lib::Mocks::mock_preference( 'UseBranchTransferLimits', '0' );
+
+    $reply = C4::ILSDI::Services::HoldItem( $query );
+    is( $reply->{code}, undef, "Item hold, Item can be transferred" );
+    my $hold = Koha::Holds->search({ itemnumber => $item->itemnumber, borrowernumber => $patron->{borrowernumber} })->next;
+    is( $hold->branchcode, $pickup_branch->{branchcode}, 'The library id is correctly set' );
+
+    Koha::Holds->search()->delete();
+
+    $reply = C4::ILSDI::Services::HoldTitle( $query );
+    is( $reply->{code}, undef, "Record hold, Item con be transferred" );
+    $hold = Koha::Holds->search({ biblionumber => $item->biblionumber, borrowernumber => $patron->{borrowernumber} })->next;
+    is( $hold->branchcode, $pickup_branch->{branchcode}, 'The library id is correctly set' );
+
+    $schema->storage->txn_rollback;
+};
+
+subtest 'Holds test with start_date and end_date' => sub {
+
+    plan tests => 8;
+
+    $schema->storage->txn_begin;
+
+    my $pickup_library = $builder->build_object(
+        {
+            class  => 'Koha::Libraries',
+            value  => {
+                pickup_location => 1,
+            }
+        }
+    );
+
+    my $patron = $builder->build_object({
+        class => 'Koha::Patrons',
+    });
+
+    my $item = $builder->build_sample_item({ library => $pickup_library->branchcode });
+
+    Koha::CirculationRules->set_rule(
+        {
+            categorycode => undef,
+            itemtype     => undef,
+            branchcode   => undef,
+            rule_name    => 'reservesallowed',
+            rule_value   => 99,
+        }
+    );
+
+    my $query = CGI->new;
+    $query->param( 'pickup_location', $pickup_library->branchcode );
+    $query->param( 'patron_id', $patron->borrowernumber);
+    $query->param( 'bib_id', $item->biblionumber);
+    $query->param( 'item_id', $item->itemnumber);
+    $query->param( 'start_date', '2020-03-20');
+    $query->param( 'expiry_date', '2020-04-22');
+
+    my $reply = C4::ILSDI::Services::HoldItem( $query );
+    is ($reply->{pickup_location}, $pickup_library->branchname, "Item hold with date parameters was placed");
+    my $hold = Koha::Holds->search({ biblionumber => $item->biblionumber})->next();
+    is( $hold->biblionumber, $item->biblionumber, "correct biblionumber");
+    is( $hold->reservedate, '2020-03-20', "Item hold has correct start date" );
+    is( $hold->expirationdate, '2020-04-22', "Item hold has correct end date" );
+
+    $hold->delete();
+
+    $reply = C4::ILSDI::Services::HoldTitle( $query );
+    is ($reply->{pickup_location}, $pickup_library->branchname, "Record hold with date parameters was placed");
+    $hold = Koha::Holds->search({ biblionumber => $item->biblionumber})->next();
+    is( $hold->biblionumber, $item->biblionumber, "correct biblionumber");
+    is( $hold->reservedate, '2020-03-20', "Record hold has correct start date" );
+    is( $hold->expirationdate, '2020-04-22', "Record hold has correct end date" );
+
+    $schema->storage->txn_rollback;
+};
+
+subtest 'GetRecords' => sub {
+
+    plan tests => 8;
+
+    $schema->storage->txn_begin;
+
+    t::lib::Mocks::mock_preference( 'ILS-DI', 1 );
+
+    my $branch1 = $builder->build({
+        source => 'Branch',
+    });
+    my $branch2 = $builder->build({
+        source => 'Branch',
+    });
+
+    my $item = $builder->build_sample_item(
+        {
+            library => $branch1->{branchcode},
+        }
+    );
+
+    my $patron = $builder->build({
+        source => 'Borrower',
+    });
+
+    my $issue = $builder->build({
+        source => 'Issue',
+        value => {
+            itemnumber => $item->itemnumber,
+        }
+    });
+
+    my $hold = $builder->build({
+        source => 'Reserve',
+        value => {
+            biblionumber => $item->biblionumber,
+        }
+    });
+
+    ModItemTransfer($item->itemnumber, $branch1->{branchcode}, $branch2->{branchcode}, 'Manual');
+
+    my $cgi = CGI->new;
+    $cgi->param(service => 'GetRecords');
+    $cgi->param(id => $item->biblionumber);
+
+    my $reply = C4::ILSDI::Services::GetRecords($cgi);
+
+    my $transfer = $item->get_transfer;
+    my $expected = {
+        datesent => $transfer->datesent,
+        frombranch => $transfer->frombranch,
+        tobranch => $transfer->tobranch,
+    };
+    is_deeply($reply->{record}->[0]->{items}->{item}->[0]->{transfer}, $expected,
+        'GetRecords returns transfer informations');
+
+    # Check informations exposed
+    my $reply_issue = $reply->{record}->[0]->{issues}->{issue}->[0];
+    is($reply_issue->{itemnumber}, $item->itemnumber, 'GetRecords has an issue tag');
+    is($reply_issue->{borrowernumber}, undef, 'GetRecords does not expose borrowernumber in issue tag');
+    is($reply_issue->{surname}, undef, 'GetRecords does not expose surname in issue tag');
+    is($reply_issue->{firstname}, undef, 'GetRecords does not expose firstname in issue tag');
+    is($reply_issue->{cardnumber}, undef, 'GetRecords does not expose cardnumber in issue tag');
+    my $reply_reserve = $reply->{record}->[0]->{reserves}->{reserve}->[0];
+    is($reply_reserve->{biblionumber}, $item->biblionumber, 'GetRecords has a reserve tag');
+    is($reply_reserve->{borrowernumber}, undef, 'GetRecords does not expose borrowernumber in reserve tag');
+
+    $schema->storage->txn_rollback;
+};
+
+subtest 'RenewHold' => sub {
+    plan tests => 4;
+
+    $schema->storage->txn_begin;
+
+    my $cgi    = CGI->new;
+    my $patron = $builder->build_object( { class => 'Koha::Patrons' } );
+    my $item   = $builder->build_sample_item;
+    $cgi->param( patron_id => $patron->borrowernumber );
+    $cgi->param( item_id   => $item->itemnumber );
+
+    t::lib::Mocks::mock_userenv( { patron => $patron } );    # For AddIssue
+    my $checkout = C4::Circulation::AddIssue( $patron->unblessed, $item->barcode );
+
+    # Everything is ok
+    my $reply = C4::ILSDI::Services::RenewLoan($cgi);
+    is( exists $reply->{date_due}, 1, 'If the item is checked out, the date_due key should exist' );
+
+    # The item is not checked out
+    $checkout->delete;
+    $reply = C4::ILSDI::Services::RenewLoan($cgi);
+    is( $reply, undef, 'If the item is not checked out, we should not explode.');    # FIXME We should return an error code instead
+
+    # The item does not exist
+    $item->delete;
+    $reply = C4::ILSDI::Services::RenewLoan($cgi);
+    is( $reply->{code}, 'RecordNotFound', 'If the item does not exist, RecordNotFound should be returned');
+
+    $patron->delete;
+    $reply = C4::ILSDI::Services::RenewLoan($cgi);
+    is( $reply->{code}, 'PatronNotFound', 'If the patron does not exist, PatronNotFound should be returned');
+
+    $schema->storage->txn_rollback;
+};
+
+subtest 'GetPatronInfo paginated loans' => sub {
+    plan tests => 7;
+
+    $schema->storage->txn_begin;
+
+    my $library = $builder->build_object({
+        class => 'Koha::Libraries',
+    });
+
+    my $item1 = $builder->build_sample_item({ library => $library->branchcode });
+    my $item2 = $builder->build_sample_item({ library => $library->branchcode });
+    my $item3 = $builder->build_sample_item({ library => $library->branchcode });
+    my $patron = $builder->build_object({
+        class => 'Koha::Patrons',
+        value => {
+            branchcode => $library->branchcode,
+        },
+    });
+    my $module = Test::MockModule->new('C4::Context');
+    $module->mock('userenv', sub { { branch => $library->branchcode } });
+    my $date_due = Koha::DateUtils::dt_from_string()->add(weeks => 2);
+    my $issue1 = C4::Circulation::AddIssue($patron->unblessed, $item1->barcode, $date_due);
+    my $date_due1 = Koha::DateUtils::dt_from_string( $issue1->date_due );
+    my $issue2 = C4::Circulation::AddIssue($patron->unblessed, $item2->barcode, $date_due);
+    my $date_due2 = Koha::DateUtils::dt_from_string( $issue2->date_due );
+    my $issue3 = C4::Circulation::AddIssue($patron->unblessed, $item3->barcode, $date_due);
+    my $date_due3 = Koha::DateUtils::dt_from_string( $issue3->date_due );
+
+    my $cgi = CGI->new;
+
+    $cgi->param( 'service', 'GetPatronInfo' );
+    $cgi->param( 'patron_id', $patron->borrowernumber );
+    $cgi->param( 'show_loans', '1' );
+    $cgi->param( 'loans_per_page', '2' );
+    $cgi->param( 'loans_page', '1' );
+    my $reply = C4::ILSDI::Services::GetPatronInfo($cgi);
+
+    is($reply->{total_loans}, 3, 'total_loans == 3');
+    is(scalar @{ $reply->{loans}->{loan} }, 2, 'GetPatronInfo returned only 2 loans');
+    is($reply->{loans}->{loan}->[0]->{itemnumber}, $item3->itemnumber);
+    is($reply->{loans}->{loan}->[1]->{itemnumber}, $item2->itemnumber);
+
+    $cgi->param( 'loans_page', '2' );
+    $reply = C4::ILSDI::Services::GetPatronInfo($cgi);
+
+    is($reply->{total_loans}, 3, 'total_loans == 3');
+    is(scalar @{ $reply->{loans}->{loan} }, 1, 'GetPatronInfo returned only 1 loan');
+    is($reply->{loans}->{loan}->[0]->{itemnumber}, $item1->itemnumber);
+
     $schema->storage->txn_rollback;
 };

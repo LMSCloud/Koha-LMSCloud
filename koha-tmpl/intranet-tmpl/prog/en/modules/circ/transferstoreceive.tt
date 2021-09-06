@@ -1,42 +1,61 @@
+[% USE raw %]
 [% USE Asset %]
 [% USE Koha %]
 [% USE KohaDates %]
 [% USE Branches %]
 [% SET footerjs = 1 %]
 [% INCLUDE 'doc-head-open.inc' %]
-<title>Koha &rsaquo; Circulation &rsaquo; Transfers to receive</title>
+<title>Transfers to receive &rsaquo; Circulation &rsaquo; Koha</title>
 [% INCLUDE 'doc-head-close.inc' %]
-[% Asset.css("css/datatables.css") %]
 </head>
 
 <body id="circ_transferstoreceive" class="circ">
 [% INCLUDE 'header.inc' %]
 [% INCLUDE 'circ-search.inc' %]
 
-<div id="breadcrumbs"><a href="/cgi-bin/koha/mainpage.pl">Home</a> &rsaquo; <a href="/cgi-bin/koha/circ/circulation-home.pl">Circulation</a>  &rsaquo; Transfers to receive</div>
+<nav id="breadcrumbs" aria-label="Breadcrumb" class="breadcrumb">
+    <ol>
+        <li>
+            <a href="/cgi-bin/koha/mainpage.pl">Home</a>
+        </li>
+        <li>
+            <a href="/cgi-bin/koha/circ/circulation-home.pl">Circulation</a>
+        </li>
+        <li>
+            <a href="#" aria-current="page">
+                Transfers to receive
+            </a>
+        </li>
+    </ol>
+</nav>
 
-[% IF Koha.Preference('CircSidebar') %]<div id="doc3" class="yui-t2">[% ELSE %]<div id="doc" class="yui-t7">[% END %]
+<div class="main container-fluid">
+    <div class="row">
+        <div class="col-sm-12">
+            <main>
+                <div class="row">
 
-   <div id="bd">
-	<div id="yui-main">
-        [% IF Koha.Preference('CircSidebar') %]<div class="yui-b">[% END %]
-	<div class="yui-g">
+                [% IF Koha.Preference('CircSidebar') %]
+                    <div class="col-sm-10 col-sm-push-2">
+                [% ELSE %]
+                    <div class="col-md-10 col-md-offset-1 col-lg-8 col-lg-offset-2">
+                [% END %]
 
         <h1>Transfers made to your library as of [% show_date | $KohaDates %]</h1>
 	[% IF ( branchesloop ) %]
         <p>Your library is the destination for the following transfer(s)</p>
-		[% IF ( latetransfers ) %]<p>Transfers are <span class="error">considered late</span> after [% TransfersMaxDaysWarning %] days.</p>[% END %]
+		[% IF ( latetransfers ) %]<p>Transfers are <span class="error">considered late</span> after [% TransfersMaxDaysWarning | html %] days.</p>[% END %]
         <div id="resultlist">
         [% FOREACH branchesloo IN branchesloop %]
             [% IF ( branchesloo.branchcode ) %]
-            <table style="width: 100%" id="transferst[% branchesloo.branchcode %]">
-            <caption>Coming from [% branchesloo.branchname %]</caption>
+            <table style="width: 100%" id="transferst[% branchesloo.branchcode | html %]">
+            <caption>Coming from [% branchesloo.branchname | html %]</caption>
             <thead><tr>
-                <th class="title-string">Date of transfer</th>
+                <th>Date of transfer</th>
                 <th class="anti-the">Title</th>
                 <th>On hold for</th>
                 <th>Home library</th>
-                <th>Call no.</th>
+                <th>Call number</th>
                 <th>&nbsp;</th>
             </tr></thead>
             <tbody>[% FOREACH reser IN branchesloo.reserv %]
@@ -45,31 +64,31 @@
                 [% ELSE %]
                 <tr>
                 [% END %]
-                    <td><p><span title="[% reser.datetransfer %]">[% reser.datetransfer | $KohaDates %]</span></p> [% IF ( reser.messcompa ) %]<span class="error">Transfer is [% reser.diff %] days late</span>[% END %]</td>
+                    <td data-order="[% reser.datetransfer | html %]"><p>[% reser.datetransfer | $KohaDates %]</p> [% IF ( reser.messcompa ) %]<span class="error">Transfer is [% reser.diff | html %] days late</span>[% END %]</td>
                     <td>
-                        [% INCLUDE 'biblio-default-view.inc' biblionumber = reser.biblionumber %][% reser.title |html %] [% IF ( reser.subtitle ) %] [% FOREACH subtitl IN reser.subtitle %][% subtitl.subfield %][% END %][% END %]</a> [% IF ( reser.author ) %]by [% reser.author %][% END %]
-                            [% IF ( reser.itemtype ) %] (<b>[% reser.itemtype %]</b>)[% END %]
-                            <br />Barcode: [% reser.barcode %]
+                        [% INCLUDE 'biblio-title.inc' biblio=reser link = 1 %] [% IF ( reser.author ) %]by [% reser.author | html %][% END %]
+                            [% IF ( reser.itemtype ) %] (<strong>[% reser.itemtype | html %]</strong>)[% END %]
+                            <br />Barcode: [% reser.barcode | html %]
                     </td>
                     <td>[% IF ( reser.patron ) %]
-                        <a href="/cgi-bin/koha/members/moremember.pl?borrowernumber=[% reser.patron.borrowernumber %]">
-                            [% reser.patron.surname %][%IF ( reser.patron.firstname ) %], [% reser.patron.firstname %][% END %]
+                        <a href="/cgi-bin/koha/members/moremember.pl?borrowernumber=[% reser.patron.borrowernumber | uri %]">
+                            [% reser.patron.surname | html %][%IF ( reser.patron.firstname ) %], [% reser.patron.firstname | html %][% END %]
                         </a>
-                        [% IF ( reser.patron.phone ) %]<br />[% reser.patron.phone %][% END %]
+                        [% IF ( reser.patron.phone ) %]<br />[% reser.patron.phone | html %][% END %]
                             [% IF ( reser.patron.first_valid_email_address ) %]
                                 <br />
                                 [% BLOCK subject %]Hold:[% END %]
-                                <a href="mailto:[% reser.patron.first_valid_email_address %]?subject=[% INCLUDE subject %] [% reser.title |html %]">
-                                    [% reser.patron.first_valid_email_address %]
+                                <a href="mailto:[% reser.patron.first_valid_email_address | uri %]?subject=[% INCLUDE subject %] [% reser.title | uri %]">
+                                    [% reser.patron.first_valid_email_address | html %]
                                 </a>
                             [% END %]
                         [% ELSE %]
                         <p>None</p>
                     [% END %]
                     </td>
-                    <td>[% IF reser.homebranch %][% Branches.GetName( reser.homebranch ) %][% END %]</td>
-                    <td>[% reser.itemcallnumber %]</td>
-                    <td class="actions"><a href="/cgi-bin/koha/circ/returns.pl?itemnumber=[% reser.itemnumber %]&amp;canceltransfer=1&amp;dest=ttr" class="btn btn-default btn-xs"><i class="fa fa-times"></i> Cancel transfer</a></td>
+                    <td>[% IF reser.homebranch %][% Branches.GetName( reser.homebranch ) | html %][% END %]</td>
+                    <td>[% reser.itemcallnumber | html %]</td>
+                    <td class="actions"><a href="/cgi-bin/koha/circ/returns.pl?itemnumber=[% reser.itemnumber | uri %]&amp;canceltransfer=1&amp;dest=ttr" class="btn btn-default btn-xs"><i class="fa fa-times"></i> Cancel transfer</a></td>
                 </tr>
             [% END %]</tbody>
             </table>
@@ -80,26 +99,29 @@
         <p>No transfers to receive</p>
     [% END %]
 
-</div>
-</div>
-[% IF Koha.Preference('CircSidebar') %]
-</div>
-<div class="yui-b noprint">
-    [% INCLUDE 'circ-nav.inc' %]
-</div>
-[% END %]
-</div>
+                    [% IF Koha.Preference('CircSidebar') %]
+                            </div> <!-- /.col-sm-10.col-sm-push-2 -->
+                            <div class="col-sm-2 col-sm-pull-10">
+                                <aside>
+                                    [% INCLUDE 'circ-nav.inc' %]
+                                </aside>
+                            </div> <!-- /.col-sm-2.col-sm-pull-10 -->
+                        </div> <!-- /.row -->
+                    [% END %]
+
+            </main>
+        </div> <!-- /.col-sm-12 -->
+    </div> <!-- /.row -->
 
 [% MACRO jsinclude BLOCK %]
     [% INCLUDE 'datatables.inc' %]
-    <script type="text/javascript">
+    <script>
         $(document).ready(function() {
             [% FOREACH branchesloo IN branchesloop %]
-            $("#transferst[% branchesloo.branchcode %]").dataTable($.extend(true, {}, dataTablesDefaults, {
+            $("#transferst[% branchesloo.branchcode | html %]").dataTable($.extend(true, {}, dataTablesDefaults, {
                 "aoColumnDefs": [
                     { "aTargets": [ -1 ], "bSortable": false, "bSearchable": false },
-                    { "sType": "anti-the", "aTargets" : [ "anti-the" ] },
-                    { "sType": "title-string", "aTargets" : [ "title-string" ] }
+                    { "sType": "anti-the", "aTargets" : [ "anti-the" ] }
                 ],
                 "sDom": 't',
                 "bPaginate": false

@@ -32,7 +32,7 @@ Script to control the guided report creation
 
 =cut
 
-my $input = new CGI;
+my $input = CGI->new;
 my $referer = $input->referer();
 
 my $phase = $input->param('phase') || 'View Dictionary';
@@ -44,7 +44,6 @@ my ( $template, $borrowernumber, $cookie ) = get_template_and_user(
     {   template_name   => "reports/dictionary.tt",
         query           => $input,
         type            => "intranet",
-        authnotrequired => 0,
         flagsrequired   => { reports => '*' },
         debug           => 1,
     }

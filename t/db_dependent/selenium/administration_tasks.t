@@ -23,9 +23,12 @@ use Modern::Perl;
 
 use C4::Context;
 
-use Test::More tests => 1;
+use Test::More tests => 3;
 
 use t::lib::Selenium;
+use t::lib::TestBuilder;
+
+my $builder = t::lib::TestBuilder->new;
 
 my $login = $ENV{KOHA_USER} || 'koha';
 
@@ -53,7 +56,7 @@ SKIP: {
         $s->click( { href => '/admin/admin-home.pl', main => 'container-main' } )
           ;    # Koha administration
         $s->click( { href => '/admin/itemtypes.pl', main_class => 'main container-fluid' } );  # Item Types
-        $s->click( { href => '/admin/itemtypes.pl?op=add_form', main => 'doc3' } )
+        $s->click( { href => '/admin/itemtypes.pl?op=add_form', main_class => 'main container-fluid' } )
           ;    # New item type
         $s->fill_form(
             { itemtype => $itemtype, description => "Digital Optical Disc" } );
@@ -61,18 +64,29 @@ SKIP: {
         $s->click(
             {
                 href => '/admin/itemtypes.pl?op=add_form&itemtype=' . $itemtype,
-                main => 'doc3'
+                main_class => 'main container-fluid'
             }
         );     # New item type
     };
 
     { # Circulation/fine rules
+        my $itype = $builder->build_object({ class => "Koha::ItemTypes" });
         $driver->get($mainpage);
         $s->click( { href => '/admin/admin-home.pl', main => 'container-main' } )
           ;    # Koha administration
         $s->click( { href => '/admin/smart-rules.pl', main_class => 'main container-fluid' } )
           ;    # Circulation and fines rules
-               # TODO Create smart navigation here
+        my $elt = $driver->find_element('//tr[@id="edit_row"]/td/select[@id="matrixitemtype"]/option[@value="'.$itype->itemtype.'"]');
+        is( $elt->get_text(),$itype->description,"Our new itemtype is in the list");
+        $elt->click();
+        $elt = $driver->find_element('//tr[@id="edit_row"]/td[@class="actions"]/button[@type="submit"]');
+        $elt->click();
+        $elt = $driver->find_elements('//table[@id="default-circulation-rules"]/tbody/tr/td[contains(text(),"'.$itype->description.'")]/following-sibling::td/span[text() = "Unlimited"]');
+        is( @$elt, 5, "We have unlimited checkouts and holds" );
+        #Clean up
+        Koha::CirculationRules->search( { itemtype => $itype->itemtype } )->delete;
+        $itype->delete;
+               # TODO Create more smart rules navigation here
     };
 
     { # Biblio frameworks
@@ -82,7 +96,7 @@ SKIP: {
         $s->click( { href => '/admin/biblio_framework.pl', main_class => 'main container-fluid' } )
           ;    # MARC bibliographic framework
         $s->click(
-            { href => '/admin/biblio_framework.pl?op=add_form', main => 'doc3' } )
+            { href => '/admin/biblio_framework.pl?op=add_form', main_class => 'main container-fluid' } )
           ;    # New framework
         $s->fill_form(
             {
@@ -95,7 +109,7 @@ SKIP: {
         $s->click(
             {
                 href => 'marctagstructure.pl?frameworkcode=' . $frameworkcode,
-                main => 'doc3'
+                main_class => 'main container-fluid'
             }
         );    # MARC structure # FIXME '/admin/' is missing in the url
               # TODO Click on OK to create the MARC structure
@@ -107,18 +121,24 @@ SKIP: {
           ;    # Koha administration
         $s->click( { href => '/admin/branches.pl', main_class => 'main container-fluid' } )
           ;    # Libraries and groups
-        $s->click( { href => '/admin/branches.pl?op=add_form', main => 'doc3' } )
+        $s->click( { href => '/admin/branches.pl?op=add_form', main_class => 'main container-fluid' } )
           ;    # New library
         $s->fill_form( { branchcode => $branchcode, branchname => 'my library' } );
         $s->submit_form;
+
+        # Select "Show all" in the datatable "Show x entries" dropdown list to make sure our library is not hidden
+        $s->show_all_entries('//div[@id="libraries_wrapper"]');
         $s->click(
             {
                 href => '/admin/branches.pl?op=add_form&branchcode=' . $branchcode,
-                main => 'doc3'
+                main_class => 'main container-fluid'
             }
         );     # Edit
         $s->fill_form( { branchname => 'another branchname' } );
         $s->submit_form;
+
+        # Select "Show all" in the datatable "Show x entries" dropdown list to make sure our library is not hidden
+        $s->show_all_entries('//div[@id="libraries_wrapper"]');
         $s->click(
             {
                 id => 'delete_library_'.$branchcode,
@@ -132,14 +152,14 @@ SKIP: {
 
         $s->click( { href => '/admin/authorised_values.pl', main_class => 'main container-fluid' } ); #Authorized values
 
-        $s->click( { href => { 'ends-with' => '/admin/authorised_values.pl?op=add_form' }, main => 'doc3' } ); # New category
+        $s->click( { href => { 'ends-with' => '/admin/authorised_values.pl?op=add_form' }, main_class => 'main container-fluid' } ); # New category
         $s->fill_form( { category => $av_category } );
         $s->submit_form;
 
         $s->click(
             {
                 href => '/admin/authorised_values.pl?op=add_form&category=' . $av_category,
-                main => 'doc3'
+                main_class => 'main container-fluid'
             }
         );    # New authorised value for ...
         $s->fill_form(
@@ -157,7 +177,7 @@ SKIP: {
         $s->click(
             {
                 href => '/admin/authorised_values.pl?op=delete&searchfield=' . $av_category . '&id=' . $av_id,
-                main => 'doc3'
+                main_class => 'main container-fluid'
             }
         );
         $s->driver->accept_alert; # Accept the modal "Are you sure you want to delete this authorized value?"
@@ -167,15 +187,18 @@ SKIP: {
         $driver->get($mainpage);
         $s->click( { href => '/admin/admin-home.pl', main => 'container-main' } ); # Koha administration
         $s->click( { href => '/admin/categories.pl', main_class => 'main container-fluid' } ); # Patron categories
-        $s->click( { href => '/admin/categories.pl?op=add_form', main => 'doc3' } ); # New patron category
+        $s->click( { href => '/admin/categories.pl?op=add_form', main_class => 'main container-fluid' } ); # New patron category
 
         $s->fill_form( { categorycode => $category_code, description => 'Test category', enrolmentperiod => 12, category_type => 'A' } );
         $s->submit_form;
 
+        # Select "Show all" in the datatable "Show x entries" dropdown list to make sure our category is not hidden
+        $s->show_all_entries('//div[@id="patron_categories_wrapper"]');
+
         $s->click(
             {
                 href => '/admin/categories.pl?op=delete_confirm&categorycode=' . $category_code,
-                main => 'doc3'
+                main_class => 'main container-fluid'
             }
         ); # Delete button
 

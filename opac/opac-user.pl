@@ -25,25 +25,27 @@ use CGI qw ( -utf8 );
 use C4::Auth;
 use C4::Koha;
 use C4::Circulation;
+use C4::External::BakerTaylor qw( image_url link_url );
 use C4::Reserves;
 use C4::Members;
-use C4::Members::AttributeTypes;
-use C4::Members::Attributes qw/GetBorrowerAttributeValue/;
 use C4::Output;
 use C4::Biblio;
 use C4::Items;
 use C4::Letters;
 use Koha::Account::Lines;
+use Koha::Biblios;
 use Koha::Libraries;
 use Koha::DateUtils;
 use Koha::Holds;
 use Koha::Database;
 use Koha::ItemTypes;
 use Koha::Patron::Attribute::Types;
+use Koha::Patrons;
 use Koha::Patron::Messages;
 use Koha::Patron::Discharge;
 use Koha::Patrons;
-use DateTime::Format::MySQL;
+use Koha::Ratings;
+use Koha::Token;
 
 use constant ATTRIBUTE_SHOW_BARCODE => 'SHOW_BCODE';
 
@@ -54,13 +56,9 @@ use Date::Calc qw(
   Date_to_Days
 );
 
-my $query = new CGI;
+my $query = CGI->new;
 
 BEGIN {
-    if (C4::Context->preference('BakerTaylorEnabled')) {
-        require C4::External::BakerTaylor;
-        import C4::External::BakerTaylor qw(&image_url &link_url);
-    }
     if (C4::Context->preference('DivibibEnabled')) {
         require C4::Divibib::NCIPService;
         import C4::Divibib::NCIPService;
@@ -76,7 +74,6 @@ my ( $template, $borrowernumber, $cookie ) = get_template_and_user(
         template_name   => "opac-user.tt",
         query           => $query,
         type            => "opac",
-        authnotrequired => 0,
         debug           => 1,
     }
 );
@@ -99,7 +96,21 @@ if (!$borrowernumber) {
 
 # get borrower information ....
 my $patron = Koha::Patrons->find( $borrowernumber );
+
+if( $query->param('update_arc') && C4::Context->preference("AllowPatronToControlAutorenewal") ){
+    die "Wrong CSRF token"
+        unless Koha::Token->new->check_csrf({
+            session_id => scalar $query->cookie('CGISESSID'),
+            token  => scalar $query->param('csrf_token'),
+        });
+
+    my $autorenew_checkouts = $query->param('borrower_autorenew_checkouts');
+    $patron->autorenew_checkouts( $autorenew_checkouts )->store() if defined $autorenew_checkouts;
+}
+
 my $borr = $patron->unblessed;
+# unblessed is a hash vs. object/undef. Hence the use of curly braces here.
+my $borcat = $borr ? $borr->{categorycode} : q{};
 
 my (  $today_year,   $today_month,   $today_day) = Today();
 my ($warning_year, $warning_month, $warning_day) = split /-/, $borr->{'dateexpiry'};
@@ -128,30 +139,28 @@ if ( $userdebarred || $borr->{'gonenoaddress'} || $borr->{'lost'} ) {
 }
 
 my $amountoutstanding = $patron->account->balance;
-if ( $amountoutstanding > 5 ) {
-    $borr->{'amountoverfive'} = 1;
-}
-if ( 5 >= $amountoutstanding && $amountoutstanding > 0 ) {
-    $borr->{'amountoverzero'} = 1;
-}
 my $no_renewal_amt = C4::Context->preference( 'OPACFineNoRenewals' );
 $no_renewal_amt = undef unless looks_like_number( $no_renewal_amt );
+my $amountoutstandingfornewal =
+  C4::Context->preference("OPACFineNoRenewalsIncludeCredit")
+  ? $amountoutstanding
+  : $patron->account->outstanding_debits->total_outstanding;
 
 if (   C4::Context->preference('OpacRenewalAllowed')
     && defined($no_renewal_amt)
-    && $amountoutstanding > $no_renewal_amt )
+    && $amountoutstandingfornewal > $no_renewal_amt )
 {
     $borr->{'flagged'} = 1;
     $canrenew = 0;
     $template->param(
         renewal_blocked_fines => $no_renewal_amt,
-        renewal_blocked_fines_amountoutstanding => $amountoutstanding,
+        renewal_blocked_fines_amountoutstanding => $amountoutstandingfornewal,
     );
 }
 
-if ( $amountoutstanding < 0 ) {
-    $borr->{'amountlessthanzero'} = 1;
-    $amountoutstanding = -1 * ( $amountoutstanding );
+my $maxoutstanding = C4::Context->preference('maxoutstanding');
+if ( $amountoutstanding && ( $amountoutstanding > $maxoutstanding ) ){
+    $borr->{blockedonfines} = 1;
 }
 
 # Warningdate is the date that the warning starts appearing
@@ -181,7 +190,7 @@ if ( $borr->{'dateexpiry'} && C4::Context->preference('NotifyBorrowerDeparture')
 # pass on any renew errors to the template for displaying
 my $renew_error = $query->param('renew_error');
 
-$template->param(   BORROWER_INFO     => $borr,
+$template->param(
                     amountoutstanding => $amountoutstanding,
                     borrowernumber    => $borrowernumber,
                     patron_flagged    => $borr->{flagged},
@@ -189,6 +198,9 @@ $template->param(   BORROWER_INFO     => $borr,
                     surname           => $borr->{surname},
                     RENEW_ERROR       => $renew_error,
                     borrower          => $borr,
+                    csrf_token             => Koha::Token->new->generate_csrf({
+                        session_id => scalar $query->cookie('CGISESSID'),
+                    }),
                 );
 
 #get issued items ....
@@ -249,6 +261,7 @@ if (C4::Context->preference('DivibibEnabled')) {
 }
 
 my $pending_checkouts = $patron->pending_checkouts->search({}, { order_by => [ { -desc => 'date_due' }, { -asc => 'issue_id' } ] });
+my $are_renewable_items = 0;
 if ( $pending_checkouts->count ) { # Useless test
     while ( my $c = $pending_checkouts->next ) {
         my $issue = $c->unblessed_all_relateds;
@@ -266,30 +279,22 @@ if ( $pending_checkouts->count ) { # Useless test
             {
                 borrowernumber    => $patron->borrowernumber,
                 amountoutstanding => { '>' => 0 },
-                accounttype       => [ 'F', 'FU', 'L', 'CAN', 'CL1', 'CL2', 'CL3', 'CL4', 'CL5', 'CL', 'Res', 'Manue', 'M', 'Fernl', 'Rent' ],
+                debit_type_code   => [ 'OVERDUE', 'LOST' ],
                 itemnumber        => $issue->{itemnumber}
             },
-            { select => [ { sum => 'amountoutstanding' } ], as => ['charges'] }
         );
-        $issue->{charges} = $charges->count ? $charges->next->get_column('charges') : 0.0;
+        $issue->{charges} = $charges->total_outstanding;
 
         my $rental_fines = Koha::Account::Lines->search(
             {
                 borrowernumber    => $patron->borrowernumber,
                 amountoutstanding => { '>' => 0 },
-                accounttype       => 'Rent',
+                debit_type_code   => { 'LIKE' => 'RENT_%' },
                 itemnumber        => $issue->{itemnumber}
-            },
-            {
-                select => [ { sum => 'amountoutstanding' } ],
-                as     => ['rental_fines']
             }
         );
-        $issue->{rentalfines} = $rental_fines->count ? $rental_fines->next->get_column('rental_fines') : 0;
+        $issue->{rentalfines} = $rental_fines->total_outstanding;
 
-        my $marcrecord = GetMarcBiblio({ biblionumber => $issue->{'biblionumber'} });
-        $issue->{'subtitle'} = GetRecordValue('subtitle', $marcrecord, GetFrameworkCode($issue->{'biblionumber'}));
-        
         # check if renewal of issued item causes effective rentalcharge 
         $issue->{'rentalcharge'} = 0.0;
         my ( $charge, $type ) = GetIssuingCharges( $issue->{'itemnumber'}, $borrowernumber, 1, $issue->{'branchcode'});
@@ -299,9 +304,18 @@ if ( $pending_checkouts->count ) { # Useless test
         
         # check if item is renewable
         my ($status,$renewerror) = CanBookBeRenewed( $borrowernumber, $issue->{'itemnumber'} );
-        ($issue->{'renewcount'},$issue->{'renewsallowed'},$issue->{'renewsleft'}) = GetRenewCount($borrowernumber, $issue->{'itemnumber'});
+        (
+            $issue->{'renewcount'},
+            $issue->{'renewsallowed'},
+            $issue->{'renewsleft'},
+            $issue->{'unseencount'},
+            $issue->{'unseenallowed'},
+            $issue->{'unseenleft'}
+        ) = GetRenewCount($borrowernumber, $issue->{'itemnumber'});
         ( $issue->{'renewalfee'}, $issue->{'renewalitemtype'} ) = GetIssuingCharges( $issue->{'itemnumber'}, $borrowernumber );
+        $issue->{itemtype_object} = Koha::ItemTypes->find( Koha::Items->find( $issue->{itemnumber} )->effective_itemtype );
         if($status && C4::Context->preference("OpacRenewalAllowed")){
+            $are_renewable_items = 1;
             $issue->{'status'} = $status;
         }
 
@@ -309,12 +323,14 @@ if ( $pending_checkouts->count ) { # Useless test
 
         if ($renewerror) {
             $issue->{'too_many'}       = 1 if $renewerror eq 'too_many';
+            $issue->{'too_unseen'}     = 1 if $renewerror eq 'too_unseen';
             $issue->{'on_reserve'}     = 1 if $renewerror eq 'on_reserve';
             $issue->{'norenew_overdue'} = 1 if $renewerror eq 'overdue';
             $issue->{'auto_renew'}     = 1 if $renewerror eq 'auto_renew';
             $issue->{'auto_too_soon'}  = 1 if $renewerror eq 'auto_too_soon';
             $issue->{'auto_too_late'}  = 1 if $renewerror eq 'auto_too_late';
             $issue->{'auto_too_much_oweing'}  = 1 if $renewerror eq 'auto_too_much_oweing';
+            $issue->{'item_denied_renewal'}  = 1 if $renewerror eq 'item_denied_renewal';
 
             if ( $renewerror eq 'too_soon' ) {
                 $issue->{'too_soon'}         = 1;
@@ -341,6 +357,11 @@ if ( $pending_checkouts->count ) { # Useless test
         
         my $isbn = GetNormalizedISBN($issue->{'isbn'});
         $issue->{normalized_isbn} = $isbn;
+        my $marcrecord = GetMarcBiblio({
+            biblionumber => $issue->{'biblionumber'},
+            embed_items  => 1,
+            opac         => 1,
+            borcat       => $borcat });
         $issue->{normalized_upc} = GetNormalizedUPC( $marcrecord, C4::Context->preference('marcflavour') );
 
         # My Summary HTML
@@ -362,14 +383,21 @@ if ( $pending_checkouts->count ) { # Useless test
         else {
             $issue->{'issued'} = 1;
         }
+
+        if ( C4::Context->preference('OpacStarRatings') eq 'all' ) {
+            my $ratings = Koha::Ratings->search({ biblionumber => $issue->{biblionumber} });
+            $issue->{ratings} = $ratings;
+            $issue->{my_rating} = $borrowernumber ? $ratings->search({ borrowernumber => $borrowernumber })->next : undef;
+        }
+
+        $issue->{biblio_object} = Koha::Biblios->find($issue->{biblionumber});
         push @koha_issuedat, $issue;
         $koha_issues_count++;
     }
 }
 
-
 my $overduesblockrenewing = C4::Context->preference('OverduesBlockRenewing');
-$canrenew = 0 if ($overduesblockrenewing ne 'allow' and $overdues_count == $koha_issues_count);
+$canrenew = 0 if ($overduesblockrenewing ne 'allow' and $overdues_count == $koha_issues_count) || !$are_renewable_items;
 $template->param( KOHA_ISSUES       => \@koha_issuedat );
 $template->param( koha_issues_count => $koha_issues_count );
 $template->param( DIVIBIB_ISSUES       => \@divibib_issuedat );
@@ -378,11 +406,11 @@ $template->param( canrenew     => $canrenew );
 $template->param( OVERDUES       => \@overdues );
 $template->param( overdues_count => $overdues_count );
 
-my $show_barcode = Koha::Patron::Attribute::Types->search(
+my $show_barcode = Koha::Patron::Attribute::Types->search( # FIXME we should not need this search
     { code => ATTRIBUTE_SHOW_BARCODE } )->count;
 if ($show_barcode) {
-    my $patron_show_barcode = GetBorrowerAttributeValue($borrowernumber, ATTRIBUTE_SHOW_BARCODE);
-    undef $show_barcode if defined($patron_show_barcode) && !$patron_show_barcode;
+    my $patron_show_barcode = $patron->get_extended_attribute(ATTRIBUTE_SHOW_BARCODE);
+    undef $show_barcode if $patron_show_barcode and not $patron_show_barcode->attribute;
 }
 $template->param( show_barcode => 1 ) if $show_barcode;
 
@@ -406,7 +434,9 @@ if (C4::Context->preference('BakerTaylorEnabled')) {
 if (C4::Context->preference("OPACAmazonCoverImages") or 
     C4::Context->preference("GoogleJackets") or
     C4::Context->preference("BakerTaylorEnabled") or
-    C4::Context->preference("SyndeticsCoverImages")) {
+    C4::Context->preference("SyndeticsCoverImages") or
+    ( C4::Context->preference('OPACCustomCoverImages') and C4::Context->preference('CustomCoverImagesURL') )
+) {
         $template->param(JacketImages=>1);
 }
 
@@ -414,6 +444,7 @@ $template->param(
     OverDriveCirculation => C4::Context->preference('OverDriveCirculation') || 0,
     overdrive_error      => scalar $query->param('overdrive_error') || undef,
     overdrive_tab        => scalar $query->param('overdrive_tab') || 0,
+    RecordedBooksCirculation => C4::Context->preference('RecordedBooksClientSecret') && C4::Context->preference('RecordedBooksLibraryID'),
 );
 
 my $patron_messages = Koha::Patron::Messages->search(
@@ -426,19 +457,29 @@ my $patron_messages = Koha::Patron::Messages->search(
 if (   C4::Context->preference('AllowPatronToSetCheckoutsVisibilityForGuarantor')
     || C4::Context->preference('AllowStaffToSetCheckoutsVisibilityForGuarantor') )
 {
-    my @relatives =
-      Koha::Database->new()->schema()->resultset("Borrower")->search(
-        {
-            privacy_guarantor_checkouts => 1,
-            'me.guarantorid'           => $borrowernumber
-        },
-        { prefetch => [ { 'issues' => { 'item' => ['biblio','biblioitem'] } } ] }
-      );
+    my @relatives;
+    # Filter out guarantees that don't want guarantor to see checkouts
+    foreach my $gr ( $patron->guarantee_relationships() ) {
+        my $g = $gr->guarantee;
+        push( @relatives, $g ) if $g->privacy_guarantor_checkouts;
+    }
     $template->param( relatives => \@relatives );
 }
 
+if (   C4::Context->preference('AllowPatronToSetFinesVisibilityForGuarantor')
+    || C4::Context->preference('AllowStaffToSetFinesVisibilityForGuarantor') )
+{
+    my @relatives_with_fines;
+    # Filter out guarantees that don't want guarantor to see checkouts
+    foreach my $gr ( $patron->guarantee_relationships() ) {
+        my $g = $gr->guarantee;
+        push( @relatives_with_fines, $g ) if $g->privacy_guarantor_fines;
+    }
+    $template->param( relatives_with_fines => \@relatives_with_fines );
+}
+
+
 $template->param(
-    borrower                 => scalar Koha::Patrons->find($borrowernumber),
     patron_messages          => $patron_messages,
     opacnote                 => $borr->{opacnote},
     patronupdate             => $patronupdate,
@@ -449,5 +490,17 @@ $template->param(
     OpacHoldNotes            => C4::Context->preference('OpacHoldNotes'),
     failed_holds             => scalar $query->param('failed_holds'),
 );
+
+# if not an empty string this indicates to return
+# back to the opac-results page
+my $search_query = $query->param('has-search-query');
+
+if ($search_query) {
+
+    print $query->redirect(
+        -uri    => "/cgi-bin/koha/opac-search.pl?$search_query",
+        -cookie => $cookie,
+    );
+}
 
 output_html_with_http_headers $query, $cookie, $template->output, undef, { force_no_caching => 1 };

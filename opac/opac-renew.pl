@@ -29,16 +29,16 @@ use C4::Auth;
 use C4::Context;
 use C4::Items;
 use C4::Members;
+use Koha::Items;
 use Koha::Patrons;
 use Date::Calc qw( Today Date_to_Days );
-my $query = new CGI;
+my $query = CGI->new;
 
 my ( $template, $borrowernumber, $cookie ) = get_template_and_user(
 	{
         template_name   => "opac-user.tt",
         query           => $query,
         type            => "opac",
-        authnotrequired => 0,
         debug           => 1,
 	}
 ); 
@@ -62,26 +62,7 @@ else {
         my ( $status, $error ) =
           CanBookBeRenewed( $borrowernumber, $itemnumber );
         if ( $status == 1 && $opacrenew == 1 ) {
-            my $renewalbranch = C4::Context->preference('OpacRenewalBranch');
-            my $branchcode;
-            if ( $renewalbranch eq 'itemhomebranch' ) {
-                my $item = GetItem($itemnumber);
-                $branchcode = $item->{'homebranch'};
-            }
-            elsif ( $renewalbranch eq 'patronhomebranch' ) {
-                $branchcode = Koha::Patrons->find( $borrowernumber )->branchcode;
-            }
-            elsif ( $renewalbranch eq 'checkoutbranch' ) {
-                my $issue = GetOpenIssue($itemnumber);
-                $branchcode = $issue->{'branchcode'};
-            }
-            elsif ( $renewalbranch eq 'NULL' ) {
-                $branchcode = '';
-            }
-            else {
-                $branchcode = 'OPACRenew';
-            }
-            AddRenewal( $borrowernumber, $itemnumber, $branchcode, undef, undef );
+            AddRenewal( $borrowernumber, $itemnumber, undef, undef, undef, undef, 0 );
             push( @renewed, $itemnumber );
         }
         else {

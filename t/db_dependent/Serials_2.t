@@ -6,8 +6,8 @@ use Test::More tests => 50;
 use MARC::Record;
 
 use C4::Biblio qw( AddBiblio );
-use C4::Members qw( AddMember );
 use Koha::Database;
+use Koha::Patrons;
 use t::lib::Mocks;
 use t::lib::TestBuilder;
 use_ok('C4::Serials');
@@ -29,7 +29,6 @@ my $library2 = $builder->build({
 });
 my $patron_category = $builder->build({ source => 'Category' });
 my $dbh = C4::Context->dbh;
-$dbh->{RaiseError} = 1;
 
 my $record = MARC::Record->new();
 $record->append_fields(
@@ -39,7 +38,6 @@ my ( $biblionumber, $biblioitemnumber ) = C4::Biblio::AddBiblio($record, '');
 
 my $my_branch = $library1->{branchcode};
 my $another_branch = $library2->{branchcode};
-my $budgetid;
 my $bpid = AddBudgetPeriod({
     budget_period_startdate   => '2015-01-01',
     budget_period_enddate     => '2015-12-31',
@@ -79,13 +77,13 @@ is( C4::Serials::can_edit_subscription($subscription_from_my_branch), 0, "cannot
 is( C4::Serials::can_claim_subscription($subscription_from_my_branch), 0, "cannot edit a subscription without userenv set");
 
 my $userid = 'my_userid';
-my $borrowernumber = C4::Members::AddMember(
+my $borrowernumber = Koha::Patron->new({
     firstname =>  'my fistname',
     surname => 'my surname',
     categorycode => $patron_category->{categorycode},
     branchcode => $my_branch,
     userid => $userid,
-);
+})->store->borrowernumber;
 
 $userenv = { flags => 1, id => $borrowernumber, branch => '' };
 

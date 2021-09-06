@@ -22,14 +22,14 @@ use C4::Auth;
 use C4::Output;
 use C4::Context;
 use Koha::BiblioFrameworks;
+use Koha::Checkouts;
 
-my $query = new CGI;
+my $query = CGI->new;
 my ($template, $loggedinuser, $cookie, $flags) = get_template_and_user(
     {
         template_name   => "circ/circulation-home.tt",
         query           => $query,
         type            => "intranet",
-        authnotrequired => 0,
         flagsrequired   => { circulate => "circulate_remaining_permissions" },
     }
 );
@@ -38,6 +38,5 @@ my ($template, $loggedinuser, $cookie, $flags) = get_template_and_user(
 $template->param( fast_cataloging => 1 ) if Koha::BiblioFrameworks->find( 'FA' );
 
 $template->{'VARS'}->{'AllowOfflineCirculation'} = C4::Context->preference('AllowOfflineCirculation');
-
 
 output_html_with_http_headers $query, $cookie, $template->output;

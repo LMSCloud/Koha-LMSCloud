@@ -23,6 +23,14 @@ __PACKAGE__->table("letter");
 
 =head1 ACCESSORS
 
+=head2 id
+
+  data_type: 'integer'
+  is_auto_increment: 1
+  is_nullable: 0
+
+primary key identifier
+
 =head2 module
 
   data_type: 'varchar'
@@ -30,11 +38,15 @@ __PACKAGE__->table("letter");
   is_nullable: 0
   size: 20
 
+Koha module that triggers this notice or slip
+
 =head2 code
 
   data_type: 'varchar'
   is_nullable: 0
   size: 50
+
+unique identifier for this notice or slip
 
 =head2 branchcode
 
@@ -43,6 +55,8 @@ __PACKAGE__->table("letter");
   is_nullable: 0
   size: 10
 
+the branch this notice or slip is used at (branches.branchcode)
+
 =head2 name
 
   data_type: 'varchar'
@@ -50,11 +64,15 @@ __PACKAGE__->table("letter");
   is_nullable: 0
   size: 100
 
+plain text name for this notice or slip
+
 =head2 is_html
 
   data_type: 'tinyint'
   default_value: 0
   is_nullable: 1
+
+does this notice or slip use HTML (1 for yes, 0 for no)
 
 =head2 title
 
@@ -63,10 +81,14 @@ __PACKAGE__->table("letter");
   is_nullable: 0
   size: 200
 
+subject line of the notice
+
 =head2 content
 
   data_type: 'mediumtext'
   is_nullable: 1
+
+body text for the notice or slip
 
 =head2 message_transport_type
 
@@ -76,6 +98,8 @@ __PACKAGE__->table("letter");
   is_nullable: 0
   size: 20
 
+transport type for this notice
+
 =head2 lang
 
   data_type: 'varchar'
@@ -83,9 +107,22 @@ __PACKAGE__->table("letter");
   is_nullable: 0
   size: 25
 
+lang of the notice
+
+=head2 updated_on
+
+  data_type: 'timestamp'
+  datetime_undef_if_invalid: 1
+  default_value: current_timestamp
+  is_nullable: 0
+
+last modification
+
 =cut
 
 __PACKAGE__->add_columns(
+  "id",
+  { data_type => "integer", is_auto_increment => 1, is_nullable => 0 },
   "module",
   { data_type => "varchar", default_value => "", is_nullable => 0, size => 20 },
   "code",
@@ -115,9 +152,30 @@ __PACKAGE__->add_columns(
     is_nullable => 0,
     size => 25,
   },
+  "updated_on",
+  {
+    data_type => "timestamp",
+    datetime_undef_if_invalid => 1,
+    default_value => \"current_timestamp",
+    is_nullable => 0,
+  },
 );
 
 =head1 PRIMARY KEY
+
+=over 4
+
+=item * L</id>
+
+=back
+
+=cut
+
+__PACKAGE__->set_primary_key("id");
+
+=head1 UNIQUE CONSTRAINTS
+
+=head2 C<letter_uniq_1>
 
 =over 4
 
@@ -135,7 +193,10 @@ __PACKAGE__->add_columns(
 
 =cut
 
-__PACKAGE__->set_primary_key("module", "code", "branchcode", "message_transport_type", "lang");
+__PACKAGE__->add_unique_constraint(
+  "letter_uniq_1",
+  ["module", "code", "branchcode", "message_transport_type", "lang"],
+);
 
 =head1 RELATIONS
 
@@ -155,9 +216,14 @@ __PACKAGE__->belongs_to(
 );
 
 
-# Created by DBIx::Class::Schema::Loader v0.07042 @ 2018-11-26 12:39:52
-# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:qJGFgtreeQQNRrF783nsog
+# Created by DBIx::Class::Schema::Loader v0.07046 @ 2021-02-11 12:33:50
+# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:qqdTVEicMu5rHppY5qsEuA
 
+sub koha_object_class {
+    'Koha::Notice::Template';
+}
+sub koha_objects_class {
+    'Koha::Notice::Templates';
+}
 
-# You can replace this text with custom code or comments, and it will be preserved on regeneration
 1;

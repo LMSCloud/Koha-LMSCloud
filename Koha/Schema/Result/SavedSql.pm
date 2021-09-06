@@ -29,10 +29,14 @@ __PACKAGE__->table("saved_sql");
   is_auto_increment: 1
   is_nullable: 0
 
+unique id and primary key assigned by Koha
+
 =head2 borrowernumber
 
   data_type: 'integer'
   is_nullable: 1
+
+the staff member who created this report (borrowers.borrowernumber)
 
 =head2 date_created
 
@@ -40,16 +44,22 @@ __PACKAGE__->table("saved_sql");
   datetime_undef_if_invalid: 1
   is_nullable: 1
 
+the date this report was created
+
 =head2 last_modified
 
   data_type: 'datetime'
   datetime_undef_if_invalid: 1
   is_nullable: 1
 
+the date this report was last edited
+
 =head2 savedsql
 
   data_type: 'mediumtext'
   is_nullable: 1
+
+the SQL for this report
 
 =head2 last_run
 
@@ -64,16 +74,22 @@ __PACKAGE__->table("saved_sql");
   is_nullable: 0
   size: 255
 
+the name of this report
+
 =head2 type
 
   data_type: 'varchar'
   is_nullable: 1
   size: 255
 
+always 1 for tabular
+
 =head2 notes
 
   data_type: 'mediumtext'
   is_nullable: 1
+
+the notes or description given to this report
 
 =head2 cache_expiry
 
@@ -104,6 +120,11 @@ __PACKAGE__->table("saved_sql");
   data_type: 'varchar'
   is_nullable: 1
   size: 80
+
+=head2 mana_id
+
+  data_type: 'integer'
+  is_nullable: 1
 
 =cut
 
@@ -148,6 +169,8 @@ __PACKAGE__->add_columns(
   { data_type => "varchar", is_nullable => 1, size => 80 },
   "report_subgroup",
   { data_type => "varchar", is_nullable => 1, size => 80 },
+  "mana_id",
+  { data_type => "integer", is_nullable => 1 },
 );
 
 =head1 PRIMARY KEY
@@ -163,9 +186,18 @@ __PACKAGE__->add_columns(
 __PACKAGE__->set_primary_key("id");
 
 
-# Created by DBIx::Class::Schema::Loader v0.07042 @ 2018-02-16 17:54:54
-# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:7UCqSsNMGdq+S7MwZulmwA
+# Created by DBIx::Class::Schema::Loader v0.07049 @ 2021-01-21 13:39:29
+# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:198dNG9DGQzop+s5IHy7sw
 
+__PACKAGE__->add_columns(
+    '+public' => { is_boolean => 1 }
+);
 
-# You can replace this text with custom content, and it will be preserved on regeneration
+sub koha_object_class {
+    'Koha::Report';
+}
+sub koha_objects_class {
+    'Koha::Reports';
+}
+
 1;

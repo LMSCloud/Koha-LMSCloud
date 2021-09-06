@@ -1,7 +1,8 @@
+[% USE raw %]
 [% USE Asset %]
 [% SET footerjs = 1 %]
     [% INCLUDE "doc-head-open.inc" %]
-    <title>Koha &rsaquo; Circulation &rsaquo; Offline circulation</title>
+    <title>Offline circulation &rsaquo; Circulation &rsaquo; Koha</title>
     [% INCLUDE "doc-head-close.inc" %]
 </head>
 
@@ -9,7 +10,21 @@
     [% INCLUDE 'header.inc' %]
     [% INCLUDE 'circ-search.inc' %]
 
-    <div id="breadcrumbs"><a href="/cgi-bin/koha/mainpage.pl">Home</a> &rsaquo; <a href="/cgi-bin/koha/circ/circulation-home.pl">Circulation</a> &rsaquo; Offline circulation</div>
+    <nav id="breadcrumbs" aria-label="Breadcrumb" class="breadcrumb">
+        <ol>
+            <li>
+                <a href="/cgi-bin/koha/mainpage.pl">Home</a>
+            </li>
+            <li>
+                <a href="/cgi-bin/koha/circ/circulation-home.pl">Circulation</a>
+            </li>
+            <li>
+                <a href="#" aria-current="page">
+                    Offline circulation
+                </a>
+            </li>
+        </ol>
+    </nav>
 
 <div class="main container-fluid">
     <div class="row">
@@ -20,8 +35,11 @@
 	    [% IF ( pending_operations ) %]
 
 	        <form>
-             <p><span class="checkall"></span> |
-             <span class="clearall"></span></p>
+                <p>
+                    <a id="CheckAll" href="#"><i class="fa fa-check"></i> Check all</a>
+                    <a id="CheckNone" href="#"><i class="fa fa-remove"></i> Uncheck all</a>
+                </p>
+
 	        <table id="operations">
 	            <thead>
 		            <tr>
@@ -35,9 +53,11 @@
 		        </thead>
 		        <tbody>
 		            [% FOREACH operation IN pending_operations %]
-		                <tr class="oc-[% operation.action %]">
-		                    <td><input type="checkbox" name="operationid" value="[% operation.operationid %]" /></td>
-			                <td>[% operation.timestamp %]</td>
+		                <tr class="oc-[% operation.action | html %]">
+                            <td><input type="checkbox" name="operationid" id="operationid[% operation.operationid | html %]" value="[% operation.operationid | html %]" /></td>
+                            <td>
+                                <label for="operationid[% operation.operationid | html %]">[% operation.timestamp | html %]</label>
+                            </td>
                             <td>
                                 [% SWITCH ( operation.action ) -%]
                                     [%   CASE "issue" -%]
@@ -47,26 +67,26 @@
                                     [%   CASE "payment" -%]
                                         Payment
                                     [%   CASE # default case -%]
-                                        [% operation.action %]
+                                        [% operation.action | html %]
                                 [% END -%]
                             </td>
 			                <td>
                                 [% IF ( operation.biblionumber ) %]
-			                        <a href="/cgi-bin/koha/catalogue/detail.pl?biblionumber=[% operation.biblionumber %]" title="[% operation.bibliotitle %]">[% operation.barcode %]</a>
+                                    <a href="/cgi-bin/koha/catalogue/detail.pl?biblionumber=[% operation.biblionumber | uri %]" title="[% operation.bibliotitle | html %]">[% operation.barcode | html %]</a>
 			                    [% ELSE %]
-			                        <span class="error">[% operation.barcode %]</span>
+			                        <span class="error">[% operation.barcode | html %]</span>
 			                    [% END %]
 			                </td>
 			                <td>
 			                [% IF ( operation.actionissue || operation.actionpayment) %]
 		                        [% IF ( operation.borrowernumber ) %]
-		                            <a href="/cgi-bin/koha/members/moremember.pl?borrowernumber=[% operation.borrowernumber %]" title="[% operation.borrower %]">[% operation.cardnumber %]</a>
+                                    <a href="/cgi-bin/koha/members/moremember.pl?borrowernumber=[% operation.borrowernumber | uri %]" title="[% operation.borrower | html %]">[% operation.cardnumber | html %]</a>
 		                        [% ELSE %]
-		                            <span class="error">[% operation.cardnumber %]</span>
+		                            <span class="error">[% operation.cardnumber | html %]</span>
 		                        [% END %]
 			                [% END %]
 			                </td>
-                                        <td>[% operation.amount %]</td>
+                                        <td>[% operation.amount | html %]</td>
 		                </tr>
 		            [% END %]
 		        </tbody>
@@ -88,19 +108,16 @@
 </div>
 
 [% MACRO jsinclude BLOCK %]
-    [% Asset.js("lib/jquery/plugins/jquery.checkboxes.min.js") %]
-    <script type="text/javascript">
+    <script>
         $(document).ready(function() {
 
-        $("span.clearall").html("<a id=\"CheckNone\" href=\"/cgi-bin/koha/offline_circ/list.pl\">"+_("Uncheck all")+"<\/a>");
-        $("span.checkall").html("<a id=\"CheckAll\" href=\"/cgi-bin/koha/offline_circ/list.pl\">"+_("Check all")+"<\/a>");
-            $('#CheckNone').click(function() {
-                $("#operations").unCheckCheckboxes();
-                return false;
+            $('#CheckNone').click(function(e) {
+                e.preventDefault();
+                $("#operations input:checkbox").prop("checked", false );
             });
-            $('#CheckAll').click(function() {
-                $("#operations").checkCheckboxes();
-                return false;
+            $('#CheckAll').click(function(e) {
+                e.preventDefault();
+                $("#operations input:checkbox").prop("checked", true );
             });
             $('#process,#delete').click(function() {
                 var action = $(this).attr("id");

@@ -2,17 +2,18 @@
 #
 # This file is part of Koha.
 #
-# Koha is free software; you can redistribute it and/or modify it under the
-# terms of the GNU General Public License as published by the Free Software
-# Foundation;
+# Koha is free software; you can redistribute it and/or modify it
+# under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 3 of the License, or
+# (at your option) any later version.
 #
-# Koha is distributed in the hope that it will be useful, but WITHOUT ANY
-# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
-# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+# Koha is distributed in the hope that it will be useful, but
+# WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+# GNU General Public License for more details.
 #
-# You should have received a copy of the GNU General Public License along
-# with Koha; if not, write to the Free Software Foundation, Inc.,
-# 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+# You should have received a copy of the GNU General Public License
+# along with Koha; if not, see <http://www.gnu.org/licenses>.
 
 use Modern::Perl;
 use C4::Auth;
@@ -25,15 +26,18 @@ use C4::Circulation;
 use DateTime;
 use Koha::DateUtils;
 use Text::CSV::Encoded;
+use List::Util qw/any/;
 
-my $input            = new CGI;
+use Koha::Account::CreditTypes;
+use Koha::Account::DebitTypes;
+
+my $input            = CGI->new;
 my $dbh              = C4::Context->dbh;
 
 my ($template, $borrowernumber, $cookie) = get_template_and_user({
     template_name => "reports/cash_register_stats.tt",
     query => $input,
     type => "intranet",
-    authnotrequired => 0,
     flagsrequired => {reports => '*'},
     debug => 1,
 });
@@ -53,17 +57,17 @@ $template->param(
 my $fromDate = dt_from_string;
 my $toDate   = dt_from_string;
 
-my $query_manualinv = "SELECT id, authorised_value FROM authorised_values WHERE category = 'MANUAL_INV'";
-my $sth_manualinv = $dbh->prepare($query_manualinv) or die "Unable to prepare query" . $dbh->errstr;
-$sth_manualinv->execute() or die "Unable to execute query " . $sth_manualinv->errstr;
-my $manualinv_types = $sth_manualinv->fetchall_arrayref({});
-
+my @debit_types =
+  Koha::Account::DebitTypes->search()->as_list;
+my @credit_types =
+  Koha::Account::CreditTypes->search()->as_list;
+my $registerid;
 
 if ($do_it) {
 
-    $fromDate = output_pref({ dt => eval { dt_from_string($input->param("from")) } || dt_from_string,
+    $fromDate = output_pref({ dt => eval { dt_from_string(scalar $input->param("from")) } || dt_from_string,
             dateformat => 'sql', dateonly => 1 }); #for sql query
-    $toDate   = output_pref({ dt => eval { dt_from_string($input->param("to")) } || dt_from_string,
+    $toDate   = output_pref({ dt => eval { dt_from_string(scalar $input->param("to")) } || dt_from_string,
             dateformat => 'sql', dateonly => 1 }); #for sql query
 
     my $whereTType = q{};
@@ -72,12 +76,15 @@ if ($do_it) {
     if ($transaction_type eq 'ALL') { #All Transactons
         $whereTType = q{};
     } elsif ($transaction_type eq 'ACT') { #Active
-        $whereTType = q{ AND accounttype IN ('Pay','C') };
-    } else { #Single transac type
-        if ($transaction_type eq 'FORW') {
-            $whereTType = q{ AND accounttype IN ('FOR','W') };
+        $whereTType = q{ AND credit_type_code IN ('PAYMENT','CREDIT') };
+    } elsif ($transaction_type eq 'FORW') {
+        $whereTType = q{ AND credit_type_code IN ('FORGIVEN','WRITEOFF') };
+    } else {
+        if ( any { $transaction_type eq $_->code } @debit_types ) {
+            $whereTType = q{ AND debit_type_code = ? };
+            push @extra_params, $transaction_type;
         } else {
-            $whereTType = q{ AND accounttype = ? };
+            $whereTType = q{ AND credit_type_code = ? };
             push @extra_params, $transaction_type;
         }
     }
@@ -88,12 +95,18 @@ if ($do_it) {
         push @extra_params, $manager_branchcode;
     }
 
+    my $whereRegister = q{};
+    $registerid = $input->param("registerid");
+    if ($registerid) {
+        $whereRegister = q{ AND al.register_id = ?};
+        push @extra_params, $registerid;
+    }
 
     my $query = "
     SELECT round(amount,2) AS amount, description,
         bo.surname AS bsurname, bo.firstname AS bfirstname, m.surname AS msurname, m.firstname AS mfirstname,
         bo.cardnumber, br.branchname, bo.borrowernumber,
-        al.borrowernumber, DATE(al.date) as date, al.accounttype, al.amountoutstanding, al.note,
+        al.borrowernumber, DATE(al.date) as date, al.credit_type_code, al.debit_type_code, al.amountoutstanding, al.note, al.timestamp,
         bi.title, bi.biblionumber, i.barcode, i.itype
         FROM accountlines al
         LEFT JOIN borrowers bo ON (al.borrowernumber = bo.borrowernumber)
@@ -104,6 +117,7 @@ if ($do_it) {
         WHERE CAST(al.date AS DATE) BETWEEN ? AND ?
         $whereTType
         $whereBranchCode
+        $whereRegister
         ORDER BY al.date
     ";
     my $sth_stats = $dbh->prepare($query) or die "Unable to prepare query " . $dbh->errstr;
@@ -118,14 +132,14 @@ if ($do_it) {
             $row->{date} = dt_from_string($row->{date}, 'sql');
 
             push (@loopresult, $row);
-            if($transaction_type eq 'ACT' && ($row->{accounttype} !~ /^C$|^CR$|^LR$|^Pay$/)){
+            if($transaction_type eq 'ACT' && ($row->{credit_type_code} !~ /^CREDIT$|^PAYMENT$/)){
                 pop @loopresult;
                 next;
             }
-            if($row->{accounttype} =~ /^C$|^CR$|^LR$/){
+            if($row->{credit_type_code} =~ /^CREDIT$/){
                 $grantotal -= abs($row->{amount});
                 $row->{amount} = '-' . $row->{amount};
-            }elsif($row->{accounttype} eq 'FORW' || $row->{accounttype} eq 'W'){
+            }elsif($row->{credit_type_code} eq 'FORGIVEN' || $row->{credit_type_code} eq 'WRITEOFF'){
             }else{
                 $grantotal += abs($row->{amount});
             }
@@ -143,17 +157,19 @@ if ($do_it) {
         my $format = 'csv';
         my $reportname = $input->param('basename');
         my $reportfilename = $reportname ? "$reportname.$format" : "reportresults.$format" ;
-        #my $reportfilename = "$reportname.html" ;
-        my $delimiter = C4::Context->preference('delimiter') || ',';
+        my $delimiter = C4::Context->preference('CSVDelimiter') || ',';
             my @rows;
             foreach my $row (@loopresult) {
                 my @rowValues;
-                push @rowValues, $row->{mfirstname},
+                push @rowValues, $row->{mfirstname}. ' ' . $row->{msurname},
                         $row->{cardnumber},
-                        $row->{bfirstname},
+                        $row->{bfirstname} . ' ' . $row->{bsurname},
                         $row->{branchname},
                         $row->{date},
-                        $row->{accounttype},
+                        $row->{timestamp},
+                        $row->{credit_type},
+                        $row->{debit_type},
+                        $row->{note},
                         $row->{amount},
                         $row->{title},
                         $row->{barcode},
@@ -182,7 +198,9 @@ $template->param(
     endDate          => $toDate,
     transaction_type => $transaction_type,
     branchloop       => Koha::Libraries->search({}, { order_by => ['branchname'] })->unblessed,
-    manualinv_types  => $manualinv_types,
+    debit_types      => \@debit_types,
+    credit_types     => \@credit_types,
+    registerid       => $registerid,
     CGIsepChoice => GetDelimiterChoices,
 );
 

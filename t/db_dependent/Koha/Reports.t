@@ -17,7 +17,7 @@
 
 use Modern::Perl;
 
-use Test::More tests => 4;
+use Test::More tests => 6;
 
 use Koha::Report;
 use Koha::Reports;
@@ -48,4 +48,64 @@ is( $retrieved_report_1->report_name, $new_report_1->report_name, 'Find a report
 $retrieved_report_1->delete;
 is( Koha::Reports->search->count, $nb_of_reports + 1, 'Delete should have deleted the report' );
 
+subtest 'prep_report' => sub {
+    plan tests => 3;
+
+    my $report = Koha::Report->new({
+        report_name => 'report_name_for_test_1',
+        savedsql => 'SELECT * FROM items WHERE itemnumber IN <<Test|list>>',
+    })->store;
+
+    my ($sql, undef) = $report->prep_report( ['Test|list'],["1\n12\n\r243"] );
+    is( $sql, q{SELECT * FROM items WHERE itemnumber IN ('1','12','243')},'Expected sql generated correctly with single param and name');
+
+    $report->savedsql('SELECT * FROM items WHERE itemnumber IN <<Test|list>> AND <<Another>> AND <<Test|list>>')->store;
+
+    ($sql, undef) = $report->prep_report( ['Test|list','Another'],["1\n12\n\r243",'the other'] );
+    is( $sql, q{SELECT * FROM items WHERE itemnumber IN ('1','12','243') AND 'the other' AND ('1','12','243')},'Expected sql generated correctly with multiple params and names');
+
+    ($sql, undef) = $report->prep_report( [],["1\n12\n\r243",'the other',"42\n32\n22\n12"] );
+    is( $sql, q{SELECT * FROM items WHERE itemnumber IN ('1','12','243') AND 'the other' AND ('42','32','22','12')},'Expected sql generated correctly with multiple params and no names');
+
+};
+
 $schema->storage->txn_rollback;
+
+subtest 'is_sql_valid' => sub {
+    plan tests => 3 + 6 * 2;
+    my @badwords = ( 'UPDATE', 'DELETE', 'DROP', 'INSERT', 'SHOW', 'CREATE' );
+    is_deeply(
+        [ Koha::Report->new( { savedsql => '' } )->is_sql_valid ],
+        [ 0, [ { queryerr => 'Missing SELECT' } ] ],
+        'Empty sql is missing SELECT'
+    );
+    is_deeply(
+        [ Koha::Report->new( { savedsql => 'FOO' } )->is_sql_valid ],
+        [ 0, [ { queryerr => 'Missing SELECT' } ] ],
+        'Nonsense sql is missing SELECT'
+    );
+    is_deeply(
+        [ Koha::Report->new( { savedsql => 'select FOO' } )->is_sql_valid ],
+        [ 1, [] ],
+        'select FOO is good'
+    );
+    foreach my $word (@badwords) {
+        is_deeply(
+            [
+                Koha::Report->new(
+                    { savedsql => 'select FOO;' . $word . ' BAR' }
+                )->is_sql_valid
+            ],
+            [ 0, [ { sqlerr => $word } ] ],
+            'select FOO with ' . $word . ' BAR'
+        );
+        is_deeply(
+            [
+                Koha::Report->new( { savedsql => $word . ' qux' } )
+                  ->is_sql_valid
+            ],
+            [ 0, [ { sqlerr => $word } ] ],
+            $word . ' qux'
+        );
+    }
+  }

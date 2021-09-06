@@ -4,18 +4,18 @@ package Koha::Holds;
 #
 # This file is part of Koha.
 #
-# Koha is free software; you can redistribute it and/or modify it under the
-# terms of the GNU General Public License as published by the Free Software
-# Foundation; either version 3 of the License, or (at your option) any later
-# version.
+# Koha is free software; you can redistribute it and/or modify it
+# under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 3 of the License, or
+# (at your option) any later version.
 #
-# Koha is distributed in the hope that it will be useful, but WITHOUT ANY
-# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
-# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+# Koha is distributed in the hope that it will be useful, but
+# WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+# GNU General Public License for more details.
 #
-# You should have received a copy of the GNU General Public License along
-# with Koha; if not, write to the Free Software Foundation, Inc.,
-# 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+# You should have received a copy of the GNU General Public License
+# along with Koha; if not, see <http://www.gnu.org/licenses>.
 
 use Modern::Perl;
 
@@ -90,6 +90,67 @@ sub forced_hold_level {
     return 'record' if $record_level_count > 0;
 
     return;
+}
+
+=head3 get_items_that_can_fill
+
+    my $items = $holds->get_items_that_can_fill();
+
+Return the list of items that can fill the hold set.
+
+Items that are not:
+
+  in transit
+  waiting
+  lost
+  widthdrawn
+  not for loan
+  not on loan
+
+=cut
+
+sub get_items_that_can_fill {
+    my ( $self ) = @_;
+
+    my @biblionumbers = $self->get_column('biblionumber');
+
+    my @branchtransfers = map { $_->itemnumber }
+      Koha::Item::Transfers->search(
+          { datearrived => undef },
+          {
+              columns => ['itemnumber'],
+              collapse => 1,
+          }
+      );
+    my @waiting_holds = map { $_->itemnumber }
+      Koha::Holds->search(
+          { 'found' => 'W' },
+          {
+              columns => ['itemnumber'],
+              collapse => 1,
+          }
+      );
+
+    my @hold_not_allowed_itypes = Koha::CirculationRules->search(
+        {
+            rule_name    => 'holdallowed',
+            branchcode   => undef,
+            categorycode => undef,
+            rule_value   => 'not_allowed',
+        }
+    )->get_column('itemtype');
+
+    return Koha::Items->search(
+        {
+            biblionumber => { in => \@biblionumbers },
+            itemlost     => 0,
+            withdrawn    => 0,
+            notforloan   => 0,
+            onloan       => undef,
+            itemnumber   => { -not_in => [ @branchtransfers, @waiting_holds ] },
+            itype        => { -not_in => \@hold_not_allowed_itypes },
+        }
+    );
 }
 
 =head3 type

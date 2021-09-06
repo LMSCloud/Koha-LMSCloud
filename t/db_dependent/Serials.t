@@ -4,9 +4,7 @@
 # Add more tests here!!!
 
 use Modern::Perl;
-use YAML;
 
-use CGI qw ( -utf8 );
 use C4::Serials;
 use C4::Serials::Frequency;
 use C4::Serials::Numberpattern;
@@ -14,21 +12,20 @@ use C4::Debug;
 use C4::Biblio;
 use C4::Budgets;
 use C4::Items;
+use Koha::Database;
 use Koha::DateUtils;
 use Koha::Acquisition::Booksellers;
 use t::lib::Mocks;
 use t::lib::TestBuilder;
-use Test::More tests => 48;
+use Test::More tests => 49;
 
 BEGIN {
     use_ok('C4::Serials');
 }
 
+my $schema = Koha::Database->new->schema;
+$schema->storage->txn_begin;
 my $dbh = C4::Context->dbh;
-
-# Start transaction
-$dbh->{AutoCommit} = 0;
-$dbh->{RaiseError} = 1;
 
 my $builder = t::lib::TestBuilder->new();
 
@@ -49,7 +46,6 @@ my $bookseller = Koha::Acquisition::Bookseller->new(
 
 my ($biblionumber, $biblioitemnumber) = AddBiblio(MARC::Record->new, '');
 
-my $budgetid;
 my $bpid = AddBudgetPeriod({
     budget_period_startdate   => '2015-01-01',
     budget_period_enddate     => '2015-12-31',
@@ -77,13 +73,13 @@ my $pattern_id = AddSubscriptionNumberpattern({
     whenmorethan1 => 1,
 });
 
-my $notes = 'notes';
+my $notes = "a\nnote\non\nseveral\nlines";
 my $internalnotes = 'intnotes';
 my $subscriptionid = NewSubscription(
     undef,      "",     undef, undef, $budget_id, $biblionumber,
     '2013-01-01', $frequency_id, undef, undef,  undef,
     undef,      undef,  undef, undef, undef, undef,
-    1,          $notes,undef, '2013-01-01', undef, $pattern_id,
+    1,          $notes, ,undef, '2013-01-01', undef, $pattern_id,
     undef,       undef,  0,    $internalnotes,  0,
     undef, undef, 0,          undef,         '2013-12-31', 0
 );
@@ -94,8 +90,8 @@ is( $subscriptioninformation->{notes}, $notes, 'NewSubscription should set notes
 is( $subscriptioninformation->{internalnotes}, $internalnotes, 'NewSubscription should set internalnotes' );
 
 my $subscription_history = C4::Serials::GetSubscriptionHistoryFromSubscriptionId($subscriptionid);
-is( $subscription_history->{opacnote}, '', 'NewSubscription should not set subscriptionhistory opacnotes' );
-is( $subscription_history->{librariannote}, '', 'NewSubscription should not set subscriptionhistory librariannotes' );
+is( $subscription_history->{opacnote}, undef, 'NewSubscription should not set subscriptionhistory opacnotes' );
+is( $subscription_history->{librariannote}, undef, 'NewSubscription should not set subscriptionhistory librariannotes' );
 
 my @subscriptions = SearchSubscriptions({string => $subscriptioninformation->{bibliotitle}, orderby => 'title' });
 isa_ok( \@subscriptions, 'ARRAY' );
@@ -139,22 +135,21 @@ my ($serials_count, @serials) = GetSerials($subscriptionid);
 ok($serials_count > 0, 'Subscription has at least one serial');
 my $serial = $serials[0];
 
-ok(C4::Serials::GetSerialStatusFromSerialId($serial->{serialid}), 'test getting Serial Status From Serial Id');
-
 isa_ok(C4::Serials::GetSerialInformation($serial->{serialid}), 'HASH', 'test getting Serial Information');
 
 subtest 'Values should not be erased on editing' => sub {
 
     plan tests => 1;
 
-    ( $biblionumber, $biblioitemnumber ) = get_biblio();
-    my ( $icn_tag, $icn_sf ) = GetMarcFromKohaField( 'items.itemcallnumber', '' );
-    my ( $it_tag, $it_sf )   = GetMarcFromKohaField( 'items.itype', '' );
+    my $biblio = $builder->build_sample_biblio();
+    my $biblionumber = $biblio->biblionumber;
+    my ( $icn_tag, $icn_sf ) = GetMarcFromKohaField( 'items.itemcallnumber' );
+    my ( $it_tag, $it_sf )   = GetMarcFromKohaField( 'items.itype' );
 
     my $itemtype = $builder->build( { source => 'Itemtype' } )->{itemtype};
     my $itemcallnumber = 'XXXmy itemcallnumberXXX';
 
-    my $item_record    = new MARC::Record;
+    my $item_record    = MARC::Record->new;
 
     $item_record->append_fields(
         MARC::Field->new( '080', '', '', "a" => "default" ),
@@ -166,7 +161,7 @@ subtest 'Values should not be erased on editing' => sub {
     );
     my ( undef, undef, $itemnumber ) = C4::Items::AddItemFromMarc( $item_record, $biblionumber );
     my $serialid = C4::Serials::NewIssue( "serialseq", $subscriptionid, $biblionumber,
-                                          1, undef, undef, "publisheddatetext", "notes" );
+                                          1, undef, undef, "publisheddatetext", "notes", "routingnotes" );
     C4::Serials::AddItem2Serial( $serialid, $itemnumber );
     my $serial_info = C4::Serials::GetSerialInformation($serialid);
     my ($itemcallnumber_info) = grep { $_->{kohafield} eq 'items.itemcallnumber' }
@@ -196,14 +191,33 @@ if ($old_frequency) {
 is(C4::Serials::AddItem2Serial(), undef, 'test adding item to serial');
 is(C4::Serials::GetFullSubscription(), undef, 'test getting full subscription');
 is(C4::Serials::PrepareSerialsData(), undef, 'test preparing serial data');
-is(C4::Serials::GetSubscriptionsFromBiblionumber(), undef, 'test getting subscriptions form biblio number');
+
+subtest 'GetSubscriptionsFromBiblionumber' => sub {
+    plan tests => 4;
+
+    is( C4::Serials::GetSubscriptionsFromBiblionumber(),
+        undef, 'test getting subscriptions form biblio number' );
+
+    my $subscriptions = C4::Serials::GetSubscriptionsFromBiblionumber($biblionumber);
+    ModSubscriptionHistory( $subscriptions->[0]->{subscriptionid},
+        undef, undef, $notes, $notes, $notes );
+
+    $subscriptions = C4::Serials::GetSubscriptionsFromBiblionumber($biblionumber);
+    is( $subscriptions->[0]->{opacnote}, $notes,
+        'GetSubscriptionsFromBiblionumber should have returned the opacnote as it is in DB, ie. without br tags'
+    );
+    is( $subscriptions->[0]->{recievedlist}, $notes,
+        'GetSubscriptionsFromBiblionumber should have returned recievedlist as it is in DB, ie. without br tags'
+    );
+    is( $subscriptions->[0]->{missinglist}, $notes,
+        'GetSubscriptionsFromBiblionumber should have returned missinglist as it is in DB, ie. without br tags'
+    );
+};
 
 is(C4::Serials::GetSerials(), undef, 'test getting serials when you enter nothing');
 is(C4::Serials::GetSerials2(), undef, 'test getting serials when you enter nothing');
 
 is(C4::Serials::GetLatestSerials(), undef, 'test getting lastest serials');
-
-is(C4::Serials::GetDistributedTo(), undef, 'test getting distributed when nothing is entered');
 
 is(C4::Serials::GetNextSeq(), undef, 'test getting next seq when you enter nothing');
 
@@ -234,39 +248,74 @@ subtest 'test_updateClaim' => sub {
     is($result_0, undef, 'Got the expected undef from update claim with nothin');
 
     # Given ... 3 serial. 2 of them updated.
-    my $serialids_1   = [90980, 90981];
     my $claimdate_1   = dt_from_string('2001-01-13'); # arbitrary date some time in the past.
     my $claim_count_1 = 5;
-    Koha::Serial->new( { serialid => $serialids_1->[0], serialseq => 'serialseq', subscriptionid => $subscriptionid, status => 3,
-                         biblionumber => 12345, claimdate => $claimdate_1, claims_count => $claim_count_1, } )->store();
-    Koha::Serial->new( { serialid => $serialids_1->[1], serialseq => 'serialseq', subscriptionid => $subscriptionid, status => 3,
-                         biblionumber => 12345, claimdate => $claimdate_1, claims_count => $claim_count_1,  } )->store();
-    Koha::Serial->new( { serialid => 90982, serialseq => 'serialseq', subscriptionid => $subscriptionid, status => 3,
-                         biblionumber => 12345, claimdate => $claimdate_1, claims_count => $claim_count_1,  } )->store();
+    my $biblio = $builder->build_sample_biblio;
+    my $serial1 = $builder->build_object(
+        {
+            class => 'Koha::Serials',
+            value => {
+                serialseq      => 'serialseq',
+                subscriptionid => $subscriptionid,
+                status         => 3,
+                biblionumber   => $biblio->biblionumber,
+                claimdate      => $claimdate_1,
+                claims_count   => $claim_count_1,
+            }
+        }
+    );
+    my $serial2 = $builder->build_object(
+        {
+            class => 'Koha::Serials',
+            value => {
+                serialseq      => 'serialseq',
+                subscriptionid => $subscriptionid,
+                status         => 3,
+                biblionumber   => $biblio->biblionumber,
+                claimdate      => $claimdate_1,
+                claims_count   => $claim_count_1,
+            }
+        }
+    );
+    my $serial3 = $builder->build_object(
+        {
+            class => 'Koha::Serials',
+            value => {
+                serialseq      => 'serialseq',
+                subscriptionid => $subscriptionid,
+                status         => 3,
+                biblionumber   => $biblio->biblionumber,
+                claimdate      => $claimdate_1,
+                claims_count   => $claim_count_1,
+            }
+        }
+    );
 
     # When ...
-    my $result_1 = C4::Serials::updateClaim($serialids_1);
+    my $result_1 = C4::Serials::updateClaim([$serial1->serialid, $serial2->serialid]);
 
     # Then ...
     is($result_1, 2, 'Got the expected 2 from update claim with 2 serial ids');
 
-    my @late_or_missing_issues_1_0 = C4::Serials::GetLateOrMissingIssues(undef, $serialids_1->[0]);
+    my @late_or_missing_issues_1_0 = C4::Serials::GetLateOrMissingIssues(undef, $serial1->serialid);
     is($late_or_missing_issues_1_0[0]->{claimdate}, $today, 'Got the expected first different claim date from update claim');
     is($late_or_missing_issues_1_0[0]->{claims_count}, $claim_count_1+1, 'Got the expected first claim count from update claim');
     is($late_or_missing_issues_1_0[0]->{status}, 7, 'Got the expected first claim status from update claim');
 
-    my @late_or_missing_issues_1_1 = C4::Serials::GetLateOrMissingIssues(undef, $serialids_1->[1]);
+    my @late_or_missing_issues_1_1 = C4::Serials::GetLateOrMissingIssues(undef, $serial2->serialid);
     is($late_or_missing_issues_1_1[0]->{claimdate}, $today, 'Got the expected second different claim date from update claim');
     is($late_or_missing_issues_1_1[0]->{claims_count}, $claim_count_1+1, 'Got the expected second claim count from update claim');
     is($late_or_missing_issues_1_1[0]->{status}, 7, 'Got the expected second claim status from update claim');
 
-    my @late_or_missing_issues_1_2 = C4::Serials::GetLateOrMissingIssues(undef, 90982);
+    my @late_or_missing_issues_1_2 = C4::Serials::GetLateOrMissingIssues(undef, $serial3->serialid);
     is($late_or_missing_issues_1_2[0]->{claimdate}, output_pref({ dt => $claimdate_1, dateonly => 1}), 'Got the expected unchanged claim date from update claim');
     is($late_or_missing_issues_1_2[0]->{claims_count}, $claim_count_1, 'Got the expected unchanged claim count from update claim');
     is($late_or_missing_issues_1_2[0]->{status}, 3, 'Got the expected unchanged claim status from update claim');
 };
 
 is(C4::Serials::check_routing(), undef, 'test checking route');
+is(C4::Serials::check_routing($subscriptionid), 0, 'There should not have any routing list for the subscription');
+# TODO really test this check_routing subroutine
 
 is(C4::Serials::addroutingmember(),undef, 'test adding route member');
 
@@ -289,7 +338,8 @@ my $pattern = C4::Serials::Numberpattern::GetSubscriptionNumberpattern($subscrip
 ( $total_issues, @serials ) = C4::Serials::GetSerials( $subscriptionid );
 my $publisheddate = output_pref({ dt => dt_from_string, dateformat => 'iso', dateonly => 1 });
 ( $total_issues, @serials ) = C4::Serials::GetSerials( $subscriptionid );
-my $nextpublisheddate = C4::Serials::GetNextDate($subscription, $publisheddate, 1);
+$frequency = C4::Serials::Frequency::GetSubscriptionFrequency($subscription->{periodicity});
+my $nextpublisheddate = C4::Serials::GetNextDate($subscription, $publisheddate, $frequency, 1);
 my @statuses = qw( 2 2 3 3 3 3 3 4 4 41 42 43 44 5 );
 # Add 14 serials
 my $counter = 0;
@@ -352,14 +402,53 @@ subtest "Do not generate an expected if one already exists" => sub {
     is( @serialsByStatus, 1, "ModSerialStatus delete corectly serial expected and not create another if exists" );
 };
 
-$dbh->rollback;
+subtest "PreserveSerialNotes preference" => sub {
+    plan tests => 2;
+    my ($expected_serial) = GetSerials2( $subscriptionid, [1] );
 
-sub get_biblio {
-    my $bib = MARC::Record->new();
-    $bib->append_fields(
-        MARC::Field->new('100', ' ', ' ', a => 'Moffat, Steven'),
-        MARC::Field->new('245', ' ', ' ', a => 'Silence in the library'),
+    t::lib::Mocks::mock_preference( 'PreserveSerialNotes', 1 );
+
+    C4::Serials::ModSerialStatus( $expected_serial->{serialid}, 'NO.20', $publisheddate, $publisheddate, $publisheddate, '1', 'an useless note' );
+    @serialsByStatus = C4::Serials::findSerialsByStatus( 1, $subscriptionid );
+    is( $serialsByStatus[0]->{note},$expected_serial->{note}, "note passed through if supposed to");
+
+    t::lib::Mocks::mock_preference( 'PreserveSerialNotes', 0 );
+    $expected_serial = $serialsByStatus[0];
+    C4::Serials::ModSerialStatus( $expected_serial->{serialid}, 'NO.20', $publisheddate, $publisheddate, $publisheddate, '1', 'an useless note' );
+    is( $serialsByStatus[0]->{note},$expected_serial->{note}, "note not passed through if not supposed to");
+
+};
+
+subtest "NewSubscription|ModSubscription" => sub {
+    plan tests => 4;
+    my $subscriptionid = NewSubscription(
+        "",      "",     "", "", $budget_id, $biblionumber,
+        '2013-01-01', $frequency_id, "", "",  "",
+        "",      "",  "", "", "", "",
+        1,          $notes,"", '2013-01-01', "", $pattern_id,
+        "",       "",  0,    $internalnotes,  0,
+        "", "", 0,          "",         '2013-12-31', 0
     );
-    my ($bibnum, $bibitemnum) = AddBiblio($bib, '');
-    return ($bibnum, $bibitemnum);
-}
+    ok($subscriptionid, "Sending empty string instead of undef to reflect use of the interface");
+
+    my $subscription = Koha::Subscriptions->find($subscriptionid);
+    my $serials = Koha::Serials->search({ subscriptionid => $subscriptionid });
+    is( $serials->count, 1, "NewSubscription created a first serial" );
+
+    my $biblio_2 = $builder->build_sample_biblio;
+    my $subscription_info = $subscription->unblessed;
+    $subscription_info->{biblionumber} = $biblio_2->biblionumber;
+    ModSubscription( @$subscription_info{qw(
+        librarian branchcode aqbooksellerid cost aqbudgetid startdate
+        periodicity firstacquidate irregularity numberpattern locale
+        numberlength weeklength monthlength lastvalue1 innerloop1 lastvalue2
+        innerloop2 lastvalue3 innerloop3 status biblionumber callnumber notes
+        letter manualhistory internalnotes serialsadditems staffdisplaycount
+        opacdisplaycount graceperiod location enddate subscriptionid
+        skip_serialseq
+    )} );
+
+    $serials = Koha::Serials->search({ subscriptionid => $subscriptionid });
+    is( $serials->count, 1, "Still only one serial" );
+    is( $serials->next->biblionumber, $biblio_2->biblionumber, 'ModSubscription should have updated serial.biblionumber');
+};

@@ -4,18 +4,18 @@
 #
 # This file is part of Koha.
 #
-# Koha is free software; you can redistribute it and/or modify it under the
-# terms of the GNU General Public License as published by the Free Software
-# Foundation; either version 3 of the License, or (at your option) any later
-# version.
+# Koha is free software; you can redistribute it and/or modify it
+# under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 3 of the License, or
+# (at your option) any later version.
 #
-# Koha is distributed in the hope that it will be useful, but WITHOUT ANY
-# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
-# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+# Koha is distributed in the hope that it will be useful, but
+# WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+# GNU General Public License for more details.
 #
-# You should have received a copy of the GNU General Public License along
-# with Koha; if not, write to the Free Software Foundation, Inc.,
-# 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+# You should have received a copy of the GNU General Public License
+# along with Koha; if not, see <http://www.gnu.org/licenses>.
 
 use Modern::Perl;
 
@@ -29,29 +29,33 @@ use Koha::DateUtils;
 use Koha::Database;
 use Koha::BiblioFrameworks;
 
-my $cgi = new CGI;
+my $cgi = CGI->new;
 
 my ( $template, $librarian, $cookie, $flags ) = get_template_and_user(
     {
         template_name   => "circ/renew.tt",
         query           => $cgi,
         type            => "intranet",
-        authnotrequired => 0,
         flagsrequired   => { circulate => "circulate_remaining_permissions" },
     }
 );
 
 my $schema = Koha::Database->new()->schema();
 
-my $barcode        = $cgi->param('barcode');
+my $barcode        = $cgi->param('barcode') // '';
+my $unseen         = $cgi->param('unseen') || 0;
+$barcode =~ s/^\s*|\s*$//g; # remove leading/trailing whitespae
+$barcode = barcodedecode($barcode) if( $barcode && C4::Context->preference('itemBarcodeInputFilter'));
 my $override_limit = $cgi->param('override_limit');
 my $override_holds = $cgi->param('override_holds');
+my $hard_due_date  = $cgi->param('hard_due_date');
 
 my ( $item, $issue, $borrower );
 my $error = q{};
 my ( $soonest_renew_date, $latest_auto_renew_date );
 
 if ($barcode) {
+    $barcode =~ s/^\s*|\s*$//g; # remove leading/trailing whitespace
     $item = $schema->resultset("Item")->single( { barcode => $barcode } );
 
     if ($item) {
@@ -92,7 +96,22 @@ if ($barcode) {
                 }
                 if ($can_renew) {
                     my $branchcode = C4::Context->userenv ? C4::Context->userenv->{'branch'} : undef;
-                    my $date_due = AddRenewal( undef, $item->itemnumber(), $branchcode );
+                    my $date_due;
+                    if ( $cgi->param('renewonholdduedate') ) {
+                        $date_due = dt_from_string( scalar $cgi->param('renewonholdduedate'));
+                    }
+                    if ( C4::Context->preference('SpecifyDueDate') && $hard_due_date ) {
+                        $date_due = dt_from_string( $hard_due_date );
+                    }
+                    $date_due = AddRenewal(
+                        undef,
+                        $item->itemnumber(),
+                        $branchcode,
+                        $date_due,
+                        undef,
+                        undef,
+                        !$unseen
+                    );
                     $template->param( date_due => $date_due );
                 }
             }
@@ -118,6 +137,7 @@ if ($barcode) {
     );
 }
 
+$template->param( hard_due_date => ($hard_due_date ? output_pref({ str => $hard_due_date, dateformat => 'iso' }) : undef) );
 # Checking if there is a Fast Cataloging Framework
 $template->param( fast_cataloging => 1 ) if Koha::BiblioFrameworks->find( 'FA' );
 

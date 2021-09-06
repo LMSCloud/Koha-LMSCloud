@@ -31,12 +31,15 @@ BEGIN {
 use Getopt::Long;
 use Pod::Usage;
 
+use Koha::Script -cron;
 use C4::Context;
 use C4::Items;
 use C4::Letters;
 use C4::Overdues;
 use Koha::Calendar;
 use Koha::DateUtils;
+use Koha::Patrons;
+use Koha::Libraries;
 
 sub usage {
     pod2usage( -verbose => 2 );
@@ -57,6 +60,8 @@ my @holds_waiting_days_to_call;
 my $library_code;
 my $help;
 my $outfile;
+my $skip_patrons_with_email;
+my $patron_branchcode;
 
 # maps to convert I-tiva terms to Koha terms
 my $type_module_map = {
@@ -72,19 +77,26 @@ my $type_notice_map = {
 };
 
 GetOptions(
-    'o|output:s'            => \$outfile,
-    'v'                     => \$verbose,
-    'lang:s'                => \$language,
-    'type:s'                => \@types,
-    'w|waiting-hold-day:s'  => \@holds_waiting_days_to_call,
-    'c|code|library-code:s' => \$library_code,
-    'help|h'                => \$help,
+    'o|output:s'             => \$outfile,
+    'v'                      => \$verbose,
+    'lang:s'                 => \$language,
+    'type:s'                 => \@types,
+    'w|waiting-hold-day:s'   => \@holds_waiting_days_to_call,
+    'c|code|library-code:s'  => \$library_code,
+    's|skip-patrons-with-email' => \$skip_patrons_with_email,
+    'pb|patron-branchcode:s' => \$patron_branchcode,
+    'h|help'                 => \$help,
 );
 
 $language = uc($language);
 $library_code ||= '';
 
 pod2usage( -verbose => 1 ) if $help;
+
+if ($patron_branchcode) {
+    die("Invalid branchcode '$patron_branchcode' passed in -pb --patron-branchcode parameter")
+      unless Koha::Libraries->search( { branchcode => $patron_branchcode } )->count;
+}
 
 # output log or STDOUT
 my $OUT;
@@ -93,7 +105,7 @@ if ( defined $outfile ) {
 } else {
     print "No output file defined; printing to STDOUT\n"
       if ( defined $verbose );
-    open( $OUT, '>', "&STDOUT" ) || die("Couldn't duplicate STDOUT: $!");
+    $OUT = *STDOUT || die "Couldn't duplicate STDOUT: $!";
 }
 
 my $format = 'V';    # format for phone notifications
@@ -105,18 +117,22 @@ foreach my $type (@types) {
 
     my @loop;
     if ( $type eq 'OVERDUE' ) {
-        @loop = GetOverdueIssues();
+        @loop = GetOverdueIssues( $patron_branchcode );
     } elsif ( $type eq 'PREOVERDUE' ) {
-        @loop = GetPredueIssues();
+        @loop = GetPredueIssues( $patron_branchcode );
     } elsif ( $type eq 'RESERVE' ) {
-        @loop = GetWaitingHolds();
+        @loop = GetWaitingHolds( $patron_branchcode );
     } else {
         print "Unknown or unsupported message type $type; skipping...\n"
           if ( defined $verbose );
         next;
     }
 
+    my $patrons;
     foreach my $issues (@loop) {
+        $patrons->{$issues->{borrowernumber}} ||= Koha::Patrons->find( $issues->{borrowernumber} ) if $skip_patrons_with_email;
+        next if $skip_patrons_with_email && $patrons->{$issues->{borrowernumber}}->notice_email_address;
+
         my $date_dt = dt_from_string ( $issues->{'date_due'} );
         my $due_date = output_pref( { dt => $date_dt, dateonly => 1, dateformat =>'metric' } );
 
@@ -129,7 +145,7 @@ foreach my $type (@types) {
                 biblio      => $issues->{'biblionumber'},
                 biblioitems => $issues->{'biblionumber'},
             },
-            message_transport_type => 'phone',
+            message_transport_type => 'itiva',
         );
 
         die "No letter found for type $type!... dying\n" unless $letter;
@@ -139,11 +155,14 @@ foreach my $type (@types) {
             $message_id = C4::Letters::EnqueueLetter(
                 {   letter                 => $letter,
                     borrowernumber         => $issues->{'borrowernumber'},
-                    message_transport_type => 'phone',
+                    message_transport_type => 'itiva',
                     branchcode             => $issues->{'site'}
                 }
             );
         }
+
+        $issues->{title} =~ s/'//g;
+        $issues->{title} =~ s/"//g;
 
         print $OUT "\"$format\",\"$language\",\"$type\",\"$issues->{level}\",\"$issues->{cardnumber}\",\"$issues->{patron_title}\",\"$issues->{firstname}\",";
         print $OUT "\"$issues->{surname}\",\"$issues->{phone}\",\"$issues->{email}\",\"$library_code\",";
@@ -208,11 +227,22 @@ consortium purposes and apply library specific settings, such as
 prompts, to those notices.
 This field can be blank if all messages are from a single library.
 
+=item B<--patron-branchcode> B<--pb>
+
+OPTIONAL
+
+Limits the the patrons to generate notices for based on the patron's home library.
+Items and holds from other libraries will still be included for the given patron.
+
 =back
 
 =cut
 
 sub GetOverdueIssues {
+    my ( $patron_branchcode ) = @_;
+
+    my $patron_branchcode_filter = $patron_branchcode ? "AND borrowers.branchcode = '$patron_branchcode'" : q{};
+
     my $query = "SELECT borrowers.borrowernumber, borrowers.cardnumber, borrowers.title as patron_title, borrowers.firstname, borrowers.surname,
                 borrowers.phone, borrowers.email, borrowers.branchcode, biblio.biblionumber, biblio.title, items.barcode, issues.date_due,
                 max(overduerules.branchcode) as rulebranch, TO_DAYS(NOW())-TO_DAYS(date_due) as daysoverdue, delay1, delay2, delay3,
@@ -224,10 +254,11 @@ sub GetOverdueIssues {
                 JOIN overduerules USING (categorycode)
                 JOIN overduerules_transport_types USING ( overduerules_id )
                 WHERE ( overduerules.branchcode = borrowers.branchcode or overduerules.branchcode = '')
-                AND overduerules_transport_types.message_transport_type = 'phone'
+                AND overduerules_transport_types.message_transport_type = 'itiva'
                 AND ( (TO_DAYS(NOW())-TO_DAYS(date_due) ) = delay1
                   OR  (TO_DAYS(NOW())-TO_DAYS(date_due) ) = delay2
                   OR  (TO_DAYS(NOW())-TO_DAYS(date_due) ) = delay3 )
+                $patron_branchcode_filter
                 GROUP BY items.itemnumber
                 ";
     my $sth = $dbh->prepare($query);
@@ -250,6 +281,10 @@ sub GetOverdueIssues {
 }
 
 sub GetPredueIssues {
+    my ( $patron_branchcode ) = @_;
+
+    my $patron_branchcode_filter = $patron_branchcode ? "AND borrowers.branchcode = '$patron_branchcode'" : q{};
+
     my $query = "SELECT borrowers.borrowernumber, borrowers.cardnumber, borrowers.title as patron_title, borrowers.firstname, borrowers.surname,
                 borrowers.phone, borrowers.email, borrowers.branchcode, biblio.biblionumber, biblio.title, items.barcode, issues.date_due,
                 issues.branchcode as site, branches.branchname as site_name
@@ -261,8 +296,9 @@ sub GetPredueIssues {
                 JOIN borrower_message_transport_preferences USING (borrower_message_preference_id)
                 JOIN message_attributes USING (message_attribute_id)
                 WHERE ( TO_DAYS( date_due ) - TO_DAYS( NOW() ) ) = days_in_advance
-                AND message_transport_type = 'phone'
+                AND message_transport_type = 'itiva'
                 AND message_name = 'Advance_Notice'
+                $patron_branchcode_filter
                 ";
     my $sth = $dbh->prepare($query);
     $sth->execute();
@@ -275,7 +311,11 @@ sub GetPredueIssues {
 }
 
 sub GetWaitingHolds {
-    my $query = "SELECT borrowers.borrowernumber, borrowers.cardnumber, borrowers.title as patron_title, borrowers.firstname, borrowers.surname,
+    my ( $patron_branchcode ) = @_;
+
+    my $patron_branchcode_filter = $patron_branchcode ? "AND borrowers.branchcode = '$patron_branchcode'" : q{};
+
+    my $query = "SELECT borrowers.borrowernumber, borrowers.cardnumber, borrowers.title as patron_title, borrowers.firstname, borrowers.surname, borrowers.categorycode,
                 borrowers.phone, borrowers.email, borrowers.branchcode, biblio.biblionumber, biblio.title, items.barcode, reserves.waitingdate,
                 reserves.branchcode AS site, branches.branchname AS site_name,
                 TO_DAYS(NOW())-TO_DAYS(reserves.waitingdate) AS days_since_waiting
@@ -287,20 +327,30 @@ sub GetWaitingHolds {
                 JOIN borrower_message_transport_preferences USING (borrower_message_preference_id)
                 JOIN message_attributes USING (message_attribute_id)
                 WHERE ( reserves.found = 'W' )
-                AND message_transport_type = 'phone'
+                AND message_transport_type = 'itiva'
                 AND message_name = 'Hold_Filled'
+                $patron_branchcode_filter
                 ";
     my $pickupdelay = C4::Context->preference("ReservesMaxPickUpDelay");
     my $sth         = $dbh->prepare($query);
     $sth->execute();
     my @results;
     while ( my $issue = $sth->fetchrow_hashref() ) {
-        my $calendar = Koha::Calendar->new( branchcode => $issue->{'site'} );
+        my $item = Koha::Items->find({ barcode => $issue->{barcode} });
+        my $daysmode = Koha::CirculationRules->get_effective_daysmode(
+            {
+                categorycode => $issue->{categorycode},
+                itemtype     => $item->effective_itemtype,
+                branchcode   => $issue->{site},
+            }
+        );
+
+        my $calendar = Koha::Calendar->new( branchcode => $issue->{'site'}, days_mode => $daysmode );
 
         my $waiting_date = dt_from_string( $issue->{waitingdate}, 'sql' );
         my $pickup_date = $waiting_date->clone->add( days => $pickupdelay );
         if ( $calendar->is_holiday($pickup_date) ) {
-            $pickup_date = $calendar->next_open_day( $pickup_date );
+            $pickup_date = $calendar->next_open_days( $pickup_date, 1 );
         }
 
         $issue->{'date_due'} = output_pref({dt => $pickup_date, dateformat => 'iso' });
@@ -308,7 +358,7 @@ sub GetWaitingHolds {
 
         my $days_to_subtract = 0;
         if ( $calendar->is_holiday($waiting_date) ) {
-            my $next_open_day = $calendar->next_open_day( $waiting_date );
+            my $next_open_day = $calendar->next_open_days( $waiting_date, 1 );
             $days_to_subtract = $calendar->days_between($waiting_date, $next_open_day)->days;
         }
 

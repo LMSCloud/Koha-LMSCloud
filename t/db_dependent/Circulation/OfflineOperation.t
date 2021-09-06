@@ -3,6 +3,7 @@
 use Modern::Perl;
 use C4::Circulation;
 
+use Koha::Database;
 use Koha::DateUtils qw( dt_from_string output_pref );
 use Koha::Library;
 
@@ -21,10 +22,9 @@ can_ok(
       )
 );
 
-#Start transaction
+my $schema = Koha::Database->new->schema;
+$schema->storage->txn_begin;
 my $dbh = C4::Context->dbh;
-$dbh->{RaiseError} = 1;
-$dbh->{AutoCommit} = 0;
 
 $dbh->do(q|DELETE FROM issues|);
 $dbh->do(q|DELETE FROM borrowers|);
@@ -48,7 +48,6 @@ my $samplebranch1 = {
     branchemail    => 'sample email',
     branchurl      => 'sample url',
     branchip       => 'sample ip',
-    branchprinter  => undef,
     opac_info      => 'sample opac',
 };
 Koha::Library->new($samplebranch1)->store;
@@ -99,6 +98,3 @@ is( DeleteOfflineOperation($offline_id),
 
 #is (DeleteOfflineOperation(), undef, 'DeleteOfflineOperation without id returns undef');
 #is (DeleteOfflineOperation(-1),undef, 'DeleteOfflineOperation with a wrong id returns undef');#FIXME
-
-#End transaction
-$dbh->rollback;

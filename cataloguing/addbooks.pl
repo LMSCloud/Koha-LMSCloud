@@ -27,6 +27,7 @@
 use Modern::Perl;
 
 use CGI qw ( -utf8 );
+use URI::Escape;
 use C4::Auth;
 use C4::Biblio;
 use C4::Breeding;
@@ -40,7 +41,7 @@ use Koha::SearchEngine::Search;
 use Koha::SearchEngine::QueryBuilder;
 use Koha::Z3950Servers;
 
-my $input = new CGI;
+my $input = CGI->new;
 
 my $success = $input->param('biblioitem');
 my $query   = $input->param('q');
@@ -55,7 +56,6 @@ my ( $template, $loggedinuser, $cookie ) = get_template_and_user(
         template_name   => "cataloguing/addbooks.tt",
         query           => $input,
         type            => "intranet",
-        authnotrequired => 0,
         flagsrequired   => { editcatalogue => '*' },
         debug           => 1,
     }
@@ -67,19 +67,17 @@ if ($query) {
     # build query
     my @operands = $query;
 
-    my $QParser;
-    $QParser = C4::Context->queryparser if (C4::Context->preference('UseQueryParser'));
     my $builtquery;
+    my $query_cgi;
     my $builder = Koha::SearchEngine::QueryBuilder->new(
         { index => $Koha::SearchEngine::BIBLIOS_INDEX } );
     my $searcher = Koha::SearchEngine::Search->new(
         { index => $Koha::SearchEngine::BIBLIOS_INDEX } );
-    if ($QParser) {
-        $builtquery = $query;
-    } else {
-        ( undef, $builtquery, undef, undef, undef, undef, undef, undef, undef, undef ) =
-          $builder->build_query_compat( undef, \@operands, undef, undef, undef, 0, $lang );
-    }
+    ( undef, $builtquery, undef, $query_cgi, undef, undef, undef, undef, undef, undef ) =
+      $builder->build_query_compat( undef, \@operands, undef, undef, undef, 0, $lang, { weighted_fields => 1 });
+
+    $template->param( search_query => $builtquery ) if C4::Context->preference('DumpSearchQueryTemplate');
+
     # find results
     my ( $error, $marcresults, $total_hits ) = $searcher->simple_search_compat($builtquery, $results_per_page * ($page - 1), $results_per_page);
 
@@ -93,12 +91,15 @@ if ($query) {
     # format output
     # SimpleSearch() give the results per page we want, so 0 offet here
     my $total = @{$marcresults};
-    my @newresults = searchResults( 'intranet', $query, $total, $results_per_page, 0, 0, $marcresults );
+    my @newresults = searchResults( {'interface' => 'intranet'}, $query, $total, $results_per_page, 0, 0, $marcresults );
+    foreach my $line (@newresults) {
+        if ( not exists $line->{'size'} ) { $line->{'size'} = "" }
+    }
     $template->param(
         total          => $total_hits,
         query          => $query,
         resultsloop    => \@newresults,
-        pagination_bar => pagination_bar( "/cgi-bin/koha/cataloguing/addbooks.pl?q=$query&", getnbpages( $total_hits, $results_per_page ), $page, 'page' ),
+        pagination_bar => pagination_bar( "/cgi-bin/koha/cataloguing/addbooks.pl?$query_cgi&", getnbpages( $total_hits, $results_per_page ), $page, 'page' ),
     );
 }
 

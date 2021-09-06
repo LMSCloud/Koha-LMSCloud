@@ -44,7 +44,7 @@ use CGI qw ( -utf8 );
 use C4::Koha;
 use Koha::CsvProfiles;
 
-my $input            = new CGI;
+my $input            = CGI->new;
 my $export_format_id = $input->param('export_format_id');
 my $op               = $input->param('op') || 'list';
 my @messages;
@@ -53,7 +53,6 @@ my ( $template, $loggedinuser, $cookie ) = get_template_and_user(
     {   template_name   => "tools/csv-profiles.tt",
         query           => $input,
         type            => "intranet",
-        authnotrequired => 0,
         flagsrequired   => { tools => 'manage_csv_profiles' },
         debug           => 1,
     }
@@ -84,6 +83,7 @@ if ( $op eq 'add_form' ) {
     my $field_separator    = $input->param("field_separator");
     my $subfield_separator = $input->param("subfield_separator");
     my $encoding           = $input->param("encoding");
+    my $staff_only         = $input->param("staff_only") ? 1 : 0;
 
     if ($export_format_id) {
         my $csv_profile = Koha::CsvProfiles->find($export_format_id)
@@ -97,6 +97,7 @@ if ( $op eq 'add_form' ) {
         $csv_profile->encoding($encoding);
         $csv_profile->type($type);
         $csv_profile->used_for($used_for);
+        $csv_profile->staff_only($staff_only);
         eval { $csv_profile->store; };
 
         if ($@) {
@@ -115,6 +116,7 @@ if ( $op eq 'add_form' ) {
                 encoding           => $encoding,
                 type               => $type,
                 used_for           => $used_for,
+                staff_only         => $staff_only
             }
         );
         eval { $csv_profile->store; };

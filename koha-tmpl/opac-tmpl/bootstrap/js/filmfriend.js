@@ -33,7 +33,7 @@ function getFilmfriendFacet(query_desc,maxHitCount,prevPageText,nextPageText,rea
     maxHitCountFilmfriend  = maxHitCount;
     $.ajax({
     url: "/cgi-bin/koha/opac-filmfriend.pl",
-        type: "POST",
+        method: "POST",
         cache: false,
         data: { 'search' : query_desc, 'maxcount' : 0 },
         dataType: "json",
@@ -52,7 +52,7 @@ function getFilmfriendResult(facetID, offset) {
     var collection = filmfriendData['results'][facetID].searchType;
     $.ajax({
     url: "/cgi-bin/koha/opac-filmfriend.pl",
-        type: "POST",
+        method: "POST",
         cache: false,
         data: { 'search' : query_desc, 'maxcount' : maxHitCountFilmfriend, 'offset' : offset, 'collection' : collection  },
         dataType: "json",

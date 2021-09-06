@@ -1,0 +1,90 @@
+@import "common";
+
+body {
+    background-color: #FCF9FC;
+}
+
+a {
+    color: $sci-link-color;
+
+    &:visited {
+        color: $sci-link-color;
+    }
+
+    &.title {
+        font-weight: bold;
+    }
+}
+
+
+#members {
+    a {
+        &.logout {
+            color: #E8583C;
+            padding: 0 .3em 0 .3em;
+        }
+    }
+}
+
+.inline {
+    display: inline;
+}
+
+.table {
+    font-size: .95rem;
+}
+
+.table-bordered {
+    border-radius: 0;
+
+    thead {
+        &:first-child {
+            tr {
+                &:first-child {
+                    &> th {
+                        &:first-child,
+                        &:last-child {
+                            border-radius: 0;
+                        }
+                    }
+                }
+
+                &:last-child {
+                    &> th {
+                        &:first-child,
+                        &:last-child {
+                            border-radius: 0;
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+.sco_entry {
+    margin: 2rem 0;
+
+    label {
+        text-align: right;
+    }
+}
+
+#sci_logout {
+    color: #E8583C;
+}
+
+.sci_input_append {
+    margin-top: 1rem;
+    padding-top: 1rem;
+}
+
+#sci_checkin_button,
+#sci_refresh_button,
+#sci_append_button {
+}
+
+#sci_refresh_button {
+}
+
+@import "responsive";

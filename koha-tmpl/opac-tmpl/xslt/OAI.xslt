@@ -26,8 +26,9 @@
                 <title>Koha OAI-PMH Data Provider</title>
                 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
                 <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
-                <script src="/opac-tmpl/bootstrap/lib/jquery/jquery.js" type="text/javascript" />
-                <script src="/opac-tmpl/bootstrap/lib/bootstrap/js/bootstrap.min.js" type="text/javascript" />
+                <script src="/opac-tmpl/bootstrap/lib/jquery/jquery-3.4.1.min.js"></script>
+                <script src="/opac-tmpl/bootstrap/lib/jquery/jquery-migrate-3.1.0.min.js"></script>
+                <script src="/opac-tmpl/bootstrap/lib/bootstrap/js/bootstrap.bundle.min.js"></script>
                 <link rel="stylesheet" href="/opac-tmpl/bootstrap/css/bootstrap-theme-oai.css" type="text/css" />
                 <link rel="stylesheet" href="/opac-tmpl/bootstrap/css/oai.css" type="text/css" />
             </head>
@@ -143,12 +144,12 @@
         <hr />
         <table class="table table-striped table-bordered">
             <tr>
-                <td><b>Repository Name</b></td>
+                <td><strong>Repository Name</strong></td>
                 <td><xsl:value-of select="oai:repositoryName/text()" /></td>
             </tr>
             <xsl:for-each select="oai:adminEmail">
                 <tr>
-                    <td><b>E-Mail Contact</b></td>
+                    <td><strong>E-Mail Contact</strong></td>
                     <td>
                         <a>
                             <xsl:attribute name="href">
@@ -160,20 +161,20 @@
                 </tr>
             </xsl:for-each>
             <tr>
-                <td><b>Repository identifier</b></td>
+                <td><strong>Repository identifier</strong></td>
                 <td>
                     <xsl:value-of select="oai:description/oai_id:oai-identifier/oai_id:repositoryIdentifier/text()" />
                 </td>
             </tr>
             <tr>
-                <td><b>Sample identifier</b></td>
+                <td><strong>Sample identifier</strong></td>
                 <td>
                     <xsl:value-of
                             select="oai:description/oai_id:oai-identifier/oai_id:sampleIdentifier/text()" />
                 </td>
             </tr>
             <tr>
-                <td><b>Protocol Version</b></td>
+                <td><strong>Protocol Version</strong></td>
                 <td>
                     <xsl:value-of
                             select="oai:protocolVersion/text()" />
@@ -181,7 +182,7 @@
 
             </tr>
             <tr>
-                <td><b>Earliest Registered Date</b></td>
+                <td><strong>Earliest Registered Date</strong></td>
                 <td>
                     <xsl:value-of
                             select="translate(oai:earliestDatestamp/text(), 'TZ' ,' ')" />
@@ -189,7 +190,7 @@
 
             </tr>
             <tr>
-                <td><b>Date Granularity</b></td>
+                <td><strong>Date Granularity</strong></td>
                 <td>
                     <xsl:value-of
                             select="translate(oai:granularity/text(), 'TZ', ' ')" />
@@ -197,7 +198,7 @@
 
             </tr>
             <tr>
-                <td><b>Deletion Mode</b></td>
+                <td><strong>Deletion Mode</strong></td>
                 <td>
                     <xsl:value-of
                             select="oai:deletedRecord/text()" />

@@ -17,7 +17,7 @@
 
 use Modern::Perl;
 
-use Test::More tests => 16;
+use Test::More tests => 12;
 
 use DateTime;
 use DateTime::TimeZone;
@@ -37,7 +37,7 @@ my $schema = Koha::Database->new->schema;
 my $dbh = C4::Context->dbh;
 my $builder = t::lib::TestBuilder->new;
 
-subtest 'exception_holidays() tests' => sub {
+subtest 'is_holiday timezone tests' => sub {
 
     plan tests => 1;
 
@@ -64,7 +64,7 @@ subtest 'exception_holidays() tests' => sub {
         description => 'Invalid date description',
     );
 
-    my $exception_holiday = $calendar->exception_holidays->iterator->next;
+    my $exception_holiday = DateTime->new( day => 6, month => 9, year => 2015 );
     my $now_dt            = DateTime->now;
 
     my $diff;
@@ -160,46 +160,123 @@ C4::Calendar->new( branchcode => $branch_2 )->insert_single_holiday(
 is( Koha::Calendar->new( branchcode => $branch_2 )->is_holiday( $today ), 1, "Today is a holiday for $branch_2" );
 is( Koha::Calendar->new( branchcode => $branch_1 )->is_holiday( $today ), 0, "Today is not a holiday for $branch_1");
 
-# Few tests for exception holidays
-my ( $diff, $cal, $special );
-$dbh->do("DELETE FROM special_holidays");
-_add_exception( $today, $branch_1, 'Today' );
-$cal = Koha::Calendar->new( branchcode => $branch_1 );
-$special = $cal->exception_holidays;
-is( $special->count, 1, 'One exception holiday added' );
-
-my $tomorrow= dt_from_string();
-$tomorrow->add_duration( DateTime::Duration->new(days => 1) );
-_add_exception( $tomorrow, $branch_1, 'Tomorrow' );
-$cal = Koha::Calendar->new( branchcode => $branch_1 );
-$special = $cal->exception_holidays;
-is( $special->count, 2, 'Set of exception holidays contains two dates' );
-
-$diff = $today->delta_days( $special->min )->in_units('days');
-is( $diff, 0, 'Lowest exception holiday is today' );
-$diff = $tomorrow->delta_days( $special->max )->in_units('days');
-is( $diff, 0, 'Highest exception holiday is tomorrow' );
-
-C4::Calendar->new( branchcode => $branch_1 )->delete_holiday(
-    weekday => $tomorrow->day_of_week,
-    day     => $tomorrow->day,
-    month   => $tomorrow->month,
-    year    => $tomorrow->year,
-);
-$cal = Koha::Calendar->new( branchcode => $branch_1 );
-$special = $cal->exception_holidays;
-is( $special->count, 1, 'Set of exception holidays back to one' );
-
-sub _add_exception {
-    my ( $dt, $branch, $descr ) = @_;
-    C4::Calendar->new( branchcode => $branch )->insert_exception_holiday(
-        day         => $dt->day,
-        month       => $dt->month,
-        year        => $dt->year,
-        title       => $descr,
-        description => $descr,
-    );
-}
-
 $schema->storage->txn_rollback;
 
+subtest 'copy_to_branch' => sub {
+
+    plan tests => 8;
+
+    $schema->storage->txn_begin;
+
+    my $branch1 = $builder->build( { source => 'Branch' } )->{ branchcode };
+    my $calendar1 = C4::Calendar->new( branchcode => $branch1 );
+    my $sunday = dt_from_string("2020-03-15");
+    $calendar1->insert_week_day_holiday(
+        weekday     => 0,
+        title       => '',
+        description => 'Sundays',
+    );
+
+    my $day_month = dt_from_string("2020-03-17");
+    $calendar1->insert_day_month_holiday(
+        day         => $day_month->day(),
+        month       => $day_month->month(),
+        year        => $day_month->year(),
+        title       => '',
+        description => "",
+    );
+
+    my $future_date = dt_from_string("9999-12-31");
+    $calendar1->insert_single_holiday(
+        day         => $future_date->day(),
+        month       => $future_date->month(),
+        year        => $future_date->year(),
+        title       => "",
+        description => "",
+    );
+
+    my $future_exception = dt_from_string("9999-12-30");
+    $calendar1->insert_exception_holiday(
+        day         => $future_exception->day(),
+        month       => $future_exception->month(),
+        year        => $future_exception->year(),
+        title       => "",
+        description => "",
+    );
+
+    my $past_date = dt_from_string("2019-11-20");
+    $calendar1->insert_single_holiday(
+        day         => $past_date->day(),
+        month       => $past_date->month(),
+        year        => $past_date->year(),
+        title       => "",
+        description => "",
+    );
+
+    my $past_exception = dt_from_string("2020-03-09");
+    $calendar1->insert_exception_holiday(
+        day         => $past_exception->day(),
+        month       => $past_exception->month(),
+        year        => $past_exception->year(),
+        title       => "",
+        description => "",
+    );
+
+    my $branch2 = $builder->build( { source => 'Branch' } )->{branchcode};
+
+    C4::Calendar->new( branchcode => $branch1 )->copy_to_branch( $branch2 );
+
+    my $calendar2 = C4::Calendar->new( branchcode => $branch2 );
+    my $exceptions = $calendar2->get_exception_holidays;
+
+    is( $calendar2->isHoliday( $sunday->day, $sunday->month, $sunday->year ), 1, "Weekday holiday copied to branch 2" );
+    is( $calendar2->isHoliday( $day_month->day, $day_month->month, $day_month->year ), 1, "Day/month holiday copied to branch 2" );
+    is( $calendar2->isHoliday( $future_date->day, $future_date->month, $future_date->year ), 1, "Single holiday copied to branch 2" );
+    is( ( grep { $_->{date} eq "9999-12-30"} values %$exceptions ), 1, "Exception holiday copied to branch 2" );
+    is( $calendar2->isHoliday( $past_date->day, $past_date->month, $past_date->year ), 0, "Don't copy past single holidays" );
+    is( ( grep { $_->{date} eq "2020-03-09"} values %$exceptions ), 0, "Don't copy past exception holidays " );
+
+    C4::Calendar->new( branchcode => $branch1 )->copy_to_branch( $branch2 );
+
+    #Select all rows with same values from database
+    my $dbh = C4::Context->dbh;
+    my $get_repeatable_holidays = "SELECT a.* FROM repeatable_holidays a
+        JOIN (SELECT branchcode, weekday, day, month, COUNT(*)
+        FROM repeatable_holidays
+        GROUP BY branchcode, weekday, day, month HAVING count(*) > 1) b
+        ON a.branchcode = b.branchcode
+        AND ( a.weekday = b.weekday OR (a.day = b.day AND a.month = b.month))
+        ORDER BY a.branchcode;";
+    my $sth  = $dbh->prepare($get_repeatable_holidays);
+    $sth->execute;
+
+    my @repeatable_holidays;
+    while(my $row = $sth->fetchrow_hashref){
+        push @repeatable_holidays, $row
+    }
+
+    is( scalar(@repeatable_holidays), 0, "None of the repeatable holidays were doubled");
+
+    my $get_special_holidays = "SELECT a.* FROM special_holidays a
+    JOIN (SELECT branchcode, day, month, year, isexception, COUNT(*)
+    FROM special_holidays
+    GROUP BY branchcode, day, month, year, isexception HAVING count(*) > 1) b
+    ON a.branchcode = b.branchcode
+    AND a.day = b.day AND a.month = b.month AND a.year = b.year AND a.isexception = b.isexception
+    ORDER BY a.branchcode;";
+    $sth  = $dbh->prepare($get_special_holidays);
+    $sth->execute;
+
+    my @special_holidays;
+    while(my $row = $sth->fetchrow_hashref){
+        push @special_holidays, $row
+    }
+
+    is( scalar(@special_holidays), 0, "None of the special holidays were doubled");
+
+    $schema->storage->txn_rollback;
+
+};
+
+# Clear cache
+Koha::Caches->get_instance->flush_all;

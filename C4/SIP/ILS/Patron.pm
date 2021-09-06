@@ -12,19 +12,19 @@ use warnings;
 use Exporter;
 use Carp;
 
-use Sys::Syslog qw(syslog);
+use C4::SIP::Sip qw(siplog);
 use Data::Dumper;
 
-use C4::SIP::Sip qw(add_field);
+use C4::SIP::Sip qw(add_field maybe_add);
 
 use C4::Debug;
 use C4::Context;
 use C4::Koha;
 use C4::Members;
 use C4::Reserves;
-use C4::Items qw( GetBarcodeFromItemnumber GetItemnumbersForBiblio);
 use C4::Auth qw(checkpw);
 
+use Koha::Items;
 use Koha::Libraries;
 use Koha::Patrons;
 
@@ -38,11 +38,24 @@ sub new {
     my ($class, $patron_id) = @_;
     my $type = ref($class) || $class;
     my $self;
-    my $patron = Koha::Patrons->find( { cardnumber => $patron_id } )
-      || Koha::Patrons->find( { userid => $patron_id } );
+
+    my $patron;
+    if ( ref $patron_id eq "HASH" ) {
+        if ( $patron_id->{borrowernumber} ) {
+            $patron = Koha::Patrons->find( $patron_id->{borrowernumber} );
+        } elsif ( $patron_id->{cardnumber} ) {
+            $patron = Koha::Patrons->find( { cardnumber => $patron_id->{cardnumber} } );
+        } elsif ( $patron_id->{userid} ) {
+            $patron = Koha::Patrons->find( { userid => $patron_id->{userid} } );
+        }
+    } else {
+        $patron = Koha::Patrons->find( { cardnumber => $patron_id } )
+            || Koha::Patrons->find( { userid => $patron_id } );
+    }
+
     $debug and warn "new Patron: " . Dumper($patron->unblessed) if $patron;
     unless ($patron) {
-        syslog("LOG_DEBUG", "new ILS::Patron(%s): no such patron", $patron_id);
+        siplog("LOG_DEBUG", "new ILS::Patron(%s): no such patron", $patron_id);
         return;
     }
     $kp = $patron->unblessed;
@@ -65,8 +78,17 @@ sub new {
     $dob and $dob =~ s/-//g;    # YYYYMMDD
     my $dexpiry     = $kp->{dateexpiry};
     $dexpiry and $dexpiry =~ s/-//g;    # YYYYMMDD
-    my $fines_amount = $patron->account->balance;
+
+    # Get fines and add fines for guarantees (depends on preference NoIssuesChargeGuarantees)
+    my $fines_amount = $flags->{CHARGES}->{amount}; #TODO Replace with $patron->account->non_issues_charges
     $fines_amount = ($fines_amount and $fines_amount > 0) ? $fines_amount : 0;
+    if ( C4::Context->preference('NoIssuesChargeGuarantorsWithGuarantees') ) {
+        $fines_amount += $patron->relationships_debt({ include_guarantors => 1, only_this_guarantor => 0, include_this_patron => 1 });
+    } else {
+        my $guarantees_fines_amount = $flags->{CHARGES_GUARANTEES} ? $flags->{CHARGES_GUARANTEES}->{amount} : 0; #TODO: Replace with $patron->relationships_debt
+        $fines_amount += $guarantees_fines_amount;
+    }
+
     my $fee_limit = _fee_limit();
     my $fine_blocked = $fines_amount > $fee_limit;
     my $circ_blocked =( C4::Context->preference('OverduesBlockCirc') ne "noblock" &&  defined $flags->{ODUES}->{itemlist} ) ? 1 : 0;
@@ -102,6 +124,7 @@ sub new {
         items           => [],
         hold_items      => $flags->{WAITING}->{itemlist},
         overdue_items   => $flags->{ODUES}->{itemlist},
+        too_many_overdue => $circ_blocked,
         fine_items      => [],
         recall_items    => [],
         unavail_holds   => [],
@@ -116,7 +139,10 @@ sub new {
     if ( $patron->is_debarred and $patron->debarredcomment ) {
         $ilspatron{screen_msg} .= " -- " . $patron->debarredcomment;
     }
-    for (qw(EXPIRED CHARGES CREDITS GNA LOST DBARRED NOTES)) {
+    if ( $circ_blocked ) {
+        $ilspatron{screen_msg} .= " -- " . "Patron has overdues";
+    }
+    for (qw(EXPIRED CHARGES CREDITS GNA LOST NOTES)) {
         ($flags->{$_}) or next;
         if ($_ ne 'NOTES' and $flags->{$_}->{message}) {
             $ilspatron{screen_msg} .= " -- " . $flags->{$_}->{message};  # show all but internal NOTES
@@ -140,7 +166,7 @@ sub new {
 
     $self = \%ilspatron;
     $debug and warn Dumper($self);
-    syslog("LOG_DEBUG", "new ILS::Patron(%s): found patron '%s'", $patron_id,$self->{id});
+    siplog("LOG_DEBUG", "new ILS::Patron(%s): found patron '%s'", $patron_id,$self->{id});
     bless $self, $type;
     return $self;
 }
@@ -151,6 +177,7 @@ sub new {
 
 my %fields = (
     id                      => 0,
+    borrowernumber          => 0,
     name                    => 0,
     address                 => 0,
     email_addr              => 0,
@@ -207,7 +234,14 @@ sub AUTOLOAD {
     }
 }
 
-sub name {
+=head2 format
+
+This method uses a template to build a string from a Koha::Patron object
+If errors are encountered in processing template we log them and return nothing
+
+=cut
+
+sub format {
     my ( $self, $template ) = @_;
 
     if ($template) {
@@ -219,11 +253,14 @@ sub name {
         my $patron = Koha::Patrons->find( $self->{borrowernumber} );
 
         my $output;
-        $tt->process( \$template, { patron => $patron }, \$output );
+        eval {
+            $tt->process( \$template, { patron => $patron }, \$output );
+        };
+        if ( $@ ){
+            siplog("LOG_DEBUG", "Error processing template: $template");
+            return "";
+        }
         return $output;
-    }
-    else {
-        return $self->{name};
     }
 }
 
@@ -248,7 +285,7 @@ sub fee_amount {
     if ( $self->{fines} ) {
         return $self->{fines};
     }
-    return;
+    return 0;
 }
 
 sub fines_amount {
@@ -277,7 +314,7 @@ sub drop_hold {
     foreach (qw(hold_items unavail_holds)) {
         $self->{$_} or next;
         for (my $i = 0; $i < scalar @{$self->{$_}}; $i++) {
-            my $held_item = $self->{$_}[$i]->{item_id} or next;
+            my $held_item = $self->{$_}[$i]->{barcode} or next;
             if ($held_item eq $item_id) {
                 splice @{$self->{$_}}, $i, 1;
                 $result++;
@@ -322,7 +359,8 @@ sub hold_items {
     my $self = shift;
     my $item_arr = $self->x_items('hold_items', @_);
     foreach my $item (@{$item_arr}) {
-        $item->{barcode} = GetBarcodeFromItemnumber($item->{itemnumber});
+        my $item_obj = Koha::Items->find($item->{itemnumber});
+        $item->{barcode} = $item_obj ? $item_obj->barcode : undef;
     }
     return $item_arr;
 }
@@ -353,7 +391,7 @@ sub fine_items {
     );
 
     $start = $start ? $start - 1 : 0;
-    $end   = $end   ? $end       : scalar @fees - 1;
+    $end   = $end   ? $end - 1   : scalar @fees - 1;
 
     my $av_field_template = $server ? $server->{account}->{av_field_template} : undef;
     $av_field_template ||= "[% accountline.description %] [% accountline.amountoutstanding | format('%.2f') %]";
@@ -363,6 +401,8 @@ sub fine_items {
     my @return_values;
     for ( my $i = $start; $i <= $end; $i++ ) {
         my $fee = $fees[$i];
+
+        next unless $fee;
 
         my $output;
         $tt->process( \$av_field_template, { accountline => $fee }, \$output );
@@ -395,7 +435,7 @@ sub enable {
     foreach my $field ('charge_ok', 'renew_ok', 'recall_ok', 'hold_ok', 'inet') {
         $self->{$field} = 1;
     }
-    syslog("LOG_DEBUG", "Patron(%s)->enable: charge: %s, renew:%s, recall:%s, hold:%s",
+    siplog("LOG_DEBUG", "Patron(%s)->enable: charge: %s, renew:%s, recall:%s, hold:%s",
        $self->{id}, $self->{charge_ok}, $self->{renew_ok},
        $self->{recall_ok}, $self->{hold_ok});
     $self->{screen_msg} = "Enable feature not implemented."; # "All privileges restored.";   # TODO: not really affecting patron record
@@ -491,15 +531,18 @@ sub _get_outstanding_holds {
     while ( my $hold = $holds->next ) {
         my $item;
         if ($hold->itemnumber) {
-            $item = $hold->itemnumber;
+            $item = $hold->item;
         }
         else {
             # We need to return a barcode for the biblio so the client
             # can request the biblio info
-            $item = ( GetItemnumbersForBiblio($hold->biblionumber) )->[0];
+            my $items = $hold->biblio->items;
+            $item = $items->count ? $items->next : undef;
         }
         my $unblessed_hold = $hold->unblessed;
-        $unblessed_hold->{barcode} = GetBarcodeFromItemnumber($item);
+
+        $unblessed_hold->{barcode} = $item ? $item->barcode : undef;
+
         push @holds, $unblessed_hold;
     }
     return \@holds;
@@ -516,7 +559,6 @@ sub build_patron_attributes_string {
     my ( $self, $server ) = @_;
 
     my $string = q{};
-
     if ( $server->{account}->{patron_attribute} ) {
         my @attributes_to_send =
           ref $server->{account}->{patron_attribute} eq "ARRAY"
@@ -538,6 +580,30 @@ sub build_patron_attributes_string {
         }
     }
 
+    return $string;
+}
+
+
+=head2 build_custom_field_string
+
+This method builds the part of the sip message for custom patron fields as defined in the sip config
+
+=cut
+
+sub build_custom_field_string {
+    my ( $self, $server ) = @_;
+
+    my $string = q{};
+
+    if ( $server->{account}->{custom_patron_field} ) {
+        my @custom_fields =
+            ref $server->{account}->{custom_patron_field} eq "ARRAY"
+            ? @{ $server->{account}->{custom_patron_field} }
+            : $server->{account}->{custom_patron_field};
+        foreach my $custom_field ( @custom_fields ) {
+            $string .= maybe_add( $custom_field->{field}, $self->format( $custom_field->{template} ) ) if defined $custom_field->{field};
+        }
+    }
     return $string;
 }
 
@@ -624,9 +690,7 @@ __END__
 | contactname         | mediumtext   | YES  |     | NULL    |                |
 | contactfirstname    | text         | YES  |     | NULL    |                |
 | contacttitle        | text         | YES  |     | NULL    |                |
-| guarantorid         | int(11)      | YES  | MUL | NULL    |                |
 | borrowernotes       | mediumtext   | YES  |     | NULL    |                |
-| relationship        | varchar(100) | YES  |     | NULL    |                |
 | ethnicity           | varchar(50)  | YES  |     | NULL    |                |
 | ethnotes            | varchar(255) | YES  |     | NULL    |                |
 | sex                 | varchar(1)   | YES  |     | NULL    |                |

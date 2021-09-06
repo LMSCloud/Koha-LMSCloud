@@ -2,22 +2,22 @@
 
 # This file is part of Koha.
 #
-# Koha is free software; you can redistribute it and/or modify it under the
-# terms of the GNU General Public License as published by the Free Software
-# Foundation; either version 3 of the License, or (at your option) any later
-# version.
+# Koha is free software; you can redistribute it and/or modify it
+# under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 3 of the License, or
+# (at your option) any later version.
 #
-# Koha is distributed in the hope that it will be useful, but WITHOUT ANY
-# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
-# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+# Koha is distributed in the hope that it will be useful, but
+# WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+# GNU General Public License for more details.
 #
-# You should have received a copy of the GNU General Public License along
-# with Koha; if not, write to the Free Software Foundation, Inc.,
-# 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+# You should have received a copy of the GNU General Public License
+# along with Koha; if not, see <http://www.gnu.org/licenses>.
 
 use Modern::Perl;
 
-use Test::More tests => 1;
+use Test::More tests => 3;
 use Test::Mojo;
 use Test::Warn;
 
@@ -39,11 +39,26 @@ my $t              = Test::Mojo->new('Koha::REST::V1');
 my $tx;
 
 subtest 'under() tests' => sub {
-    plan tests => 15;
+
+    plan tests => 20;
 
     $schema->storage->txn_begin;
 
     my ($borrowernumber, $session_id) = create_user_and_session();
+
+    # disable the /public namespace
+    t::lib::Mocks::mock_preference( 'RESTPublicAPI', 0 );
+    $tx = $t->ua->build_tx( POST => "/api/v1/public/patrons/$borrowernumber/password" );
+    $tx->req->env( { REMOTE_ADDR => $remote_address } );
+    $t->request_ok($tx)
+      ->status_is(403)
+      ->json_is('/error', 'Configuration prevents the usage of this endpoint by unprivileged users');
+
+    # enable the /public namespace
+    t::lib::Mocks::mock_preference( 'RESTPublicAPI', 1 );
+    $tx = $t->ua->build_tx( GET => "/api/v1/public/patrons/$borrowernumber/password" );
+    $tx->req->env( { REMOTE_ADDR => $remote_address } );
+    $t->request_ok($tx)->status_is(404);
 
     # 401 (no authentication)
     $tx = $t->ua->build_tx( GET => "/api/v1/patrons" );
@@ -90,6 +105,36 @@ subtest 'under() tests' => sub {
       ->json_is('/error', 'System is under maintenance.');
 
     $schema->storage->txn_rollback;
+};
+
+subtest 'CORS support' => sub {
+
+    plan tests => 6;
+
+    t::lib::Mocks::mock_preference('AccessControlAllowOrigin','');
+    $t->get_ok("/api/v1/patrons")
+      ->header_is( 'Access-control-allow-origin', undef, 'Header not returned' );
+      # FIXME: newer Test::Mojo has header_exists_not
+
+    t::lib::Mocks::mock_preference('AccessControlAllowOrigin',undef);
+    $t->get_ok("/api/v1/patrons")
+      ->header_is( 'Access-control-allow-origin', undef, 'Header not returned' );
+    # FIXME: newer Test::Mojo has header_exists_not
+
+    t::lib::Mocks::mock_preference('AccessControlAllowOrigin','*');
+    $t->get_ok("/api/v1/patrons")
+      ->header_is( 'Access-control-allow-origin', '*', 'Header set' );
+};
+
+subtest 'spec retrieval tests' => sub {
+
+    plan tests => 4;
+
+    $t->get_ok("/api/v1/")
+      ->status_is(200);
+
+    $t->get_ok("/api/v1/.html")
+      ->status_is(200);
 };
 
 sub create_user_and_session {

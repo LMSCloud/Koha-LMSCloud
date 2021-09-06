@@ -41,7 +41,7 @@ use Koha::DateUtils;
 use Koha::BiblioFrameworks;
 use Koha::Patrons;
 
-my $input = new CGI;
+my $input = CGI->new;
 my $itemnumber = $input->param('itemnumber');
 
 my ( $template, $loggedinuser, $cookie, $flags ) = get_template_and_user(
@@ -49,7 +49,6 @@ my ( $template, $loggedinuser, $cookie, $flags ) = get_template_and_user(
         template_name   => "circ/transferstoreceive.tt",
         query           => $input,
         type            => "intranet",
-        authnotrequired => 0,
         flagsrequired   => { circulate => "circulate_remaining_permissions" },
         debug           => 1,
     }
@@ -99,6 +98,10 @@ while ( my $library = $libraries->next ) {
             %getransf = (
                 %getransf,
                 title          => $biblio->title,
+                subtitle       => $biblio->subtitle,
+                medium         => $biblio->medium,
+                part_number    => $biblio->part_number,
+                part_name      => $biblio->part_name,
                 author         => $biblio->author,
                 biblionumber   => $biblio->biblionumber,
                 itemnumber     => $item->itemnumber,
@@ -107,9 +110,6 @@ while ( my $library = $libraries->next ) {
                 holdingbranch  => $item->holdingbranch,
                 itemcallnumber => $item->itemcallnumber,
             );
-
-            my $record = GetMarcBiblio({ biblionumber => $biblio->biblionumber });
-            $getransf{'subtitle'} = GetRecordValue('subtitle', $record, $biblio->frameworkcode);
 
             # we check if we have a reserv for this transfer
             my $holds = $item->current_holds;
@@ -128,8 +128,8 @@ while ( my $library = $libraries->next ) {
 $template->param(
     branchesloop => \@branchesloop,
     show_date    => output_pref({ dt => dt_from_string, dateformat => 'iso', dateonly => 1 }),
-	TransfersMaxDaysWarning => C4::Context->preference('TransfersMaxDaysWarning'),
-	latetransfers => $latetransfers ? 1 : 0,
+    TransfersMaxDaysWarning => C4::Context->preference('TransfersMaxDaysWarning'),
+    latetransfers => $latetransfers ? 1 : 0,
 );
 
 # Checking if there is a Fast Cataloging Framework

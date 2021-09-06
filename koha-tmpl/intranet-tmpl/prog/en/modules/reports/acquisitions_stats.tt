@@ -1,6 +1,6 @@
 [% SET footerjs = 1 %]
 [% INCLUDE 'doc-head-open.inc' %]
-<title>Koha &rsaquo; Reports [% IF ( do_it ) %]&rsaquo; Acquisitions statistics &rsaquo; Results[% ELSE %]&rsaquo; Acquisitions statistics[% END %]</title>
+<title>[% IF ( do_it ) %]Acquisitions statistics &rsaquo; Results[% ELSE %]Acquisitions statistics[% END %] &rsaquo; Reports &rsaquo; Koha</title>
 [% INCLUDE 'doc-head-close.inc' %]
 </head>
 
@@ -8,19 +8,43 @@
 [% INCLUDE 'header.inc' %]
 [% INCLUDE 'cat-search.inc' %]
 
-<div id="breadcrumbs"><a href="/cgi-bin/koha/mainpage.pl">Home</a> &rsaquo; <a href="/cgi-bin/koha/reports/reports-home.pl">Reports</a> [% IF ( do_it ) %]&rsaquo; <a href="/cgi-bin/koha/reports/acquisitions_stats.pl">Acquisitions statistics</a> &rsaquo; Results[% ELSE %] &rsaquo; Acquisitions statistics [% END %]</div>
+<nav id="breadcrumbs" aria-label="Breadcrumb" class="breadcrumb">
+    <ol>
+        <li>
+            <a href="/cgi-bin/koha/mainpage.pl">Home</a>
+        </li>
+        <li>
+            <a href="/cgi-bin/koha/reports/reports-home.pl">Reports</a>
+        </li>
+        [% IF ( do_it ) %]
+            <li>
+                <a href="/cgi-bin/koha/reports/acquisitions_stats.pl">Acquisitions statistics</a>
+            </li>
+            <li>
+                <a href="#" aria-current="page">
+                    Results
+                </a>
+            </li>
+        [% ELSE %]
+            <li>
+                <a href="#" aria-current="page">
+                    Acquisitions statistics
+                </a>
+            </li>
+        [% END %]
+    </ol>
+</nav>
 
-<div id="doc3" class="yui-t2">
-
-   <div id="bd">
-	<div id="yui-main">
-	<div class="yui-b">
+<div class="main container-fluid">
+    <div class="row">
+        <div class="col-sm-10 col-sm-push-2">
+            <main>
 
 [% IF ( do_it ) %]
 	[% FOREACH mainloo IN mainloop %]
 		<h1>Acquisitions statistics </h1>
         [% IF ( mainloo.loopfilter.size ) %]
-            <p><b>Filtered on:</b></p>
+            <p><strong>Filtered on:</strong></p>
             [% FOREACH loopfilte IN mainloo.loopfilter %]
                 <p>
                     [% SWITCH loopfilte.crit %]
@@ -37,32 +61,32 @@
                         [% CASE '10' %] Sort2
                         [% CASE %] Unknown filter
                     [% END %]
-                    : [% loopfilte.filter %]
+                    : [% loopfilte.filter | html %]
                 </p>
 			[% END %]
 		[% END %]
 
 		<table>
 			<tr >
-				<th>[% mainloo.line %] / [% mainloo.column %]</th>
+				<th>[% mainloo.line | html %] / [% mainloo.column | html %]</th>
 				[% FOREACH loopco IN mainloo.loopcol %]
-					<th>[% loopco.coltitle %]</th>
+					<th>[% loopco.coltitle | html %]</th>
 				[% END %]
 				<th>TOTAL</th>
 			</tr>
 				[% FOREACH loopro IN mainloo.looprow %]
 					<tr>
 						[% IF ( loopro.hilighted ) %]<td class="hilighted">[% ELSE %]<td>[% END %]
-						[% loopro.rowtitle %]</td>
+						[% loopro.rowtitle | html %]</td>
 						[% FOREACH loopcel IN loopro.loopcell %]
 							[% IF ( loopcel.hilighted ) %]<td>[% ELSE %]<td>[% END %]
-								[% IF ( loopcel.value ) %][% loopcel.value %]
+								[% IF ( loopcel.value ) %][% loopcel.value | html %]
 								[% ELSE %] &nbsp;
 								[% END %]
 							</td>
 						[% END %]
 						[% IF ( loopro.hilighted ) %]<td>[% ELSE %]<td>[% END %]
-							[% loopro.totalrow %]
+							[% loopro.totalrow | html %]
 						</td>
 					</tr>
 				[% END %]
@@ -70,10 +94,10 @@
 					<th>TOTAL</th>
 					[% FOREACH loopfoote IN mainloo.loopfooter %]
 						<th>
-							[% loopfoote.totalcol %]
+							[% loopfoote.totalcol | html %]
 						</th>
 					[% END %]
-					<th>[% mainloo.total %]</th>
+					<th>[% mainloo.total | html %]</th>
 				</tr>
 		</table>
 	[% END %]
@@ -143,7 +167,7 @@
                     <select name="Filter">
                         <option value="">All vendors</option>
                         [% FOREACH bookseller IN booksellers %]
-                            <option value="[% bookseller.name %]">[% bookseller.name %]</option>
+                            <option value="[% bookseller.name | html %]">[% bookseller.name | html %]</option>
                         [% END %]
                     </select>
                 </td>
@@ -156,7 +180,7 @@
                     <select name="Filter">
                         <option value="" selected="selected">All libraries</option>
                         [% FOREACH branch IN branches %]
-                            <option value="[% branch.branchcode %]">[% branch.branchname %]</option>
+                            <option value="[% branch.branchcode | html %]">[% branch.branchname | html %]</option>
                         [% END %]
                     </select>
                 </td>
@@ -164,7 +188,7 @@
             <tr>
                 <td>
                     [% IF ccode_label %]
-                        [% ccode_label %]
+                        [% ccode_label | html %]
                     [% ELSE %]
                         Collection
                     [% END %]
@@ -176,7 +200,7 @@
                         <select name="Filter">
                             <option value="" selected="selected">All</option>
                             [% FOREACH ccode_av IN ccode_avlist %]
-                                <option value="[% ccode_av.value %]">[% ccode_av.lib %]</option>
+                                <option value="[% ccode_av.authorised_value | html %]">[% ccode_av.lib | html %]</option>
                             [% END %]
                         </select>
                     [% ELSE %]
@@ -189,10 +213,10 @@
 				<td><input type="radio" name="Line" value="biblioitems.itemtype" /></td>
 				<td><input type="radio" name="Column" value="biblioitems.itemtype" /></td>
                 <td>
-                    <select name="Filter" size="1" id="itemtypes">
+                    <select name="Filter" id="itemtypes">
                         <option value="">All item types</option>
                         [% FOREACH itemtype IN itemtypes %]
-                        <option value="[% itemtype.itemtype %]">[% itemtype.translated_description %]</option>
+                        <option value="[% itemtype.itemtype | html %]">[% itemtype.translated_description | html %]</option>
                         [% END %]
                     </select>
                 </td>
@@ -203,10 +227,10 @@
 				<td><input type="radio" name="Line" value="aqbudgets.budget_code" /></td>
 				<td><input type="radio" name="Column" value="aqbudgets.budget_code" /></td>
                 <td>
-                    <select name="Filter" size="1" id="budget">
+                    <select name="Filter" id="budget">
                         <option value="">All funds</option>
                         [% FOREACH value IN Budgets.values %]
-                        <option value="[% value %]">[% Budgets.labels.$value %]</option>
+                        <option value="[% value | html %]">[% Budgets.labels.$value | html %]</option>
                         [% END %]
                     </select>
                 </td>
@@ -218,10 +242,10 @@
 					<td><input type="radio" name="Line" value="aqorders.sort1" /></td>
 					<td><input type="radio" name="Column" value="aqorders.sort1" /></td>
                     <td>
-                        <select name="Filter" size="1" id="sort1">
+                        <select name="Filter" id="sort1">
                             <option value="">All</option>
                             [% FOREACH value IN Sort1.values %]
-                            <option value="[% value %]">[% Sort1.labels.$value %]</option>
+                            <option value="[% value | html %]">[% Sort1.labels.$value | html %]</option>
                             [% END %]
                         </select>
                     </td>
@@ -233,10 +257,10 @@
 					<td><input type="radio" name="Line" value="aqorders.sort2" /></td>
 					<td><input type="radio" name="Column" value="aqorders.sort2" /></td>
                     <td>
-                        <select name="Filter" size="1" id="sort2">
+                        <select name="Filter" id="sort2">
                             <option value="">All</option>
                             [% FOREACH value IN Sort2.values %]
-                            <option value="[% value %]">[% Sort2.labels.$value %]</option>
+                            <option value="[% value | html %]">[% Sort2.labels.$value | html %]</option>
                             [% END %]
                         </select>
                     </td>
@@ -253,7 +277,7 @@
             <label for="cellvalue1">Count items:</label><input type="radio" name="Cellvalue" id="cellvalue1" value="1" checked="checked" />
         </li>
         <li>
-            <label for="cellvalue2">Count unique biblios:</label><input type="radio" name="Cellvalue" id="cellvalue2" value="2" />
+            <label for="cellvalue2">Count unique bibliographic records:</label><input type="radio" name="Cellvalue" id="cellvalue2" value="2" />
         </li>
         <li>
             <label for="cellvalue3">Amount:</label><input type="radio" name="Cellvalue" id="cellvalue3" value="3" />
@@ -277,15 +301,15 @@
             <label for="outputfile">To a file:</label> <input type="radio" name="output" value="file" id="outputfile" />
             <label class="inline" for="basename">Named: </label> <input type="text" name="basename" id="basename" value="Export" />
             <label class="inline" for="MIME">Into an application:</label>
-            <select name="MIME" id="MIME" size="1">
+            <select name="MIME" id="MIME">
                 <option value="CSV">CSV</option>
             </select>
-            <select name="sep" id="sep" size="1">
+            <select name="sep" id="sep">
             [% FOREACH value IN CGIsepChoice.values.sort() %]
               [% IF ( value == CGIsepChoice.default ) %]
-                <option value="[% value %]" selected="selected">[% value %]</option>
+                <option value="[% value | html %]" selected="selected">[% value | html %]</option>
               [% ELSE %]
-                <option value="[% value %]">[% value %]</option>
+                <option value="[% value | html %]">[% value | html %]</option>
               [% END %]
             [% END %]
             </select>
@@ -295,21 +319,25 @@
 
 	<fieldset class="action">
 	<input type="submit" value="Submit" />
-	<input type="hidden" name="report_name" value="[% report_name %]" />
+	<input type="hidden" name="report_name" value="[% report_name | html %]" />
 	<input type="hidden" name="do_it" value="1" />
 	</fieldset>
 	</form>
 [% END %]
-</div>
-</div>
-<div class="yui-b">
-[% INCLUDE 'reports-menu.inc' %]
-</div>
-</div>
+
+            </main>
+        </div> <!-- /.col-sm-10.col-sm-push-2 -->
+
+        <div class="col-sm-2 col-sm-pull-10">
+            <aside>
+                [% INCLUDE 'reports-menu.inc' %]
+            </aside>
+        </div> <!-- /.col-sm-2.col-sm-pull-10 -->
+     </div> <!-- /.row -->
 
 [% MACRO jsinclude BLOCK %]
     [% INCLUDE 'calendar.inc' %]
-    <script type="text/javascript">
+    <script>
         $(document).ready(function() {
             // http://jqueryui.com/demos/datepicker/#date-range
             var dates = $( "#from, #to" ).datepicker({

@@ -2,7 +2,7 @@
 
 use Modern::Perl;
 
-use Test::More tests => 2;
+use Test::More tests => 3;
 
 use C4::Context;
 use C4::Overdues;
@@ -44,15 +44,6 @@ my $patron = $builder->build(
     }
 );
 
-my $biblio = $builder->build(
-    {
-        source => 'Biblio',
-        value  => {
-            branchcode => $branch->{branchcode},
-        },
-    }
-);
-
 my $itemtype = $builder->build(
     {
         source => 'Itemtype',
@@ -62,35 +53,23 @@ my $itemtype = $builder->build(
     }
 );
 
-my $item = $builder->build(
+my $item = $builder->build_sample_item(
     {
-        source => 'Item',
-        value  => {
-            biblionumber     => $biblio->{biblionumber},
-            homebranch       => $branch->{branchcode},
-            holdingbranch    => $branch->{branchcode},
-            replacementprice => '5.00',
-            itype            => $itemtype->{itemtype},
-        },
+        library          => $branch->{branchcode},
+        replacementprice => '5.00',
+        itype            => $itemtype->{itemtype},
     }
 );
 
 subtest 'Test basic functionality' => sub {
     plan tests => 1;
 
-    my $rule = $builder->schema->resultset('Issuingrule')->find({
-        branchcode                    => '*',
-        categorycode                  => '*',
-        itemtype                      => '*',
-    });
-    $rule->delete if $rule;
-    my $issuingrule = $builder->build(
+    Koha::CirculationRules->set_rules(
         {
-            source => 'Issuingrule',
-            value  => {
-                branchcode                    => '*',
-                categorycode                  => '*',
-                itemtype                      => '*',
+            branchcode   => undef,
+            categorycode => undef,
+            itemtype     => undef,
+            rules        => {
                 fine                          => '1.00',
                 lengthunit                    => 'days',
                 finedays                      => 0,
@@ -98,8 +77,8 @@ subtest 'Test basic functionality' => sub {
                 chargeperiod                  => 1,
                 overduefinescap               => undef,
                 cap_fine_to_replacement_price => 0,
-            },
-        }
+            }
+        },
     );
 
     my $start_dt = DateTime->new(
@@ -114,7 +93,7 @@ subtest 'Test basic functionality' => sub {
         day        => 30,
     );
 
-    my ($amount) = CalcFine( $item, $patron->{categorycode}, $branch->{branchcode}, $start_dt, $end_dt );
+    my ($amount) = CalcFine( $item->unblessed, $patron->{categorycode}, $branch->{branchcode}, $start_dt, $end_dt );
 
     is( $amount, 29, 'Amount is calculated correctly' );
 
@@ -125,13 +104,12 @@ subtest 'Test cap_fine_to_replacement_price' => sub {
     plan tests => 2;
 
     t::lib::Mocks::mock_preference('useDefaultReplacementCost', '1');
-    my $issuingrule = $builder->build(
+    Koha::CirculationRules->set_rules(
         {
-            source => 'Issuingrule',
-            value  => {
-                branchcode                    => '*',
-                categorycode                  => '*',
-                itemtype                      => '*',
+            branchcode   => undef,
+            categorycode => undef,
+            itemtype     => undef,
+            rules        => {
                 fine                          => '1.00',
                 lengthunit                    => 'days',
                 finedays                      => 0,
@@ -155,20 +133,69 @@ subtest 'Test cap_fine_to_replacement_price' => sub {
         day        => 30,
     );
 
-    my ($amount) = CalcFine( $item, $patron->{categorycode}, $branch->{branchcode}, $start_dt, $end_dt );
+    my $item = $builder->build_sample_item(
+        {
+            library          => $branch->{branchcode},
+            replacementprice => 5,
+            itype            => $itemtype->{itemtype},
+        }
+    );
+
+    my ($amount) = CalcFine( $item->unblessed, $patron->{categorycode}, $branch->{branchcode}, $start_dt, $end_dt );
 
     is( int($amount), 5, 'Amount is calculated correctly' );
 
-
     # Use default replacement cost (useDefaultReplacementCost) is item's replacement price is 0
-    my $item_obj = Koha::Items->find($item->{itemnumber});
-    $item_obj->replacementprice(0)->store;
-    ($amount) = CalcFine( $item_obj->unblessed, $patron->{categorycode}, $branch->{branchcode}, $start_dt, $end_dt );
+    $item->replacementprice(0)->store;
+    ($amount) = CalcFine( $item->unblessed, $patron->{categorycode}, $branch->{branchcode}, $start_dt, $end_dt );
     is( int($amount), 6, 'Amount is calculated correctly' );
 
     teardown();
 };
 
+subtest 'Test cap_fine_to_replacement_pricew with overduefinescap' => sub {
+    plan tests => 2;
+
+    t::lib::Mocks::mock_preference('useDefaultReplacementCost', '1');
+    Koha::CirculationRules->set_rules(
+        {
+            branchcode   => undef,
+            categorycode => undef,
+            itemtype     => undef,
+            rules        => {
+                fine                          => '1.00',
+                lengthunit                    => 'days',
+                finedays                      => 0,
+                firstremind                   => 0,
+                chargeperiod                  => 1,
+                overduefinescap               => 3,
+                cap_fine_to_replacement_price => 1,
+            },
+        }
+    );
+
+    my $start_dt = DateTime->new(
+        year       => 2000,
+        month      => 1,
+        day        => 1,
+    );
+
+    my $end_dt = DateTime->new(
+        year       => 2000,
+        month      => 1,
+        day        => 30,
+    );
+
+    my ($amount) = CalcFine( $item->unblessed, $patron->{categorycode}, $branch->{branchcode}, $start_dt, $end_dt );
+    is( int($amount), 3, 'Got the lesser of overduefinescap and replacement price where overduefinescap < replacement price' );
+
+    Koha::CirculationRules->set_rule({ rule_name => 'overduefinescap', rule_value => 6, branchcode => undef, categorycode => undef, itemtype => undef });
+    ($amount) = CalcFine( $item->unblessed, $patron->{categorycode}, $branch->{branchcode}, $start_dt, $end_dt );
+    is( int($amount), 5, 'Get the lesser of overduefinescap and replacement price where overduefinescap > replacement price' );
+
+    teardown();
+};
+
 sub teardown {
-    $dbh->do(q|DELETE FROM issuingrules|);
+    $dbh->do(q|DELETE FROM circulation_rules|);
 }

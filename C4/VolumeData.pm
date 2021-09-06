@@ -197,7 +197,7 @@ sub SearchVolumeData {
         my $server = $servers[$i];
         my $hits = $results_hashref->{$server}->{"hits"};
         push @results, sort { $records->{$a->{biblionumber}}->[2] <=>  $records->{$b->{biblionumber}}->[2] } 
-            searchResults($view, $query_desc, $hits, $results_per_page, $offset, $scan, $results_hashref->{$server}->{"RECORDS"});
+            searchResults( { interface => 'opac',  view => $view }, $query_desc, $hits, $results_per_page, $offset, $scan, $results_hashref->{$server}->{"RECORDS"});
     }
     
     $sortnum = 0;

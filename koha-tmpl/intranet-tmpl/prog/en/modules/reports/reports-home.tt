@@ -1,13 +1,25 @@
 [% USE Koha %]
+[% USE raw %]
 [% INCLUDE 'doc-head-open.inc' %]
-<title>Koha &rsaquo; Reports</title>
+<title>Reports &rsaquo; Koha</title>
 [% INCLUDE 'doc-head-close.inc' %]
 </head>
 <body id="rep_reports-home" class="rep">
 [% INCLUDE 'header.inc' %]
 [% INCLUDE 'circ-search.inc' %]
 
-<div id="breadcrumbs"><a href="/cgi-bin/koha/mainpage.pl">Home</a> &rsaquo; Reports</div>
+<nav id="breadcrumbs" aria-label="Breadcrumb" class="breadcrumb">
+    <ol>
+        <li>
+            <a href="/cgi-bin/koha/mainpage.pl">Home</a>
+        </li>
+        <li>
+            <a href="#" aria-current="page">
+                Reports
+            </a>
+        </li>
+    </ol>
+</nav>
 
 <div class="main container-fluid">
     <div class="row">
@@ -59,7 +71,7 @@
             <li><a href="/cgi-bin/koha/reports/aggregated_statistics.pl?statisticstype=DBS">DBS</a></li>
         </ul>
 
-        [% IF UseKohaPlugins %]
+        [% IF Koha.ArePluginsEnabled() %]
             <h2>Report plugins</h2>
             <ul>
                 <li><a href="/cgi-bin/koha/plugins/plugins-home.pl?method=report">Report plugins</a></li>
@@ -95,7 +107,7 @@
 
 </div>
     <div class="col-md-12" id="intranet-reports-home-html">
-        [% Koha.Preference('IntranetReportsHomeHTML') %]
+        [% Koha.Preference('IntranetReportsHomeHTML') | $raw %]
     </div>
 </div>
 [% INCLUDE 'intranet-bottom.inc' %]

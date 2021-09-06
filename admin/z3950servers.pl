@@ -30,10 +30,11 @@ use C4::Context;
 use C4::Auth;
 use C4::Output;
 use Koha::Database;
+use Koha::Z3950Servers;
 
 # Initialize CGI, template, database
 
-my $input = new CGI;
+my $input = CGI->new;
 my $op = $input->param('op') || 'list';
 my $id = $input->param('id') || 0;
 my $type = $input->param('type') || '';
@@ -43,8 +44,7 @@ my ( $template, $loggedinuser, $cookie ) = get_template_and_user( {
     template_name => "admin/z3950servers.tt",
     query => $input,
     type => "intranet",
-    authnotrequired => 0,
-    flagsrequired => {parameters => 'parameters_remaining_permissions'},
+    flagsrequired => { parameters => 'manage_search_targets' },
     debug => 1,
 });
 my $script_name = "/cgi-bin/koha/admin/z3950servers.pl";
@@ -56,7 +56,7 @@ my $schema = Koha::Database->new()->schema();
 # First process a confirmed delete, or save a validated record
 
 if( $op eq 'delete_confirmed' && $id ) {
-    my $server = $schema->resultset('Z3950server')->find($id);
+    my $server = Koha::Z3950Servers->find($id);
     if ( $server ) {
         $server->delete;
         $template->param( msg_deleted => 1, msg_add => $server->servername );
@@ -66,20 +66,20 @@ if( $op eq 'delete_confirmed' && $id ) {
     $id = 0;
 } elsif ( $op eq 'add_validated' ) {
     my @fields=qw/host port db userid password rank syntax encoding timeout
-        recordtype checked servername servertype sru_options sru_fields
+        recordtype checked servername servertype sru_options sru_fields attributes
         add_xslt/;
     my $formdata = _form_data_hashref( $input, \@fields );
     if( $id ) {
-        my $server = $schema->resultset('Z3950server')->find($id);
+        my $server = Koha::Z3950Servers->find($id);
         if ( $server ) {
-            $server->update( $formdata );
+            $server->set( $formdata )->store;
             $template->param( msg_updated => 1, msg_add => $formdata->{servername} );
         } else {
             $template->param( msg_notfound => 1, msg_add => $id );
         }
         $id = 0;
     } else {
-        $schema->resultset('Z3950server')->create( $formdata );
+        Koha::Z3950Server->new( $formdata )->store;
         $template->param( msg_added => 1, msg_add => $formdata->{servername} );
     }
 } else {
@@ -106,11 +106,10 @@ output_html_with_http_headers $input, $cookie, $template->output;
 
 sub ServerSearch  { #find server(s) by id or name
     my ( $schema, $id, $searchstring )= @_;
-    my $rs = $schema->resultset('Z3950server')->search(
-        $id ? { id => $id }: { servername => { like => $searchstring.'%' } },
-        { result_class => 'DBIx::Class::ResultClass::HashRefInflator' }
-    );
-    return [ $rs->all ];
+
+    return Koha::Z3950Servers->search(
+        $id ? { id => $id } : { servername => { like => $searchstring . '%' } },
+    )->unblessed;
 }
 
 sub _form_data_hashref {

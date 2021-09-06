@@ -43,7 +43,7 @@ use C4::Koha;
 use Koha::Items;
 use Koha::Biblioitems;
 
-my $cgi = new CGI;
+my $cgi = CGI->new;
 
 # open template
 my ( $template, $loggedinuser, $cookie ) = get_template_and_user(
@@ -51,7 +51,6 @@ my ( $template, $loggedinuser, $cookie ) = get_template_and_user(
         template_name   => "tools/automatic_item_modification_by_age.tt",
         query           => $cgi,
         type            => "intranet",
-        authnotrequired => 0,
         flagsrequired   => { tools => 'items_batchmod' },
     }
 );

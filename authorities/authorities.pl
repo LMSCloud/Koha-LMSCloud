@@ -18,8 +18,8 @@
 # You should have received a copy of the GNU General Public License
 # along with Koha; if not, see <http://www.gnu.org/licenses>.
 
-use strict;
-use warnings;
+use Modern::Perl;
+
 use CGI qw ( -utf8 );
 use C4::Auth;
 use C4::Output;
@@ -73,7 +73,8 @@ sub build_authorized_values_list {
 
 
     #---- branch
-    if ( $tagslib->{$tag}->{$subfield}->{'authorised_value'} eq "branches" ) {
+    my $category = $tagslib->{$tag}->{$subfield}->{'authorised_value'};
+    if ( $category eq "branches" ) {
         my $sth =
         $dbh->prepare(
             "select branchcode,branchname from branches order by branchname");
@@ -86,7 +87,7 @@ sub build_authorized_values_list {
             $authorised_lib{$branchcode} = $branchname;
         }
     }
-    elsif ( $tagslib->{$tag}->{$subfield}->{authorised_value} eq "itemtypes" ) {
+    elsif ( $category eq "itemtypes" ) {
         push @authorised_values, ""
           unless ( $tagslib->{$tag}->{$subfield}->{mandatory}
             && ( $value || $tagslib->{$tag}->{$subfield}->{defaultvalue} ) );
@@ -121,6 +122,7 @@ sub build_authorized_values_list {
         values   => \@authorised_values,
         labels   => \%authorised_lib,
         default  => $value,
+        ( ( grep { $_ eq $category } ( qw(branches itemtypes cn_source) ) ) ? () : ( category => $category ) ),
     };
 }
 
@@ -135,8 +137,6 @@ sub create_input {
     my ( $tag, $subfield, $value, $index_tag, $tabloop, $rec, $authorised_values_sth,$cgi ) = @_;
     
     my $index_subfield = CreateKey(); # create a specifique key for each subfield
-
-    $value =~ s/"/&quot;/g;
 
     # determine maximum length; 9999 bytes per ISO 2709 except for leader and MARC21 008
     my $max_length = 9999;
@@ -289,6 +289,9 @@ sub create_input {
 
         }
     }
+    if ($cgi->param('tagreport') && $subfield_data{tag} == $cgi->param('tagreport')) {
+        $subfield_data{marc_value}{value} = $cgi->param('tag'. $cgi->param('tagbiblio') . 'subfield' . $subfield_data{subfield});
+    }
     $subfield_data{'index_subfield'} = $index_subfield;
     return \%subfield_data;
 }
@@ -333,7 +336,7 @@ sub GetMandatoryFieldZ3950 {
             '110a' => 'authorcorp',
             '111a' => 'authormeetingcon',
             '130a' => 'uniformtitle',
-            '150a' => 'topic',
+            '150a' => 'subject',
         };
     }else{
         return {
@@ -474,14 +477,17 @@ sub build_tabs {
             }
             else {
                 my @subfields_data;
-                foreach my $subfield ( sort( keys %{ $tagslib->{$tag} } ) ) {
-                    next if ( length $subfield != 1 );
-                    next if $tagslib->{$tag}->{$subfield}->{hidden} && $subfield ne '9';
-                    next if ( $tagslib->{$tag}->{$subfield}->{tab} ne $tabloop );
+                foreach my $subfield (
+                    sort { $a->{display_order} <=> $b->{display_order} || $a->{subfield} cmp $b->{subfield} }
+                    grep { ref($_) && %$_ } # Not a subfield (values for "important", "lib", "mandatory", etc.) or empty
+                    values %{ $tagslib->{$tag} } )
+                {
+                    next if $subfield->{hidden} && $subfield->{subfield} ne '9';
+                    next if ( $subfield->{tab} ne $tabloop );
                     push(
                         @subfields_data,
                         &create_input(
-                            $tag, $subfield, '', $index_tag, $tabloop, $record,
+                            $tag, $subfield->{subfield}, '', $index_tag, $tabloop, $record,
                             $authorised_values_sth,$input
                         )
                     );
@@ -553,7 +559,7 @@ sub build_hidden_data {
 # ======================== 
 #          MAIN 
 #=========================
-my $input = new CGI;
+my $input = CGI->new;
 my $z3950 = $input->param('z3950');
 my $error = $input->param('error');
 my $authid=$input->param('authid'); # if authid exists, it's a modif, not a new authority.
@@ -564,6 +570,7 @@ my $linkid=$input->param('linkid');
 my $authtypecode = $input->param('authtypecode');
 my $breedingid    = $input->param('breedingid');
 
+
 my $dbh = C4::Context->dbh;
 if(!$authtypecode) {
     $authtypecode = $authid ? Koha::Authorities->find($authid)->authtypecode : '';
@@ -573,11 +580,10 @@ my ($template, $loggedinuser, $cookie)
     = get_template_and_user({template_name => "authorities/authorities.tt",
                             query => $input,
                             type => "intranet",
-                            authnotrequired => 0,
                             flagsrequired => {editauthorities => 1},
                             debug => 1,
                             });
-$template->param(nonav   => $nonav,index=>$myindex,authtypecode=>$authtypecode,breedingid=>$breedingid,);
+$template->param(nonav   => $nonav,index=>$myindex,authtypecode=>$authtypecode,breedingid=>$breedingid);
 
 $tagslib = GetTagsLabels(1,$authtypecode);
 $mandatory_z3950 = GetMandatoryFieldZ3950($authtypecode);

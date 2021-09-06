@@ -4,36 +4,37 @@
 #
 # This file is part of Koha.
 #
-# Koha is free software; you can redistribute it and/or modify it under the
-# terms of the GNU General Public License as published by the Free Software
-# Foundation; either version 3 of the License, or (at your option) any later
-# version.
+# Koha is free software; you can redistribute it and/or modify it
+# under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 3 of the License, or
+# (at your option) any later version.
 #
-# Koha is distributed in the hope that it will be useful, but WITHOUT ANY
-# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
-# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+# Koha is distributed in the hope that it will be useful, but
+# WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+# GNU General Public License for more details.
 #
-# You should have received a copy of the GNU General Public License along
-# with Koha; if not, write to the Free Software Foundation, Inc.,
-# 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+# You should have received a copy of the GNU General Public License
+# along with Koha; if not, see <http://www.gnu.org/licenses>.
 
 use Modern::Perl;
 use File::Basename;
 use File::Path;
 use DateTime;
+use Koha::DateUtils;
 use Test::MockModule;
 use Test::More tests => 16;
-use Koha::Schema;
 use Carp qw/croak carp/;
+
 
 BEGIN {
     use_ok('Koha::Sitemapper');
     use_ok('Koha::Sitemapper::Writer');
 }
 
-my $now_value       = DateTime->now();
+my $now_value       = dt_from_string();
 my $mocked_datetime = Test::MockModule->new('DateTime');
-$mocked_datetime->mock( 'now', sub { return $now_value; } );
+$mocked_datetime->mock( 'now', sub { return $now_value->clone; } );
 
 sub slurp {
     my $file = shift;
@@ -62,7 +63,7 @@ $db->mock(
     _new_schema => sub { return Schema(); }
 );
 
-my $dir = File::Spec->tmpdir();
+my $dir = C4::Context::temporary_directory;
 
 my $data = [
     [qw/ 1         2013-11-15 2013-11-15/],

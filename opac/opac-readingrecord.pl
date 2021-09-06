@@ -25,6 +25,7 @@ use C4::Koha;
 use C4::Biblio;
 use C4::Circulation;
 use C4::Members;
+use C4::External::BakerTaylor qw( image_url link_url );
 use Koha::DateUtils;
 use MARC::Record;
 
@@ -33,8 +34,9 @@ use C4::Charset qw(StripNonXmlChars);
 use Koha::Patrons;
 
 use Koha::ItemTypes;
+use Koha::Ratings;
 
-my $query = new CGI;
+my $query = CGI->new;
 
 # if opacreadinghistory is disabled, leave immediately
 if ( ! C4::Context->preference('opacreadinghistory') ) {
@@ -47,7 +49,6 @@ my ( $template, $borrowernumber, $cookie ) = get_template_and_user(
         template_name   => "opac-readingrecord.tt",
         query           => $query,
         type            => "opac",
-        authnotrequired => 0,
         debug           => 1,
     }
 );
@@ -95,10 +96,8 @@ foreach my $issue ( @{$issues} ) {
     if ( $marcxml ) {
         $marcxml = StripNonXmlChars( $marcxml );
         my $marc_rec =
-          MARC::Record::new_from_xml( $marcxml, 'utf8',
+          MARC::Record::new_from_xml( $marcxml, 'UTF-8',
             C4::Context->preference('marcflavour') );
-        $issue->{subtitle} =
-          GetRecordValue( 'subtitle', $marc_rec, $issue->{frameworkcode} );
         $issue->{normalized_upc} = GetNormalizedUPC( $marc_rec, C4::Context->preference('marcflavour') );
     }
     # My Summary HTML
@@ -121,6 +120,12 @@ foreach my $issue ( @{$issues} ) {
           : $my_summary_html =~ s/{BIBLIONUMBER}//g;
         $issue->{MySummaryHTML} = $my_summary_html;
     }
+    # Star ratings
+    if ( C4::Context->preference('OpacStarRatings') eq 'all' ) {
+        my $ratings = Koha::Ratings->search({ biblionumber => $issue->{biblionumber} });
+        $issue->{ratings} = $ratings;
+        $issue->{my_rating} = $borrowernumber ? $ratings->search({ borrowernumber => $borrowernumber })->next : undef;
+    }
 }
 
 if (C4::Context->preference('BakerTaylorEnabled')) {
@@ -133,14 +138,7 @@ if (C4::Context->preference('BakerTaylorEnabled')) {
 	);
 }
 
-BEGIN {
-	if (C4::Context->preference('BakerTaylorEnabled')) {
-		require C4::External::BakerTaylor;
-		import C4::External::BakerTaylor qw(&image_url &link_url);
-	}
-}
-
-for(qw(AmazonCoverImages GoogleJackets)) {	# BakerTaylorEnabled handled above
+for(qw(AmazonCoverImages GoogleJackets)) { # BakerTaylorEnabled handled above
 	C4::Context->preference($_) or next;
 	$template->param($_=>1);
 	$template->param(JacketImages=>1);

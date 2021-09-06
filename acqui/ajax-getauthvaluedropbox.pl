@@ -62,22 +62,21 @@ unless ($status eq "ok") {
     exit 0;
 }
 
-my $input = new CGI;
+my $input = CGI->new;
 my $name = $input->param('name');
 my $category = $input->param('category');
 my $default = $input->param('default');
 $default = C4::Charset::NormalizeString($default);
 my $branch_limit = C4::Context->userenv ? C4::Context->userenv->{"branch"} : "";
 
-my $avs = Koha::AuthorisedValues->search(
+my $avs = Koha::AuthorisedValues->search_with_library_limits(
     {
-        branchcode => $branch_limit,
         category => $category,
     },
     {
-        group_by => 'lib',
         order_by => [ 'category', 'lib', 'lib_opac' ],
-    }
+    },
+    $branch_limit
 );
 my $html = qq|<select id="$name" name="$name">|;
 while ( my $av = $avs->next ) {

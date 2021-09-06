@@ -38,16 +38,19 @@ use Koha::DateUtils;
 use Koha::Items;
 use Koha::Patrons;
 
-my $query=new CGI;
+my $query=CGI->new;
 
 my ($template, $loggedinuser, $cookie) = get_template_and_user(
     {
         template_name   => 'catalogue/moredetail.tt',
         query           => $query,
         type            => "intranet",
-        authnotrequired => 0,
         flagsrequired   => { catalogue => 1 },
     }
+);
+
+$template->param(
+    updated_exclude_from_local_holds_priority => scalar($query->param('updated_exclude_from_local_holds_priority'))
 );
 
 if($query->cookie("holdfor")){ 
@@ -60,14 +63,30 @@ if($query->cookie("holdfor")){
     );
 }
 
-# get variables
+if( $query->cookie("searchToOrder") ){
+    my ( $basketno, $vendorid ) = split( /\//, $query->cookie("searchToOrder") );
+    $template->param(
+        searchtoorder_basketno => $basketno,
+        searchtoorder_vendorid => $vendorid
+    );
+}
 
-my $biblionumber=$query->param('biblionumber');
+# get variables
+my $biblionumber;
+my $itemnumber;
+if( $query->param('itemnumber') && !$query->param('biblionumber') ){
+    $itemnumber = $query->param('itemnumber');
+    my $item = Koha::Items->find( $itemnumber );
+    $biblionumber = $item->biblionumber;
+} else {
+    $biblionumber = $query->param('biblionumber');
+}
+
 $biblionumber = HTML::Entities::encode($biblionumber);
 my $title=$query->param('title');
 my $bi=$query->param('bi');
 $bi = $biblionumber unless $bi;
-my $itemnumber = $query->param('itemnumber');
+$itemnumber = $query->param('itemnumber');
 my $data = &GetBiblioData($biblionumber);
 my $dewey = $data->{'dewey'};
 my $showallitems = $query->param('showallitems');
@@ -110,7 +129,7 @@ if (@hostitems){
         push (@items,@hostitems);
 }
 
-my $subtitle = GetRecordValue('subtitle', $record, $fw);
+my $biblio = Koha::Biblios->find( $biblionumber );
 
 my $totalcount=@all_items;
 my $showncount=@items;
@@ -128,7 +147,6 @@ my $itemtypes = { map { $_->{itemtype} => $_ } @{ Koha::ItemTypes->search_with_l
 
 $data->{'itemtypename'} = $itemtypes->{ $data->{'itemtype'} }->{'translated_description'}
   if $data->{itemtype} && exists $itemtypes->{ $data->{itemtype} };
-$data->{'rentalcharge'} = sprintf( "%.2f", $data->{'rentalcharge'} || 0); # Price formatting should be done template-side
 foreach ( keys %{$data} ) {
     $template->param( "$_" => defined $data->{$_} ? $data->{$_} : '' );
 }
@@ -138,7 +156,7 @@ foreach my $item (@items){
     $item->{object} = Koha::Items->find( $item->{itemnumber} );
     $item->{'collection'}              = $ccodes->{ $item->{ccode} } if $ccodes && $item->{ccode} && exists $ccodes->{ $item->{ccode} };
     $item->{'itype'}                   = $itemtypes->{ $item->{'itype'} }->{'translated_description'} if exists $itemtypes->{ $item->{'itype'} };
-    $item->{'replacementprice'}        = sprintf( "%.2f", $item->{'replacementprice'} || 0 ); # Price formatting should be done template-side
+    $item->{'replacementprice'}        = $item->{'replacementprice'};
     if ( defined $item->{'copynumber'} ) {
         $item->{'displaycopy'} = 1;
         if ( defined $copynumbers->{ $item->{'copynumber'} } ) {
@@ -173,6 +191,40 @@ foreach my $item (@items){
 
     if ($item->{notforloantext} or $item->{itemlost} or $item->{damaged} or $item->{withdrawn}) {
         $item->{status_advisory} = 1;
+    }
+
+    # Add paidfor info
+    if ( $item->{itemlost} ) {
+        my $accountlines = Koha::Account::Lines->search(
+            {
+                itemnumber        => $item->{itemnumber},
+                debit_type_code   => 'LOST',
+                status            => [ undef, { '<>' => 'RETURNED' } ],
+                amountoutstanding => 0
+            },
+            {
+                order_by => { '-desc' => 'date' },
+                rows     => 1
+            }
+        );
+
+        if ( my $accountline = $accountlines->next ) {
+            my $payment_offsets = Koha::Account::Offsets->search(
+                {
+                    debit_id  => $accountline->id,
+                    credit_id => { '!=' => undef }, # it is not the debit itself
+                    type => { '!=' => [ 'Writeoff', 'Forgiven' ] },
+                    amount => { '<' => 0 }    # credits are negative on the DB
+                },
+                { order_by => { '-desc' => 'created_on' } }
+            );
+
+            if ($payment_offsets->count) {
+                my $patron = $accountline->patron;
+                my $payment_offset = $payment_offsets->next;
+                $item->{paidfor} = { patron => $patron, created_on => $payment_offset->created_on };
+            }
+        }
     }
 
     if (C4::Context->preference("IndependentBranches")) {
@@ -213,6 +265,38 @@ $template->param(count => $data->{'count'},
 	C4::Search::enabled_staff_search_views,
 );
 
+# get biblionumbers stored in the cart
+my @cart_list;
+
+if($query->cookie("intranet_bib_list")){
+    my $cart_list = $query->cookie("intranet_bib_list");
+    @cart_list = split(/\//, $cart_list);
+    if ( grep {$_ eq $biblionumber} @cart_list) {
+        $template->param( incart => 1 );
+    }
+}
+
+my $some_private_shelves = Koha::Virtualshelves->get_some_shelves(
+    {
+        borrowernumber => $loggedinuser,
+        add_allowed    => 1,
+        category       => 1,
+    }
+);
+my $some_public_shelves = Koha::Virtualshelves->get_some_shelves(
+    {
+        borrowernumber => $loggedinuser,
+        add_allowed    => 1,
+        category       => 2,
+    }
+);
+
+
+$template->param(
+    add_to_some_private_shelves => $some_private_shelves,
+    add_to_some_public_shelves  => $some_public_shelves,
+);
+
 $template->param(
     ITEM_DATA           => \@items,
     moredetailview      => 1,
@@ -221,40 +305,11 @@ $template->param(
     biblioitemnumber    => $bi,
     itemnumber          => $itemnumber,
     z3950_search_params => C4::Search::z3950_search_args(GetBiblioData($biblionumber)),
-    subtitle            => $subtitle,
+    biblio              => $biblio,
 );
 $template->param(ONLY_ONE => 1) if ( $itemnumber && $showncount != @items );
 $template->{'VARS'}->{'searchid'} = $query->param('searchid');
 
-my @allorders_using_biblio = GetOrdersByBiblionumber ($biblionumber);
-my @deletedorders_using_biblio;
-my @orders_using_biblio;
-my @baskets_orders;
-my @baskets_deletedorders;
-
-foreach my $myorder (@allorders_using_biblio) {
-    my $basket = $myorder->{'basketno'};
-    if ((defined $myorder->{'datecancellationprinted'}) and  ($myorder->{'datecancellationprinted'} ne '0000-00-00') ){
-        push @deletedorders_using_biblio, $myorder;
-        unless (grep(/^$basket$/, @baskets_deletedorders)){
-            push @baskets_deletedorders,$myorder->{'basketno'};
-        }
-    }
-    else {
-        push @orders_using_biblio, $myorder;
-        unless (grep(/^$basket$/, @baskets_orders)){
-            push @baskets_orders,$myorder->{'basketno'};
-            }
-    }
-}
-
-my $count_orders_using_biblio = scalar @orders_using_biblio ;
-$template->param (countorders => $count_orders_using_biblio);
-
-my $count_deletedorders_using_biblio = scalar @deletedorders_using_biblio ;
-$template->param (countdeletedorders => $count_deletedorders_using_biblio);
-
-my $biblio = Koha::Biblios->find( $biblionumber );
 my $holds = $biblio->holds;
 $template->param( holdcount => $holds->count );
 

@@ -1,0 +1,36 @@
+[% USE raw %]
+[% PROCESS 'i18n.inc' %]
+[% t('hello ツ') | $raw %]
+[% tx('hello {name}', { name = 'Bob' }) | $raw %]
+[% tn('item', 'items', count) | $raw %]
+[% tnx('{count} item', '{count} items', count, { count = count }) | $raw %]
+[% tp('context', 'hello') | $raw %]
+[% tpx('context', 'hello {name}', { name = 'Bob' }) | $raw %]
+[% tnp('context', 'item', 'items', count) | $raw %]
+[% tnpx('context', '{count} item', '{count} items', count, { count = count }) | $raw %]
+
+[% # it also works on multiple lines
+    tnpx (
+        'context',
+        '{count} item',
+        '{count} items',
+        count,
+        {
+            count = count,
+        }
+    ) | $raw
+%]
+
+[% # and t* calls can be nested
+    tx('status is {status}', {
+        status = active ? t('active') : t('inactive')
+    }) | $raw
+%]
+
+[%# but a TT comment won't get picked
+    t('not translatable')
+%]
+
+[% BLOCK %]
+    [% t('Inside block') | $raw %]
+[% END %]

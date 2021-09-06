@@ -26,13 +26,12 @@ use Koha::Biblios;
 use Koha::Patrons;
 use Koha::Reviews;
 
-my $query = new CGI;
+my $query = CGI->new;
 my ( $template, $loggedinuser, $cookie ) = get_template_and_user(
     {
         template_name   => "reviews/reviewswaiting.tt",
         query           => $query,
         type            => "intranet",
-        authnotrequired => 0,
         flagsrequired   => { tools => 'moderate_comments' },
         debug           => 1,
     }

@@ -8,6 +8,7 @@ use MARC::Record;
 use Pod::Usage;
 use Time::HiRes qw(gettimeofday);
 
+use Koha::Script;
 use C4::Context;
 use C4::Biblio;
 use C4::Items;
@@ -56,7 +57,7 @@ my $mergelimit     = C4::Context->preference('AuthorityMergeLimit');
 $dbh->do("UPDATE systempreferences SET value=0 WHERE variable='CataloguingLog'");
 $dbh->do("UPDATE systempreferences SET value=0 where variable='AuthorityMergeLimit'");
 $dbh->commit() unless $test_parameter;
-my ( $itemfield, $itemnumbersubfield ) = &GetMarcFromKohaField( "items.itemnumber", '' );
+my ( $itemfield, $itemnumbersubfield ) = &GetMarcFromKohaField( "items.itemnumber" );
 
 #dbh query init
 my $query =

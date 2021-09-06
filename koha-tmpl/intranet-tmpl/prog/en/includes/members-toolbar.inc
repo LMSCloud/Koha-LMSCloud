@@ -1,9 +1,9 @@
 [% INCLUDE 'blocking_errors.inc' %]
 [% USE Koha %]
-[% USE Borrowers %][% SET IsFamilyCard = (Borrowers.IsFamilyCard( patron.borrowernumber ) || Borrowers.IsFamilyCard( patron.guarantorid )) %]
+[% SET IsFamilyCard = patron.is_family_card %][% FOREACH gr IN patron.guarantor_relationships %][% SET IsFamilyCard = (IsFamilyCard || gr.guarantor.is_family_card) %][% END %]
 [% USE Branches %]
+[% USE Categories %]
 [% USE AuthorisedValues %]
-[% SET NorwegianPatronDBEnable = Koha.Preference( 'NorwegianPatronDBEnable' ) %]
 [% IF (CAN_user_circulate_send_adhoc_notices && Koha.Preference('AdhocNoticesLetterCodes') ) %]
     <div id="notice_sent_dialog_member" class="dialog alert" style="display:none;" >
         Letter "<span class="letter-name"></span>" successfully created as notice to <span class="patrons-length"></span> patron(s).
@@ -11,66 +11,61 @@
         <span class="letter-print"><br />Print notices created for <span class="letter-print-count"></span> patron(s). <a href="/cgi-bin/koha/tools/download-files.pl" target="_blank">Click here to download the notices for printing.</a></span>
     </div>
 [% END %]
+[% USE scalar %]
 <div id="toolbar" class="btn-toolbar">
     [% IF CAN_user_borrowers_edit_borrowers %]
-        [% IF ( guarantor ) %]
-            <a id="editpatron" class="btn btn-default btn-sm" href="/cgi-bin/koha/members/memberentry.pl?op=modify&amp;destination=circ&amp;borrowernumber=[% patron.borrowernumber %]&amp;guarantorid=[% guarantor.borrowernumber %]&amp;categorycode=[% patron.categorycode %]">
-        [% ELSE %]
-            <a id="editpatron" class="btn btn-default btn-sm" href="/cgi-bin/koha/members/memberentry.pl?op=modify&amp;destination=circ&amp;borrowernumber=[% patron.borrowernumber %]&amp;categorycode=[% patron.categorycode %]">
-        [% END %]
-        <i class="fa fa-pencil"></i> Edit</a>
+        <a id="editpatron" class="btn btn-default" href="/cgi-bin/koha/members/memberentry.pl?op=modify&amp;destination=circ&amp;borrowernumber=[% patron.borrowernumber | html %]"><i class="fa fa-pencil"></i> Edit</a>
     [% END %]
 
     [% IF CAN_user_borrowers_edit_borrowers %]
         [% IF patron.is_adult AND Koha.Preference("borrowerRelationship") %]
-            [% IF Borrowers.IsFamilyCard(patron.borrowernumber) %]
-            <a id="addchild" class="btn btn-default btn-sm" href="/cgi-bin/koha/members/memberentry.pl?op=add&amp;guarantorid=[% patron.borrowernumber %]"><i class="fa fa-plus"></i> Add family card member</a>
+            [% IF patron.is_family_card %]
+            <a id="addchild" class="btn btn-default" href="/cgi-bin/koha/members/memberentry.pl?op=add&amp;guarantor_id=[% patron.borrowernumber | html %]&amp;category_type=C"><i class="fa fa-plus"></i> Add family card member</a>
             [% ELSE %]
-            <a id="addchild" class="btn btn-default btn-sm" href="/cgi-bin/koha/members/memberentry.pl?op=add&amp;guarantorid=[% patron.borrowernumber %]"><i class="fa fa-plus"></i> Add child</a>
+            <a id="addchild" class="btn btn-default" href="/cgi-bin/koha/members/memberentry.pl?op=add&amp;guarantor_id=[% patron.borrowernumber | html %]&amp;category_type=C"><i class="fa fa-plus"></i> Add guarantee</a>
             [% END %]
         [% END %]
-        [% IF CAN_user_borrowers_edit_borrowers %]
-            <a id="changepassword" class="btn btn-default btn-sm" href="/cgi-bin/koha/members/member-password.pl?member=[% patron.borrowernumber %]"><i class="fa fa-lock"></i> Change password</a>
-        [% END %]
-        <a id="duplicate" class="btn btn-default btn-sm" href="/cgi-bin/koha/members/memberentry.pl?op=duplicate&amp;borrowernumber=[% patron.borrowernumber %]&amp;categorycode=[% patron.categorycode %]"><i class="fa fa-copy"></i> Duplicate</a>
+        <a id="changepassword" class="btn btn-default" href="/cgi-bin/koha/members/member-password.pl?member=[% patron.borrowernumber | html %]"><i class="fa fa-lock"></i> Change password</a>
+        <a id="duplicate" class="btn btn-default" href="/cgi-bin/koha/members/memberentry.pl?op=duplicate&amp;borrowernumber=[% patron.borrowernumber | html %]"><i class="fa fa-copy"></i> Duplicate</a>
     [% END %]
 
     [% IF CAN_user_circulate_circulate_remaining_permissions %]
     <div class="btn-group">
-        <button class="btn btn-default btn-sm dropdown-toggle" data-toggle="dropdown"><i class="fa fa-print"></i> Print <span class="caret"></span></button>
+        <button class="btn btn-default dropdown-toggle" data-toggle="dropdown"><i class="fa fa-print"></i> Print <span class="caret"></span></button>
             <ul class="dropdown-menu">
                 <li><a id="printsummary" href="#">Print summary</a></li>
                 <li><a id="printslip" href="#">Print slip</a></li>
                 <li><a id="printquickslip" href="#">Print quick slip</a></li>
-                [% IF Borrowers.HasOverdues( patron.borrowernumber ) %]
+                [% IF patron.has_overdues %]
                     <li><a id="print_overdues" href="#">Print overdues</a></li>
                 [% END %]
+                <li><a id="printcheckinslip" href="#">Print checkin slip</a></li>
             </ul>
     </div>
     [% END %]
 
     [% IF ( CAN_user_reserveforothers ) %]
-        <a id="searchtohold" class="btn btn-default btn-sm" href="#"><i class="fa fa-search"></i> Search to hold</a>
+        <a id="searchtohold" class="btn btn-default" href="#"><i class="fa fa-search"></i> Search to hold</a>
     [% END %]
 
-    <a id="addnewmessageLabel" href="#add_message_form" data-toggle="modal" class="btn btn-default btn-sm"><i class="fa fa-comment-o"></i> Add message</a>
+    <a id="addnewmessageLabel" href="#add_message_form" data-toggle="modal" class="btn btn-default"><i class="fa fa-comment-o"></i> Add message</a>
 
          <div class="btn-group">
-        <button class="btn btn-default btn-sm dropdown-toggle" data-toggle="dropdown">More <span class="caret"></span></button>
-            <ul class="dropdown-menu">
+        <button class="btn btn-default dropdown-toggle" data-toggle="dropdown">More <span class="caret"></span></button>
+            <ul class="dropdown-menu dropdown-menu-right">
                 [% IF CAN_user_borrowers_edit_borrowers %]
-                    <li><a id="renewpatron" href="/cgi-bin/koha/members/setstatus.pl?borrowernumber=[% patron.borrowernumber %]&amp;destination=[% destination %]&amp;reregistration=y">[% IF ( IsFamilyCard ) %]Renew family card[% ELSE %]Renew patron[% END %]</a></li>
+                    <li><a id="renewpatron" href="/cgi-bin/koha/members/setstatus.pl?borrowernumber=[% patron.borrowernumber | html %]&amp;destination=[% destination | html %]&amp;reregistration=y">[% IF ( IsFamilyCard ) %]Renew family card[% ELSE %]Renew patron[% END %]</a></li>
                 [% ELSE %]
                     <li class="disabled"><a data-toggle="tooltip" data-placement="left" title="You are not authorized to renew patrons" id="renewpatron" href="#">Renew patron</a></li>
                 [% END %]
                 [% IF ( CAN_user_permissions ) %]
-                    <li><a id="patronflags" href="/cgi-bin/koha/members/member-flags.pl?member=[% patron.borrowernumber %]">Set permissions</a></li>
+                    <li><a id="patronflags" href="/cgi-bin/koha/members/member-flags.pl?member=[% patron.borrowernumber | html %]">Set permissions</a></li>
                 [% ELSE %]
                     <li class="disabled"><a data-toggle="tooltip" data-placement="left" title="You are not authorized to set permissions" id="patronflags" href="#">Set permissions</a></li>
                 [% END %]
 
                 [% IF CAN_user_borrowers_edit_borrowers && useDischarge %]
-                    <li><a href="/cgi-bin/koha/members/discharge.pl?borrowernumber=[% patron.borrowernumber %]">Discharge</a></li>
+                    <li><a href="/cgi-bin/koha/members/discharge.pl?borrowernumber=[% patron.borrowernumber | uri %]">Discharge</a></li>
                 [% END %]
                 
                 [% IF (CAN_user_circulate_send_adhoc_notices && Koha.Preference('AdhocNoticesLetterCodes') ) %]
@@ -79,27 +74,24 @@
 
                 [% IF Koha.Preference('RESTOAuth2ClientCredentials') %]
                     [% IF CAN_user_borrowers_edit_borrowers %]
-                        <li><a id="apikeys" href="/cgi-bin/koha/members/apikeys.pl?patron_id=[% patron.borrowernumber %]">Manage API keys</a></li>
+                        <li><a id="apikeys" href="/cgi-bin/koha/members/apikeys.pl?patron_id=[% patron.borrowernumber | html %]">Manage API keys</a></li>
                     [% ELSE %]
                         <li class="disabled"><a data-toggle="tooltip" data-placement="left" title="You are not authorized to manage API keys" id="apikeys" href="#">Manage API keys</a></li>
                     [% END %]
                 [% END %]
 
                 [% IF CAN_user_borrowers_edit_borrowers %]
-                    [% IF ( NorwegianPatronDBEnable == 1 ) %]
-                        <li><a id="deletepatronlocal" href="#">Delete local</a></li>
-                        <li><a id="deletepatronremote" href="#">Delete remote</a></li>
-                        <li><a id="deletepatronboth" href="#">Delete local and remote</a></li>
-                    [% ELSE %]
-                        <li><a id="deletepatron" href="#">Delete</a></li>
-                    [% END %]
+                    <li><a id="deletepatron" href="#">Delete</a></li>
                 [% ELSE %]
                     <li class="disabled"><a data-toggle="tooltip" data-placement="left" title="You are not authorized to delete patrons" id="deletepatron" href="#">Delete</a></li>
                 [% END %]
-                [% IF ( patron.is_child ) %]
-                    <li><a id="updatechild" href="#">Update child to adult patron</a></li>
-                [% ELSE %]
-                    <li class="disabled"><a data-toggle="tooltip" data-placement="left" title="Patron is an adult" id="updatechild" href="#">Update child to adult patron</a></li>
+                [% SET adult_categories = Categories.scalar.all(category_type => 'A') %]
+                [% IF adult_categories.count > 0 %]
+                    [% IF patron.is_child %]
+                        <li><a id="updatechild" href="#">Update child to adult patron</a></li>
+                    [% ELSE %]
+                        <li class="disabled"><a data-toggle="tooltip" data-placement="left" title="Patron is an adult" id="updatechild" href="#">Update child to adult patron</a></li>
+                    [% END %]
                 [% END %]
                 [% IF Koha.Preference('intranetreadinghistory') %]
                     [%IF ( privacy == 2 ) %]
@@ -180,7 +172,7 @@
                             <select name="type" id="select_patron_messages">
                                 <option value="">Select note</option>
                                 [% FOREACH bor_note IN bor_notes %]
-                                    <option value="[% bor_note.lib %]">[% bor_note.lib %]</option>
+                                    <option value="[% bor_note.lib | html %]">[% bor_note.lib | html %]</option>
                                 [% END %]
                             </select>
                         </div>
@@ -188,9 +180,9 @@
                     <div class="form-group">
                         <textarea rows="3" class="modal-textarea" name="borrower_message" id="borrower_message" ></textarea>
                     </div>
-                    <input type="hidden" name="borrowernumber" value="[% patron.borrowernumber %]" />
-                    <input type="hidden" name="batch" value="[% batch %]" />
-                    <input type="hidden" name="branchcode" value="[% LoginBranchcode %]" />
+                    <input type="hidden" name="borrowernumber" value="[% patron.borrowernumber | html %]" />
+                    <input type="hidden" name="batch" value="[% batch | html %]" />
+                    <input type="hidden" name="branchcode" value="[% Branches.GetLoggedInBranchcode | html %]" />
                 </div>
                 <div class="modal-footer">
                     <button class="btn btn-default approve" type="submit"><i class="fa fa-check"></i> Save</button>

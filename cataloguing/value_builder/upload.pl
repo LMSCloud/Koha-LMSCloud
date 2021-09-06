@@ -33,8 +33,9 @@ use Modern::Perl;
 my $builder = sub {
     my ( $params ) = @_;
     return <<"SCRIPT";
-<script type=\"text/javascript\">
+<script>
         function Click$params->{id}(event) {
+            event.preventDefault();
             var index = event.data.id;
             var str = document.getElementById(index).value;
             var myurl, term;

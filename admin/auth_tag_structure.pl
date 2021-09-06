@@ -29,7 +29,7 @@ use C4::Context;
 use Koha::Authority::Types;
 
 # retrieve parameters
-my $input = new CGI;
+my $input = CGI->new;
 my $authtypecode         = $input->param('authtypecode')         || '';    # set to select framework
 my $existingauthtypecode = $input->param('existingauthtypecode') || '';    # set when we have to create a new framework (in authtype) by copying an old one (in existingauthtype)
 
@@ -49,8 +49,7 @@ my ($template, $loggedinuser, $cookie)
     = get_template_and_user({template_name => "admin/auth_tag_structure.tt",
                  query => $input,
                  type => "intranet",
-                 authnotrequired => 0,
-                 flagsrequired => {parameters => 'parameters_remaining_permissions'},
+                 flagsrequired => {parameters => 'manage_marc_frameworks'},
                  debug => 1,
                  });
 
@@ -197,9 +196,6 @@ if ($op eq 'add_form') {
         $row_data{repeatable}       = $results->[$i]{'repeatable'};
         $row_data{mandatory}        = $results->[$i]{'mandatory'};
         $row_data{authorised_value} = $results->[$i]{'authorised_value'};
-        $row_data{subfield_link}    = "auth_subfields_structure.pl?tagfield=" . $results->[$i]{'tagfield'} . "&amp;authtypecode=" . $authtypecode;
-        $row_data{edit}             = "$script_name?op=add_form&amp;searchfield=" . $results->[$i]{'tagfield'} . "&amp;authtypecode=" . $authtypecode;
-        $row_data{delete}           = "$script_name?op=delete_confirm&amp;searchfield=" . $results->[$i]{'tagfield'} . "&amp;authtypecode=" . $authtypecode;
         push(@loop_data, \%row_data);
     }
     $template->param(loop => \@loop_data,

@@ -31,14 +31,14 @@ my @languages = (); # stores the list of active languages
                     # for the syspref mock
 my $return_undef = 0;
 
-my $module_context = new Test::MockModule('C4::Context');
+my $module_context = Test::MockModule->new('C4::Context');
 
 $module_context->mock(
     preference => sub {
         my ($self, $pref) = @_;
         if ($return_undef) {
-            return undef;
-        } elsif ($pref =~ /language/) {
+            return;
+        } elsif ($pref eq 'language' || $pref eq 'OPACLanguages') {
             return join ',', @languages;
         } else {
             return 'XXX';

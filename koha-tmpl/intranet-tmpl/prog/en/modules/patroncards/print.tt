@@ -1,38 +1,31 @@
 [% USE Asset %]
 [% SET footerjs = 1 %]
-<!DOCTYPE html>
-[% IF ( bidi ) %]<html lang="[% lang %]" dir="[% bidi %]">[% ELSE %]<html lang="[% lang %]">[% END %]
-<head>
-    <title>Koha &rsaquo; Tools &rsaquo; Patron cards &rsaquo; Patron card printing/exporting</title>
-    <link rel="shortcut icon" href="[% IF ( IntranetFavicon ) %][% IntranetFavicon %][% ELSE %][% interface %]/[% theme %]/img/favicon.ico[% END %]" type="image/x-icon" />
-    [% INCLUDE intranetstylesheet.inc %]
-    [% IF ( IntranetUserCSS ) %]<style type="text/css">[% IntranetUserCSS %]</style>[% END %]
+[% INCLUDE 'doc-head-open.inc' %]
+    <title>Patron card printing/exporting &rsaquo; Patron cards &rsaquo; Tools &rsaquo; Koha</title>
     [% INCLUDE 'doc-head-close.inc' popup => 1%]
-    <style type="text/css">#custom-doc {width:47.23em; *width:46.04em; min-width:610px; margin:auto; margin-top:0.4em;}</style>
 </head>
 
 <body id="pcard_print" class="tools pcard">
-    <div id="custom-doc">
-        <div id="bd">
+    <div class="container-fluid">
             [% IF ( batches ) %]
             <form>
                 <h3>Click on the following link(s) to download the exported batch(es).</h3>
                     <fieldset>
                     [% FOREACH batche IN batches %]
                         [% IF ( batche.label_ids ) %]
-                        <legend>[% batche.card_count %] Single patron cards</legend>
+                        <legend>[% batche.card_count | html %] Single patron cards</legend>
                         <p>
-                                <a class="document pdf" href="/cgi-bin/koha/patroncards/[% batche.create_script %]?batch_id=[% batche.batch_id %]&amp;template_id=[% batche.template_id %]&amp;layout_id=[% batche.layout_id %]]&amp;layout_back_id=[% batche.layout_back_id %]&amp;start_card=[% batche.start_card %][% batche.label_ids %]">label_single_[% batche.card_count %].pdf</a>
+                                <a class="document pdf" href="/cgi-bin/koha/patroncards/[% batche.create_script | html %]?batch_id=[% batche.batch_id | html %]&amp;template_id=[% batche.template_id | html %]&amp;layout_id=[% batche.layout_id | html %]]&amp;layout_back_id=[% batche.layout_back_id | html %]&amp;start_card=[% batche.start_card | html %][% batche.label_ids | html %]">label_single_[% batche.card_count | html %].pdf</a>
                         </p>
                         [% ELSIF ( batche.borrower_numbers ) %]
-                        <legend>[% batche.card_count %] Single Patron Cards</legend>
+                        <legend>[% batche.card_count | html %] Single Patron Cards</legend>
                         <p>
-                                <a class="document pdf" href="/cgi-bin/koha/patroncards/[% batche.create_script %]?template_id=[% batche.template_id %]&amp;layout_id=[% batche.layout_id %]&amp;layout_back_id=[% batche.layout_back_id %]&amp;start_card=[% batche.start_card %][% batche.borrower_numbers %]">label_single_[% batche.card_count %].pdf</a>
+                                <a class="document pdf" href="/cgi-bin/koha/patroncards/[% batche.create_script | html %]?template_id=[% batche.template_id | html %]&amp;layout_id=[% batche.layout_id | html %]&amp;layout_back_id=[% batche.layout_back_id | html %]&amp;start_card=[% batche.start_card | html %][% batche.borrower_numbers | html %]">label_single_[% batche.card_count | html %].pdf</a>
                         </p>
                         [% ELSE %]
-                        <legend>Card batch number [% batche.batch_id %]</legend>
+                        <legend>Card batch number [% batche.batch_id | html %]</legend>
                         <p>
-                                <a class="document pdf" href="/cgi-bin/koha/patroncards/create-pdf.pl?batch_id=[% batche.batch_id %]&amp;template_id=[% batche.template_id %]&amp;layout_id=[% batche.layout_id %]&amp;layout_back_id=[% batche.layout_back_id %]&amp;start_card=[% batche.start_card %]">label_batch_[% batche.batch_id %].pdf</a>
+                                <a class="document pdf" href="/cgi-bin/koha/patroncards/create-pdf.pl?batch_id=[% batche.batch_id | html %]&amp;template_id=[% batche.template_id | html %]&amp;layout_id=[% batche.layout_id | html %]&amp;layout_back_id=[% batche.layout_back_id | html %]&amp;start_card=[% batche.start_card | html %]">label_batch_[% batche.batch_id | html %].pdf</a>
                         </p>
                         [% END %]
                     [% END %]
@@ -43,41 +36,43 @@
                 </fieldset>
             </form>
             [% ELSIF ( patronlist_id && template_id && layout_id ) %]
-                <h3>Click on the link to download the patron cards from the patron list.</h3>
+                <div id="export_patron_list">
+                    <h3>Click on the link to download the patron cards from the patron list.</h3>
                     <p>
-                        <a class="document pdf" href="/cgi-bin/koha/patroncards/create-pdf.pl?patronlist_id=[% patronlist_id %]&amp;template_id=[% template_id %]&amp;layout_id=[% layout_id %]&amp;layout_back_id=[% layout_back_id %]&amp;start_card=[% start_card %]">label_patronlist_[% patronlist_id %].pdf</a>
+                        <a class="document pdf" href="/cgi-bin/koha/patroncards/create-pdf.pl?patronlist_id=[% patronlist_id | html %]&amp;template_id=[% template_id | html %]&amp;layout_id=[% layout_id | html %]&amp;layout_back_id=[% layout_back_id | html %]&amp;start_card=[% start_card | html %]">label_patronlist_[% patronlist_id | html %].pdf</a>
                     </p>
+                </div>
             [% ELSE %]
             <h3>
                     [% IF ( label_ids ) %]
-                        [% IF ( card_count == 1 ) %]Exporting [% card_count %] patron card[% ELSE %]Exporting [% card_count %] patron cards[% END %]
+                        [% IF ( card_count == 1 ) %]Exporting [% card_count | html %] patron card[% ELSE %]Exporting [% card_count | html %] patron cards[% END %]
                     [% ELSIF ( borrower_numbers ) %]
-                        [% IF ( borrower_count == 1 ) %]Exporting [% borrower_count %] patron card[% ELSE %]Exporting [% borrower_count %] patron cards[% END %]
+                        [% IF ( borrower_count == 1 ) %]Exporting [% borrower_count | html %] patron card[% ELSE %]Exporting [% borrower_count | html %] patron cards[% END %]
                     [% ELSIF ( patronlist_id ) %] Exporting from patron list
                     [% ELSE %]
-                        [% IF ( multi_batch_count == 1 ) %][% multi_batch_count %] batch to export[% ELSE %][% multi_batch_count %] batches to export[% END %]
+                        [% IF ( multi_batch_count == 1 ) %][% multi_batch_count | html %] batch to export[% ELSE %][% multi_batch_count | html %] batches to export[% END %]
                     [% END %]
             </h3>
             <form id="exportingf" name="exporting" method="post" action="/cgi-bin/koha/patroncards/print.pl">
                 <input type="hidden" name="op" value="export" />
-                <input type="hidden" name="referer" value="[% referer %]" />
+                <input type="hidden" name="referer" value="[% referer | html %]" />
                 [% FOREACH batch_id IN batch_ids %]
-                    <input type="hidden" name="batch_id" value="[% batch_id.batch_id %]" />
+                    <input type="hidden" name="batch_id" value="[% batch_id.batch_id | html %]" />
                 [% END %]
                 [% FOREACH label_id IN label_ids %]
-                    <input type="hidden" name="label_id" value="[% label_id.label_id %]" />
+                    <input type="hidden" name="label_id" value="[% label_id.label_id | html %]" />
                 [% END %]
                 [% FOREACH borrower_number IN borrower_numbers %]
-                    <input type="hidden" name="borrower_number" value="[% borrower_number.borrower_number %]" />
+                    <input type="hidden" name="borrower_number" value="[% borrower_number.borrower_number | html %]" />
                 [% END %]
-                [% IF (patronlist_id) %] <input type="hidden" name="patronlist_id" value="[% patronlist_id %]" /> [% END %]
+                [% IF (patronlist_id) %] <input type="hidden" name="patronlist_id" value="[% patronlist_id | html %]" /> [% END %]
                 <fieldset class="rows">
                     <ol>
                         <li>
                             <label style="width:9em" for="template_id">Select a template to be applied: </label>
                             <select name="template_id" id="template_id">
                                 [% FOREACH template IN templates %]
-                                <option value="[% template.template_id %]">[% template.template_code %]</option>
+                                <option value="[% template.template_id | html %]">[% template.template_code | html %]</option>
                                 [% END %]
                             </select>
                         </li>
@@ -85,7 +80,7 @@
                             <label style="width:9em" for="layout_id">Select a layout to be applied: </label>
                             <select name="layout_id" id="layout_id">
                                 [% FOREACH layout IN layouts %]
-                                <option value="[% layout.layout_id %]">[% layout.layout_name %]</option>
+                                <option value="[% layout.layout_id | html %]">[% layout.layout_name | html %]</option>
                                 [% END %]
                             </select>
                         </li>
@@ -94,7 +89,7 @@
                             <select name="layout_back_id" id="layout_back_id">
                                 <option value="0">Back side layout not used</option>
                                 [% FOREACH layout IN layouts %]
-                                <option value="[% layout.layout_id %]">[% layout.layout_name %]</option>
+                                <option value="[% layout.layout_id | html %]">[% layout.layout_name | html %]</option>
                                 [% END %]
                             </select>
                             <span class="hint">Used for duplex printers (needs a '1 up template')</span>
@@ -112,16 +107,13 @@
                 </fieldset>
             </form>
             [% END %]
-        </div>
     </div>
 
-[% IF ( IntranetUserJS ) %]
-    [% Asset.js("lib/jquery/jquery-2.2.3.min.js") %]
-    [% Asset.js("lib/jquery/jquery-migrate-1.3.0.min.js") %]
+[% MACRO jsinclude BLOCK %]
+    [% INCLUDE 'greybox.inc' %]
     <script>
-        [% IntranetUserJS %]
         function Done() {
-            window.location = "[% referer %]";
+            window.location = "[% referer | html %]";
         };
         $(document).ready(function(){
             $(".gb-close").on("click",function(){

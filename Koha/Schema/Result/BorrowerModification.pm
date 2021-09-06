@@ -37,6 +37,11 @@ __PACKAGE__->table("borrower_modifications");
   is_nullable: 0
   size: 255
 
+=head2 changed_fields
+
+  data_type: 'mediumtext'
+  is_nullable: 1
+
 =head2 borrowernumber
 
   data_type: 'integer'
@@ -285,21 +290,10 @@ __PACKAGE__->table("borrower_modifications");
   data_type: 'mediumtext'
   is_nullable: 1
 
-=head2 guarantorid
-
-  data_type: 'integer'
-  is_nullable: 1
-
 =head2 borrowernotes
 
   data_type: 'longtext'
   is_nullable: 1
-
-=head2 relationship
-
-  data_type: 'varchar'
-  is_nullable: 1
-  size: 100
 
 =head2 sex
 
@@ -421,6 +415,14 @@ __PACKAGE__->table("borrower_modifications");
   data_type: 'mediumtext'
   is_nullable: 1
 
+=head2 gdpr_proc_consent
+
+  data_type: 'datetime'
+  datetime_undef_if_invalid: 1
+  is_nullable: 1
+
+data processing consent
+
 =cut
 
 __PACKAGE__->add_columns(
@@ -433,6 +435,8 @@ __PACKAGE__->add_columns(
   },
   "verification_token",
   { data_type => "varchar", default_value => "", is_nullable => 0, size => 255 },
+  "changed_fields",
+  { data_type => "mediumtext", is_nullable => 1 },
   "borrowernumber",
   { data_type => "integer", default_value => 0, is_nullable => 0 },
   "cardnumber",
@@ -541,12 +545,8 @@ __PACKAGE__->add_columns(
   { data_type => "mediumtext", is_nullable => 1 },
   "contacttitle",
   { data_type => "mediumtext", is_nullable => 1 },
-  "guarantorid",
-  { data_type => "integer", is_nullable => 1 },
   "borrowernotes",
   { data_type => "longtext", is_nullable => 1 },
-  "relationship",
-  { data_type => "varchar", is_nullable => 1, size => 100 },
   "sex",
   { data_type => "varchar", is_nullable => 1, size => 1 },
   "password",
@@ -589,6 +589,12 @@ __PACKAGE__->add_columns(
   { data_type => "integer", is_nullable => 1 },
   "extended_attributes",
   { data_type => "mediumtext", is_nullable => 1 },
+  "gdpr_proc_consent",
+  {
+    data_type => "datetime",
+    datetime_undef_if_invalid => 1,
+    is_nullable => 1,
+  },
 );
 
 =head1 PRIMARY KEY
@@ -606,9 +612,14 @@ __PACKAGE__->add_columns(
 __PACKAGE__->set_primary_key("verification_token", "borrowernumber");
 
 
-# Created by DBIx::Class::Schema::Loader v0.07042 @ 2018-11-26 12:31:31
-# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:QkoGSd1ks5hbdRpSQn6n7g
+# Created by DBIx::Class::Schema::Loader v0.07046 @ 2021-05-10 13:50:02
+# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:u4NyjVB0giKnFLHIjepc8A
 
+sub koha_object_class {
+    'Koha::Patron::Modification';
+}
+sub koha_objects_class {
+    'Koha::Patron::Modifications';
+}
 
-# You can replace this text with custom code or comments, and it will be preserved on regeneration
 1;

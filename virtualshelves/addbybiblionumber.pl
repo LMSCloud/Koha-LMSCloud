@@ -66,7 +66,7 @@ use C4::Auth;
 use Koha::Biblios;
 use Koha::Virtualshelves;
 
-my $query           = new CGI;
+my $query           = CGI->new;
 my $shelfnumber     = $query->param('shelfnumber');
 my $newvirtualshelf = $query->param('newvirtualshelf');
 my $newshelf        = $query->param('newshelf');
@@ -87,7 +87,6 @@ my ( $template, $loggedinuser, $cookie ) = get_template_and_user(
     {   template_name   => "virtualshelves/addbybiblionumber.tt",
         query           => $query,
         type            => "intranet",
-        authnotrequired => 0,
         flagsrequired   => { catalogue => 1 },
     }
 );

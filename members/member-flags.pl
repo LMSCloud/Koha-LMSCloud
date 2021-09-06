@@ -11,7 +11,6 @@ use C4::Output;
 use C4::Auth qw(:DEFAULT :EditPermissions);
 use C4::Context;
 use C4::Members;
-use C4::Members::Attributes qw(GetBorrowerAttributes);
 #use C4::Acquisitions;
 
 use Koha::Patron::Categories;
@@ -20,7 +19,7 @@ use Koha::Patrons;
 use C4::Output;
 use Koha::Token;
 
-my $input = new CGI;
+my $input = CGI->new;
 
 my $flagsrequired = { permissions => 1 };
 my $member=$input->param('member');
@@ -39,12 +38,11 @@ my ($template, $loggedinuser, $cookie) = get_template_and_user({
         template_name   => "members/member-flags.tt",
         query           => $input,
         type            => "intranet",
-        authnotrequired => 0,
         flagsrequired   => $flagsrequired,
         debug           => 1,
 });
 
-my $logged_in_user = Koha::Patrons->find( $loggedinuser ) or die "Not logged in";
+my $logged_in_user = Koha::Patrons->find( $loggedinuser );
 output_and_exit_if_error( $input, $cookie, $template, { module => 'members', logged_in_user => $logged_in_user, current_patron => $patron } );
 
 my %member2;
@@ -52,7 +50,7 @@ $member2{'borrowernumber'}=$member;
 
 if ($input->param('newflags')) {
 
-    die "Wrong CSRF token"
+    output_and_exit( $input, $cookie, $template,  'wrong_csrf_token' )
         unless Koha::Token->new->check_csrf({
             session_id => scalar $input->cookie('CGISESSID'),
             token  => scalar $input->param('csrf_token'),
@@ -179,22 +177,9 @@ if ($input->param('newflags')) {
         if ($#sub_perm_loop > -1) {
             $row{sub_perm_loop} = \@sub_perm_loop;
         }
+        next if ( ( $row{flag} eq 'cash_management' ) && !C4::Context->preference('UseCashRegisters') );
         push @loop, \%row;
     }
-
-    if ( $patron->is_child ) {
-        my $patron_categories = Koha::Patron::Categories->search_limited({ category_type => 'A' }, {order_by => ['categorycode']});
-        $template->param( 'CATCODE_MULTI' => 1) if $patron_categories->count > 1;
-        $template->param( 'catcode' => $patron_categories->next->categorycode )  if $patron_categories->count == 1;
-    }
-
-if (C4::Context->preference('ExtendedPatronAttributes')) {
-    my $attributes = GetBorrowerAttributes($bor->{'borrowernumber'});
-    $template->param(
-        ExtendedPatronAttributes => 1,
-        extendedattributes => $attributes
-    );
-}
 
 $template->param(
     patron         => $patron,

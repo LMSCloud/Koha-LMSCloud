@@ -1,3 +1,5 @@
+/* global __ */
+
 jQuery.validator.addMethod( "letters_numbers", function(value,element){
     var patt = /^[a-zA-Z0-9\-_]+$/g;
     if (patt.test(element.value)) {
@@ -5,7 +7,7 @@ jQuery.validator.addMethod( "letters_numbers", function(value,element){
     } else {
         return false;
     }
-    }, MSG_CATEGORYCODE_CHARS
+    }, __("Category code can only contain the following characters: letters, numbers, - and _.")
 );
 
 jQuery.validator.addMethod( "enrollment_period", function(){
@@ -16,12 +18,12 @@ jQuery.validator.addMethod( "enrollment_period", function(){
         } else {
             return true;
         }
-    }, MSG_ONE_ENROLLMENTPERIOD
+    }, __("Please choose an enrollment period in months OR by date.")
 );
 
 
 $(document).ready(function() {
-    $("#table_categorie").dataTable($.extend(true, {}, dataTablesDefaults, {
+    KohaTable("patron_categories", {
         "aoColumnDefs": [{
             "aTargets": [-1],
             "bSortable": false,
@@ -33,8 +35,9 @@ $(document).ready(function() {
         "aaSorting": [
             [1, "asc"]
         ],
-        "sPaginationType": "four_button"
-    }));
+        "sPaginationType": "full",
+        "exportColumns": [0,1,2,3,4,5,6,7,8,9,10,11,12],
+    }, columns_settings);
 
     $("#enrolmentperioddate").datepicker({
         minDate: 1
@@ -83,14 +86,17 @@ $(document).ready(function() {
             },
             category_type: {
                 required: true
+            },
+            min_password_length: {
+                digits: true
             }
         },
         messages: {
             enrolmentperiod: {
-                required: MSG_ONE_ENROLLMENTPERIOD
+                required: __("Please choose an enrollment period in months OR by date.")
             },
             enrolmentperioddate: {
-                required: MSG_ONE_ENROLLMENTPERIOD
+                required: __("Please choose an enrollment period in months OR by date.")
             }
         }
 

@@ -849,7 +849,7 @@ INSERT IGNORE INTO `marc_subfield_structure` (`tagfield`, `tagsubfield`, `liblib
 ("245","6","Liaison","Liaison","0","0","","2","","","","0","-6","","","","","9999"),
 ("245","8","Numéro de liaison de zone et de séquence","Numéro de liaison de zone et de séquence","1","0","","2","","","","0","-6","","","","","9999"),
 ("245","a","Titre","Titre","0","1","biblio.title","2","","","","0","0","","'245b','245f','245g','245k','245n','245p','245s','245h','246i','246a','246b','246f','246g','246n','246p','246h','242a','242b','242n','242p','242h','505t'","","","9999"),
-("245","b","Reste du titre","Reste du titre","0","0","bibliosubtitle.subtitle","2","","","","0","0","","","","","9999"),
+("245","b","Reste du titre","Reste du titre","0","0","biblio.subtitle","2","","","","0","0","","","","","9999"),
 ("245","c","Mention de responsabilité, etc.","Mention de responsabilité, etc.","0","0","","2","","","","0","0","","","","","9999"),
 ("245","f","Dates extrêmes","Dates extrêmes","0","0","","2","","","","0","-6","","","","","9999"),
 ("245","g","Dates générales","Dates générales","0","0","","2","","","","0","-6","","","","","9999"),
@@ -1733,7 +1733,7 @@ INSERT IGNORE INTO `marc_subfield_structure` (`tagfield`, `tagsubfield`, `liblib
 ("650","6","Liaison","Liaison","0","0","","6","","","","0","-6","","","","","9999"),
 ("650","8","Numéro de liaison de zone et de séquence","Numéro de liaison de zone et de séquence","1","0","","6","","","","0","-6","","","","","9999"),
 ("650","9","9 (RLIN)","9 (RLIN)","0","0","","6","","","","0","-5","","","","","9999"),
-("650","a","Vedette de sujet ou vedette comportant un nom géographique","Vedette de sujet ou vedette comportant un nom géographique","0","0","bibliosubject.subject","6","","TOPIC_TERM","","0","0","","'6003','600a','600b','600c','600d','600e','600f','600g','600h','600k','600l','600m','600n','600o','600p','600r','600s','600t','600u','600x','600z','600y','600v','6103','610a','610b','610c','610d','610e','610f','610g','610h','610k','610l','610m','610n','610o','610p','610r','610s','610t','610u','610x','610z','610y','610v','6113','611a','611b','611c','611d','611e','611f','611g','611h','611k','611l','611m','611n','611o','611p','611r','611s','611t','611u','611x','611z','611y','611v','630a','630b','630c','630d','630e','630f','630g','630h','630k','630l','630m','630n','630o','630p','630r','630s','630t','630x','630z','630y','630v','6483','648a','648x','648z','648y','648v','6503','650b','650c','650d','650e','650x','650z','650y','650v','6513','651a','651b','651c','651d','651e','651x','651z','651y','651v','653a','6543','654a','654b','654x','654z','654y','654v','6553','655a','655b','655x','655z','655y','655v','6563','656a','656k','656x','656z','656y','656v','6573','657a','657x','657z','657y','657v','658a','658b','658c','658d','658v'","","","9999"),
+("650","a","Vedette de sujet ou vedette comportant un nom géographique","Vedette de sujet ou vedette comportant un nom géographique","0","0",NULL,"6","","TOPIC_TERM","","0","0","","'6003','600a','600b','600c','600d','600e','600f','600g','600h','600k','600l','600m','600n','600o','600p','600r','600s','600t','600u','600x','600z','600y','600v','6103','610a','610b','610c','610d','610e','610f','610g','610h','610k','610l','610m','610n','610o','610p','610r','610s','610t','610u','610x','610z','610y','610v','6113','611a','611b','611c','611d','611e','611f','611g','611h','611k','611l','611m','611n','611o','611p','611r','611s','611t','611u','611x','611z','611y','611v','630a','630b','630c','630d','630e','630f','630g','630h','630k','630l','630m','630n','630o','630p','630r','630s','630t','630x','630z','630y','630v','6483','648a','648x','648z','648y','648v','6503','650b','650c','650d','650e','650x','650z','650y','650v','6513','651a','651b','651c','651d','651e','651x','651z','651y','651v','653a','6543','654a','654b','654x','654z','654y','654v','6553','655a','655b','655x','655z','655y','655v','6563','656a','656k','656x','656z','656y','656v','6573','657a','657x','657z','657y','657v','658a','658b','658c','658d','658v'","","","9999"),
 ("650","b","Vedette de sujet ou nom géographique comme élément de classement","Vedette de sujet ou nom géographique comme élément de classement","0","0","","6","","","","0","-1","","","","","9999"),
 ("650","c","Lieu de l'événement","Lieu de l'événement","0","0","","6","","","","0","-1","","","","","9999"),
 ("650","d","Dates d'activité","Dates d'activité","0","0","","6","","","","0","-1","","","","","9999"),
@@ -2821,3 +2821,59 @@ INSERT IGNORE INTO `marc_subfield_structure` (`tagfield`, `tagsubfield`, `liblib
 
 UPDATE `marc_subfield_structure` SET maxlength=24 WHERE tagfield='000';
 UPDATE `marc_subfield_structure` SET maxlength=40 WHERE tagfield='008';
+
+
+-- Create the ACQ framework based on the default framework
+-- Fields 952
+INSERT IGNORE INTO biblio_framework VALUES( 'ACQ', 'Grille d\'acquisitions' );
+INSERT INTO marc_tag_structure(tagfield, liblibrarian, libopac, repeatable, mandatory, authorised_value, frameworkcode)
+SELECT tagfield, liblibrarian, libopac, repeatable, mandatory, authorised_value, 'ACQ' FROM marc_tag_structure WHERE tagfield='952' AND frameworkcode='';
+
+INSERT INTO marc_subfield_structure(tagfield, tagsubfield, liblibrarian, libopac, repeatable, mandatory, kohafield, tab, authorised_value, authtypecode, value_builder, isurl, hidden, frameworkcode, seealso, link, defaultvalue, maxlength)
+SELECT tagfield, tagsubfield, liblibrarian, libopac, repeatable, mandatory, kohafield, tab, authorised_value, authtypecode, value_builder, isurl, hidden, 'ACQ', seealso, link, defaultvalue, maxlength FROM marc_subfield_structure WHERE tagfield='952' AND frameworkcode='';
+
+-- Some biblio-level fields
+INSERT INTO marc_tag_structure(tagfield, liblibrarian, libopac, repeatable, mandatory, authorised_value, frameworkcode)
+SELECT tagfield, liblibrarian, libopac, repeatable, mandatory, authorised_value, 'ACQ'
+FROM marc_tag_structure
+WHERE frameworkcode="" AND tagfield IN (
+    SELECT tagfield
+    FROM marc_subfield_structure
+    WHERE (
+            kohafield="biblio.title"
+        OR  kohafield="biblio.author"
+        OR  kohafield="biblioitems.publishercode"
+        OR  kohafield="biblioitems.editionstatement"
+        OR  kohafield="biblio.copyrightdate"
+        OR  kohafield="biblioitems.isbn"
+        OR  kohafield="biblio.seriestitle"
+    ) AND frameworkcode=""
+);
+INSERT INTO marc_subfield_structure(tagfield, tagsubfield, liblibrarian, libopac, repeatable, mandatory, kohafield, tab, authorised_value, authtypecode, value_builder, isurl, hidden, frameworkcode, seealso, link, defaultvalue, maxlength)
+SELECT tagfield, tagsubfield, liblibrarian, libopac, repeatable, mandatory, kohafield, tab, authorised_value, authtypecode, value_builder, isurl, hidden, 'ACQ', seealso, link, defaultvalue, maxlength
+FROM marc_subfield_structure
+WHERE frameworkcode=""
+AND kohafield IN ("biblio.title", "biblio.author", "biblioitems.publishercode", "biblioitems.editionstatement", "biblio.copyrightdate", "biblioitems.isbn", "biblio.seriestitle" );
+
+
+-- **************************************
+-- IGNORE CERTAINES SOUS-ZONES EXEMPLAIRE
+-- **************************************
+
+UPDATE marc_subfield_structure SET tab = -1 WHERE tagfield = '952' AND tagsubfield = '0' AND frameworkcode = 'ACQ';
+UPDATE marc_subfield_structure SET tab = -1 WHERE tagfield = '952' AND tagsubfield = '1' AND frameworkcode = 'ACQ';
+UPDATE marc_subfield_structure SET tab = -1 WHERE tagfield = '952' AND tagsubfield = '2' AND frameworkcode = 'ACQ';
+UPDATE marc_subfield_structure SET tab = -1 WHERE tagfield = '952' AND tagsubfield = '4' AND frameworkcode = 'ACQ';
+UPDATE marc_subfield_structure SET tab = -1 WHERE tagfield = '952' AND tagsubfield = '5' AND frameworkcode = 'ACQ';
+UPDATE marc_subfield_structure SET tab = -1 WHERE tagfield = '952' AND tagsubfield = 'f' AND frameworkcode = 'ACQ';
+UPDATE marc_subfield_structure SET tab = -1 WHERE tagfield = '952' AND tagsubfield = 'g' AND frameworkcode = 'ACQ';
+UPDATE marc_subfield_structure SET tab = -1 WHERE tagfield = '952' AND tagsubfield = 'j' AND frameworkcode = 'ACQ';
+UPDATE marc_subfield_structure SET tab = -1 WHERE tagfield = '952' AND tagsubfield = 'l' AND frameworkcode = 'ACQ';
+UPDATE marc_subfield_structure SET tab = -1 WHERE tagfield = '952' AND tagsubfield = 'm' AND frameworkcode = 'ACQ';
+UPDATE marc_subfield_structure SET tab = -1 WHERE tagfield = '952' AND tagsubfield = 'n' AND frameworkcode = 'ACQ';
+UPDATE marc_subfield_structure SET tab = -1 WHERE tagfield = '952' AND tagsubfield = 'q' AND frameworkcode = 'ACQ';
+UPDATE marc_subfield_structure SET tab = -1 WHERE tagfield = '952' AND tagsubfield = 'r' AND frameworkcode = 'ACQ';
+UPDATE marc_subfield_structure SET tab = -1 WHERE tagfield = '952' AND tagsubfield = 's' AND frameworkcode = 'ACQ';
+UPDATE marc_subfield_structure SET tab = -1 WHERE tagfield = '952' AND tagsubfield = 'u' AND frameworkcode = 'ACQ';
+UPDATE marc_subfield_structure SET tab = -1 WHERE tagfield = '952' AND tagsubfield = 'v' AND frameworkcode = 'ACQ';
+UPDATE marc_subfield_structure SET tab = -1 WHERE tagfield = '952' AND tagsubfield = 'w' AND frameworkcode = 'ACQ';

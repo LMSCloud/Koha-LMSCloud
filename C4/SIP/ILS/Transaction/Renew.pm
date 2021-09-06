@@ -51,6 +51,8 @@ sub do_renew_for  {
     } else {
         $renewerror=~s/on_reserve/Item unavailable due to outstanding holds/;
         $renewerror=~s/too_many/Item has reached maximum renewals/;
+        $renewerror=~s/too_unseen/Item has reached maximum consecutive renewals without being seen/;
+        $renewerror=~s/item_denied_renewal/Item renewal is not allowed/;
         $self->screen_msg($renewerror);
         $self->renewal_ok(0);
     }
@@ -60,7 +62,8 @@ sub do_renew_for  {
 
 sub do_renew {
     my $self = shift;
-    my $patron = Koha::Patrons->find( { cardnumber => $self->{patron}->id } );
+    my $patron = Koha::Patrons->find( $self->{patron}->borrowernumber );
+    $patron or return; # FIXME we should log that
     return $self->do_renew_for($patron->unblessed);
 }
 

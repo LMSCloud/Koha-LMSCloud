@@ -46,13 +46,14 @@ use Module::Load::Conditional qw(can_load);
 use Sereal::Encoder;
 use Sereal::Decoder;
 
+use C4::Context;
 use Koha::Cache::Object;
 use Koha::Config;
 
 use base qw(Class::Accessor);
 
 __PACKAGE__->mk_ro_accessors(
-    qw( cache memcached_cache fastmmap_cache memory_cache ));
+    qw( cache memcached_cache ));
 
 our %L1_cache;
 our $L1_encoder = Sereal::Encoder->new;
@@ -79,38 +80,17 @@ sub new {
     # Should we continue to support MEMCACHED ENV vars?
     $self->{'namespace'} ||= $ENV{MEMCACHED_NAMESPACE};
     my @servers = split /,/, $ENV{MEMCACHED_SERVERS} || '';
-    unless ( $self->{namespace} and @servers ) {
-        my $koha_config = Koha::Config->read_from_file( Koha::Config->guess_koha_conf() );
-        $self->{namespace} ||= $koha_config->{config}{memcached_namespace} || 'koha';
-        @servers = split /,/, $koha_config->{config}{memcached_servers} // ''
-            unless @servers;
-    }
+    $self->{namespace} ||= C4::Context->config('memcached_namespace') || 'koha';
+    @servers = split /,/, C4::Context->config('memcached_servers') // ''
+        unless @servers;
     $self->{namespace} .= ":$subnamespace:";
 
     if ( $self->{'default_type'} eq 'memcached'
-        && can_load( modules => { 'Cache::Memcached::Fast' => undef } )
+        && can_load( modules => { 'Cache::Memcached::Fast::Safe' => undef } )
         && _initialize_memcached($self, @servers)
         && defined( $self->{'memcached_cache'} ) )
     {
         $self->{'cache'} = $self->{'memcached_cache'};
-    }
-
-    if ( $self->{'default_type'} eq 'fastmmap'
-      && defined( $ENV{GATEWAY_INTERFACE} )
-      && can_load( modules => { 'Cache::FastMmap' => undef } )
-      && _initialize_fastmmap($self)
-      && defined( $self->{'fastmmap_cache'} ) )
-    {
-        $self->{'cache'} = $self->{'fastmmap_cache'};
-    }
-
-    # Unless memcache or fastmmap has already been picked, use memory_cache
-    unless ( defined( $self->{'cache'} ) ) {
-        if ( can_load( modules => { 'Cache::Memory' => undef } )
-            && _initialize_memory($self) )
-        {
-                $self->{'cache'} = $self->{'memory_cache'};
-        }
     }
 
     $ENV{DEBUG} && carp "Selected caching system: " . ($self->{'cache'} // 'none');
@@ -130,9 +110,9 @@ sub _initialize_memcached {
       . join( ', ', @servers )
       . " with "
       . $self->{'namespace'};
-    # Cache::Memcached::Fast doesn't allow a default expire time to be set
+    # Cache::Memcached::Fast::Safe doesn't allow a default expire time to be set
     # so we force it on setting.
-    my $memcached = Cache::Memcached::Fast->new(
+    my $memcached = Cache::Memcached::Fast::Safe->new(
         {
             servers            => \@servers,
             compress_threshold => 10_000,
@@ -148,60 +128,6 @@ sub _initialize_memcached {
         return $self;
     }
     $self->{'memcached_cache'} = $memcached;
-    return $self;
-}
-
-sub _initialize_fastmmap {
-    my ($self) = @_;
-    my ($cache, $share_file);
-
-    # Temporary workaround to catch fatal errors when: C4::Context module
-    # is not loaded beforehand, or Cache::FastMmap init fails for whatever
-    # other reason (e.g. due to permission issues - see Bug 13431)
-    eval {
-        $share_file = join( '-',
-            "/tmp/sharefile-koha", $self->{'namespace'},
-            C4::Context->config('hostname'), C4::Context->config('database') );
-
-        $cache = Cache::FastMmap->new(
-            'share_file'  => $share_file,
-            'expire_time' => $self->{'timeout'},
-            'unlink_on_exit' => 0,
-        );
-    };
-    if ( $@ ) {
-        warn "FastMmap cache initialization failed: $@";
-        return;
-    }
-    return unless defined $cache;
-    $self->{'fastmmap_cache'} = $cache;
-    return $self;
-}
-
-sub _initialize_memory {
-    my ($self) = @_;
-
-    # Default cache time for memory is _always_ short unless it's specially
-    # defined, to allow it to work reliably in a persistent environment.
-    my $cache = Cache::Memory->new(
-        'namespace'       => $self->{'namespace'},
-        'default_expires' => "$self->{'timeout'} sec" || "10 sec",
-    );
-    $self->{'memory_cache'} = $cache;
-    # Memory cache can't handle complex types for some reason, so we use its
-    # freeze and thaw functions.
-    $self->{ref($cache) . '_set'} = sub {
-        my ($key, $val, $exp) = @_;
-        # Refer to set_expiry in Cache::Entry for why we do this 'sec' thing.
-        $exp = "$exp sec" if defined $exp;
-        # Because we need to use freeze, it must be a reference type.
-        $cache->freeze($key, [$val], $exp);
-    };
-    $self->{ref($cache) . '_get'} = sub {
-        my $res = $cache->thaw(shift);
-        return unless defined $res;
-        return $res->[0];
-    };
     return $self;
 }
 

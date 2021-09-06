@@ -4,18 +4,18 @@ package Koha::Util::MARC;
 #
 # This file is part of Koha.
 #
-# Koha is free software; you can redistribute it and/or modify it under the
-# terms of the GNU General Public License as published by the Free Software
-# Foundation; either version 3 of the License, or (at your option) any later
-# version.
+# Koha is free software; you can redistribute it and/or modify it
+# under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 3 of the License, or
+# (at your option) any later version.
 #
-# Koha is distributed in the hope that it will be useful, but WITHOUT ANY
-# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
-# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+# Koha is distributed in the hope that it will be useful, but
+# WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+# GNU General Public License for more details.
 #
-# You should have received a copy of the GNU General Public License along
-# with Koha; if not, write to the Free Software Foundation, Inc.,
-# 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+# You should have received a copy of the GNU General Public License
+# along with Koha; if not, see <http://www.gnu.org/licenses>.
 
 use Modern::Perl;
 use MARC::Record;
@@ -177,6 +177,53 @@ sub getAuthorityAuthorizedHeading {
         }
     }
     return;
+}
+
+=head2 set_marc_field
+
+    set_marc_field($record, $marcField, $value);
+
+Set the value of $marcField to $value in $record. If the field exists, it will
+be updated. If not, it will be created.
+
+=head3 Parameters
+
+=over 4
+
+=item C<$record>
+
+MARC::Record object
+
+=item C<$marcField>
+
+the MARC field to modify, a string in the form of 'XXX$y'
+
+=item C<$value>
+
+the value
+
+=back
+
+=cut
+
+sub set_marc_field {
+    my ($record, $marcField, $value) = @_;
+
+    if ($marcField) {
+        my ($fieldTag, $subfieldCode) = split /\$/, $marcField;
+        if( !$subfieldCode ) {
+            warn "set_marc_field: Invalid marcField format: $marcField\n";
+            return;
+        }
+        my $field = $record->field($fieldTag);
+        if ($field) {
+            $field->update($subfieldCode => $value);
+        } else {
+            $field = MARC::Field->new($fieldTag, ' ', ' ',
+                $subfieldCode => $value);
+            $record->append_fields($field);
+        }
+    }
 }
 
 1;

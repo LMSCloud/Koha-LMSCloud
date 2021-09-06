@@ -3,18 +3,18 @@
 # Copyright 2012 BibLibre
 # This file is part of Koha.
 #
-# Koha is free software; you can redistribute it and/or modify it under the
-# terms of the GNU General Public License as published by the Free Software
-# Foundation; either version 2 of the License, or (at your option) any later
-# version.
+# Koha is free software; you can redistribute it and/or modify it
+# under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 3 of the License, or
+# (at your option) any later version.
 #
-# Koha is distributed in the hope that it will be useful, but WITHOUT ANY
-# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
-# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+# Koha is distributed in the hope that it will be useful, but
+# WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+# GNU General Public License for more details.
 #
-# You should have received a copy of the GNU General Public License along with
-# Koha; if not, write to the Free Software Foundation, Inc.,
-# 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+# You should have received a copy of the GNU General Public License
+# along with Koha; if not, see <http://www.gnu.org/licenses>.
 
 =head1 members/statistics.pl
 
@@ -29,18 +29,16 @@ use C4::Auth;
 use C4::Context;
 use C4::Members;
 use C4::Members::Statistics;
-use C4::Members::Attributes qw(GetBorrowerAttributes);
 use C4::Output;
 use Koha::Patrons;
 use Koha::Patron::Categories;
 
-my $input = new CGI;
+my $input = CGI->new;
 
 my ( $template, $loggedinuser, $cookie ) = get_template_and_user(
     {   template_name   => "members/statistics.tt",
         query           => $input,
         type            => "intranet",
-        authnotrequired => 0,
         flagsrequired   => { borrowers => 'edit_borrowers' },
         debug           => 1,
     }
@@ -48,7 +46,7 @@ my ( $template, $loggedinuser, $cookie ) = get_template_and_user(
 
 my $borrowernumber = $input->param('borrowernumber');
 
-my $logged_in_user = Koha::Patrons->find( $loggedinuser ) or die "Not logged in";
+my $logged_in_user = Koha::Patrons->find( $loggedinuser );
 my $patron         = Koha::Patrons->find( $borrowernumber );
 output_and_exit_if_error( $input, $cookie, $template, { module => 'members', logged_in_user => $logged_in_user, current_patron => $patron } );
 
@@ -76,20 +74,6 @@ my $count_total_precedent_state = $total->{count_precedent_state} || 0;
 my $count_total_issues = $total->{count_total_issues_today} || 0;
 my $count_total_issues_returned = $total->{count_total_issues_returned_today} || 0;
 my $count_total_actual_state = ($count_total_precedent_state - $count_total_issues_returned + $count_total_issues);
-
-if (C4::Context->preference('ExtendedPatronAttributes')) {
-    my $attributes = GetBorrowerAttributes($borrowernumber);
-    $template->param(
-        ExtendedPatronAttributes => 1,
-        extendedattributes => $attributes
-    );
-}
-
-if ( $patron->is_child ) {
-    my $patron_categories = Koha::Patron::Categories->search_limited({ category_type => 'A' }, {order_by => ['categorycode']});
-    $template->param( 'CATCODE_MULTI' => 1) if $patron_categories->count > 1;
-    $template->param( 'catcode' => $patron_categories->next->categorycode )  if $patron_categories->count == 1;
-}
 
 $template->param(
     patron             => $patron,
@@ -213,7 +197,10 @@ sub merge {
         for my $ch ( @r ) {
             $exists = 1;
             for my $cn ( @statistic_column_names ) {
-                if ( $ch->{$cn} and not $ch->{$cn} eq $h->{$cn} ) {
+                if (   ( not defined $ch->{$cn} && defined $h->{$cn} )
+                    || ( defined $ch->{$cn} && not defined $h->{$cn} )
+                    || ( $ch->{$cn} ne $h->{$cn} ) )
+                {
                     $exists = 0;
                     last;
                 }

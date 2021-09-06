@@ -4,18 +4,18 @@
 #
 # This file is part of Koha.
 #
-# Koha is free software; you can redistribute it and/or modify it under the
-# terms of the GNU General Public License as published by the Free Software
-# Foundation; either version 3 of the License, or (at your option) any later
-# version.
+# Koha is free software; you can redistribute it and/or modify it
+# under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 3 of the License, or
+# (at your option) any later version.
 #
-# Koha is distributed in the hope that it will be useful, but WITHOUT ANY
-# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
-# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+# Koha is distributed in the hope that it will be useful, but
+# WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+# GNU General Public License for more details.
 #
-# You should have received a copy of the GNU General Public License along
-# with Koha; if not, write to the Free Software Foundation, Inc.,
-# 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+# You should have received a copy of the GNU General Public License
+# along with Koha; if not, see <http://www.gnu.org/licenses>.
 
 use Modern::Perl;
 use CGI;
@@ -32,7 +32,6 @@ our ( $template, $loggedinuser, $cookie ) = get_template_and_user(
         template_name   => 'admin/edi_accounts.tt',
         query           => $input,
         type            => 'intranet',
-        authnotrequired => 0,
         flagsrequired   => { acquisition => 'edi_manage' },
     }
 );
@@ -52,10 +51,7 @@ if ( $op eq 'acct_form' ) {
     );
     $template->param( vendors => \@vendors );
 
-    my $plugins_enabled = C4::Context->preference('UseKohaPlugins') && C4::Context->config("enable_plugins");
-    $template->param( plugins_enabled => $plugins_enabled );
-
-    if ( $plugins_enabled ) {
+    if ( C4::Context->config("enable_plugins") ) {
         my @plugins = Koha::Plugins->new()->GetPlugins({
             method => 'edifact',
         });
@@ -81,11 +77,11 @@ else {
             download_directory => scalar $input->param('download_directory'),
             san                => scalar $input->param('san'),
             transport          => scalar $input->param('transport'),
-            quotes_enabled     => defined $input->param('quotes_enabled'),
-            invoices_enabled   => defined $input->param('invoices_enabled'),
-            orders_enabled     => defined $input->param('orders_enabled'),
-            responses_enabled  => defined $input->param('responses_enabled'),
-            auto_orders        => defined $input->param('auto_orders'),
+            quotes_enabled     => $input->param('quotes_enabled') ? 1 : 0,
+            invoices_enabled   => $input->param('invoices_enabled') ? 1 : 0,
+            orders_enabled     => $input->param('orders_enabled') ? 1 : 0,
+            responses_enabled  => $input->param('responses_enabled') ? 1 : 0,
+            auto_orders        => $input->param('auto_orders') ? 1 : 0,
             id_code_qualifier  => scalar $input->param('id_code_qualifier'),
             plugin             => scalar $input->param('plugin'),
         };

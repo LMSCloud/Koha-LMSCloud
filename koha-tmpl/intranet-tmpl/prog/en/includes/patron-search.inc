@@ -2,80 +2,41 @@
 [% USE Branches %]
 [% USE Categories %]
 [% USE Letters %]
+[% USE raw %]
+[% PROCESS 'html_helpers.inc' %]
+[% PROCESS 'patronfields.inc' %]
 <div class="gradient">
-<h1 id="logo"><a href="/cgi-bin/koha/mainpage.pl">[% LibraryName %]</a></h1><!-- Begin Patrons Resident Search Box -->
+<h1 id="logo"><a href="/cgi-bin/koha/mainpage.pl">[% LibraryName | html %]</a></h1><!-- Begin Patrons Resident Search Box -->
 <div id="header_search">
     <div id="patron_search" class="residentsearch">
-    <p class="tip">Enter patron card number or partial name:</p>
-    <form name="membersearchform" action="/cgi-bin/koha/members/member.pl" method="post">
-    <input id="searchmember" data-toggle="tooltip" size="25" class="head-searchbox focus" name="searchmember" type="text" value="[% searchmember %]"/>
-    <input type="hidden" name="quicksearch" value="1" />
-    <span class="filteraction" id="filteraction_off"> <a href="#">[-]</a></span>
-    <span class="filteraction" id="filteraction_on"> <a href="#">[+]</a></span>
+    <form action="/cgi-bin/koha/members/member.pl" method="post">
+        <label class="tip" for="searchmember">Enter patron card number or partial name:</label>
+    <div class="autocomplete">
+        <input id="searchmember" data-toggle="tooltip" size="25" class="head-searchbox focus" name="searchmember" type="text" value="[% searchmember | html %]" autocomplete="off" />
+        <input type="hidden" name="quicksearch" value="1" />
+        <span class="filteraction" id="filteraction_off"> <a href="#">[-]</a></span>
+        <span class="filteraction" id="filteraction_on"> <a href="#">[+]</a></span>
+        <input value="Search" class="submit" type="submit" />
+    </div>
 
-    <input value="Search" class="submit" type="submit" />
 
     <div id="filters">
         <p><label for="searchfieldstype">Search fields:</label>
             <select name="searchfieldstype" id="searchfieldstype">
-              [% IF searchfieldstype == "standard" %]
-                <option selected="selected" value='standard'>Standard</option>
-              [% ELSE %]
-                <option value='standard'>Standard</option>
-              [% END %]
-              [% IF searchfieldstype == "surname" %]
-                <option selected="selected" value='surname'>Surname</option>
-              [% ELSE %]
-                <option value='surname'>Surname</option>
-              [% END %]
-              [% IF searchfieldstype == "email" %]
-                <option selected="selected" value='email'>Email</option>
-              [% ELSE %]
-                <option value='email'>Email</option>
-              [% END %]
-              [% IF searchfieldstype == "borrowernumber" %]
-                <option selected="selected" value='borrowernumber'>Borrower number</option>
-              [% ELSE %]
-                <option value='borrowernumber'>Borrower number</option>
-              [% END %]
-              [% IF searchfieldstype == "userid" %]
-                <option selected="selected" value='userid'>Username</option>
-              [% ELSE %]
-                <option value='userid'>Username</option>
-              [% END %]
-              [% IF searchfieldstype == "phone" %]
-                <option selected="selected" value='phone'>Phone number</option>
-              [% ELSE %]
-                <option value='phone'>Phone number</option>
-              [% END %]
-              [% IF searchfieldstype == "address" %]
-                <option selected="selected" value='address'>Street Address</option>
-              [% ELSE %]
-                <option value='address'>Street Address</option>
-              [% END %]
-              [% IF searchfieldstype == "city" %]
-                <option selected="selected" value='city'>City</option>
-              [% ELSE %]
-                <option value='city'>City</option>
-              [% END %]
-              [% IF searchfieldstype == "dateofbirth" %]
-                <option selected="selected" value='dateofbirth'>Date of birth</option>
-              [% ELSE %]
-                <option value='dateofbirth'>Date of birth</option>
-              [% END %]
-              [% IF searchfieldstype == "sort1" %]
-                <option selected="selected" value='sort1'>Sort field 1</option>
-              [% ELSE %]
-                <option value='sort1'>Sort field 1</option>
-              [% END %]
-              [% IF searchfieldstype == "sort2" %]
-                <option selected="selected" value='sort2'>Sort field 2</option>
-              [% ELSE %]
-                <option value='sort2'>Sort field 2</option>
+              [% pref_fields = Koha.Preference('DefaultPatronSearchFields').split(',') %]
+              [% default_fields = [ 'standard', 'surname', 'cardnumber', 'email', 'borrowernumber', 'userid', 'phone', 'address', 'city', 'dateofbirth', 'sort1', 'sort2' ] %]
+              [% search_options = default_fields.merge(pref_fields).unique %]
+              [% FOREACH s_o IN search_options %]
+                  [% display_name = PROCESS patron_fields name=s_o %]
+                  [% NEXT IF !display_name.length %]
+                  [% IF searchfieldstype == s_o %]
+                      <option selected="selected" value="[% s_o | html %]">[% display_name | $raw %]</option>
+                  [% ELSE %]
+                      <option value="[% s_o | html %]">[% display_name | $raw %]</option>
+                  [% END %]
               [% END %]
             </select>
         </p>
-
         <p>
             <label for="searchtype">Search type:</label>
             <select name="searchtype" id="searchtype">
@@ -91,18 +52,12 @@
 
         <p>
             <label for="branchcode">Library: </label>
-            [% SET branches = Branches.all( selected => branchcode_filter, only_my_group => 1 ) %]
+            [% SET branches = Branches.all( selected => branchcode_filter, only_from_group => 1 ) %]
             <select name="branchcode_filter" id="branchcode">
                 [% IF branches.size != 1 %]
                   <option value="">Any</option>
                 [% END %]
-                [% FOREACH b IN branches %]
-                    [% IF b.selected %]
-                        <option value="[% b.branchcode %]" selected="selected">[% b.branchname %]</option>
-                    [% ELSE %]
-                        <option value="[% b.branchcode %]">[% b.branchname |html %]</option>
-                    [% END %]
-                [% END %]
+                [% PROCESS options_for_libraries libraries => branches %]
             </select>
         </p>
         
@@ -113,9 +68,9 @@
                 <option value="">Any</option>
                 [% FOREACH category IN categories %]
                     [% IF category.categorycode == categorycode_filter %]
-                        <option value="[% category.categorycode %]" selected="selected">[% category.description |html %]</option>
+                        <option value="[% category.categorycode | html %]" selected="selected">[% category.description | html %]</option>
                     [% ELSE %]
-                        <option value="[% category.categorycode %]">[% category.description |html %]</option>
+                        <option value="[% category.categorycode | html %]">[% category.description | html %]</option>
                     [% END %]
                 [% END %]
             </select>
@@ -236,15 +191,15 @@
 
     [% IF ( CAN_user_circulate_circulate_remaining_permissions ) %]
     <div id="checkin_search" class="residentsearch">
-    <p class="tip">Scan a barcode to check in:</p>
     <form method="post" action="/cgi-bin/koha/circ/returns.pl" autocomplete="off">
+        <label class="tip" for="ret_barcode">Scan a barcode to check in:</label>
     <input class="head-searchbox" name="barcode" id="ret_barcode" size="40" accesskey="r" type="text" />
     <input value="Submit" class="submit" type="submit" />
     </form>
     </div>
         <div id="renew_search" class="residentsearch">
-        <p class="tip">Scan a barcode to renew:</p>
             <form method="post" action="/cgi-bin/koha/circ/renew.pl" autocomplete="off">
+                <label class="tip" for="ren_barcode">Scan a barcode to renew:</label>
                 <input class="head-searchbox" name="barcode" id="ren_barcode" size="40" type="text" />
                 <input value="Submit" class="submit" type="submit" />
             </form>
@@ -253,9 +208,13 @@
 
     [% IF ( CAN_user_catalogue ) %]
     <div id="catalog_search" class="residentsearch">
-    <p class="tip">Enter search keywords:</p>
         <form action="/cgi-bin/koha/catalogue/search.pl"  method="get" id="cat-search-block">
-             [% IF ( Koha.Preference('IntranetCatalogSearchPulldown') ) %][% INCLUDE 'search_indexes.inc' %][% END %]
+            [% IF ( Koha.Preference('IntranetCatalogSearchPulldown') ) %]
+                <label class="tip" for="search-form">Enter search keywords:</label>
+                [% INCLUDE 'search_indexes.inc' %]
+            [% ELSE %]
+                <label class="tip" for="search-form">Enter search keywords:</label>
+            [% END %]
              <input type="text" name="q" id="search-form" size="40" value="" title="Enter the terms you wish to search for." class="head-searchbox form-text" />
              <input type="submit" name="op" id="opac-submit" value="Submit" class="submit" />
         </form>
@@ -271,17 +230,6 @@
 </div><!-- /header_search -->
 </div><!-- /gradient -->
 <!-- End Patrons Resident Search Box -->
-
-<script type="text/javascript">
-    var advsearch = "[% advsearch %]";
-    var destination = "[% destination %]";
-    var catcode = "[% catcode %]";
-    var dateformat = "[% Koha.Preference('dateformat') %]";
-    var CAN_user_borrowers_edit_borrowers = "[% CAN_user_borrowers_edit_borrowers %]";
-    var NorwegianPatronDBEnable = "[% NorwegianPatronDBEnable %]";
-    var CATCODE_MULTI = "[% CATCODE_MULTI %]";
-    var borrowernumber = "[% patron.borrowernumber %]";
-</script>
 
 [% MACRO jsextrainclude BLOCK %]
 [% INCLUDE 'calendar.inc' %]

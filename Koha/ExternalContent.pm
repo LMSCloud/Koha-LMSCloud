@@ -2,18 +2,18 @@
 #
 # This file is part of Koha.
 #
-# Koha is free software; you can redistribute it and/or modify it under the
-# terms of the GNU General Public License as published by the Free Software
-# Foundation; either version 3 of the License, or (at your option) any later
-# version.
+# Koha is free software; you can redistribute it and/or modify it
+# under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 3 of the License, or
+# (at your option) any later version.
 #
-# Koha is distributed in the hope that it will be useful, but WITHOUT ANY
-# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
-# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+# Koha is distributed in the hope that it will be useful, but
+# WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+# GNU General Public License for more details.
 #
-# You should have received a copy of the GNU General Public License along
-# with Koha; if not, write to the Free Software Foundation, Inc.,
-# 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+# You should have received a copy of the GNU General Public License
+# along with Koha; if not, see <http://www.gnu.org/licenses>.
 
 package Koha::ExternalContent;
 
@@ -22,10 +22,11 @@ use Carp;
 use base qw(Class::Accessor);
 
 use Koha;
+use Koha::Logger;
 use Koha::Patrons;
 use C4::Auth;
 
-__PACKAGE__->mk_accessors(qw(client koha_session_id koha_patron));
+__PACKAGE__->mk_accessors(qw(client koha_session_id koha_patron logger));
 
 =head1 NAME
 
@@ -54,6 +55,9 @@ sub agent_string {
 sub new {
     my $class     = shift;
     my $params    = shift || {};
+
+    $params->{logger} = Koha::Logger->get();
+
     return bless $params, $class;
 }
 
@@ -86,7 +90,7 @@ sub koha_patron {
     }
 
     my $id = $self->get_from_koha_session('number')
-      or die "No patron number in session";
+      or return;
     my $patron = Koha::Patrons->find($id)
       or die "Invalid patron number in session";
     return $self->_koha_patron_accessor($patron);

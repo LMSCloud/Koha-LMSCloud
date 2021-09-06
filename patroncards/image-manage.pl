@@ -19,8 +19,7 @@ my ($template, $loggedinuser, $cookie) = get_template_and_user({
                     template_name       => "patroncards/image-manage.tt",
                     query               => $cgi,
                     type                => "intranet",
-                    authnotrequired     => 0,
-                    flagsrequired       => {tools => 'batch_upload_patron_images'}, # FIXME: establish flag for patron card creator
+                    flagsrequired       => {tools => 'label_creator'},
                     debug               => 0,
                     });
 
@@ -28,7 +27,7 @@ my $file_name = $cgi->param('uploadfile') || '';
 my $image_name = $cgi->param('image_name') || $file_name;
 my $upload_file = $cgi->upload('uploadfile') || '';
 my $op = $cgi->param('op') || 'none';
-my @image_ids = $cgi->multi_param('image_id') if $cgi->param('image_id');
+my @image_ids = $cgi->multi_param('image_id');
 
 my $source_file = "$file_name"; # otherwise we end up with what amounts to a pointer to a filehandle rather than a user-friendly filename
 
@@ -191,11 +190,18 @@ Copyright 2009 Foundations Bible College.
 
 This file is part of Koha.
 
-Koha is free software; you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software
-Foundation; either version 2 of the License, or (at your option) any later version.
+Koha is free software; you can redistribute it and/or modify it
+under the terms of the GNU General Public License as published by
+the Free Software Foundation; either version 3 of the License, or
+(at your option) any later version.
 
-You should have received a copy of the GNU General Public License along with Koha; if not, write to the Free Software Foundation, Inc., 51 Franklin Street,
-Fifth Floor, Boston, MA 02110-1301 USA.
+Koha is distributed in the hope that it will be useful, but
+WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with Koha; if not, see <http://www.gnu.org/licenses>.
 
 =head1 DISCLAIMER OF WARRANTY
 

@@ -65,12 +65,9 @@ do
     mysql_hostname="localhost"
     if [ "$keepmysql" != "1" ]
     then
-    # The grant creates the user in case it isn't, we don't want our loop to fail if it has already being deleted.
     mysql --defaults-extra-file=/etc/mysql/koha-common.cnf <<eof
-GRANT USAGE ON \`koha_$name\`.* TO \`koha_$name\`@\`%\`;
-GRANT USAGE ON \`koha_$name\`.* TO \`koha_$name\`@\`$mysql_hostname\`;
-DROP USER \`koha_$name\`@\`%\`;
-DROP USER \`koha_$name\`@\`$mysql_hostname\`;
+DROP USER IF EXISTS \`koha_$name\`@\`%\`;
+DROP USER IF EXISTS \`koha_$name\`@\`$mysql_hostname\`;
 DROP DATABASE IF EXISTS \`koha_$name\`;
 FLUSH PRIVILEGES;
 eof
@@ -84,9 +81,17 @@ eof
     if is_indexer_running $name; then
         koha-indexer --stop $name || /bin/true
     fi
+    # Stop the worker daemon if needed
+    if is_worker_running $name; then
+        koha-worker --stop $name || /bin/true
+    fi
     # Stop the Plack server if needed
     if is_plack_running $name; then
         koha-plack --stop $name || /bin/true
+    fi
+    # Stop the SIP server if needed
+    if is_sip_running $name; then
+        koha-sip --stop $name || /bin/true
     fi
 
     instancefile=$(get_apache_config_for $name)

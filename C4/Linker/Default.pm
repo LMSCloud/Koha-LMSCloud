@@ -30,17 +30,20 @@ sub get_link {
     my $heading     = shift;
     my $behavior    = shift || 'default';
     my $search_form = $heading->search_form();
+    my $auth_type = $heading->auth_type();
     my $authid;
     my $fuzzy = 0;
+    my $match_count;
 
-    if ( $self->{'cache'}->{$search_form}->{'cached'} ) {
-        $authid = $self->{'cache'}->{$search_form}->{'authid'};
-        $fuzzy  = $self->{'cache'}->{$search_form}->{'fuzzy'};
+    if ( $self->{'cache'}->{$search_form.$auth_type}->{'cached'} ) {
+        $authid = $self->{'cache'}->{$search_form.$auth_type}->{'authid'};
+        $fuzzy  = $self->{'cache'}->{$search_form.$auth_type}->{'fuzzy'};
     }
     else {
 
         # look for matching authorities
         my $authorities = $heading->authorities(1);    # $skipmetadata = true
+        $match_count = scalar @$authorities;
 
         if ( $behavior eq 'default' && $#{$authorities} == 0 ) {
             $authid = $authorities->[0]->{'authid'};
@@ -67,16 +70,16 @@ sub get_link {
                         map { $_->[0] => $_->[1] } @subfields
                     );
                 ( $authid, $fuzzy ) =
-                  $self->get_link( C4::Heading->new_from_bib_field($field),
+                  $self->get_link( C4::Heading->new_from_field($field),
                     $behavior );
             }
         }
 
-        $self->{'cache'}->{$search_form}->{'cached'} = 1;
-        $self->{'cache'}->{$search_form}->{'authid'} = $authid;
-        $self->{'cache'}->{$search_form}->{'fuzzy'}  = $fuzzy;
+        $self->{'cache'}->{$search_form.$auth_type}->{'cached'} = 1;
+        $self->{'cache'}->{$search_form.$auth_type}->{'authid'} = $authid;
+        $self->{'cache'}->{$search_form.$auth_type}->{'fuzzy'}  = $fuzzy;
     }
-    return $self->SUPER::_handle_auth_limit($authid), $fuzzy;
+    return $self->SUPER::_handle_auth_limit($authid), $fuzzy, $match_count;
 }
 
 sub update_cache {
@@ -84,11 +87,12 @@ sub update_cache {
     my $heading     = shift;
     my $authid      = shift;
     my $search_form = $heading->search_form();
+    my $auth_type = $heading->auth_type();
     my $fuzzy = 0;
 
-    $self->{'cache'}->{$search_form}->{'cached'} = 1;
-    $self->{'cache'}->{$search_form}->{'authid'} = $authid;
-    $self->{'cache'}->{$search_form}->{'fuzzy'}  = $fuzzy;
+    $self->{'cache'}->{$search_form.$auth_type}->{'cached'} = 1;
+    $self->{'cache'}->{$search_form.$auth_type}->{'authid'} = $authid;
+    $self->{'cache'}->{$search_form.$auth_type}->{'fuzzy'}  = $fuzzy;
 }
 
 sub flip_heading {

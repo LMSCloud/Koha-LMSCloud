@@ -28,13 +28,11 @@ use C4::Letters;
 use C4::Output;
 use C4::Context;
 
-my $query      = new CGI;
+my $query      = CGI->new;
 my $op         = $query->param('op');
 my $dbh        = C4::Context->dbh;
 my $selectview = $query->param('selectview');
 $selectview = C4::Context->preference("SubscriptionHistory") unless $selectview;
-
-my $sth;
 
 # my $id;
 my ( $template, $loggedinuser, $cookie );
@@ -71,9 +69,6 @@ if ( $selectview eq "full" ) {
     my $yearmin = $subscriptions->[0]->{year};
     my $yearmax = $subscriptions->[ -1 ]->{year};
 
-    # replace CR by <br> in librarian note
-    # $subscription->{opacnote} =~ s/\n/\<br\/\>/g;
-
     $template->param(
         biblionumber   => scalar $query->param('biblionumber'),
         years          => $subscriptioninformation,
@@ -105,9 +100,6 @@ else {
             $_->{hasalert} = 1 if $subscriber;
         }
     }
-
-    # replace CR by <br> in librarian note
-    # $subscription->{opacnote} =~ s/\n/\<br\/\>/g;
 
     my $title   = $subscriptions->[0]->{bibliotitle};
 

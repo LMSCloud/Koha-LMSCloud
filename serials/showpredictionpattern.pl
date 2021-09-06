@@ -38,12 +38,11 @@ use C4::Serials;
 use C4::Serials::Frequency;
 use Koha::DateUtils;
 
-my $input = new CGI;
+my $input = CGI->new;
 my ($template, $loggedinuser, $cookie, $flags) = get_template_and_user( {
     template_name   => 'serials/showpredictionpattern.tt',
     query           => $input,
     type            => 'intranet',
-    authnotrequired => 0,
     flagsrequired   => { 'serials' => '*' },
 } );
 
@@ -51,12 +50,26 @@ my $subscriptionid = $input->param('subscriptionid');
 my $frequencyid = $input->param('frequency');
 my $firstacquidate = $input->param('firstacquidate');
 my $nextacquidate = $input->param('nextacquidate');
-my $enddate = $input->param('enddate');
+my $enddate = $input->param('to');
 my $subtype = $input->param('subtype');
 my $sublength = $input->param('sublength');
 my $custompattern = $input->param('custompattern');
 
-my $frequency = GetSubscriptionFrequency($frequencyid);
+
+my $frequency;
+if ( $frequencyid eq 'mana' ) {
+    $frequency = {
+        'id'            => undef,
+        'displayorder'  => undef,
+        'description'   => scalar $input->param('sfdescription') // '',
+        'unitsperissue' => scalar $input->param('unitsperissue') // '',
+        'issuesperunit' => scalar $input->param('issuesperunit') // '',
+        'unit'          => scalar $input->param('unit') // ''
+    };
+}
+else {
+    $frequency = GetSubscriptionFrequency($frequencyid);
+}
 
 my %pattern = (
     numberingmethod => scalar $input->param('numberingmethod') // '',
@@ -98,14 +111,13 @@ my %subscription = (
     innerloop2      => scalar $input->param('innerloop2') // '',
     innerloop3      => scalar $input->param('innerloop3') // '',
     irregularity    => '',
-    periodicity     => $frequencyid,
     countissuesperunit  => 1,
     firstacquidate  => $firstacquidate,
 );
 
 my $issuenumber;
 if(defined $subscriptionid) {
-    ($issuenumber) = C4::Serials::GetFictiveIssueNumber(\%subscription, $date);
+    ($issuenumber) = C4::Serials::GetFictiveIssueNumber(\%subscription, $date, $frequency);
 } else {
     $issuenumber = 1;
 }
@@ -135,7 +147,7 @@ while( $i < 1000 ) {
     my %line;
 
     if(defined $date){
-        $date = GetNextDate(\%subscription, $date);
+        $date = GetNextDate(\%subscription, $date, $frequency);
     }
     if(defined $date){
         $line{'publicationdate'} = $date;
@@ -156,7 +168,7 @@ while( $i < 1000 ) {
         last;
     }
 
-    ($calculated, $subscription{'lastvalue1'}, $subscription{'lastvalue2'}, $subscription{'lastvalue3'}, $subscription{'innerloop1'}, $subscription{'innerloop2'}, $subscription{'innerloop3'}) = GetNextSeq(\%subscription, \%pattern);
+    ($calculated, $subscription{'lastvalue1'}, $subscription{'lastvalue2'}, $subscription{'lastvalue3'}, $subscription{'innerloop1'}, $subscription{'innerloop2'}, $subscription{'innerloop3'}) = GetNextSeq(\%subscription, \%pattern, $frequency);
     $issuenumber++;
     $line{'number'} = $calculated;
     $line{'issuenumber'} = $issuenumber;

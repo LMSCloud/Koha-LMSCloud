@@ -6,9 +6,11 @@ use C4::Biblio qw( AddBiblio GetMarcFromKohaField );
 use C4::Context;
 use C4::Charset qw( SanitizeRecord );
 
+use Koha::Database;
+
+my $schema = Koha::Database->new->schema;
+$schema->storage->txn_begin;
 my $dbh = C4::Context->dbh;
-$dbh->{RaiseError} = 1;
-$dbh->{AutoCommit} = 0;
 
 my $frameworkcode = q||;
 
@@ -19,7 +21,7 @@ $dbh->do(qq|
     INSERT INTO marc_subfield_structure(frameworkcode,kohafield,tagfield,tagsubfield)
     VALUES ('$frameworkcode', 'biblioitems.url', '856', 'u')
 |);
-my ( $url_field, $url_subfield ) = C4::Biblio::GetMarcFromKohaField('biblioitems.url', $frameworkcode);
+my ( $url_field, $url_subfield ) = C4::Biblio::GetMarcFromKohaField( 'biblioitems.url' );
 
 my $title = q|My title & a word & another word|;
 my $url = q|http://www.example.org/index.pl?arg1=val1&amp;arg2=val2|;
@@ -47,5 +49,3 @@ $record->append_fields(
 ( $sanitized_record, $has_been_modified ) = C4::Charset::SanitizeRecord( $record, $biblionumber );
 is( $has_been_modified, 1, 'SanitizeRecord: the record has been modified' );
 is( $url, $sanitized_record->subfield($url_field, $url_subfield), 'SanitizeRecord: the url has not been modified');
-
-$dbh->rollback;

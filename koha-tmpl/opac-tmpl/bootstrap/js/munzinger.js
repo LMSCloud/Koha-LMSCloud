@@ -24,7 +24,7 @@ function getMunzingerFacet(query_desc) {
     }
     $.ajax({
     url: "/cgi-bin/koha/opac-munzinger.pl",
-        type: "POST",
+        method: "POST",
         cache: false,
         data: { 'search' : query_desc },
         dataType: "json",

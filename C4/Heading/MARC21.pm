@@ -68,6 +68,52 @@ my $bib_heading_fields = {
         subfields  => 'adfghklmnoprst',
         main_entry => 1
     },
+    '147' => {
+        auth_type => 'NAME_EVENT',
+        subfields => 'acdgvxyz68',
+        main_entry => 1
+    },
+    '148' => {
+        auth_type => 'CHRON_TERM',
+        subfields => 'abvxyz68',
+        main_entry => 1
+    },
+    '150' => {
+        auth_type => 'TOPIC_TERM',
+        subfields => 'abvxyz68',
+        main_entry => 1
+    },
+    '151' => {
+        auth_type => 'GEOGR_NAME',
+        subfields => 'avxyz68',
+        main_entry => 1
+    },
+    '155' => {
+        auth_type => 'GENRE/FORM',
+        subfields => 'abvxyz68',
+        main_entry => 1
+    },
+    '162' => {
+        auth_type => 'MED_PERFRM',
+        subfields => 'a68',
+        main_entry => 1
+    },
+    '180' => {
+        auth_type => 'TOPIC_TERM',
+        subfields => 'vxyz68'
+    },
+    '181' => {
+        auth_type => 'GEOGR_NAME',
+        subfields => 'vxyz68'
+    },
+    '182' => {
+        auth_type => 'CHRON_TERM',
+        subfields => 'vxyz68'
+    },
+    '185' => {
+        auth_type => 'GENRE/FORM',
+        subfields => 'vxyz68'
+    },
     '440' => { auth_type => 'UNIF_TITLE', subfields => 'anp', series => 1 },
     '600' => {
         auth_type => 'PERSO_NAME',
@@ -119,6 +165,75 @@ my $bib_heading_fields = {
       { auth_type => 'UNIF_TITLE', subfields => 'adfghklmnoprst', series => 1 },
 };
 
+my $auth_heading_fields = {
+    '100' => {
+        auth_type  => 'PERSO_NAME',
+        subfields  => 'abcdefghjklmnopqrstvxyz68',
+        main_entry => 1
+    },
+    '110' => {
+        auth_type  => 'CORPO_NAME',
+        subfields  => 'abcdefghklmnoprstvxyz68',
+        main_entry => 1
+    },
+    '111' => {
+        auth_type  => 'MEETI_NAME',
+        subfields  => 'acdefghklnpqstvxyz68',
+        main_entry => 1
+    },
+    '130' => {
+        auth_type  => 'UNIF_TITLE',
+        subfields  => 'adfghklmnoprstvxyz68',
+        main_entry => 1
+    },
+    '147' => {
+        auth_type  => 'NAME_EVENT',
+        subfields  => 'acdgvxyz68',
+        main_entry => 1
+    },
+    '148' => {
+        auth_type  => 'CHRON_TERM',
+        subfields  => 'abvxyz68',
+        main_entry => 1
+    },
+    '150' => {
+        auth_type  => 'TOPIC_TERM',
+        subfields  => 'abvxyz68',
+        main_entry => 1
+    },
+    '151' => {
+        auth_type  => 'GEOG_NAME',
+        subfields  => 'avxyz68',
+        main_entry => 1
+    },
+    '155' => {
+        auth_type  => 'GENRE/FORM',
+        subfields  => 'abvxyz68',
+        main_entry => 1
+    },
+    '162' => {
+        auth_type  => 'MED_PERFRM',
+        subfields  => 'a68',
+        main_entry => 1
+    },
+    '180' => {
+        auth_type => 'TOPIC_TERM',
+        subfields => 'vxyz68',
+    },
+    '181' => {
+        auth_type => 'GEOGR_NAME',
+        subfields => 'vxyz68',
+    },
+    '182' => {
+        auth_type => 'CHRON_TERM',
+        subfields => 'vxyz68',
+    },
+    '185' => {
+        auth_type => 'GENRE/FORM',
+        subfields => 'vxyz68',
+    },
+};
+
 =head2 subdivisions
 
 =cut
@@ -143,16 +258,18 @@ sub new {
     return bless {}, $class;
 }
 
-=head2 valid_bib_heading_tag
+=head2 valid_heading_tag
 
 =cut
 
-sub valid_bib_heading_tag {
+sub valid_heading_tag {
     my $self          = shift;
     my $tag           = shift;
     my $frameworkcode = shift;
+    my $auth          = shift;
+    my $heading_fields = $auth ? { %$auth_heading_fields } : { %$bib_heading_fields };
 
-    if ( exists $bib_heading_fields->{$tag} ) {
+    if ( exists $heading_fields->{$tag} ) {
         return 1;
     }
     else {
@@ -161,17 +278,64 @@ sub valid_bib_heading_tag {
 
 }
 
+=head2 valid_heading_subfield
+
+=cut
+
+sub valid_heading_subfield {
+    my $self          = shift;
+    my $tag           = shift;
+    my $subfield      = shift;
+    my $auth          = shift;
+
+    my $heading_fields = $auth ? { %$auth_heading_fields } : { %$bib_heading_fields };
+
+    if ( exists $heading_fields->{$tag} ) {
+        return 1 if ($heading_fields->{$tag}->{subfields} =~ /$subfield/);
+    }
+    return 0;
+}
+
+=head2 get_valid_bib_heading_subfields
+
+=cut
+
+sub get_valid_bib_heading_subfields {
+    my $self          = shift;
+    my $tag           = shift;
+
+    return $bib_heading_fields->{$tag}->{subfields} // undef;
+}
+
+=head2 get_auth_heading_subfields_to_report
+
+=cut
+
+sub get_auth_heading_subfields_to_report {
+    my $self          = shift;
+    my $tag           = shift;
+
+    my $subfields = $auth_heading_fields->{$tag}->{subfields} // '';
+    $subfields =~ s/[68]//;
+    return $subfields;
+}
+
 =head2 parse_heading
+
+Given a field and an indicator to specify if it is an authority field or biblio field we return
+the correct type, thesauarus, search form, and display form of the heading.
 
 =cut
 
 sub parse_heading {
     my $self  = shift;
     my $field = shift;
+    my $auth  = shift;
 
     my $tag        = $field->tag;
-    my $field_info = $bib_heading_fields->{$tag};
+    my $heading_fields = $auth ? { %$auth_heading_fields } : { %$bib_heading_fields };
 
+    my $field_info = $heading_fields->{$tag};
     my $auth_type = $field_info->{'auth_type'};
     my $thesaurus =
       $tag =~ m/6../
@@ -241,7 +405,7 @@ sub _get_search_heading {
         my $code    = $subfields[$i]->[0];
         my $code_re = quotemeta $code;
         my $value   = $subfields[$i]->[1];
-        $value =~ s/[-,.:=;!%\/]$//;
+        $value =~ s/[\s]*[-,.:=;!%\/][\s]*$//;
         next unless $subfields =~ qr/$code_re/;
         if ($first) {
             $first   = 0;

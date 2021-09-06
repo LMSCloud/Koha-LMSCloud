@@ -27,13 +27,15 @@ use C4::Auth;    # get_template_and_user
 use C4::Output;
 use C4::NewsChannels;    # GetNewsToDisplay
 use C4::Languages qw(getTranslatedLanguages accept_language);
-use C4::Koha qw( GetDailyQuote );
+use Koha::Quotes;
 use C4::Members;
 use C4::Overdues;
 use Koha::Checkouts;
 use Koha::Holds;
+use Koha::News;
+use Koha::Patron::Messages;
 
-my $input = new CGI;
+my $input = CGI->new;
 my $dbh   = C4::Context->dbh;
 
 my ( $template, $borrowernumber, $cookie ) = get_template_and_user(
@@ -61,10 +63,6 @@ $template->param(
     first_date_of_new   => $firstDateOfNew,
 );
 
-# display news
-# use cookie setting for language, bug default to syspref if it's not set
-my ($theme, $news_lang, $availablethemes) = C4::Templates::themelanguage(C4::Context->config('opachtdocs'),'opac-main.tt','opac',$input);
-
 my $homebranch;
 if (C4::Context->userenv) {
     $homebranch = C4::Context->userenv->{'branch'};
@@ -75,10 +73,20 @@ if (defined $input->param('branch') and length $input->param('branch')) {
 elsif (C4::Context->userenv and defined $input->param('branch') and length $input->param('branch') == 0 ){
    $homebranch = "";
 }
-my $all_koha_news   = &GetNewsToDisplay($news_lang,$homebranch);
-my $koha_news_count = scalar @$all_koha_news;
 
-my $quote = GetDailyQuote();   # other options are to pass in an exact quote id or select a random quote each pass... see perldoc C4::Koha
+my $news_id = $input->param('news_id');
+my $all_koha_news;
+
+if (defined $news_id){
+    $all_koha_news = Koha::News->search({ idnew => $news_id, lang => { '!=', 'koha' } }); # get news that is not staff-only news
+    if( $all_koha_news->count ) { # we only expect one btw
+        $template->param( news_item => $all_koha_news->next );
+    } else {
+        $template->param( single_news_error => 1 );
+    }
+} else {
+    $all_koha_news   = &GetNewsToDisplay( $template->lang, $homebranch);
+}
 
 # For dashboard
 my $patron = Koha::Patrons->find( $borrowernumber );
@@ -88,10 +96,14 @@ if ( $patron ) {
     my ( $overdues_count, $overdues ) = checkoverdues($borrowernumber);
     my $holds_pending = Koha::Holds->search({ borrowernumber => $borrowernumber, found => undef })->count;
     my $holds_waiting = Koha::Holds->search({ borrowernumber => $borrowernumber })->waiting->count;
-
+    my $patron_messages = Koha::Patron::Messages->search(
+            {
+                borrowernumber => $borrowernumber,
+                message_type => 'B',
+            });
+    my $patron_note = $patron->opacnote;
     my $total = $patron->account->balance;
-
-    if  ( $checkouts > 0 || $overdues_count > 0 || $holds_pending > 0 || $holds_waiting > 0 || $total > 0 ) {
+    if  ( $checkouts > 0 || $overdues_count > 0 || $holds_pending > 0 || $holds_waiting > 0 || $total > 0 || $patron_note || $patron_messages->count ) {
         $template->param(
             dashboard_info => 1,
             checkouts           => $checkouts,
@@ -99,21 +111,16 @@ if ( $patron ) {
             holds_pending       => $holds_pending,
             holds_waiting       => $holds_waiting,
             total_owing         => $total,
+            patron_messages     => $patron_messages,
+            opacnote            => $patron_note,
         );
     }
 }
 
 $template->param(
     koha_news           => $all_koha_news,
-    koha_news_count     => $koha_news_count,
     branchcode          => $homebranch,
-    display_daily_quote => C4::Context->preference('QuoteOfTheDay'),
-    daily_quote         => $quote,
+    daily_quote         => Koha::Quotes->get_daily_quote(),
 );
-
-# If GoogleIndicTransliteration system preference is On Set parameter to load Google's javascript in OPAC search screens
-if (C4::Context->preference('GoogleIndicTransliteration')) {
-        $template->param('GoogleIndicTransliteration' => 1);
-}
 
 output_html_with_http_headers $input, $cookie, $template->output;

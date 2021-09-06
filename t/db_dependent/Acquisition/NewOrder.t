@@ -2,7 +2,7 @@
 
 use Modern::Perl;
 
-use Test::More tests => 7;
+use Test::More tests => 8;
 use C4::Acquisition;
 use C4::Biblio;
 use C4::Budgets;
@@ -11,11 +11,15 @@ use Koha::Database;
 use Koha::DateUtils qw( dt_from_string output_pref );
 use Koha::Acquisition::Booksellers;
 use Koha::Acquisition::Orders;
+use t::lib::TestBuilder;
+use t::lib::Mocks;
 
 my $schema = Koha::Database->new()->schema();
 $schema->storage->txn_begin();
-my $dbh = C4::Context->dbh;
-$dbh->{RaiseError} = 1;
+
+my $builder = t::lib::TestBuilder->new;
+my $logged_in_user = $builder->build_object({ class => 'Koha::Patrons' });
+t::lib::Mocks::mock_userenv({ patron => $logged_in_user });
 
 my $bookseller = Koha::Acquisition::Bookseller->new(
     {
@@ -86,5 +90,6 @@ my $ordernumber = $order->ordernumber;
 $order = Koha::Acquisition::Orders->find( $ordernumber );
 is( $order->quantityreceived, 0, 'Koha::Acquisition::Order->insert set quantityreceivedto 0 if undef is given' );
 is( $order->entrydate, output_pref({ dt => dt_from_string, dateformat => 'iso', dateonly => 1 }), 'Koha::Acquisition::Order->store set entrydate to today' );
+is( $order->created_by, $logged_in_user->borrowernumber, 'Koha::Acquisition::Order->store set created_by to logged in user if not given' );
 
 $schema->storage->txn_rollback();

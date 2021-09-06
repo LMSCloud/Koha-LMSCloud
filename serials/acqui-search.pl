@@ -23,14 +23,13 @@ use CGI qw ( -utf8 );
 use C4::Auth;
 use C4::Output;
 
-my $query = new CGI;
+my $query = CGI->new;
 
 my ( $template, $loggedinuser, $cookie ) = get_template_and_user(
     {
         template_name   => "serials/acqui-search.tt",
         query           => $query,
         type            => "intranet",
-        authnotrequired => 0,
         flagsrequired   => { serials => '*' },
         debug           => 1,
     }

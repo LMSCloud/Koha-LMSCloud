@@ -3,11 +3,20 @@ package t::lib::TestBuilder;
 use Modern::Perl;
 
 use Koha::Database;
+use C4::Biblio;
+use C4::Items;
+use Koha::Biblios;
+use Koha::Items;
+use Koha::DateUtils qw( dt_from_string );
 
 use Bytes::Random::Secure;
 use Carp;
 use Module::Load;
 use String::Random;
+
+use constant {
+    SIZE_BARCODE => 20, # Not perfect but avoid to fetch the value when creating a new item
+};
 
 sub new {
     my ($class) = @_;
@@ -67,18 +76,27 @@ sub build_object {
         return;
     }
 
+    my @unknowns = grep( !/^(class|value)$/, keys %{ $params });
+    carp "Unknown parameter(s): ", join( ', ', @unknowns ) if scalar @unknowns;
+
     load $class;
     my $source = $class->_type;
-    my @pks = $self->schema->source( $class->_type )->primary_columns;
 
     my $hashref = $self->build({ source => $source, value => $value });
-    my @ids;
+    my $object;
+    if ( $class eq 'Koha::Old::Patrons' ) {
+        $object = $class->search({ borrowernumber => $hashref->{borrowernumber} })->next;
+    } elsif ( $class eq 'Koha::Statistics' ) {
+        $object = $class->search({ datetime => $hashref->{datetime} })->next;
+    } else {
+        my @ids;
+        my @pks = $self->schema->source( $class->_type )->primary_columns;
+        foreach my $pk ( @pks ) {
+            push @ids, $hashref->{ $pk };
+        }
 
-    foreach my $pk ( @pks ) {
-        push @ids, $hashref->{ $pk };
+        $object = $class->find( @ids );
     }
-
-    my $object = $class->find( @ids );
 
     return $object;
 }
@@ -123,6 +141,63 @@ sub build {
         source => $source,
         values => $col_values,
     });
+}
+
+sub build_sample_biblio {
+    my ( $self, $args ) = @_;
+
+    my $title  = $args->{title}  || 'Some boring read';
+    my $author = $args->{author} || 'Some boring author';
+    my $frameworkcode = $args->{frameworkcode} || '';
+    my $itemtype = $args->{itemtype}
+      || $self->build_object( { class => 'Koha::ItemTypes' } )->itemtype;
+
+    my $marcflavour = C4::Context->preference('marcflavour');
+
+    my $record = MARC::Record->new();
+    $record->encoding( 'UTF-8' );
+
+    my ( $tag, $subfield ) = $marcflavour eq 'UNIMARC' ? ( 200, 'a' ) : ( 245, 'a' );
+    $record->append_fields(
+        MARC::Field->new( $tag, ' ', ' ', $subfield => $title ),
+    );
+
+    ( $tag, $subfield ) = $marcflavour eq 'UNIMARC' ? ( 200, 'f' ) : ( 100, 'a' );
+    $record->append_fields(
+        MARC::Field->new( $tag, ' ', ' ', $subfield => $author ),
+    );
+
+    ( $tag, $subfield ) = $marcflavour eq 'UNIMARC' ? ( 995, 'r' ) : ( 942, 'c' );
+    $record->append_fields(
+        MARC::Field->new( $tag, ' ', ' ', $subfield => $itemtype )
+    );
+
+    my ($biblio_id) = C4::Biblio::AddBiblio( $record, $frameworkcode );
+    return Koha::Biblios->find($biblio_id);
+}
+
+sub build_sample_item {
+    my ( $self, $args ) = @_;
+
+    my $biblionumber =
+      delete $args->{biblionumber} || $self->build_sample_biblio->biblionumber;
+    my $library = delete $args->{library}
+      || $self->build_object( { class => 'Koha::Libraries' } )->branchcode;
+
+    # If itype is not passed it will be picked from the biblio (see Koha::Item->store)
+
+    my $barcode = delete $args->{barcode}
+      || $self->_gen_text( { info => { size => SIZE_BARCODE } } );
+
+    return Koha::Item->new(
+        {
+            biblionumber  => $biblionumber,
+            homebranch    => $library,
+            holdingbranch => $library,
+            barcode       => $barcode,
+            %$args,
+        }
+    )->store->get_from_storage;
 }
 
 # ------------------------------------------------------------------------------
@@ -331,7 +406,9 @@ sub _buildColumnValue {
         }
         push @$retvalue, $value->{$col_name};
     } elsif( exists $self->{default_values}{$source}{$col_name} ) {
-        push @$retvalue, $self->{default_values}{$source}{$col_name};
+        my $v = $self->{default_values}{$source}{$col_name};
+        $v = &$v() if ref($v) eq 'CODE';
+        push @$retvalue, $v;
     } else {
         my $data_type = $col_info->{data_type};
         $data_type =~ s| |_|;
@@ -417,17 +494,18 @@ sub _gen_real {
     if( defined( $params->{info}->{size} ) ) {
         $max = 10 ** ($params->{info}->{size}->[0] - $params->{info}->{size}->[1]);
     }
+    $max = 10 ** 5 if $max > 10 ** 5;
     return sprintf("%.2f", rand($max-0.1));
 }
 
 sub _gen_date {
     my ($self, $params) = @_;
-    return $self->schema->storage->datetime_parser->format_date(DateTime->now())
+    return $self->schema->storage->datetime_parser->format_date(dt_from_string)
 }
 
 sub _gen_datetime {
     my ($self, $params) = @_;
-    return $self->schema->storage->datetime_parser->format_datetime(DateTime->now());
+    return $self->schema->storage->datetime_parser->format_datetime(dt_from_string);
 }
 
 sub _gen_text {
@@ -475,16 +553,31 @@ sub _gen_default_values {
             itemlost           => 0,
             withdrawn          => 0,
             restricted         => 0,
+            damaged            => 0,
+            materials          => undef,
             more_subfields_xml => undef,
         },
         Category => {
             enrolmentfee => 0,
             reservefee   => 0,
+            # Not X, used for statistics
+            category_type => sub { return [ qw( A C S I P ) ]->[int(rand(5))] },
+            min_password_length => undef,
+            require_strong_password => undef,
+        },
+        Branch => {
+            pickup_location => 0,
+        },
+        Reserve => {
+            non_priority => 0,
         },
         Itemtype => {
             rentalcharge => 0,
+            rentalcharge_daily => 0,
+            rentalcharge_hourly => 0,
             defaultreplacecost => 0,
             processfee => 0,
+            notforloan => 0,
         },
         Aqbookseller => {
             tax_rate => 0,
@@ -492,10 +585,7 @@ sub _gen_default_values {
         },
         AuthHeader => {
             marcxml => '',
-        },
-        Accountline => {
-            accountno => 0,
-        },
+        }
     };
 }
 

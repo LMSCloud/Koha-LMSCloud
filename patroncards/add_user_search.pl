@@ -26,7 +26,7 @@ use C4::Members;
 
 use Koha::Patron::Categories;
 
-my $input = new CGI;
+my $input = CGI->new;
 
 my $dbh = C4::Context->dbh;
 
@@ -34,8 +34,7 @@ my ( $template, $loggedinuser, $cookie, $staff_flags ) = get_template_and_user(
     {   template_name   => "common/patron_search.tt",
         query           => $input,
         type            => "intranet",
-        authnotrequired => 0,
-        flagsrequired   => { catalogue => 1 },
+        flagsrequired   => { tools => 'label_creator' },
     }
 );
 
@@ -44,7 +43,7 @@ my $op = $input->param('op') || '';
 
 my $referer = $input->referer();
 
-my $patron_categories = Koha::Patron::Categories->search_limited;
+my $patron_categories = Koha::Patron::Categories->search_with_library_limits;
 $template->param(
     view            => ( $input->request_method() eq "GET" ) ? "show_form" : "show_results",
     columns         => ['cardnumber', 'name', 'category', 'branch', 'dateexpiry', 'borrowernotes', 'action'],

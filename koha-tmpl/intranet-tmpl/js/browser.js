@@ -1,3 +1,5 @@
+/* global __ */
+
 if ( KOHA === undefined ) var KOHA = {};
 
 KOHA.browser = function (searchid, biblionumber) {
@@ -9,7 +11,7 @@ KOHA.browser = function (searchid, biblionumber) {
     }
     me.searchid = searchid;
 
-    var searches_stored = sessionStorage.getItem('searches');
+    var searches_stored = localStorage.getItem('searches');
     var current_search;
     var searches = {};
     if ( searches_stored ) {
@@ -30,9 +32,9 @@ KOHA.browser = function (searchid, biblionumber) {
     var browseRecords = function (movement) {
         var newSearchPos = me.curPos + movement;
         if (newSearchPos > current_search.results.length - 1) {
-            window.location = '/cgi-bin/koha/catalogue/search.pl?' + decodeURIComponent(current_search.query) + '&limit=' + decodeURIComponent(current_search.limit) + '&sort=' + current_search.sort + '&gotoPage=detail.pl&gotoNumber=first&searchid=' + me.searchid + '&offset=' + newSearchPos;
+            window.location = '/cgi-bin/koha/catalogue/search.pl?' + decodeURIComponent(current_search.query) + '&limit=' + decodeURIComponent(current_search.limit) + '&sort_by=' + current_search.sort + '&gotoPage=detail.pl&gotoNumber=first&searchid=' + me.searchid + '&offset=' + newSearchPos;
         } else if (newSearchPos < 0) {
-            window.location = '/cgi-bin/koha/catalogue/search.pl?' + decodeURIComponent(current_search.query) + '&limit=' + decodeURIComponent(current_search.limit) + '&sort=' + current_search.sort + '&gotoPage=detail.pl&gotoNumber=last&searchid=' + me.searchid + '&offset=' + (me.offset - current_search.pagelen);
+            window.location = '/cgi-bin/koha/catalogue/search.pl?' + decodeURIComponent(current_search.query) + '&limit=' + decodeURIComponent(current_search.limit) + '&sort_by=' + current_search.sort + '&gotoPage=detail.pl&gotoNumber=last&searchid=' + me.searchid + '&offset=' + (me.offset - current_search.pagelen);
         } else {
             window.location = window.location.href.replace('biblionumber=' + biblionumber, 'biblionumber=' + current_search.results[newSearchPos]);
         }
@@ -40,9 +42,9 @@ KOHA.browser = function (searchid, biblionumber) {
 
     me.create = function (offset, query, limit, sort, newresults, total) {
         if (current_search) {
-            if (offset === current_search.offset - newresults.length) {
+            if (offset === parseInt(current_search.offset) - newresults.length) {
                 current_search.results = newresults.concat(current_search.results);
-            } else if (searchOffset = current_search.offset + newresults.length) {
+            } else if (searchOffset = parseInt(current_search.offset) + newresults.length) {
                 current_search.results = current_search.results.concat(newresults);
             } else {
                 delete current_search;
@@ -60,24 +62,10 @@ KOHA.browser = function (searchid, biblionumber) {
             };
         }
         searches[me.searchid] = current_search;
-        sessionStorage.setItem('searches', JSON.stringify(searches));
+        localStorage.setItem('searches', JSON.stringify(searches));
         $(document).ready(function () {
-            //FIXME It's not a good idea to modify the click events
-            $('#searchresults table tr a[href*="/detail.pl"]').on('click', function (ev) {
-                ev.preventDefault();
-            });
-            $('#searchresults table tr a[href*="/detail.pl"]').on('mousedown', function (ev) {
-                if ( ev.which == 2 || ev.which == 1 && ev.ctrlKey ) {
-                    // Middle click or ctrl + click
-                    ev.preventDefault();
-                    var newwindow = window.open( $(this).attr('href') + '&searchid=' + me.searchid, '_blank' )
-                    newwindow.blur();
-                    window.focus();
-                } else if ( ev.which == 1 ) {
-                    // Left click
-                    ev.preventDefault();
-                    window.location = $(this).attr('href') + '&searchid=' + me.searchid;
-                }
+            $('#searchresults table tr a[href*="/detail.pl"]').each(function(){
+                $(this).attr('href', $(this).attr('href') + '&searchid=' + me.searchid );
             });
         });
     };
@@ -85,24 +73,28 @@ KOHA.browser = function (searchid, biblionumber) {
     me.show = function () {
         if (current_search) {
             me.curPos = $.inArray(biblionumber, current_search.results);
-            me.offset = Math.floor((current_search.offset + me.curPos - 1) / current_search.pagelen) * current_search.pagelen;
+            if ( parseInt(current_search.offset ) + me.curPos <= current_search.pagelen ) { // First page
+                me.offset = 0;
+            } else {
+                me.offset = parseInt(current_search.offset) - 1;
+            }
 
             $(document).ready(function () {
                 if (me.curPos > -1) {
-                    var searchURL = '/cgi-bin/koha/catalogue/search.pl?' + decodeURIComponent(current_search.query) + '&limit=' + decodeURIComponent(current_search.limit) + '&sort=' + current_search.sort + '&searchid=' + me.searchid + '&offset=' + me.offset;
+                    var searchURL = '/cgi-bin/koha/catalogue/search.pl?' + decodeURIComponent(current_search.query) + '&limit=' + decodeURIComponent(current_search.limit) + '&sort_by=' + current_search.sort + '&searchid=' + me.searchid + '&offset=' + me.offset;
                     var prevbutton;
                     var nextbutton;
-                    if (me.curPos === 0 && current_search.offset === 1) {
-                        prevbutton = '<span id="browse-previous" class="browse-button">« ' + BROWSER_PREVIOUS + '</span>';
+                    if (me.curPos === 0 && parseInt(current_search.offset) === 1) {
+                        prevbutton = '<span id="browse-previous" class="browse-button" title="' + __("Previous") + '"><i class="fa fa-arrow-left"></i></span>';
                     } else {
-                        prevbutton = '<a href="#" id="browse-previous" class="browse-button">« ' + BROWSER_PREVIOUS + '</a>';
+                        prevbutton = '<a href="#" id="browse-previous" class="browse-button" title="' + __("Previous") + '"><i class="fa fa-arrow-left"></i></a>';
                     }
-                    if (current_search.offset + me.curPos == current_search.total) {
-                        nextbutton = '<span id="browse-next" class="browse-button">' + BROWSER_NEXT + ' »</span>';
+                    if (parseInt(current_search.offset) + me.curPos == current_search.total) {
+                        nextbutton = '<span id="browse-next" class="browse-button" title="' + __("Next") + '"><i class="fa fa-arrow-right"></i></span>';
                     } else {
-                        nextbutton = '<a href="#" id="browse-next" class="browse-button">' + BROWSER_NEXT + ' »</a>';
+                        nextbutton = '<a href="#" id="browse-next" class="browse-button" title="' + __("Next") + '"><i class="fa fa-arrow-right"></i></a>';
                     }
-                    $('#menu').before('<div class="browse-controls"><div class="browse-controls-inner"><div class="browse-label"><a href="' + searchURL + '" id="browse-return-to-results" class="browse-button searchwithcontext">' + BROWSER_RETURN_TO_SEARCH + '</a></div><div class="browse-prev-next">' + prevbutton + nextbutton + '</div></div></div>');
+                    $('#menu').before('<div class="browse-controls"><div class="browse-controls-inner"><div class="browse-label"><a href="' + searchURL + '" id="browse-return-to-results" class="searchwithcontext"><i class="fa fa-list"></i> ' + __("Results") + '</a></div><div class="browse-prev-next">' + prevbutton + nextbutton + '</div></div></div>');
                     $('a#browse-previous').click(function (ev) {
                         ev.preventDefault();
                         browseRecords(-1);
@@ -120,6 +112,16 @@ KOHA.browser = function (searchid, biblionumber) {
             });
         }
     };
+
+    me.show_back_link = function () {
+        if (current_search) {
+            $(document).ready(function () {
+                var searchURL = '/cgi-bin/koha/catalogue/search.pl?' + decodeURIComponent(current_search.query) + '&limit=' + decodeURIComponent(current_search.limit) + '&sort_by=' + current_search.sort + '&searchid=' + me.searchid;
+                $('#previous_search_link').replaceWith('<div><div class="browse-label"><a href="' + searchURL + '"><i class="fa fa-list"></i> ' + __("Go back to the results") + '</a></div></div>');
+            });
+        }
+    };
+
 
     return me;
 };

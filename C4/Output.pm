@@ -25,11 +25,12 @@ package C4::Output;
 # NOTE: I'm pretty sure this module is deprecated in favor of
 # templates.
 
-use strict;
-#use warnings; FIXME - Bug 2505
+use Modern::Perl;
 
 use URI::Escape;
+use Scalar::Util qw( looks_like_number );
 
+use C4::Auth qw(get_template_and_user);
 use C4::Context;
 use C4::Templates;
 
@@ -52,7 +53,7 @@ BEGIN {
     );
     push @EXPORT, qw(
         &output_html_with_http_headers &output_ajax_with_http_headers &output_with_http_headers
-        &output_and_exit_if_error &output_and_exit
+        &output_and_exit_if_error &output_and_exit &output_error
     );
 
 }
@@ -91,6 +92,9 @@ sub pagination_bar {
     my $startfrom_name = (@_) ? shift : 'page';
     my $additional_parameters = shift || {};
 
+    $current_page = looks_like_number($current_page) ? $current_page : undef;
+    $nb_pages     = looks_like_number($nb_pages)     ? $nb_pages     : undef;
+
     # how many pages to show before and after the current page?
     my $pages_around = 2;
 
@@ -108,7 +112,7 @@ sub pagination_bar {
     my $url = $base_url . (($base_url =~ m/$delim/ or $base_url =~ m/\?/) ? '&amp;' : '?' ) . $startfrom_name . '=';
     my $url_suffix;
     while ( my ( $k, $v ) = each %$additional_parameters ) {
-        $url_suffix .= '&amp;' . $k . '=' . $v;
+        $url_suffix .= '&amp;' . URI::Escape::uri_escape_utf8($k) . '=' . URI::Escape::uri_escape_utf8($v);
     }
     my $pagination_bar = '';
 
@@ -233,7 +237,7 @@ $content_type.
 
 If applicable, $cookie can be undef, and it will not be sent.
 
-$content_type is one of the following: 'html', 'js', 'json', 'xml', 'rss', or 'atom'.
+$content_type is one of the following: 'html', 'js', 'json', 'opensearchdescription', 'xml', 'rss', or 'atom'.
 
 $status is an HTTP status message, like '403 Authentication Required'. It defaults to '200 OK'.
 
@@ -259,7 +263,8 @@ sub output_with_http_headers {
         # Internet Explorer 6; see bug 2078.
         'rss'  => 'text/xml',
         'atom' => 'text/xml',
-        'csv' => 'text/x-csv'
+        'csv' => 'text/x-csv',
+        'opensearchdescription' => 'application/opensearchdescription+xml',
     );
 
     die "Unknown content type '$content_type'" if ( !defined( $content_type_map{$content_type} ) );
@@ -279,6 +284,8 @@ sub output_with_http_headers {
     $options->{charset} = $characterset if ( $content_type ne 'zip' );
     $options->{expires} = 'now' if $extra_options->{force_no_caching};
     $options->{attachment} = $extra_options->{filename} if $extra_options->{filename};
+    $options->{'Access-Control-Allow-Origin'} = C4::Context->preference('AccessControlAllowOrigin')
+        if C4::Context->preference('AccessControlAllowOrigin');
 
     $options->{cookie} = $cookie if $cookie;
     if ($content_type eq 'html') {  # guaranteed to be one of the content_type_map keys, else we'd have died
@@ -348,6 +355,10 @@ sub output_and_exit_if_error {
             elsif( not $logged_in_user->can_see_patron_infos( $current_patron ) ) {
                 $error = 'cannot_see_patron_infos';
             }
+        } elsif ( $params->{module} eq 'cataloguing' ) {
+            # We are testing the record to avoid additem to fetch the Koha::Biblio
+            # But in the long term we will want to get a biblio in parameter
+            $error = 'unknown_biblio' unless $params->{record};
         }
     }
 
@@ -369,6 +380,24 @@ sub output_and_exit {
     $template->param( blocking_error => $error );
     output_html_with_http_headers ( $query, $cookie, $template->output );
     exit;
+}
+
+sub output_error {
+    my ( $query, $error ) = @_;
+    my ( $template, $loggedinuser, $cookie ) = get_template_and_user(
+        {
+            template_name   => 'errors/errorpage.tt',
+            query           => $query,
+            type            => 'intranet',
+            authnotrequired => 1,
+        }
+    );
+    my $admin = C4::Context->preference('KohaAdminEmailAddress');
+    $template->param (
+        admin => $admin,
+        errno => $error,
+    );
+    output_with_http_headers $query, $cookie, $template->output, 'html', '404 Not Found';
 }
 
 sub parametrized_url {

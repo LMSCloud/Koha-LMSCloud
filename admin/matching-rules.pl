@@ -29,7 +29,7 @@ use C4::Matcher qw/valid_normalization_routines/;
 
 my $script_name = "/cgi-bin/koha/admin/matching-rules.pl";
 
-our $input = new CGI;
+our $input = CGI->new;
 my $op = $input->param('op') || '';
 
 
@@ -37,8 +37,7 @@ my ($template, $loggedinuser, $cookie)
     = get_template_and_user({template_name => "admin/matching-rules.tt",
                  query => $input,
                  type => "intranet",
-                 authnotrequired => 0,
-                 flagsrequired => {parameters => 'parameters_remaining_permissions'},
+                 flagsrequired => { parameters => 'manage_matching_rules' },
                  debug => 1,
                  });
 

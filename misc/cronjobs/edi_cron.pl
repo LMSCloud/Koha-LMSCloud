@@ -4,18 +4,18 @@
 #
 # This file is part of Koha.
 #
-# Koha is free software; you can redistribute it and/or modify it under the
-# terms of the GNU General Public License as published by the Free Software
-# Foundation; either version 3 of the License, or (at your option) any later
-# version.
+# Koha is free software; you can redistribute it and/or modify it
+# under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 3 of the License, or
+# (at your option) any later version.
 #
-# Koha is distributed in the hope that it will be useful, but WITHOUT ANY
-# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
-# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+# Koha is distributed in the hope that it will be useful, but
+# WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+# GNU General Public License for more details.
 #
-# You should have received a copy of the GNU General Public License along
-# with Koha; if not, write to the Free Software Foundation, Inc.,
-# 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+# You should have received a copy of the GNU General Public License
+# along with Koha; if not, see <http://www.gnu.org/licenses>.
 
 use warnings;
 use strict;
@@ -29,11 +29,13 @@ use utf8;
 # can be run as frequently as required
 # log messages are appended to logdir/editrace.log
 
+use Koha::Script -cron;
 use C4::Context;
 use Log::Log4perl qw(:easy);
 use Koha::Database;
 use Koha::EDI qw( process_quote process_invoice process_ordrsp);
 use Koha::Edifact::Transport;
+use Koha::Plugins::Handler;
 use Fcntl qw( :DEFAULT :flock :seek );
 
 my $logdir = C4::Context->config('logdir');
@@ -120,36 +122,19 @@ foreach my $quote_file (@downloaded_quotes) {
 }
 
 # process any downloaded invoices
-
-my @downloaded_invoices = $schema->resultset('EdifactMessage')->search(
-    {
-        message_type => 'INVOICE',
-        status       => 'new',
-    }
-)->all;
-
-foreach my $invoice (@downloaded_invoices) {
-    my $filename = $invoice->filename();
-    $logger->trace("Processing invoice $filename");
-
-    my $plugin_used = 0;
-    if ( my $plugin_class = $invoice->edi_acct->plugin ) {
-        my $plugin = $plugin_class->new();
-        if ( $plugin->can('edifact_process_invoice') ) {
-            $plugin_used = 1;
-            Koha::Plugins::Handler->run(
-                {
-                    class  => $plugin_class,
-                    method => 'edifact_process_invoice',
-                    params => {
-                        invoice => $invoice,
-                    }
-                }
-            );
+if ( C4::Context->preference('EdifactInvoiceImport') eq 'automatic' ) {
+    my @downloaded_invoices = $schema->resultset('EdifactMessage')->search(
+        {
+            message_type => 'INVOICE',
+            status       => 'new',
         }
-    }
+    )->all;
 
-    process_invoice($invoice) unless $plugin_used;
+    foreach my $invoice (@downloaded_invoices) {
+        my $filename = $invoice->filename();
+        $logger->trace("Processing invoice $filename");
+        process_invoice($invoice);
+    }
 }
 
 my @downloaded_responses = $schema->resultset('EdifactMessage')->search(

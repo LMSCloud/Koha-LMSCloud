@@ -2,18 +2,18 @@
 #
 # This file is part of Koha.
 #
-# Koha is free software; you can redistribute it and/or modify it under the
-# terms of the GNU General Public License as published by the Free Software
-# Foundation; either version 3 of the License, or (at your option) any later
-# version.
+# Koha is free software; you can redistribute it and/or modify it
+# under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 3 of the License, or
+# (at your option) any later version.
 #
-# Koha is distributed in the hope that it will be useful, but WITHOUT ANY
-# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
-# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+# Koha is distributed in the hope that it will be useful, but
+# WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+# GNU General Public License for more details.
 #
-# You should have received a copy of the GNU General Public License along
-# with Koha; if not, write to the Free Software Foundation, Inc.,
-# 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+# You should have received a copy of the GNU General Public License
+# along with Koha; if not, see <http://www.gnu.org/licenses>.
 
 package Koha::ExternalContent::OverDrive;
 
@@ -23,9 +23,6 @@ use Carp;
 use base qw(Koha::ExternalContent);
 use WebService::ILS::OverDrive::Patron;
 use C4::Context;
-use Koha::Logger;
-
-use constant logger => Koha::Logger->get();
 
 =head1 NAME
 
@@ -71,6 +68,7 @@ sub new {
             user_agent_params => { agent => $class->agent_string }
         ) );
     }
+
     return $self;
 }
 
@@ -132,6 +130,32 @@ sub auth_by_code {
 
     my ($access_token, $access_token_type, $auth_token)
       = $self->client->auth_by_code($code, $self->_return_url($base_url));
+    $access_token or die "Invalid OverDrive code returned";
+    $self->set_token_in_koha_session($access_token, $access_token_type);
+
+    if (my $koha_patron = $self->koha_patron) {
+        $koha_patron->set({overdrive_auth_token => $auth_token})->store;
+    }
+    return $self->get_return_page_from_koha_session;
+}
+
+=head2 auth_by_userid($userid, $password, $website_id, $authorization_name)
+
+  To be called to check auth of patron using OverDrive Patron Authentication method
+  This requires a SIP connection configured with OverDrive
+
+=cut
+
+sub auth_by_userid {
+    my $self = shift;
+    my $userid = shift or croak "No user provided";
+    my $password = shift;
+    croak "No password provided" unless ($password || !C4::Context->preference("OverDrivePasswordRequired"));
+    my $website_id = shift or croak "OverDrive Library ID not provided";
+    my $authorization_name = shift or croak "OverDrive Authname not provided";
+
+    my ($access_token, $access_token_type, $auth_token)
+      = $self->client->auth_by_user_id($userid, $password, $website_id, $authorization_name);
     $access_token or die "Invalid OverDrive code returned";
     $self->set_token_in_koha_session($access_token, $access_token_type);
 
@@ -226,7 +250,8 @@ sub is_logged_in {
 sub auth_by_saved_token {
     my $self = shift;
 
-    my $koha_patron = $self->koha_patron;
+    my $koha_patron = $self->koha_patron or return;
+
     if (my $auth_token = $koha_patron->overdrive_auth_token) {
         my ($access_token, $access_token_type, $new_auth_token)
           = $self->client->make_access_token_request();
@@ -248,7 +273,9 @@ sub forget {
     my $self = shift;
 
     $self->set_token_in_koha_session("", "");
-    $self->koha_patron->set({overdrive_auth_token => undef})->store;
+    if (my $koha_patron = $self->koha_patron) {
+        $koha_patron->set({overdrive_auth_token => undef})->store;
+    }
 }
 
 use vars qw{$AUTOLOAD};

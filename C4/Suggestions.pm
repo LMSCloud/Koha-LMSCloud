@@ -18,23 +18,22 @@ package C4::Suggestions;
 # You should have received a copy of the GNU General Public License
 # along with Koha; if not, see <http://www.gnu.org/licenses>.
 
-use strict;
-
-#use warnings; FIXME - Bug 2505
+use Modern::Perl;
 use CGI qw ( -utf8 );
 
 use C4::Context;
 use C4::Output;
 use C4::Debug;
 use C4::Letters;
+use C4::Biblio qw( GetMarcFromKohaField );
 use Koha::DateUtils;
+use Koha::Suggestions;
 
 use List::MoreUtils qw(any);
 use base qw(Exporter);
 
 our @EXPORT  = qw(
   ConnectSuggestionAndBiblio
-  CountSuggestion
   DelSuggestion
   GetSuggestion
   GetSuggestionByStatus
@@ -47,6 +46,7 @@ our @EXPORT  = qw(
   SearchSuggestion
   DelSuggestionsOlderThan
   GetUnprocessedSuggestions
+  MarcRecordFromNewSuggestion
 );
 
 =head1 NAME
@@ -109,7 +109,10 @@ sub SearchSuggestion {
             B2.branchname       AS branchnamesuggestedby,
             U2.email            AS emailmanagedby,
             U2.branchcode       AS branchcodemanagedby,
-            U2.borrowernumber   AS borrnummanagedby
+            U2.borrowernumber   AS borrnummanagedby,
+            U3.surname          AS surnamelastmodificationby,
+            U3.firstname        AS firstnamelastmodificationby,
+            BU.budget_name      AS budget_name
         FROM suggestions
             LEFT JOIN borrowers     AS U1 ON suggestedby=U1.borrowernumber
             LEFT JOIN branches      AS B1 ON B1.branchcode=U1.branchcode
@@ -117,6 +120,8 @@ sub SearchSuggestion {
             LEFT JOIN borrowers     AS U2 ON managedby=U2.borrowernumber
             LEFT JOIN branches      AS B2 ON B2.branchcode=U2.branchcode
             LEFT JOIN categories    AS C2 ON C2.categorycode=U2.categorycode
+            LEFT JOIN borrowers     AS U3 ON lastmodificationby=U3.borrowernumber
+            LEFT JOIN aqbudgets     AS BU ON budgetid=BU.budget_id
         WHERE 1=1
     }
     );
@@ -132,10 +137,13 @@ sub SearchSuggestion {
     }
 
     # filter on user branch
-    if ( C4::Context->preference('IndependentBranches') ) {
+    if (   C4::Context->preference('IndependentBranches')
+        && !C4::Context->IsSuperLibrarian() )
+    {
+        # If IndependentBranches is set and the logged in user is not superlibrarian
+        # Then we want to filter by the user's library (i.e. cannot see suggestions from other libraries)
         my $userenv = C4::Context->userenv;
         if ($userenv) {
-            if ( !C4::Context->IsSuperLibrarian() && !$suggestion->{branchcode} )
             {
                 push @sql_params, $$userenv{branch};
                 push @query,      q{
@@ -143,13 +151,16 @@ sub SearchSuggestion {
                 };
             }
         }
-    } else {
-        if ( defined $suggestion->{branchcode} && $suggestion->{branchcode} ) {
-            unless ( $suggestion->{branchcode} eq '__ANY__' ) {
-                push @sql_params, $suggestion->{branchcode};
-                push @query,      qq{ AND suggestions.branchcode=? };
-            }
-        }
+    }
+    elsif (defined $suggestion->{branchcode}
+        && $suggestion->{branchcode}
+        && $suggestion->{branchcode} ne '__ANY__' )
+    {
+        # If IndependentBranches is not set OR the logged in user is not superlibrarian
+        # AND the branchcode filter is passed and not '__ANY__'
+        # Then we want to filter using this parameter
+        push @sql_params, $suggestion->{branchcode};
+        push @query,      qq{ AND suggestions.branchcode=? };
     }
 
     # filter on nillable fields
@@ -176,21 +187,27 @@ sub SearchSuggestion {
     }
 
     # filter on date fields
+    my $dtf = Koha::Database->new->schema->storage->datetime_parser;
     foreach my $field (qw( suggesteddate manageddate accepteddate )) {
         my $from = $field . "_from";
         my $to   = $field . "_to";
         my $from_dt;
         $from_dt = eval { dt_from_string( $suggestion->{$from} ) } if ( $suggestion->{$from} );
-        my $from_sql = '0000-00-00';
-        $from_sql = output_pref({ dt => $from_dt, dateformat => 'iso', dateonly => 1 })
-            if ($from_dt);
-        $debug && warn "SQL for start date ($field): $from_sql";
-        if ( $suggestion->{$from} || $suggestion->{$to} ) {
-            push @query, qq{ AND suggestions.$field BETWEEN ? AND ? };
-            push @sql_params, $from_sql;
-            push @sql_params,
-              output_pref({ dt => dt_from_string( $suggestion->{$to} ), dateformat => 'iso', dateonly => 1 }) || output_pref({ dt => dt_from_string, dateformat => 'iso', dateonly => 1 });
+        my $to_dt;
+        $to_dt = eval { dt_from_string( $suggestion->{$to} ) } if ( $suggestion->{$to} );
+        if ( $from_dt ) {
+            push @query, qq{ AND suggestions.$field >= ?};
+            push @sql_params, $dtf->format_date($from_dt);
         }
+        if ( $to_dt ) {
+            push @query, qq{ AND suggestions.$field <= ?};
+            push @sql_params, $dtf->format_date($to_dt);
+        }
+    }
+
+    # By default do not search for archived suggestions
+    unless ( exists $suggestion->{archived} && $suggestion->{archived} ) {
+        push @query, q{ AND suggestions.archived = 0 };
     }
 
     $debug && warn "@query";
@@ -344,6 +361,7 @@ sub GetSuggestionByStatus {
             LEFT JOIN categories    AS C1 ON C1.categorycode=U1.categorycode
             LEFT JOIN branches      AS B1 on B1.branchcode=U1.branchcode
         WHERE status = ?
+        ORDER BY suggestionid
     };
 
     # filter on branch
@@ -368,61 +386,6 @@ sub GetSuggestionByStatus {
     return $results;
 }
 
-=head2 CountSuggestion
-
-&CountSuggestion($status)
-
-Count the number of aqorders with the status given on input argument.
-the arg status can be :
-
-=over 2
-
-=item * ASKED : asked by the user, not dealed by the librarian
-
-=item * ACCEPTED : accepted by the librarian, but not yet ordered
-
-=item * REJECTED : rejected by the librarian (definitive status)
-
-=item * ORDERED : ordered by the librarian (acquisition module)
-
-=back
-
-return :
-the number of suggestion with this status.
-
-=cut
-
-sub CountSuggestion {
-    my ($status) = @_;
-    my $dbh = C4::Context->dbh;
-    my $sth;
-    my $userenv = C4::Context->userenv;
-    if ( C4::Context->preference("IndependentBranches")
-        && !C4::Context->IsSuperLibrarian() )
-    {
-        my $query = q{
-            SELECT count(*)
-            FROM suggestions
-                LEFT JOIN borrowers ON borrowers.borrowernumber=suggestions.suggestedby
-            WHERE STATUS=?
-                AND (borrowers.branchcode='' OR borrowers.branchcode=?)
-        };
-        $sth = $dbh->prepare($query);
-        $sth->execute( $status, $userenv->{branch} );
-    }
-    else {
-        my $query = q{
-            SELECT count(*)
-            FROM suggestions
-            WHERE STATUS=?
-        };
-        $sth = $dbh->prepare($query);
-        $sth->execute($status);
-    }
-    my ($result) = $sth->fetchrow;
-    return $result;
-}
-
 =head2 NewSuggestion
 
 
@@ -435,26 +398,60 @@ Insert a new suggestion on database with value given on input arg.
 sub NewSuggestion {
     my ($suggestion) = @_;
 
-    for my $field ( qw(
-        suggestedby
-        managedby
-        manageddate
-        acceptedby
-        accepteddate
-        rejectedby
-        rejecteddate
-        budgetid
-    ) ) {
-        # Set the fields to NULL if not given.
-        $suggestion->{$field} ||= undef;
-    }
-
     $suggestion->{STATUS} = "ASKED" unless $suggestion->{STATUS};
 
     $suggestion->{suggesteddate} = dt_from_string unless $suggestion->{suggesteddate};
 
-    my $rs = Koha::Database->new->schema->resultset('Suggestion');
-    return $rs->create($suggestion)->id;
+    delete $suggestion->{branchcode} if $suggestion->{branchcode} eq '';
+
+    my $suggestion_object = Koha::Suggestion->new( $suggestion )->store;
+    my $suggestion_id = $suggestion_object->suggestionid;
+
+    my $emailpurchasesuggestions = C4::Context->preference("EmailPurchaseSuggestions");
+    if ($emailpurchasesuggestions) {
+        my $full_suggestion = GetSuggestion( $suggestion_id); # We should not need to refetch it!
+        if (
+            my $letter = C4::Letters::GetPreparedLetter(
+                module      => 'suggestions',
+                letter_code => 'NEW_SUGGESTION',
+                tables      => {
+                    'branches'    => $full_suggestion->{branchcode},
+                    'borrowers'   => $full_suggestion->{suggestedby},
+                    'suggestions' => $full_suggestion,
+                },
+            )
+        ){
+
+            my $toaddress;
+            if ( $emailpurchasesuggestions eq "BranchEmailAddress" ) {
+                my $library =
+                  Koha::Libraries->find( $full_suggestion->{branchcode} );
+                $toaddress = $library->inbound_email_address;
+            }
+            elsif ( $emailpurchasesuggestions eq "KohaAdminEmailAddress" ) {
+                $toaddress = C4::Context->preference('ReplytoDefault')
+                  || C4::Context->preference('KohaAdminEmailAddress');
+            }
+            else {
+                $toaddress =
+                     C4::Context->preference($emailpurchasesuggestions)
+                  || C4::Context->preference('ReplytoDefault')
+                  || C4::Context->preference('KohaAdminEmailAddress');
+            }
+
+            C4::Letters::EnqueueLetter(
+                {
+                    letter         => $letter,
+                    borrowernumber => $full_suggestion->{suggestedby},
+                    suggestionid   => $full_suggestion->{suggestionid},
+                    to_address     => $toaddress,
+                    message_transport_type => 'email',
+                }
+            ) or warn "can't enqueue letter $letter";
+        }
+    }
+
+    return $suggestion_id;
 }
 
 =head2 ModSuggestion
@@ -474,35 +471,21 @@ sub ModSuggestion {
     my ($suggestion) = @_;
     return unless( $suggestion and defined($suggestion->{suggestionid}) );
 
-    for my $field ( qw(
-        suggestedby
-        managedby
-        manageddate
-        acceptedby
-        accepteddate
-        rejectedby
-        rejecteddate
-        budgetid
-    ) ) {
-        # Set the fields to NULL if not given.
-        $suggestion->{$field} = undef
-          if exists $suggestion->{$field}
-          and ($suggestion->{$field} eq '0'
-            or $suggestion->{$field} eq '' );
-    }
-
-    my $rs = Koha::Database->new->schema->resultset('Suggestion')->find($suggestion->{suggestionid});
-    my $status_update_table = 1;
-    eval {
-        $rs->update($suggestion);
+    my $suggestion_object = Koha::Suggestions->find( $suggestion->{suggestionid} );
+    eval { # FIXME Must raise an exception instead
+        $suggestion_object->set($suggestion)->store;
     };
-    $status_update_table = 0 if( $@ );
+    return 0 if $@;
 
-    if ( $suggestion->{STATUS} ) {
+    if ( $suggestion->{STATUS} && $suggestion_object->suggestedby ) {
 
         # fetch the entire updated suggestion so that we can populate the letter
         my $full_suggestion = GetSuggestion( $suggestion->{suggestionid} );
+
         my $patron = Koha::Patrons->find( $full_suggestion->{suggestedby} );
+
+        my $transport = (C4::Context->preference("FallbackToSMSIfNoEmail")) && ($patron->smsalertnumber) && (!$patron->email) ? 'sms' : 'email';
+
         if (
             my $letter = C4::Letters::GetPreparedLetter(
                 module      => 'suggestions',
@@ -524,13 +507,13 @@ sub ModSuggestion {
                     borrowernumber => $full_suggestion->{suggestedby},
                     suggestionid   => $full_suggestion->{suggestionid},
                     LibraryName    => C4::Context->preference("LibraryName"),
-                    message_transport_type => 'email',
+                    message_transport_type => $transport,
                     branchcode     => $full_suggestion->{branchcode}
                 }
             ) or warn "can't enqueue letter $letter";
         }
     }
-    return $status_update_table;
+    return 1; # No useful if the exception is raised earlier
 }
 
 =head2 ConnectSuggestionAndBiblio
@@ -622,6 +605,46 @@ sub GetUnprocessedSuggestions {
             AND CAST(NOW() AS DATE) - INTERVAL ? DAY = CAST(suggesteddate AS DATE)
     |, { Slice => {} }, $number_of_days_since_the_last_modification );
     return $s;
+}
+
+=head2 MarcRecordFromNewSuggestion
+
+    $record = MarcRecordFromNewSuggestion ( $suggestion )
+
+This function build a marc record object from a suggestion
+
+=cut
+
+sub MarcRecordFromNewSuggestion {
+    my ($suggestion) = @_;
+    my $record = MARC::Record->new();
+
+    my ($title_tag, $title_subfield) = GetMarcFromKohaField('biblio.title', '');
+    $record->append_fields(
+        MARC::Field->new($title_tag, ' ', ' ', $title_subfield => $suggestion->{title})
+    );
+
+    my ($author_tag, $author_subfield) = GetMarcFromKohaField('biblio.author', '');
+    if ($record->field( $author_tag )) {
+        $record->field( $author_tag )->add_subfields( $author_subfield => $suggestion->{author} );
+    }
+    else {
+        $record->append_fields(
+            MARC::Field->new($author_tag, ' ', ' ', $author_subfield => $suggestion->{author})
+        );
+    }
+
+    my ($it_tag, $it_subfield) = GetMarcFromKohaField('biblioitems.itemtype', '');
+    if ($record->field( $it_tag )) {
+        $record->field( $it_tag )->add_subfields( $it_subfield => $suggestion->{itemtype} );
+    }
+    else {
+        $record->append_fields(
+            MARC::Field->new($it_tag, ' ', ' ', $it_subfield => $suggestion->{itemtype})
+        );
+    }
+
+    return $record;
 }
 
 1;

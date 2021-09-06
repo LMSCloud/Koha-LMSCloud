@@ -31,10 +31,9 @@ use C4::Templates;
 use Koha::Acquisition::Currencies;
 use File::Spec;
 use IO::File;
-use YAML::Syck qw();
+use YAML::XS;
+use Encode;
 use List::MoreUtils qw(any);
-$YAML::Syck::ImplicitTyping = 1;
-$YAML::Syck::ImplicitUnicode = 1;
 
 # use Smart::Comments;
 #
@@ -53,7 +52,7 @@ sub GetTab {
         local_currency => $local_currency, # currency code is used, because we do not know how a given currency is formatted.
     );
 
-    return YAML::Syck::Load( $tab_template->output() );
+    return YAML::XS::Load( Encode::encode_utf8($tab_template->output()));
 }
 
 sub _get_chunk {
@@ -61,9 +60,20 @@ sub _get_chunk {
 
     my $name = $options{'pref'};
     my $chunk = { name => $name, value => $value, type => $options{'type'} || 'input', class => $options{'class'} };
+    if( $options{'syntax'} ){
+        $chunk->{'syntax'} = $options{'syntax'};
+    }
+
+    if( $options{'type'} && $options{'type'} eq 'modalselect' ){
+        $chunk->{'source'} = $options{'source'};
+        $chunk->{'exclusions'} = $options{'exclusions'} // "";
+        $chunk->{'type'} = 'modalselect';
+    }
 
     if ( $options{'class'} && $options{'class'} eq 'password' ) {
         $chunk->{'input_type'} = 'password';
+    } elsif ( $options{'class'} && $options{'class'} eq 'email' ) {
+        $chunk->{'input_type'} = 'email';
     } elsif ( $options{'class'} && $options{'class'} eq 'date' ) {
         $chunk->{'dateinput'} = 1;
     } elsif ( $options{'type'} && ( $options{'type'} eq 'opac-languages' || $options{'type'} eq 'staff-languages' ) ) {
@@ -76,13 +86,14 @@ sub _get_chunk {
             $interface = 'opac';
             $theme     = C4::Context->preference('opacthemes');
         } else {
-            # this is the staff client
+            # this is the staff interface
             $interface = 'intranet';
             $theme     = C4::Context->preference('template');
         }
         $chunk->{'languages'} = getTranslatedLanguages( $interface, $theme, undef, $current_languages );
         $chunk->{'type'} = 'languages';
     } elsif ( $options{ 'choices' } ) {
+        my $add_blank;
         if ( $options{'choices'} && ref( $options{ 'choices' } ) eq '' ) {
             if ( $options{'choices'} eq 'class-sources' ) {
                 my $sources = GetClassSources();
@@ -91,6 +102,9 @@ sub _get_chunk {
                 $options{'choices'} = { map { $_ => $_ } getallthemes( 'opac' ) }
             } elsif ( $options{'choices'} eq 'staff-templates' ) {
                 $options{'choices'} = { map { $_ => $_ } getallthemes( 'intranet' ) }
+            } elsif ( $options{choices} eq 'patron-categories' ) {
+                $options{choices} = { map { $_->categorycode => $_->description } Koha::Patron::Categories->search };
+                $add_blank = 1;
             } else {
                 die 'Unrecognized source of preference values: ' . $options{'choices'};
             }
@@ -98,12 +112,31 @@ sub _get_chunk {
 
         $value ||= 0;
 
-        $chunk->{'type'} = 'select';
+        $chunk->{'type'} = ( $options{class} && $options{class} eq 'multiple' ) ? 'multiple' : 'select';
+
+        my @values;
+        @values = split /,/, $value if defined($value);
         $chunk->{'CHOICES'} = [
             sort { $a->{'text'} cmp $b->{'text'} }
-            map { { text => $options{'choices'}->{$_}, value => $_, selected => ( $_ eq $value || ( $_ eq '' && ( $value eq '0' || !$value ) ) ) } }
+            map {
+                my $c = $_;
+                {
+                    text     => $options{'choices'}->{$c},
+                    value    => $c,
+                    selected => (
+                        grep { $_ eq $c || ( $c eq '' && ($value eq '0' || !$value ) ) } @values
+                    ) ? 1 : 0,
+                }
+              }
             keys %{ $options{'choices'} }
         ];
+
+        # Add a first blank value if needed
+        unshift @{ $chunk->{CHOICES} }, {
+            text  => '',
+            value => '',
+        } if $add_blank && $chunk->{type} eq 'select';
+
     } elsif ( $options{'multiple'} ) {
         my @values;
         @values = split /,/, $value if defined($value);
@@ -115,7 +148,7 @@ sub _get_chunk {
                 {
                     text     => $options{multiple}->{$option_value},
                     value    => $option_value,
-                    selected => (grep /^$option_value$/, @values) ? 1 : 0,
+                    selected => (grep { $_ eq $option_value } @values) ? 1 : 0,
                 }
               }
               keys %{ $options{multiple} }
@@ -214,7 +247,7 @@ sub _get_pref_files {
     foreach my $file ( glob( "$htdocs/$theme/$lang/modules/admin/preferences/*.pref" ) ) {
         my ( $tab ) = ( $file =~ /([a-z0-9_-]+)\.pref$/ );
 
-        $results{$tab} = $open_files ? new IO::File( $file, 'r' ) : '';
+        $results{$tab} = $open_files ? IO::File->new( $file, 'r' ) : '';
     }
 
     return %results;
@@ -227,7 +260,8 @@ sub SearchPrefs {
     my %tab_files = _get_pref_files( $input );
     our @terms = split( /\s+/, $searchfield );
 
-    foreach my $tab_name ( keys %tab_files ) {
+    foreach my $tab_name ( sort keys %tab_files ) {
+        # FIXME Hum?
         # Force list context to remove 'uninitialized value in goto' warn coming from YAML::Syck; note that the other GetTab call is in list context too. The actual cause however is the null value for the pref OpacRenewalBranch in opac.pref
         my ($data) = GetTab( $input, $tab_name );
         my $title = ( keys( %$data ) )[0];
@@ -293,21 +327,20 @@ sub matches {
 }
 
 my $dbh = C4::Context->dbh;
-our $input = new CGI;
+our $input = CGI->new;
 
 my ( $template, $borrowernumber, $cookie ) = get_template_and_user(
     {   template_name   => "admin/preferences.tt",
         query           => $input,
         type            => "intranet",
-        authnotrequired => 0,
-        flagsrequired   => { parameters => 'parameters_remaining_permissions' },
+        flagsrequired   => { parameters => 'manage_sysprefs' },
         debug           => 1,
     }
 );
 
 my $op = $input->param( 'op' ) || '';
 my $tab = $input->param( 'tab' );
-$tab ||= 'acquisitions'; # Ideally this should be "local-use" but preferences.pl
+$tab ||= 'accounting'; # Ideally this should be "local-use" but preferences.pl
                          # does not presently support local use preferences
 
 my $highlighted;

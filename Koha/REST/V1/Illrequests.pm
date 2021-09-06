@@ -2,29 +2,30 @@ package Koha::REST::V1::Illrequests;
 
 # This file is part of Koha.
 #
-# Koha is free software; you can redistribute it and/or modify it under the
-# terms of the GNU General Public License as published by the Free Software
-# Foundation; either version 3 of the License, or (at your option) any later
-# version.
+# Koha is free software; you can redistribute it and/or modify it
+# under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 3 of the License, or
+# (at your option) any later version.
 #
-# Koha is distributed in the hope that it will be useful, but WITHOUT ANY
-# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
-# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+# Koha is distributed in the hope that it will be useful, but
+# WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+# GNU General Public License for more details.
 #
-# You should have received a copy of the GNU General Public License along
-# with Koha; if not, write to the Free Software Foundation, Inc.,
-# 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
-use Time::HiRes qw(time);
+# You should have received a copy of the GNU General Public License
+# along with Koha; if not, see <http://www.gnu.org/licenses>.
 
 use Modern::Perl;
 use Data::Dumper;
 
 use Mojo::Base 'Mojolicious::Controller';
 
+use C4::Context;
 use Koha::Illrequests;
 use Koha::Illrequestattributes;
 use Koha::Libraries;
 use Koha::Patrons;
+use Koha::Libraries;
 use Koha::DateUtils qw( format_sqldatetime );
 
 =head1 NAME
@@ -43,9 +44,11 @@ sub list {
     my $c = shift->openapi->valid_input or return;
 
     my $args = $c->req->params->to_hash // {};
+    my $output = [];
     #my @format_dates = ( 'placed', 'updated', 'completed' );  # Koha master
     my @format_dates = ( 'updated' );
     my $filter;
+
     # Create a hash where all keys are embedded values
     # Enables easy checking
     my %embed;
@@ -67,12 +70,18 @@ sub list {
         my @values = split(/,/, $args->{$filter_param});
         $filter->{$filter_param} = \@values;
     }
-
+    
+    # Get the pipe-separated string of hidden ILL statuses
+    my $hidden_statuses_string = C4::Context->preference('ILLHiddenRequestStatuses') // q{};
+    # Turn into arrayref
+    my $hidden_statuses = [ split /\|/, $hidden_statuses_string ];
+    $filter->{status} = { 'not in' => $hidden_statuses } if ( $hidden_statuses );
+    
     my $fetchadd = {};
     $fetchadd = { prefetch => 'illrequestattributes' } if ($embed{metadata});
-
-
-    # Get all requests that meet the select condition
+    
+    # Get all requests
+    # If necessary, only get those from a specified patron
     my @requests = Koha::Illrequests->search($filter,$fetchadd)->as_list;
 
     # Identify patrons & branches that
@@ -89,6 +98,7 @@ sub list {
     }
 
     # Fetch the patrons we need
+    my $patron_arr = [];
     my $patrons = {};
     if ($embed{patron}) {
         my @patron_ids = keys %{$to_fetch->{patrons}};
@@ -96,7 +106,7 @@ sub list {
             my $where = {
                 borrowernumber => { -in => \@patron_ids }
             };
-            my $patron_arr = Koha::Patrons->search($where)->unblessed;
+            $patron_arr = Koha::Patrons->search($where)->unblessed;
             foreach my $p(@{$patron_arr}) {
                 $patrons->{$p->{borrowernumber}} =
                 {
@@ -104,7 +114,7 @@ sub list {
                     firstname      => $p->{firstname},
                     surname        => $p->{surname},
                     cardnumber     => $p->{cardnumber}
-                };
+                }
             }
         }
     }
@@ -139,7 +149,7 @@ sub list {
     # Now we've got all associated users and branches,
     # we can augment the request objects
     my @output = ();
-    $output[0] = ();    # for illrequests
+    $output[0] = [];    # for illrequests
     $output[1] = $patrons;    # for patrons
     $output[2] = $branches;    # for branches
     $output[3] = $backendcapabilities;    # for backend capabilities
@@ -201,21 +211,21 @@ sub list {
                 }
             }
 
-            $to_push->{illreq}->{metadata} = $meta_hash_json;
+            $to_push->{metadata} = $meta_hash_json;
         }
 
         if ($embed{comments}) {
-            $to_push->{illreq}->{comments} = $req->illcomments->count;
+            $to_push->{comments} = $req->illcomments->count;
         }
         if ($embed{status_alias}) {
-            $to_push->{illreq}->{status_alias} = $req->statusalias;
+            $to_push->{status_alias} = $req->statusalias;
         }
         if ($embed{requested_partners}) {
-            $to_push->{illreq}->{requested_partners} = $req->requested_partners;
+            $to_push->{requested_partners} = $req->requested_partners;
         }
-        push @{$output[0]}, $to_push->{illreq};
+        push @{$output[0]}, $to_push;
     }
-
+    
     return $c->render( status => 200, openapi => \@output );
 }
 

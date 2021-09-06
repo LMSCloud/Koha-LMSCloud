@@ -1,6 +1,6 @@
 [% SET footerjs = 1 %]
 [% INCLUDE 'doc-head-open.inc' %]
-<title>Koha &rsaquo; Serials &rsaquo; Search results</title>
+<title>Search results &rsaquo; Serials &rsaquo; Koha</title>
 [% INCLUDE 'doc-head-close.inc' %]
 </head>
 
@@ -9,7 +9,7 @@
 <div class="main container-fluid">
 
 [% IF ( total ) %]
-<h1>Search results from [% from %] to [% to %] of [% total %]</h1>
+<h1>Search results from [% from | html %] to [% to | html %] of [% total | html %]</h1>
 <table>
     <tr>
        <th>Title</th>
@@ -21,28 +21,29 @@
     </tr>
     [% FOREACH resultsloo IN resultsloop %]
         <tr>
-            <td class="title">[% resultsloo.title |html %] [% resultsloo.subtitle |html %]
+            <td class="title">
+                [% INCLUDE 'biblio-title.inc' biblio=resultsloo %]
             </td>
             <td>
-                [% resultsloo.author |html %]
+                [% resultsloo.author | html %]
             </td>
             <td>
-                [% resultsloo.publishercode |html %]
+                [% resultsloo.publishercode | html %]
             </td>
             <td>
-                [% resultsloo.publicationyear |html %]
+                [% resultsloo.publicationyear | html %]
             </td>
             <td>
-                [% resultsloo.issn |html %]
+                [% resultsloo.issn | html %]
             </td>
-            <td><a class="btn btn-default btn-xs select_title" data-biblionumber="[% resultsloo.biblionumber %]" href="#" title="Choose this record">Choose</a></td>
+            <td><a class="btn btn-default btn-xs select_title" data-biblionumber="[% resultsloo.biblionumber | html %]" href="#" title="Choose this record">Choose</a></td>
         </tr>
     [% END %]
     </table>
 [% ELSE %]
 
     <div class="dialog message">
-        <p>No results found for <b>[% query %]</b></p>
+        <p>No results found for <strong>[% query | html %]</strong></p>
     </div>
 
 [% END %]
@@ -61,7 +62,7 @@
 <div id="closewindow"><a class="btn btn-default btn-default close" href="#">Close</a></div>
 
 [% MACRO jsinclude BLOCK %]
-    <script type="text/javascript">
+    <script>
         $(document).ready(function(){
             $(".select_title").on("click",function(e){
                 e.preventDefault();

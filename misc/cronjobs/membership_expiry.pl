@@ -126,6 +126,7 @@ BEGIN {
     eval { require "$FindBin::Bin/../kohalib.pl" };
 }
 
+use Koha::Script -cron;
 use C4::Context;
 use C4::Letters;
 use C4::Log;

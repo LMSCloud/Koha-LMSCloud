@@ -21,7 +21,7 @@ use Test::More;
 use Test::MockModule;
 use Test::Warn;
 
-plan tests => 47;
+plan tests => 39;
 
 use_ok('C4::Biblio');
 
@@ -51,23 +51,11 @@ warning_is { $ret = BiblioAutoLink(undef, q{}) }
 
 is( $ret, 0, 'BiblioAutoLink returns zero if not passed rec');
 
-warning_is { $ret = GetRecordValue('100', undef, q{}) }
-           { carped => 'GetRecordValue called with undefined record'},
-           "GetRecordValue returns carped warning on undef record";
-
-ok( !defined $ret, 'GetRecordValue returns undef if not passed rec');
-
 warning_is { @arr = LinkBibHeadingsToAuthorities(q{}, q{}) }
            { carped => 'LinkBibHeadingsToAuthorities called on undefined bib record'},
            "LinkBibHeadingsToAuthorities returns carped warning on undef record";
 
 is($arr[0], 0, 'LinkBibHeadingsToAuthorities correct error return');
-
-warning_is { $ret = GetCOinSBiblio() }
-           { carped => 'GetCOinSBiblio called with undefined record'},
-           "GetCOinSBiblio returns carped warning on undef record";
-
-ok( !defined $ret, 'GetCOinSBiblio returns undef if not passed rec');
 
 warning_is { $ret = GetMarcPrice(undef, 'MARC21') }
            { carped => 'GetMarcPrice called on undefined record'},
@@ -99,12 +87,6 @@ warning_is { $ret = GetMarcISSN() }
 
 ok( !defined $ret, 'GetMarcISSN returns undef if not passed rec');
 
-warning_is { $ret = GetMarcNotes() }
-           { carped => 'GetMarcNotes called on undefined record'},
-           "GetMarcNotes returns carped warning on undef record";
-
-ok( !defined $ret, 'GetMarcNotes returns undef if not passed rec');
-
 warning_is { $ret = GetMarcSubjects() }
            { carped => 'GetMarcSubjects called on undefined record'},
            "GetMarcSubjects returns carped warning on undef record";
@@ -128,12 +110,6 @@ warning_is { $ret = GetMarcSeries() }
            "GetMarcSeries returns carped warning on undef record";
 
 ok( !defined $ret, 'GetMarcSeries returns undef if not passed rec');
-
-warning_is { $ret = GetMarcHosts() }
-           { carped => 'GetMarcHosts called on undefined record'},
-           "GetMarcHosts returns carped warning on undef record";
-
-ok( !defined $ret, 'GetMarcHosts returns undef if not passed rec');
 
 my $hash_ref;
 
@@ -175,4 +151,3 @@ warnings_like { $ret = UpdateTotalIssues() }
     "UpdateTotalIssues returns carped warnings if biblio record does not exist";
 
 ok( !defined $ret, 'UpdateTotalIssues returns carped warning if biblio record does not exist');
-

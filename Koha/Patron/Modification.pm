@@ -4,18 +4,18 @@ package Koha::Patron::Modification;
 #
 # This file is part of Koha.
 #
-# Koha is free software; you can redistribute it and/or modify it under the
-# terms of the GNU General Public License as published by the Free Software
-# Foundation; either version 3 of the License, or (at your option) any later
-# version.
+# Koha is free software; you can redistribute it and/or modify it
+# under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 3 of the License, or
+# (at your option) any later version.
 #
-# Koha is distributed in the hope that it will be useful, but WITHOUT ANY
-# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
-# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+# Koha is distributed in the hope that it will be useful, but
+# WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+# GNU General Public License for more details.
 #
-# You should have received a copy of the GNU General Public License along
-# with Koha; if not, write to the Free Software Foundation, Inc.,
-# 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+# You should have received a copy of the GNU General Public License
+# along with Koha; if not, see <http://www.gnu.org/licenses>.
 
 use Modern::Perl;
 
@@ -28,7 +28,7 @@ use Koha::Patron::Attributes;
 use Koha::Patron::Modifications;
 
 use JSON;
-use List::MoreUtils qw( uniq );
+use List::MoreUtils qw( uniq any );
 use Try::Tiny;
 
 use base qw(Koha::Object);
@@ -91,14 +91,18 @@ sub approve {
     delete $data->{timestamp};
     delete $data->{verification_token};
     delete $data->{extended_attributes};
-
-    foreach my $key ( keys %$data ) {
-        delete $data->{$key} unless ( defined( $data->{$key} ) );
-    }
+    my $changed_fields = $data->{changed_fields};
+    delete $data->{changed_fields};
 
     my $patron = Koha::Patrons->find( $self->borrowernumber );
-
     return unless $patron;
+
+    my @keep_keys = split /,/, $changed_fields;
+    my @all_keys = keys %$data;
+    foreach my $key ( @all_keys ) {
+        next if (any { $_ eq $key } @keep_keys);
+        delete $data->{$key};
+    }
 
     $patron->set($data);
 
@@ -127,17 +131,18 @@ sub approve {
                     );
                 }
                 foreach my $attr ( @{$extended_attributes} ) {
+                    $attr->{attribute} = exists $attr->{attribute} ? $attr->{attribute} : $attr->{value};
                     Koha::Patron::Attribute->new(
                         {   borrowernumber => $patron->borrowernumber,
                             code           => $attr->{code},
-                            attribute      => $attr->{value}
+                            attribute      => $attr->{attribute},
                         }
                     )->store
-                        if $attr->{value} # there's a value
+                        if $attr->{attribute} # there's a value
                            or
-                          (    defined $attr->{value} # there's a value that is 0, and not
-                            && $attr->{value} ne ""   # the empty string which means delete
-                            && $attr->{value} == 0
+                          (    defined $attr->{attribute} # there's a value that is 0, and not
+                            && $attr->{attribute} ne ""   # the empty string which means delete
+                            && $attr->{attribute} == 0
                           );
                 }
             }

@@ -3,7 +3,6 @@
 #written 11/1/2000 by chris@katipo.oc.nz
 #script to display borrowers account details
 
-
 # Copyright 2000-2002 Katipo Communications
 # Copyright 2010 BibLibre
 #
@@ -31,100 +30,104 @@ use CGI qw ( -utf8 );
 use C4::Members;
 use C4::Accounts;
 use C4::Items;
-use C4::Members::Attributes qw(GetBorrowerAttributes);
 use C4::CashRegisterManagement qw(passCashRegisterCheck);
 
-use Koha::Account;
+use Koha::Items;
 use Koha::Patrons;
 use Koha::Patron::Categories;
+use Koha::Account::CreditTypes;
+
 use Koha::Token;
 
-my $input=new CGI;
-my $flagsrequired = { borrowers => 'edit_borrowers', updatecharges => 1 };
-
-my $borrowernumber=$input->param('borrowernumber');
-
-my $patron = Koha::Patrons->find( $borrowernumber );
-unless ( $patron ) {
-    print $input->redirect("/cgi-bin/koha/circ/circulation.pl?borrowernumber=$borrowernumber");
-    exit;
-}
-my $add=$input->param('add');
-
-if ($add){
-
-    my ( $user_id ) = checkauth( $input, 0, $flagsrequired, 'intranet' );
-
-    if ( $user_id ) {
-
-        die "Wrong CSRF token"
-            unless Koha::Token->new->check_csrf( {
-                session_id => scalar $input->cookie('CGISESSID'),
-                token  => scalar $input->param('csrf_token'),
-            });
-
-        # Note: If the logged in user is not allowed to see this patron an invoice can be forced
-        # Here we are trusting librarians not to hack the system
-        my $barcode = $input->param('barcode');
-        my $item_id;
-        if ($barcode) {
-            $item_id = GetItemnumberFromBarcode($barcode);
+my $input = CGI->new;
+my ( $template, $loggedinuser, $cookie ) = get_template_and_user(
+    {
+        template_name   => "members/mancredit.tt",
+        query           => $input,
+        type            => "intranet",
+        flagsrequired   => {
+            borrowers     => 'edit_borrowers',
+            updatecharges => 'remaining_permissions'
         }
-        my $description = $input->param('desc');
-        my $note        = $input->param('note');
-        my $amount      = $input->param('amount') || 0;
-        my $type        = $input->param('type');
+    }
+);
 
-        my $logged_in_user = Koha::Patrons->find( { userid => $user_id } ) or die "Not logged in";
-        Koha::Account->new({ patron_id => $borrowernumber })->add_credit({
+my $logged_in_user = Koha::Patrons->find($loggedinuser);
+my $borrowernumber = $input->param('borrowernumber');
+my $patron         = Koha::Patrons->find($borrowernumber);
+
+output_and_exit_if_error(
+    $input, $cookie,
+    $template,
+    {
+        module         => 'members',
+        logged_in_user => $logged_in_user,
+        current_patron => $patron
+    }
+);
+
+my $library_id =
+  C4::Context->userenv ? C4::Context->userenv->{'branch'} : undef;
+
+my $add = $input->param('add');
+if ($add) {
+    output_and_exit( $input, $cookie, $template, 'wrong_csrf_token' )
+      unless Koha::Token->new->check_csrf(
+        {
+            session_id => scalar $input->cookie('CGISESSID'),
+            token      => scalar $input->param('csrf_token'),
+        }
+      );
+
+# Note: If the logged in user is not allowed to see this patron an invoice can be forced
+# Here we are trusting librarians not to hack the system
+    my $barcode = $input->param('barcode');
+    my $item_id;
+    if ($barcode) {
+        my $item = Koha::Items->find( { barcode => $barcode } );
+        $item_id = $item->itemnumber if $item;
+    }
+    my $description = $input->param('desc');
+    my $note        = $input->param('note');
+    my $amount      = $input->param('amount') || 0;
+    my $type        = $input->param('type');
+
+    $patron->account->add_credit(
+        {
             amount      => $amount,
             description => $description,
             item_id     => $item_id,
+            library_id  => $library_id,
             note        => $note,
             type        => $type,
-            user_id     => $logged_in_user->borrowernumber,
-            branchcode  => C4::Context->userenv->{'branch'}
-        });
-
-        print $input->redirect("/cgi-bin/koha/members/boraccount.pl?borrowernumber=$borrowernumber");
-    }
-} else {
-    my ($template, $loggedinuser, $cookie) = get_template_and_user(
-        {
-            template_name   => "members/mancredit.tt",
-            query           => $input,
-            type            => "intranet",
-            authnotrequired => 0,
-            flagsrequired   => { borrowers     => 'edit_borrowers',
-                                 updatecharges => 'remaining_permissions' },
-            debug           => 1,
+            user_id     => $logged_in_user->id,
+            interface   => C4::Context->interface
         }
     );
-    
-    my $branch = C4::Context->userenv->{'branch'};
-    my $checkCashRegisterOk = passCashRegisterCheck($branch,$loggedinuser);
-					  
-    my $logged_in_user = Koha::Patrons->find( $loggedinuser ) or die "Not logged in";
-    output_and_exit_if_error( $input, $cookie, $template, { module => 'members', logged_in_user => $logged_in_user, current_patron => $patron } );
-    if ( $patron->is_child ) {
-        my $patron_categories = Koha::Patron::Categories->search_limited({ category_type => 'A' }, {order_by => ['categorycode']});
-        $template->param( 'CATCODE_MULTI' => 1) if $patron_categories->count > 1;
-        $template->param( 'catcode' => $patron_categories->next->categorycode )  if $patron_categories->count == 1;
+
+    if ( C4::Context->preference('AccountAutoReconcile') ) {
+        $patron->account->reconcile_balance;
     }
 
-    if (C4::Context->preference('ExtendedPatronAttributes')) {
-        my $attributes = GetBorrowerAttributes($borrowernumber);
-        $template->param(
-            ExtendedPatronAttributes => 1,
-            extendedattributes => $attributes
-        );
-    }
+    print $input->redirect(
+        "/cgi-bin/koha/members/boraccount.pl?borrowernumber=$borrowernumber");
+    exit;
+}
+else {
+
+    my @credit_types = Koha::Account::CreditTypes->search_with_library_limits(
+        { can_be_added_manually => 1, archived => 0 },
+        {}, $library_id );
+
+    my $branch = C4::Context->userenv->{'branch'};
+    my $checkCashRegisterOk = passCashRegisterCheck($branch,$loggedinuser);
 
     $template->param(
         checkCashRegisterFailed => (! $checkCashRegisterOk),
-        patron     => $patron,
-        finesview  => 1,
-        csrf_token => Koha::Token->new->generate_csrf(
+        patron       => $patron,
+        credit_types => \@credit_types,
+        finesview    => 1,
+        csrf_token   => Koha::Token->new->generate_csrf(
             { session_id => scalar $input->cookie('CGISESSID') }
         ),
     );

@@ -19,17 +19,21 @@ package Koha::Plugins;
 
 use Modern::Perl;
 
+use Array::Utils qw(array_minus);
+use Class::Inspector;
+use List::MoreUtils qw(any);
 use Module::Load::Conditional qw(can_load);
+use Module::Load qw(load);
 use Module::Pluggable search_path => ['Koha::Plugin'], except => qr/::Edifact(|::Line|::Message|::Order|::Segment|::Transport)$/;
-use List::MoreUtils qw( any );
 
 use C4::Context;
 use C4::Output;
+use Koha::Plugins::Methods;
 
 BEGIN {
     my $pluginsdir = C4::Context->config("pluginsdir");
     my @pluginsdir = ref($pluginsdir) eq 'ARRAY' ? @$pluginsdir : $pluginsdir;
-    push( @INC, @pluginsdir );
+    push @INC, array_minus(@pluginsdir, @INC) ;
     pop @INC if $INC[-1] eq '.';
 }
 
@@ -47,6 +51,35 @@ sub new {
     $args->{'pluginsdir'} = C4::Context->config("pluginsdir");
 
     return bless( $args, $class );
+}
+
+=head2 call
+
+Calls a plugin method for all enabled plugins
+
+    @responses = Koha::Plugins->call($method, @args)
+
+=cut
+
+sub call {
+    my ($class, $method, @args) = @_;
+
+    my @responses;
+    if (C4::Context->config('enable_plugins')) {
+        my @plugins = $class->new({ enable_plugins => 1 })->GetPlugins({ method => $method });
+        @plugins = grep { $_->can($method) } @plugins;
+        foreach my $plugin (@plugins) {
+            my $response = eval { $plugin->$method(@args) };
+            if ($@) {
+                warn sprintf("Plugin error (%s): %s", $plugin->get_metadata->{name}, $@);
+                next;
+            }
+
+            push @responses, $response;
+        }
+
+    }
+    return @responses;
 }
 
 =head2 GetPlugins
@@ -67,8 +100,66 @@ If you pass multiple keys in the metadata hash, all keys must match.
 
 sub GetPlugins {
     my ( $self, $params ) = @_;
-    my $method = $params->{method};
+
+    my $method       = $params->{method};
     my $req_metadata = $params->{metadata} // {};
+
+    my $filter = ( $method ) ? { plugin_method => $method } : undef;
+
+    my $plugin_classes = Koha::Plugins::Methods->search(
+        $filter,
+        {   columns  => 'plugin_class',
+            distinct => 1
+        }
+    )->_resultset->get_column('plugin_class');
+
+    my @plugins;
+
+    # Loop through all plugins that implement at least a method
+    while ( my $plugin_class = $plugin_classes->next ) {
+
+        if ( can_load( modules => { $plugin_class => undef }, nocache => 1 ) ) {
+            my $plugin = $plugin_class->new({
+                enable_plugins => $self->{'enable_plugins'}
+                    # loads even if plugins are disabled
+                    # FIXME: is this for testing without bothering to mock config?
+            });
+
+            next unless $plugin->is_enabled or
+                        defined($params->{all}) && $params->{all};
+
+            # filter the plugin out by metadata
+            my $plugin_metadata = $plugin->get_metadata;
+            next
+                if $plugin_metadata
+                and %$req_metadata
+                and any { !$plugin_metadata->{$_} || $plugin_metadata->{$_} ne $req_metadata->{$_} } keys %$req_metadata;
+
+            push @plugins, $plugin;
+        } elsif ( defined($params->{errors}) && $params->{errors} ){
+            push @plugins, { error => 'cannot_load', name => $plugin_class };
+        }
+
+    }
+
+    return @plugins;
+}
+
+=head2 InstallPlugins
+
+Koha::Plugins::InstallPlugins()
+
+This method iterates through all plugins physically present on a system.
+For each plugin module found, it will test that the plugin can be loaded,
+and if it can, will store its available methods in the plugin_methods table.
+
+NOTE: We re-load all plugins here as a protective measure in case someone
+has removed a plugin directly from the system without using the UI
+
+=cut
+
+sub InstallPlugins {
+    my ( $self, $params ) = @_;
 
     my @plugin_classes = $self->plugins();
     my @plugins;
@@ -79,12 +170,17 @@ sub GetPlugins {
 
             my $plugin = $plugin_class->new({ enable_plugins => $self->{'enable_plugins'} });
 
-            # Limit results by method or metadata
-            next if $method && !$plugin->can($method);
-            my $plugin_metadata = $plugin->get_metadata;
-            next if $plugin_metadata
-                and %$req_metadata
-                and any { !$plugin_metadata->{$_} || $plugin_metadata->{$_} ne $req_metadata->{$_} } keys %$req_metadata;
+            Koha::Plugins::Methods->search({ plugin_class => $plugin_class })->delete();
+
+            foreach my $method ( @{ Class::Inspector->methods( $plugin_class, 'public' ) } ) {
+                Koha::Plugins::Method->new(
+                    {
+                        plugin_class  => $plugin_class,
+                        plugin_method => $method,
+                    }
+                )->store();
+            }
+
             push @plugins, $plugin;
         } else {
             my $error = $Module::Load::Conditional::ERROR;
@@ -97,6 +193,30 @@ sub GetPlugins {
 
 1;
 __END__
+
+=head1 AVAILABLE HOOKS
+
+=head2 after_hold_create
+
+=head3 Parameters
+
+=over
+
+=item * C<$hold> - A Koha::Hold object that has just been inserted in database
+
+=back
+
+=head3 Return value
+
+None
+
+=head3 Example
+
+    sub after_hold_create {
+        my ($self, $hold) = @_;
+
+        warn "New hold for borrower " . $hold->borrower->borrowernumber;
+    }
 
 =head1 AUTHOR
 

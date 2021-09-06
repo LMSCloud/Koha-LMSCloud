@@ -23,7 +23,8 @@ use strict;
 use warnings;
 use C4::Context;
 use C4::Letters;
-use YAML::Syck;
+use YAML::XS;
+use Encode;
 use Carp;
 
 =head1 NAME
@@ -37,7 +38,7 @@ How to add a new message to the queue:
   use C4::Message;
   use C4::Items;
   my $borrower = { borrowernumber => 1 };
-  my $item     = C4::Items::GetItem(1);
+  my $item     = Koha::Items->find($itemnumber)->unblessed;
   my $letter =  C4::Letters::GetPreparedLetter (
       module => 'circulation',
       letter_code => 'CHECKOUT',
@@ -165,7 +166,7 @@ sub enqueue {
     my $body = join('', map { $format->($_) } @{$metadata->{body}});
     $letter->{content} = $metadata->{header} . $body . $metadata->{footer};
 
-    $letter->{metadata} = Dump($metadata);
+    $letter->{metadata} = Encode::decode_utf8(Dump($metadata));
     C4::Letters::EnqueueLetter({
         letter                 => $letter,
         borrowernumber         => $borrower->{borrowernumber},
@@ -281,11 +282,11 @@ sub metadata {
         $data->{header} ||= '';
         $data->{body}   ||= [];
         $data->{footer} ||= '';
-        $self->{metadata} = Dump($data);
+        $self->{metadata} = Encode::decode_utf8(Dump($data));
         $self->content($self->render_metadata);
         return $data;
     } else {
-        return Load($self->{metadata});
+        return YAML::XS::Load(Encode::encode_utf8($self->{metadata}));
     }
 }
 
@@ -314,10 +315,12 @@ If passed a string, it'll append the string to the message.
 # $object->append($letter_or_item) -- add a new item to a message's content
 sub append {
     my ($self, $letter_or_item, $format) = @_;
-    my $item;
+    my ( $item, $header, $footer );
     if (ref($letter_or_item)) {
         my $letter   = $letter_or_item;
         my $metadata = _metadata($letter);
+        $header = $metadata->{header};
+        $footer = $metadata->{footer};
         $item = $metadata->{body}->[0];
     } else {
         $item = $letter_or_item;
@@ -328,6 +331,8 @@ sub append {
     }
     my $metadata = $self->metadata;
     push @{$metadata->{body}}, $item;
+    $metadata->{header} = $header;
+    $metadata->{footer} = $footer;
     $self->metadata($metadata);
     my $new_content = $self->render_metadata($format);
     return $self->content($new_content);

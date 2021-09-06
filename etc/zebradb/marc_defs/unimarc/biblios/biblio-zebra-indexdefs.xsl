@@ -2539,30 +2539,16 @@ definition file (probably something like {biblio,authority}-koha-indexdefs.xml) 
       <xslo:value-of select="normalize-space($raw_heading)"/>
     </z:index>
   </xslo:template>
+  <xslo:template mode="index_facets" match="marc:datafield[@tag='099']">
+    <xslo:if test="not(@ind1='z')">
+      <z:index name="ccode:0">
+        <xslo:value-of select="marc:subfield[@code='t']"/>
+      </z:index>
+    </xslo:if>
+  </xslo:template>
   <xslo:template mode="index_facets" match="marc:datafield[@tag='225']">
     <xslo:if test="not(@ind1='z')">
       <z:index name="se:0">
-        <xslo:value-of select="marc:subfield[@code='a']"/>
-      </z:index>
-    </xslo:if>
-  </xslo:template>
-  <xslo:template mode="index_facets" match="marc:datafield[@tag='500']">
-    <xslo:if test="not(@ind1='z')">
-      <z:index name="su-ut:0">
-        <xslo:value-of select="marc:subfield[@code='a']"/>
-      </z:index>
-    </xslo:if>
-  </xslo:template>
-  <xslo:template mode="index_facets" match="marc:datafield[@tag='501']">
-    <xslo:if test="not(@ind1='z')">
-      <z:index name="su-ut:0">
-        <xslo:value-of select="marc:subfield[@code='a']"/>
-      </z:index>
-    </xslo:if>
-  </xslo:template>
-  <xslo:template mode="index_facets" match="marc:datafield[@tag='503']">
-    <xslo:if test="not(@ind1='z')">
-      <z:index name="su-ut:0">
         <xslo:value-of select="marc:subfield[@code='a']"/>
       </z:index>
     </xslo:if>
@@ -2682,6 +2668,9 @@ definition file (probably something like {biblio,authority}-koha-indexdefs.xml) 
       </z:index>
       <z:index name="location:0">
         <xslo:value-of select="marc:subfield[@code='e']"/>
+      </z:index>
+      <z:index name="ccode:0">
+        <xslo:value-of select="marc:subfield[@code='h']"/>
       </z:index>
     </xslo:if>
   </xslo:template>

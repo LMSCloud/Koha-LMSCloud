@@ -96,6 +96,10 @@ label {
 	padding: 3px;
 }
 
+#login select {
+    width: 98%;
+}
+
 #login ul {
 	list-style: none;
 	margin: 0;
@@ -113,11 +117,11 @@ label {
 	width: 97%;
 }
 
-#login #branch {
+#login #branch, #login #desk_id {
 	width : 99%;
 }
 
-#login #submit, #login .button {
+#login #submit-button, #login .button {
 	font-size: 1.4em;
 	padding : .3em .6em;
 }

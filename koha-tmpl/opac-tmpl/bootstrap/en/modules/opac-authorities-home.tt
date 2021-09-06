@@ -1,6 +1,6 @@
 [% USE Koha %]
 [% INCLUDE 'doc-head-open.inc' %]
-<title>[% IF ( LibraryNameTitle ) %][% LibraryNameTitle %][% ELSE %]Koha online[% END %] catalog &rsaquo; Authority search</title>
+<title>Authority search &rsaquo; [% IF ( LibraryNameTitle ) %][% LibraryNameTitle | html %][% ELSE %]Koha online[% END %] catalog</title>
 [% INCLUDE 'doc-head-close.inc' %]
 [% BLOCK cssinclude %][% END %]
 </head>
@@ -8,38 +8,44 @@
 [% INCLUDE 'masthead.inc' %]
 
     <div class="main">
-        <ul class="breadcrumb">
-            <li><a href="/cgi-bin/koha/opac-main.pl">Home</a> <span class="divider">&rsaquo;</span></li>
-            <li><a href="#">Authority search</a></li>
-        </ul>
+        <nav aria-label="breadcrumb">
+            <ul class="breadcrumb">
+                <li class="breadcrumb-item">
+                    <a href="/cgi-bin/koha/opac-main.pl">Home</a>
+                </li>
+                <li class="breadcrumb-item" aria-current="page">
+                    <a href="#">Authority search</a>
+                </li>
+            </ul>
+        </nav>
 
         <div class="container-fluid">
-            <div class="row-fluid">
+            <div class="row">
                 [% IF ( OpacNav || OpacNavBottom ) %]
-                    <div class="span2">
+                    <div class="col-lg-2">
                         <div id="navigation">
                             [% INCLUDE 'navigation.inc' %]
                         </div>
                     </div>
-                    <div class="span10">
+                    <div class="col-10 order-first order-md-first order-lg-2">
                 [% ELSE %]
-                    <div class="span12">
+                    <div class="col order-first order-md-first order-lg-2">
                 [% END %]
                     <div id="userauthhome" class="maincontent">
                         <form name="f" action="/cgi-bin/koha/opac-authorities-home.pl" method="get">
                             <input type="hidden" name="op" value="do_search" />
                             <input type="hidden" name="type" value="opac" />
                             <fieldset class="rows">
-                                <legend>Authority search</legend>
+                                <legend><h1>Authority search</h1></legend>
                                 <ol>
                                     <li>
                                         <label for="authtypecode">Authority type: </label>
                                         <select name="authtypecode" id="authtypecode">
                                             [% FOREACH authority_type IN authority_types %]
                                                 [% IF authority_type.authtypecode == authtypecode %]
-                                                    <option value="[% authority_type.authtypecode%]" selected="selected">[% authority_type.authtypetext %]</option>
+                                                    <option value="[% authority_type.authtypecode | html %]" selected="selected">[% authority_type.authtypetext | html %]</option>
                                                 [% ELSE %]
-                                                    <option value="[% authority_type.authtypecode%]">[% authority_type.authtypetext %]</option>
+                                                    <option value="[% authority_type.authtypecode | html %]">[% authority_type.authtypetext | html %]</option>
                                                 [% END %]
                                             [% END %]
                                         </select>
@@ -49,12 +55,12 @@
                                         <select name="operator" id="anywhere">
                                             <option value="contains">contains</option>
                                             <option value="start">starts with</option>
-                                            <option value="is">is exactly</option>
+                                            <option value="exact">is exactly</option>
                                         </select>
                                     </li>
                                     <li>
                                         <label for="value">Term(s):</label>
-                                        <input type="text" name="value" id="value" value="[% value %]" />
+                                        <input type="text" name="value" id="value" value="[% value | html %]" />
                                     </li>
                                     <li>
                                         <label for="marclist">Where:</label>
@@ -77,12 +83,12 @@
                                 </ol>
                             </fieldset>
                             <fieldset class="action">
-                                <input type="submit" value="Submit" class="btn" />
+                                <input type="submit" value="Submit" class="btn btn-primary" />
                             </fieldset>
                         </form>
                     </div> <!-- / #userauthhome -->
-                </div> <!-- / .span10/12 -->
-            </div> <!-- / .row-fluid -->
+                </div> <!-- / .col-lg-10/12 -->
+            </div> <!-- / .row -->
         </div> <!-- / .container-fluid -->
     </div> <!-- / .main -->
 

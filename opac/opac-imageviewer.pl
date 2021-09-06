@@ -23,11 +23,12 @@ use CGI qw ( -utf8 );
 use C4::Auth;
 use C4::Biblio;
 use C4::Output;
-use C4::Images;
 
 use Koha::Biblios;
+use Koha::CoverImages;
+use Koha::Items;
 
-my $query = new CGI;
+my $query = CGI->new;
 my ( $template, $borrowernumber, $cookie ) = get_template_and_user(
     {
         template_name   => "opac-imageviewer.tt",
@@ -39,14 +40,22 @@ my ( $template, $borrowernumber, $cookie ) = get_template_and_user(
 
 my $biblionumber = $query->param('biblionumber') || $query->param('bib');
 my $imagenumber = $query->param('imagenumber');
+unless ( $biblionumber ) {
+    # Retrieving the biblio from the imagenumber
+    my $image = Koha::CoverImages->find($imagenumber);
+    my $item  = Koha::Items->find($image->{itemnumber});
+    $biblionumber = $item->biblionumber;
+}
 my $biblio = Koha::Biblios->find( $biblionumber );
 
 if ( C4::Context->preference("OPACLocalCoverImages") ) {
-    my @images = ListImagesForBiblio($biblionumber);
-    $template->{VARS}->{'OPACLocalCoverImages'} = 1;
-    $template->{VARS}->{'images'}               = \@images;
-    $template->{VARS}->{'biblionumber'}         = $biblionumber;
-    $template->{VARS}->{'imagenumber'} = $imagenumber || $images[0] || '';
+    my $images = !$imagenumber ? Koha::Biblios->find($biblionumber)->cover_images->as_list : [];
+    $template->param(
+        OPACLocalCoverImages => 1,
+        images               => $images,
+        biblionumber         => $biblionumber,
+        imagenumber          => (@$images ? $images->[0]->imagenumber : $imagenumber),
+    );
 }
 
 $template->{VARS}->{'biblio'} = $biblio;

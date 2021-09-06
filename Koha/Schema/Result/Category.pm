@@ -30,15 +30,21 @@ __PACKAGE__->table("categories");
   is_nullable: 0
   size: 10
 
+unique primary key used to idenfity the patron category
+
 =head2 description
 
   data_type: 'longtext'
   is_nullable: 1
 
+description of the patron category
+
 =head2 enrolmentperiod
 
   data_type: 'smallint'
   is_nullable: 1
+
+number of months the patron is enrolled for (will be NULL if enrolmentperioddate is set)
 
 =head2 enrolmentperioddate
 
@@ -46,21 +52,29 @@ __PACKAGE__->table("categories");
   datetime_undef_if_invalid: 1
   is_nullable: 1
 
+date the patron is enrolled until (will be NULL if enrolmentperiod is set)
+
 =head2 upperagelimit
 
   data_type: 'smallint'
   is_nullable: 1
+
+age limit for the patron
 
 =head2 dateofbirthrequired
 
   data_type: 'tinyint'
   is_nullable: 1
 
+the minimum age required for the patron category
+
 =head2 finetype
 
   data_type: 'varchar'
   is_nullable: 1
   size: 30
+
+unused in Koha
 
 =head2 bulk
 
@@ -73,15 +87,21 @@ __PACKAGE__->table("categories");
   is_nullable: 1
   size: [28,6]
 
+enrollment fee for the patron
+
 =head2 overduenoticerequired
 
   data_type: 'tinyint'
   is_nullable: 1
 
+are overdue notices sent to this patron category (1 for yes, 0 for no)
+
 =head2 issuelimit
 
   data_type: 'smallint'
   is_nullable: 1
+
+unused in Koha
 
 =head2 reservefee
 
@@ -89,11 +109,15 @@ __PACKAGE__->table("categories");
   is_nullable: 1
   size: [28,6]
 
+cost to place holds
+
 =head2 hidelostitems
 
   data_type: 'tinyint'
   default_value: 0
   is_nullable: 0
+
+are lost items shown to this category (1 for yes, 0 for no)
 
 =head2 category_type
 
@@ -102,12 +126,16 @@ __PACKAGE__->table("categories");
   is_nullable: 0
   size: 1
 
+type of Koha patron (Adult, Child, Professional, Organizational, Statistical, Staff)
+
 =head2 BlockExpiredPatronOpacActions
 
   accessor: 'block_expired_patron_opac_actions'
   data_type: 'tinyint'
   default_value: -1
   is_nullable: 0
+
+wheither or not a patron of this category can renew books or place holds once their card has expired. 0 means they can, 1 means they cannot, -1 means use syspref BlockExpiredPatronOpacActions
 
 =head2 default_privacy
 
@@ -116,11 +144,15 @@ __PACKAGE__->table("categories");
   extra: {list => ["default","never","forever"]}
   is_nullable: 0
 
+Default privacy setting for this patron category
+
 =head2 family_card
 
   data_type: 'tinyint'
   default_value: 0
   is_nullable: 0
+  
+Is the library card of the patron a familiy card
 
 =head2 checkprevcheckout
 
@@ -128,6 +160,43 @@ __PACKAGE__->table("categories");
   default_value: 'inherit'
   is_nullable: 0
   size: 7
+
+produce a warning for this patron category if this item has previously been checked out to this patron if 'yes', not if 'no', defer to syspref setting if 'inherit'.
+
+=head2 reset_password
+
+  data_type: 'tinyint'
+  is_nullable: 1
+
+if patrons of this category can do the password reset flow,
+
+=head2 change_password
+
+  data_type: 'tinyint'
+  is_nullable: 1
+
+if patrons of this category can change their passwords in the OAPC
+
+=head2 min_password_length
+
+  data_type: 'smallint'
+  is_nullable: 1
+
+set minimum password length for patrons in this category
+
+=head2 require_strong_password
+
+  data_type: 'tinyint'
+  is_nullable: 1
+
+set required password strength for patrons in this category
+
+=head2 exclude_from_local_holds_priority
+
+  data_type: 'tinyint'
+  is_nullable: 1
+
+Exclude patrons of this category from local holds priority
 
 =cut
 
@@ -183,6 +252,16 @@ __PACKAGE__->add_columns(
     is_nullable => 0,
     size => 7,
   },
+  "reset_password",
+  { data_type => "tinyint", is_nullable => 1 },
+  "change_password",
+  { data_type => "tinyint", is_nullable => 1 },
+  "min_password_length",
+  { data_type => "smallint", is_nullable => 1 },
+  "require_strong_password",
+  { data_type => "tinyint", is_nullable => 1 },
+  "exclude_from_local_holds_priority",
+  { data_type => "tinyint", is_nullable => 1 },
 );
 
 =head1 PRIMARY KEY
@@ -229,21 +308,6 @@ __PACKAGE__->has_many(
   { cascade_copy => 0, cascade_delete => 0 },
 );
 
-=head2 branch_borrower_circ_rules
-
-Type: has_many
-
-Related object: L<Koha::Schema::Result::BranchBorrowerCircRule>
-
-=cut
-
-__PACKAGE__->has_many(
-  "branch_borrower_circ_rules",
-  "Koha::Schema::Result::BranchBorrowerCircRule",
-  { "foreign.categorycode" => "self.categorycode" },
-  { cascade_copy => 0, cascade_delete => 0 },
-);
-
 =head2 categories_branches
 
 Type: has_many
@@ -259,25 +323,53 @@ __PACKAGE__->has_many(
   { cascade_copy => 0, cascade_delete => 0 },
 );
 
-=head2 default_borrower_circ_rule
+=head2 circulation_rules
 
-Type: might_have
+Type: has_many
 
-Related object: L<Koha::Schema::Result::DefaultBorrowerCircRule>
+Related object: L<Koha::Schema::Result::CirculationRule>
 
 =cut
 
-__PACKAGE__->might_have(
-  "default_borrower_circ_rule",
-  "Koha::Schema::Result::DefaultBorrowerCircRule",
+__PACKAGE__->has_many(
+  "circulation_rules",
+  "Koha::Schema::Result::CirculationRule",
+  { "foreign.categorycode" => "self.categorycode" },
+  { cascade_copy => 0, cascade_delete => 0 },
+);
+
+=head2 pseudonymized_transactions
+
+Type: has_many
+
+Related object: L<Koha::Schema::Result::PseudonymizedTransaction>
+
+=cut
+
+__PACKAGE__->has_many(
+  "pseudonymized_transactions",
+  "Koha::Schema::Result::PseudonymizedTransaction",
   { "foreign.categorycode" => "self.categorycode" },
   { cascade_copy => 0, cascade_delete => 0 },
 );
 
 
-# Created by DBIx::Class::Schema::Loader v0.07042 @ 2018-11-26 12:36:22
-# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:+tMjnfvjUkAaiPoUiswhKA
+# Created by DBIx::Class::Schema::Loader v0.07049 @ 2021-01-21 13:39:29
+# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:O4duiIu9dHKr31ToxFGubA
 
+__PACKAGE__->add_columns(
+    '+exclude_from_local_holds_priority' => { is_boolean => 1 },
+);
 
-# You can replace this text with custom code or comments, and it will be preserved on regeneration
+sub koha_object_class {
+    'Koha::Patron::Category';
+}
+sub koha_objects_class {
+    'Koha::Patron::Categories';
+}
+
+__PACKAGE__->add_columns(
+    '+require_strong_password' => { is_boolean => 1 }
+);
+
 1;

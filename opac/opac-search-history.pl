@@ -32,7 +32,7 @@ use URI::Escape;
 use POSIX qw(strftime);
 
 
-my $cgi = new CGI;
+my $cgi = CGI->new;
 
 # Getting the template and auth
 my ($template, $loggedinuser, $cookie) = get_template_and_user(
@@ -70,7 +70,7 @@ unless ( $loggedinuser ) {
                 @searches = map { $_->{type} ne $type ? $_ : () } @searches;
             }
             if ( @id ) {
-                @searches = map { my $search = $_; ( grep {/^$search->{id}$/} @id ) ? () : $_ } @searches;
+                @searches = map { my $search = $_; ( grep { $_ eq $search->{id} } @id ) ? () : $_ } @searches;
             }
         }
         C4::Search::History::set_to_session({ cgi => $cgi, search_history => \@searches });

@@ -4,7 +4,6 @@ use Modern::Perl;
 use C4::Context;
 use C4::Utils::DataTables;
 use Koha::DateUtils;
-use C4::Members::Attributes qw(SearchIdMatchingAttribute );
 
 sub search {
     my ( $params ) = @_;
@@ -14,6 +13,7 @@ sub search {
     my $branchcode = $params->{branchcode};
     my $searchtype = $params->{searchtype} || 'contain';
     my $searchfieldstype = $params->{searchfieldstype} || 'standard';
+    my $has_permission = $params->{has_permission};
     my $dt_params = $params->{dt_params};
     my $chargesfrom = $params->{chargesfrom};
     my $chargesto = $params->{chargesto};
@@ -45,17 +45,38 @@ sub search {
 
     my ($sth, $query, $iTotalQuery, $iTotalRecords, $iTotalDisplayRecords);
     my $dbh = C4::Context->dbh;
-    # Get the iTotalRecords DataTable variable
-    $query = $iTotalQuery = "SELECT COUNT(borrowers.borrowernumber) FROM borrowers";
-    if ( @restricted_branchcodes ) {
-        $iTotalQuery .= " WHERE borrowers.branchcode IN (" . join( ',', ('?') x @restricted_branchcodes ) . ")";
+
+    # Get the module_bit from a given permission code
+    if ( $has_permission ) {
+        ($has_permission->{module_bit}) = $dbh->selectrow_array(q|
+            SELECT bit FROM userflags WHERE flag=?
+        |, undef, $has_permission->{permission});
     }
-    ($iTotalRecords) = $dbh->selectrow_array( $iTotalQuery, undef, @restricted_branchcodes );
+
+    my (@where, @conditions);
+    # Get the iTotalRecords DataTable variable
+    $iTotalQuery = "SELECT COUNT(borrowers.borrowernumber) FROM borrowers";
+    if ( $has_permission ) {
+        $iTotalQuery .= ' LEFT JOIN user_permissions ON borrowers.borrowernumber=user_permissions.borrowernumber';
+        $iTotalQuery .= ' AND module_bit=? AND code=?';
+        push @conditions, $has_permission->{module_bit}, $has_permission->{subpermission};
+    }
+
+    if ( @restricted_branchcodes ) {
+        push @where, "borrowers.branchcode IN (" . join( ',', ('?') x @restricted_branchcodes ) . ")";
+        push @conditions, @restricted_branchcodes;
+    }
+    if ( $has_permission ) {
+        push @where, '( borrowers.flags = 1 OR borrowers.flags & (1 << ?) OR module_bit=? AND code=? )';
+        push @conditions, ($has_permission->{module_bit}) x 2, $has_permission->{subpermission};
+    }
+    $iTotalQuery .= ' WHERE ' . join ' AND ', @where if @where;
+    ($iTotalRecords) = $dbh->selectrow_array( $iTotalQuery, undef, @conditions );
 
     # Do that after iTotalQuery!
     if ( defined $branchcode and $branchcode ) {
         @restricted_branchcodes = @restricted_branchcodes
-            ? grep { /^$branchcode$/ } @restricted_branchcodes
+            ? grep ({ $_ eq $branchcode } @restricted_branchcodes)
                 ? ($branchcode)
                 : (undef) # Do not return any results
             : ($branchcode);
@@ -75,19 +96,27 @@ sub search {
 
     my $select = "SELECT
         borrowers.borrowernumber, borrowers.surname, borrowers.firstname,
+        borrowers.othernames,
+        borrowers.flags,
         borrowers.streetnumber, borrowers.streettype, borrowers.address,
         borrowers.address2, borrowers.city, borrowers.state, borrowers.zipcode,
         borrowers.country, cardnumber, borrowers.dateexpiry,
         borrowers.borrowernotes, borrowers.branchcode, borrowers.email,
         borrowers.userid, borrowers.dateofbirth, borrowers.categorycode,
         categories.description AS category_description, categories.category_type,
-        branches.branchname, borrowers.lost, borrowers.gonenoaddress,
+        branches.branchname, borrowers.phone, borrowers.lost, borrowers.gonenoaddress,
         debar.expiration as debarred, debar.comment as debarredcomment ";
     my $from = "FROM borrowers
         LEFT JOIN branches ON borrowers.branchcode = branches.branchcode
         LEFT JOIN categories ON borrowers.categorycode = categories.categorycode
         LEFT JOIN (SELECT borrowernumber, IFNULL('9999-12-31',max(expiration)) as expiration, GROUP_CONCAT(comment SEPARATOR ' / ') AS comment FROM borrower_debarments WHERE expiration > CURRENT_DATE() OR expiration IS NULL GROUP BY borrowernumber) AS debar on borrowers.borrowernumber = debar.borrowernumber ";
     my @where_args;
+    if ( $has_permission ) {
+        $from .= '
+                LEFT JOIN user_permissions ON borrowers.borrowernumber=user_permissions.borrowernumber
+                AND module_bit=? AND code=?';
+        push @where_args, $has_permission->{module_bit}, $has_permission->{subpermission};
+    }
     my @where_strs;
     if(defined $firstletter and $firstletter ne '') {
         push @where_strs, "borrowers.surname LIKE ?";
@@ -231,7 +260,6 @@ sub search {
         surname => 'surname,altcontactsurname',
         email => 'email,emailpro,B_email',
         borrowernumber => 'borrowernumber',
-        userid => 'userid',
         phone => 'phone,phonepro,B_phone,altcontactphone,mobile',
         address => 'streettype,address,address2,altcontactaddress1,altcontactaddress2,altcontactaddress3,altcontactzipcode,altcontactzipcode,city,state,zipcode,country',
         dateofbirth => 'dateofbirth',
@@ -268,15 +296,21 @@ sub search {
         }
 
         my @where_strs_or;
-        for my $searchfield ( split /,/, $searchfields->{$searchfieldstype} ) {
-            push @where_strs_or, "borrowers." . $dbh->quote_identifier($searchfield) . " LIKE ?";
+        if ( defined $searchfields->{$searchfieldstype} ) {
+            for my $searchfield ( split /,/, $searchfields->{$searchfieldstype} ) {
+                push @where_strs_or, "borrowers." . $dbh->quote_identifier($searchfield) . " LIKE ?";
+                push @where_args, $term;
+            }
+        } else {
+            push @where_strs_or, "borrowers." . $dbh->quote_identifier($searchfieldstype) . " LIKE ?";
             push @where_args, $term;
         }
 
-        if ( $searchfieldstype eq 'standard' and C4::Context->preference('ExtendedPatronAttributes') and $searchmember ) {
-            my $matching_borrowernumbers = C4::Members::Attributes::SearchIdMatchingAttribute($searchmember);
 
-            for my $borrowernumber ( @$matching_borrowernumbers ) {
+        if ( $searchfieldstype eq 'standard' and C4::Context->preference('ExtendedPatronAttributes') and $searchmember ) {
+            my @matching_borrowernumbers = Koha::Patrons->filter_by_attribute_value($searchmember)->get_column('borrowernumber');
+
+            for my $borrowernumber ( @matching_borrowernumbers ) {
                 push @where_strs_or, "borrowers.borrowernumber = ?";
                 push @where_args, $borrowernumber;
             }
@@ -286,8 +320,12 @@ sub search {
             if @where_strs_or;
     }
 
-    my $where;
-    $where = " WHERE " . join (" AND ", @where_strs) if @where_strs;
+    if ( $has_permission ) {
+        push @where_strs, '( borrowers.flags = 1 OR borrowers.flags & (1 << ?) OR module_bit=? AND code=? )';
+        push @where_args, ($has_permission->{module_bit}) x 2, $has_permission->{subpermission};
+    }
+
+    my $where = @where_strs ? " WHERE " . join (" AND ", @where_strs) : undef;
     my $orderby = dt_build_orderby($dt_params);
 
     my $limit;
@@ -342,6 +380,7 @@ sub search {
         my $patron_object = Koha::Patrons->find( $patron->{borrowernumber} );
         $patron->{overdues} = $patron_object->get_overdues->count;
         $patron->{issues} = $patron_object->checkouts->count;
+        $patron->{age} = $patron_object->get_age;
         my $balance = $patron_object->account->balance;
         # FIXME Should be formatted from the template
         $patron->{fines} = sprintf("%.2f", $balance);

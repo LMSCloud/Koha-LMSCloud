@@ -2,18 +2,18 @@
 
 # This file is part of Koha.
 #
-# Koha is free software; you can redistribute it and/or modify it under the
-# terms of the GNU General Public License as published by the Free Software
-# Foundation; either version 3 of the License, or (at your option) any later
-# version.
+# Koha is free software; you can redistribute it and/or modify it
+# under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 3 of the License, or
+# (at your option) any later version.
 #
-# Koha is distributed in the hope that it will be useful, but WITHOUT ANY
-# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
-# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+# Koha is distributed in the hope that it will be useful, but
+# WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+# GNU General Public License for more details.
 #
-# You should have received a copy of the GNU General Public License along
-# with Koha; if not, write to the Free Software Foundation, Inc.,
-# 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+# You should have received a copy of the GNU General Public License
+# along with Koha; if not, see <http://www.gnu.org/licenses>.
 
 use Modern::Perl;
 
@@ -25,6 +25,7 @@ use C4::Members;
 use C4::Circulation qw( GetIssuingCharges );
 use C4::Reserves;
 use C4::Items;
+use Koha::DateUtils;
 use Koha::Holds;
 use Koha::ItemTypes;
 use Koha::Patrons;
@@ -37,13 +38,12 @@ my ( $template, $loggedinuser, $cookie ) = get_template_and_user(
         template_name   => "members/moremember-print.tt",
         query           => $input,
         type            => "intranet",
-        authnotrequired => 0,
         flagsrequired   => { circulate => "circulate_remaining_permissions" },
         debug           => 1,
     }
 );
 
-my $logged_in_user = Koha::Patrons->find( $loggedinuser ) or die "Not logged in";
+my $logged_in_user = Koha::Patrons->find( $loggedinuser );
 my $patron         = Koha::Patrons->find( $borrowernumber );
 output_and_exit_if_error( $input, $cookie, $template, { module => 'members', logged_in_user => $logged_in_user, current_patron => $patron } );
 
@@ -93,10 +93,7 @@ sub build_issue_data {
         my ( $charge, $itemtype ) =
           GetIssuingCharges( $checkout->{itemnumber}, $borrowernumber );
 
-        $itemtype = Koha::ItemTypes->find( $itemtype );
-        $checkout->{itemtype_description} = $itemtype->description; #FIXME Should not it be translated_description
-
-        $checkout->{charge} = sprintf( "%.2f", $charge ); # TODO Should be done in the template using Price
+        $checkout->{charge} = $charge;
 
         $checkout->{overdue} = $c->is_overdue;
 
@@ -112,7 +109,7 @@ sub build_reserve_data {
 
     my $return = [];
 
-    my $today = DateTime->now( time_zone => C4::Context->tz );
+    my $today = dt_from_string();
     $today->truncate( to => 'day' );
 
     while ( my $reserve = $reserves->next() ) {

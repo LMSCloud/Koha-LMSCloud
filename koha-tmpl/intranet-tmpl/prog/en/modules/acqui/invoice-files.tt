@@ -1,9 +1,9 @@
+[% USE raw %]
 [% USE Asset %]
 [% USE KohaDates %]
 [% SET footerjs = 1 %]
 [% INCLUDE 'doc-head-open.inc' %]
-<title>Koha &rsaquo; Acquisitions &rsaquo; Invoice &rsaquo; Files</title>
-[% Asset.css("css/datatables.css") %]
+<title>Files &rsaquo; Invoice &rsaquo; Acquisitions &rsaquo; Koha</title>
 [% INCLUDE 'doc-head-close.inc' %]
 </head>
 
@@ -11,15 +11,34 @@
 [% INCLUDE 'header.inc' %]
 [% INCLUDE 'acquisitions-search.inc' %]
 
-<div id="breadcrumbs"><a href="/cgi-bin/koha/mainpage.pl">Home</a> &rsaquo; <a href="/cgi-bin/koha/acqui/acqui-home.pl">Acquisitions</a> &rsaquo; <a href="/cgi-bin/koha/acqui/invoices.pl">Invoices</a> &rsaquo; <a href="/cgi-bin/koha/acqui/invoice.pl?invoiceid=[% invoiceid %]">[% invoicenumber %]</a> &rsaquo; Files</div>
 
-<div id="doc3" class="yui-t2">
+<nav id="breadcrumbs" aria-label="Breadcrumb" class="breadcrumb">
+    <ol>
+        <li>
+            <a href="/cgi-bin/koha/mainpage.pl">Home</a>
+        </li>
+        <li>
+            <a href="/cgi-bin/koha/acqui/acqui-home.pl">Acquisitions</a>
+        </li>
+        <li>
+            <a href="/cgi-bin/koha/acqui/invoices.pl">Invoices</a>
+        </li>
+        <li>
+            <a href="/cgi-bin/koha/acqui/invoice.pl?invoiceid=[% invoiceid | uri %]">[% invoicenumber | html %]</a>
+        </li>
+        <li>
+            <a href="#" aria-current="page">Files</a>
+        </li>
+    </ol>
+</nav>
 
-<div id="bd">
-  <div id="yui-main">
-    <div class="yui-b">
+<div class="main container-fluid">
+    <div class="row">
+        <div class="col-sm-10 col-sm-push-2">
+            <main>
+
       <h2>Files for invoice: [% invoicenumber | html %]</h2>
-      <p><b>Vendor: </b><a href="/cgi-bin/koha/acqui/supplier.pl?booksellerid=[% booksellerid %]">[% suppliername %]</a></p>
+      <p><strong>Vendor: </strong><a href="/cgi-bin/koha/acqui/supplier.pl?booksellerid=[% booksellerid | uri %]">[% suppliername | html %]</a></p>
       <br />
       [% IF errors %]
         <div class="dialog alert">
@@ -44,15 +63,15 @@
               <tbody>
                 [% FOREACH f IN files %]
                   <tr>
-                      <td><a href="?invoiceid=[% invoiceid %]&amp;op=download&amp;view=1&amp;file_id=[% f.file_id %]">[% f.file_name | html %]</a></td>
+                      <td><a href="?invoiceid=[% invoiceid | uri %]&amp;op=download&amp;view=1&amp;file_id=[% f.file_id | uri %]">[% f.file_name | html %]</a></td>
                       <td>[% f.file_type | html %]</td>
                       <td>[% f.file_description | html %]</td>
-                      <td class="title-string">
-                        <span title="[% f.date_uploaded %]">[% f.date_uploaded | $KohaDates %]</span>
+                      <td data-order="[% f.date_uploaded | html %]">
+                        [% f.date_uploaded | $KohaDates %]
                       </td>
-                      <td>[% f.file_size %]</td>
-                      <td><a class="delete_file" href="?invoiceid=[% invoiceid %]&amp;op=delete&amp;file_id=[% f.file_id %]">Delete</a></td>
-                      <td><a href="?invoiceid=[% invoiceid %]&amp;op=download&amp;file_id=[% f.file_id %]">Download</a></td>
+                      <td>[% f.file_size | html %]</td>
+                      <td><a class="delete_file" href="?invoiceid=[% invoiceid | html %]&amp;op=delete&amp;file_id=[% f.file_id | html %]">Delete</a></td>
+                      <td><a href="?invoiceid=[% invoiceid | uri %]&amp;op=download&amp;file_id=[% f.file_id | uri %]">Download</a></td>
                   </tr>
                 [% END %]
               </tbody>
@@ -69,7 +88,7 @@
                   <legend>Upload New File</legend>
                   <ol>
                       <li><input type="hidden" name="op" value="upload" />
-                      <input type="hidden" name="invoiceid" value="[% invoiceid %]" />
+                      <input type="hidden" name="invoiceid" value="[% invoiceid | html %]" />
                       <label for="description">Description:</label>
                       <input name="description" id="description" type="text" /></li>
                       <li><label for="uploadfile">File:</label><input name="uploadfile" type="file" id="uploadfile" /></li>
@@ -78,22 +97,24 @@
               </fieldset>
           </form>
       [% END %]
-    </div>
-  </div>
-  <div class="yui-b">
-    [% INCLUDE 'acquisitions-menu.inc' %]
-  </div>
-</div>
+    </main>
+  </div> <!-- /.col-sm-10.col-sm-push-2 -->
+
+<div class="col-sm-2 col-sm-pull-10">
+    <aside>
+        [% INCLUDE 'acquisitions-menu.inc' %]
+    </aside>
+</div> <!-- /.col-sm-2.col-sm-pull-10 -->
+</div> <!-- /.row -->
 
 [% MACRO jsinclude BLOCK %]
-    [% Asset.js("js/acquisitions-menu.js") %]
+    [% Asset.js("js/acquisitions-menu.js") | $raw %]
     [% INCLUDE 'datatables.inc' %]
-    <script type="text/javascript">
+    <script>
         $(document).ready(function() {
             $("#invoice_files_details_table").dataTable($.extend(true, {}, dataTablesDefaults, {
                 "aoColumnDefs": [
-                    { "aTargets": [ -1, -2 ], "bSortable": false, "bSearchable": false },
-                    { "aTargets": [ "title-string" ], "sType": "title-string" }
+                    { "aTargets": [ -1, -2 ], "bSortable": false, "bSearchable": false }
                 ],
                 bInfo: false,
                 bPaginate: false,

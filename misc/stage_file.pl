@@ -6,21 +6,20 @@
 # Parts Copyright BSZ 2011
 # Parts Copyright C & P Bibliography Services 2012
 #
-# Koha is free software; you can redistribute it and/or modify it under the
-# terms of the GNU General Public License as published by the Free Software
-# Foundation; either version 2 of the License, or (at your option) any later
-# version.
+# Koha is free software; you can redistribute it and/or modify it
+# under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 3 of the License, or
+# (at your option) any later version.
 #
-# Koha is distributed in the hope that it will be useful, but WITHOUT ANY
-# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
-# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+# Koha is distributed in the hope that it will be useful, but
+# WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+# GNU General Public License for more details.
 #
-# You should have received a copy of the GNU General Public License along
-# with this program; if not, write to the Free Software Foundation, Inc.,
-# 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+# You should have received a copy of the GNU General Public License
+# along with Koha; if not, see <http://www.gnu.org/licenses>.
 
-use strict;
-use warnings;
+use Modern::Perl;
 BEGIN {
     # find Koha's Perl modules
     # test carefully before changing this
@@ -28,9 +27,11 @@ BEGIN {
     eval { require "$FindBin::Bin/kohalib.pl" };
 }
 
+use Koha::Script;
 use C4::Context;
 use C4::ImportBatch;
 use C4::Matcher;
+use C4::MarcModificationTemplates;
 use Getopt::Long;
 
 $| = 1;
@@ -48,20 +49,43 @@ my $no_replace;
 my $format = 'ISO2709';
 my $no_create;
 my $item_action = 'always_add';
+my $marc_mod_template = '';
+my $marc_mod_template_id = undef;
 
 my $result = GetOptions(
-    'encoding:s'    => \$encoding,
-    'file:s'        => \$input_file,
-    'format:s'      => \$format,
-    'match|match-bibs:s'  => \$match,
-    'add-items'     => \$add_items,
-    'item-action:s' => \$item_action,
-    'no-replace'    => \$no_replace,
-    'no-create'     => \$no_create,
-    'comment:s'     => \$batch_comment,
-    'authorities'   => \$authorities,
-    'h|help'        => \$want_help
+    'encoding:s'         => \$encoding,
+    'file:s'             => \$input_file,
+    'format:s'           => \$format,
+    'match|match-bibs:s' => \$match,
+    'add-items'          => \$add_items,
+    'item-action:s'      => \$item_action,
+    'no-replace'         => \$no_replace,
+    'no-create'          => \$no_create,
+    'comment:s'          => \$batch_comment,
+    'authorities'        => \$authorities,
+    'marcmodtemplate:s'  => \$marc_mod_template,
+    'h|help'             => \$want_help
 );
+
+if($marc_mod_template ne '') {
+   my @templates = GetModificationTemplates();
+   foreach my $this_template (@templates) {
+       if($this_template->{'name'} eq $marc_mod_template) {
+          if(!defined $marc_mod_template_id) {
+               $marc_mod_template_id = $this_template->{'template_id'};
+           } else {
+               print "WARNING: MARC modification template name " .
+                   "'$marc_mod_template' matches multiple templates. " .
+                   "Please fix this issue before proceeding.\n";
+               exit 1;
+           }
+       }
+   }
+
+   if(!defined $marc_mod_template_id ) {
+       die "Can't locate MARC modification template '$marc_mod_template'\n";
+   }
+}
 
 $record_type = 'auth' if ($authorities);
 
@@ -81,18 +105,21 @@ unless (-r $input_file) {
 
 my $dbh = C4::Context->dbh;
 $dbh->{AutoCommit} = 0;
-process_batch({
-    format        => $format,
-    input_file    => $input_file,
-    record_type   => $record_type,
-    match         => $match,
-    add_items     => $add_items,
-    batch_comment => $batch_comment,
-    encoding      => $encoding,
-    no_replace    => $no_replace,
-    no_create     => $no_create,
-    item_action   => $item_action,
-});
+process_batch(
+    {
+        format               => $format,
+        input_file           => $input_file,
+        record_type          => $record_type,
+        match                => $match,
+        add_items            => $add_items,
+        batch_comment        => $batch_comment,
+        encoding             => $encoding,
+        no_replace           => $no_replace,
+        no_create            => $no_create,
+        item_action          => $item_action,
+        marc_mod_template_id => $marc_mod_template_id,
+    }
+);
 $dbh->commit();
 
 exit 0;
@@ -115,9 +142,15 @@ sub process_batch {
 
     print "... staging MARC records -- please wait\n";
     #FIXME: We should really allow the use of marc modification frameworks and to_marc plugins here if possible
-    my ($batch_id, $num_valid_records, $num_items, @import_errors) =
-        BatchStageMarcRecords($record_type, $params->{encoding}, $marc_records, $params->{input_file}, undef, $params->{batch_comment}, '', $params->{add_items}, 0,
-                              100, \&print_progress_and_commit);
+    my ( $batch_id, $num_valid_records, $num_items, @import_errors ) =
+      BatchStageMarcRecords(
+        $record_type,                      $params->{encoding},
+        $marc_records,                     $params->{input_file},
+        $params->{'marc_mod_template_id'}, $params->{batch_comment},
+        '',                                $params->{add_items},
+        0,                                 100,
+        \&print_progress_and_commit
+      );
     print "... finished staging MARC records\n";
 
     my $num_with_matches = 0;
@@ -218,6 +251,14 @@ Parameters:
                             the record batch; if the comment
                             has spaces in it, surround the
                             comment with quotation marks.
+    --marcmodtemplate <TEMPLATE>
+                            This parameter allows you to specify the
+                            name of an existing MARC modification
+                            template to apply as the MARC records are
+                            imported (these templates are created in
+                            the "MARC modification templates" tool in
+                            Koha). If not specified, no MARC modification
+                            templates are used (default).
     --help or -h            show this message.
 _USAGE_
 }

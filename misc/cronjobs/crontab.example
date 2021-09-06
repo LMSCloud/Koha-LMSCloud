@@ -46,9 +46,9 @@ KOHA_CRON_PATH = /usr/share/koha/bin/cronjobs
 # m h  dom mon dow   user command
 
 
-# AUTOMATIC RENEWAL + FINES + OVERDUE NOTICES
-# Sequence is important - renew what can be renewed, charge fines for the rest, print fine amount into overdue notices
-5    1 * * *  __KOHA_USER__ $KOHA_CRON_PATH/automatic_renewals.pl; $KOHA_CRON_PATH/fines.pl; $KOHA_CRON_PATH/overdue_notices.pl -t
+# AUTOMATIC RENEWAL + AUTOMATIC CHECK-IN + FINES + OVERDUE NOTICES
+# Sequence is important - renew what can be renewed, check things in if set to, charge fines for the rest, print fine amount into overdue notices
+5    1 * * *  __KOHA_USER__ $KOHA_CRON_PATH/automatic_renewals.pl -c; $KOHA_CRON_PATH/automatic_checkin.pl ; $KOHA_CRON_PATH/fines.pl; $KOHA_CRON_PATH/overdue_notices.pl -t
 
 # ADVANCE NOTICES
 10   1 * * *  __KOHA_USER__  $KOHA_CRON_PATH/advance_notices.pl -c
@@ -84,7 +84,7 @@ KOHA_CRON_PATH = /usr/share/koha/bin/cronjobs
 */10 * * * *  __KOHA_USER__  $KOHA_CRON_PATH/../migration_tools/rebuild_zebra.pl -b -a -z >/dev/null
 
 # clean up databases nightly.  Be sure not to run this with --sessions during a time when the system is in use!
-16 1 * * * __KOHA_USER__ $KOHA_CRON_PATH/cleanup_database.pl --sessions --zebraqueue 10 --list-invites --temp-uploads
+16 1 * * * __KOHA_USER__ $KOHA_CRON_PATH/cleanup_database.pl --confirm --sessions --zebraqueue 10 --list-invites --temp-uploads
 
 # delete old purchase suggestions weekly. Replace XX with a number to define the age of suggestions to delete.
 @weekly	__KOHA_USER__  $KOHA_CRON_PATH/purge_suggestions.pl --confirm --days XX > /dev/null 2>&1
@@ -94,3 +94,6 @@ KOHA_CRON_PATH = /usr/share/koha/bin/cronjobs
 
 # run merge authorities
 20 1 * * * __KOHA_USER__ $KOHA_CRON_PATH/merge_authorities.pl -b
+
+# PLUGIN JOBS
+10   1 * * *  __KOHA_USER__  $KOHA_CRON_PATH/plugins_nightly.pl

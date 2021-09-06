@@ -61,7 +61,7 @@ use Koha::ItemTypes;
 use Koha::SearchEngine;
 use Koha::SearchEngine::Search;
 
-my $input = new CGI;
+my $input = CGI->new;
 my $op = $input->param('op') || q{};
 my $dbh = C4::Context->dbh;
 
@@ -83,7 +83,6 @@ if ( $op eq "do_search" && $query ) {
             template_name   => "serials/result.tt",
             query           => $input,
             type            => "intranet",
-            authnotrequired => 0,
             flagsrequired   => { catalogue => 1, serials => '*' },
             debug           => 1,
         }
@@ -92,7 +91,7 @@ if ( $op eq "do_search" && $query ) {
     # add the limits if applicable
     my $itemtypelimit = $input->param('itemtypelimit');
     my $ccodelimit    = $input->param('ccodelimit');
-    my $op = C4::Context->preference('UseQueryParser') ? '&&' : 'and';
+    my $op = 'and';
     $query .= " $op $itype_or_itemtype:$itemtypelimit" if $itemtypelimit;
     $query .= " $op ccode:$ccodelimit" if $ccodelimit;
     $debug && warn $query;
@@ -124,6 +123,9 @@ if ( $op eq "do_search" && $query ) {
         $resultsloop{highlight}       = ( $i % 2 ) ? (1) : (0);
         $resultsloop{title}           = $biblio->{'title'};
         $resultsloop{subtitle}        = $biblio->{'subtitle'};
+        $resultsloop{medium}          = $biblio->{'medium'};
+        $resultsloop{part_number}     = $biblio->{'part_number'};
+        $resultsloop{part_name}       = $biblio->{'part_name'};
         $resultsloop{biblionumber}    = $biblio->{'biblionumber'};
         $resultsloop{author}          = $biblio->{'author'};
         $resultsloop{publishercode}   = $biblio->{'publishercode'};
@@ -189,7 +191,6 @@ else {
             template_name   => "serials/subscription-bib-search.tt",
             query           => $input,
             type            => "intranet",
-            authnotrequired => 0,
             flagsrequired   => { catalogue => 1, serials => '*' },
             debug           => 1,
         }

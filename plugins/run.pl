@@ -27,9 +27,9 @@ use C4::Output;
 use C4::Debug;
 use C4::Context;
 
-my $plugins_enabled = C4::Context->preference('UseKohaPlugins') && C4::Context->config("enable_plugins");
+my $plugins_enabled = C4::Context->config("enable_plugins");
 
-my $cgi = new CGI;
+my $cgi = CGI->new;
 
 my $class  = $cgi->param('class');
 my $method = $cgi->param('method');
@@ -38,7 +38,6 @@ my ( $template, $borrowernumber, $cookie ) = get_template_and_user(
     {   template_name   => "plugins/plugins-disabled.tt",
         query           => $cgi,
         type            => "intranet",
-        authnotrequired => 0,
         flagsrequired   => { plugins => $method },
         debug           => 1,
     }

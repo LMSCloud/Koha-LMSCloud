@@ -23,10 +23,13 @@ use C4::Auth;
 use C4::Output;
 use C4::Members;
 use C4::Form::MessagingPreferences;
+use Koha::AuthUtils;
 use Koha::Patrons;
+use Koha::Patron::Consent;
 use Koha::Patron::Modifications;
+use Koha::Patron::Categories;
 
-my $cgi = new CGI;
+my $cgi = CGI->new;
 my $dbh = C4::Context->dbh;
 
 unless ( C4::Context->preference('PatronSelfRegistration') ) {
@@ -56,26 +59,31 @@ if (
         }
     );
 
-    $template->param(
-        OpacPasswordChange => C4::Context->preference('OpacPasswordChange') );
+    my $patron_attrs = $m->unblessed;
+    $patron_attrs->{password} ||= Koha::AuthUtils::generate_password(Koha::Patron::Categories->find($patron_attrs->{categorycode}));
+    my $consent_dt = delete $patron_attrs->{gdpr_proc_consent};
+    $patron_attrs->{categorycode} ||= C4::Context->preference('PatronSelfRegistrationDefaultCategory');
+    delete $patron_attrs->{timestamp};
+    delete $patron_attrs->{verification_token};
+    delete $patron_attrs->{changed_fields};
+    my $patron = Koha::Patron->new( $patron_attrs )->store;
 
-    my $borrower = $m->unblessed();
+    Koha::Patron::Consent->new({ borrowernumber => $patron->borrowernumber, type => 'GDPR_PROCESSING', given_on => $consent_dt })->store if $consent_dt;
 
-    my $password;
-    ( $borrowernumber, $password ) = AddMember_Opac(%$borrower);
-
-    if ($borrowernumber) {
+    if ($patron) {
         $m->delete();
-        C4::Form::MessagingPreferences::handle_form_action($cgi, { borrowernumber => $borrowernumber }, $template, 1, C4::Context->preference('PatronSelfRegistrationDefaultCategory') ) if C4::Context->preference('EnhancedMessagingPreferences');
+        C4::Form::MessagingPreferences::handle_form_action($cgi, { borrowernumber => $patron->borrowernumber }, $template, 1, C4::Context->preference('PatronSelfRegistrationDefaultCategory') ) if C4::Context->preference('EnhancedMessagingPreferences');
 
-        $template->param( password_cleartext => $password );
-        my $patron = Koha::Patrons->find( $borrowernumber );
-        $template->param( borrower => $patron->unblessed );
+        $template->param( password_cleartext => $patron->plain_text_password );
+        $template->param( borrower => $patron );
         $template->param(
             PatronSelfRegistrationAdditionalInstructions =>
               C4::Context->preference(
                 'PatronSelfRegistrationAdditionalInstructions')
         );
+
+        my ($theme, $news_lang, $availablethemes) = C4::Templates::themelanguage(C4::Context->config('opachtdocs'),'opac-registration-confirmation.tt','opac',$cgi);
+        $template->param( news_lang => $news_lang );
     }
 
 }

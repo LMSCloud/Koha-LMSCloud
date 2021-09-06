@@ -45,7 +45,6 @@ INSERT INTO `authorised_values` ( `category`, `authorised_value`, `lib`) VALUES 
 -- Country codes
 INSERT INTO `authorised_values` ( `category`, `authorised_value`, `lib`) VALUES ( 'COUNTRY', 'AN', 'Antilles Néerlandaises');
 INSERT INTO `authorised_values` ( `category`, `authorised_value`, `lib`) VALUES ( 'COUNTRY', 'CR', 'Costa Rica');
-INSERT INTO `authorised_values` ( `category`, `authorised_value`, `lib`) VALUES ( 'COUNTRY', 'ER', 'Allemagne');
 INSERT INTO `authorised_values` ( `category`, `authorised_value`, `lib`) VALUES ( 'COUNTRY', 'FR', 'France');
 INSERT INTO `authorised_values` ( `category`, `authorised_value`, `lib`) VALUES ( 'COUNTRY', 'DE', 'Allemagne');
 INSERT INTO `authorised_values` ( `category`, `authorised_value`, `lib`) VALUES ( 'COUNTRY', 'CN', 'Chine');
@@ -94,8 +93,7 @@ INSERT INTO `authorised_values` ( `category`, `authorised_value`, `lib`) VALUES 
 INSERT INTO `authorised_values` ( `category`, `authorised_value`, `lib`) VALUES ( 'COUNTRY', 'BZ', 'Belize');
 INSERT INTO `authorised_values` ( `category`, `authorised_value`, `lib`) VALUES ( 'COUNTRY', 'CA', 'Canada');
 INSERT INTO `authorised_values` ( `category`, `authorised_value`, `lib`) VALUES ( 'COUNTRY', 'CC', 'Cocos, île des');
-INSERT INTO `authorised_values` ( `category`, `authorised_value`, `lib`) VALUES ( 'COUNTRY', 'CC', 'Keeling');
-INSERT INTO `authorised_values` ( `category`, `authorised_value`, `lib`) VALUES ( 'COUNTRY', 'CD', 'Congo, Répubublique Démocratique');
+INSERT INTO `authorised_values` ( `category`, `authorised_value`, `lib`) VALUES ( 'COUNTRY', 'CD', 'Congo, République Démocratique');
 INSERT INTO `authorised_values` ( `category`, `authorised_value`, `lib`) VALUES ( 'COUNTRY', 'CF', 'Centrafricaine, République');
 INSERT INTO `authorised_values` ( `category`, `authorised_value`, `lib`) VALUES ( 'COUNTRY', 'CG', 'Congo');
 INSERT INTO `authorised_values` ( `category`, `authorised_value`, `lib`) VALUES ( 'COUNTRY', 'CH', 'Suisse');
@@ -135,7 +133,6 @@ INSERT INTO `authorised_values` ( `category`, `authorised_value`, `lib`) VALUES 
 INSERT INTO `authorised_values` ( `category`, `authorised_value`, `lib`) VALUES ( 'COUNTRY', 'GM', 'Gambie');
 INSERT INTO `authorised_values` ( `category`, `authorised_value`, `lib`) VALUES ( 'COUNTRY', 'GN', 'Guinée');
 INSERT INTO `authorised_values` ( `category`, `authorised_value`, `lib`) VALUES ( 'COUNTRY', 'GP', 'Guadeloupe (France)');
-INSERT INTO `authorised_values` ( `category`, `authorised_value`, `lib`) VALUES ( 'COUNTRY', 'GQ', 'Guinée');
 INSERT INTO `authorised_values` ( `category`, `authorised_value`, `lib`) VALUES ( 'COUNTRY', 'GQ', 'Guinée équatoriale');
 INSERT INTO `authorised_values` ( `category`, `authorised_value`, `lib`) VALUES ( 'COUNTRY', 'GR', 'Grèce');
 INSERT INTO `authorised_values` ( `category`, `authorised_value`, `lib`) VALUES ( 'COUNTRY', 'GS', 'Géorgie du sud et les îles sandwich du Sud');
@@ -220,7 +217,7 @@ INSERT INTO `authorised_values` ( `category`, `authorised_value`, `lib`) VALUES 
 INSERT INTO `authorised_values` ( `category`, `authorised_value`, `lib`) VALUES ( 'COUNTRY', 'PG', 'Papouasie Nouvelle-Guinée');
 INSERT INTO `authorised_values` ( `category`, `authorised_value`, `lib`) VALUES ( 'COUNTRY', 'PH', 'Philippines');
 INSERT INTO `authorised_values` ( `category`, `authorised_value`, `lib`) VALUES ( 'COUNTRY', 'PK', 'Pakistan');
-INSERT INTO `authorised_values` ( `category`, `authorised_value`, `lib`) VALUES ( 'COUNTRY', 'PK', 'Pologne');
+INSERT INTO `authorised_values` ( `category`, `authorised_value`, `lib`) VALUES ( 'COUNTRY', 'PL', 'Pologne');
 INSERT INTO `authorised_values` ( `category`, `authorised_value`, `lib`) VALUES ( 'COUNTRY', 'PM', 'Saint-Pierre-et-Miquelon (France)');
 INSERT INTO `authorised_values` ( `category`, `authorised_value`, `lib`) VALUES ( 'COUNTRY', 'PN', 'Pitcairn');
 INSERT INTO `authorised_values` ( `category`, `authorised_value`, `lib`) VALUES ( 'COUNTRY', 'PR', 'Porto Rico');
@@ -613,7 +610,6 @@ INSERT INTO `authorised_values` ( `category`, `authorised_value`, `lib`) VALUES 
 INSERT INTO `authorised_values` ( `category`, `authorised_value`, `lib`) VALUES ( 'qualif', '360', 'Aquafortiste');
 INSERT INTO `authorised_values` ( `category`, `authorised_value`, `lib`) VALUES ( 'qualif', '365', 'Expert (catalogue de vente)');
 INSERT INTO `authorised_values` ( `category`, `authorised_value`, `lib`) VALUES ( 'qualif', '370', 'Monteur');
-INSERT INTO `authorised_values` ( `category`, `authorised_value`, `lib`) VALUES ( 'qualif', '370', 'Réalisateur');
 INSERT INTO `authorised_values` ( `category`, `authorised_value`, `lib`) VALUES ( 'qualif', '380', 'Faussaire');
 INSERT INTO `authorised_values` ( `category`, `authorised_value`, `lib`) VALUES ( 'qualif', '390', 'Ancien possesseur');
 INSERT INTO `authorised_values` ( `category`, `authorised_value`, `lib`) VALUES ( 'qualif', '395', 'Fondateur (publication en série)');
@@ -720,3 +716,11 @@ INSERT INTO authorised_values (category, authorised_value, lib, lib_opac) VALUES
 
 -- Housebound
 INSERT INTO authorised_values (category, authorised_value, lib) VALUES ('HSBND_FREQ','EW','Chaque Semaine');
+
+-- return claims
+INSERT INTO authorised_values (category, authorised_value, lib) VALUES ('RETURN_CLAIM_RESOLUTION', 'RET_BY_PATRON', 'Returned by patron');
+INSERT INTO authorised_values (category, authorised_value, lib) VALUES ('RETURN_CLAIM_RESOLUTION', 'FOUND_IN_LIB',  'Found in library');
+
+-- hold cancellation
+INSERT INTO authorised_values (category, authorised_value, lib) VALUES ('HOLD_CANCELLATION','NOT_FOUND','Item could not be located on shelves');
+INSERT INTO authorised_values (category, authorised_value, lib) VALUES ('HOLD_CANCELLATION','DAMAGED','Item was found to be too damaged to fill hold');

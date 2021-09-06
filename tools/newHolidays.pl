@@ -24,16 +24,16 @@ use CGI qw ( -utf8 );
 use C4::Auth;
 use C4::Output;
 
-use Koha::Caches;
-
 use C4::Calendar;
 use DateTime;
 use Koha::DateUtils;
 
-my $input               = new CGI;
+my $input               = CGI->new;
 my $dbh                 = C4::Context->dbh();
 
-my $branchcode          = $input->param('newBranchName');
+checkauth($input, 0, {tools=> 'edit_calendar'}, 'intranet');
+
+our $branchcode          = $input->param('newBranchName');
 my $originalbranchcode  = $branchcode;
 my $weekday             = $input->param('newWeekday');
 my $day                 = $input->param('newDay');

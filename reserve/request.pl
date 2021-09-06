@@ -48,25 +48,26 @@ use Koha::Biblios;
 use Koha::DateUtils;
 use Koha::Checkouts;
 use Koha::Holds;
-use Koha::IssuingRules;
+use Koha::CirculationRules;
 use Koha::Items;
 use Koha::ItemTypes;
 use Koha::Libraries;
 use Koha::Patrons;
+use Koha::Clubs;
 
 my $dbh = C4::Context->dbh;
-my $input = new CGI;
+my $input = CGI->new;
 my ( $template, $borrowernumber, $cookie, $flags ) = get_template_and_user(
     {
         template_name   => "reserve/request.tt",
         query           => $input,
         type            => "intranet",
-        authnotrequired => 0,
         flagsrequired   => { reserveforothers => 'place_holds' },
     }
 );
 
 my $showallitems = $input->param('showallitems');
+my $pickup = $input->param('pickup');
 
 my $itemtypes = { map { $_->{itemtype} => $_ } @{ Koha::ItemTypes->search_with_localization->unblessed } };
 
@@ -74,8 +75,12 @@ my $itemtypes = { map { $_->{itemtype} => $_ } @{ Koha::ItemTypes->search_with_l
 my $findborrower = $input->param('findborrower');
 $findborrower = '' unless defined $findborrower;
 $findborrower =~ s|,| |g;
+my $findclub = $input->param('findclub');
+$findclub = '' unless defined $findclub && !$findborrower;
 my $borrowernumber_hold = $input->param('borrowernumber') || '';
+my $club_hold = $input->param('club')||'';
 my $messageborrower;
+my $messageclub;
 my $warnings;
 my $messages;
 my $exceeded_maxreserves;
@@ -86,13 +91,23 @@ my $action = $input->param('action');
 $action ||= q{};
 
 if ( $action eq 'move' ) {
-  my $where = $input->param('where');
-  my $reserve_id = $input->param('reserve_id');
-  AlterPriority( $where, $reserve_id );
+  my $where           = $input->param('where');
+  my $reserve_id      = $input->param('reserve_id');
+  my $prev_priority   = $input->param('prev_priority');
+  my $next_priority   = $input->param('next_priority');
+  my $first_priority  = $input->param('first_priority');
+  my $last_priority   = $input->param('last_priority');
+  my $hold_itemnumber = $input->param('itemnumber');
+  if ( $prev_priority == 0 && $next_priority == 1 ){
+      C4::Reserves::RevertWaitingStatus({ itemnumber => $hold_itemnumber });
+  } else {
+      AlterPriority( $where, $reserve_id, $prev_priority, $next_priority, $first_priority, $last_priority );
+  }
 } elsif ( $action eq 'cancel' ) {
   my $reserve_id = $input->param('reserve_id');
+  my $cancellation_reason = $input->param("cancellation-reason");
   my $hold = Koha::Holds->find( $reserve_id );
-  $hold->cancel if $hold;
+  $hold->cancel({ cancellation_reason => $cancellation_reason }) if $hold;
 } elsif ( $action eq 'setLowestPriority' ) {
   my $reserve_id = $input->param('reserve_id');
   ToggleLowestPriority( $reserve_id );
@@ -125,6 +140,25 @@ if ($findborrower) {
     }
 }
 
+if($findclub) {
+    my $club = Koha::Clubs->find( { name => $findclub } );
+    if( $club ) {
+        $club_hold = $club->id;
+    } else {
+        my @clubs = Koha::Clubs->search( [
+            { name => { like => '%'.$findclub.'%' } },
+            { description => { like => '%'.$findclub.'%' } }
+        ] );
+        if( scalar @clubs == 1 ) {
+            $club_hold = $clubs[0]->id;
+        } elsif ( @clubs ) {
+            $template->param( clubs => \@clubs );
+        } else {
+            $messageclub = "'$findclub'";
+        }
+    }
+}
+
 my @biblionumbers = ();
 my $biblionumber = $input->param('biblionumber');
 my $biblionumbers = $input->param('biblionumbers');
@@ -134,8 +168,10 @@ if ( $biblionumbers ) {
     push @biblionumbers, $input->multi_param('biblionumber');
 }
 
-# FIXME multi_hold should not be a variable but depends on the number of elements in @biblionumbers
-$template->param(multi_hold => scalar $input->param('multi_hold'));
+my $multi_hold = @biblionumbers > 1;
+$template->param(
+    multi_hold => $multi_hold,
+);
 
 # If we have the borrowernumber because we've performed an action, then we
 # don't want to try to place another reserve.
@@ -151,6 +187,8 @@ if ($borrowernumber_hold && !$action) {
     my $new_reserves_count = scalar( @biblionumbers );
 
     my $maxreserves = C4::Context->preference('maxreserves');
+    $template->param( maxreserves => $maxreserves );
+
     if ( $maxreserves
         && ( $reserves_count + $new_reserves_count > $maxreserves ) )
     {
@@ -171,7 +209,7 @@ if ($borrowernumber_hold && !$action) {
     # we check the date expiry of the borrower (only if there is an expiry date, otherwise, set to 1 (warn)
     my $expiry_date = $patron->dateexpiry;
     my $expiry = 0; # flag set if patron account has expired
-    if ($expiry_date and $expiry_date ne '0000-00-00' and
+    if ($expiry_date and
         Date_to_Days(split /-/,$date) > Date_to_Days(split /-/,$expiry_date)) {
         $expiry = 1;
     }
@@ -192,15 +230,79 @@ if ($borrowernumber_hold && !$action) {
     );
 }
 
-$template->param( messageborrower => $messageborrower );
+if ($club_hold && !$borrowernumber_hold && !$action) {
+    my $club = Koha::Clubs->find($club_hold);
+
+    my $enrollments = $club->club_enrollments;
+
+    my $maxreserves = C4::Context->preference('maxreserves');
+    my $new_reserves_count = scalar( @biblionumbers );
+
+    my @members;
+
+    while(my $enrollment = $enrollments->next) {
+        next if $enrollment->is_canceled;
+        my $member = { patron => $enrollment->patron->unblessed };
+        my $reserves_count = $enrollment->patron->holds->count;
+        if ( $maxreserves
+            && ( $reserves_count + $new_reserves_count > $maxreserves ) )
+        {
+            $member->{new_reserves_allowed} = $maxreserves - $reserves_count > 0
+                ? $maxreserves - $reserves_count
+                : 0;
+            $member->{exceeded_maxreserves} = 1;
+        }
+        my $expiry_date = $enrollment->patron->dateexpiry;
+        $member->{expiry} = 0; # flag set if patron account has expired
+        if ($expiry_date and
+            Date_to_Days(split /-/,$date) > Date_to_Days(split /-/,$expiry_date)) {
+            $member->{expiry} = 1;
+        }
+        $member->{amount_outstanding} = $enrollment->patron->account->balance;
+        if ( $enrollment->patron->branchcode ne C4::Context->userenv->{'branch'} ) {
+            $member->{diffbranch} = 1;
+        }
+
+        push @members, $member;
+    }
+
+    $template->param(
+        club                => $club,
+        members             => \@members,
+        maxreserves         => $maxreserves,
+        new_reserves_count  => $new_reserves_count
+    );
+}
+
+unless ( $club_hold or $borrowernumber_hold ) {
+    $template->param( clubcount => Koha::Clubs->search->count );
+}
+
+$template->param(
+    messageborrower => $messageborrower,
+    messageclub     => $messageclub
+);
 
 # FIXME launch another time GetMember perhaps until (Joubu: Why?)
 my $patron = Koha::Patrons->find( $borrowernumber_hold );
 
+if ( $patron && $multi_hold ) {
+    my @multi_pickup_locations =
+      Koha::Biblios->search( { biblionumber => \@biblionumbers } )
+      ->pickup_locations( { patron => $patron } );
+    $template->param( multi_pickup_locations => \@multi_pickup_locations );
+}
+
 my $logged_in_patron = Koha::Patrons->find( $borrowernumber );
 
+my $wants_check;
+if ($patron) {
+    $wants_check = $patron->wants_check_for_previous_checkout;
+}
 my $itemdata_enumchron = 0;
+my $itemdata_ccode = 0;
 my @biblioloop = ();
+my $no_reserves_allowed = 0;
 foreach my $biblionumber (@biblionumbers) {
     next unless $biblionumber =~ m|^\d+$|;
 
@@ -212,24 +314,31 @@ foreach my $biblionumber (@biblionumbers) {
     if ( $patron ) {
         { # CanBookBeReserved
             my $canReserve = CanBookBeReserved( $patron->borrowernumber, $biblionumber );
-            $canReserve //= '';
-            if ( $canReserve eq 'OK' ) {
+            if ( $canReserve->{status} eq 'OK' ) {
 
                 #All is OK and we can continue
             }
-            elsif ( $canReserve eq 'tooManyReserves' ) {
+            elsif ( $canReserve->{status} eq 'noReservesAllowed' || $canReserve->{status} eq 'notReservable' ) {
+                $no_reserves_allowed = 1;
+            }
+            elsif ( $canReserve->{status} eq 'tooManyReserves' ) {
                 $exceeded_maxreserves = 1;
+                $template->param( maxreserves => $canReserve->{limit} );
             }
-            elsif ( $canReserve eq 'tooManyHoldsForThisRecord' ) {
+            elsif ( $canReserve->{status} eq 'tooManyHoldsForThisRecord' ) {
                 $exceeded_holds_per_record = 1;
-                $biblioloopiter{$canReserve} = 1;
+                $biblioloopiter{ $canReserve->{status} } = 1;
             }
-            elsif ( $canReserve eq 'ageRestricted' ) {
-                $template->param( $canReserve => 1 );
-                $biblioloopiter{$canReserve} = 1;
+            elsif ( $canReserve->{status} eq 'ageRestricted' ) {
+                $template->param( $canReserve->{status} => 1 );
+                $biblioloopiter{ $canReserve->{status} } = 1;
+            }
+            elsif ( $canReserve->{status} eq 'alreadypossession' ) {
+                $template->param( $canReserve->{status} => 1);
+                $biblioloopiter{ $canReserve->{status} } = 1;
             }
             else {
-                $biblioloopiter{$canReserve} = 1;
+                $biblioloopiter{ $canReserve->{status} } = 1;
             }
         }
 
@@ -256,16 +365,6 @@ foreach my $biblionumber (@biblionumbers) {
         $biblioloopiter{remaining_holds_for_record} = $max_holds_for_record;
         $template->param( max_holds_for_record => $max_holds_for_record );
         $template->param( remaining_holds_for_record => $remaining_holds_for_record );
-
-        { # alreadypossession
-            # Check to see if patron is allowed to place holds on records where the
-            # patron already has an item from that record checked out
-            if ( !C4::Context->preference('AllowHoldsOnPatronsPossessions')
-                && CheckIfIssuedToPatron( $patron->borrowernumber, $biblionumber ) )
-            {
-                $template->param( alreadypossession => 1, );
-            }
-        }
     }
 
 
@@ -330,10 +429,6 @@ foreach my $biblionumber (@biblionumbers) {
           }
     };
 
-    my $frameworkcode = GetFrameworkCode( $biblionumber );
-    my @notforloan_avs = Koha::AuthorisedValues->search_by_koha_field({ kohafield => 'items.notforloan', frameworkcode => $frameworkcode });
-    my $notforloan_label_of = { map { $_->authorised_value => $_->lib } @notforloan_avs };
-
     my @bibitemloop;
 
     my @available_itemtypes;
@@ -342,6 +437,7 @@ foreach my $biblionumber (@biblionumbers) {
         my $num_available = 0;
         my $num_override  = 0;
         my $hiddencount   = 0;
+        my $num_alreadyheld = 0;
 
         $biblioitem->{force_hold_level} = $force_hold_level;
 
@@ -361,9 +457,29 @@ foreach my $biblionumber (@biblionumbers) {
                 $itemtypes->{ $biblioitem->{itemtype} }{imageurl} );
         }
 
+        # iterating through all items first to check if any of them available
+        # to pass this value further inside down to IsAvailableForItemLevelRequest to
+        # it's complicated logic to analyse.
+        # (before this loop was inside that sub loop so it was O(n^2) )
+        my $items_any_available;
+
+        $items_any_available = ItemsAnyAvailableAndNotRestricted( { biblionumber => $biblioitemnumber, patron => $patron })
+            if $patron;
+
         foreach my $itemnumber ( @{ $itemnumbers_of_biblioitem{$biblioitemnumber} } )    {
             my $item = $iteminfos_of->{$itemnumber};
-
+            my $do_check;
+            if ( $patron ) {
+                $do_check = $patron->do_check_for_previous_checkout($item) if $wants_check;
+                if ( $do_check && $wants_check ) {
+                    $item->{checked_previously} = $do_check;
+                    if ( $multi_hold ) {
+                        $biblioloopiter{checked_previously} = $do_check;
+                    } else {
+                        $template->param( checked_previously => $do_check );
+                    }
+                }
+            }
             $item->{force_hold_level} = $force_hold_level;
 
             unless (C4::Context->preference('item-level_itypes')) {
@@ -409,18 +525,10 @@ foreach my $biblionumber (@biblionumbers) {
             # Management of the notforloan document
             if ( $item->{notforloan} ) {
                 $item->{backgroundcolor} = 'other';
-                $item->{notforloanvalue} =
-                  $notforloan_label_of->{ $item->{notforloan} };
             }
 
             # Management of lost or long overdue items
             if ( $item->{itemlost} ) {
-
-                # FIXME localized strings should never be in Perl code
-                $item->{message} =
-                  $item->{itemlost} == 1 ? "(lost)"
-                    : $item->{itemlost} == 2 ? "(long overdue)"
-                      : "";
                 $item->{backgroundcolor} = 'other';
                 if ($logged_in_patron->category->hidelostitems && !$showallitems) {
                     $item->{hide} = 1;
@@ -446,7 +554,7 @@ foreach my $biblionumber (@biblionumbers) {
             # for branches they arent logged in to
             if ( C4::Context->preference("IndependentBranches") ) {
                 if (! C4::Context->preference("canreservefromotherbranches")){
-                    # cant reserve items so need to check if item homebranch and userenv branch match if not we cant reserve
+                    # can't reserve items so need to check if item homebranch and userenv branch match if not we can't reserve
                     my $userenv = C4::Context->userenv;
                     unless ( C4::Context->IsSuperLibrarian ) {
                         $item->{cantreserve} = 1 if ( $item->{homebranch} ne $userenv->{branch} );
@@ -462,27 +570,43 @@ foreach my $biblionumber (@biblionumbers) {
 
                 $item->{'holdallowed'} = $branchitemrule->{'holdallowed'};
 
-                my $can_item_be_reserved = CanItemBeReserved( $patron->borrowernumber, $itemnumber );
+                my $reserves_control_branch = $pickup || C4::Reserves::GetReservesControlBranch( $item, $patron_unblessed );
+                my $can_item_be_reserved = CanItemBeReserved( $patron->borrowernumber, $itemnumber, $reserves_control_branch )->{status};
                 $item->{not_holdable} = $can_item_be_reserved unless ( $can_item_be_reserved eq 'OK' );
 
-                $item->{item_level_holds} = Koha::IssuingRules->get_opacitemholds_policy( { item => $item_object, patron => $patron } );
+                $item->{item_level_holds} = Koha::CirculationRules->get_opacitemholds_policy( { item => $item_object, patron => $patron } );
 
                 if (
                        !$item->{cantreserve}
                     && !$exceeded_maxreserves
-                    && IsAvailableForItemLevelRequest($item, $patron_unblessed)
                     && $can_item_be_reserved eq 'OK'
+                    # items_any_available defined outside of the current loop,
+                    # so we avoiding loop inside IsAvailableForItemLevelRequest:
+                    && IsAvailableForItemLevelRequest($item_object, $patron, undef, $items_any_available)
                   )
                 {
                     $item->{available} = 1;
                     $num_available++;
 
+                    if ( $branchitemrule->{'hold_fulfillment_policy'} eq 'any' )
+                    {
+                        $item->{any_pickup_location} = 1;
+                    }
+                    else {
+                        my @pickup_locations = $item_object->pickup_locations({ patron => $patron });
+
+                        $item->{pickup_locations} = join( ', ', map { $_->branchname } @pickup_locations );
+                    }
+
                     push( @available_itemtypes, $item->{itype} );
                 }
-                elsif ( $can_item_be_reserved eq 'tooManyReserves' && C4::Context->preference('AllowHoldPolicyOverride') ) {
+                elsif ( C4::Context->preference('AllowHoldPolicyOverride') ) {
                     # If AllowHoldPolicyOverride is set, it should override EVERY restriction, not just branch item rules
-                    $item->{override} = 1;
-                    $num_override++;
+                    # with the exception of itemAlreadyOnHold because, you know, the item is already on hold
+                    if ( $can_item_be_reserved ne 'itemAlreadyOnHold' ) {
+                        $item->{override} = 1;
+                        $num_override++;
+                    } else { $num_alreadyheld++ }
 
                     push( @available_itemtypes, $item->{itype} );
                 }
@@ -493,12 +617,19 @@ foreach my $biblionumber (@biblionumbers) {
                 if ($item->{enumchron}) {
                     $itemdata_enumchron = 1;
                 }
+                # Show collection when needed
+                if ($item->{ccode}) {
+                    $itemdata_ccode = 1;
+                }
             }
 
             push @{ $biblioitem->{itemloop} }, $item;
         }
 
-        if ( $num_override == scalar( @{ $biblioitem->{itemloop} } ) ) { # That is, if all items require an override
+        # While we can't override an alreay held item, we should be able to override the others
+        # Unless all items are already held
+        if ( $num_override > 0 && ($num_override + $num_alreadyheld) == scalar( @{ $biblioitem->{itemloop} } ) ) {
+        # That is, if all items require an override
             $template->param( override_required => 1 );
         } elsif ( $num_available == 0 ) {
             $template->param( none_available => 1 );
@@ -544,20 +675,10 @@ foreach my $biblionumber (@biblionumbers) {
             $reserve{'wbrcode'}       = $res->branchcode();
             $reserve{'itemnumber'}    = $res->itemnumber();
             $reserve{'wbrname'}       = $res->branch()->branchname();
-
-            if ( $reserve{'holdingbranch'} eq $reserve{'wbrcode'} ) {
-
-                # Just because the holdingbranch matches the reserve branch doesn't mean the item
-                # has arrived at the destination, check for an open transfer for the item as well
-                my ( $transfertwhen, $transfertfrom, $transferto ) =
-                  C4::Circulation::GetTransfers( $res->itemnumber() );
-                if ( not $transferto or $transferto ne $res->branchcode() ) {
-                    $reserve{'atdestination'} = 1;
-                }
-            }
-
-            # set found to 1 if reserve is waiting for patron pickup
+            $reserve{'atdestination'} = $res->is_at_destination();
+            $reserve{'desk_name'}     = ( $res->desk() ) ? $res->desk()->desk_name() : '' ;
             $reserve{'found'}     = $res->is_found();
+            $reserve{'inprocessing'} = $res->is_in_processing();
             $reserve{'intransit'} = $res->is_in_transit();
         }
         elsif ( $res->priority() > 0 ) {
@@ -568,9 +689,8 @@ foreach my $biblionumber (@biblionumbers) {
             }
         }
 
-        $reserve{'expirationdate'} = output_pref( { dt => dt_from_string( $res->expirationdate ), dateonly => 1 } )
-          unless ( !defined( $res->expirationdate ) || $res->expirationdate eq '0000-00-00' );
-        $reserve{'date'}           = output_pref( { dt => dt_from_string( $res->reservedate ), dateonly => 1 } );
+        $reserve{'expirationdate'} = $res->expirationdate;
+        $reserve{'date'}           = $res->reservedate;
         $reserve{'borrowernumber'} = $res->borrowernumber();
         $reserve{'biblionumber'}   = $res->biblionumber();
         $reserve{'patron'}         = $res->borrower;
@@ -586,6 +706,8 @@ foreach my $biblionumber (@biblionumbers) {
         $reserve{'reserve_id'}     = $res->reserve_id();
         $reserve{itemtype}         = $res->itemtype();
         $reserve{branchcode}       = $res->branchcode();
+        $reserve{non_priority}     = $res->non_priority();
+        $reserve{object}           = $res;
 
         push( @reserveloop, \%reserve );
     }
@@ -603,12 +725,12 @@ foreach my $biblionumber (@biblionumbers) {
                      optionloop        => \@optionloop,
                      bibitemloop       => \@bibitemloop,
                      itemdata_enumchron => $itemdata_enumchron,
+                     itemdata_ccode    => $itemdata_ccode,
                      date              => $date,
                      biblionumber      => $biblionumber,
                      findborrower      => $findborrower,
-                     title             => $biblio->title,
-                     author            => $biblio->author,
-                     holdsview => 1,
+                     biblio            => $biblio,
+                     holdsview         => 1,
                      C4::Search::enabled_staff_search_views,
                     );
 
@@ -621,14 +743,25 @@ foreach my $biblionumber (@biblionumbers) {
         $template->param( reserveloop => \@reserveloop );
     }
 
+    if ( $patron ) {
+        # Add the valid pickup locations
+        my @pickup_locations = $biblio->pickup_locations({ patron => $patron });
+        $biblioloopiter{pickup_locations} = \@pickup_locations;
+        $biblioloopiter{pickup_locations_codes} = [ map { $_->branchcode } @pickup_locations ];
+    }
+
     push @biblioloop, \%biblioloopiter;
 }
 
 $template->param( biblioloop => \@biblioloop );
 $template->param( biblionumbers => $biblionumbers );
+$template->param( no_reserves_allowed => $no_reserves_allowed );
 $template->param( exceeded_maxreserves => $exceeded_maxreserves );
 $template->param( exceeded_holds_per_record => $exceeded_holds_per_record );
 $template->param( subscriptionsnumber => CountSubscriptionFromBiblionumber($biblionumber));
+
+# pass the userenv branch if no pickup location selected
+$template->param( pickup => $pickup || C4::Context->userenv->{branch} );
 
 if ( C4::Context->preference( 'AllowHoldDateInFuture' ) ) {
     $template->param( reserve_in_future => 1 );

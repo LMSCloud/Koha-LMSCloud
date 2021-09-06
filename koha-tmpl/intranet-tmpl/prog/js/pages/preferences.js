@@ -1,7 +1,13 @@
+/* global KOHA CodeMirror to_highlight search_jumped humanMsg dataTablesDefaults themelang */
 // We can assume 'KOHA' exists, as we depend on KOHA.AJAX
 
 KOHA.Preferences = {
     Save: function ( form ) {
+        if ( ! $(form).valid() ) {
+            humanMsg.displayAlert( __("Error: presence of invalid data prevent saving. Please make the corrections and try again.") );
+            return;
+        }
+
         modified_prefs = $( form ).find( '.modified' );
         // $.serialize removes empty value, we need to keep them.
         // If a multiple select has all its entries unselected
@@ -16,10 +22,10 @@ KOHA.Preferences = {
             data += '&' + $(this).attr('name') + '=';
         });
         if ( !data ) {
-            humanMsg.displayAlert( MSG_NOTHING_TO_SAVE );
+            humanMsg.displayAlert( __("Nothing to save") );
             return;
         }
-        KOHA.AJAX.MarkRunning( $( form ).find( '.save-all' ), MSG_SAVING );
+        KOHA.AJAX.MarkRunning($(form).find('.save-all'), __("Saving...") );
         KOHA.AJAX.Submit( {
             data: data,
             url: '/cgi-bin/koha/svc/config/systempreferences/',
@@ -32,7 +38,7 @@ KOHA.Preferences = {
         modified_prefs.each(function(){
             var modified_pref = $(this).attr("id");
             modified_pref = modified_pref.replace("pref_","");
-            msg += "<strong>"+ MSG_SAVED_PREFERENCE.format(modified_pref) + "</strong>\n";
+            msg += "<strong>" + __("Saved preference %s").format(modified_pref) + "</strong>\n";
         });
         humanMsg.displayAlert(msg);
 
@@ -40,6 +46,21 @@ KOHA.Preferences = {
             .find( '.modified-warning' ).remove().end()
             .find( '.modified' ).removeClass('modified');
         KOHA.Preferences.Modified = false;
+    }
+};
+
+function mark_modified() {
+    $( this.form ).find( '.save-all' ).prop('disabled', false);
+    $( this ).addClass( 'modified' );
+    var name_cell = $( this ).parents( '.name-row' ).find( '.name-cell' );
+    if ( !name_cell.find( '.modified-warning' ).length )
+        name_cell.append('<em class="modified-warning">(' + __("modified") + ')</em>');
+    KOHA.Preferences.Modified = true;
+}
+
+window.onbeforeunload = function () {
+    if ( KOHA.Preferences.Modified ) {
+        return __("You have made changes to system preferences.");
     }
 };
 
@@ -52,15 +73,6 @@ $( document ).ready( function () {
         ],
         "bPaginate": false
     }));
-
-    function mark_modified() {
-        $( this.form ).find( '.save-all' ).prop('disabled', false);
-        $( this ).addClass( 'modified' );
-        var name_cell = $( this ).parents( '.name-row' ).find( '.name-cell' );
-        if ( !name_cell.find( '.modified-warning' ).length )
-            name_cell.append( '<em class="modified-warning">('+MSG_MODIFIED+')</em>' );
-        KOHA.Preferences.Modified = true;
-    }
 
     $( '.prefs-tab' )
         .find( 'input.preference, textarea.preference' ).on('input', function () {
@@ -82,53 +94,81 @@ $( document ).ready( function () {
         return false;
     });
 
-    $("dl.sortable").sortable();
-    $("dl.sortable").on( "sortchange", function( event, ui ) {
+    $(".sortable").sortable();
+    $(".sortable").on( "sortchange", function( event, ui ) {
         // This is not exact but we just need to trigger a change
         $(ui.item.find('input:first')).change();
     } );
-
-    window.onbeforeunload = function () {
-        if ( KOHA.Preferences.Modified ) {
-            return MSG_MADE_CHANGES;
-        }
-    }
 
     $( '.prefs-tab .action .cancel' ).click( function () { KOHA.Preferences.Modified = false } );
 
     $( '.prefs-tab .save-all' ).prop('disabled', true).click( function () {
         KOHA.Preferences.Save( this.form );
         return false;
-    } );
-
-    $( '.prefs-tab .expand-textarea' ).show().click( function () {
-        $( this ).hide().nextAll( 'textarea, input[type=submit], a' )
-            .animate( { height: 'show', queue: false } )
-            .animate( { opacity: 1 } );
-
-        return false;
-    } ).nextAll( 'textarea, input[type=submit]' ).hide().css( { opacity: 0 } );
-
-    $( '.prefs-tab .collapse-textarea' ).hide().click( function () {
-        $( this ).show().prevAll( 'textarea, input[type=submit]' )
-            .animate( { height: 'hide', queue: false } )
-            .animate( { opacity: 0 } );
-
-        $( this ).hide().prevAll( 'a' ).show();
-        return false;
     });
 
+    $( ".expand-textarea" ).on("click", function(e){
+        e.preventDefault();
+        $(this).hide();
+        var target = $(this).data("target");
+        var syntax = $(this).data("syntax");
+        $("#collapse_" + target ).show();
+        if( syntax ){
+            var editor = CodeMirror.fromTextArea( document.getElementById( "pref_" + target ), {
+                lineNumbers: true,
+                mode: syntax,
+                lineWrapping: true,
+                viewportMargin: Infinity,
+                gutters: ["CodeMirror-lint-markers"],
+                lint: true
+            });
+            editor.on("change", function(){
+                mark_modified.call( $("#pref_" + target )[0]);
+            });
+            editor.on("blur", function(){
+                editor.save();
+            });
+        } else {
+            $("#pref_" + target ).show();
+        }
+    });
 
-    $("h3").attr("class","expanded").attr("title",MSG_CLICK_TO_EXPAND);
+    $( ".collapse-textarea" ).on("click", function(e){
+        e.preventDefault();
+        $(this).hide();
+        var target = $(this).data("target");
+        var syntax = $(this).data("syntax");
+        $("#expand_" + target ).show();
+        if( syntax ){
+            var editor = $("#pref_" + target ).next(".CodeMirror")[0].CodeMirror;
+            editor.toTextArea();
+        }
+        $("#pref_" + target ).hide();
+    });
+
+    $("h3").attr("class", "expanded").attr("title", __("Click to collapse this section"));
     var collapsible = $(".collapsed,.expanded");
 
     $(collapsible).on("click",function(){
-        var panel = $(this).next("div");
+        var h3Id = $(this).attr("id");
+        var panel = $("#collapse_" + h3Id);
         if(panel.is(":visible")){
-            $(this).addClass("collapsed").removeClass("expanded").attr("title",MSG_CLICK_TO_EXPAND);
+            $(this).addClass("collapsed").removeClass("expanded").attr("title", __("Click to expand this section") );
             panel.hide();
         } else {
-            $(this).addClass("expanded").removeClass("collapsed").attr("title",MSG_CLICK_TO_COLLAPSE);
+            $(this).addClass("expanded").removeClass("collapsed").attr("title", __("Click to collapse this section") );
+            panel.show();
+        }
+    });
+
+    $(".pref_sublink").on("click", function(){
+        /* If the user clicks a sub-menu link in the sidebar,
+           check to see if it is collapsed. If so, expand it */
+        var href = $(this).attr("href");
+        href = href.replace("#","");
+        var panel = $("#collapse_" + href );
+        if( panel.is(":hidden") ){
+            $("#" + href).addClass("expanded").removeClass("collapsed").attr("title", __("Click to collapse this section") );
             panel.show();
         }
     });
@@ -143,4 +183,111 @@ $( document ).ready( function () {
     if ( search_jumped ) {
         document.location.hash = "jumped";
     }
+
+    $("#pref_UpdateItemLocationOnCheckin").change(function(){
+        var the_text = $(this).val();
+        var alert_text = '';
+        if (the_text.indexOf('_ALL_:') != -1) alert_text = __("Note: _ALL_ value will override all other values") + '\n';
+        var split_text  =the_text.split("\n");
+        var alert_issues = '';
+        var issue_count = 0;
+        var reg_check = /.*:\s.*/;
+        for (var i=0; i < split_text.length; i++){
+            if ( !split_text[i].match(reg_check) && split_text[i].length ) {
+                alert_issues+=split_text[i]+"\n";
+                issue_count++;
+            }
+        }
+        if (issue_count) alert_text += "\n" + __("The following values are not formatted correctly:") + "\n" + alert_issues;
+        if ( alert_text.length )  alert(alert_text);
+    });
+
+    $(".prefs-tab form").each(function () {
+        $(this).validate({
+            rules: { },
+            errorPlacement: function(error, element) {
+                var placement = $(element).parent();
+                if (placement) {
+                    $(placement).append(error)
+                } else {
+                    error.insertAfter(element);
+                }
+            }
+        });
+    });
+
+    $(".preference-email").each(function() {
+        $(this).rules("add", {
+            email: true
+        });
+    });
+
+
+    $(".modalselect").on("click", function(){
+        var datasource = $(this).data("source");
+        var exclusions = $(this).data("exclusions").split('|');
+        var pref_name = this.id.replace(/pref_/, '');
+        var pref_value = this.value;
+        var prefs = pref_value.split("|");
+
+        $.getJSON( themelang + "/modules/admin/preferences/" + datasource + ".json", function( data ){
+            var items = [];
+            var checked = "";
+            var style = "";
+            $.each( data, function( key, val ){
+                if( prefs.indexOf( val ) >= 0 ){
+                    checked = ' checked="checked" ';
+                } else {
+                    checked = "";
+                }
+                if( exclusions.indexOf( val ) >= 0 ){
+                    style = "disabled";
+                    disabled = ' disabled="disabled" ';
+                    checked  = "";
+                } else {
+                    style = "";
+                    disabled = "";
+                }
+                items.push('<label class="' + style +'"><input class="dbcolumn_selection" type="checkbox" id="' + key + '"' + checked + disabled + ' name="pref" value="' + val + '" /> ' + key + '</label>');
+            });
+            $("<div/>", {
+                "class": "columns-2",
+                html: items.join("")
+            }).appendTo("#prefModalForm");
+        });
+        $("#saveModalPrefs").data("target", this.id );
+        $("#prefModalLabel").text( pref_name );
+        $("#prefModal").modal("show");
+    });
+
+    $("#saveModalPrefs").on("click", function(){
+        var formfieldid = $("#" + $(this).data("target") );
+        var prefs = [];
+        $("#prefModal input[type='checkbox']").each(function(){
+            if( $(this).prop("checked") ){
+                prefs.push( this.value );
+            }
+        });
+
+        formfieldid.val( prefs.join("|") )
+            .addClass("modified");
+        mark_modified.call( formfieldid );
+        KOHA.Preferences.Save( formfieldid.closest("form") );
+        $("#prefModal").modal("hide");
+    });
+
+    $("#prefModal").on("hide.bs.modal", function(){
+        $("#prefModalLabel,#prefModalForm").html("");
+        $("#saveModalPrefs").data("target", "" );
+    });
+
+    $("#select_all").on("click",function(e){
+        e.preventDefault();
+        $(".dbcolumn_selection:not(:disabled)").prop("checked", true);
+    });
+    $("#clear_all").on("click",function(e){
+        e.preventDefault();
+        $(".dbcolumn_selection").prop("checked", false);
+    });
+
 } );

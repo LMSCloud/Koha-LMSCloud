@@ -26,14 +26,13 @@ use C4::Context;
 use C4::Biblio;
 
 
-my $input = new CGI;
+my $input = CGI->new;
 
 my ($template, $borrowernumber, $cookie)
     = get_template_and_user({template_name => "admin/checkmarc.tt",
 			     query => $input,
 			     type => "intranet",
-			     authnotrequired => 0,
-                 flagsrequired => {parameters => 'parameters_remaining_permissions'},
+                 flagsrequired => { parameters => 'manage_marc_frameworks' },
 			     debug => 1,
 			     });
 

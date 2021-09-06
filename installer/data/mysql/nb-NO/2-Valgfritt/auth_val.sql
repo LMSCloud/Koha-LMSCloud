@@ -6,18 +6,18 @@
 --
 -- This file is part of Koha.
 --
--- Koha is free software; you can redistribute it and/or modify it under the
--- terms of the GNU General Public License as published by the Free Software
--- Foundation; either version 2 of the License, or (at your option) any later
--- version.
--- 
--- Koha is distributed in the hope that it will be useful, but WITHOUT ANY
--- WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
--- A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
--- 
--- You should have received a copy of the GNU General Public License along
--- with Koha; if not, write to the Free Software Foundation, Inc.,
--- 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+-- Koha is free software; you can redistribute it and/or modify it
+-- under the terms of the GNU General Public License as published by
+-- the Free Software Foundation; either version 3 of the License, or
+-- (at your option) any later version.
+--
+-- Koha is distributed in the hope that it will be useful, but
+-- WITHOUT ANY WARRANTY; without even the implied warranty of
+-- MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+-- GNU General Public License for more details.
+--
+-- You should have received a copy of the GNU General Public License
+-- along with Koha; if not, see <http://www.gnu.org/licenses>.
 
 -- Reasons for acceptance or rejection of suggestions in acquisitions
 INSERT INTO authorised_values (category, authorised_value, lib) VALUES ('SUGGEST','BSELL','Bestselger');
@@ -62,9 +62,6 @@ INSERT INTO `authorised_values` (category, authorised_value, lib) VALUES ('NOT_L
 -- restricted status of an item, linked to items.restricted
 INSERT INTO `authorised_values` (category, authorised_value, lib) VALUES ('RESTRICTED','1','Begrenset tilgang');
 
--- manual invoice types
-INSERT INTO `authorised_values` (category, authorised_value, lib) VALUES ('MANUAL_INV','Kopiavgift','0,25');
-
 -- custom borrower notes
 INSERT INTO `authorised_values` (category, authorised_value, lib) VALUES ('BOR_NOTES','ADDR','Addresse-noter');
 
@@ -104,3 +101,11 @@ INSERT INTO authorised_values (category, authorised_value, lib, lib_opac) VALUES
 INSERT INTO authorised_values (category, authorised_value, lib, lib_opac) VALUES ('SUGGEST_FORMAT', 'EBOOK', 'EBook', 'Ebook');
 INSERT INTO authorised_values (category, authorised_value, lib, lib_opac) VALUES ('SUGGEST_FORMAT', 'AUDIOBOOK', 'Audiobook', 'Audiobook');
 INSERT INTO authorised_values (category, authorised_value, lib, lib_opac) VALUES ('SUGGEST_FORMAT', 'DVD', 'DVD', 'DVD');
+
+-- return claims
+INSERT INTO authorised_values (category, authorised_value, lib) VALUES ('RETURN_CLAIM_RESOLUTION', 'RET_BY_PATRON', 'Returned by patron');
+INSERT INTO authorised_values (category, authorised_value, lib) VALUES ('RETURN_CLAIM_RESOLUTION', 'FOUND_IN_LIB',  'Found in library');
+
+-- hold cancellation
+INSERT INTO authorised_values (category, authorised_value, lib) VALUES ('HOLD_CANCELLATION','NOT_FOUND','Item could not be located on shelves');
+INSERT INTO authorised_values (category, authorised_value, lib) VALUES ('HOLD_CANCELLATION','DAMAGED','Item was found to be too damaged to fill hold');

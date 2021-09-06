@@ -109,7 +109,7 @@ define( [ 'resources' ], function( Resources ) {
             createFromXML: function( resourceId ) {
                 var widget = this;
 
-                Resources[resourceId].done( function( xml ) {
+                return Resources[resourceId].done( function( xml ) {
                     $(widget.node).find('.widget-loading').remove();
                     var $matSelect = $('<select class="material-select"></select>').appendTo(widget.node);
                     var $contents = $('<span class="material-contents"/>').appendTo(widget.node);
@@ -120,6 +120,13 @@ define( [ 'resources' ], function( Resources ) {
 
                         materialInfo[ $(this).attr('id') ] = this;
                     } );
+
+                    if (widget.getMaterial) {
+                        const material = widget.getMaterial();
+                        if (material) {
+                            $matSelect.val(material);
+                        }
+                    }
 
                     $matSelect.change( function() {
                         widget.loadXMLMaterial( materialInfo[ $matSelect.val() ] );

@@ -28,11 +28,11 @@ use C4::Acquisition;
 use C4::Output;
 use C4::Reports;
 use C4::Circulation;
-use C4::Members::AttributeTypes;
 
 use Koha::AuthorisedValues;
 use Koha::DateUtils;
 use Koha::Libraries;
+use Koha::Patron::Attribute::Types;
 use Koha::Patron::Categories;
 
 use Date::Calc qw(
@@ -48,7 +48,7 @@ plugin that shows a stats on borrowers
 
 =cut
 
-my $input = new CGI;
+my $input = CGI->new;
 my $do_it=$input->param('do_it');
 my $fullreportname = "reports/borrowers_stats.tt";
 my $line = $input->param("Line");
@@ -71,7 +71,6 @@ my ($template, $borrowernumber, $cookie)
 	= get_template_and_user({template_name => $fullreportname,
 				query => $input,
 				type => "intranet",
-				authnotrequired => 0,
 				flagsrequired => {reports => '*'},
 				debug => 1,
 				});
@@ -126,7 +125,7 @@ if ($do_it) {
  	$req->execute;
 	$template->param( SORT1_LOOP => $req->fetchall_arrayref({}));
 	$req = $dbh->prepare("SELECT DISTINCTROW sort2 AS value FROM borrowers WHERE sort2 IS NOT NULL AND sort2 <> '' ORDER BY sort2 LIMIT 200");
-		# More than 200 items in a dropdown is not going to be useful anyway, and w/ 50,000 patrons we can destory DB performance.
+    # More than 200 items in a dropdown is not going to be useful anyway, and w/ 50,000 patrons we can destroy DB performance.
 	$req->execute;
 	$template->param( SORT2_LOOP => $req->fetchall_arrayref({}));
 	
@@ -137,7 +136,6 @@ if ($do_it) {
 		CGIsepChoice => $CGIsepChoice,
     );
     if (C4::Context->preference('ExtendedPatronAttributes')) {
-        $template->param(ExtendedPatronAttributes => 1);
         patron_attributes_form($template);
     }
 }
@@ -158,22 +156,21 @@ sub calculate {
 
     # check parameters
     my @valid_names = qw(categorycode zipcode branchcode sex sort1 sort2);
-    my @attribute_types = C4::Members::AttributeTypes::GetAttributeTypes;
     if ($line =~ /^patron_attr\.(.*)/) {
         my $attribute_type = $1;
-        return unless (grep {$attribute_type eq $_->{code}} @attribute_types);
+        return unless Koha::Patron::Attribute::Types->find($attribute_type);
     } else {
-        return unless (grep /^$line$/, @valid_names);
+        return unless (grep { $_ eq $line } @valid_names);
     }
     if ($column =~ /^patron_attr\.(.*)/) {
         my $attribute_type = $1;
-        return unless (grep {$attribute_type eq $_->{code}} @attribute_types);
+        return unless Koha::Patron::Attribute::Types->find($attribute_type);
     } else {
-        return unless (grep /^$column$/, @valid_names);
+        return unless (grep { $_ eq $column } @valid_names);
     }
     return if ($digits and $digits !~ /^\d+$/);
-    return if ($status and (grep /^$status$/, qw(debarred gonenoaddress lost)) == 0);
-    return if ($activity and (grep /^$activity$/, qw(active nonactive)) == 0);
+    return if ($status and (grep { $_ eq $status } qw(debarred gonenoaddress lost)) == 0);
+    return if ($activity and (grep { $_ eq $activity } qw(active nonactive)) == 0);
 
     # Filters
     my $linefilter;
@@ -232,8 +229,6 @@ sub calculate {
     my @branchcodes = map { $_->branchcode } Koha::Libraries->search;
 	($status  ) and push @loopfilter,{crit=>"Status",  filter=>$status  };
 	($activity) and push @loopfilter,{crit=>"Activity",filter=>$activity};
-    push @loopfilter,{debug=>1, crit=>"Branches",filter=>join(" ", sort @branchcodes)};
-	push @loopfilter,{debug=>1, crit=>"(line, column)", filter=>"($line,$column)"};
 # year of activity
 	my ( $period_year, $period_month, $period_day )=Add_Delta_YM( Today(),-$period, 0);
 	my $newperioddate=$period_year."-".$period_month."-".$period_day;
@@ -252,12 +247,6 @@ sub calculate {
         $linefield = $line;
     }
     my $patron_categories = Koha::Patron::Categories->search({}, {order_by => ['categorycode']});
-    push @loopfilter,
-        {
-            debug  => 1,
-            crit   => "Patron category",
-            filter => join( ", ", map { $_->categorycode . ' (' . ( $_->description || 'NO_DESCRIPTION' ) . ')' } $patron_categories->as_list ),
-        };
 
     my $strsth;
     my @strparams; # bind parameters for the query
@@ -278,7 +267,6 @@ sub calculate {
 	$strsth .= " AND $status='1' " if ($status);
     $strsth .=" order by $linefield";
 	
-	push @loopfilter, {sql=>1, crit=>"Query", filter=>$strsth};
 	my $sth = $dbh->prepare($strsth);
     $sth->execute(@strparams);
  	while (my ($celvalue) = $sth->fetchrow) {
@@ -325,7 +313,6 @@ sub calculate {
 	$strsth2 .= " AND $status='1' " if ($status);
 
     $strsth2 .= " order by $colfield";
-	push @loopfilter, {sql=>1, crit=>"Query", filter=>$strsth2};
 	my $sth2 = $dbh->prepare($strsth2);
     $sth2->execute(@strparams2);
  	while (my ($celvalue) = $sth2->fetchrow) {
@@ -406,8 +393,8 @@ sub calculate {
             $strcalc .= " AND attribute_$type.attribute LIKE '" . $filter . "' ";
         }
     }
-	$strcalc .= " AND borrowernumber in (select distinct(borrowernumber) from old_issues where issuedate > '" . $newperioddate . "')" if ($activity eq 'active');
-	$strcalc .= " AND borrowernumber not in (select distinct(borrowernumber) from old_issues where issuedate > '" . $newperioddate . "' AND borrowernumber IS NOT NULL)" if ($activity eq 'nonactive');
+    $strcalc .= " AND borrowers.borrowernumber in (select distinct(borrowernumber) from old_issues where issuedate > '" . $newperioddate . "')" if ($activity eq 'active');
+    $strcalc .= " AND borrowers.borrowernumber not in (select distinct(borrowernumber) from old_issues where issuedate > '" . $newperioddate . "' AND borrowernumber IS NOT NULL)" if ($activity eq 'nonactive');
 	$strcalc .= " AND $status='1' " if ($status);
 
     $strcalc .= " GROUP BY ";
@@ -422,7 +409,6 @@ sub calculate {
         $strcalc .= " $colfield ";
     }
 
-	push @loopfilter, {sql=>1, crit=>"Query", filter=>$strcalc};
 	my $dbcalc = $dbh->prepare($strcalc);
 	(scalar(@calcparams)) ? $dbcalc->execute(@calcparams) : $dbcalc->execute();
 	
@@ -508,11 +494,12 @@ sub parse_extended_patron_attributes {
 sub patron_attributes_form {
     my $template = shift;
 
-    my @types = C4::Members::AttributeTypes::GetAttributeTypes();
+    my $library_id = C4::Context->userenv ? C4::Context->userenv->{'branch'} : undef;
+    my $attribute_types = Koha::Patron::Attribute::Types->search_with_library_limits({}, {}, $library_id);
 
     my %items_by_class;
-    foreach my $type (@types) {
-        my $attr_type = C4::Members::AttributeTypes->fetch($type->{code});
+    while ( my $attr_type = $attribute_types->next ) {
+        # TODO The following can be simplified easily
         my $entry = {
             class             => $attr_type->class(),
             code              => $attr_type->code(),

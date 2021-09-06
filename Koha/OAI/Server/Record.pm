@@ -32,7 +32,7 @@ sub new {
     my $self = $class->SUPER::new(%args);
 
     $timestamp =~ s/ /T/, $timestamp .= 'Z';
-    $self->header( new HTTP::OAI::Header(
+    $self->header( HTTP::OAI::Header->new(
         identifier  => $args{identifier},
         datestamp   => $timestamp,
     ) );
@@ -43,11 +43,16 @@ sub new {
 
     my $format = $args{metadataPrefix};
     my $record_dom;
-    if ( $format ne 'marcxml' && $format ne 'marc21' ) {
+    my $xsl_file = $repository->{conf} ?
+        defined $repository->{conf}->{format}->{$format}->{xsl_file}
+        : undef;
+    if (($format ne 'marc21' && $format ne 'marcxml')
+        || $xsl_file
+    ) {
         my $args = {
             OPACBaseURL => "'" . C4::Context->preference('OPACBaseURL') . "'"
         };
-        # call Koha::XSLT_Handler now
+        # call Koha::XSLT::Base now
         $record_dom = $repository->{xslt_engine}->transform({
             xml        => $marcxml,
             file       => $repository->stylesheet($format),

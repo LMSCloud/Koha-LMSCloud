@@ -26,6 +26,7 @@ BEGIN {
     eval { require "$FindBin::Bin/../kohalib.pl" };
 }
 
+use Koha::Script;
 use C4::Context;
 use C4::Members::Messaging;
 use Getopt::Long;
@@ -41,8 +42,7 @@ sub usage {
 sub force_borrower_messaging_defaults {
     my ($doit, $since, $not_expired, $no_overwrite, $category ) = @_;
 
-    $since = '0000-00-00' if (!$since);
-    print "Since: $since\n";
+    print "Since: $since\n" if $since;
 
     my $dbh = C4::Context->dbh;
     $dbh->{AutoCommit} = 0;
@@ -50,7 +50,11 @@ sub force_borrower_messaging_defaults {
     my $sql =
 q|SELECT DISTINCT bo.borrowernumber, bo.categorycode FROM borrowers bo
 LEFT JOIN borrower_message_preferences mp USING (borrowernumber)
-WHERE bo.dateenrolled >= ?|;
+WHERE 1|;
+
+    if ( $since ) {
+        $sql .= " AND bo.dateenrolled >= ?";
+    }
     if ($not_expired) {
         $sql .= " AND bo.dateexpiry >= NOW()"
     }
@@ -59,7 +63,7 @@ WHERE bo.dateenrolled >= ?|;
     }
     $sql .= " AND bo.categorycode = ?" if $category;
     my $sth = $dbh->prepare($sql);
-    $sth->execute($since, $category || () );
+    $sth->execute($since || (), $category || () );
     my $cnt = 0;
     while ( my ($borrowernumber, $categorycode) = $sth->fetchrow ) {
         print "$borrowernumber: $categorycode\n";

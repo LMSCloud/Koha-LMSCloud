@@ -25,27 +25,25 @@
 use Modern::Perl;
 
 use CGI qw ( -utf8 );
-use Digest::MD5 qw(md5_base64);
+
+
+use Try::Tiny;
+
 use C4::Context;
 use C4::Output;
 use C4::Auth;
 use C4::Members;
-use Module::Load;
+use C4::Suggestions qw( SearchSuggestion );
 use Koha::Patrons;
 use Koha::Token;
 use Koha::Patron::Categories;
 
-if ( C4::Context->preference('NorwegianPatronDBEnable') && C4::Context->preference('NorwegianPatronDBEnable') == 1 ) {
-    load Koha::NorwegianPatronDB, qw( NLMarkForDeletion NLSync );
-}
-
-my $input = new CGI;
+my $input = CGI->new;
 
 my ($template, $loggedinuser, $cookie)
                 = get_template_and_user({template_name => "members/deletemem.tt",
                                         query => $input,
                                         type => "intranet",
-                                        authnotrequired => 0,
                                         flagsrequired => {borrowers => 'edit_borrowers'},
                                         debug => 1,
                                         });
@@ -59,25 +57,12 @@ if ( $loggedinuser == $member ) {
     exit 0; # Exit without error
 }
 
-my $logged_in_user = Koha::Patrons->find( $loggedinuser ) or die "Not logged in";
+my $logged_in_user = Koha::Patrons->find( $loggedinuser );
 my $patron         = Koha::Patrons->find( $member );
 output_and_exit_if_error( $input, $cookie, $template, { module => 'members', logged_in_user => $logged_in_user, current_patron => $patron } );
 
-# Handle deletion from the Norwegian national patron database, if it is enabled
-# If the "deletelocal" parameter is set to "false", the regular deletion will be
-# short circuited, and only a deletion from the national database can be carried
-# out. If "deletelocal" is set to "true", or not set to anything normal
-# deletion will be done.
-my $deletelocal  = $input->param('deletelocal')  eq 'false' ? 0 : 1; # Deleting locally is the default
-if ( C4::Context->preference('NorwegianPatronDBEnable') && C4::Context->preference('NorwegianPatronDBEnable') == 1 ) {
-    if ( $input->param('deleteremote') eq 'true' ) {
-        # Mark for deletion, then try a live sync
-        NLMarkForDeletion( $member );
-        NLSync({ 'borrowernumber' => $member });
-    }
-}
-
-my $charges = $patron->account->non_issues_charges;
+my $debits = $patron->account->outstanding_debits->total_outstanding;
+my $credits = abs $patron->account->outstanding_credits->total_outstanding;
 my $countissues = $patron->checkouts->count;
 my $userenv = C4::Context->userenv;
 
@@ -103,57 +88,62 @@ if (C4::Context->preference("IndependentBranches")) {
     }
 }
 
-if ( $patron->is_child ) {
-    my $patron_categories = Koha::Patron::Categories->search_limited({ category_type => 'A' }, {order_by => ['categorycode']});
-    $template->param( 'CATCODE_MULTI' => 1) if $patron_categories->count > 1;
-    $template->param( 'catcode' => $patron_categories->next->categorycode )  if $patron_categories->count == 1;
+if ( my $anonymous_patron = C4::Context->preference("AnonymousPatron") ) {
+    if ( $patron->id eq $anonymous_patron ) {
+        print $input->redirect("/cgi-bin/koha/members/moremember.pl?borrowernumber=$member&error=CANT_DELETE_ANONYMOUS_PATRON");
+        exit 0;    # Exit without error
+    }
 }
 
 my $op = $input->param('op') || 'delete_confirm';
 my $dbh = C4::Context->dbh;
-my $is_guarantor = $dbh->selectrow_array("SELECT COUNT(*) FROM borrowers WHERE guarantorid=?", undef, $member);
 
 my $cash_management = C4::CashRegisterManagement->new();
 my $cash_register = $cash_management->getOpenedCashRegisterByManagerID($member);
-if ( $op eq 'delete_confirm' or $countissues > 0 or $charges or $is_guarantor or $deletelocal == 0) {
+my $is_guarantor = $patron->guarantee_relationships->count;
+my $countholds = $dbh->selectrow_array("SELECT COUNT(*) FROM reserves WHERE borrowernumber=?", undef, $member);
 
+# Add warning if patron has pending suggestions
+$template->param(
+    pending_suggestions => scalar @{
+    C4::Suggestions::SearchSuggestion(
+            { suggestedby => $member, STATUS => 'ASKED' }
+        )
+    }
+);
+
+$template->param(
+    patron        => $patron,
+    ItemsOnIssues => $countissues,
+    debits        => $debits,
+    credits       => $credits,
+    is_guarantor  => $is_guarantor,
+    ItemsOnHold   => $countholds,
+);
+
+if ( $op eq 'delete_confirm' or $countissues > 0 or $debits or $is_guarantor ) {
     $template->param(
-        patron => $patron,
+        op         => 'delete_confirm',
+        csrf_token => Koha::Token->new->generate_csrf({ session_id => scalar $input->cookie('CGISESSID') }),
     );
-    if ($countissues >0) {
-        $template->param(ItemsOnIssues => $countissues);
-    }
-    if ( $charges > 0 ) {
-        $template->param(charges => $charges);
-    }
-    if ($is_guarantor) {
-        $template->param(guarantees => 1);
-    }
     if ($cash_register) {
         $template->param(cash_register_branchcode => $cash_register->{'cash_register_branchcode'});
     }
-    if ($deletelocal == 0) {
-        $template->param(keeplocal => 1);
-    }
-    # This is silly written but reflect the same conditions as above
-    if ( not $countissues > 0 and not $charges and not $is_guarantor and not $deletelocal == 0 ) {
-        $template->param(
-            op         => 'delete_confirm',
-            csrf_token => Koha::Token->new->generate_csrf({ session_id => scalar $input->cookie('CGISESSID') }),
-        );
-    }
 } elsif ( $op eq 'delete_confirmed' ) {
-
-    die "Wrong CSRF token"
+    output_and_exit( $input, $cookie, $template, 'wrong_csrf_token' )
         unless Koha::Token->new->check_csrf( {
             session_id => $input->cookie('CGISESSID'),
             token  => scalar $input->param('csrf_token'),
         });
     my $patron = Koha::Patrons->find( $member );
     $patron->move_to_deleted;
-    $patron->delete;
+    try {
+        $patron->delete;
+        print $input->redirect("/cgi-bin/koha/members/members-home.pl");
+    } catch {
+        print $input->redirect("/cgi-bin/koha/members/moremember.pl?borrowernumber=$member&error=CANT_DELETE_ANONYMOUS_PATRON");
+    };
     # TODO Tell the user everything went ok
-    print $input->redirect("/cgi-bin/koha/members/members-home.pl");
     exit 0; # Exit without error
 }
 

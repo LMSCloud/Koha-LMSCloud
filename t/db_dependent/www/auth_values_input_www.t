@@ -57,7 +57,6 @@ my $dbh = C4::Context->dbh;
 $intranet =~ s#/$##;
 
 my $agent = Test::WWW::Mechanize->new( autocheck => 1 );
-my $jsonresponse;
 my ($category, $expected_base, $add_form_link_exists, $delete_form_link_exists);
 
 # -------------------------------------------------- LOGIN
@@ -68,7 +67,7 @@ $agent->form_name('loginform');
 $agent->field( 'password', $password );
 $agent->field( 'userid',   $user );
 $agent->field( 'branch',   '' );
-$agent->click_ok( '', 'login to staff client' );
+$agent->click_ok( '', 'login to staff interface' );
 $agent->get_ok( "$intranet/cgi-bin/koha/mainpage.pl", 'load main page' );
 
 #---------------------------------------- Test with corean, greek and emoji chars

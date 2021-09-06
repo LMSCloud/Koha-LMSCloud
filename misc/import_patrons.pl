@@ -22,12 +22,14 @@ use Modern::Perl;
 use Getopt::Long;
 use Pod::Usage;
 
+use Koha::Script;
 use Koha::Patrons::Import;
 my $Import = Koha::Patrons::Import->new();
 
 my $csv_file;
 my $matchpoint;
 my $overwrite_cardnumber;
+my $overwrite_passwords;
 my %defaults;
 my $ext_preserve = 0;
 my $confirm;
@@ -40,7 +42,8 @@ GetOptions(
     'm|matchpoint=s'                => \$matchpoint,
     'd|default=s'                   => \%defaults,
     'o|overwrite'                   => \$overwrite_cardnumber,
-    'p|preserve-extended-atributes' => \$ext_preserve,
+    'op|overwrite_passwords'        => \$overwrite_passwords,
+    'p|preserve-extended-attributes' => \$ext_preserve,
     'v|verbose+'                    => \$verbose,
     'h|help|?'                      => \$help,
 ) or pod2usage(2);
@@ -60,7 +63,9 @@ my $return = $Import->import_patrons(
         defaults                     => \%defaults,
         matchpoint                   => $matchpoint,
         overwrite_cardnumber         => $overwrite_cardnumber,
+        overwrite_passwords          => $overwrite_passwords,
         preserve_extended_attributes => $ext_preserve,
+        dry_run                      => !$confirm,
     }
 );
 
@@ -99,7 +104,7 @@ import_patrons.pl - CLI script to import patrons data into Koha
 
 =head1 SYNOPSIS
 
-import_patrons.pl --file /path/to/patrons.csv --matchpoint cardnumber --confirm [--default branchcode=MPL] [--overwrite] [--preserve-extended-atributes] [--verbose]
+import_patrons.pl --file /path/to/patrons.csv --matchpoint cardnumber --confirm [--default branchcode=MPL] [--overwrite] [--preserve-extended-attributes] [--verbose]
 
 =head1 OPTIONS
 
@@ -129,13 +134,19 @@ Set defaults to patron fields, repeatable e.g. --default branchcode=MPL --defaul
 
 Overwrite existing patrons with new data if a match is found
 
-=item B<-p|--preserve-extended-atributes>
+=item B<-p|--preserve-extended-attributes>
 
 Retain extended patron attributes for existing patrons being overwritten
 
 =item B<-v|--verbose>
 
 Be verbose
+
+Multiple -v options increase the verbosity
+
+2 repetitions or above will report lines in error
+
+3 repetitions or above will report feedback
 
 =back
 

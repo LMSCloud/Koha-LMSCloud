@@ -29,14 +29,13 @@ use C4::Output;
 use C4::Reserves;
 use C4::Auth;
 use Koha::Holds;
-my $query = new CGI;
+my $query = CGI->new;
 
 my ( $template, $borrowernumber, $cookie ) = get_template_and_user(
     {   
         template_name   => "opac-account.tt",
         query           => $query,
         type            => "opac",
-        authnotrequired => 0,
         debug           => 1,
     }
 );

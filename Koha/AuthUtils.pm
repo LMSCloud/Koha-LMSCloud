@@ -23,6 +23,7 @@ use Encode qw( encode is_utf8 );
 use Fcntl qw/O_RDONLY/; # O_RDONLY is used in generate_salt
 use List::MoreUtils qw/ any /;
 use String::Random qw( random_string );
+use Koha::Exceptions::Password;
 
 use C4::Context;
 
@@ -64,7 +65,7 @@ sub hash_password {
     # Set the cost to 8 and append a NULL
         $settings = '$2a$08$'.en_base64(generate_salt('weak', 16));
     }
-    # Encrypt it
+    # Hash it
     return bcrypt($password, $settings);
 }
 
@@ -79,7 +80,7 @@ sub hash_password {
 For general password salting a C<$strength> of C<weak> is recommend,
 For generating a server-salt a C<$strength> of C<strong> is recommended
 
-'strong' uses /dev/random which may block until sufficient entropy is acheived.
+'strong' uses /dev/random which may block until sufficient entropy is achieved.
 'weak' uses /dev/urandom and is non-blocking.
 
 =item length
@@ -139,21 +140,24 @@ sub generate_salt {
 
 =head2 is_password_valid
 
-my ( $is_valid, $error ) = is_password_valid( $password );
+my ( $is_valid, $error ) = is_password_valid( $password, $category );
 
-return $is_valid == 1 if the password match minPasswordLength and RequireStrongPassword conditions
+return $is_valid == 1 if the password match category's minimum password length and strength if provided, or general minPasswordLength and RequireStrongPassword conditions
 otherwise return $is_valid == 0 and $error will contain the error ('too_short' or 'too_weak')
 
 =cut
 
 sub is_password_valid {
-    my ($password) = @_;
-    my $minPasswordLength = C4::Context->preference('minPasswordLength');
+    my ($password, $category) = @_;
+    if(!$category) {
+        Koha::Exceptions::Password::NoCategoryProvided->throw();
+    }
+    my $minPasswordLength = $category->effective_min_password_length;
     $minPasswordLength = 3 if not $minPasswordLength or $minPasswordLength < 3;
     if ( length($password) < $minPasswordLength ) {
         return ( 0, 'too_short' );
     }
-    elsif ( C4::Context->preference('RequireStrongPassword') ) {
+    elsif ( $category->effective_require_strong_password ) {
         return ( 0, 'too_weak' )
           if $password !~ m|(?=.*\d)(?=.*[a-z])(?=.*[A-Z]).{$minPasswordLength,}|;
     }
@@ -163,20 +167,24 @@ sub is_password_valid {
 
 =head2 generate_password
 
-my password = generate_password();
+my password = generate_password($category);
 
-Generate a password according to the minPasswordLength and RequireStrongPassword.
+Generate a password according to category's minimum password length and strength if provided, or to the minPasswordLength and RequireStrongPassword system preferences.
 
 =cut
 
 sub generate_password {
-    my $minPasswordLength = C4::Context->preference('minPasswordLength');
+    my ($category) = @_;
+    if(!$category) {
+        Koha::Exceptions::Password::NoCategoryProvided->throw();
+    }
+    my $minPasswordLength = $category->effective_min_password_length;
     $minPasswordLength = 8 if not $minPasswordLength or $minPasswordLength < 8;
 
     my ( $password, $is_valid );
     do {
         $password = random_string('.' x $minPasswordLength );
-        ( $is_valid, undef ) = is_password_valid( $password );
+        ( $is_valid, undef ) = is_password_valid( $password, $category );
     } while not $is_valid;
     return $password;
 }

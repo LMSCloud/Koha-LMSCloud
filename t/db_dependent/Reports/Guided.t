@@ -18,12 +18,15 @@
 
 use Modern::Perl;
 
-use Test::More tests => 9;
+use Test::More tests => 11;
 use Test::Warn;
 
 use t::lib::TestBuilder;
 use C4::Context;
 use Koha::Database;
+use Koha::Items;
+use Koha::Reports;
+use Koha::Notice::Messages;
 
 use_ok('C4::Reports::Guided');
 can_ok(
@@ -114,6 +117,7 @@ subtest 'GetReservedAuthorisedValues' => sub {
         'cn_source' => 1,
         'categorycode' => 1,
         'biblio_framework' => 1,
+        'list' => 1,
     );
 
     my $reserved_authorised_values = GetReservedAuthorisedValues();
@@ -122,7 +126,7 @@ subtest 'GetReservedAuthorisedValues' => sub {
 };
 
 subtest 'IsAuthorisedValueValid' => sub {
-    plan tests => 8;
+    plan tests => 9;
     ok( IsAuthorisedValueValid('LOC'),
         'User defined authorised value category is valid');
 
@@ -143,13 +147,15 @@ subtest 'GetParametersFromSQL+ValidateSQLParameters' => sub  {
         FROM old_issues
         WHERE YEAR(timestamp) = <<Year|custom_list>> AND
               branchcode = <<Branch|branches>> AND
-              borrowernumber = <<Borrower>>
+              borrowernumber = <<Borrower>> AND
+              itemtype = <<Item type|itemtypes:all>>
     ";
 
     my @test_parameters_with_custom_list = (
         { 'name' => 'Year', 'authval' => 'custom_list' },
         { 'name' => 'Branch', 'authval' => 'branches' },
-        { 'name' => 'Borrower', 'authval' => undef }
+        { 'name' => 'Borrower', 'authval' => undef },
+        { 'name' => 'Item type', 'authval' => 'itemtypes' }
     );
 
     is_deeply( GetParametersFromSQL($test_query_1), \@test_parameters_with_custom_list,
@@ -176,7 +182,7 @@ subtest 'GetParametersFromSQL+ValidateSQLParameters' => sub  {
 };
 
 subtest 'get_saved_reports' => sub {
-    plan tests => 16;
+    plan tests => 17;
     my $dbh = C4::Context->dbh;
     $dbh->do(q|DELETE FROM saved_sql|);
     $dbh->do(q|DELETE FROM saved_reports|);
@@ -211,6 +217,10 @@ subtest 'get_saved_reports' => sub {
 
     ok( 0 < scalar @{ get_saved_reports( $report_ids[0] ) }, "filter takes report id" );
 
+    my $r1 = Koha::Reports->find($report_ids[0]);
+    $r1 = update_sql($r1->id, { %{$r1->unblessed}, borrowernumber => $r1->borrowernumber, name => 'Just another report' });
+    is( $r1->cache_expiry, 300, 'cache_expiry has the correct default value, from DBMS' );
+
     #Test delete_report
     is (delete_report(),undef, "Without id delete_report returns undef");
 
@@ -244,12 +254,11 @@ subtest 'get_saved_reports' => sub {
     );
 
     # for next test, we want to let execute_query capture any SQL errors
-    $dbh->{RaiseError} = 0;
     my $errors;
-    warning_like { ($sth, $errors) = execute_query(
+    warning_like {local $dbh->{RaiseError} = 0; ($sth, $errors) = execute_query(
             'SELECT surname FRM borrowers',  # error in the query is intentional
             0, 10 ) }
-            qr/^DBD::mysql::st execute failed: You have an error in your SQL syntax;/,
+            qr/DBD::mysql::st execute failed: You have an error in your SQL syntax;/,
             "Wrong SQL syntax raises warning";
     ok(
         defined($errors) && exists($errors->{queryerr}),
@@ -354,7 +363,104 @@ count(h.reservedate) AS 'holds'
     is( C4::Reports::Guided::convert_sql( $sql ), $expected_converted_sql, "Query with multiple instances of marcxml and biblioitems should have them all replaced");
 };
 
+subtest 'Email report test' => sub {
+
+    plan tests => 12;
+    my $dbh = C4::Context->dbh;
+
+    my $id1 = $builder->build({ source => 'Borrower',value => { surname => 'mailer', email => 'a@b.com', emailpro => 'b@c.com' } })->{ borrowernumber };
+    my $id2 = $builder->build({ source => 'Borrower',value => { surname => 'nomailer', email => undef, emailpro => 'd@e.com' } })->{ borrowernumber };
+    my $id3 = $builder->build({ source => 'Borrower',value => { surname => 'norman', email => 'a@b.com', emailpro => undef } })->{ borrowernumber };
+    my $report1 = $builder->build({ source => 'SavedSql', value => { savedsql => "SELECT surname,borrowernumber,email,emailpro FROM borrowers WHERE borrowernumber IN ($id1,$id2,$id3)" } })->{ id };
+    my $report2 = $builder->build({ source => 'SavedSql', value => { savedsql => "SELECT potato FROM mashed" } })->{ id };
+
+    my $letter1 = $builder->build({
+            source => 'Letter',
+            value => {
+                content => "[% surname %]",
+                branchcode => "",
+                message_transport_type => 'email'
+            }
+        });
+    my $letter2 = $builder->build({
+            source => 'Letter',
+            value => {
+                content => "[% firstname %]",
+                branchcode => "",
+                message_transport_type => 'email'
+            }
+        });
+
+    my $message_count = Koha::Notice::Messages->search({})->count;
+
+    my ( $emails, $errors ) = C4::Reports::Guided::EmailReport();
+    is( $errors->[0]{FATAL}, 'MISSING_PARAMS', "Need to enter required params");
+
+    ($emails, $errors ) = C4::Reports::Guided::EmailReport({report_id => $report1, module => $letter1->{module}, code => $letter2->{code}});
+    is( $errors->[0]{FATAL}, 'NO_LETTER', "Must have a letter that exists");
+
+    # for next test, we want to let execute_query capture any SQL errors
+    warning_like { local $dbh->{RaiseError} = 0; ($emails, $errors ) = C4::Reports::Guided::EmailReport({report_id => $report2, module => $letter1->{module} , code => $letter1->{code} }) }
+        qr/DBD::mysql::st execute failed/,
+        'Error from bad report';
+    is( $errors->[0]{FATAL}, 'REPORT_FAIL', "Bad report returns failure");
+
+    ($emails, $errors ) = C4::Reports::Guided::EmailReport({report_id => $report1, module => $letter1->{module} , code => $letter1->{code} });
+    is( $errors->[0]{NO_FROM_COL} == 1 && $errors->[1]{NO_EMAIL_COL} == 2  && $errors->[2]{NO_FROM_COL} == 2, 1, "Correct warnings from the routine");
+
+    ($emails, $errors ) = C4::Reports::Guided::EmailReport({report_id => $report1, module => $letter1->{module} , code => $letter1->{code}, from => 'the@future.ooh' });
+    is( $errors->[0]{NO_EMAIL_COL}, 2, "Warning only for patron with no email");
+
+    is( $message_count,  Koha::Notice::Messages->search({})->count, "Messages not added without commit");
+
+    ($emails, $errors ) = C4::Reports::Guided::EmailReport({report_id => $report1, module => $letter1->{module} , code => $letter1->{code}, from => 'the@future.ooh' });
+    is( $emails->[0]{letter}->{content}, "mailer", "Message has expected content");
+    is( $emails->[1]{letter}->{content}, "norman", "Message has expected content");
+
+    ($emails, $errors ) = C4::Reports::Guided::EmailReport({report_id => $report1, module => $letter1->{module} , code => $letter1->{code}, from => 'the@future.ooh', email => 'emailpro' });
+    is_deeply( $errors, [{'NO_EMAIL_COL'=>3}],"We report missing email in emailpro column");
+    is( $emails->[0]->{to_address}, 'b@c.com', "Message uses correct email");
+    is( $emails->[1]->{to_address}, 'd@e.com', "Message uses correct email");
+
+};
+
 $schema->storage->txn_rollback;
+
+subtest 'nb_rows() tests' => sub {
+
+    plan tests => 3;
+
+    my $dbh = C4::Context->dbh;
+    $schema->storage->txn_begin;
+
+    my $items_count = Koha::Items->search->count;
+    $builder->build_object({ class => 'Koha::Items' });
+    $builder->build_object({ class => 'Koha::Items' });
+    $items_count += 2;
+
+    my $query = q{
+        SELECT * FROM items xxx
+    };
+
+    my $nb_rows = nb_rows( $query );
+
+    is( $nb_rows, $items_count, 'nb_rows returns the right value' );
+
+    my $bad_query = q{
+        SELECT * items xxx
+    };
+
+    # for next test, we want to let execute_query capture any SQL errors
+    
+    warning_like
+        { $nb_rows = nb_rows( $bad_query ) }
+        qr/DBD::mysql::st execute failed:/,
+        'Bad queries raise a warning';
+
+    is( $nb_rows, 0, 'nb_rows returns 0 on bad queries' );
+
+    $schema->storage->txn_rollback;
+};
 
 sub trim {
     my ($s) = @_;

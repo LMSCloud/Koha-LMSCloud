@@ -1,14 +1,13 @@
 package Koha::Calendar;
-use strict;
-use warnings;
-use 5.010;
 
+use Modern::Perl;
+
+use Carp;
 use DateTime;
-use DateTime::Set;
 use DateTime::Duration;
 use C4::Context;
 use Koha::Caches;
-use Carp;
+use Koha::Exceptions;
 
 sub new {
     my ( $classname, %options ) = @_;
@@ -47,48 +46,56 @@ sub _init {
           1;
     }
 
-    $self->{days_mode}       ||= C4::Context->preference('useDaysMode');
     $self->{test}            = 0;
     return;
 }
 
-sub exception_holidays {
-    my ( $self ) = @_;
+sub _holidays {
+    my ($self) = @_;
 
-    my $cachename = $self->{branchcode} . '_' . 'exception_holidays';
-    my $cache  = Koha::Caches->get_instance();
-    my $cached = $cache->get_from_cache($cachename);
-    return $cached if $cached;
+    my $key      = $self->{branchcode} . "_exception_holidays";
+    my $cache    = Koha::Caches->get_instance();
+    my $holidays = $cache->get_from_cache($key);
 
-    my $dbh = C4::Context->dbh;
-    my $branch = $self->{branchcode};
-    my $exception_holidays_sth = $dbh->prepare(
-'SELECT day, month, year FROM special_holidays WHERE branchcode = ? AND isexception = 1'
-    );
-    $exception_holidays_sth->execute( $branch );
-    my $dates = [];
-    while ( my ( $day, $month, $year ) = $exception_holidays_sth->fetchrow ) {
-        push @{$dates},
-          DateTime->new(
-            day       => $day,
-            month     => $month,
-            year      => $year,
-            time_zone => "floating",
-          )->truncate( to => 'day' );
+    # $holidays looks like:
+    # {
+    #    20131122 => 1, # single_holiday
+    #    20131123 => 0, # exception_holiday
+    #    ...
+    # }
+
+    # Populate the cache if necessary
+    unless ($holidays) {
+        my $dbh = C4::Context->dbh;
+        $holidays = {};
+
+        # Add holidays for each branch
+        my $holidays_sth = $dbh->prepare(
+'SELECT day, month, year, MAX(isexception) FROM special_holidays WHERE branchcode = ? GROUP BY day, month, year'
+        );
+        $holidays_sth->execute($self->{branchcode});
+
+        while ( my ( $day, $month, $year, $exception ) =
+            $holidays_sth->fetchrow )
+        {
+            my $datestring =
+                sprintf( "%04d", $year )
+              . sprintf( "%02d", $month )
+              . sprintf( "%02d", $day );
+
+            $holidays->{$datestring} = $exception ? 0 : 1;
+        }
+        $cache->set_in_cache( $key, $holidays, { expiry => 76800 } );
     }
-    $self->{exception_holidays} =
-      DateTime::Set->from_datetimes( dates => $dates );
-    $cache->set_in_cache( $cachename, $self->{exception_holidays} );
-    return $self->{exception_holidays};
+    return $holidays // {};
 }
 
 sub single_holidays {
     my ( $self, $date ) = @_;
-    my $branchcode = $self->{branchcode};
-    my $cache           = Koha::Caches->get_instance();
 
-    my $cachename = $self->{branchcode} . '_' . 'single_holidays';
-    my $single_holidays = $cache->get_from_cache($cachename);
+    my $key             = $self->{branchcode} . "_single_holidays";
+    my $cache           = Koha::Caches->get_instance();
+    my $single_holidays = $cache->get_from_cache($key);
 
     # $single_holidays looks like:
     # {
@@ -127,18 +134,21 @@ sub single_holidays {
             }
             $single_holidays->{$br} = \@ymd_arr;
         }    # br
-        $cache->set_in_cache($cachename, $single_holidays,
-            { expiry => 76800 } )    #24 hrs ;
+        $cache->set_in_cache($key, $single_holidays, { expiry => 76800 } )    #24 hrs ;
     }
-    my $holidays  = ( $single_holidays->{$branchcode} );
+    my $holidays  = ( $single_holidays->{$self->{branchcode}} );
     for my $hols  (@$holidays ) {
             return 1 if ( $date == $hols )   #match ymds;
     }
     return 0;
 }
 
-sub addDate {
+sub addDuration {
     my ( $self, $startdate, $add_duration, $unit ) = @_;
+
+
+    Koha::Exceptions::MissingParameter->throw("Missing mandatory option for Koha:Calendar->addDuration: days_mode")
+        unless exists $self->{days_mode};
 
     # Default to days duration (legacy support I guess)
     if ( ref $add_duration ne 'DateTime::Duration' ) {
@@ -147,7 +157,6 @@ sub addDate {
 
     $unit ||= 'days'; # default days ?
     my $dt;
-
     if ( $unit eq 'hours' ) {
         # Fixed for legacy support. Should be set as a branch parameter
         my $return_by_hour = 10;
@@ -157,7 +166,6 @@ sub addDate {
         # days
         $dt = $self->addDays($startdate, $add_duration);
     }
-
     return $dt;
 }
 
@@ -170,13 +178,16 @@ sub addHours {
     # If we are using the calendar behave for now as if Datedue
     # was the chosen option (current intended behaviour)
 
+    Koha::Exceptions::MissingParameter->throw("Missing mandatory option for Koha:Calendar->addHours: days_mode")
+        unless exists $self->{days_mode};
+
     if ( $self->{days_mode} ne 'Days' &&
           $self->is_holiday($base_date) ) {
 
         if ( $hours_duration->is_negative() ) {
-            $base_date = $self->prev_open_day($base_date);
+            $base_date = $self->prev_open_days($base_date, 1);
         } else {
-            $base_date = $self->next_open_day($base_date);
+            $base_date = $self->next_open_days($base_date, 1);
         }
 
         $base_date->set_hour($return_by_hour);
@@ -190,7 +201,8 @@ sub addDays {
     my ( $self, $startdate, $days_duration ) = @_;
     my $base_date = $startdate->clone();
 
-    $self->{days_mode} ||= q{};
+    Koha::Exceptions::MissingParameter->throw("Missing mandatory option for Koha:Calendar->addDays: days_mode")
+        unless exists $self->{days_mode};
 
     if ( $self->{days_mode} eq 'Calendar' ) {
         # use the calendar to skip all days the library is closed
@@ -199,30 +211,36 @@ sub addDays {
 
         if ( $days_duration->is_negative() ) {
             while ($days) {
-                $base_date = $self->prev_open_day($base_date);
+                $base_date = $self->prev_open_days($base_date, 1);
                 --$days;
             }
         } else {
             while ($days) {
-                $base_date = $self->next_open_day($base_date);
+                $base_date = $self->next_open_days($base_date, 1);
                 --$days;
             }
         }
 
-    } else { # Days or Datedue
+    } else { # Days, Datedue or Dayweek
         # use straight days, then use calendar to push
-        # the date to the next open day if Datedue
+        # the date to the next open day as appropriate
+        # if Datedue or Dayweek
         $base_date->add_duration($days_duration);
 
-        if ( $self->{days_mode} eq 'Datedue' ) {
-            # Datedue, then use the calendar to push
+        if ( $self->{days_mode} eq 'Datedue' ||
+            $self->{days_mode} eq 'Dayweek') {
+            # Datedue or Dayweek, then use the calendar to push
             # the date to the next open day if holiday
             if ( $self->is_holiday($base_date) ) {
-
+                my $dow = $base_date->day_of_week;
+                my $days = $days_duration->in_units('days');
+                # Is it a period based on weeks
+                my $push_amt = $days % 7 == 0 ?
+                    $self->get_push_amt($base_date) : 1;
                 if ( $days_duration->is_negative() ) {
-                    $base_date = $self->prev_open_day($base_date);
+                    $base_date = $self->prev_open_days($base_date, $push_amt);
                 } else {
-                    $base_date = $self->next_open_day($base_date);
+                    $base_date = $self->next_open_days($base_date, $push_amt);
                 }
             }
         }
@@ -231,22 +249,41 @@ sub addDays {
     return $base_date;
 }
 
+sub get_push_amt {
+    my ( $self, $base_date) = @_;
+
+    Koha::Exceptions::MissingParameter->throw("Missing mandatory option for Koha:Calendar->get_push_amt: days_mode")
+        unless exists $self->{days_mode};
+
+    my $dow = $base_date->day_of_week;
+    # Representation fix
+    # DateTime object dow (1-7) where Monday is 1
+    # Arrays are 0-based where 0 = Sunday, not 7.
+    if ( $dow == 7 ) {
+        $dow = 0;
+    }
+
+    return (
+        # We're using Dayweek useDaysMode option
+        $self->{days_mode} eq 'Dayweek' &&
+        # It's not a permanently closed day
+        !$self->{weekly_closed_days}->[$dow]
+    ) ? 7 : 1;
+}
+
 sub is_holiday {
     my ( $self, $dt ) = @_;
 
     my $localdt = $dt->clone();
     my $day   = $localdt->day;
     my $month = $localdt->month;
+    my $ymd   = $localdt->ymd('');
 
     #Change timezone to "floating" before doing any calculations or comparisons
     $localdt->set_time_zone("floating");
     $localdt->truncate( to => 'day' );
 
-
-    if ( $self->exception_holidays->contains($localdt) ) {
-        # exceptions are not holidays
-        return 0;
-    }
+    return $self->_holidays->{$ymd} if defined($self->_holidays->{$ymd});
 
     my $dow = $localdt->day_of_week;
     # Representation fix
@@ -264,43 +301,52 @@ sub is_holiday {
         return 1;
     }
 
-    my $ymd   = $localdt->ymd('')  ;
-    if ($self->single_holidays(  $ymd  ) == 1 ) {
-        return 1;
-    }
-
     # damn have to go to work after all
     return 0;
 }
 
-sub next_open_day {
-    my ( $self, $dt ) = @_;
-    my $base_date = $dt->clone();
-    
+sub next_open_days {
+    my ( $self, $dt, $to_add ) = @_;
+
+    Koha::Exceptions::MissingParameter->throw("Missing mandatory option for Koha:Calendar->next_open_days: days_mode")
+        unless exists $self->{days_mode};
+        
     # set a maximum of 10 years
     my $end_loop = 3650;
 
-    $base_date->add(days => 1);
+    my $base_date = $dt->clone();
 
+    $base_date->add(days => $to_add);
     while ($self->is_holiday($base_date)) {
-        $base_date->add(days => 1);
+        my $add_next = $self->get_push_amt($base_date);
+        $base_date->add(days => $add_next);
         last if (! ($end_loop--));
     }
-
     return $base_date;
 }
 
-sub prev_open_day {
-    my ( $self, $dt ) = @_;
+sub prev_open_days {
+    my ( $self, $dt, $to_sub ) = @_;
+
+    Koha::Exceptions::MissingParameter->throw("Missing mandatory option for Koha:Calendar->get_open_days: days_mode")
+        unless exists $self->{days_mode};
+
     my $base_date = $dt->clone();
     
     # set a maximum of 10 years
     my $end_loop = 3650;
 
-    $base_date->add(days => -1);
+    # It feels logical to be passed a positive number, though we're
+    # subtracting, so do the right thing
+    $to_sub = $to_sub > 0 ? 0 - $to_sub : $to_sub;
+
+    $base_date->add(days => $to_sub);
 
     while ($self->is_holiday($base_date)) {
-        $base_date->add(days => -1);
+        my $sub_next = $self->get_push_amt($base_date);
+        # Ensure we're subtracting when we need to be
+        $sub_next = $sub_next > 0 ? 0 - $sub_next : $sub_next;
+        $base_date->add(days => $sub_next);
         last if (! ($end_loop--));
     }
 
@@ -312,12 +358,15 @@ sub days_forward {
     my $start_dt = shift;
     my $num_days = shift;
 
+    Koha::Exceptions::MissingParameter->throw("Missing mandatory option for Koha:Calendar->days_forward: days_mode")
+        unless exists $self->{days_mode};
+
     return $start_dt unless $num_days > 0;
 
     my $base_dt = $start_dt->clone();
 
     while ($num_days--) {
-        $base_dt = $self->next_open_day($base_dt);
+        $base_dt = $self->next_open_days($base_dt, 1);
     }
 
     return $base_dt;
@@ -336,40 +385,38 @@ sub days_between {
     }
 
     # start and end should not be closed days
-    my $days = $start_dt->delta_days($end_dt)->delta_days;
+    my $delta_days = $start_dt->delta_days($end_dt)->delta_days;
     while( $start_dt->compare($end_dt) < 1 ) {
-        $days-- if $self->is_holiday($start_dt);
+        $delta_days-- if $self->is_holiday($start_dt);
         $start_dt->add( days => 1 );
     }
-    return DateTime::Duration->new( days => $days );
+    return DateTime::Duration->new( days => $delta_days );
 }
 
 sub hours_between {
     my ($self, $start_date, $end_date) = @_;
     my $start_dt = $start_date->clone()->set_time_zone('floating');
     my $end_dt = $end_date->clone()->set_time_zone('floating');
+
     my $duration = $end_dt->delta_ms($start_dt);
     $start_dt->truncate( to => 'day' );
     $end_dt->truncate( to => 'day' );
+
     # NB this is a kludge in that it assumes all days are 24 hours
     # However for hourly loans the logic should be expanded to
     # take into account open/close times then it would be a duration
     # of library open hours
     my $skipped_days = 0;
-    for (my $dt = $start_dt->clone();
-        $dt <= $end_dt;
-        $dt->add(days => 1)
-    ) {
-        if ($self->is_holiday($dt)) {
-            ++$skipped_days;
-        }
+    while( $start_dt->compare($end_dt) < 1 ) {
+        $skipped_days++ if $self->is_holiday($start_dt);
+        $start_dt->add( days => 1 );
     }
+
     if ($skipped_days) {
         $duration->subtract_duration(DateTime::Duration->new( hours => 24 * $skipped_days));
     }
 
     return $duration;
-
 }
 
 sub set_daysmode {
@@ -401,12 +448,12 @@ Koha::Calendar - Object containing a branches calendar
   use Koha::Calendar
 
   my $c = Koha::Calendar->new( branchcode => 'MAIN' );
-  my $dt = DateTime->now();
+  my $dt = dt_from_string();
 
   # are we open
   $open = $c->is_holiday($dt);
   # when will item be due if loan period = $dur (a DateTime::Duration object)
-  $duedate = $c->addDate($dt,$dur,'days');
+  $duedate = $c->addDuration($dt,$dur,'days');
 
 
 =head1 DESCRIPTION
@@ -422,9 +469,9 @@ my $calendar = Koha::Calendar->new( branchcode => 'MAIN' );
 The option branchcode is required
 
 
-=head2 addDate
+=head2 addDuration
 
-    my $dt = $calendar->addDate($date, $dur, $unit)
+    my $dt = $calendar->addDuration($date, $dur, $unit)
 
 C<$date> is a DateTime object representing the starting date of the interval.
 
@@ -446,6 +493,14 @@ C<$offset> is a DateTime::Duration to add to it
 
 C<$return_by_hour> is an integer value representing the opening hour for the branch
 
+=head2 get_push_amt
+
+    my $amt = $calendar->get_push_amt($date)
+
+C<$date> is a DateTime object representing a closed return date
+
+Using the days_mode syspref value and the nature of the closed return
+date, return how many days we should jump forward to find another return date
 
 =head2 addDays
 
@@ -460,14 +515,6 @@ C<$unit> is a string value 'days' or 'hours' toflag granularity of duration
 Currently unit is only used to invoke Staffs return Monday at 10 am rule this
 parameter will be removed when issuingrules properly cope with that
 
-
-=head2 single_holidays
-
-my $rc = $self->single_holidays(  $ymd  );
-
-Passed a $date in Ymd (yyyymmdd) format -  returns 1 if date is a single_holiday, or 0 if not.
-
-
 =head2 is_holiday
 
 $yesno = $calendar->is_holiday($dt);
@@ -481,23 +528,46 @@ $duration = $calendar->days_between($start_dt, $end_dt);
 
 Passed two dates returns a DateTime::Duration object measuring the length between them
 ignoring closed days. Always returns a positive number irrespective of the
-relative order of the parameters
+relative order of the parameters.
 
-=head2 next_open_day
+Note: This routine assumes neither the passed start_dt nor end_dt can be a closed day
 
-$datetime = $calendar->next_open_day($duedate_dt)
+=head2 hours_between
 
-Passed a Datetime returns another Datetime representing the next open day. It is
-intended for use to calculate the due date when useDaysMode syspref is set to either
-'Datedue' or 'Calendar'.
+$duration = $calendar->hours_between($start_dt, $end_dt);
 
-=head2 prev_open_day
+Passed two dates returns a DateTime::Duration object measuring the length between them
+ignoring closed days. Always returns a positive number irrespective of the
+relative order of the parameters.
 
-$datetime = $calendar->prev_open_day($duedate_dt)
+Note: This routine assumes neither the passed start_dt nor end_dt can be a closed day
 
-Passed a Datetime returns another Datetime representing the previous open day. It is
-intended for use to calculate the due date when useDaysMode syspref is set to either
-'Datedue' or 'Calendar'.
+=head2 next_open_days
+
+$datetime = $calendar->next_open_days($duedate_dt, $to_add)
+
+Passed a Datetime and number of days,  returns another Datetime representing
+the next open day after adding the passed number of days. It is intended for
+use to calculate the due date when useDaysMode syspref is set to either
+'Datedue', 'Calendar' or 'Dayweek'.
+
+=head2 prev_open_days
+
+$datetime = $calendar->prev_open_days($duedate_dt, $to_sub)
+
+Passed a Datetime and a number of days, returns another Datetime
+representing the previous open day after subtracting the number of passed
+days. It is intended for use to calculate the due date when useDaysMode
+syspref is set to either 'Datedue', 'Calendar' or 'Dayweek'.
+
+=head2 days_forward
+
+$datetime = $calendar->days_forward($start_dt, $to_add)
+
+Passed a Datetime and number of days, returns another Datetime representing
+the next open day after adding the passed number of days. It is intended for
+use to calculate the due date when useDaysMode syspref is set to either
+'Datedue', 'Calendar' or 'Dayweek'.
 
 =head2 set_daysmode
 
@@ -532,15 +602,15 @@ Colin Campbell colin.campbell@ptfs-europe.com
 
 Copyright (c) 2011 PTFS-Europe Ltd All rights reserved
 
-This program is free software: you can redistribute it and/or modify
-it under the terms of the GNU General Public License as published by
-the Free Software Foundation, either version 2 of the License, or
+Koha is free software; you can redistribute it and/or modify it
+under the terms of the GNU General Public License as published by
+the Free Software Foundation; either version 3 of the License, or
 (at your option) any later version.
 
-This program is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+Koha is distributed in the hope that it will be useful, but
+WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
-along with this program.  If not, see <http://www.gnu.org/licenses/>.
+along with Koha; if not, see <http://www.gnu.org/licenses>.

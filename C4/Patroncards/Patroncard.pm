@@ -229,11 +229,13 @@ sub draw_text {
                 $parse_line = $2;
             }
             my $borrower_attributes = get_borrower_attributes($self->{'borrower_number'},@fields);
-            grep{ # substitute data for db fields
-                if ($_ =~ m/<([A-Za-z0-9_]+)>/) {
+            @orig_line = map { # substitute data for db fields
+                my $l = $_;
+                if ($l =~ m/<([A-Za-z0-9_]+)>/) {
                     my $field = $1;
-                    $_ =~ s/$_/$borrower_attributes->{$field}/;
+                    $l =~ s/$l/$borrower_attributes->{$field}/;
                 }
+                $l;
             } @orig_line;
             $line = join(' ',@orig_line);
         }
@@ -264,7 +266,8 @@ sub draw_text {
                 $line =~ m/^.*(\s.*\s*|\s&|\<.*\>)$/;
                 warn sprintf('Line wrap failed. DEBUG INFO: Data: \'%s\'\n Method: C4::Patroncards->draw_text Additional Information: Line wrap regexp failed. (Please file in this information in a bug report at http://bugs.koha-community.org', $line) and last WRAP_LINES if !$1;
                 $trim = $1 . $trim;
-                $line =~ s/$1//;
+                #Sanitize the input into this regular expression so regex metacharacters are escaped as literal values (https://bugs.koha-community.org/bugzilla3/show_bug.cgi?id=22429)
+                $line =~ s/\Q$1\E$//;
                 $string_width = C4::Creators::PDF->StrWidth($line, $text_attribs->{'font'}, $text_attribs->{'font_size'});
 #                $font_units_width = $m->string_width($line);
 #                $string_width = ($font_units_width * $text_attribs->{'font_size'}) / $units_per_em;

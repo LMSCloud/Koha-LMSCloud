@@ -22,9 +22,9 @@
         <span class="heading">
         [% IF ( linkType=='seealso' ) %]
             [% IF ( authid ) %]
-            <a href="[% authidurl | url %][% authid | url %]">[% heading | html %]</a>
+            <a href="[% authidurl | url %][% authid | uri %]">[% heading | html %]</a>
             [% ELSE %]
-            <a href="[% searchurl | url %][% heading | html %]">[% heading | html %]</a>
+            <a href="[% searchurl | url %][% heading | uri %]">[% heading | html %]</a>
             [% END %]
         [% ELSE %]
             [% heading | html %]
@@ -52,7 +52,7 @@
     [% IF ( summary.label ) %][% summary.label | html %]:[% END %]
     [% IF summary.summary %]
         <div class="authority-summary">
-            [% summary.summary %]
+            [% summary.summary | html %]
         </div>
     [% END %]
     [% UNLESS ( summary.summaryonly ) %]
@@ -82,7 +82,7 @@
                 <div class="authres_otherscript">
                     [% FOREACH other IN summary.otherscript %]
                         [% PROCESS language lang=other.lang | trim %]:
-                        [% other.term %]
+                        [% other.term | html %]
                         [% IF ! loop.last %] ; [% END %]
                     [% END %]
                 </div>

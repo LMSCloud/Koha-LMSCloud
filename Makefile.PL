@@ -29,7 +29,7 @@ use FindBin; # we need to enforce which C4::Installer::PerlModule is used in cas
 
 use lib $FindBin::Bin;
 
-use C4::Installer;
+use C4::Installer::PerlModules;
 
 my $koha_pm = C4::Installer::PerlModules->new;
 
@@ -91,14 +91,11 @@ Makefile.PL - Koha packager and installer
     --zebra_sru_host             Zebra SRU servername (e.g. localhost)
     --zebra_sru_biblios_port     Zebra SRU biblios port (e.g. 9998)
     --zebra_sru_authorities_port Zebra SRU biblios port (e.g. 9999)
-    --auth_index_mode            Authority index mode (grs1, dom)
-    --bib_index_mode             Bibliographic index mode (grs1, dom)
     --koha_user                  Koha Unix user (e.g. koha)
     --koha_group                 Koha Unix group (e.g. koha)
     --install_sru                Install the SRU server (yes, no)
-    --install_pazpar2            Install PazPar2 (yes, no)
     --use_memcached              Use Memcached (yes, no)
-    --font_dir                   Location of fonts (e.g. /usr/share/fonts/truetype/ttf-dejavu)
+    --font_dir                   Location of fonts (e.g. /usr/share/fonts/truetype/dejavu)
     --run_database_tests         Run database dependent tests (yes, no)
     --install_base               Base directory of installation (e.g. /usr/share/koha)
     --template-cache-dir         Specify a template cache directory (e.g. /var/cache/koha)
@@ -230,6 +227,16 @@ Directory for Zebra's data files.
 
 Directory for Zebra's UNIX-domain sockets.
 
+=item ELASTICSEARCH_SERVERS
+
+Server:port of the Elasticsearch server to use, as a comma separated list:
+eg. 192.168.0.100:9200, localhost:9200
+
+=item ELASTICSEARCH_INDEX
+
+Unique index in Elasticsearch, for this Koha-instance
+eg. koha-mykoha  or just  koha
+
 =item MISC_DIR
 
 Directory for for miscellaenous scripts, among other
@@ -256,6 +263,10 @@ contain information of interest to Koha developers.
 Directory for Koha documentation accessed from the
 command-line, e.g., READMEs.
 
+=item LOCK_DIR
+
+Directory for Koha scripts to put their locks.
+
 =item LOG_DIR
 
 Directory for Apache and Zebra logs produced by Koha.
@@ -267,10 +278,6 @@ Directory for backup files produced by Koha.
 =item PLUGINS_DIR
 
 Directory for external Koha plugins.
-
-=item PAZPAR2_CONF_DIR
-
-Directory for PazPar2 configuration files.
 
 =item FONT_DIR
 
@@ -293,8 +300,10 @@ my $target_map = {
   './acqui'                     => 'INTRANET_CGI_DIR',
   './admin'                     => 'INTRANET_CGI_DIR',
   './api'                       => { target => 'API_CGI_DIR', trimdir => -1 },
+  './app.psgi'                  => 'SCRIPT_DIR',
   './authorities'               => 'INTRANET_CGI_DIR',
   './basket'                    => 'INTRANET_CGI_DIR',
+  './bin'                       => { target => 'SCRIPT_DIR', trimdir => -1 },
   './C4'                        => 'PERL_MODULE_DIR',
   './C4/SIP/t'                  => 'NONE',
   './C4/SIP/koha_test'          => 'NONE',
@@ -306,12 +315,14 @@ my $target_map = {
   './circ'                      => 'INTRANET_CGI_DIR',
   './clubs'                     => 'INTRANET_CGI_DIR',
   './course_reserves'           => 'INTRANET_CGI_DIR',
+  './cpanfile'                  => 'PERL_MODULE_DIR',
   './docs/history.txt'          => { target => 'DOC_DIR', trimdir => -1 },
+  './docs/contributors.yaml'    => { target => 'DOC_DIR', trimdir => -1 },
+  './docs/teams.yaml'           => { target => 'DOC_DIR', trimdir => -1 },
   './offline_circ'              => 'INTRANET_CGI_DIR',
-  './edithelp.pl'               => 'INTRANET_CGI_DIR',
   './etc'                       => { target => 'KOHA_CONF_DIR', trimdir => -1 },
   './etc/zebradb'               => { target => 'ZEBRA_CONF_DIR', trimdir => -1 },
-  './etc/pazpar2'               => { target => 'PAZPAR2_CONF_DIR', trimdir => -1 },
+  './etc/z3950'                 => { target => 'Z3950_CONF_DIR', trimdir => -1 },
   './help.pl'                   => 'INTRANET_CGI_DIR',
   './ill'                       => 'INTRANET_CGI_DIR',
   './installer-CPAN.pl'         => 'NONE',
@@ -340,6 +351,7 @@ my $target_map = {
   './patroncards'               => 'INTRANET_CGI_DIR',
   './patron_lists'              => 'INTRANET_CGI_DIR',
   './plugins'                   => 'INTRANET_CGI_DIR',
+  './pos'                       => 'INTRANET_CGI_DIR',
   './reports'                   => 'INTRANET_CGI_DIR',
   './reserve'                   => 'INTRANET_CGI_DIR',
   './reviews'                   => 'INTRANET_CGI_DIR',
@@ -349,6 +361,7 @@ my $target_map = {
   './serials'                   => 'INTRANET_CGI_DIR',
   './services'                  => 'INTRANET_CGI_DIR',
   './skel'                      => 'NONE',
+  './skel/var/lock/koha'        => { target => 'LOCK_DIR', trimdir => -1 },
   './skel/var/log/koha'         => { target => 'LOG_DIR', trimdir => -1 },
   './skel/var/spool/koha'       => { target => 'BACKUP_DIR', trimdir => -1 },
   './skel/var/run/koha/zebradb' => { target => 'ZEBRA_RUN_DIR', trimdir => -1 },
@@ -368,16 +381,22 @@ my $target_map = {
   './suggestion'                => 'INTRANET_CGI_DIR',
   './svc'                       => 'INTRANET_CGI_DIR',
   './t'                         => 'NONE',
+  './xt'                        => 'NONE',
   './tags'                      => 'INTRANET_CGI_DIR',
   './tmp'                       => 'NONE', # FIXME need to determine whether
                                            # Koha generates any persistent temp files
                                            # that should go in /var/tmp/koha
   './tools'                     => 'INTRANET_CGI_DIR',
   './virtualshelves'            => 'INTRANET_CGI_DIR',
-  './xml_sax.pl'                => 'PERL_MODULE_DIR',
   # ignore files and directories created by the install itself
   './pm_to_blib'                => 'NONE',
   './blib'                      => 'NONE',
+  '.sass-lint.yml'              => 'NONE',
+  '.scss-lint.yml'              => 'NONE',
+  '.eslintrc.json'              => 'NONE',
+  'gulpfile.js'                 => 'NONE',
+  'package.json'                => 'NONE',
+  'yarn.lock'                   => 'NONE',
 };
 
 =head1 CONFIGURATION OPTIONS
@@ -449,6 +468,34 @@ System user account that will own Koha's files.
 
 System group that will own Koha's files.
 
+=item SMTP_HOST
+
+SMTP server host name (default: localhost)
+
+=item SMTP_PORT
+
+SMTP server port (default: 25)
+
+=item SMTP_TIMEOUT
+
+Connection timeour in seconds (default: 120)
+
+=item SMTP_SSL_MODE
+
+SSL mode. Options are 'disabled' (default), 'ssl' and 'starttls'
+
+=item SMTP_USER_NAME
+
+SMTP authentication user name
+
+=item SMTP_PASSWORD
+
+SMTP authentication password
+
+=item SMTP_DEBUG
+
+Enable debug mode for SMTP (default: no)
+
 =back
 
 =cut
@@ -465,9 +512,6 @@ my %config_defaults = (
   'DB_TLS_CLIENT_CERTIFICATE'  => '/etc/mysql-ssl/client-cert.pem',
   'DB_TLS_CLIENT_KEY' => '/etc/mysql-ssl/client-key.pem',
   'INSTALL_SRU'       => 'yes',
-  'INSTALL_PAZPAR2'   => 'no',
-  'AUTH_INDEX_MODE'   => 'dom',
-  'BIB_INDEX_MODE'    => 'dom',
   'ZEBRA_MARC_FORMAT' => 'marc21',
   'ZEBRA_LANGUAGE'    => 'en',
   'ZEBRA_TOKENIZER'   => 'chr',
@@ -480,15 +524,23 @@ my %config_defaults = (
   'KOHA_GROUP'        => 'koha',
   'MERGE_SERVER_HOST' => 'localhost',
   'MERGE_SERVER_PORT' => '11001',
-  'PAZPAR2_HOST' => 'localhost',
-  'PAZPAR2_PORT' => '11002',
   'RUN_DATABASE_TESTS' => 'no',
   'PATH_TO_ZEBRA' => '',
   'USE_MEMCACHED'     => 'yes',
   'MEMCACHED_SERVERS' => '127.0.0.1:11211',
   'MEMCACHED_NAMESPACE' => 'KOHA',
   'TEMPLATE_CACHE_DIR' => '/tmp/koha',
-  'FONT_DIR'          => '/usr/share/fonts/truetype/ttf-dejavu'
+  'USE_ELASTICSEARCH'     => 'no',
+  'ELASTICSEARCH_SERVERS' => 'localhost:9200',
+  'ELASTICSEARCH_INDEX'  => 'koha',
+  'FONT_DIR'          => '/usr/share/fonts/truetype/dejavu',
+  'SMTP_HOST'      => 'localhost',
+  'SMTP_PORT'      => '25',
+  'SMTP_TIMEOUT'   => '120',
+  'SMTP_SSL_MODE'  => 'disabled',
+  'SMTP_USER_NAME' => '',
+  'SMTP_PASSWORD'  => '',
+  'SMTP_DEBUG'     => 'no',
 );
 
 # set some default configuration options based on OS
@@ -513,13 +565,14 @@ my %valid_config_values = (
   'DB_TYPE' => { 'mysql' => 1, 'Pg' => 1 },
   'DB_USE_TLS' => {'yes', 'no'},
   'INSTALL_SRU' => { 'yes' => 1, 'no' => 1 },
-  'AUTH_INDEX_MODE' => { 'grs1' => 1, 'dom' => 1 },
-  'BIB_INDEX_MODE'  => { 'grs1' => 1, 'dom' => 1 },
   'ZEBRA_MARC_FORMAT' => { 'marc21' => 1, 'normarc' => 1, 'unimarc' => 1 }, # FIXME should generate from contents of distributation
-  'ZEBRA_LANGUAGE'    => { 'cs' => 1, 'en' => 1, 'es' => 1, 'fr' => 1, 'gr' => 1, 'nb' => 1, 'ru' => 1, 'uk' => 1 }, # FIXME should generate from contents of distribution
+  'ZEBRA_LANGUAGE'    => { 'cs' => 1, 'el' => 1, 'en' => 1, 'es' => 1, 'fr' => 1, 'nb' => 1, 'ru' => 1, 'uk' => 1 }, # FIXME should generate from contents of distribution
   'ZEBRA_TOKENIZER' => { chr => 1, icu => 1 },
   'RUN_DATABASE_TESTS' => { 'yes' => 1, 'no' => 1 },
   'USE_MEMCACHED'      => { 'yes' => 1, 'no' => 1 },
+  'USE_ELASTICSEARCH'  => { 'yes' => 1, 'no' => 1 },
+  'SMTP_SSL_MODE'      => { 'disabled' => 1, 'ssl' => 1, 'starttls' => 1 },
+  'SMTP_DEBUG'         => { 'yes' => 1, 'no' => 1 },
 );
 
 # get settings from command-line
@@ -539,17 +592,22 @@ my $cli_zebra_pass = "";
 my $cli_zebra_sru_host = "";
 my $cli_zebra_sru_bib_port = "";
 my $cli_zebra_sru_auth_port = "";
-my $cli_koha_auth_index_mode = "";
-my $cli_koha_bib_index_mode = "";
 my $cli_koha_user = "";
 my $cli_koha_group = "";
 my $cli_koha_install_sru = "";
-my $cli_koha_install_pazpar2 = "";
 my $cli_koha_use_memcached = "";
 my $cli_koha_font_dir = "";
 my $cli_koha_run_database_tests = "";
 my $cli_koha_install_base = "";
 my $cli_koha_template_cache_dir = "";
+my $cli_smtp_host      = "";
+my $cli_smtp_port      = "";
+my $cli_smtp_timeout   = "";
+my $cli_smtp_ssl_mode  = "";
+my $cli_smtp_user_name = "";
+my $cli_smtp_password  = "";
+my $cli_smtp_debug     = "";
+
 Getopt::Long::Configure('pass_through');
 my $results = GetOptions(
     "prev-install-log=s"           => \$koha_install_log,
@@ -568,17 +626,21 @@ my $results = GetOptions(
     "zebra_sru_host=s"             => \$cli_zebra_sru_host,
     "zebra_sru_biblios_port=s"     => \$cli_zebra_sru_bib_port,
     "zebra_sru_authorities_port=s" => \$cli_zebra_sru_auth_port,
-    "auth_index_mode=s"            => \$cli_koha_auth_index_mode,
-    "bib_index_mode=s"             => \$cli_koha_bib_index_mode,
     "koha_user=s"                  => \$cli_koha_user,
     "koha_group=s"                 => \$cli_koha_group,
     "install_sru=s"                => \$cli_koha_install_sru,
-    "install_pazpar2=s"            => \$cli_koha_install_pazpar2,
     "use_memcached=s"              => \$cli_koha_use_memcached,
     "font_dir=s"                   => \$cli_koha_font_dir,
     "run_database_tests=s"         => \$cli_koha_run_database_tests,
     "install_base=s"               => \$cli_koha_install_base,
     "template-cache-dir=s"         => \$cli_koha_template_cache_dir,
+    "smtp-host=s"                  => \$cli_smtp_host,
+    "smtp-port=s"                  => \$cli_smtp_port,
+    "smtp-timeout=s"               => \$cli_smtp_timeout,
+    "smtp-ssl-mode=s"              => \$cli_smtp_ssl_mode,
+    "smtp-user-name=s"             => \$cli_smtp_user_name,
+    "smtp-password=s"              => \$cli_smtp_password,
+    "smtp-debug"                   => \$cli_smtp_debug,
     "help"                         => sub { HelpMessage(0) },
 ) or HelpMessage(1);
 
@@ -601,6 +663,7 @@ my $pl_files = {
          'blib/KOHA_CONF_DIR/koha-conf.xml',
          'blib/KOHA_CONF_DIR/koha-httpd.conf',
          'blib/KOHA_CONF_DIR/log4perl.conf',
+         'blib/KOHA_CONF_DIR/koha-worker.service',
          'blib/ZEBRA_CONF_DIR/etc/default.idx',
          'blib/MISC_DIR/koha-install-log'
          ],
@@ -611,41 +674,21 @@ my $pl_files = {
 
 push @{ $pl_files->{'rewrite-config.PL'} }, (
     'blib/ZEBRA_CONF_DIR/etc/passwd',
-    'blib/ZEBRA_CONF_DIR/zebra-biblios.cfg',
     'blib/ZEBRA_CONF_DIR/zebra-biblios-dom.cfg',
-    'blib/ZEBRA_CONF_DIR/zebra-authorities.cfg',
     'blib/ZEBRA_CONF_DIR/zebra-authorities-dom.cfg',
     'blib/ZEBRA_CONF_DIR/explain-authorities.xml',
     'blib/ZEBRA_CONF_DIR/explain-biblios.xml',
-    'blib/ZEBRA_CONF_DIR/retrieval-info-auth-grs1.xml',
     'blib/ZEBRA_CONF_DIR/retrieval-info-auth-dom.xml',
-    'blib/ZEBRA_CONF_DIR/retrieval-info-bib-grs1.xml',
     'blib/ZEBRA_CONF_DIR/retrieval-info-bib-dom.xml',
 );
 push @{ $pl_files->{'rewrite-config.PL'} }, (
     'blib/SCRIPT_DIR/koha-zebra-ctl.sh',
-    'blib/SCRIPT_DIR/koha-pazpar2-ctl.sh',
     'blib/SCRIPT_DIR/koha-index-daemon-ctl.sh',
 );
-if ($config{'INSTALL_PAZPAR2'} eq 'yes') {
-    push @{ $pl_files->{'rewrite-config.PL'} }, (
-        'blib/PAZPAR2_CONF_DIR/koha-biblios.xml',
-        'blib/PAZPAR2_CONF_DIR/pazpar2.xml'
-    );
-}
-$config{'ZEBRA_AUTH_CFG'} = $config{'AUTH_INDEX_MODE'} eq 'dom'
-                              ? 'zebra-authorities-dom.cfg'
-                              : 'zebra-authorities.cfg';
-$config{'ZEBRA_BIB_CFG'}  = $config{'BIB_INDEX_MODE'} eq 'dom'
-                              ? 'zebra-biblios-dom.cfg'
-                              : 'zebra-biblios.cfg';
-$config{'AUTH_RETRIEVAL_CFG'} = $config{'AUTH_INDEX_MODE'} eq 'dom'
-                                  ? 'retrieval-info-auth-dom.xml'
-                                  : 'retrieval-info-auth-grs1.xml';
-$config{'BIB_RETRIEVAL_CFG'}  = $config{'BIB_INDEX_MODE'} eq 'dom'
-                                  ? 'retrieval-info-bib-dom.xml'
-                                  : 'retrieval-info-bib-grs1.xml';
-
+$config{'ZEBRA_AUTH_CFG'} = 'zebra-authorities-dom.cfg';
+$config{'ZEBRA_BIB_CFG'}  = 'zebra-biblios-dom.cfg';
+$config{'AUTH_RETRIEVAL_CFG'} = 'retrieval-info-auth-dom.xml';
+$config{'BIB_RETRIEVAL_CFG'}  = 'retrieval-info-bib-dom.xml';
 
 if ($config{'INSTALL_MODE'} ne "dev") {
     push @{ $pl_files->{'rewrite-config.PL'} }, (
@@ -665,6 +708,8 @@ $config{ZEBRA_PTOKENIZER_STMT} = $config{ZEBRA_TOKENIZER} eq 'icu'
 my %test_suite_override_dirs = (
     KOHA_CONF_DIR  => ['etc'],
     ZEBRA_CONF_DIR => ['etc', 'zebradb'],
+    Z3950_CONF_DIR => ['etc', 'z3950'],
+    LOCK_DIR       => ['var', 'lock'],
     LOG_DIR        => ['var', 'log'],
     BACKUP_DIR     => ['var', 'spool'],
     SCRIPT_DIR     => ['bin'],
@@ -678,7 +723,7 @@ WriteMakefile(
               #VERSION     => strftime('2.9.%Y%m%d%H',gmtime),
               VERSION_FROM => 'kohaversion.pl',
               ABSTRACT     => 'Award-winning integrated library system (ILS) and Web OPAC',
-              AUTHOR       => 'Koha Contributors <http://koha-community.org/>',
+              AUTHOR       => 'Koha Contributors <https://koha-community.org/>',
               NO_META      => 1,
               PREREQ_PM    => $koha_pm->prereq_pm,
 
@@ -857,17 +902,21 @@ sub get_cli_values {
         ZEBRA_SRU_HOST             => $cli_zebra_sru_host,
         ZEBRA_SRU_BIBLIOS_PORT     => $cli_zebra_sru_bib_port,
         ZEBRA_SRU_AUTHORITIES_PORT => $cli_zebra_sru_auth_port,
-        AUTH_INDEX_MODE            => $cli_koha_auth_index_mode,
-        BIB_INDEX_MODE             => $cli_koha_bib_index_mode,
         KOHA_USER                  => $cli_koha_user,
         KOHA_GROUP                 => $cli_koha_group,
         INSTALL_SRU                => $cli_koha_install_sru,
-        INSTALL_PAZPAR2            => $cli_koha_install_pazpar2,
         USE_MEMCACHED              => $cli_koha_use_memcached,
         FONT_DIR                   => $cli_koha_font_dir,
         RUN_DATABASE_TESTS         => $cli_koha_run_database_tests,
         INSTALL_BASE               => $cli_koha_install_base,
-        TEMPLATE_CACHE_DIR         => $cli_koha_template_cache_dir
+        TEMPLATE_CACHE_DIR         => $cli_koha_template_cache_dir,
+        SMTP_HOST                  => $cli_smtp_host,
+        SMTP_PORT                  => $cli_smtp_port,
+        SMTP_TIMEOUT               => $cli_smtp_timeout,
+        SMTP_SSL_MODE              => $cli_smtp_ssl_mode,
+        SMTP_USER_NAME             => $cli_smtp_user_name,
+        SMTP_PASSWORD              => $cli_smtp_password,
+        SMTP_DEBUG                 => (defined $cli_smtp_debug) ? ( $cli_smtp_debug ? 'yes' : 'no' ) : $values->{SMTP_DEBUG},
     };
     foreach my $key (keys %{$map}) {
         $values->{$key} = $map->{$key} if ($map->{$key});
@@ -885,8 +934,8 @@ sub get_install_log_values {
     my $install_log = shift;
     my $values = shift;
 
-    open LOG, "<$install_log" or die "Cannot open install log $install_log: $!\n";
-    while (<LOG>) {
+    open my $log, '<', $install_log or die "Cannot open install log $install_log: $!\n";
+    while (<$log>) {
         chomp;
         next if /^#/ or /^\s*$/;
         next if /^=/;
@@ -895,7 +944,7 @@ sub get_install_log_values {
         my ($key, $value) = split /=/, $_, 2;
         $values->{$key} = $value;
     }
-    close LOG;
+    close $log;
 
     print <<_EXPLAIN_INSTALL_LOG_;
 Reading values from install log $install_log.  You
@@ -1117,33 +1166,6 @@ Primary language for Zebra indexing);
     $config{'ZEBRA_LANGUAGE'} = _get_value('ZEBRA_LANGUAGE', $msg, $defaults->{'ZEBRA_LANGUAGE'}, $valid_values, $install_log_values);
 
     $msg = q(
-Koha can use one of  two different indexing modes
-for the MARC bibliographic records:
-
-dom  - uses the DOM XML filter; offers improved
-       functionality.
-grs1 - [DEPRECATED] uses the Zebra GRS-1 filter,
-       available for legacy support
-
-Bibliographic indexing mode);
-    $msg .= _add_valid_values_disp('BIB_INDEX_MODE', $valid_values);
-    $config{'BIB_INDEX_MODE'} = _get_value('BIB_INDEX_MODE', $msg, $defaults->{'BIB_INDEX_MODE'}, $valid_values, $install_log_values);
-
-
-    $msg = q(
-Koha can use one of  two different indexing modes
-for the MARC authorities records:
-
-dom  - uses the DOM XML filter; offers improved
-       functionality.
-grs1 - [DEPRECATED] uses the Zebra GRS-1 filter,
-       available for legacy support
-
-Authorities indexing mode);
-    $msg .= _add_valid_values_disp('AUTH_INDEX_MODE', $valid_values);
-    $config{'AUTH_INDEX_MODE'} = _get_value('AUTH_INDEX_MODE', $msg, $defaults->{'AUTH_INDEX_MODE'}, $valid_values, $install_log_values);
-
-    $msg = q(
 Zebra has two methods to perform records tokenization
 and characters normalization: CHR and ICU. ICU is
 recommended for catalogs containing non-Latin
@@ -1193,44 +1215,9 @@ SRU port for authority data?);
 
     }
 
-    $msg = q(
-Along with Zebra, you can also choose to install PazPar2,
-which is a metasearch tool.  With PazPar2,
-Koha can perform on-the-fly merging of bibliographic
-records during searching, allowing for FRBRization of
-the results list.
-
-Install the PazPar2 configuration files?);
-    $msg .= _add_valid_values_disp('INSTALL_PAZPAR2', $valid_values);
-    $config{'INSTALL_PAZPAR2'} = _get_value('INSTALL_PAZPAR2', $msg, $defaults->{'INSTALL_PAZPAR2'}, $valid_values, $install_log_values);
-
-    if ($config{'INSTALL_PAZPAR2'} eq 'yes') {
-        $msg = q(
-Since you've chosen to configure PazPar2, you must
-specify the host and port(s) that PazPar2
-uses:
-);
-        $msg = q(
-Zebra bibliographic server host?);
-        $config{'MERGE_SERVER_HOST'} = _get_value('MERGE_SERVER_HOST', $msg, $defaults->{'MERGE_SERVER_HOST'}, $valid_values, $install_log_values);
-
-        $msg = q(
-Zebra bibliographic port for PazPar2 to use?);
-        $config{'MERGE_SERVER_PORT'} = _get_value('MERGE_SERVER_PORT', $msg, $defaults->{'MERGE_SERVER_PORT'}, $valid_values, $install_log_values);
-
-        $msg = q(
-PazPar2 host?);
-        $config{'PAZPAR2_HOST'} = _get_value('PAZPAR2_HOST', $msg, $defaults->{'PAZPAR2_HOST'}, $valid_values, $install_log_values);
-
-        $msg = q(
-PazPar2 port?);
-        $config{'PAZPAR2_PORT'} = _get_value('PAZPAR2_PORT', $msg, $defaults->{'PAZPAR2_PORT'}, $valid_values, $install_log_values);
-
-    }
-
   $msg = q(
 Use memcached to cache the results of some function calls?
-This provides a signficant performance improvement.
+This provides a significant performance improvement.
 You will need a Memcached server running.);
   $msg .= _add_valid_values_disp('USE_MEMCACHED', $valid_values);
   $config{'USE_MEMCACHED'} = _get_value('USE_MEMCACHED', $msg, $defaults->{'USE_MEMCACHED'}, $valid_values, $install_log_values);
@@ -1247,6 +1234,29 @@ Memcached namespace?);
       $config{'MEMCACHED_NAMESPACE'} = _get_value('MEMCACHED_NAMESPACE', $msg, $defaults->{'MEMCACHED_NAMESPACE'}, $valid_values, $install_log_values);
   }
 
+
+  $msg = q(
+Use Elasticsearch to serve search results?
+You will need a Elasticsearch server running.);
+  $msg .= _add_valid_values_disp('USE_ELASTICSEARCH', $valid_values);
+  $config{'USE_ELASTICSEARCH'} = _get_value('USE_ELASTICSEARCH', $msg, $defaults->{'USE_ELASTICSEARCH'}, $valid_values, $install_log_values);
+  if ($config{'USE_ELASTICSEARCH'} eq 'yes'){
+      $msg = q(
+Define the ELASTICSEARCH_SERVERS with a comma-separated list. Eg
+localhost:9200, 192.168.0.100:9200
+);
+      $msg = q(
+Elasticsearch server addresses?);
+      $config{'ELASTICSEARCH_SERVERS'} = _get_value('ELASTICSEARCH_SERVERS', $msg, $defaults->{'ELASTICSEARCH_SERVERS'}, $valid_values, $install_log_values);
+
+      $msg = q(
+What index name to use for this Koha-instance? It must be unique for each Koha
+sharing the same Elasticsearch-cluster
+
+Elasticsearch index?);
+      $config{'ELASTICSEARCH_INDEX'} = _get_value('ELASTICSEARCH_INDEX', $msg, $defaults->{'ELASTICSEARCH_INDEX'}, $valid_values, $install_log_values);
+  }
+
   $msg = q(
 Template cache directory?);
   $config{'TEMPLATE_CACHE_DIR'} = _get_value('TEMPLATE_CACHE_DIR', $msg, $defaults->{'TEMPLATE_CACHE_DIR'}, $valid_values, $install_log_values);
@@ -1255,6 +1265,40 @@ Template cache directory?);
 Path to DejaVu fonts?);
   $config{'FONT_DIR'} = _get_value('FONT_DIR', $msg, $defaults->{'FONT_DIR'}, $valid_values, $install_log_values);
 
+  $msg = q(
+SMTP settings
+You will be able to set your default SMTP configuration.);
+  $msg .= q{
+SMTP host name?};
+  $config{'SMTP_HOST'} = _get_value('SMTP_HOST', $msg, $defaults->{'SMTP_HOST'}, $valid_values, $install_log_values);
+
+  $msg = q{
+SMTP port?};
+  $config{'SMTP_PORT'} = _get_value('SMTP_PORT', $msg, $defaults->{'SMTP_PORT'}, $valid_values, $install_log_values);
+
+  $msg = q{
+SMTP timeout (in seconds)?};
+  $config{'SMTP_TIMEOUT'} = _get_value('SMTP_TIMEOUT', $msg, $defaults->{'SMTP_TIMEOUT'}, $valid_values, $install_log_values);
+
+  $msg = q{
+SMTP SSL mode?};
+  $msg .= _add_valid_values_disp('SMTP_SSL_MODE', $valid_values);
+  $config{'SMTP_SSL_MODE'} = _get_value('SMTP_SSL_MODE', $msg, $defaults->{'SMTP_SSL_MODE'}, $valid_values, $install_log_values);
+
+  $msg = q{
+SMTP user name?};
+  $config{'SMTP_USER_NAME'} = _get_value('SMTP_USER_NAME', $msg, $defaults->{'SMTP_USER_NAME'}, $valid_values, $install_log_values);
+
+  $msg = q{
+SMTP password?};
+  $config{'SMTP_PASSWORD'} = _get_value('SMTP_PASSWORD', $msg, $defaults->{'SMTP_PASSWORD'}, $valid_values, $install_log_values);
+
+  $msg = q{
+SMTP debug mode?};
+  $msg .= _add_valid_values_disp('SMTP_DEBUG', $valid_values);
+  $config{'SMTP_DEBUG'} = _get_value('SMTP_DEBUG', $msg, $defaults->{'SMTP_DEBUG'}, $valid_values, $install_log_values);
+
+  $config{'SMTP_DEBUG'} = ( $config{'SMTP_DEBUG'} eq 'yes' ) ? 1 : 0;
 
   $msg = q(
 Would you like to run the database-dependent test suite?);
@@ -1268,7 +1312,7 @@ Would you like to run the database-dependent test suite?);
 
 THE DATA IN THIS DATABASE WILL BE DESTROYED during the process of
 testing. Please don't do this on your production database. It is not
-reversable.
+reversible.
 
 YOU WILL SUFFER DATA LOSS if you run this test suite on your test
 database. You are better off not running this optional test suite than
@@ -1392,13 +1436,14 @@ sub get_target_directories {
         $dirmap{'PERL_MODULE_DIR'} = File::Spec->catdir(@basedir, $package, 'lib');
         $dirmap{'KOHA_CONF_DIR'} = File::Spec->catdir(@basedir, $package, 'etc');
         $dirmap{'ZEBRA_CONF_DIR'} = File::Spec->catdir(@basedir, $package, 'etc', 'zebradb');
-        $dirmap{'PAZPAR2_CONF_DIR'} = File::Spec->catdir(@basedir, $package, 'etc', 'pazpar2');
+        $dirmap{'Z3950_CONF_DIR'} = File::Spec->catdir(@basedir, $package, 'etc', 'z3950');
         $dirmap{'MISC_DIR'} = File::Spec->catdir(@basedir, $package, 'misc');
         $dirmap{'SCRIPT_DIR'} = File::Spec->catdir(@basedir, $package, 'bin');
         $dirmap{'SCRIPT_NONDEV_DIR'} = $dirmap{'SCRIPT_DIR'};
         $dirmap{'MAN_DIR'} = File::Spec->catdir(@basedir, $package, 'man');
         $dirmap{'DOC_DIR'} = File::Spec->catdir(@basedir, $package, 'doc');
         $dirmap{'ZEBRA_LOCK_DIR'} = File::Spec->catdir(@basedir, $package, 'var', 'lock', 'zebradb');
+        $dirmap{'LOCK_DIR'} =  File::Spec->catdir(@basedir, $package, 'var', 'lock');
         $dirmap{'LOG_DIR'} =  File::Spec->catdir(@basedir, $package, 'var', 'log');
         $dirmap{'BACKUP_DIR'} =  File::Spec->catdir(@basedir, $package, 'var', 'spool');
         $dirmap{'PLUGINS_DIR'} =  File::Spec->catdir(@basedir, $package, 'var', 'lib', 'koha', 'plugins');
@@ -1424,7 +1469,7 @@ sub get_target_directories {
         $skipdirs{'PERL_MODULE_DIR'} = 1;
         $dirmap{'KOHA_CONF_DIR'} = File::Spec->catdir(@basedir, $package, 'etc');
         $dirmap{'ZEBRA_CONF_DIR'} = File::Spec->catdir(@basedir, $package, 'etc', 'zebradb');
-        $dirmap{'PAZPAR2_CONF_DIR'} = File::Spec->catdir(@basedir, $package, 'etc', 'pazpar2');
+        $dirmap{'Z3950_CONF_DIR'} = File::Spec->catdir(@basedir, $package, 'etc', 'z3950');
         $dirmap{'MISC_DIR'} = File::Spec->catdir(@basedir, $package, 'misc');
         $dirmap{'SCRIPT_DIR'} = File::Spec->catdir(@basedir, $package, 'bin');
         #For dev install, point NONDEV_DIR to misc in current dir (not base)
@@ -1434,6 +1479,7 @@ sub get_target_directories {
         $dirmap{'MAN_DIR'} = File::Spec->catdir(@basedir, $package, 'man');
         $dirmap{'DOC_DIR'} = File::Spec->catdir(@basedir, $package, 'doc');
         $dirmap{'ZEBRA_LOCK_DIR'} = File::Spec->catdir(@basedir, $package, 'var', 'lock', 'zebradb');
+        $dirmap{'LOCK_DIR'} =  File::Spec->catdir(@basedir, $package, 'var', 'lock');
         $dirmap{'LOG_DIR'} =  File::Spec->catdir(@basedir, $package, 'var', 'log');
         $dirmap{'BACKUP_DIR'} =  File::Spec->catdir(@basedir, $package, 'var', 'spool');
         $dirmap{'PLUGINS_DIR'} =  File::Spec->catdir(@basedir, $package, 'var', 'lib', 'plugins');
@@ -1451,13 +1497,14 @@ sub get_target_directories {
         $dirmap{'PERL_MODULE_DIR'} = File::Spec->catdir(@basedir, $package, 'lib');
         $dirmap{'KOHA_CONF_DIR'} = File::Spec->catdir(File::Spec->rootdir(), 'etc', $package);
         $dirmap{'ZEBRA_CONF_DIR'} = File::Spec->catdir(File::Spec->rootdir(), 'etc', $package, 'zebradb');
-        $dirmap{'PAZPAR2_CONF_DIR'} = File::Spec->catdir(File::Spec->rootdir(), 'etc', $package, 'pazpar2');
+        $dirmap{'Z3950_CONF_DIR'} = File::Spec->catdir(File::Spec->rootdir(), 'etc', $package, 'z3950');
         $dirmap{'MISC_DIR'} = File::Spec->catdir(@basedir, $package, 'misc');
         $dirmap{'SCRIPT_DIR'} = File::Spec->catdir(@basedir, $package, 'bin');
         $dirmap{'SCRIPT_NONDEV_DIR'} = $dirmap{'SCRIPT_DIR'};
         $dirmap{'MAN_DIR'} = File::Spec->catdir(@basedir, $package, 'man');
         $dirmap{'DOC_DIR'} = File::Spec->catdir(@basedir, $package, 'doc');
         $dirmap{'ZEBRA_LOCK_DIR'} = File::Spec->catdir(File::Spec->rootdir(), 'var', 'lock', $package, 'zebradb');
+        $dirmap{'LOCK_DIR'} =  File::Spec->catdir(File::Spec->rootdir(), 'var', 'lock', $package);
         $dirmap{'LOG_DIR'} =  File::Spec->catdir(File::Spec->rootdir(), 'var', 'log', $package);
         $dirmap{'BACKUP_DIR'} =  File::Spec->catdir(File::Spec->rootdir(), 'var', 'spool', $package);
         $dirmap{'PLUGINS_DIR'} =  File::Spec->catdir(File::Spec->rootdir(), 'var', 'lib', $package, 'plugins');
@@ -1680,8 +1727,6 @@ sub _update_zebra_conf_target {
     $target .= "\t\t\$(KOHA_INST_ZEBRA_CONF_DIR) \$(KOHA_DEST_ZEBRA_CONF_DIR) \n";
     $target .= "\t\$(NOECHO) chmod -R u+w \$(KOHA_DEST_ZEBRA_CONF_DIR)\n";
     $target .= "\tumask 022; \$(MOD_INSTALL) \\\n";
-    $target .= "\t\t\$(KOHA_INST_PAZPAR2_CONF_DIR) \$(KOHA_DEST_PAZPAR2_CONF_DIR) \n";
-    $target .= "\t\$(NOECHO) chmod -R u+w \$(KOHA_DEST_PAZPAR2_CONF_DIR)\n";
 
     return $target;
 }
@@ -1707,7 +1752,7 @@ make_upgrade_backup ::
 \t\$(NOECHO) umask 022; \$(MOD_BACKUP) \\
 /;
     foreach my $key (qw/KOHA_CONF_DIR INTRANET_TMPL_DIR INTRANET_WWW_DIR OPAC_TMPL_DIR OPAC_WWW_DIR
-                     PAZPAR2_CONF_DIR ZEBRA_CONF_DIR PLUGINS_DIR/) {
+                     ZEBRA_CONF_DIR PLUGINS_DIR/) {
     	$upgrade .= "\t\t\$(KOHA_INST_$key) \$(KOHA_DEST_$key) \\\n"
             unless exists $skip_directories->{$key} or
                    not exists $target_directories->{$key};

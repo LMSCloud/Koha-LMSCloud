@@ -1,10 +1,11 @@
+[% USE raw %]
 [% USE Asset %]
 [% USE Branches %]
 [% SET footerjs = 1 %]
 [% INCLUDE 'doc-head-open.inc' %]
-<title>Koha &rsaquo; Administration &rsaquo; Item circulation alerts</title>
+<title>Item circulation alerts &rsaquo; Administration &rsaquo; Koha</title>
 [% INCLUDE 'doc-head-close.inc' %]
-<style type="text/css">
+<style>
 table.grid thead th {
   vertical-align: bottom;
 }
@@ -44,17 +45,29 @@ table.grid td.default {
 <body id="admin_item_circulation_alerts" class="admin">
 [% INCLUDE 'header.inc' %]
 [% INCLUDE 'prefs-admin-search.inc' %]
-<div id="breadcrumbs"><a href="/cgi-bin/koha/mainpage.pl">Home</a> &rsaquo; <a href="/cgi-bin/koha/admin/admin-home.pl">Administration</a> &rsaquo; Item circulation alerts </div>
 
-<div id="doc3" class="yui-t1">
+<nav id="breadcrumbs" aria-label="Breadcrumb" class="breadcrumb">
+    <ol>
+        <li>
+            <a href="/cgi-bin/koha/mainpage.pl">Home</a>
+        </li>
+        <li>
+            <a href="/cgi-bin/koha/admin/admin-home.pl">Administration</a>
+        </li>
+        <li>
+            <a href="#" aria-current="page">
+                Item circulation alerts
+            </a>
+        </li>
+    </ol>
+</nav>
 
-<div id="bd">
-
-<div id="yui-main" class="circulation-alert">
-<div class="yui-b">
-
-<div class="yui-g">
-<div class="yui-u first">
+<div class="main container-fluid">
+    <div class="row">
+        <div class="col-sm-10 col-sm-push-2">
+            <main>
+                <div class="row">
+                    <div class="col-sm-6">
 <h1>Item circulation alerts</h1>
 <h2>Select a library:</h2>
 <form id="branch_selector" method="get" action="/cgi-bin/koha/admin/item_circulation_alerts.pl">
@@ -65,7 +78,7 @@ table.grid td.default {
 <input type="submit" name="pick" value="Pick" />
 </form>
 </div>
-<div class="yui-u">
+                    <div class="col-sm-6">
 <table class="grid">
 <caption>Legend</caption>
 <thead>
@@ -89,10 +102,10 @@ table.grid td.default {
   </tr>
 </tbody>
 </table>
-</div>
-</div>
+                    </div> <!-- /.col-sm-6 -->
+                </div> <!-- /.row -->
 
-<h2>Circulation alerts for [% Branches.GetName( branch ) || 'Default' %]</h2>
+<h2>Circulation alerts for [% Branches.GetName( branch ) || 'Default' | html %]</h2>
 <p>Click on the grid to toggle the settings.</p>
 
 <div id="alerttabs" class="toptabs">
@@ -108,16 +121,16 @@ table.grid td.default {
 <tr>
   <th>&nbsp;</th>
   [% FOREACH item_type IN item_types %]
-  <th>[% item_type.description %]</th>
+  <th>[% item_type.description | html %]</th>
   [% END %]
 </tr>
 </thead>
 <tbody>
 [% FOREACH grid_checkou IN grid_checkout %]
 <tr>
-  <th>[% grid_checkou.description %]</th>
+  <th>[% grid_checkou.description | html %]</th>
   [% FOREACH item IN grid_checkou.items %]
-  <td class="[% item.class %]" id="[% item.id %]">[% item.text %]</td>
+  <td class="[% item.class | html %]" id="[% item.id | html %]">[% item.text | html %]</td>
   [% END %]
 </tr>
 [% END %]
@@ -132,16 +145,16 @@ table.grid td.default {
 <tr>
   <th>&nbsp;</th>
   [% FOREACH item_type IN item_types %]
-  <th>[% item_type.description %]</th>
+  <th>[% item_type.description | html %]</th>
   [% END %]
 </tr>
 </thead>
 <tbody>
 [% FOREACH grid_checki IN grid_checkin %]
 <tr>
-  <th>[% grid_checki.description %]</th>
+  <th>[% grid_checki.description | html %]</th>
   [% FOREACH item IN grid_checki.items %]
-  <td class="[% item.class %]" id="[% item.id %]">[% item.text %]</td>
+  <td class="[% item.class | html %]" id="[% item.id | html %]">[% item.text | html %]</td>
   [% END %]
 </tr>
 [% END %]
@@ -150,18 +163,20 @@ table.grid td.default {
 </div>
 </div>
 
-</div>
-</div>
+            </main>
+        </div> <!-- /.col-sm-10.col-sm-push-2 -->
 
-<div class="yui-b">
-[% INCLUDE 'admin-menu.inc' %]
-</div>
-</div>
+        <div class="col-sm-2 col-sm-pull-10">
+            <aside>
+                [% INCLUDE 'admin-menu.inc' %]
+            </aside>
+        </div> <!-- /.col-sm-2.col-sm-pull-10 -->
+     </div> <!-- /.row -->
 
 [% MACRO jsinclude BLOCK %]
-    [% Asset.js("js/admin-menu.js") %]
-    <script type="text/javascript">
-        var $branch = "[% branch %]";
+    [% Asset.js("js/admin-menu.js") | $raw %]
+    <script>
+        var $branch = "[% branch | html %]";
         $(function(){
             $('#alerttabs').tabs();
 

@@ -55,13 +55,12 @@ use C4::Biblio qw/GetBiblioData/;
 use Koha::Acquisition::Booksellers;
 use Koha::Acquisition::Baskets;
 
-my $input=new CGI;
+my $input=CGI->new;
 
 my ($template, $loggedinuser, $cookie)
     = get_template_and_user({template_name => "acqui/uncertainprice.tt",
 			     query => $input,
 			     type => "intranet",
-			     authnotrequired => 0,
 			     flagsrequired   => { acquisition => 'order_manage' },
 			     debug => 1,
                 });
@@ -72,7 +71,7 @@ my $op = $input->param('op');
 my $owner = $input->param('owner') || 0 ; # flag to see only "my" orders, or everyone orders
 my $bookseller = Koha::Acquisition::Booksellers->find( $booksellerid );
 
-$template->param( basket => scalar Koha::Acquisition::Baskets->find($basketno) );
+$template->param( basket => Koha::Acquisition::Baskets->find($basketno) );
 
 #show all orders that have uncertain price for the bookseller
 my $pendingorders = SearchOrders({
@@ -89,6 +88,7 @@ if ( $op eq 'validate' ) {
     for (my $i=0; $i < $count; $i++) {
         my $order = pop(@orders);
         my $ordernumber = $order->{ordernumber};
+        next unless ($input->param('qty'.$ordernumber));
         my $order_as_from_db=GetOrder($order->{ordernumber});
         $order->{'listprice'} = $input->param('price'.$ordernumber);
         $order->{'ecost'}= $input->param('price'.$ordernumber) - (($input->param('price'.$ordernumber) /100) * $bookseller->discount);
@@ -108,8 +108,6 @@ $template->param( uncertainpriceorders => \@orders,
                                    bookselleraddress3 => $bookseller->address3,
                                    bookselleraddress4 => $bookseller->address4,
                                    booksellerphone =>$bookseller->phone,
-                                   booksellerfax => $bookseller->fax,
-                                   booksellerurl => $bookseller->url,
                                    booksellernotes => $bookseller->notes,
                                    basketcount   => $bookseller->baskets->count,
                                    subscriptioncount   => $bookseller->subscriptions->count,

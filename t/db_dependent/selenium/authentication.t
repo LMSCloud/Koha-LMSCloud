@@ -27,6 +27,7 @@ use Test::More tests => 2;
 
 use C4::Context;
 use Koha::AuthUtils;
+use t::lib::Mocks;
 use t::lib::Selenium;
 use t::lib::TestBuilder;
 
@@ -46,10 +47,10 @@ SKIP: {
         $driver->get($mainpage);
         like( $driver->get_title, qr(Log in to Koha), 'Hitting the main page should redirect to the login form');
 
-        my $password = Koha::AuthUtils::generate_password();
-        my $digest = Koha::AuthUtils::hash_password( $password );
         my $patron = $builder->build_object({ class => 'Koha::Patrons', value => { flags => 0 }});
-        $patron->update_password( $patron->userid, $digest );
+        my $password = Koha::AuthUtils::generate_password($patron->category);
+        t::lib::Mocks::mock_preference( 'RequireStrongPassword', 0 );
+        $patron->set_password({ password => $password });
 
         # Patron does not have permission to access staff interface
         $s->auth( $patron->userid, $password );
@@ -58,14 +59,16 @@ SKIP: {
         $driver->get($mainpage . q|?logout.x=1|);
         $patron->flags(4)->store; # catalogue permission
         $s->auth( $patron->userid, $password );
-        like( $driver->get_title, qr(Koha staff client), 'Patron with flags catalogue should be able to login' );
+        like( $driver->get_title, qr(Koha staff interface), 'Patron with flags catalogue should be able to login' );
 
         $driver->get($mainpage . q|?logout.x=1|);
         like( $driver->get_title(), qr(Log in to Koha), 'If logout is requested, login form should be displayed' );
 
         $patron->flags(1)->store; # superlibrarian permission
         $s->auth( $patron->userid, $password );
-        like( $driver->get_title, qr(Koha staff client), 'Patron with flags superlibrarian should be able to login' );
+        like( $driver->get_title, qr(Koha staff interface), 'Patron with flags superlibrarian should be able to login' );
+
+        push @data_to_cleanup, $patron, $patron->category, $patron->library;
     };
 
     subtest 'OPAC interface authentication' => sub {
@@ -78,21 +81,42 @@ SKIP: {
         $driver->get($mainpage);
         like( $driver->get_title, qr(Koha online catalog), 'Hitting the main page should not redirect to the login form');
 
-        my $password = Koha::AuthUtils::generate_password();
-        my $digest = Koha::AuthUtils::hash_password( $password );
         my $patron = $builder->build_object({ class => 'Koha::Patrons', value => { flags => 0 }});
-        $patron->update_password( $patron->userid, $digest );
+        my $password = Koha::AuthUtils::generate_password($patron->category);
+        t::lib::Mocks::mock_preference( 'RequireStrongPassword', 0 );
+        $patron->set_password({ password => $password });
 
         # Using the modal
-        $driver->find_element('//a[@class="login-link loginModal-trigger"]')->click;
+        $driver->find_element('//a[@class="nav-link login-link loginModal-trigger"]')->click;
         $s->fill_form( { muserid => $patron->userid, mpassword => $password } );
         $driver->find_element('//div[@id="loginModal"]//input[@type="submit"]')->click;
         like( $driver->get_title, qr(Koha online catalog), 'Patron without permission should be able to login to the OPAC using the modal' );
         $driver->find_element('//div[@id="userdetails"]');
         like( $driver->get_title, qr(Your library home), 'Patron without permissions should be able to login to the OPAC using the modal');
 
+        $driver->find_element('//a[@id="user-menu"]')->click;
         $driver->find_element('//a[@id="logout"]')->click;
-        $driver->find_element('//div[@id="login"]'); # logged out
+        $driver->get($mainpage); # This should not be needed but we the next find_element fails randomly
+
+        { # Temporary debug
+            $driver->error_handler(
+                sub {
+                    my ( $driver, $selenium_error ) = @_;
+                    print STDERR "\nSTRACE:";
+                    my $i = 1;
+                    while ( (my @call_details = (caller($i++))) ){
+                        print STDERR "\t" . $call_details[1]. ":" . $call_details[2] . " in " . $call_details[3]."\n";
+                    }
+                    print STDERR "\n";
+                    print STDERR sprintf("Is logged in patron: %s (%s)?\n", $patron->firstname, $patron->surname );
+                    $s->capture( $driver );
+                    croak $selenium_error;
+                }
+            );
+
+            $driver->find_element('//div[@id="login"]'); # logged out
+            $s->add_error_handler; # Reset to the default error handler
+        }
 
         # Using the form on the right
         $s->fill_form( { userid => $patron->userid, password => $password } );
@@ -100,6 +124,7 @@ SKIP: {
         $driver->find_element('//div[@id="userdetails"]');
         like( $driver->get_title, qr(Your library home), 'Patron without permissions should be able to login to the OPAC using the form on the right');
 
+        $driver->find_element('//a[@id="user-menu"]')->click;
         $driver->find_element('//a[@id="logout"]')->click;
         $driver->find_element('//div[@id="login"]'); # logged out
 
@@ -110,6 +135,7 @@ SKIP: {
         $driver->find_element('//div[@id="userdetails"]');
         like( $driver->get_title, qr(Your library home), 'Patron with catalogue permission should be able to login to the OPAC');
 
+        $driver->find_element('//a[@id="user-menu"]')->click;
         $driver->find_element('//a[@id="logout"]')->click;
         $driver->find_element('//div[@id="login"]'); # logged out
 
@@ -119,6 +145,7 @@ SKIP: {
         $driver->find_element('//div[@id="userdetails"]');
         like( $driver->get_title, qr(Your library home), 'Patron with superlibrarian permission should be able to login to the OPAC');
 
+        $driver->find_element('//a[@id="user-menu"]')->click;
         $driver->find_element('//a[@id="logout"]')->click;
         $driver->find_element('//div[@id="login"]'); # logged out
 

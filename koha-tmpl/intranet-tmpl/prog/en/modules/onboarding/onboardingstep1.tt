@@ -1,6 +1,6 @@
 [% INCLUDE 'doc-head-open.inc' %]
 
-<title>Koha &rsaquo; Web installer &rsaquo; Create a library</title>
+<title>Create a library &rsaquo; Web installer &rsaquo; Koha</title>
 [% INCLUDE 'installer-doc-head-close.inc' %]
 </head>
 
@@ -30,12 +30,13 @@
                             </li>
                         </ol>
                         <p>To add another library and for more settings, go to:
-                            <span class="breadcrumbs"> Administration <b>&rsaquo;</b> Libraries and groups </span>
+                            <span class="breadcrumbs"> Administration <strong>&rsaquo;</strong> Libraries and groups </span>
                         </p>
                         <input type="submit" class="btn btn-primary" value="Submit" />
                     </fieldset>
                 </form>
             </div> <!-- / #onboarding-step1 -->
         </div> <!-- / .row -->
+    </div><!-- / .container-fluid -->
 
-[% INCLUDE 'intranet-bottom.inc' %]
+[% INCLUDE 'installer-intranet-bottom.inc' %]

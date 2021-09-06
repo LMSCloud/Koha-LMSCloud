@@ -9,6 +9,7 @@ BEGIN {
     eval { require "$FindBin::Bin/kohalib.pl" };
 }
 
+use Koha::Script;
 use C4::Context;
 use C4::ImportBatch;
 use Getopt::Long;
@@ -40,7 +41,7 @@ if ($list_batches) {
 
 # FIXME dummy user so that logging won't fail
 # in future, probably should tie to a real user account
-C4::Context->set_userenv(0, 'batch', 0, 'batch', 'batch', 'batch', 'batch', 'batch');
+C4::Context->set_userenv(0, 'batch', 0, 'batch', 'batch', 'batch', 'batch');
 
 my $dbh = C4::Context->dbh;
 $dbh->{AutoCommit} = 0;

@@ -21,25 +21,24 @@ use Test::More tests => 13;
 
 use C4::Biblio;
 use C4::Context;
-use C4::Members;
 
 use Koha::Library;
+use Koha::Patrons;
 use Koha::Patron::Categories;
-use Koha::Virtualshelf;
 use Koha::Virtualshelves;
+
+use t::lib::Mocks;
 
 use_ok( "C4::Utils::DataTables::VirtualShelves" );
 
+my $schema = Koha::Database->new->schema;
+$schema->storage->txn_begin;
 my $dbh = C4::Context->dbh;
-
-# Start transaction
-$dbh->{AutoCommit} = 0;
-$dbh->{RaiseError} = 1;
 
 $dbh->do(q|DELETE FROM virtualshelves|);
 
 # Pick a categorycode from the DB
-my @categories   = Koha::Patron::Categories->search_limited;
+my @categories   = Koha::Patron::Categories->search_with_library_limits;
 my $categorycode = $categories[0]->categorycode;
 my $branchcode   = "ABC";
 my $branch_data = {
@@ -80,9 +79,10 @@ my %john_smith = (
     userid       => 'john.smith',
 );
 
-$john_doe{borrowernumber} = AddMember( %john_doe );
-$jane_doe{borrowernumber} = AddMember( %jane_doe );
-$john_smith{borrowernumber} = AddMember( %john_smith );
+my $john_doe_patron = Koha::Patron->new( \%john_doe )->store;
+$john_doe{borrowernumber} = $john_doe_patron->borrowernumber;
+$jane_doe{borrowernumber} = Koha::Patron->new( \%jane_doe )->store->borrowernumber;
+$john_smith{borrowernumber} = Koha::Patron->new( \%john_smith )->store->borrowernumber;
 
 my $shelf1 = Koha::Virtualshelf->new(
     {
@@ -182,8 +182,7 @@ my %dt_params = (
 );
 my $search_results;
 
-C4::Context->_new_userenv ('DUMMY_SESSION_ID');
-C4::Context->set_userenv($john_doe{borrowernumber}, $john_doe{userid}, 'usercnum', 'First name', 'Surname', 'MYLIBRARY', 'My Library', 0);
+t::lib::Mocks::mock_userenv({ patron => $john_doe_patron });
 
 # Search private lists by title
 $search_results = C4::Utils::DataTables::VirtualShelves::search({

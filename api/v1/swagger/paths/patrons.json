@@ -4,6 +4,7 @@
       "x-mojo-to": "Patrons#list",
       "operationId": "listPatrons",
       "tags": ["patrons"],
+      "summary": "List patrons",
       "produces": [
           "application/json"
       ],
@@ -296,6 +297,12 @@
         "required": false,
         "type": "string"
       }, {
+        "name": "autorenew_checkouts",
+        "in": "query",
+        "description": "Search on autorenew_checkouts",
+        "required": false,
+        "type": "boolean"
+      }, {
         "name": "altcontact_firstname",
         "in": "query",
         "description": "Case insensitive search on altcontact_firstname",
@@ -445,12 +452,16 @@
         "permissions": {
           "borrowers": "1"
         }
-      }
+      },
+      "x-koha-embed": [
+        "extended_attributes"
+      ]
     },
     "post": {
       "x-mojo-to": "Patrons#add",
       "operationId": "addPatron",
       "tags": ["patrons"],
+      "summary": "Add patron",
       "parameters": [{
         "name": "body",
         "in": "body",
@@ -526,6 +537,7 @@
       "x-mojo-to": "Patrons#get",
       "operationId": "getPatron",
       "tags": ["patrons"],
+      "summary": "Get patron",
       "parameters": [{
           "$ref": "../parameters.json#/patron_id_pp"
       }],
@@ -571,17 +583,19 @@
         }
       },
       "x-koha-authorization": {
-        "allow-owner": true,
-        "allow-guarantor": true,
         "permissions": {
           "borrowers": "edit_borrowers"
         }
-      }
+      },
+      "x-koha-embed": [
+        "extended_attributes"
+      ]
     },
     "put": {
       "x-mojo-to": "Patrons#update",
       "operationId": "updatePatron",
       "tags": ["patrons"],
+      "summary": "Update patron",
       "parameters": [
         {
           "$ref": "../parameters.json#/patron_id_pp"
@@ -605,18 +619,6 @@
             "items": {
               "$ref": "../definitions.json#/patron"
             }
-          }
-        },
-        "202": {
-          "description": "Accepted and waiting for librarian verification",
-          "schema": {
-            "type": "object"
-          }
-        },
-        "204": {
-          "description": "No Content",
-          "schema": {
-            "type": "object"
           }
         },
         "400": {
@@ -660,16 +662,14 @@
       "x-mojo-to": "Patrons#delete",
       "operationId": "deletePatron",
       "tags": ["patrons"],
+      "summary": "Delete patron",
       "parameters": [{
         "$ref": "../parameters.json#/patron_id_pp"
       }],
       "produces": ["application/json"],
       "responses": {
-        "200": {
-          "description": "Patron deleted successfully",
-          "schema": {
-            "type": "object"
-          }
+        "204": {
+          "description": "Patron deleted"
         },
         "400": {
           "description": "Patron deletion failed",

@@ -17,10 +17,15 @@
 
 use Modern::Perl;
 
-use Koha::Items;
-use Koha::Biblioitems;
-use Koha::ItemTypes;
+use Koha::Script;
+use Koha::AuthorisedValues;
 use Koha::Authorities;
+use Koha::Biblios;
+use Koha::BiblioFrameworks;
+use Koha::Biblioitems;
+use Koha::Items;
+use Koha::ItemTypes;
+use C4::Biblio;
 
 {
     my $items = Koha::Items->search({ -or => { homebranch => undef, holdingbranch => undef }});
@@ -50,14 +55,21 @@ use Koha::Authorities;
 
 {
     if ( C4::Context->preference('item-level_itypes') ) {
-        my $items_without_itype = Koha::Items->search( { itype => undef } );
+        my $items_without_itype = Koha::Items->search( { -or => [itype => undef,itype => ''] } );
         if ( $items_without_itype->count ) {
             new_section("Items do not have itype defined");
             while ( my $item = $items_without_itype->next ) {
-                new_item(
-                    sprintf "Item with itemnumber=%s does not have a itype value, biblio's item type will be used (%s)",
-                    $item->itemnumber, $item->biblioitem->itemtype
-                );
+                if (defined $item->biblioitem->itemtype && $item->biblioitem->itemtype ne '' ) {
+                    new_item(
+                        sprintf "Item with itemnumber=%s does not have a itype value, biblio's item type will be used (%s)",
+                        $item->itemnumber, $item->biblioitem->itemtype
+                    );
+                } else {
+                    new_item(
+                        sprintf "Item with itemnumber=%s does not have a itype value, additionally no item type defined for biblionumber=%s",
+                        $item->itemnumber, $item->biblioitem->biblionumber
+                    );
+               }
             }
             new_hint("The system preference item-level_itypes expects item types to be defined at item level");
         }
@@ -78,7 +90,7 @@ use Koha::Authorities;
 
     my @itemtypes = Koha::ItemTypes->search->get_column('itemtype');
     if ( C4::Context->preference('item-level_itypes') ) {
-        my $items_with_invalid_itype = Koha::Items->search( { itype => { not_in => \@itemtypes } } );
+        my $items_with_invalid_itype = Koha::Items->search( { -and => [itype => { not_in => \@itemtypes }, itype => { '!=' => '' }] } );
         if ( $items_with_invalid_itype->count ) {
             new_section("Items have invalid itype defined");
             while ( my $item = $items_with_invalid_itype->next ) {
@@ -104,6 +116,100 @@ use Koha::Authorities;
             }
             new_hint("The biblioitems must have a itemtype value that is defined in the item types of Koha (Home › Administration › Item types administration)");
         }
+    }
+    my @decoding_errors;
+    my $biblios = Koha::Biblios->search;
+    while ( my $biblio = $biblios->next ) {
+        eval{$biblio->metadata->record;};
+        push @decoding_errors, $@ if $@;
+    }
+    if ( @decoding_errors ) {
+        new_section("Bibliographic records have invalid MARCXML");
+        new_item($_) for @decoding_errors;
+        new_hint("The bibliographic records must have a valid MARCXML or you will face encoding issues or wrong displays");
+    }
+}
+
+{
+    my $frameworks = Koha::BiblioFrameworks->search;
+    my $invalid_av_per_framework = {};
+    while ( my $framework = $frameworks->next ) {
+        my $msss = Koha::MarcSubfieldStructures->search({ frameworkcode => $framework->frameworkcode, authorised_value => { '!=' => [ -and => ( undef, '' ) ]} });
+        while ( my $mss = $msss->next ) {
+            my $kohafield = $mss->kohafield;
+            my $av = $mss->authorised_value;
+            next if grep {$_ eq $av} qw( branches itemtypes cn_source ); # internal categories
+
+            my $avs = Koha::AuthorisedValues->search_by_koha_field(
+                {
+                    frameworkcode => $framework->frameworkcode,
+                    kohafield     => $kohafield,
+                }
+            );
+            my $tmp_kohafield = $kohafield;
+            if ( $tmp_kohafield =~ /^biblioitems/ ) {
+                $tmp_kohafield =~ s|biblioitems|biblioitem|;
+            } else {
+                $tmp_kohafield =~ s|items|me|;
+            }
+            # replace items.attr with me.attr
+            my $items = Koha::Items->search(
+                {
+                    $tmp_kohafield =>
+                      {
+                          -not_in => [ $avs->get_column('authorised_value'), '' ],
+                          '!='    => undef,
+                      },
+                    'biblio.frameworkcode' => $framework->frameworkcode
+                },
+                { join => [ 'biblioitem', 'biblio' ] }
+            );
+            if ( $items->count ) {
+                $invalid_av_per_framework->{ $framework->frameworkcode }->{$av} =
+                  { items => $items, kohafield => $kohafield };
+            }
+        }
+    }
+    if (%$invalid_av_per_framework) {
+        new_section('Wrong values linked to authorised values');
+        for my $frameworkcode ( keys %$invalid_av_per_framework ) {
+            my $output;
+            while ( my ( $av_category, $v ) = each %{$invalid_av_per_framework->{$frameworkcode}} ) {
+                my $items     = $v->{items};
+                my $kohafield = $v->{kohafield};
+                my ( $table, $column ) = split '\.', $kohafield;
+                while ( my $i = $items->next ) {
+                    my $value = $table eq 'items' ? $i->$column : $i->biblioitem->$column;
+                    $output .= " {" . $i->itemnumber . " => " . $value . "}";
+                }
+                new_item(
+                    sprintf(
+                        "The Framework *%s* is using the authorised value's category *%s*, "
+                        . "but the following %s do not have a value defined ({itemnumber => value }):\n%s",
+                        $frameworkcode, $av_category, $kohafield, $output
+                    )
+                );
+            }
+        }
+    }
+}
+
+{
+    my $biblios = Koha::Biblios->search({
+        -or => [
+            title => '',
+            title => undef,
+        ]
+    });
+    if ( $biblios->count ) {
+        my ( $title_tag, $title_subtag ) = C4::Biblio::GetMarcFromKohaField( 'biblio.title' );
+        my $title_field = $title_tag // '';
+        $title_field .= '$'.$title_subtag if $title_subtag;
+        new_section("Biblio without title $title_field");
+        while ( my $biblio = $biblios->next ) {
+            new_item(sprintf "Biblio with biblionumber=%s does not have title defined", $biblio->biblionumber);
+        }
+        new_hint("Edit these biblio records to defined a title");
     }
 }
 
@@ -139,5 +245,6 @@ Catch data inconsistencies in Koha database
   * if item types are defined at item level (item-level_itypes=specific item),
     then items.itype must be set else biblioitems.itemtype must be set
   * Item types defined in items or biblioitems must be defined in the itemtypes table
+* Invalid MARCXML in bibliographic records
 
 =cut

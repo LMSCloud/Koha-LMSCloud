@@ -1,4 +1,3 @@
-# Broken, omitted: acquisitions, emailPurchaseSuggestions
 Acquisitions:
     Policy:
         -
@@ -12,7 +11,8 @@ Acquisitions:
         -
             - "The following <a href='http://schema.koha-community.org/__VERSION__/tables/items.html' target='blank'>database columns</a> should be unique in an item:"
             - pref: UniqueItemFields
-            - (separated by a space)
+              type: modalselect
+              source: items
         -
             - When closing or reopening a basket,
             - pref: BasketConfirmations
@@ -36,62 +36,82 @@ Acquisitions:
                   CH: 360'000.00 (CH)
         -
             - Tax rates are
-            - pref: gist
+            - pref: TaxRates
             - . Enter in numeric form, 0.12 for 12%. The first item in the list will be selected by default. For more than one value, separate with | (pipe).
             - "Please note: The database will only accept values up to 4 decimals precision, further values will be rounded."
         -
             - pref: AcqWarnOnDuplicateInvoice
               choices:
-                  yes: Warn
-                  no: "Do not warn"
+                  1: Warn
+                  0: "Do not warn"
             - when the librarian tries to create an invoice with a duplicate number.
         -
-            - Upon receiving items, update their subfields if they were created when placing an order (e.g. o=5|a="foo bar").
+            - "Upon receiving items, update their subfields if they were created when placing an order (e.g. o=5|a=\"foo bar\"):"
             - pref: AcqItemSetSubfieldsWhenReceived
         -
-            - Upon cancelling a receipt, update the item's subfields if they were created when placing an order (e.g. o=5|a="bar foo").
+            - "Upon cancelling a receipt, update the item's subfields if they were created when placing an order (e.g. o=5|a=\"bar foo\"):"
             - pref: AcqItemSetSubfieldsWhenReceiptIsCancelled
         -
             - pref: AcqEnableFiles
               choices:
-                  yes: Do
-                  no: "Don't"
+                  1: Do
+                  0: "Don't"
             - enable the ability to upload and attach arbitrary files to invoices.
         -
             - Set the mapping values for a new order line created from a MARC record in a staged file.
             - pref: MarcFieldsToOrder
               type: textarea
+              syntax: text/x-yaml
             - "You can use the following fields: price, quantity, budget_code, discount, sort1, sort2"
             - "<br/>For example:<br/>price: 947$a|947$c<br/>quantity: 969$h<br/>budget_code: 922$a"
         -
             - Set the mapping values for new item records created from a MARC record in a staged file.
             - pref: MarcItemFieldsToOrder
               type: textarea
+              syntax: text/x-yaml
             - "You can use the following fields: homebranch, holdingbranch, itype, nonpublic_note, public_note, loc, ccode, notforloan, uri, copyno, price, replacementprice and itemcallnumber. Special fields: quantity and budget_code"
             - "<br/>For example:<br/>holdingbranch: 975$b<br/>itype: 975$9|975$z"
         -
             - pref: ClaimsBccCopy
               default: no
               choices:
-                yes: Send
-                no: Don't send
+                1: Send
+                0: Don't send
             - blind copy (BCC) to logged in user when sending serial or acquisitions claims notices.
         -
             - Keep accepted or rejected purchase suggestions for a period of
             - pref: PurgeSuggestionsOlderThan
               class: integer
-            - days.
-            - <br>WARNING - Leave this field empty if you don't want to activate this automatic feature.
-            - "<br>Example: [30] Sets purgation of suggestions for those older than 30 days."
-            - <br>(Used when the cronjob purge_suggestions.pl is active and called without a specific number of days)
-
+            - "days. Example: [30] Sets purgation of suggestions for those older than 30 days."
+            - "<br><strong>WARNING:</strong> Leave this field empty if you don't want to activate this automatic feature."
+            - "<br><strong>NOTE:</strong> This system preference requires the <code>misc/cronjobs/purge_suggestions.pl</code> cronjob. Ask your system administrator to schedule it."
+        -
+            - pref: OrderPriceRounding
+              default: ''
+              choices:
+                '': Don't round
+                nearest_cent: Round
+            - to nearest cent.<br>
+            - Determines whether full precision values or rounded values should be used in price calculations.
         -
             - pref: UseACQFrameworkForBiblioRecords
               default: no
               choices:
-                yes: "Use"
-                no: "Don't use"
-            - " the framework 'ACQ' for bibliographic records fields"
+                1: "Use"
+                0: "Don't use"
+            - " the framework 'ACQ' for bibliographic records fields."
+        -
+            - "Choose email address that new purchase suggestions will be sent to: "
+            - pref: EmailPurchaseSuggestions
+              default: 0
+              choices:
+                  0: none
+                  EmailAddressForSuggestions: EmailAddressForSuggestions
+                  BranchEmailAddress: email address of branch
+                  KohaAdminEmailAddress: KohaAdminEmailAddress
+            - 'If you choose <a href="/cgi-bin/koha/admin/preferences.pl?op=search&searchfield=EmailAddressForSuggestions">EmailAddressForSuggestions</a> you have to enter a valid email address:'
+            - pref: EmailAddressForSuggestions
+              class: email
     Printing:
         -
             - Use the
@@ -103,3 +123,11 @@ Acquisitions:
                   "pdfformat::layout2pagesde": German 2-page
                   "pdfformat::layout2pagesdinde": German DIN-2-page
             - layout when printing basket groups.
+    EDIFACT:
+        -
+            - pref: EdifactInvoiceImport
+              default: no
+              choices:
+                automatic: "Do"
+                manual: "Don't"
+            - " automatically import EDIFACT invoice message files when they are downloaded."

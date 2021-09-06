@@ -36,7 +36,7 @@ use Koha::Acquisition::Orders;
 
 use List::MoreUtils qw/any/;
 
-my $input=new CGI;
+my $input=CGI->new;
 my $flagsrequired = {acquisition => 'order_receive'};
 
 checkauth($input, 0, $flagsrequired, 'intranet');
@@ -48,6 +48,7 @@ my $origquantityrec  = $input->param('origquantityrec');
 my $quantityrec      = $input->param('quantityrec');
 my $quantity         = $input->param('quantity');
 my $unitprice        = $input->param('unitprice');
+my $replacementprice = $input->param('replacementprice');
 my $datereceived     = $input->param('datereceived'),
 my $invoiceid        = $input->param('invoiceid');
 my $invoice          = GetInvoice($invoiceid);
@@ -55,11 +56,24 @@ my $invoiceno        = $invoice->{invoicenumber};
 my $booksellerid     = $input->param('booksellerid');
 my $cnt              = 0;
 my $bookfund         = $input->param("bookfund");
+my $suggestion_id    = $input->param("suggestionid");
 my $order            = GetOrder($ordernumber);
 my $new_ordernumber  = $ordernumber;
 
-$unitprice = Koha::Number::Price->new( $unitprice )->unformat_edited( { used_decimal_point => '.' } );
-my $basket = Koha::Acquisition::Orders->find( $ordernumber )->basket;
+#bug18723 regression fix
+if (C4::Context->preference("CurrencyFormat") eq 'FR') {
+    if (rindex($unitprice, '.') ge 0) {
+        substr($unitprice, rindex($unitprice, '.'), 1, ',');
+    }
+    if (rindex($replacementprice,'.') ge 0) {
+        substr($replacementprice, rindex($replacementprice, '.'), 1, ',');
+    }
+}
+
+$unitprice = Koha::Number::Price->new( $unitprice )->unformat();
+$replacementprice = Koha::Number::Price->new( $replacementprice )->unformat();
+my $order_obj = Koha::Acquisition::Orders->find( $ordernumber );
+my $basket = $order_obj->basket;
 
 #need old receivedate if we update the order, parcel.pl only shows the right parcel this way FIXME
 if ($quantityrec > $origquantityrec ) {
@@ -69,7 +83,7 @@ if ($quantityrec > $origquantityrec ) {
         my @affects = split q{\|}, C4::Context->preference("AcqItemSetSubfieldsWhenReceived");
         if ( @affects ) {
             my $frameworkcode = GetFrameworkCode($biblionumber);
-            my ( $itemfield ) = GetMarcFromKohaField( 'items.itemnumber', $frameworkcode );
+            my ( $itemfield ) = GetMarcFromKohaField( 'items.itemnumber' );
             for my $in ( @received_items ) {
                 my $item = C4::Items::GetMarcItem( $biblionumber, $in );
                 for my $affect ( @affects ) {
@@ -85,6 +99,7 @@ if ($quantityrec > $origquantityrec ) {
 
     $order->{order_internalnote} = $input->param("order_internalnote");
     $order->{tax_rate_on_receiving} = $input->param("tax_rate");
+    $order->{replacementprice} = $replacementprice;
     $order->{unitprice} = $unitprice;
 
     $order = C4::Acquisition::populate_order_with_prices(
@@ -97,6 +112,10 @@ if ($quantityrec > $origquantityrec ) {
 
     # save the quantity received.
     if ( $quantityrec > 0 ) {
+        if ( $order_obj->subscriptionid ) {
+            # Quantity can only be modified if linked to a subscription
+            $order->{quantity} = $quantity; # quantityrec will be deduced from this value in ModReceiveOrder
+        }
         ( $datereceived, $new_ordernumber ) = ModReceiveOrder(
             {
                 biblionumber     => $biblionumber,
@@ -105,6 +124,7 @@ if ($quantityrec > $origquantityrec ) {
                 user             => $user,
                 invoice          => $invoice,
                 budget_id        => $bookfund,
+                datereceived     => $datereceived,
                 received_items   => \@received_items,
             }
         );
@@ -150,17 +170,24 @@ if ($quantityrec > $origquantityrec ) {
     }
 }
 
-ModItem(
-    {
-        booksellerid         => $booksellerid,
-        dateaccessioned      => $datereceived,
-        datelastseen         => $datereceived,
-        price                => $unitprice,
-        replacementprice     => $order->{rrp},
-        replacementpricedate => $datereceived,
-    },
-    $biblionumber,
-    $_
-) foreach GetItemnumbersFromOrder($new_ordernumber);
+my $new_order_object = Koha::Acquisition::Orders->find( $new_ordernumber ); # FIXME we should not need to refetch it
+my $items = $new_order_object->items;
+while ( my $item = $items->next )  {
+    $item->booksellerid($booksellerid); # TODO This should be done using ->set, but bug 21761 is not resolved
+    $item->dateaccessioned($datereceived);
+    $item->datelastseen($datereceived);
+    $item->price($unitprice);
+    $item->replacementprice($replacementprice);
+    $item->replacementpricedate($datereceived);
+    $item->store;
+}
 
-print $input->redirect("/cgi-bin/koha/acqui/parcel.pl?invoiceid=$invoiceid&sticky_filters=1");
+if ($suggestion_id) {
+    my $reason = $input->param("reason") || '';
+    my $other_reason = $input->param("other_reason");
+    $reason = $other_reason if $reason eq 'other';
+    my $suggestion = Koha::Suggestions->find($suggestion_id);
+    $suggestion->update( { reason => $reason } ) if $suggestion;
+}
+
+print $input->redirect("/cgi-bin/koha/acqui/parcel.pl?invoiceid=$invoiceid");

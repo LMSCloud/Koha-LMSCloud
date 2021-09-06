@@ -1,6 +1,6 @@
 #!/usr/bin/perl
 use Modern::Perl;
-use Test::More tests => 145;
+use Test::More tests => 144;
 
 BEGIN {
     use_ok('C4::Budgets')
@@ -8,17 +8,20 @@ BEGIN {
 use C4::Context;
 use C4::Biblio;
 use C4::Acquisition;
-use C4::Members qw( AddMember );
 
 use Koha::Acquisition::Booksellers;
 use Koha::Acquisition::Orders;
 use Koha::Acquisition::Funds;
 use Koha::Patrons;
+use Koha::Number::Price;
+use Koha::Items;
 
 use t::lib::TestBuilder;
+use t::lib::Mocks;
 use Koha::DateUtils;
 
-use YAML;
+use t::lib::Mocks;
+t::lib::Mocks::mock_preference('OrderPriceRounding','');
 
 my $schema  = Koha::Database->new->schema;
 $schema->storage->txn_begin;
@@ -31,11 +34,13 @@ my $library = $builder->build({
     source => 'Branch',
 });
 
-# Mock userenv
-local $SIG{__WARN__} = sub { warn $_[0] unless $_[0] =~ /redefined/ };
-my $userenv;
-*C4::Context::userenv = \&Mock_userenv;
-$userenv = { flags => 1, id => 'my_userid', branch => $library->{branchcode} };
+t::lib::Mocks::mock_userenv(
+    {
+        flags => 1,
+        userid => 'my_userid',
+        branch => $library->{branchcode},
+    }
+);
 
 #
 # Budget Periods :
@@ -51,7 +56,6 @@ $bpid = AddBudgetPeriod({
     budget_period_enddate => '2008-12-31',
 });
 is( $bpid, undef, 'AddBugetPeriod without start date returns undef' );
-is( GetBudgetPeriod(0), undef ,'GetBudgetPeriod(0) returned undef : noactive BudgetPeriod' );
 my $budgetperiods = GetBudgetPeriods();
 is( @$budgetperiods, 0, 'GetBudgetPeriods returns the correct number of budget periods' );
 
@@ -69,8 +73,6 @@ is( $budgetperiod->{budget_period_startdate}, $my_budgetperiod->{budget_period_s
 is( $budgetperiod->{budget_period_enddate}, $my_budgetperiod->{budget_period_enddate}, 'AddBudgetPeriod stores the end date correctly' );
 is( $budgetperiod->{budget_period_description}, $my_budgetperiod->{budget_period_description}, 'AddBudgetPeriod stores the description correctly' );
 is( $budgetperiod->{budget_period_active}, $my_budgetperiod->{budget_period_active}, 'AddBudgetPeriod stores active correctly' );
-is( GetBudgetPeriod(0), undef ,'GetBudgetPeriod(0) returned undef : noactive BudgetPeriod' );
-
 
 $my_budgetperiod = {
     budget_period_startdate   => '2009-01-01',
@@ -89,8 +91,6 @@ is( $budgetperiod->{budget_period_startdate}, $my_budgetperiod->{budget_period_s
 is( $budgetperiod->{budget_period_enddate}, $my_budgetperiod->{budget_period_enddate}, 'ModBudgetPeriod updates the end date correctly' );
 is( $budgetperiod->{budget_period_description}, $my_budgetperiod->{budget_period_description}, 'ModBudgetPeriod updates the description correctly' );
 is( $budgetperiod->{budget_period_active}, $my_budgetperiod->{budget_period_active}, 'ModBudgetPeriod upates active correctly' );
-isnt( GetBudgetPeriod(0), undef, 'GetBugetPeriods functions correctly' );
-
 
 $budgetperiods = GetBudgetPeriods();
 is( @$budgetperiods, 1, 'GetBudgetPeriods returns the correct number of budget periods' );
@@ -103,7 +103,6 @@ is( $budgetperiods->[0]->{budget_period_active}, $my_budgetperiod->{budget_perio
 is( DelBudgetPeriod($bpid), 1, 'DelBudgetPeriod returns true' );
 $budgetperiods = GetBudgetPeriods();
 is( @$budgetperiods, 0, 'GetBudgetPeriods returns the correct number of budget periods' );
-
 
 #
 # Budget  :
@@ -475,9 +474,10 @@ ModReceiveOrder({
    invoice           => $test_invoice,
    received_items    => [],
 } );
+t::lib::Mocks::mock_preference('OrderPriceRounding','');
 
 is ( GetBudgetSpent( $fund ), 6, "total shipping cost is 6");
-is ( GetBudgetOrdered( $fund ), '20.000000', "total ordered price is 20");
+is ( GetBudgetOrdered( $fund ), '20', "total ordered price is 20");
 
 
 # CloneBudgetPeriod
@@ -699,7 +699,7 @@ for my $new_budget ( @new_budgets ) {
 
 my $patron_category = $builder->build({ source => 'Category' });
 my $branchcode = $library->{branchcode};
-my $john_doe = C4::Members::AddMember(
+my $john_doe = Koha::Patron->new({
     cardnumber   => '123456',
     firstname    => 'John',
     surname      => 'Doe',
@@ -708,7 +708,7 @@ my $john_doe = C4::Members::AddMember(
     dateofbirth  => '',
     dateexpiry   => '9999-12-31',
     userid       => 'john.doe'
-);
+})->store->borrowernumber;
 
 C4::Budgets::SetOwnerToFundHierarchy( $budget_id1, $john_doe );
 is( C4::Budgets::GetBudget($budget_id1)->{budget_owner_id},
@@ -724,7 +724,7 @@ is( C4::Budgets::GetBudget($budget_id2)->{budget_owner_id},
 is( C4::Budgets::GetBudget($budget_id21)->{budget_owner_id},
     undef, "SetOwnerToFundHierarchy should not have set an owner for budget 21 ($budget_id21)" );
 
-my $jane_doe = C4::Members::AddMember(
+my $jane_doe = Koha::Patron->new({
     cardnumber   => '789012',
     firstname    => 'Jane',
     surname      => 'Doe',
@@ -733,7 +733,7 @@ my $jane_doe = C4::Members::AddMember(
     dateofbirth  => '',
     dateexpiry   => '9999-12-31',
     userid       => 'jane.doe'
-);
+})->store->borrowernumber;
 
 C4::Budgets::SetOwnerToFundHierarchy( $budget_id11, $jane_doe );
 is( C4::Budgets::GetBudget($budget_id1)->{budget_owner_id},
@@ -816,6 +816,356 @@ is( scalar @{$authCat}, 0, "GetBudgetAuthCats returns only non-empty sorting cat
 
 # /Test GetBudgetAuthCats
 
+subtest 'GetBudgetSpent and GetBudgetOrdered and GetBudgetHierarchy shipping and adjustments' => sub {
+    plan tests => 26;
+
+    my $budget_period = $builder->build({
+        source => 'Aqbudgetperiod',
+        value  => {
+            budget_period_active => 1,
+            budget_total => 10000,
+        }
+    });
+    my $budget = $builder->build({
+        source => 'Aqbudget',
+        value  => {
+            budget_amount => 1000,
+            budget_encumb => undef,
+            budget_expend => undef,
+            budget_period_id => $budget_period->{budget_period_id},
+            budget_parent_id => undef,
+        }
+    });
+    my $invoice = $builder->build({
+        source => 'Aqinvoice',
+        value  => {
+            closedate => undef,
+        }
+    });
+
+    my $spent     = GetBudgetSpent( $budget->{budget_id} );
+    my $ordered   = GetBudgetOrdered( $budget->{budget_id} );
+    my $hierarchy = GetBudgetHierarchy($budget_period->{budget_period_id} );
+
+    is( $spent, 0, "New budget, no orders/invoices, should be nothing spent");
+    is( $ordered, 0, "New budget, no orders/invoices, should be nothing ordered");
+    is( @$hierarchy[0]->{total_spent},0,"New budgets, no orders/invoices, budget hierarchy shows 0 spent");
+    is( @$hierarchy[0]->{total_ordered},0,"New budgets, no orders/invoices, budget hierarchy shows 0 ordered");
+
+    my $inv_adj_1 = $builder->build({
+        source => 'AqinvoiceAdjustment',
+        value  => {
+            invoiceid     => $invoice->{invoiceid},
+            adjustment    => 3,
+            encumber_open => 0,
+            budget_id     => $budget->{budget_id},
+        }
+    });
+
+    $spent = GetBudgetSpent( $budget->{budget_id} );
+    $ordered = GetBudgetOrdered( $budget->{budget_id} );
+    $hierarchy = GetBudgetHierarchy($budget_period->{budget_period_id} );
+    is( $spent, 0, "After adding invoice adjustment on open invoice, should be nothing spent");
+    is( $ordered, 0, "After adding invoice adjustment on open invoice not encumbered, should be nothing ordered");
+    is( @$hierarchy[0]->{total_spent},0,"After adding invoice adjustment on open invoice, budget hierarchy shows 0 spent");
+    is( @$hierarchy[0]->{total_ordered},0,"After adding invoice adjustment on open invoice, budget hierarchy shows 0 ordered");
+
+    my $inv_adj_2 = $builder->build({
+        source => 'AqinvoiceAdjustment',
+        value  => {
+            invoiceid     => $invoice->{invoiceid},
+            adjustment    => 3,
+            encumber_open => 1,
+            budget_id     => $budget->{budget_id},
+        }
+    });
+
+    $spent = GetBudgetSpent( $budget->{budget_id} );
+    $ordered = GetBudgetOrdered( $budget->{budget_id} );
+    $hierarchy = GetBudgetHierarchy($budget_period->{budget_period_id} );
+    is( $spent, 0, "After adding invoice adjustment on open invoice, should be nothing spent");
+    is( $ordered, 3, "After adding invoice adjustment on open invoice encumbered, should be 3 ordered");
+    is( @$hierarchy[0]->{total_spent},0,"After adding invoice adjustment on open invoice encumbered, budget hierarchy shows 0 spent");
+    is( @$hierarchy[0]->{total_ordered},3,"After adding invoice adjustment on open invoice encumbered, budget hierarchy shows 3 ordered");
+
+    my $invoice_2 = $builder->build({
+        source => 'Aqinvoice',
+        value  => {
+            closedate => '2017-07-01',
+        }
+    });
+    my $inv_adj_3 = $builder->build({
+        source => 'AqinvoiceAdjustment',
+        value  => {
+            invoiceid     => $invoice_2->{invoiceid},
+            adjustment    => 3,
+            encumber_open => 0,
+            budget_id     => $budget->{budget_id},
+        }
+    });
+    my $inv_adj_4 = $builder->build({
+        source => 'AqinvoiceAdjustment',
+        value  => {
+            invoiceid     => $invoice_2->{invoiceid},
+            adjustment    => 3,
+            encumber_open => 1,
+            budget_id     => $budget->{budget_id},
+        }
+    });
+
+    $spent = GetBudgetSpent( $budget->{budget_id} );
+    $ordered = GetBudgetOrdered( $budget->{budget_id} );
+    $hierarchy = GetBudgetHierarchy($budget_period->{budget_period_id} );
+    is( $spent, 6, "After adding invoice adjustment on closed invoice, should be 6 spent, encumber has no affect once closed");
+    is( $ordered, 3, "After adding invoice adjustment on closed invoice, should still be 3 ordered");
+    is( @$hierarchy[0]->{total_spent},6,"After adding invoice adjustment on closed invoice, budget hierarchy shows 6 spent");
+    is( @$hierarchy[0]->{total_ordered},3,"After adding invoice adjustment on closed invoice, budget hierarchy still shows 3 ordered");
+
+    my $budget0 = $builder->build({
+        source => 'Aqbudget',
+        value  => {
+            budget_amount => 1000,
+            budget_encumb => undef,
+            budget_expend => undef,
+            budget_period_id => $budget_period->{budget_period_id},
+            budget_parent_id => $budget->{budget_id},
+        }
+    });
+    my $inv_adj_5 = $builder->build({
+        source => 'AqinvoiceAdjustment',
+        value  => {
+            invoiceid     => $invoice->{invoiceid},
+            adjustment    => 3,
+            encumber_open => 1,
+            budget_id     => $budget0->{budget_id},
+        }
+    });
+    my $inv_adj_6 = $builder->build({
+        source => 'AqinvoiceAdjustment',
+        value  => {
+            invoiceid     => $invoice_2->{invoiceid},
+            adjustment    => 3,
+            encumber_open => 1,
+            budget_id     => $budget0->{budget_id},
+        }
+    });
+
+    $spent = GetBudgetSpent( $budget->{budget_id} );
+    $ordered = GetBudgetOrdered( $budget->{budget_id} );
+    $hierarchy = GetBudgetHierarchy($budget_period->{budget_period_id} );
+    is( $spent, 6, "After adding invoice adjustment on a child budget should be 6 spent/budget unaffected");
+    is( $ordered, 3, "After adding invoice adjustment on a child budget, should still be 3 ordered/budget unaffected");
+    is( @$hierarchy[0]->{total_spent},9,"After adding invoice adjustment on child budget, budget hierarchy shows 9 spent");
+    is( @$hierarchy[0]->{total_ordered},6,"After adding invoice adjustment on child budget, budget hierarchy shows 6 ordered");
+
+    my $invoice_3 = $builder->build({
+        source => 'Aqinvoice',
+        value  => {
+            closedate => '2017-07-01',
+            shipmentcost_budgetid => $budget0->{budget_id},
+            shipmentcost           => 1.25
+        }
+    });
+    my $invoice_4 = $builder->build({
+        source => 'Aqinvoice',
+        value  => {
+            closedate => undef,
+            shipmentcost_budgetid => $budget0->{budget_id},
+            shipmentcost           => 1.75
+        }
+    });
+
+    $spent = GetBudgetSpent( $budget->{budget_id} );
+    $ordered = GetBudgetOrdered( $budget->{budget_id} );
+    is( $spent, 6, "After adding invoice shipment cost on open and closed invoice on child, neither are counted as spent from parent");
+    is( $ordered, 3, "After adding invoice shipment cost on open and closed invoice, neither are counted as ordered from parent");
+    $spent = GetBudgetSpent( $budget0->{budget_id} );
+    $ordered = GetBudgetOrdered( $budget0->{budget_id} );
+    is( $spent, 6, "After adding invoice shipment cost on open and closed invoice on child, both are counted as spent from child");
+    is( $ordered, 3, "After adding invoice shipment cost on open and closed invoice, neither are counted as ordered from child");
+    $hierarchy = GetBudgetHierarchy($budget_period->{budget_period_id} );
+    is( @$hierarchy[0]->{total_spent},12,"After adding shipmentcost on child, budget hierarchy shows 12 spent total");
+    is( @$hierarchy[0]->{total_ordered},6,"After adding shipmentcost on child, budget hierarchy still shows 6 ordered total");
+
+
+};
+
+subtest 'GetBudgetSpent GetBudgetOrdered GetBudgetsPlanCell tests' => sub {
+
+    plan tests => 24;
+
+#Let's build an order, we need a couple things though
+    t::lib::Mocks::mock_preference('OrderPriceRounding','nearest_cent');
+
+    my $item_1         = $builder->build_sample_item;
+    my $spent_basket   = $builder->build({ source => 'Aqbasket', value => { is_standing => 0 } });
+    my $spent_invoice  = $builder->build({ source => 'Aqinvoice'});
+    my $spent_currency = $builder->build({ source => 'Currency', value => { active => 1, archived => 0, symbol => 'F', rate => 2, isocode => undef, currency => 'FOO' }  });
+    my $spent_vendor   = $builder->build({ source => 'Aqbookseller',value => { listincgst => 0, listprice => $spent_currency->{currency}, invoiceprice => $spent_currency->{currency} } });
+    my $budget_authcat = $builder->build({ source => 'AuthorisedValueCategory', value => {} });
+    my $spent_sort1    = $builder->build({ source => 'AuthorisedValue', value => {
+            category => $budget_authcat->{category_name},
+            authorised_value => 'PICKLE',
+        }
+    });
+    my $spent_budget_period = $builder->build({ source => 'Aqbudgetperiod', value => {
+        }
+    });
+    my $spent_budget = $builder->build({ source => 'Aqbudget', value => {
+            sort1_authcat => $budget_authcat->{category_name},
+            budget_period_id => $spent_budget_period->{budget_period_id},
+            budget_parent_id => undef,
+        }
+    });
+    my $spent_orderinfo = {
+        basketno                => $spent_basket->{basketno},
+        booksellerid            => $spent_vendor->{id},
+        rrp                     => 16.99,
+        discount                => .42,
+        ecost                   => 16.91,
+        biblionumber            => $item_1->biblionumber,
+        currency                => $spent_currency->{currency},
+        tax_rate_on_ordering    => 0,
+        tax_value_on_ordering   => 0,
+        tax_rate_on_receiving   => 0,
+        tax_value_on_receiving  => 0,
+        quantity                => 8,
+        quantityreceived        => 0,
+        datecancellationprinted => undef,
+        datereceived            => undef,
+        budget_id               => $spent_budget->{budget_id},
+        sort1                   => $spent_sort1->{authorised_value},
+    };
+
+#Okay we have basically what the user would enter, now we do some maths
+
+    $spent_orderinfo = C4::Acquisition::populate_order_with_prices({
+            order        => $spent_orderinfo,
+            booksellerid => $spent_orderinfo->{booksellerid},
+            ordering     => 1,
+    });
+
+#And let's place the order
+
+    my $spent_order = $builder->build({ source => 'Aqorder', value => $spent_orderinfo });
+    t::lib::Mocks::mock_preference('OrderPriceRounding','');
+    my $spent_ordered = GetBudgetOrdered( $spent_order->{budget_id} );
+
+    is($spent_orderinfo->{ecost_tax_excluded}, 9.854200,'We store extra precision in price calculation');
+    is( Koha::Number::Price->new($spent_orderinfo->{ecost_tax_excluded})->format(), 9.85,'But the price as formatted is two digits');
+    is($spent_ordered,'78.8336',"We expect the ordered amount to be equal to the estimated price times quantity with full precision");
+
+    t::lib::Mocks::mock_preference('OrderPriceRounding','nearest_cent');
+    $spent_ordered = GetBudgetOrdered( $spent_order->{budget_id} );
+    is($spent_ordered,'78.8',"We expect the ordered amount to be equal to the estimated price rounded times quantity");
+
+    #Test GetBudgetHierarchy for rounding
+    t::lib::Mocks::mock_preference('OrderPriceRounding','');
+    my $gbh = GetBudgetHierarchy($spent_budget->{budget_period_id});
+    is ( @$gbh[0]->{budget_spent}+0, 0, "We expect this to be an exact order cost * quantity");
+    is ( @$gbh[0]->{budget_ordered}+0, 78.8336, "We expect this to be an exact order cost * quantity");
+    t::lib::Mocks::mock_preference('OrderPriceRounding','nearest_cent');
+    $gbh = GetBudgetHierarchy($spent_budget->{budget_period_id});
+    is ( @$gbh[0]->{budget_spent}+0, 0, "We expect this to be an rounded order cost * quantity");
+    is ( @$gbh[0]->{budget_ordered}+0, 78.8, "We expect this to be an exact order cost * quantity");
+
+#Let's test some budget planning
+#Regression tests for bug 18736
+    #We need an item to test by BRANCHES
+    my $order_item_1 = $builder->build({ source => 'AqordersItem', value => { ordernumber => $spent_order->{ordernumber}, itemnumber => $item_1->itemnumber  } });
+    my $spent_fund = Koha::Acquisition::Funds->find( $spent_order->{budget_id} );
+    my $cell = {
+        authcat => 'MONTHS',
+        cell_authvalue => $spent_order->{entrydate}, #normally this is just the year/month but full won't hurt us here
+        budget_id => $spent_order->{budget_id},
+        budget_period_id => $spent_fund->budget_period_id,
+        sort1_authcat => $spent_order->{sort1_authcat},
+        sort2_authcat => $spent_order->{sort1_authcat},
+    };
+    my $test_values = {
+        'MONTHS' => {
+            authvalue => $spent_order->{entrydate},
+            expected_rounded => 9.85,
+            expected_exact   => 9.8542,
+        },
+        'BRANCHES' => {
+            authvalue => $item_1->homebranch,
+            expected_rounded => 9.85,
+            expected_exact   => 9.8542,
+        },
+        'ITEMTYPES' => {
+            authvalue => $item_1->biblioitem->itemtype,
+            expected_rounded => 78.80,
+            expected_exact   => 78.8336,
+        },
+        'ELSE' => {
+            authvalue => $spent_sort1->{authorised_value},
+            expected_rounded => 78.8,
+            expected_exact   => 78.8336,
+        },
+    };
+
+    for my $authcat ( keys %$test_values ) {
+        my $test_val         = $test_values->{$authcat};
+        my $authvalue        = $test_val->{authvalue};
+        my $expected_rounded = $test_val->{expected_rounded};
+        my $expected_exact   = $test_val->{expected_exact};
+        $cell->{authcat} = $authcat;
+        $cell->{authvalue} = $authvalue;
+        t::lib::Mocks::mock_preference('OrderPriceRounding','');
+        my ( $actual ) = GetBudgetsPlanCell( $cell, undef, $spent_budget); #we are only testing the actual for now
+        is ( $actual+0, $expected_exact, "We expect this to be an exact order cost ($authcat)"); #really we should expect cost*quantity but we don't
+        t::lib::Mocks::mock_preference('OrderPriceRounding','nearest_cent');
+        ( $actual ) = GetBudgetsPlanCell( $cell, undef, $spent_budget); #we are only testing the actual for now
+        is ( $actual+0, $expected_rounded, "We expect this to be a rounded order cost ($authcat)"); #really we should expect cost*quantity but we don't
+    }
+
+#Okay, now we can receive the order, giving the price as the user would
+
+    $spent_orderinfo->{unitprice} = 9.85; #we are paying what we expected
+
+#Do our maths
+
+    $spent_orderinfo = C4::Acquisition::populate_order_with_prices({
+            order        => $spent_orderinfo,
+            booksellerid => $spent_orderinfo->{booksellerid},
+            receiving    => 1,
+    });
+    my $received_order = $builder->build({ source => 'Aqorder', value => $spent_orderinfo });
+
+#And receive a copy of the order so we have both spent and ordered values
+
+    ModReceiveOrder({
+            biblionumber => $spent_order->{biblionumber},
+            order => $received_order,
+            invoice => $spent_invoice,
+            quantityreceived => $spent_order->{quantity},
+            budget_id => $spent_order->{budget_id},
+            received_items => [],
+    });
+
+    t::lib::Mocks::mock_preference('OrderPriceRounding','');
+    my $spent_spent = GetBudgetSpent( $spent_order->{budget_id} );
+    is($spent_orderinfo->{unitprice_tax_excluded}, 9.854200,'We store extra precision in price calculation');
+    is( Koha::Number::Price->new($spent_orderinfo->{unitprice_tax_excluded})->format(), 9.85,'But the price as formatted is two digits');
+    is($spent_spent,'78.8336',"We expect the spent amount to be equal to the estimated price times quantity with full precision");
+
+    t::lib::Mocks::mock_preference('OrderPriceRounding','nearest_cent');
+    $spent_spent = GetBudgetSpent( $spent_order->{budget_id} );
+    is($spent_spent,'78.8',"We expect the spent amount to be equal to the estimated price rounded times quantity");
+
+    #Test GetBudgetHierarchy for rounding
+    t::lib::Mocks::mock_preference('OrderPriceRounding','');
+    $gbh = GetBudgetHierarchy($spent_budget->{budget_period_id});
+    is ( @$gbh[0]->{budget_spent}, 78.8336, "We expect this to be an exact order cost * quantity");
+    is ( @$gbh[0]->{budget_ordered}, 78.8336, "We expect this to be an exact order cost * quantity");
+    t::lib::Mocks::mock_preference('OrderPriceRounding','nearest_cent');
+    $gbh = GetBudgetHierarchy($spent_budget->{budget_period_id});
+    is ( @$gbh[0]->{budget_spent}+0, 78.8, "We expect this to be a rounded order cost * quantity");
+    is ( @$gbh[0]->{budget_ordered}, 78.8, "We expect this to be a rounded order cost * quantity");
+
+};
+
 sub _get_dependencies {
     my ($budget_hierarchy) = @_;
     my $graph;
@@ -839,9 +1189,4 @@ sub _get_budgetname_by_id {
       map { ( $_->{budget_id} eq $budget_id ) ? $_->{budget_name} : () }
       @$budgets;
     return $budget_name;
-}
-
-# C4::Context->userenv
-sub Mock_userenv {
-    return $userenv;
 }

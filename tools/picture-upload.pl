@@ -36,13 +36,18 @@ use Koha::Patrons;
 use Koha::Patron::Images;
 use Koha::Token;
 
-my $input = new CGI;
+my $input = CGI->new;
+
+unless (C4::Context->preference('patronimages')) {
+    # redirect to intranet home if patronimages is not enabled
+    print $input->redirect("/cgi-bin/koha/mainpage.pl");
+    exit;
+}
 
 my ($template, $loggedinuser, $cookie)
     = get_template_and_user({template_name => "tools/picture-upload.tt",
 					query => $input,
 					type => "intranet",
-					authnotrequired => 0,
 					flagsrequired => { tools => 'batch_upload_patron_images'},
 					debug => 0,
 					});
@@ -84,7 +89,7 @@ our %errors = ();
 # Case is important in these operational values as the template must use case to be visually pleasing!
 if ( ( $op eq 'Upload' ) && $uploadfile ) {
 
-    die "Wrong CSRF token"
+    output_and_exit( $input, $cookie, $template, 'wrong_csrf_token' )
         unless Koha::Token->new->check_csrf({
             session_id => scalar $input->cookie('CGISESSID'),
             token  => scalar $input->param('csrf_token'),
@@ -173,7 +178,7 @@ elsif ( ( $op eq 'Upload' ) && !$uploadfile ) {
     $template->param( filetype   => $filetype );
 }
 elsif ( $op eq 'Delete' ) {
-    die "Wrong CSRF token"
+    output_and_exit( $input, $cookie, $template, 'wrong_csrf_token' )
         unless Koha::Token->new->check_csrf({
             session_id => scalar $input->cookie('CGISESSID'),
             token  => scalar $input->param('csrf_token'),
@@ -214,7 +219,8 @@ sub handle_dir {
               if ( $filename =~ m/datalink\.txt/i
                 || $filename =~ m/idlink\.txt/i );
         }
-        unless ( open( FILE, $file ) ) {
+        my $fh;
+        unless ( open( $fh, '<', $file ) ) {
             warn "Opening $dir/$file failed!";
             $direrrors{'OPNLINK'} = $file;
             # This error is fatal to the import of this directory contents
@@ -222,7 +228,7 @@ sub handle_dir {
             return \%direrrors;
         }
 
-        while ( my $line = <FILE> ) {
+        while ( my $line = <$fh> ) {
             $debug and warn "Reading contents of $file";
             chomp $line;
             $debug and warn "Examining line: $line";
@@ -242,7 +248,7 @@ sub handle_dir {
             $source = "$dir/$filename";
             %counts = handle_file( $cardnumber, $source, $template, %counts );
         }
-        close FILE;
+        close $fh;
         closedir DIR;
     }
     else {
@@ -285,9 +291,9 @@ sub handle_file {
             return %count;
         }
         my ( $srcimage, $image );
-        if ( open( IMG, "$source" ) ) {
-            $srcimage = GD::Image->new(*IMG);
-            close(IMG);
+        if ( open( my $fh, '<', $source ) ) {
+            $srcimage = GD::Image->new($fh);
+            close($fh);
             if ( defined $srcimage ) {
                 my $imgfile;
                 my $mimetype = 'image/png';
@@ -338,7 +344,6 @@ sub handle_file {
                     undef $srcimage; # This object can get big...
                 }
                 $debug and warn "Image is of mimetype $mimetype";
-                my $dberror;
                 if ($mimetype) {
                     my $patron = Koha::Patrons->find({ cardnumber => $cardnumber });
                     if ( $patron ) {

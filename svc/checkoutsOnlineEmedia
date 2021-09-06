@@ -24,7 +24,7 @@ use CGI;
 use JSON qw(to_json);
 
 use C4::Auth qw(check_cookie_auth haspermission get_session);
-use C4::Biblio qw(GetMarcBiblio GetFrameworkCode GetRecordValue);
+use C4::Biblio qw(GetMarcBiblio GetFrameworkCode);
 use C4::Context;
 use C4::Divibib::NCIPService;
 use C4::Items;
@@ -116,8 +116,6 @@ foreach my $c ( @{$divibib_issues} ) {
                 as_due_date => 1
             }
         ),
-        subtitle =>
-          GetRecordValue( 'subtitle', GetMarcBiblio( { biblionumber => $c->{biblionumber} } ), GetFrameworkCode( $c->{biblionumber} ) ),
     };
 
     push( @checkouts, $checkout );

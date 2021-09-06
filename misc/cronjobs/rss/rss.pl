@@ -12,22 +12,24 @@
 #
 # This file is part of Koha.
 #
-# Koha is free software; you can redistribute it and/or modify it under the
-# terms of the GNU General Public License as published by the Free Software
-# Foundation; either version 3 of the License, or (at your option) any later
-# version.
+# Koha is free software; you can redistribute it and/or modify it
+# under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 3 of the License, or
+# (at your option) any later version.
 #
-# Koha is distributed in the hope that it will be useful, but WITHOUT ANY
-# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
-# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+# Koha is distributed in the hope that it will be useful, but
+# WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+# GNU General Public License for more details.
 #
-# You should have received a copy of the GNU General Public License along
-# with Koha; if not, write to the Free Software Foundation, Inc.,
-# 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+# You should have received a copy of the GNU General Public License
+# along with Koha; if not, see <http://www.gnu.org/licenses>.
 
 use Modern::Perl;
 
 use Template;
+
+use Koha::Script -cron;
 use C4::Context;
 use Time::Local;
 use POSIX;
@@ -72,8 +74,8 @@ sub getConf {
     my %return;
     my $inSection = 0;
 
-    open( FILE, $file ) or die "can't open $file";
-    while (<FILE>) {
+    open( my $fh, '<', $file ) or die "can't open $file";
+    while (<$fh>) {
         if ($inSection) {
             my @line = split( /=/, $_, 2 );
             unless ( $line[1] ) {
@@ -89,7 +91,7 @@ sub getConf {
             if ( $_ eq "$section\n" ) { $inSection = 1 }
         }
     }
-    close FILE;
+    close $fh;
     return %return;
 }
 

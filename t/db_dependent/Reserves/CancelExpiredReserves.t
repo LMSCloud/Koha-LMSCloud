@@ -1,7 +1,7 @@
 #!/usr/bin/perl
 
 use Modern::Perl;
-use Test::More tests => 2;
+use Test::More tests => 4;
 
 use t::lib::Mocks;
 use t::lib::TestBuilder;
@@ -111,10 +111,8 @@ subtest 'Test handling of waiting reserves by CancelExpiredReserves' => sub {
     my $builder = t::lib::TestBuilder->new();
     my $category = $builder->build({ source => 'Category' });
     my $branchcode = $builder->build({ source => 'Branch' })->{ branchcode };
-    my $biblio = $builder->build({ source => 'Biblio' });
-    my $bibnum = $biblio->{biblionumber};
-    my $item = $builder->build({ source => 'Item', value => { biblionumber => $bibnum }});
-    my $itemnumber = $item->{itemnumber};
+    my $item = $builder->build_sample_item;
+    my $itemnumber = $item->itemnumber;
     my $borrowernumber = $builder->build({ source => 'Borrower', value => { categorycode => $category->{categorycode}, branchcode => $branchcode }})->{borrowernumber};
 
     my $resdate = dt_from_string->add( days => -20 );
@@ -124,7 +122,7 @@ subtest 'Test handling of waiting reserves by CancelExpiredReserves' => sub {
     my $hold1 = Koha::Hold->new({
         branchcode => $branchcode,
         borrowernumber => $borrowernumber,
-        biblionumber => $bibnum,
+        biblionumber => $item->biblionumber,
         priority => 1,
         reservedate => $resdate,
         expirationdate => $notexpdate,
@@ -134,7 +132,7 @@ subtest 'Test handling of waiting reserves by CancelExpiredReserves' => sub {
     my $hold2 = Koha::Hold->new({
         branchcode => $branchcode,
         borrowernumber => $borrowernumber,
-        biblionumber => $bibnum,
+        biblionumber => $item->biblionumber,
         priority => 2,
         reservedate => $resdate,
         expirationdate => $expdate,
@@ -144,7 +142,7 @@ subtest 'Test handling of waiting reserves by CancelExpiredReserves' => sub {
     my $hold3 = Koha::Hold->new({
         branchcode => $branchcode,
         borrowernumber => $borrowernumber,
-        biblionumber => $bibnum,
+        biblionumber => $item->biblionumber,
         itemnumber => $itemnumber,
         priority => 0,
         reservedate => $resdate,
@@ -161,6 +159,68 @@ subtest 'Test handling of waiting reserves by CancelExpiredReserves' => sub {
     CancelExpiredReserves();
     my $count2 = Koha::Holds->search->count;
     is( $count2, 1, 'Also the waiting expired hold should be cancelled now');
+
+};
+
+subtest 'Test handling of in transit reserves by CancelExpiredReserves' => sub {
+    plan tests => 2;
+
+    my $builder = t::lib::TestBuilder->new();
+
+    t::lib::Mocks::mock_preference( 'ExpireReservesMaxPickUpDelay', 1 );
+    my $expdate = dt_from_string->add( days => -2 );
+    my $reserve = $builder->build({
+        source => 'Reserve',
+        value  => {
+            expirationdate => '2018-01-01',
+            found => 'T',
+            cancellationdate => undef,
+            suspend => 0,
+            suspend_until => undef
+        }
+    });
+    my $count = Koha::Holds->search->count;
+    CancelExpiredReserves();
+    is(Koha::Holds->search->count, $count-1, "Transit hold is cancelled if ExpireReservesMaxPickUpDelay set");
+
+    t::lib::Mocks::mock_preference( 'ExpireReservesMaxPickUpDelay', 0 );
+    my $reserve2 = $builder->build({
+        source => 'Reserve',
+        value  => {
+            expirationdate => '2018-01-01',
+            found => 'T',
+            cancellationdate => undef,
+            suspend => 0,
+            suspend_until => undef
+        }
+    });
+    CancelExpiredReserves();
+    is(Koha::Holds->search->count, $count-1, "Transit hold is cancelled if ExpireReservesMaxPickUpDelay unset");
+
+};
+
+subtest 'Test handling of cancellation reason if passed' => sub {
+    plan tests => 2;
+
+    my $builder = t::lib::TestBuilder->new();
+
+    my $expdate = dt_from_string->add( days => -2 );
+    my $reserve = $builder->build({
+        source => 'Reserve',
+        value  => {
+            expirationdate => '2018-01-01',
+            found => 'T',
+            cancellationdate => undef,
+            suspend => 0,
+            suspend_until => undef
+        }
+    });
+    my $reserve_id = $reserve->{reserve_id};
+    my $count = Koha::Holds->search->count;
+    CancelExpiredReserves("EXPIRED");
+    is(Koha::Holds->search->count, $count-1, "Hold is cancelled when reason is passed");
+    my $old_reserve = Koha::Old::Holds->find($reserve_id);
+    is($old_reserve->cancellation_reason, 'EXPIRED', "Hold cancellation_reason was set correctly");
 };
 
 $schema->storage->txn_rollback;

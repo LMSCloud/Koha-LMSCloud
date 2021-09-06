@@ -17,15 +17,14 @@ package C4::CashRegisterManagement;
 # with Koha; if not, write to the Free Software Foundation, Inc.,
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
-use strict;
-use warnings;
+use Modern::Perl;
 use Carp;
 
 use C4::Context;
 use C4::Koha;
 
-use Koha::CashRegister::CashRegister;
-use Koha::CashRegister::CashRegisters;
+use Koha::CashRegister::CashRegisterDefinition;
+use Koha::CashRegister::CashRegisterDefinitions;
 use Koha::CashRegister::CashRegisterManager;
 use Koha::CashRegister::CashRegisterManagers;
 use Koha::CashRegister::CashRegisterAccount;
@@ -167,9 +166,9 @@ sub loadRegisterManagerData {
     my $dbh = C4::Context->dbh;
 
     my $query = q{
-        SELECT distinct manager_id as borrowernumber FROM cash_register
+        SELECT distinct manager_id as borrowernumber FROM cash_register_definition
         UNION ALL
-        SELECT distinct prev_manager_id as borrowernumber FROM cash_register
+        SELECT distinct prev_manager_id as borrowernumber FROM cash_register_definition
         UNION ALL
         SELECT distinct manager_id as borrowernumber FROM cash_register_manager };
     $query =~ s/^\s+/ /mg;
@@ -265,7 +264,7 @@ sub getOpenedCashRegister {
     $branch = getEffectiveBranchcode($branch);
         
     if (! C4::Context->preference('PermitConcurrentCashRegisterUsers')) {
-        my $cash_register = Koha::CashRegister::CashRegisters->search({
+        my $cash_register = Koha::CashRegister::CashRegisterDefinitions->search({
             -and => [
                 -or => [
                         branchcode => $branch,
@@ -284,7 +283,7 @@ sub getOpenedCashRegister {
         my $dbh = C4::Context->dbh;
         my $query = q{
                 SELECT DISTINCT c.id as id
-                FROM cash_register c, cash_register_manager m
+                FROM cash_register_definition c, cash_register_manager m
                 WHERE     (c.branchcode = ? or c.no_branch_restriction = 1)
                       AND c.id = m.cash_register_id
                       AND m.manager_id = ?
@@ -294,7 +293,7 @@ sub getOpenedCashRegister {
         my $sth = $dbh->prepare($query);
         $sth->execute($branch, $loggedinuser);
         if (my $row = $sth->fetchrow_hashref) {
-            my $cashreg = Koha::CashRegister::CashRegisters->find({ 
+            my $cashreg = Koha::CashRegister::CashRegisterDefinitions->find({ 
                 id => $row->{id}
             });
             $sth->finish();
@@ -324,7 +323,7 @@ sub getOpenedCashRegisterByManagerID {
     }
         
     if (! C4::Context->preference('PermitConcurrentCashRegisterUsers')) {
-        my $cash_register = Koha::CashRegister::CashRegisters->search({
+        my $cash_register = Koha::CashRegister::CashRegisterDefinitions->search({
             manager_id => $loggedinuser
         });
         
@@ -337,7 +336,7 @@ sub getOpenedCashRegisterByManagerID {
         my $dbh = C4::Context->dbh;
         my $query = q{
                 SELECT DISTINCT c.id as id
-                FROM cash_register c, cash_register_manager m
+                FROM cash_register_definitions c, cash_register_manager m
                 WHERE     c.id = m.cash_register_id
                       AND m.manager_id = ?
                       AND m.opened = 1 }; 
@@ -509,7 +508,7 @@ sub canOpenCashRegister {
     my $dbh = C4::Context->dbh;
     my $query = q{
             SELECT distinct c.id 
-            FROM cash_register c, cash_register_manager m
+            FROM cash_register_definition c, cash_register_manager m
             WHERE     c.id = ? 
                   AND c.id = m.cash_register_id
                   AND (
@@ -550,7 +549,7 @@ sub canCloseCashRegister {
     my $dbh = C4::Context->dbh;
     my $query = q{
             SELECT distinct c.id 
-            FROM cash_register c, cash_register_manager m
+            FROM cash_register_definition c, cash_register_manager m
             WHERE     c.id = ? 
                   AND c.id = m.cash_register_id
                   AND (
@@ -609,7 +608,7 @@ sub loadCashRegister {
     my $cash_register_manager = undef;
     my $cash_register_prev_manager = undef;
     
-    my $cash_register = Koha::CashRegister::CashRegisters->find({ 
+    my $cash_register = Koha::CashRegister::CashRegisterDefinitions->find({ 
             id => $cash_register_id
         });
     if ( $cash_register ) {
@@ -657,7 +656,7 @@ sub readCashRegisterIdByName {
 
     my $cash_register_id = undef;
     
-    my $cash_register = Koha::CashRegister::CashRegisters->search({ name => $cash_register_name })->next();
+    my $cash_register = Koha::CashRegister::CashRegisterDefinitions->search({ name => $cash_register_name })->next();
     if ( $cash_register ) {
         $cash_register_id = $cash_register->id();
     }
@@ -696,7 +695,7 @@ sub getAllCashRegisters {
     my @cash_registers = ();
     my @cash_register_managers = Koha::CashRegister::CashRegisterManagers->search({});
 
-    foreach my $cashreg (Koha::CashRegister::CashRegisters->search({})) {
+    foreach my $cashreg (Koha::CashRegister::CashRegisterDefinitions->search({})) {
     
         my $balance = $self->getCurrentBalance($cashreg->id());
         
@@ -763,14 +762,14 @@ sub saveCashRegister {
     }
     my $cash_register = undef;
     if ( $cash_register_id ) {
-        $cash_register = Koha::CashRegister::CashRegisters->find({ 
+        $cash_register = Koha::CashRegister::CashRegisterDefinitions->find({ 
             id => $cash_register_id
         });
         if ($cash_register) {
             $cash_register->set($params)->store();
         } 
     } else {
-        $cash_register = Koha::CashRegister::CashRegister->new();
+        $cash_register = Koha::CashRegister::CashRegisterDefinitions->new();
         $cash_register->set($params);
         $cash_register->store();
     }
@@ -778,7 +777,7 @@ sub saveCashRegister {
     if ( $cash_register ) {
         my $id = $cash_register->id();
         
-        $cash_register = Koha::CashRegister::CashRegisters->find({ 
+        $cash_register = Koha::CashRegister::CashRegisterDefinitions->find({ 
             id => $id
         });
         
@@ -946,7 +945,7 @@ sub openCashRegister {
     my $cash_register_id = shift;
     my $borrowerid = shift;
     
-    my $cashreg = Koha::CashRegister::CashRegisters->find({ id => $cash_register_id });
+    my $cashreg = Koha::CashRegister::CashRegisterDefinitions->find({ id => $cash_register_id });
     
     if ( $cashreg ) {
         if (!$cashreg->manager_id() || C4::Context->preference('PermitConcurrentCashRegisterUsers')) {
@@ -991,7 +990,7 @@ sub closeCashRegister {
     my $cash_register_id = shift;
     my $borrowerid = shift;
     
-    my $cashreg = Koha::CashRegister::CashRegisters->find({ id => $cash_register_id });
+    my $cashreg = Koha::CashRegister::CashRegisterDefinitions->find({ id => $cash_register_id });
     
     if ( $cashreg ) {
         if ( ($cashreg->manager_id() && $borrowerid == $cashreg->manager_id()) || C4::Context->preference('PermitConcurrentCashRegisterUsers') ) {
@@ -1040,7 +1039,7 @@ sub smartCloseCashRegister {
     my $cash_register_id = shift;
     my $borrowerid = shift;
     
-    my $cashreg = Koha::CashRegister::CashRegisters->find({ id => $cash_register_id });
+    my $cashreg = Koha::CashRegister::CashRegisterDefinitions->find({ id => $cash_register_id });
     
     if ( $cashreg ) {
         if ( C4::Context->preference('PermitConcurrentCashRegisterUsers') ) {
@@ -2115,7 +2114,7 @@ sub getFinesOverview {
                    SUM(c.booking_amount) AS amount,
                    COUNT(*) AS count,
                    r.name AS cash_register
-            FROM   branches br, cash_register r, cash_register_account c
+            FROM   branches br, cash_register_definition r, cash_register_account c
             LEFT JOIN accountlines l ON c.accountlines_id = l.accountlines_id
             WHERE  r.branchcode = br.branchcode
                AND $cashdateselect $cashregisterselect
@@ -2130,7 +2129,7 @@ sub getFinesOverview {
                    SUM(c.booking_amount) AS amount,
                    COUNT(*) AS count,
                    r.name AS cash_register
-            FROM   branches br, cash_register r, cash_register_account c
+            FROM   branches br, cash_register_definition r, cash_register_account c
             LEFT JOIN accountlines l ON c.accountlines_id = l.accountlines_id
             WHERE  r.branchcode = br.branchcode
                AND $cashdateselect $cashregisterselect
@@ -2146,7 +2145,7 @@ sub getFinesOverview {
                    SUM(c.booking_amount) AS amount,
                    COUNT(*) AS count,
                    r.name AS cash_register
-            FROM   branches br, cash_register r, cash_register_account c
+            FROM   branches br, cash_register_definition r, cash_register_account c
             LEFT JOIN accountlines l ON c.accountlines_id = l.accountlines_id
             WHERE  r.branchcode = br.branchcode
                AND $cashdateselect $cashregisterselect
@@ -2734,7 +2733,7 @@ sub getFinesOverview {
                     c.reason as reason,
                     r.name as cash_register_name,
                     c.cash_register_account_id as journalno
-             FROM   branches br, cash_register r, cash_register_account c
+             FROM   branches br, cash_register_definition r, cash_register_account c
              WHERE      $selectpaytype
                     AND $cashdateselect $cashregisterselect
                     AND r.branchcode = br.branchcode
@@ -2978,7 +2977,7 @@ sub getCashTransactionOverviewByBranch {
     my $result = {};
     $branchcode = getEffectiveBranchcode($branchcode);
     
-    my $cash_register = Koha::CashRegister::CashRegisters->search({
+    my $cash_register = Koha::CashRegister::CashRegisterDefinitions->search({
             branchcode => $branchcode
     });
     
@@ -3052,7 +3051,7 @@ sub getCashTransactionOverviewByBranch {
     # get payments of cash registers
     my $query = q{
             SELECT a.cash_register_id as id, sum(a.booking_amount) as amount, count(*) count_transactions
-            FROM   cash_register_account a, cash_register c, branches br
+            FROM   cash_register_account a, cash_register_definition c, branches br
             WHERE  a.cash_register_id = c.id 
                AND a.booking_amount > 0.00
                AND a.booking_time >= ? and a.booking_time <= ?
@@ -3081,7 +3080,7 @@ sub getCashTransactionOverviewByBranch {
     # get payouts of cash registers
     $query = q{
             SELECT a.cash_register_id as id, sum(a.booking_amount) as amount, count(*) count_transactions
-            FROM   cash_register_account a, cash_register c, branches br
+            FROM   cash_register_account a, cash_register_definition c, branches br
             WHERE  a.cash_register_id = c.id 
                AND a.booking_amount < 0.00
                AND a.booking_time >= ? and a.booking_time <= ?

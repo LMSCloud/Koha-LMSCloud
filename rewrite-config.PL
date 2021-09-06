@@ -19,6 +19,7 @@
 # 
 # 2007/11/12	Added DB_PORT and changed other keywords to reflect multi-dbms support.	-fbcit
 
+use Modern::Perl;
 use Sys::Hostname;
 use Socket;
 
@@ -59,6 +60,8 @@ also need to override WEBSERVER_IP.
 
 =cut
 
+my $myhost;
+my $mydomain;
 if ( $myhost = $ENV{WEBSERVER_HOST} || hostname ) {
     ( $mydomain = $myhost ) =~ s/.*?\.//;
 } else {
@@ -66,6 +69,7 @@ if ( $myhost = $ENV{WEBSERVER_HOST} || hostname ) {
     $mydomain = 'localdomain';
 }
 
+my $myip;
 unless ( $myip = $ENV{WEBSERVER_IP} ) {
     my $byname = gethostbyname( $myhost )
 	or die "Could not get the IP address of $myhost, DNS fault? ($!)";
@@ -74,12 +78,12 @@ unless ( $myip = $ENV{WEBSERVER_IP} ) {
 }
 
 
-$prefix = $ENV{'INSTALL_BASE'} || "/usr";
+my $prefix = $ENV{'INSTALL_BASE'} || "/usr";
 
 # These are our configuration guesses
 # Keys were extracted by
 # <grep -o '__.*__' etc/* | cut -f2 -d: | sort -u | sed -e 's/^/  "/;s/$/" => "",/'
-%configuration = (
+my %configuration = (
   "__KOHA_INSTALLED_VERSION__" => "no_version_found",
   "__LOG_DIR__" => "/var/log",
   "__PLUGINS_DIR__" => "/var/lib/koha/plugins",
@@ -117,7 +121,6 @@ $prefix = $ENV{'INSTALL_BASE'} || "/usr";
   '__PERL_MODULE_DIR__' =>  ($ENV{'INSTALLSITELIB'} || sprintf($prefix."/lib/perl5/site_perl/%vd",$^V))."/koha",
   '__KOHA_CONF_DIR__' => "$prefix/etc/koha",
   '__ZEBRA_CONF_DIR__' => "$prefix/etc/koha/zebradb",
-  '__PAZPAR2_CONF_DIR__' => "$prefix/etc/koha/pazpar2",
   '__MISC_DIR__' => "$prefix/misc",
   '__SCRIPT_DIR__' => "$prefix/bin",
   '__SCRIPT_NONDEV_DIR__' => "$prefix/bin",
@@ -131,47 +134,42 @@ $prefix = $ENV{'INSTALL_BASE'} || "/usr";
   '__ZEBRA_TOKENIZER__' => 'chr',
   '__ZEBRA_TOKENIZER_STMT__' => 'charmap word-phrase-utf.chr',
   '__ZEBRA_PTOKENIZER_STMT__' => 'charmap word-phrase-utf.chr',
-  '__ZEBRA_AUTH_CFG__' => 'zebra-authorities.cfg',
-  '__ZEBRA_BIB_CFG__' => 'zebra-biblios.cfg',
-  '__AUTH_RETRIEVAL_CFG__' => 'retrieval-info-auth-grs1.xml',
-  '__BIB_RETRIEVAL_CFG__' => 'retrieval-info-bib-grs1.xml',
+  '__AUTH_RETRIEVAL_CFG__' => 'retrieval-info-auth-dom.xml',
+  '__BIB_RETRIEVAL_CFG__' => 'retrieval-info-bib-dom.xml',
+  '__ZEBRA_AUTH_CFG__' => 'zebra-authorities-dom.cfg',
+  '__ZEBRA_BIB_CFG__' => 'zebra-biblios-dom.cfg',
   "__MERGE_SERVER_HOST__" => $myhost,
-  "__MERGE_SERVER_PORT__" => '11001',
-  "__PAZPAR2_HOST__" => $myhost,
-  "__PAZPAR2_PORT__" => '11002',
   "__INSTALL_MODE__" => 'standard',
   "__INSTALL_BASE__" => '/usr/share/koha',
   "__INSTALL_SRU__" => 'yes',
-  "__INSTALL_PAZPAR2__" => 'no',
-  "__PAZPAR2_TOGGLE_XML_PRE__" => '<!--',
-  "__PAZPAR2_TOGGLE_XML_POST__" => '-->',
-  "__AUTH_INDEX_MODE__" => 'grs1',
-  "__BIB_INDEX_MODE__" => 'grs1',
   "__RUN_DATABASE_TESTS__" => 'no',
   "__PATH_TO_ZEBRA__" => "",
   "__USE_MEMCACHED__" => 'yes',
   "__MEMCACHED_SERVERS__" => "",
   "__MEMCACHED_NAMESPACE__" => "",
-  "__FONT_DIR__" => "/usr/share/fonts/truetype/ttf-dejavu",
-  "__TEMPLATE_CACHE_DIR__" => "/tmp/koha"
+  "__USE_ELASTICSEARCH__" => 'no',
+  "__ELASTICSEARCH_SERVERS__" => "localhost:9200",
+  "__ELASTICSEARCH_INDEX__" => "koha",
+  "__FONT_DIR__" => "/usr/share/fonts/truetype/dejavu",
+  "__TEMPLATE_CACHE_DIR__" => "/tmp/koha",
+  '__SMTP_HOST__'      => 'localhost',
+  '__SMTP_PORT__'      => '25',
+  '__SMTP_TIMEOUT__'   => '120',
+  '__SMTP_SSL_MODE__'  => 'disabled',
+  '__SMTP_USER_NAME__' => '',
+  '__SMTP_PASSWORD__'  => '',
+  '__SMTP_DEBUG__'     => '0',
 );
 
 # Override configuration from the environment
-foreach $key (keys %configuration) {
+foreach my $key (keys %configuration) {
   if (defined($ENV{$key})) {
     $configuration{$key} = $ENV{$key};
   }
 }
 
-# munge commenting out the PazPar2 mergeserver
-# entry in koha-conf.xml if necessary
-if ($configuration{'__INSTALL_PAZPAR2__'} eq 'yes') {
-    $configuration{'__PAZPAR2_TOGGLE_XML_PRE__'} = '';
-    $configuration{'__PAZPAR2_TOGGLE_XML_POST__'} = '';
-}
-
-$fname = $ARGV[0];
-$file = &read_file($fname);
+my $fname = $ARGV[0];
+my $file = &read_file($fname);
 $file =~ s/__.*?__/exists $configuration{$&} ? $configuration{$&} : $&/seg;
 
 # At this point, file is in 'blib' and by default
@@ -179,21 +177,22 @@ $file =~ s/__.*?__/exists $configuration{$&} ? $configuration{$&} : $&/seg;
 # to make it writable.  Note that stat and chmod
 # (the Perl functions) should work on Win32
 my $old_perm;
-$old_perm = (stat $fname)[2] & 07777;
-my $new_perm = $old_perm | 0200;
+$old_perm = (stat $fname)[2] & oct(7777);
+my $new_perm = $old_perm | oct(200);
 chmod $new_perm, $fname;
 
-open(OUTPUT,">$fname") || die "Can't open $fname for write: $!";
-print OUTPUT $file;
-close(OUTPUT);
+open(my $output, ">", $fname) || die "Can't open $fname for write: $!";
+print $output $file;
+close($output);
 
 chmod $old_perm, $fname;
 
 # Idea taken from perlfaq5
-sub read_file($) {
-  local(*INPUT,$/);
-  open(INPUT,$_[0]) || die "Can't open $_[0] for read";
-  my $file = <INPUT>;
+sub read_file {
+  local $/;
+  open(my $fh , '<', $_[0]) || die "Can't open $_[0] for read";
+  my $file = <$fh>;
+  close $fh;
   return $file;
 }
 

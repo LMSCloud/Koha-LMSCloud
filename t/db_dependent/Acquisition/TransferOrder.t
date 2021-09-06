@@ -12,13 +12,13 @@ use Koha::Database;
 use Koha::DateUtils;
 use Koha::Acquisition::Booksellers;
 use Koha::Acquisition::Orders;
+use t::lib::TestBuilder;
 use MARC::Record;
 
 my $schema = Koha::Database->new()->schema();
 $schema->storage->txn_begin();
 
-my $dbh = C4::Context->dbh;
-$dbh->{RaiseError} = 1;
+my $builder = t::lib::TestBuilder->new;
 
 my $bookseller1 = Koha::Acquisition::Bookseller->new(
     {
@@ -55,8 +55,9 @@ my $budgetid = C4::Budgets::AddBudget(
 
 my $budget = C4::Budgets::GetBudget( $budgetid );
 
-my ($biblionumber, $biblioitemnumber) = AddBiblio(MARC::Record->new, '');
-my $itemnumber = AddItem({}, $biblionumber);
+my $biblio = $builder->build_sample_biblio();
+my $item_1 = $builder->build_sample_item({ biblionumber => $biblio->biblionumber });
+my $biblionumber = $biblio->biblionumber;
 
 my $order = Koha::Acquisition::Order->new(
     {
@@ -67,12 +68,13 @@ my $order = Koha::Acquisition::Order->new(
     }
 )->store;
 my $ordernumber = $order->ordernumber;
-$order->add_item( $itemnumber );
+$order->add_item( $item_1->itemnumber );
 
 # Begin tests
 is(scalar GetOrders($basketno1), 1, "1 order in basket1");
 ($order) = GetOrders($basketno1);
-is(scalar GetItemnumbersFromOrder($order->{ordernumber}), 1, "1 item in basket1's order");
+$order = Koha::Acquisition::Orders->find($order->{ordernumber});
+is($order->items->count, 1, "1 item in basket1's order");
 is(scalar GetOrders($basketno2), 0, "0 order in basket2");
 
 # Transfering order to basket2
@@ -81,12 +83,13 @@ is(scalar GetOrders($basketno1), 0, "0 order in basket1");
 is(scalar GetOrders($basketno2), 1, "1 order in basket2");
 
 # Determine if the transfer marked things cancelled properly.
-is($order->{orderstatus},'new','Before the transfer, the order status should be new');
-($order) = GetOrders($basketno1, { 'cancelled' => 1 });
-is($order->{orderstatus},'cancelled','After the transfer, the order status should be set to cancelled');
+is($order->orderstatus,'new','Before the transfer, the order status should be new');
+$order = Koha::Acquisition::Orders->find($order->ordernumber);
+is($order->orderstatus,'cancelled','After the transfer, the order status should be set to cancelled');
 
 ($order) = GetOrders($basketno2);
-is(scalar GetItemnumbersFromOrder($order->{ordernumber}), 1, "1 item in basket2's order");
+$order = Koha::Acquisition::Orders->find($order->{ordernumber});
+is($order->items->count, 1, "1 item in basket2's order");
 
 # Bug 11552
 my $orders = SearchOrders({ ordernumber => $newordernumber });

@@ -34,7 +34,7 @@ use C4::Members;
 use Koha::AuthorisedValues;
 use Koha::DateUtils;
 use Koha::ItemTypes;
-use C4::Members::AttributeTypes;
+use Koha::Patron::Attribute::Types;
 
 =head1 NAME
 
@@ -78,7 +78,6 @@ my ($template, $borrowernumber, $cookie) = get_template_and_user({
 	template_name => $fullreportname,
 	query => $input,
 	type => "intranet",
-	authnotrequired => 0,
 	flagsrequired => {reports => '*'},
 	debug => 0,
 });
@@ -89,7 +88,7 @@ $template->param(do_it => $do_it,
 
 our $itemtypes = Koha::ItemTypes->search_with_localization->unblessed;
 
-our @patron_categories = Koha::Patron::Categories->search_limited({}, {order_by => ['description']});
+our @patron_categories = Koha::Patron::Categories->search_with_library_limits({}, {order_by => ['description']});
 
 our $locations = { map { ( $_->{authorised_value} => $_->{lib} ) } Koha::AuthorisedValues->get_descriptions_by_koha_field( { frameworkcode => '', kohafield => 'items.location' }, { order_by => ['description'] } ) };
 our $ccodes = { map { ( $_->{authorised_value} => $_->{lib} ) } Koha::AuthorisedValues->get_descriptions_by_koha_field( { frameworkcode => '', kohafield => 'items.ccode' }, { order_by => ['description'] } ) };
@@ -148,9 +147,6 @@ if ($do_it) {
 
 
 my $dbh = C4::Context->dbh;
-my @values;
-my %labels;
-my %select;
 
     # location list
 my @locations;
@@ -166,9 +162,11 @@ foreach (sort {$ccodes->{$a} cmp $ccodes->{$b}} keys %$ccodes) {
 my $CGIextChoice = ( 'CSV' ); # FIXME translation
 my $CGIsepChoice=GetDelimiterChoices;
 
-my @attribute_types = C4::Members::AttributeTypes::GetAttributeTypes(1);
+my $library_id = C4::Context->userenv ? C4::Context->userenv->{'branch'} : undef;
+my $attribute_types = Koha::Patron::Attribute::Types->search_with_library_limits({}, {}, $library_id);
 my %attribute_types_by_class;
-foreach my $attribute_type (@attribute_types) {
+while ( my ( $attribute_type ) = $attribute_types->next ) {
+    $attribute_type = $attribute_type->unblessed;
     if ($attribute_type->{authorised_value_category}) {
         my $authorised_values = C4::Koha::GetAuthorisedValues(
             $attribute_type->{authorised_value_category});
@@ -523,7 +521,7 @@ sub calculate {
         or ( $colsource eq 'items' ) || @$filters[5] || @$filters[6] || @$filters[7] || @$filters[8] || @$filters[9] || @$filters[10] || @$filters[11] || @$filters[12] || @$filters[13] );
 
     $strcalc .= "WHERE 1=1 ";
-    @$filters = map { defined($_) and s/\*/%/g; $_ } @$filters;
+    @$filters = map { my $f = $_; defined($f) and $f =~ s/\*/%/g; $f } @$filters;
     $strcalc .= " AND statistics.datetime >= '" . @$filters[0] . "'"       if ( @$filters[0] );
     $strcalc .= " AND statistics.datetime <= '" . @$filters[1] . " 23:59:59'"       if ( @$filters[1] );
     $strcalc .= " AND borrowers.categorycode LIKE '" . @$filters[2] . "'" if ( @$filters[2] );

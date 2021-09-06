@@ -22,28 +22,28 @@ use Modern::Perl;
 
 use CGI qw ( -utf8 );
 use Date::Calc qw/Today Add_Delta_YM/;
+use POSIX qw( ceil );
 
 use C4::Context;
 use C4::Output;
 use C4::Auth;
 use C4::Debug;
-use C4::Biblio qw/GetMarcBiblio GetRecordValue GetFrameworkCode/;
 use C4::Acquisition qw/GetOrdersByBiblionumber/;
 use Koha::DateUtils;
 use Koha::Acquisition::Baskets;
 
-my $input = new CGI;
+my $input = CGI->new;
 my $startdate       = $input->param('from');
 my $enddate         = $input->param('to');
 my $ratio           = $input->param('ratio');
 my $include_ordered = $input->param('include_ordered');
+my $include_suspended = $input->param('include_suspended');
 
 my ( $template, $loggedinuser, $cookie ) = get_template_and_user(
     {
         template_name   => "circ/reserveratios.tt",
         query           => $input,
         type            => "intranet",
-        authnotrequired => 0,
         flagsrequired   => { circulate => "circulate_remaining_permissions" },
         debug           => 1,
     }
@@ -104,6 +104,7 @@ my $include_aqorders_qty_join =
   : q{};
 
 my $nfl_comparison = $include_ordered ? '<=' : '=';
+my $sus_comparison = $include_suspended ? '<=' : '<';
 my $strsth =
 "SELECT reservedate,
         reserves.borrowernumber as borrowernumber,
@@ -125,6 +126,10 @@ my $strsth =
 
         reserves.found,
         biblio.title,
+        biblio.subtitle,
+        biblio.medium,
+        biblio.part_number,
+        biblio.part_name,
         biblio.author,
         count(DISTINCT reserves.borrowernumber) as reservecount, 
         count(DISTINCT items.itemnumber) $include_aqorders_qty as itemcount
@@ -134,6 +139,7 @@ my $strsth =
  $include_aqorders_qty_join
  WHERE
  notforloan $nfl_comparison 0 AND damaged = 0 AND itemlost = 0 AND withdrawn = 0
+ AND suspend $sus_comparison 1
  $sqldatewhere
 ";
 
@@ -148,14 +154,11 @@ $template->param(sql => $strsth);
 my $sth = $dbh->prepare($strsth);
 $sth->execute(@query_params);
 
-my $ratio_atleast1 = ($ratio >= 1) ? 1 : 0;
 my @reservedata;
 while ( my $data = $sth->fetchrow_hashref ) {
     my $thisratio = $data->{reservecount} / $data->{itemcount};
-    my $ratiocalc = ($thisratio / $ratio);
-    ($thisratio / $ratio) >= 1 or next;  # TODO: tighter targeting -- get ratio limit into SQL using HAVING clause
-    my $record = GetMarcBiblio({ biblionumber => $data->{biblionumber} });
-    $data->{subtitle} = GetRecordValue('subtitle', $record, GetFrameworkCode($data->{biblionumber}));
+    my $copies_to_buy = ceil($data->{reservecount}/$ratio - $data->{itemcount});
+    $thisratio >= $ratio or next;  # TODO: tighter targeting -- get ratio limit into SQL using HAVING clause
     push(
         @reservedata,
         {
@@ -164,6 +167,9 @@ while ( my $data = $sth->fetchrow_hashref ) {
             name               => $data->{borrower},
             title              => $data->{title},
             subtitle           => $data->{subtitle},
+            medium             => $data->{medium},
+            part_number        => $data->{part_number},
+            part_name          => $data->{part_name},
             author             => $data->{author},
             itemnum            => $data->{itemnumber},
             biblionumber       => $data->{biblionumber},
@@ -176,7 +182,7 @@ while ( my $data = $sth->fetchrow_hashref ) {
             itype              => [split('\|', $data->{l_itype})],
             reservecount       => $data->{reservecount},
             itemcount          => $data->{itemcount},
-            ratiocalc          => sprintf( "%.0d", $ratio_atleast1 ? ( $thisratio / $ratio ) : $thisratio ),
+            copies_to_buy      => sprintf( "%d", $copies_to_buy ),
             thisratio => sprintf( "%.2f", $thisratio ),
             thisratio_atleast1 => ( $thisratio >= 1 ) ? 1 : 0,
             listcall           => [split('\|', $data->{listcall})]
@@ -190,12 +196,12 @@ for my $rd ( @reservedata ) {
 }
 
 $template->param(
-    ratio_atleast1  => $ratio_atleast1,
     todaysdate      => $todaysdate,
     from            => $startdate,
     to              => $enddate,
     ratio           => $ratio,
     include_ordered => $include_ordered,
+    include_suspended => $include_suspended,
     reserveloop     => \@reservedata,
 );
 

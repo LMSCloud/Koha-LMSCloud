@@ -34,23 +34,22 @@ use Koha::List::Patron;
 use Koha::Patrons;
 use Koha::Patron::Images;
 
-my $cgi = new CGI;
+my $cgi = CGI->new;
 
 my ( $template, $loggedinuser, $cookie ) = get_template_and_user({
                                                                      template_name   => "labels/label-home.tt",
                                                                      query           => $cgi,
                                                                      type            => "intranet",
-                                                                     authnotrequired => 0,
                                                                      flagsrequired   => { tools => 'label_creator' },
                                                                      debug           => 1,
                                                                      });
-my $batch_id    = $cgi->param('batch_id') if $cgi->param('batch_id');
+my $batch_id    = $cgi->param('batch_id') || undef;
 my $template_id = $cgi->param('template_id') || undef;
 my $layout_id   = $cgi->param('layout_id') || undef;
 my $layout_back_id   = $cgi->param('layout_back_id') || undef;
 my $start_card = $cgi->param('start_card') || 1;
-my @label_ids   = $cgi->multi_param('label_id') if $cgi->param('label_id');
-my @borrower_numbers  = $cgi->multi_param('borrower_number') if $cgi->param('borrower_number');
+my @label_ids   = $cgi->multi_param('label_id');
+my @borrower_numbers  = $cgi->multi_param('borrower_number');
 my $patronlist_id = $cgi->param('patronlist_id');
 
 my $items = undef; # items = cards
@@ -70,7 +69,7 @@ $pdf = C4::Creators::PDF->new(InitVars => 0);
 my $batch = C4::Patroncards::Batch->retrieve(batch_id => $batch_id);
 my $pc_template = C4::Patroncards::Template->retrieve(template_id => $template_id, profile_id => 1);
 my $layout = C4::Patroncards::Layout->retrieve(layout_id => $layout_id);
-my $layout_back = C4::Patroncards::Layout->retrieve(layout_id => $layout_back_id) if ( $layout_back_id );
+my $layout_back = $layout_back_id ? C4::Patroncards::Layout->retrieve(layout_id => $layout_back_id) : undef;
 
 $| = 1;
 
@@ -111,7 +110,7 @@ else {
 }
 
 my $layout_xml = XMLin($layout->get_attr('layout_xml'), ForceArray => 1);
-my $layout_back_xml = XMLin($layout_back->get_attr('layout_xml'), ForceArray => 1) if ( defined $layout_back );
+my $layout_back_xml = defined $layout_back ? XMLin($layout_back->get_attr('layout_xml'), ForceArray => 1) : undef;
 
 if ($layout_xml->{'page_side'} eq 'B') { # rearrange items on backside of page to swap columns
     my $even = 1;

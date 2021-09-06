@@ -29,7 +29,8 @@ use Koha::Item;
 use Koha::DateUtils;
 use t::lib::TestBuilder;
 
-use Test::More tests => 33;
+use Test::More tests => 34;
+use Test::Exception;
 use Test::Warn;
 
 use_ok('Koha::Hold');
@@ -77,7 +78,7 @@ my $hold = Koha::Hold->new(
 $hold->store();
 
 my $b1_cal = C4::Calendar->new( branchcode => $branches[1]->{branchcode} );
-$b1_cal->insert_single_holiday( day => 02, month => 01, year => 2017, title => "Morty Day", description => "Rick" ); #Add a holiday
+$b1_cal->insert_single_holiday( day => 2, month => 1, year => 2017, title => "Morty Day", description => "Rick" ); #Add a holiday
 my $today = dt_from_string;
 is( $hold->age(), $today->delta_days( dt_from_string( '2017-01-01' ) )->in_units( 'days')  , "Age of hold is days from reservedate to now if calendar ignored");
 is( $hold->age(1), $today->delta_days( dt_from_string( '2017-01-01' ) )->in_units( 'days' ) - 1 , "Age of hold is days from reservedate to now minus 1 if calendar used");
@@ -98,10 +99,6 @@ is( $hold->suspend_until, undef, "Hold is suspended without a date" );
 $hold->resume();
 is( $hold->suspend, 0, "Hold is not suspended" );
 is( $hold->suspend_until, undef, "Hold no longer has suspend_until date" );
-$hold->found('W');
-warning_like { $hold->suspend_hold }
-    qr/Unable to suspend waiting hold!/, 'Catch warn about failed suspend';
-is( $hold->suspend, 0, "Waiting hold cannot be suspended" );
 
 $item = $hold->item();
 
@@ -109,20 +106,21 @@ my $hold_borrower = $hold->borrower();
 ok( $hold_borrower, 'Got hold borrower' );
 is( $hold_borrower->borrowernumber(), $borrower->{borrowernumber}, 'Hold borrower matches correct borrower' );
 
-is( $hold->is_waiting, 1, 'The hold is waiting' );
-is( $hold->is_found, 1, 'The hold is found');
-ok( !$hold->is_in_transit, 'The hold is not in transit' );
-
 t::lib::Mocks::mock_preference( 'ReservesMaxPickUpDelay', '5' );
 $hold->found('T');
 isnt( $hold->is_waiting, 1, 'The hold is not waiting (T)' );
 is( $hold->is_found, 1, 'The hold is found');
 is( $hold->is_in_transit, 1, 'The hold is in transit' );
 
+$hold->found('P');
+is( $hold->is_found, 1, 'The hold is found');
+is( $hold->is_in_processing, 1, 'The hold is in processing' );
+
 $hold->found(q{});
 isnt( $hold->is_waiting, 1, 'The hold is not waiting (W)' );
 is( $hold->is_found, 0, 'The hold is not found' );
 ok( !$hold->is_in_transit, 'The hold is not in transit' );
+ok( !$hold->is_in_processing, 'The hold is not in processing' );
 
 # Test method is_cancelable_from_opac
 $hold->found(undef);
@@ -131,6 +129,8 @@ $hold->found('W');
 is( $hold->is_cancelable_from_opac, 0, "Waiting hold is not cancelable" );
 $hold->found('T');
 is( $hold->is_cancelable_from_opac, 0, "In transit hold is not cancelable" );
+$hold->found('P');
+is( $hold->is_cancelable_from_opac, 0, "In processing hold is not cancelable" );
 
 # Test method is_at_destination
 $hold->found(undef);
@@ -143,6 +143,87 @@ $item->holdingbranch( $branches[1]->{branchcode} );
 ok( $hold->is_at_destination(), "Waiting hold where hold branchcode is the same as the item's holdingbranch is at destination" );
 
 $schema->storage->txn_rollback();
+
+subtest "store() tests" => sub {
+
+    plan tests => 5;
+
+    $schema->storage->txn_begin();
+
+    my $item     = $builder->build_sample_item;
+    my $biblio   = $item->biblio;
+    my $borrower = $builder->build_object( { class => 'Koha::Patrons' } );
+    my $library  = $builder->build_object( { class => 'Koha::Libraries' } );
+
+    # Test setting expiration date
+    t::lib::Mocks::mock_preference( 'DefaultHoldExpirationdate',       1 );
+    t::lib::Mocks::mock_preference( 'DefaultHoldExpirationdatePeriod', 2 );
+    t::lib::Mocks::mock_preference( 'DefaultHoldExpirationdateUnitOfTime',
+        'years' );
+
+    my $hold = Koha::Hold->new(
+        {
+            biblionumber   => $biblio->biblionumber,
+            itemnumber     => $item->id,
+            reservedate    => '2020-11-30',
+            waitingdate    => '2020-11-30',
+            borrowernumber => $borrower->borrowernumber,
+            branchcode     => $library->branchcode,
+            suspend        => 0,
+        }
+    )->store;
+    $hold->discard_changes;
+
+    my $expected_date =
+      dt_from_string( $hold->reservedate )->add( years => 2 );
+    is( $hold->expirationdate,
+        $expected_date->ymd, 'Default expiration date for new hold is correctly set.' );
+
+    my $passed_date =
+      dt_from_string( $hold->reservedate )->add( months => 2 );
+    $hold = Koha::Hold->new(
+        {
+            biblionumber   => $biblio->biblionumber,
+            itemnumber     => $item->id,
+            reservedate    => '2020-11-30',
+            expirationdate => $passed_date->ymd,
+            waitingdate    => '2020-11-30',
+            borrowernumber => $borrower->borrowernumber,
+            branchcode     => $library->branchcode,
+            suspend        => 0,
+        }
+    )->store;
+    $hold->discard_changes;
+
+    is( $hold->expirationdate,
+        $passed_date->ymd, 'Passed expiration date for new hold is correctly set.' );
+
+    $passed_date->add( months => 1 );
+    $hold->expirationdate($passed_date->ymd)->store();
+    $hold->discard_changes;
+
+    is( $hold->expirationdate,
+        $passed_date->ymd, 'Passed expiration date when updating hold is correctly set.' );
+
+    $hold->reservedate($passed_date->ymd)->store();
+    $hold->discard_changes;
+
+    is( $hold->expirationdate,
+        $passed_date->add( years => 2 )->ymd, 'Default expiration date correctly set on reservedate update.' );
+
+    $hold->set(
+        {
+            reservedate    => $passed_date->ymd,
+            expirationdate => $passed_date->add( weeks => 2 )->ymd
+        }
+    )->store();
+    $hold->discard_changes;
+
+    is( $hold->expirationdate,
+        $passed_date->ymd, 'Passed expiration date when updating hold correctly set (Passing both reservedate and expirationdate.' );
+
+    $schema->storage->txn_rollback();
+};
 
 subtest "delete() tests" => sub {
 
@@ -157,7 +238,7 @@ subtest "delete() tests" => sub {
 
     my $hold_object = Koha::Holds->find( $hold->{ reserve_id } );
     my $deleted = $hold_object->delete;
-    is( $deleted, 1, 'Koha::Hold->delete should return 1 if the hold has been correctly deleted' );
+    is( ref($deleted), 'Koha::Hold', 'Koha::Hold->delete should return the Koha::Hold object if the hold has been correctly deleted' );
     is( Koha::Holds->search({ reserve_id => $hold->{ reserve_id } })->count, 0,
         "Koha::Hold->delete should have deleted the hold" );
 
@@ -172,7 +253,7 @@ subtest "delete() tests" => sub {
 
     $hold_object = Koha::Holds->find( $hold->{ reserve_id } );
     $deleted = $hold_object->delete;
-    is( $deleted, 1, 'Koha::Hold->delete should return 1 if the hold has been correctly deleted' );
+    is( ref($deleted), 'Koha::Hold', 'Koha::Hold->delete should return a Koha::Hold object if the hold has been correctly deleted' );
     is( Koha::Holds->search({ reserve_id => $hold->{ reserve_id } })->count, 0,
         "Koha::Hold->delete should have deleted the hold" );
 
@@ -183,3 +264,106 @@ subtest "delete() tests" => sub {
     $schema->storage->txn_rollback();
  };
 
+subtest 'suspend() tests' => sub {
+
+    plan tests => 18;
+
+    $schema->storage->txn_begin;
+
+    # Disable logging
+    t::lib::Mocks::mock_preference( 'HoldsLog', 0 );
+
+    my $hold = $builder->build_object(
+        {   class => 'Koha::Holds',
+            value => { found => undef, suspend => 0, suspend_until => undef, waitingdate => undef }
+        }
+    );
+
+    ok( !$hold->is_suspended, 'Hold is not suspended' );
+    my $suspended = $hold->suspend_hold;
+    is( ref($suspended) , 'Koha::Hold', 'suspend returns the Koha::Hold object' );
+    is( $suspended->id, $hold->id, 'suspend returns the same object' );
+    ok( $suspended->is_suspended, 'The hold is suspended' );
+    is( $suspended->suspend_until, undef, 'It is an indefinite suspension' );
+
+    # resume the hold
+    $suspended->resume;
+    $hold->discard_changes;
+
+    # create a DT
+    my $date = dt_from_string()->add( days => 1 );
+    $suspended = $hold->suspend_hold( $date );
+    is( ref($suspended) , 'Koha::Hold', 'suspend returns the Koha::Hold object' );
+    is( $suspended->id, $hold->id, 'suspend returns the same object' );
+    ok( $suspended->is_suspended, 'The hold is suspended' );
+    is( $suspended->suspend_until, $date->truncate( to => 'day' ), 'It is an indefinite suspension' );
+
+    # resume the hold
+    $suspended->resume;
+    $hold->discard_changes;
+
+    # set hold found=W
+    $hold->set_waiting;
+    throws_ok
+        { $hold->suspend_hold; }
+        'Koha::Exceptions::Hold::CannotSuspendFound',
+        'Exception is thrown when a found hold is tried to suspend';
+
+    is( $@->status, 'W', 'Exception gets the \'status\' parameter set correctly' );
+
+    # set hold found=T
+    $hold->set_transfer;
+    throws_ok
+        { $hold->suspend_hold; }
+        'Koha::Exceptions::Hold::CannotSuspendFound',
+        'Exception is thrown when a found hold is tried to suspend';
+
+    is( $@->status, 'T', 'Exception gets the \'status\' parameter set correctly' );
+
+    # set hold found=T
+    $hold->set_processing();
+    throws_ok
+        { $hold->suspend_hold; }
+        'Koha::Exceptions::Hold::CannotSuspendFound',
+        'Exception is thrown when a found hold is tried to suspend';
+
+    is( $@->status, 'P', 'Exception gets the \'status\' parameter set correctly' );
+
+    my $holds_module = Test::MockModule->new('Koha::Hold');
+    $holds_module->mock( 'is_found', 1 );
+
+    # bad data case
+    $hold->found('X');
+    throws_ok
+        { $hold->suspend_hold }
+        'Koha::Exceptions::Hold::CannotSuspendFound',
+        'Exception is thrown when a found hold is tried to suspend';
+
+    is( $@->error, 'Unhandled data exception on found hold (id='
+                    . $hold->id
+                    . ', found='
+                    . $hold->found
+                    . ')' , 'Exception gets the \'status\' parameter set correctly' );
+
+    $holds_module->unmock( 'is_found' );
+
+    # Enable logging
+    t::lib::Mocks::mock_preference( 'HoldsLog', 1 );
+
+    my $logs_count = $schema->resultset('ActionLog')->search(
+            { module => 'HOLDS', action => 'SUSPEND', object => $hold->id } )->count;
+
+    $hold = $builder->build_object(
+        {   class => 'Koha::Holds',
+            value => { suspend => 0, suspend_until => undef, waitingdate => undef, found => undef }
+        }
+    );
+
+    $hold->suspend_hold;
+    my $new_logs_count = $schema->resultset('ActionLog')->search(
+            { module => 'HOLDS', action => 'SUSPEND', object => $hold->id } )->count;
+
+    is( $new_logs_count, $logs_count + 1, 'If logging is enabled, suspending a hold gets logged' );
+
+    $schema->storage->txn_rollback;
+};

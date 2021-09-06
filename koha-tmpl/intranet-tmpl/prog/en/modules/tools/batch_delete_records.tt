@@ -1,26 +1,35 @@
+[% USE raw %]
 [% USE Asset %]
 [% SET footerjs = 1 %]
 [% PROCESS 'authorities-search-results.inc' %]
 [% INCLUDE 'doc-head-open.inc' %]
-<title>Koha &rsaquo; Tools &rsaquo; Batch record deletion</title>
+<title>Batch record deletion &rsaquo; Tools &rsaquo; Koha</title>
 [% INCLUDE 'doc-head-close.inc' %]
-[% Asset.css("css/datatables.css") %]
 </head>
 
 <body id="tools_batch_delete_records" class="tools">
 [% INCLUDE 'header.inc' %]
 [% INCLUDE 'cat-search.inc' %]
 
-<div id="breadcrumbs">
-    <a href="/cgi-bin/koha/mainpage.pl">Home</a> &rsaquo;
-    <a href="/cgi-bin/koha/tools/tools-home.pl">Tools</a> &rsaquo;
-    <a href="/cgi-bin/koha/tools/batch_delete_records.pl">Batch record deletion</a>
-</div>
+<nav id="breadcrumbs" aria-label="Breadcrumb" class="breadcrumb">
+    <ol>
+        <li>
+            <a href="/cgi-bin/koha/mainpage.pl">Home</a>
+        </li>
+        <li>
+            <a href="/cgi-bin/koha/tools/tools-home.pl">Tools</a>
+        </li>
+        <li>
+            <a href="#" aria-current="page">Batch record deletion</a>
+        </li>
+    </ol>
+</nav>
 
-<div id="doc3" class="yui-t2">
-<div id="bd">
-<div id="yui-main">
-<div class="yui-b">
+<div class="main container-fluid">
+    <div class="row">
+        <div class="col-sm-10 col-sm-push-2">
+            <main>
+
   <h1>Batch record deletion</h1>
   [% FOREACH message IN messages %]
     [% IF message.type == 'success' %]
@@ -28,34 +37,34 @@
     [% ELSIF message.type == 'warning' %]
       <div class="dialog alert">
     [% ELSIF message.type == 'error' %]
-      <div class="dialog error" style="margin:auto;">
+      <div class="dialog alert" style="margin:auto;">
     [% END %]
     [% IF message.code == 'biblio_not_exists' %]
-      The biblionumber [% message.biblionumber |html %] does not exist in the database.
+      The biblionumber [% message.biblionumber | html %] does not exist in the database.
     [% ELSIF message.code == 'authority_not_exists' %]
-      The authority id [% message.authid |html %] does not exist in the database.
+      The authority id [% message.authid | html %] does not exist in the database.
     [% ELSIF message.code == 'item_issued' %]
-      At least one item is checked out on bibliographic record [% message.biblionumber %].
+      At least one item is checked out on bibliographic record [% message.biblionumber | html %].
     [% ELSIF message.code == 'reserve_not_cancelled' %]
-      Bibliographic record [% message.biblionumber %] was not deleted. A hold could not be canceled (reserve_id [% message.reserve_id %]).
+      Bibliographic record [% message.biblionumber | html %] was not deleted. A hold could not be canceled (reserve_id [% message.reserve_id | html %]).
     [% ELSIF message.code == 'item_not_deleted' %]
-      The bibliographic record [% message.biblionumber %] was not deleted. An error was encountered when deleting an item (itemnumber [% message.itemnumber %]).
+      The bibliographic record [% message.biblionumber | html %] was not deleted. An error was encountered when deleting an item (itemnumber [% message.itemnumber | html %]).
     [% ELSIF message.code == 'biblio_not_deleted' %]
-      Bibliographic record [% message.biblionumber %] was not deleted. An error occurred.
+      Bibliographic record [% message.biblionumber | html %] was not deleted. An error occurred.
     [% ELSIF message.code == 'authority_not_deleted' %]
-      Authority record [% message.authid %] was not deleted. An error occurred.
+      Authority record [% message.authid | html %] was not deleted. An error occurred.
     [% ELSIF message.code == 'biblio_deleted' %]
-      Bibliographic record [% message.biblionumber %] has been deleted successfully.
+      Bibliographic record [% message.biblionumber | html %] has been deleted successfully.
     [% ELSIF message.code == 'authority_deleted' %]
-      Authority [% message.authid %] has been deleted successfully.
+      Authority [% message.authid | html %] has been deleted successfully.
     [% END %]
     [% IF message.error %]
-      (The error was: [% message.error%], see the Koha log file for more information).
+      (The error was: [% message.error | html %], see the Koha log file for more information).
     [% END %]
     </div>
   [% END %]
   [% IF op == 'form' %]
-    <form method="post" enctype="multipart/form-data" action="/cgi-bin/koha/tools/batch_delete_records.pl">
+    <form method="post" enctype="multipart/form-data" action="/cgi-bin/koha/tools/batch_delete_records.pl" id="record_ids_selection">
       <fieldset class="rows">
         <legend>Record type</legend>
         <ol>
@@ -63,21 +72,60 @@
           <li><label for="authority_type">Authorities: </label><input type="radio" name="recordtype" value="authority" id="authority_type" /></li>
         </ol>
       </fieldset>
-      <fieldset class="rows">
-        <legend>Use a file</legend>
-        <ol>
-          <li><label for="uploadfile">File: </label> <input type="file" id="uploadfile" name="uploadfile" /></li>
-        </ol>
-      </fieldset>
-      <fieldset class="rows">
-        <legend>Or enter a list of record numbers</legend>
-        <ol>
-          <li>
-            <label for="recordnumber_list">List of biblionumbers or authority ids (one per line): </label>
-            <textarea rows="10" cols="30" id="recordnumber_list" name="recordnumber_list"></textarea>
-          </li>
-        </ol>
-      </fieldset>
+
+      <div id="batch_del_form" class="toptabs" style="clear:both">
+        <ul>
+          <li><a href="#uploadfile_tab">Upload a file</a></li>
+          [% IF lists.count %]<li id="show_list_option"><a href="#shelves_tab">Select a list of records</a></li>[% END %]
+          <li><a href="#enterlist_tab">Enter a list of record numbers</a></li>
+        </ul>
+
+        <div id="uploadfile_tab">
+          <fieldset class="rows">
+            <legend>Use a file</legend>
+            <ol>
+              <li><label for="uploadfile">File: </label> <input type="file" id="uploadfile" name="uploadfile" /></li>
+            </ol>
+          </fieldset>
+          &nbsp;
+        </div>
+
+        [% IF lists.count %]
+            <div id="shelves_tab">
+              <fieldset class="rows">
+                <legend>Or select a list of records</legend>
+                <ol>
+                  <li>
+                    <label for="shelf_number">Use records from the following list: </label>
+                    <select name="shelf_number" id="shelf_number">
+                      <option value="">Select a list</option>
+                        [% FOREACH list IN lists %]
+                          <option value="[% list.shelfnumber | html %]">[% list.shelfname | html %]</option>
+                        [% END %]
+                      </option>
+                    </select>
+                  </li>
+                </ol>
+              </fieldset>
+              &nbsp;
+            </div>
+        [% END %]
+
+        <div id="enterlist_tab">
+          <fieldset class="rows">
+            <legend>Or enter a list of record numbers</legend>
+            <ol>
+              <li>
+                <label for="recordnumber_list">List of biblionumbers or authority ids (one per line): </label>
+                <textarea rows="10" cols="30" id="recordnumber_list" name="recordnumber_list"></textarea>
+              </li>
+            </ol>
+          </fieldset>
+          &nbsp;
+        </div>
+
+      </div>
+
       <fieldset class="action">
         <input type="hidden" name="op" value="list" />
         <input type="submit" value="Continue" class="button" />
@@ -108,12 +156,12 @@
             <tbody>
               [% FOR biblio IN records %]
                 <tr>
-                  <td><input type="checkbox" name="record_id" id="record_id_[% biblio.biblionumber %]" value="[% biblio.biblionumber %]" data-items="[% biblio.itemnumbers.size %]" data-issues="[% biblio.issues_count %]" data-reserves="[% biblio.holds_count %]" /></td>
-                  <td><label for="record_id_[% biblio.biblionumber %]">[% biblio.biblionumber %]</label></td>
-                  <td>[% INCLUDE 'biblio-default-view.inc' biblionumber=biblio.biblionumber %][% biblio.title %][% IF ( biblio.subtitle ) %][% FOREACH subtitle IN biblio.subtitle %] [% subtitle.subfield |html %][% END %][% END %]</a></td>
-                  <td><a href="/cgi-bin/koha/catalogue/moredetail.pl?biblionumber=[% biblio.biblionumber %]">[% biblio.itemnumbers.size %]</a></td>
-                  <td><a href="/cgi-bin/koha/reserve/request.pl?biblionumber=[% biblio.biblionumber %]">[% biblio.holds_count %]</a></td>
-                  <td><a href="/cgi-bin/koha/catalogue/issuehistory.pl?biblionumber=[% biblio.biblionumber %]">[% biblio.issues_count %]</a></td>
+                  <td><input type="checkbox" name="record_id" id="record_id_[% biblio.biblionumber | html %]" value="[% biblio.biblionumber | html %]" data-items="[% biblio.itemnumbers.size | html %]" data-issues="[% biblio.issues_count | html %]" data-reserves="[% biblio.holds_count | html %]" /></td>
+                  <td><label for="record_id_[% biblio.biblionumber | html %]">[% biblio.biblionumber | html %]</label></td>
+                  <td>[% INCLUDE 'biblio-title.inc' link = 1 %]</td>
+                  <td><a href="/cgi-bin/koha/catalogue/moredetail.pl?biblionumber=[% biblio.biblionumber | uri %]">[% biblio.itemnumbers.size | html %]</a></td>
+                  <td><a href="/cgi-bin/koha/reserve/request.pl?biblionumber=[% biblio.biblionumber | uri %]">[% biblio.holds_count | html %]</a></td>
+                  <td><a href="/cgi-bin/koha/catalogue/issuehistory.pl?biblionumber=[% biblio.biblionumber | uri %]">[% biblio.issues_count | html %]</a></td>
                 </tr>
               [% END %]
             </tbody>
@@ -138,10 +186,10 @@
             <tbody>
               [% FOR authority IN records %]
                 <tr>
-                  <td><input type="checkbox" name="record_id" value="[% authority.authid %]" data-usage="[% authority.count_usage %]" /></td>
-                  <td><a href="/cgi-bin/koha/authorities/detail.pl?authid=[% authority.authid %]">[% authority.authid %]</a></td>
-                  <td>[% PROCESS authresult summary=authority.summary %]</td>
-                  <td><a href="/cgi-bin/koha/catalogue/search.pl?type=intranet&amp;op=do_search&amp;idx=an,phr&amp;q=[% authority.authid %]">[% authority.count_usage %] record(s)</a></td>
+                  <td><input type="checkbox" name="record_id" value="[% authority.authid | html %]" data-usage="[% authority.count_usage | html %]" /></td>
+                  <td><a href="/cgi-bin/koha/authorities/detail.pl?authid=[% authority.authid | uri %]">[% authority.authid | html %]</a></td>
+                  <td>[% PROCESS authresult summary=authority.summary authid=authority.authid %]</td>
+                  <td><a href="/cgi-bin/koha/catalogue/search.pl?type=intranet&amp;op=do_search&amp;idx=an,phr&amp;q=[% authority.authid | uri %]">[% authority.count_usage | html %] record(s)</a></td>
                 </tr>
               [% END %]
             </tbody>
@@ -150,7 +198,7 @@
       [% END %]
         <fieldset class="action">
           <input type="hidden" name="op" value="delete" />
-          <input type="hidden" name="recordtype" value="[% recordtype %]" />
+          <input type="hidden" name="recordtype" value="[% recordtype | html %]" />
           <input type="submit" value="Delete selected records" class="button" />
           <a class="cancel" href="/cgi-bin/koha/tools/batch_delete_records.pl">Cancel</a>
         </fieldset>
@@ -164,47 +212,86 @@
     [% ELSIF report.total_success == 0 %]
       No record has been deleted. An error occurred.
     [% ELSE %]
-      [% report.total_success %] / [% report.total_records %] records have been deleted successfully but some errors occurred.
+      [% report.total_success | html %] / [% report.total_records | html %] records have been deleted successfully but some errors occurred.
     [% END %]
     <p><a href="/cgi-bin/koha/tools/batch_delete_records.pl" title="New batch record deletion">New batch record deletion</a></p>
   [% ELSE %]
     No action defined for the template.
   [% END %]
-</div>
-</div>
-<div class="yui-b">
-  [% INCLUDE 'tools-menu.inc' %]
-</div>
-</div>
+
+            </main>
+        </div> <!-- /.col-sm-10.col-sm-push-2 -->
+
+        <div class="col-sm-2 col-sm-pull-10">
+            <aside>
+                [% INCLUDE 'tools-menu.inc' %]
+            </aside>
+        </div> <!-- /.col-sm-2.col-sm-pull-10 -->
+     </div> <!-- /.row -->
 
 [% MACRO jsinclude BLOCK %]
-    [% Asset.js("js/tools-menu.js") %]
+    [% Asset.js("js/tools-menu.js") | $raw %]
     [% INCLUDE 'datatables.inc' %]
-    [% Asset.js("lib/jquery/plugins/jquery.checkboxes.min.js") %]
-    <script type="text/javascript">
+    <script>
         var MSG_CANNOT_BE_DELETED = _("This record cannot be deleted, at least one item is currently checked out.");
         $(document).ready(function() {
-          $("#selectall").click(function(e){
-            e.preventDefault();
-            $(".records").checkCheckboxes(":input[type='checkbox']:not(:disabled)");
-          });
-          $("#clearall").click(function(e){
-            e.preventDefault();
-            $(".records").unCheckCheckboxes(":input[type='checkbox']:not(:disabled)");
-          });
-          $("#selectwithoutitems").click(function(e){
-            e.preventDefault();
-            $("#biblios").checkCheckboxes(":input[data-items='0']:not(:disabled)");
-          });
-          $("#selectnotreserved").click(function(e){
-            e.preventDefault();
-            $("#biblios").checkCheckboxes(":input[data-reserves='0']:not(:disabled)");
 
+          $("#batch_del_form").tabs();
+
+          $("input[type='radio']").click(function(){
+            if ($(this).attr('id') == 'authority_type') {
+              $("#show_list_option").hide();
+            } else if ($(this).attr('id') == 'biblio_type') {
+              $("#show_list_option").show();
+            }
           });
-          $("#clearlinkedtobiblio").click(function(e){
-            e.preventDefault();
-            $("#authorities").unCheckCheckboxes(":not(input[data-usage='0'])");
-          });
+            $("#selectall").click(function(e){
+                e.preventDefault();
+                $(".records input[type='checkbox']:not(:disabled)").each(function(){
+                    $(this).prop("checked", true);
+                });
+            });
+
+            $("#clearall").click(function(e){
+                e.preventDefault();
+                $(".records input[type='checkbox']:not(:disabled)").each(function(){
+                    $(this).prop("checked", false);
+                });
+            });
+
+            $("#selectwithoutitems").click(function(e){
+                e.preventDefault();
+                $(".records input[type='checkbox']:not(:disabled)").each(function(){
+                    if( $(this).data("items") == 0 ){
+                        $(this).prop("checked", true );
+                    } else {
+                        $(this).prop("checked", false );
+                    }
+                });
+            });
+
+            $("#selectnotreserved").click(function(e){
+                e.preventDefault();
+                $(".records input[type='checkbox']:not(:disabled)").each(function(){
+                    if( $(this).data("reserves") == 0 ){
+                        $(this).prop("checked", true );
+                    } else {
+                        $(this).prop("checked", false );
+                    }
+                });
+            });
+
+            $("#clearlinkedtobiblio").click(function(e){
+                e.preventDefault();
+                $(".records input[type='checkbox']:not(:disabled)").each(function(){
+                    if( $(this).data("usage") == 0 ){
+                        $(this).prop("checked", true );
+                    } else {
+                        $(this).prop("checked", false );
+                    }
+                });
+            });
+
           $("#selectall").click();
 
           [% IF recordtype == 'biblio' %]
@@ -251,6 +338,21 @@
               return false;
             }
           });
+
+          $("#record_ids_selection").on("submit", function(e){
+            var tab = $(this).find('.ui-tabs-active:first a').attr('href');
+            if ( tab == '#uploadfile_tab' ) {
+                $("#shelf_number").empty('');
+                $("#recordnumber_list").val('');
+            } else if ( tab == '#shelves_tab' ) {
+                $("#uploadfile").val('')
+                $("#recordnumber_list").val('');
+            } else { // enterlist
+                $("#uploadfile").val('')
+                $("#shelf_number").empty('');
+            }
+          });
+
         });
     </script>
 [% END %]

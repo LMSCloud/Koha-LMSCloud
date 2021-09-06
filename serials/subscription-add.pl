@@ -29,11 +29,15 @@ use C4::Serials;
 use C4::Serials::Frequency;
 use C4::Serials::Numberpattern;
 use C4::Letters;
-use Koha::AdditionalField;
+use Koha::AdditionalFields;
 use Koha::Biblios;
 use Koha::DateUtils;
 use Koha::ItemTypes;
 use Carp;
+
+use Koha::Subscription::Numberpattern;
+use Koha::Subscription::Frequency;
+use Koha::SharedContent;
 
 #use Smart::Comments;
 
@@ -48,11 +52,10 @@ my $sub_length;
 my $permission =
   ( $op eq 'modify' || $op eq 'modsubscription' ) ? "edit_subscription" : "create_subscription";
 
-my ($template, $loggedinuser, $cookie)
+our ($template, $loggedinuser, $cookie)
 = get_template_and_user({template_name => "serials/subscription-add.tt",
 				query => $query,
 				type => "intranet",
-				authnotrequired => 0,
 				flagsrequired => {serials => $permission},
 				debug => 1,
 				});
@@ -64,9 +67,12 @@ my $sub_on;
 my $subs;
 our $firstissuedate;
 
+my $mana_url = C4::Context->config('mana_config');
+$template->param( 'mana_url' => $mana_url );
+my $subscriptionid = $query->param('subscriptionid');
+
 if ($op eq 'modify' || $op eq 'dup' || $op eq 'modsubscription') {
 
-    my $subscriptionid = $query->param('subscriptionid');
     $subs = GetSubscription($subscriptionid);
 
     output_and_exit( $query, $cookie, $template, 'unknown_subscription')
@@ -78,18 +84,9 @@ if ($op eq 'modify' || $op eq 'dup' || $op eq 'modsubscription') {
       print $query->redirect("/cgi-bin/koha/serials/subscription-detail.pl?subscriptionid=$subscriptionid");
     }
     $firstissuedate = $subs->{firstacquidate} || '';  # in iso format.
-    for (qw(startdate firstacquidate histstartdate enddate histenddate)) {
-        next unless defined $subs->{$_};
-	# TODO : Handle date formats properly.
-         if ($subs->{$_} eq '0000-00-00') {
-            $subs->{$_} = ''
-    	} else {
-            $subs->{$_} = $subs->{$_};
-        }
-	  }
-      if (!defined $subs->{letter}) {
-          $subs->{letter}= q{};
-      }
+    if (!defined $subs->{letter}) {
+        $subs->{letter}= q{};
+    }
     my $nextexpected = GetNextExpected($subscriptionid);
     $nextexpected->{'isfirstissue'} = $nextexpected->{planneddate} eq $firstissuedate ;
     $subs->{nextacquidate} = $nextexpected->{planneddate}  if($op eq 'modify');
@@ -137,14 +134,19 @@ $template->param(
     locations_loop=>$locations_loop,
 );
 
-
-my $additional_fields = Koha::AdditionalField->all( { tablename => 'subscription' } );
-for my $field ( @$additional_fields ) {
-    if ( $field->{authorised_value_category} ) {
-        $field->{authorised_value_choices} = GetAuthorisedValues( $field->{authorised_value_category} );
+my @additional_fields = Koha::AdditionalFields->search({ tablename => 'subscription' });
+my %additional_field_values;
+if ($subscriptionid) {
+    my $subscription = Koha::Subscriptions->find($subscriptionid);
+    foreach my $value ($subscription->additional_field_values->as_list) {
+        $additional_field_values{$value->field_id} = $value->value;
     }
 }
-$template->param( additional_fields_for_subscription => $additional_fields );
+
+$template->param(
+    additional_fields => \@additional_fields,
+    additional_field_values => \%additional_field_values,
+);
 
 my $typeloop = { map { $_->{itemtype} => $_ } @{ Koha::ItemTypes->search_with_localization->unblessed } };
 
@@ -232,6 +234,9 @@ if ($op eq 'addsubscription') {
 
     $template->param( locales => $languages );
 
+    my @bookseller_ids = Koha::Acquisition::Booksellers->search->get_column('id');
+    $template->param( bookseller_ids => \@bookseller_ids );
+
     output_html_with_http_headers $query, $cookie, $template->output;
 }
 
@@ -248,16 +253,6 @@ sub get_letter_loop {
             }
           } @$letters
     ];
-}
-
-sub _get_sub_length {
-    my ($type, $length) = @_;
-    return
-        (
-            $type eq 'issues' ? $length : 0,
-            $type eq 'weeks'   ? $length : 0,
-            $type eq 'months'  ? $length : 0,
-        );
 }
 
 sub _guess_enddate {
@@ -289,21 +284,33 @@ sub _guess_enddate {
 }
 
 sub redirect_add_subscription {
+    my $periodicity = $query->param('frequency');
+    if ($periodicity eq 'mana') {
+        my $subscription_freq = Koha::Subscription::Frequency->new()->set(
+            {
+                description   => $query->param('sfdescription'),
+                unit          => $query->param('unit'),
+                unitsperissue => $query->param('unitsperissue'),
+                issuesperunit => $query->param('issuesperunit'),
+            }
+        )->store();
+        $periodicity = $subscription_freq->id;
+    }
+    my $numberpattern = Koha::Subscription::Numberpatterns->new_or_existing({ $query->Vars });
+
     my $auser          = $query->param('user');
     my $branchcode     = $query->param('branchcode');
     my $aqbooksellerid = $query->param('aqbooksellerid');
     my $cost           = $query->param('cost');
     my $aqbudgetid     = $query->param('aqbudgetid');
-    my $periodicity    = $query->param('frequency');
     my @irregularity   = $query->multi_param('irregularity');
-    my $numberpattern  = $query->param('numbering_pattern');
     my $locale         = $query->param('locale');
     my $graceperiod    = $query->param('graceperiod') || 0;
 
     my $subtype = $query->param('subtype');
     my $sublength = $query->param('sublength');
     my ( $numberlength, $weeklength, $monthlength )
-        = _get_sub_length( $subtype, $sublength );
+        = GetSubscriptionLength( $subtype, $sublength );
     my $add1              = $query->param('add1');
     my $lastvalue1        = $query->param('lastvalue1');
     my $innerloop1        = $query->param('innerloop1');
@@ -326,6 +333,12 @@ sub redirect_add_subscription {
     my $previousitemtype  = $query->param('previousitemtype');
     my $skip_serialseq    = $query->param('skip_serialseq');
 
+    my $mana_id;
+    if ( $query->param('mana_id') ne "" ) {
+        $mana_id = $query->param('mana_id');
+        Koha::SharedContent::increment_entity_value("subscription",$mana_id, "nbofusers");
+    }
+
     my $startdate      = output_pref( { str => scalar $query->param('startdate'),      dateonly => 1, dateformat => 'iso' } );
     my $enddate        = output_pref( { str => scalar $query->param('enddate'),        dateonly => 1, dateformat => 'iso' } );
     my $firstacquidate = output_pref( { str => scalar $query->param('firstacquidate'), dateonly => 1, dateformat => 'iso' } );
@@ -337,7 +350,6 @@ sub redirect_add_subscription {
             $enddate = _guess_enddate($startdate, $periodicity, $numberlength, $weeklength, $monthlength)
         }
     }
-
     my $subscriptionid = NewSubscription(
         $auser, $branchcode, $aqbooksellerid, $cost, $aqbudgetid, $biblionumber,
         $startdate, $periodicity, $numberlength, $weeklength,
@@ -346,11 +358,30 @@ sub redirect_add_subscription {
         join(";",@irregularity), $numberpattern, $locale, $callnumber,
         $manualhistory, $internalnotes, $serialsadditems,
         $staffdisplaycount, $opacdisplaycount, $graceperiod, $location, $enddate,
-        $skip_serialseq, $itemtype, $previousitemtype
+        $skip_serialseq, $itemtype, $previousitemtype, $mana_id
     );
+    if ( (C4::Context->preference('Mana') == 1) and ( grep { $_ eq "subscription" } split(/,/, C4::Context->preference('AutoShareWithMana'))) ){
+        my $result = Koha::SharedContent::send_entity( $query->param('mana_language') || '', $loggedinuser, $subscriptionid, 'subscription');
+        $template->param( mana_msg => $result->{msg} );
+    }
 
-    my $additional_fields = Koha::AdditionalField->all( { tablename => 'subscription' } );
-    insert_additional_fields( $additional_fields, $biblionumber, $subscriptionid );
+    my @additional_fields;
+    my $record = GetMarcBiblio({ biblionumber => $biblionumber, embed_items => 1 });
+    my $subscription_fields = Koha::AdditionalFields->search({ tablename => 'subscription' });
+    while ( my $field = $subscription_fields->next ) {
+        my $value = $query->param('additional_field_' . $field->id);
+        if ($field->marcfield) {
+            my ($field, $subfield) = split /\$/, $field->marcfield;
+            if ( $record and $field and $subfield ) {
+                $value = $record->subfield( $field, $subfield );
+            }
+        }
+        push @additional_fields, {
+            id => $field->id,
+            value => $value,
+        };
+    }
+    Koha::Subscriptions->find($subscriptionid)->set_additional_fields(\@additional_fields);
 
     print $query->redirect("/cgi-bin/koha/serials/subscription-detail.pl?subscriptionid=$subscriptionid");
     return;
@@ -377,12 +408,22 @@ sub redirect_mod_subscription {
         : $firstacquidate;
 
     my $periodicity = $query->param('frequency');
+    if ($periodicity eq 'mana') {
+        my $subscription_freq = Koha::Subscription::Frequency->new()->set(
+            {
+                description   => $query->param('sfdescription'),
+                unit          => $query->param('unit'),
+                unitsperissue => $query->param('unitsperissue'),
+                issuesperunit => $query->param('issuesperunit'),
+            }
+        )->store();
+        $periodicity = $subscription_freq->id;
+    }
+    my $numberpattern = Koha::Subscription::Numberpatterns->new_or_existing({ $query->Vars });
 
     my $subtype = $query->param('subtype');
     my $sublength = $query->param('sublength');
-    my ($numberlength, $weeklength, $monthlength)
-        = _get_sub_length( $subtype, $sublength );
-    my $numberpattern = $query->param('numbering_pattern');
+    my ($numberlength, $weeklength, $monthlength) = GetSubscriptionLength( $subtype, $sublength );
     my $locale = $query->param('locale');
     my $lastvalue1 = $query->param('lastvalue1');
     my $innerloop1 = $query->param('innerloop1');
@@ -404,6 +445,15 @@ sub redirect_mod_subscription {
     my $itemtype          = $query->param('itemtype');
     my $previousitemtype  = $query->param('previousitemtype');
     my $skip_serialseq    = $query->param('skip_serialseq');
+
+    my $mana_id;
+    if ( $query->param('mana_id') ne "" ) {
+        $mana_id = $query->param('mana_id');
+        Koha::SharedContent::increment_entity_value("subscription",$mana_id, "nbofusers");
+    }
+    else {
+        $mana_id = undef;
+    }
 
     # Guess end date
     if(!defined $enddate || $enddate eq '') {
@@ -430,37 +480,27 @@ sub redirect_mod_subscription {
         $status, $biblionumber, $callnumber, $notes, $letter,
         $manualhistory, $internalnotes, $serialsadditems, $staffdisplaycount,
         $opacdisplaycount, $graceperiod, $location, $enddate, $subscriptionid,
-        $skip_serialseq, $itemtype, $previousitemtype
+        $skip_serialseq, $itemtype, $previousitemtype, $mana_id
     );
 
-    my $additional_fields = Koha::AdditionalField->all( { tablename => 'subscription' } );
-    insert_additional_fields( $additional_fields, $biblionumber, $subscriptionid );
+    my @additional_fields;
+    my $record = GetMarcBiblio({ biblionumber => $biblionumber, embed_items => 1 });
+    my $subscription_fields = Koha::AdditionalFields->search({ tablename => 'subscription' });
+    while ( my $field = $subscription_fields->next ) {
+        my $value = $query->param('additional_field_' . $field->id);
+        if ($field->marcfield) {
+            my ($field, $subfield) = split /\$/, $field->marcfield;
+            if ( $record and $field and $subfield ) {
+                $value = $record->subfield( $field, $subfield );
+            }
+        }
+        push @additional_fields, {
+            id => $field->id,
+            value => $value,
+        };
+    }
+    Koha::Subscriptions->find($subscriptionid)->set_additional_fields(\@additional_fields);
 
     print $query->redirect("/cgi-bin/koha/serials/subscription-detail.pl?subscriptionid=$subscriptionid");
     return;
-}
-
-sub insert_additional_fields {
-    my ( $additional_fields, $biblionumber, $subscriptionid ) = @_;
-    my $record = GetMarcBiblio({
-        biblionumber => $biblionumber,
-        embed_items  => 1 });
-    for my $field ( @$additional_fields ) {
-        my $af = Koha::AdditionalField->new({ id => $field->{id} })->fetch;
-        if ( $af->{marcfield} ) {
-            my ( $field, $subfield ) = split /\$/, $af->{marcfield};
-            $af->{values} = undef;
-            if ( $field and $subfield ) {
-                my $value = $record->subfield( $field, $subfield );
-                $af->{values} = {
-                    $subscriptionid => $value
-                };
-            }
-        } else {
-            $af->{values} = {
-                $subscriptionid => scalar $query->param('additional_field_' . $field->{id})
-            } if defined $query->param('additional_field_' . $field->{id});
-        }
-        $af->insert_values;
-    }
 }

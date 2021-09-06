@@ -1,9 +1,73 @@
-#addbibliotabs {
-	margin-top : 1em;
+form {
+    display: block;
 }
 
-#addbibliotabs .ui-tabs-panel {
-	float : left;
+div#toolbar {
+    border: 0;
+}
+
+#addbibliotabs .ui-tabs-nav {
+    display: none;
+}
+
+.ui-tabs-panel h3 {
+    font-size: 140%;
+    margin: .3em 0;
+}
+
+.ui-tabs-panel ul {
+    margin-bottom: 0;
+    padding-left: 0;
+}
+
+ul li.tag, ul li.tag li.subfield_line {
+    list-style-type: none;
+    position: relative;
+    padding-left: 30px;
+}
+
+ul li.tag::before {
+    position: absolute;
+    font-size: .8em;
+    top: 0;
+    left: 10px;
+    content: " ";
+}
+
+
+ul li.tag.sortable_tag::before,
+ul li.tag li.subfield_line::before {
+    color: #999;
+    cursor: move;
+    position: absolute;
+    font-family: 'FontAwesome';
+    font-size: .8em;
+    top: 0;
+    left: 10px;
+    content: "\f0c9";
+}
+
+ul li.tag::before {
+    padding-top: 1.7em;
+}
+
+li.ui-sortable-helper {
+    background-color: #e0e0e0;
+    max-height: 150px;
+    padding: 2px;
+    border-radius: 4px;
+}
+
+li.ui-sortable-helper ul li {
+	display: none !important;
+}
+
+.sortable_subfield .ui-sortable-helper input.flat {
+	background-color: transparent;
+}
+
+ul li.tag li.subfield_line.ui-sortable-helper::before {
+    top: 5px;
 }
 
 .buttonPlus {
@@ -29,22 +93,24 @@ a.expandfield {
 	padding : .2em 1.2em;
 }
 
-div.tag {
+.tag {
+    border-bottom: 2px solid #D5E6E9;
     clear: both;
+    padding: .7em 0;
 }
 
-div.subfield_line {
+li.subfield_line {
     padding-bottom: .3em;
     float: left;
     clear: left;
     width: 100%;
 }
 
-div.subfield_line label {
+li.subfield_line label {
     font-size:89%;
     float: left;
-	 padding-right : .4em;
-    width: 16em;
+    padding-right: .4em;
+    width: 10em;
     text-align: left;
     clear:left;
 }
@@ -59,7 +125,7 @@ div.subfield_line label {
 }
 
 .tagnum {
-	font-size : 110%;
+	font-size : 130%;
 	font-weight : bold;
 	color : #000;
 	padding : .1em .3em .1em 0;
@@ -80,13 +146,35 @@ a.tagnum {
 	text-align:right;
 }
 
+.subfield.subfield_mandatory {
+    color: #C00;
+}
+
 .subfieldcode {
-	display: block;
-	float: left;
+    display: block;
+    float: left;
 }
 
 .labelsubfield {
-	float:left;
+    float: left;
+}
+
+#cat_addbiblio .subfieldcode, #authoritytabs .subfieldcode {
+    float: none;
+}
+
+#cat_addbiblio .labelsubfield, #authoritytabs .labelsubfield {
+    font-size: 90%;
+    float: none;
+}
+
+#cat_addbiblio .subfield, #authoritytabs .subfield {
+    float: none;
+    padding: .25em .5em;
+}
+
+#cat_addbiblio .subfield label, #authoritytabs .subfield label {
+    color: #00698a;
 }
 
 .input_marceditor {
@@ -94,13 +182,27 @@ a.tagnum {
 	width:30em;
 }
 
+#cat_addbiblio .input_marceditor, #authoritytabs .input_marceditor {
+    float: none;
+    width: 100%;
+}
+
+#cat_addbiblio .subfield_line, #authoritytabs .subfield_line {
+    display: flex;
+}
+
+#cat_addbiblio .field_marceditor, #authoritytabs .field_marceditor {
+    flex-grow: 1;
+    padding: .25em .5em;
+}
+
+#cat_addbiblio .subfield_loop_mandatory, #authoritytabs .subfield_loop_mandatory {
+    padding: .25em .5em;
+}
+
 .indicator {
     width: 1em;
     box-sizing: content-box;
-}
-
-*html .input_marceditor {
-	width : 15em;
 }
 
 #cataloguing_additem_newitem fieldset.rows label, #cataloguing_additem_newitem fieldset.rows span.label {
@@ -111,12 +213,13 @@ a.tagnum {
 #cataloguing_additem_newitem fieldset.rows li {
 	padding-bottom : 3px;
 }
+
 #cataloguing_additem_newitem .input_marceditor {
-	width : auto;
+    width: auto;
 }
 
 #cataloguing_additem_newitem textarea.input_marceditor {
-     width : 31em;
+    width: 31em;
 }
 
 .mandatory_marker {
@@ -127,18 +230,10 @@ a.tagnum {
 .linktools a {margin:0 2px;padding:2px;background-color:#FFF;text-align:center; }
 .linktools a:first-child { border-bottom: 1px solid #DDD; }
 .linktools a:hover { background-color: #FFC; }
-.subfield_controls { margin : 0 .5em; }
-.readonly { border-width : 1px; border-style: inset; padding-left : 15px; background: #EEE url(../img/locked.png) center left no-repeat; width:29em; }
+.subfield_controls { margin: 0 .5em; }
 
 #cataloguing_additem_itemlist {
 	margin-bottom : 1em;
-}
-.yui-gf div.first {
-	width : 19%;
-}
-
-.yui-gf .yui-u {
-	width: 79.2%;
 }
 
 tbody tr.active:nth-child(2n+1) td,
@@ -168,4 +263,182 @@ tbody tr.active td {
     position: absolute;
     top: 50%;
     width: 15em;
+}
+
+.ui-tabs .ui-tabs-panel {
+    border: 0;
+    padding: 0;
+}
+
+.toolbar-tabs-container {
+    margin: 3em -5px -5px -5px;
+}
+
+.toolbar-tabs {
+    background-color: #FFF;
+    clear: both;
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
+    margin-bottom: 0;
+    padding-left: 0;
+}
+
+.toolbar-tabs li {
+    background-color: #fff;
+    display: flex;
+    justify-content: center;
+    flex-grow: 1;
+    text-align: center;
+    margin-bottom: 0;
+}
+
+.toolbar-tabs li a {
+    border: 1px solid #EDF4F6;
+    border-left: 0;
+    border-right: 1px solid #EDF4F6;
+    border-bottom-right-radius: 5px;
+    border-bottom-left-radius: 5px;
+    display: block;
+    font-weight: bold;
+    padding: .3em 1.5em;
+    width: 100%;
+}
+
+.toolbar-tabs li.selected a {
+    background-color: #EDF4F6;
+    border-right: 1px solid #C3D6DB;
+    border-bottom: 1px solid #C3D6DB;
+    font-weight: bold;
+}
+
+.toolbar-tabs li.selected a:hover {
+    background-color: #EDF4F6;
+}
+
+.toolbar-tabs li a:hover {
+    background-color: #F4F8F9;
+}
+
+.toolbar-tabs li:first-child a {
+    border-left: 1px solid #EDF4F6;
+}
+
+.tag_anchors_list {
+    background-color: #FFF;
+    clear: both;
+    display: block;
+    font-size: 95%;
+    margin-bottom: 0;
+    padding-left: 0;
+}
+
+.tag_anchor.selected {
+    font-weight: bold;
+}
+
+.tag_anchors {
+    display: none;
+    padding: .5em 0;
+}
+
+.tag_anchors a {
+    border-right: 1px solid #EDF4F6;
+    display: inline-block;
+    padding: 0 .4em;
+}
+
+.tag_anchors.tab_selected {
+    display: inline-block;
+}
+
+.matching_authority{
+    color: #99FF99;
+}
+
+.no_matching_authority{
+    color: #FFAAAA;
+}
+
+.matching_authority_field{
+     background-color: #99FF99 !important;
+ }
+
+ .no_matching_authority_field{
+     background-color: #FFAAAA !important;
+ }
+
+@media (min-width: 768px) {
+    li.subfield_line label {
+        width: 20em;
+    }
+
+    .input_marceditor {
+        width: 50em;
+    }
+
+    .subfield {
+        width: 14em;
+    }
+}
+
+@media (min-width: 1200px) {
+    li.subfield_line label {
+        width: 25em;
+    }
+
+    .input_marceditor {
+        width: 60em;
+    }
+
+    .subfield {
+        width: 16em;
+    }
+}
+
+.ui-autocomplete {
+    z-index: 2000;
+}
+
+#authoritiestabs .marc_field {
+    display: inline-block;
+    padding: .3em;
+    border-radius: 3px;
+}
+
+#authoritiestabs .marc_subfield {
+    font-weight: bold;
+    color: #666;
+}
+
+#authoritiestabs .marc_subfield_desc {
+    color: #00698a;
+    font-style: italic;
+}
+
+#authoritiestabs .auth_subfield {
+    display: flex;
+}
+
+#authoritiestabs .tag {
+    padding: .4em 0;
+}
+
+#authoritiestabs .tag_desc {
+    color: #026;
+}
+
+#authoritiestabs .tag_num {
+    color: #080;
+}
+
+#authoritiestabs .tag_title {
+    font-size: 100%;
+    font-weight: bold;
+    padding: 0;
+}
+
+#authoritiestabs .ui-tabs-nav.ui-widget-header {
+    border-bottom: 1px solid #b9d8d9;
+    border-radius: 0;
 }

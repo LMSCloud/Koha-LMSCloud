@@ -17,15 +17,11 @@ package C4::Auth_with_ldap;
 # You should have received a copy of the GNU General Public License
 # along with Koha; if not, see <http://www.gnu.org/licenses>.
 
-use strict;
-#use warnings; FIXME - Bug 2505
+use Modern::Perl;
 use Carp;
 
 use C4::Debug;
 use C4::Context;
-use C4::Members qw(AddMember);
-use C4::Members::Attributes;
-use C4::Members::AttributeTypes;
 use C4::Members::Messaging;
 use C4::Auth qw(checkpw_internal);
 use Koha::Patrons;
@@ -54,8 +50,11 @@ sub ldapserver_error {
 }
 
 use vars qw($mapping @ldaphosts $base $ldapname $ldappassword);
-my $context = C4::Context->new() 	or die 'C4::Context->new failed';
 my $ldap = C4::Context->config("ldapserver") or die 'No "ldapserver" in server hash from KOHA_CONF: ' . $ENV{KOHA_CONF};
+# since Bug 28278 we need to skip id in <ldapserver id="ldapserver"> which generates additional hash level
+if ( exists $ldap->{ldapserver} ) {
+    $ldap = $ldap->{ldapserver}         or die ldapserver_error('id="ldapserver"');
+}
 my $prefhost  = $ldap->{hostname}	or die ldapserver_error('hostname');
 my $base      = $ldap->{base}		or die ldapserver_error('base');
 $ldapname     = $ldap->{user}		;
@@ -222,21 +221,35 @@ sub checkpw_ldap {
 		return(1, $cardnumber, $local_userid);
         }
     } elsif ($config{replicate}) { # A2, C2
-        $borrowernumber = C4::Members::AddMember(%borrower) or die "AddMember failed";
+        my @columns = Koha::Patrons->columns;
+        my $patron = Koha::Patron->new(
+            {
+                map { exists( $borrower{$_} ) ? ( $_ => $borrower{$_} ) : () } @columns
+            }
+        )->store;
+        die "Insert of new patron failed" unless $patron;
+        $borrowernumber = $patron->borrowernumber;
         C4::Members::Messaging::SetMessagingPreferencesFromDefaults( { borrowernumber => $borrowernumber, categorycode => $borrower{'categorycode'} } );
    } else {
         return 0;   # B2, D2
     }
     if (C4::Context->preference('ExtendedPatronAttributes') && $borrowernumber && ($config{update} ||$config{replicate})) {
-        foreach my $attribute_type ( C4::Members::AttributeTypes::GetAttributeTypes() ) {
-            my $code = $attribute_type->{code};
+        my $library_id = C4::Context->userenv ? C4::Context->userenv->{'branch'} : undef;
+        my $attribute_types = Koha::Patron::Attribute::Types->search_with_library_limits({}, {}, $library_id);
+        while ( my $attribute_type = $attribute_types->next ) {
+            my $code = $attribute_type->code;
             unless (exists($borrower{$code}) && $borrower{$code} !~ m/^\s*$/ ) {
                 next;
             }
-            if (C4::Members::Attributes::CheckUniqueness($code, $borrower{$code}, $borrowernumber)) {
-                C4::Members::Attributes::UpdateBorrowerAttribute($borrowernumber, {code => $code, attribute => $borrower{$code}});
-            } else {
-                warn "ERROR_extended_unique_id_failed $code $borrower{$code}";
+            my $patron = Koha::Patrons->find($borrowernumber);
+            if ( $patron ) { # Should not be needed, but we are in C4::Auth LDAP...
+                eval {
+                    my $attribute = Koha::Patron::Attribute->new({code => $code, attribute => $borrower{$code}});
+                    $patron->extended_attributes([$attribute->unblessed]);
+                };
+                if ($@) { # FIXME Test if Koha::Exceptions::Patron::Attribute::NonRepeatable
+                    warn "ERROR_extended_unique_id_failed $code $borrower{$code}";
+                }
             }
         }
     }
@@ -269,9 +282,9 @@ sub ldap_entry_2_hash {
 		my  $data = $memberhash{ lc($mapping{$key}->{is}) }; # Net::LDAP returns all names in lowercase
 		$debug and printf STDERR "mapping %20s ==> %-20s (%s)\n", $key, $mapping{$key}->{is}, $data;
 		unless (defined $data) { 
-			$data = $mapping{$key}->{content} || '';	# default or failsafe ''
+            $data = $mapping{$key}->{content} || undef;
 		}
-		$borrower{$key} = ($data ne '') ? $data : ' ' ;
+        $borrower{$key} = $data;
 	}
 	$borrower{initials} = $memberhash{initials} || 
 		( substr($borrower{'firstname'},0,1)
@@ -344,10 +357,10 @@ sub _do_changepassword {
         $sth->execute($borrowerid);
         return $cardnum;
     }
-    my $digest = hash_password($password);
 
+    my $digest = hash_password($password);
     $debug and print STDERR "changing local password for borrowernumber=$borrowerid to '$digest'\n";
-    Koha::Patrons->find($borrowerid)->update_password( $userid, $digest );
+    Koha::Patrons->find($borrowerid)->set_password({ password => $password, skip_validation => 1 });
 
     my ($ok, $cardnum) = checkpw_internal(C4::Context->dbh, $userid, $password);
     return $cardnum if $ok;
@@ -365,8 +378,10 @@ sub update_local {
     # skip extended patron attributes in 'borrowers' attribute update
     my @keys = keys %$borrower;
     if (C4::Context->preference('ExtendedPatronAttributes')) {
-        foreach my $attribute_type ( C4::Members::AttributeTypes::GetAttributeTypes() ) {
-           my $code = $attribute_type->{code};
+        my $library_id = C4::Context->userenv ? C4::Context->userenv->{'branch'} : undef;
+        my $attribute_types = Koha::Patron::Attribute::Types->search_with_library_limits({}, {}, $library_id);
+        while ( my $attribute_type = $attribute_types->next ) {
+           my $code = $attribute_type->code;
            @keys = grep { $_ ne $code } @keys;
            $debug and printf STDERR "ignoring extended patron attribute '%s' in update_local()\n", $code;
         }
@@ -387,7 +402,7 @@ sub update_local {
     );
 
     # MODIFY PASSWORD/LOGIN if password was mapped
-    _do_changepassword($userid, $borrowerid, $password) if $borrower->{'password'};
+    _do_changepassword($userid, $borrowerid, $password) if exists( $borrower->{'password'} );
 }
 
 1;
@@ -462,9 +477,7 @@ C4::Auth - Authenticates Koha users
 		| contactname         | mediumtext   | YES  |     | NULL    |                |
 		| contactfirstname    | text         | YES  |     | NULL    |                |
 		| contacttitle        | text         | YES  |     | NULL    |                |
-		| guarantorid         | int(11)      | YES  | MUL | NULL    |                |
 		| borrowernotes       | mediumtext   | YES  |     | NULL    |                |
-		| relationship        | varchar(100) | YES  |     | NULL    |                |
 		| ethnicity           | varchar(50)  | YES  |     | NULL    |                |
 		| ethnotes            | varchar(255) | YES  |     | NULL    |                |
 		| sex                 | varchar(1)   | YES  |     | NULL    |                |

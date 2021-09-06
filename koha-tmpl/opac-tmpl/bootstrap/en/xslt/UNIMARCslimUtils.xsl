@@ -1,6 +1,6 @@
 <?xml version='1.0'?>
 
-<!DOCTYPE stylesheet [<!ENTITY nbsp "&#160;" >]>
+<!DOCTYPE stylesheet>
 
 <xsl:stylesheet version="1.0"
   xmlns:marc="http://www.loc.gov/MARC21/slim"
@@ -115,7 +115,9 @@
     <xsl:if test="marc:datafield[@tag=$tag]">
       <span class="results_summary {$spanclass}">
         <span class="label">
-        <xsl:value-of select="$label"/>: </span>
+          <xsl:value-of select="$label"/>
+          <xsl:text>: </xsl:text>
+        </span>
         <xsl:for-each select="marc:datafield[@tag=$tag]">
           <xsl:call-template name="addClassRtl" />
           <xsl:for-each select="marc:subfield">
@@ -219,7 +221,7 @@
 
   <xsl:template name="tag_215">
     <xsl:for-each select="marc:datafield[@tag=215]">
-	  <span class="results_summary description">
+      <span class="results_summary description">
         <span class="label">Description: </span>
         <xsl:if test="marc:subfield[@code='a']">
           <xsl:value-of select="marc:subfield[@code='a']"/>
@@ -305,7 +307,7 @@
           <xsl:call-template name="chopPunctuation">
             <xsl:with-param name="chopString">
               <xsl:call-template name="subfieldSelect">
-                <xsl:with-param name="codes">abcdfijkmnpvxyz</xsl:with-param>
+                <xsl:with-param name="codes">abcdfijkmnptvxyz</xsl:with-param>
                 <xsl:with-param name="subdivCodes">ijknpxyz</xsl:with-param>
                 <xsl:with-param name="subdivDelimiter">-- </xsl:with-param>
               </xsl:call-template>
@@ -383,7 +385,7 @@
                 </xsl:if>
               </xsl:for-each>
             </a>
-            <xsl:if test="$IdRef">
+            <xsl:if test="$IdRef = '1'">
               <xsl:if test="marc:subfield[@code=3]">
                 <xsl:text> </xsl:text>
                 <a>

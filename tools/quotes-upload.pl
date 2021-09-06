@@ -27,14 +27,13 @@ use C4::Koha;
 use C4::Context;
 use C4::Output;
 
-my $cgi = new CGI;
+my $cgi = CGI->new;
 
 my ( $template, $borrowernumber, $cookie ) = get_template_and_user(
     {
         template_name   => "tools/quotes-upload.tt",
         query           => $cgi,
         type            => "intranet",
-        authnotrequired => 0,
         flagsrequired   => { tools => 'edit_quotes' },
         debug           => 1,
     }

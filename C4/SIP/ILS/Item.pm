@@ -9,25 +9,28 @@ package C4::SIP::ILS::Item;
 use strict;
 use warnings;
 
-use Sys::Syslog qw(syslog);
+use C4::SIP::Sip qw(siplog);
 use Carp;
 use Template;
 
 use C4::SIP::ILS::Transaction;
+use C4::SIP::Sip qw(add_field);
 
-use C4::Debug;
-use C4::Context;
 use C4::Biblio;
-use C4::Items;
 use C4::Circulation;
+use C4::Context;
+use C4::Debug;
+use C4::Items;
 use C4::Members;
 use C4::Reserves;
-use Koha::Database;
 use Koha::Biblios;
+use Koha::Checkouts::ReturnClaims;
 use Koha::Checkouts;
+use Koha::Database;
 use Koha::DateUtils;
-use Koha::Patrons;
+use Koha::Holds;
 use Koha::Items;
+use Koha::Patrons;
 
 =encoding UTF-8
 
@@ -74,19 +77,25 @@ use Koha::Items;
 sub new {
     my ($class, $item_id) = @_;
     my $type = ref($class) || $class;
-    my $item = Koha::Items->find( { barcode => $item_id } );
+    my $item = Koha::Items->find( { barcode => barcodedecode( $item_id ) } );
     unless ( $item ) {
-        syslog("LOG_DEBUG", "new ILS::Item('%s'): not found", $item_id);
+        siplog("LOG_DEBUG", "new ILS::Item('%s'): not found", $item_id);
         warn "new ILS::Item($item_id) : No item '$item_id'.";
         return;
     }
     my $self = $item->unblessed;
-    $item->{  'itemnumber'   } = $item->itemnumber;
-    $self->{      'id'       } = $item->barcode;     # to SIP, the barcode IS the id.
-    $self->{permanent_location}= $item->homebranch;
-    $self->{'collection_code'} = $item->ccode;
-    $self->{  'call_number'  } = $item->itemcallnumber;
-    $self->{   'location'    } = $item->location;
+
+    $self->{_object}            = $item;
+    $item->{itemnumber}         = $item->itemnumber;
+    $self->{id}                 = $item->barcode; # to SIP, the barcode IS the id.
+    $self->{permanent_location} = $item->homebranch;
+    $self->{collection_code}    = $item->ccode;
+    $self->{call_number}        = $item->itemcallnumber;
+    $self->{location}                      = $item->location;
+    $self->{'shelving_location'}           = $item->location;
+    $self->{'permanent_shelving_location'} = $item->permanent_location;
+
+    $self->{object} = $item;
 
     my $it = $item->effective_itemtype;
     my $itemtype = Koha::Database->new()->schema()->resultset('Itemtype')->find( $it );
@@ -102,12 +111,13 @@ sub new {
         $self->{patron} = $patron->cardnumber;
         $self->{issue_renewals} = $issue->renewals;
         $self->{issue_library} = $issue->branchcode;
+        $self->{borrowernumber} = $patron->borrowernumber;
     }
     my $biblio = Koha::Biblios->find( $self->{biblionumber} );
     my $holds = $biblio->current_holds->unblessed;
     $self->{hold_queue} = $holds;
-    $self->{hold_shelf}    = [( grep {   defined $_->{found}  and $_->{found} eq 'W' } @{$self->{hold_queue}} )];
-    $self->{pending_queue} = [( grep {(! defined $_->{found}) or  $_->{found} ne 'W' } @{$self->{hold_queue}} )];
+    $self->{hold_attached} = [( grep { defined $_->{found}  and ( $_->{found} eq 'W' or $_->{found} eq 'P' or $_->{found} eq 'T' ) } @{$self->{hold_queue}} )];
+    $self->{pending_queue} = [( grep {(! defined $_->{found}) or ( $_->{found} ne 'W' and $_->{found} ne 'P' and $_->{found} ne 'T' ) } @{$self->{hold_queue}} )];
     $self->{title} = $biblio->title;
     $self->{author} = $biblio->author;
     
@@ -117,7 +127,7 @@ sub new {
     
     bless $self, $type;
 
-    syslog( "LOG_DEBUG", "new ILS::Item('%s'): found with title '%s'",
+    siplog( "LOG_DEBUG", "new ILS::Item('%s'): found with title '%s'",
         $item_id, $self->{title} // '' );
 
     return $self;
@@ -140,6 +150,8 @@ my %fields = (
     barcode             => 0,
     onloan              => 0,
     collection_code     => 0,
+    shelving_location   => 0,
+    permanent_shelving_location   => 0,
     call_number         => 0,
     enumchron           => 0,
     location            => 0,
@@ -149,8 +161,8 @@ my %fields = (
 
 sub next_hold {
     my $self = shift;
-    # use Data::Dumper; warn "next_hold() hold_shelf: " . Dumper($self->{hold_shelf}); warn "next_hold() pending_queue: " . $self->{pending_queue};
-    foreach (@{$self->hold_shelf}) {    # If this item was taken from the hold shelf, then that reserve still governs
+    # use Data::Dumper; warn "next_hold() hold_attached: " . Dumper($self->{hold_attached}); warn "next_hold() pending_queue: " . $self->{pending_queue};
+    foreach (@{$self->hold_attached}) {    # If this item was taken from the hold shelf, then that reserve still governs
         next unless ($_->{itemnumber} and $_->{itemnumber} == $self->{itemnumber});
         return $_;
     }
@@ -177,7 +189,7 @@ sub hold_patron_id {
 }
 sub hold_patron_name {
     my ( $self, $template ) = @_;
-    my $borrowernumber = $self->hold_patron_id() or return;
+    my $borrowernumber = $self->hold_patron_id() or return q{};
 
     if ($template) {
         my $tt = Template->new();
@@ -191,8 +203,8 @@ sub hold_patron_name {
 
     my $holder = Koha::Patrons->find( $borrowernumber );
     unless ($holder) {
-        syslog("LOG_ERR", "While checking hold, failed to retrieve the patron with borrowernumber '$borrowernumber'");
-        return;
+        siplog("LOG_ERR", "While checking hold, failed to retrieve the patron with borrowernumber '$borrowernumber'");
+        return q{};
     }
     my $email = $holder->email || '';
     my $phone = $holder->phone || '';
@@ -206,12 +218,12 @@ sub hold_patron_name {
 
 sub hold_patron_bcode {
     my $self = shift;
-    my $borrowernumber = (@_ ? shift: $self->hold_patron_id()) or return;
+    my $borrowernumber = (@_ ? shift: $self->hold_patron_id()) or return q{};
     my $holder = Koha::Patrons->find( $borrowernumber );
     if ($holder and $holder->cardnumber ) {
         return $holder->cardnumber;
     }
-    return;
+    return q();
 }
 
 sub destination_loc {
@@ -264,10 +276,19 @@ sub title_id {
 
 sub sip_circulation_status {
     my $self = shift;
-    if ( $self->{patron} ) {
+    if ( $self->{_object}->get_transfer ) {
+        return '10'; # in transit between libraries
+    }
+    elsif ( Koha::Checkouts::ReturnClaims->search({ itemnumber => $self->{_object}->id, resolution => undef })->count ) {
+        return '11';    # claimed returned
+    }
+    elsif ( $self->{itemlost} ) {
+        return '12';    # lost
+    }
+    elsif ( $self->{borrowernumber} ) {
         return '04';    # charged
     }
-    elsif ( grep { $_->{itemnumber} == $self->{itemnumber}  } @{ $self->{hold_shelf} } ) {
+    elsif ( grep { $_->{itemnumber} == $self->{itemnumber}  } @{ $self->{hold_attached} } ) {
         return '08';    # waiting on hold shelf
     }
     else {
@@ -306,10 +327,10 @@ sub pending_queue {
 	(defined $self->{pending_queue}) or return [];
     return $self->{pending_queue};
 }
-sub hold_shelf {
+sub hold_attached {
     my $self = shift;
-	(defined $self->{hold_shelf}) or return [];
-    return $self->{hold_shelf};
+    (defined $self->{hold_attached}) or return [];
+    return $self->{hold_attached};
 }
 
 sub hold_queue_position {
@@ -353,10 +374,9 @@ sub recall_date {
 sub hold_pickup_date {
     my $self = shift;
 
-    foreach my $hold ( @{ $self->{hold_shelf} } ) {
-        if ( $hold->{itemnumber} == $self->{itemnumber}  ) {
-            return $hold->{expirationdate};
-        }
+    my $hold = Koha::Holds->find({ itemnumber => $self->{itemnumber}, found => 'W' });
+    if ( $hold ) {
+        return $hold->expirationdate || 0;
     }
 
     return 0;
@@ -368,7 +388,7 @@ sub hold_pickup_date {
 #    AND no pending (i.e. non-W) hold queue
 # OR
 # 2) not checked out
-#    AND (not on hold_shelf OR is on hold_shelf for patron)
+#    AND (not on hold_attached OR is on hold_attached for patron)
 #
 # What this means is we are consciously allowing the patron to checkout (but not renew) an item that DOES
 # have non-W holds on it, but has not been "picked" from the stacks.  That is to say, the
@@ -380,13 +400,13 @@ sub hold_pickup_date {
 sub available {
 	my ($self, $for_patron) = @_;
 	my $count  = (defined $self->{pending_queue}) ? scalar @{$self->{pending_queue}} : 0;
-	my $count2 = (defined $self->{hold_shelf}   ) ? scalar @{$self->{hold_shelf}   } : 0;
-	$debug and print STDERR "availability check: pending_queue size $count, hold_shelf size $count2\n";
-    if (defined($self->{patron_id})) {
-	 	($self->{patron_id} eq $for_patron) or return 0;
+    my $count2 = (defined $self->{hold_attached}   ) ? scalar @{$self->{hold_attached}   } : 0;
+    $debug and print STDERR "availability check: pending_queue size $count, hold_attached size $count2\n";
+    if (defined($self->{borrowernumber})) {
+        ($self->{borrowernumber} eq $for_patron) or return 0;
 		return ($count ? 0 : 1);
 	} else {	# not checked out
-        ($count2) and return $self->barcode_is_borrowernumber($for_patron, $self->{hold_shelf}[0]->{borrowernumber});
+        ($count2) and return $self->barcode_is_borrowernumber($for_patron, $self->{hold_attached}[0]->{borrowernumber});
 	}
 	return 0;
 }
@@ -414,6 +434,35 @@ sub fill_reserve {
     }
     return ModReserveFill($hold);
 }
+
+=head2 build_additional_item_fields_string
+
+This method builds the part of the sip message for additional item fields
+to send in the item related message responses
+
+=cut
+
+sub build_additional_item_fields_string {
+    my ( $self, $server ) = @_;
+
+    my $string = q{};
+
+    if ( $server->{account}->{item_field} ) {
+        my @fields_to_send =
+          ref $server->{account}->{item_field} eq "ARRAY"
+          ? @{ $server->{account}->{item_field} }
+          : ( $server->{account}->{item_field} );
+
+        foreach my $f ( @fields_to_send ) {
+            my $code = $f->{code};
+            my $value = $self->{object}->$code;
+            $string .= add_field( $f->{field}, $value );
+        }
+    }
+
+    return $string;
+}
+
 1;
 __END__
 

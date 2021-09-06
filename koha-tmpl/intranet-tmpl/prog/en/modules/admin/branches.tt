@@ -1,41 +1,81 @@
+[% USE Koha %]
+[% USE raw %]
 [% USE Asset %]
 [% USE Branches %]
 [% SET footerjs = 1 %]
+[% USE TablesSettings %]
 [% INCLUDE 'doc-head-open.inc' %]
-<title>Koha &rsaquo; Administration &rsaquo; Libraries
+<title>
 [% IF op == 'add_form' %]
-    &rsaquo;[% IF library %]Modify library[% ELSE %]New library [% library.branchcode | html %][% END %]
-[% ELSIF op == 'delete_confirm' %]
-    &rsaquo; Confirm deletion of library '[% library.branchcode | html %]'
-[% END %]
+    [% IF library %]
+        Modify library
+    [% ELSE %]
+        New library [% library.branchcode | html %]
+    [% END %] &rsaquo; [% ELSIF op == 'delete_confirm' %]
+    Confirm deletion of library '[% library.branchcode | html %]' &rsaquo; [% END %]
+Libraries &rsaquo; Administration &rsaquo; Koha
 </title>
 [% INCLUDE 'doc-head-close.inc' %]
-[% Asset.css("css/datatables.css") %]
 </head>
 
 <body id="admin_branches" class="admin">
 [% INCLUDE 'header.inc' %]
 [% INCLUDE 'prefs-admin-search.inc' %]
 
-<div id="breadcrumbs">
-    <a href="/cgi-bin/koha/mainpage.pl">Home</a>
-&rsaquo; <a href="/cgi-bin/koha/admin/admin-home.pl">Administration</a>
-&rsaquo; <a href="/cgi-bin/koha/admin/branches.pl">Libraries</a>
-[% IF op == 'add_form'  %]
-&rsaquo; [% IF library %]Modify library[% ELSE %]New library [% library.branchcode | html %][% END %]
-[% ELSIF op == 'delete_confirm' %]
-&rsaquo; Confirm deletion of library '[% library.branchcode | html %]'
-[% END %]
-</div>
+<nav id="breadcrumbs" aria-label="Breadcrumb" class="breadcrumb">
+    <ol>
+        <li>
+            <a href="/cgi-bin/koha/mainpage.pl">Home</a>
+        </li>
+        <li>
+            <a href="/cgi-bin/koha/admin/admin-home.pl">Administration</a>
+        </li>
 
-<div id="doc3" class="yui-t2">
+        [% IF op == 'add_form'  %]
+            <li>
+                <a href="/cgi-bin/koha/admin/branches.pl">Libraries</a>
+            </li>
+            [% IF library %]
+                <li>
+                    <a href="#" aria-current="page">
+                        Modify library
+                    </a>
+                </li>
+            [% ELSE %]
+                <li>
+                    <a href="#" aria-current="page">
+                        New library [% library.branchcode | html %]
+                    </a>
+                </li>
+            [% END %]
 
-   <div id="bd">
-    <div id="yui-main">
-    <div class="yui-b">
+        [% ELSIF op == 'delete_confirm' %]
+            <li>
+                <a href="/cgi-bin/koha/admin/branches.pl">Libraries</a>
+            </li>
+            <li>
+                <a href="#" aria-current="page">
+                    Confirm deletion of library '[% library.branchcode | html %]'
+                </a>
+            </li>
+
+        [% ELSE %]
+            <li>
+                <a href="#" aria-current="page">
+                    Libraries
+                </a>
+            </li>
+        [% END %]
+    </ol>
+</nav>
+
+<div class="main container-fluid">
+    <div class="row">
+        <div class="col-sm-10 col-sm-push-2">
+            <main>
 
 [% FOREACH m IN messages %]
-    <div class="dialog [% m.type %]">
+    <div class="dialog [% m.type | html %]">
         [% SWITCH m.code %]
         [% CASE 'error_on_update' %]
             An error occurred when updating this library. Perhaps it already exists.
@@ -52,11 +92,11 @@
         [% CASE 'cannot_delete_library' %]
             This library cannot be deleted. Patrons or items are still using it
             [% IF m.data.patrons_count and m.data.items_count %]
-                ([% m.data.patrons_count %] patrons and [% m.data.items_count %] items).
+                ([% m.data.patrons_count | html %] patrons and [% m.data.items_count | html %] items).
             [% ELSIF m.data.patrons_count %]
-                ([% m.data.patrons_count %] patrons).
+                ([% m.data.patrons_count | html %] patrons).
             [% ELSIF m.data.items_count %]
-                ([% m.data.items_count %] items).
+                ([% m.data.items_count | html %] items).
             [% END %]
         [% CASE 'error_on_update_category' %]
             An error occurred when updating this library category. Perhaps it already exists.
@@ -71,16 +111,16 @@
         [% CASE 'success_on_delete_category' %]
             Library category deleted successfully.
         [% CASE 'cannot_delete_category' %]
-            This library category cannot be deleted. [% m.data.libraries_count %] libraries are still using it.
+            This library category cannot be deleted. [% m.data.libraries_count | html %] libraries are still using it.
         [% CASE %]
-            [% m.code %]
+            [% m.code | html %]
         [% END %]
     </div>
 [% END %]
 
 [% IF op == 'list' %]
     <div id="toolbar" class="btn-toolbar">
-        <a class="btn btn-default btn-sm" id="newbranch" href="/cgi-bin/koha/admin/branches.pl?op=add_form"><i class="fa fa-plus"></i> New library</a>
+        <a class="btn btn-default" id="newbranch" href="/cgi-bin/koha/admin/branches.pl?op=add_form"><i class="fa fa-plus"></i> New library</a>
     </div>
 [% END %]
 
@@ -96,17 +136,21 @@
                 <li>
                     [% IF library %]
                         <span class="label">Library code: </span>
-                        <input type="hidden" name="branchcode" value="[% library.branchcode |html %]" />
+                        <input type="hidden" name="branchcode" value="[% library.branchcode | html %]" />
                         [% library.branchcode | html %]
                     [% ELSE %]
                         <label for="branchcode" class="required">Library code: </label>
-                        <input type="text" name="branchcode" id="branchcode" size="10" maxlength="10" value="[% library.branchcode |html %]" class="required" required="required" />
+                        <input type="text" name="branchcode" id="branchcode" size="10" maxlength="10" value="[% library.branchcode | html %]" class="required focus" required="required" />
                         <span class="required">Required</span>
                     [% END %]
                 </li>
                 <li>
                     <label for="branchname" class="required">Name: </label>
-                    <input type="text" name="branchname" id="branchname" size="80" value="[% library.branchname |html %]" class="required" required="required" />
+                    [% IF library %]
+                        <input type="text" name="branchname" id="branchname" size="80" value="[% library.branchname | html %]" class="required focus" required="required" />
+                    [% ELSE %]
+                        <input type="text" name="branchname" id="branchname" size="80" value="[% library.branchname | html %]" class="required" required="required" />
+                    [% END %]
                     <span class="required">Required</span>
                 </li>
             </ol>
@@ -116,13 +160,13 @@
                 <ol>
                     [% FOREACH category IN categories %]
                         <li>
-                            <label for="[% category.categorycode %]">[% category.categoryname |html %]: </label>
+                            <label for="[% category.categorycode | html %]">[% category.categoryname | html %]: </label>
                             [% IF category and selected_categorycodes.grep(category.categorycode).size %]
-                                <input type="checkbox" id="[% category.categorycode %]" name="selected_categorycode_[% category.categorycode %]" checked="checked" />
+                                <input type="checkbox" id="[% category.categorycode | html %]" name="selected_categorycode_[% category.categorycode | html %]" checked="checked" />
                             [% ELSE %]
-                                <input type="checkbox" id="[% category.categorycode %]" name="selected_categorycode_[% category.categorycode %]" />
+                                <input type="checkbox" id="[% category.categorycode | html %]" name="selected_categorycode_[% category.categorycode | html %]" />
                             [% END %]
-                            <span class="hint">[% category.codedescription |html %]</span>
+                            <div class="hint">[% category.codedescription | html %]</div>
                         </li>
                     [% END %]
                 </ol>
@@ -130,23 +174,87 @@
         [% END %]
         <fieldset class="rows">
             <ol>
-                <li><label for="branchaddress1">Address line 1: </label><input type="text" name="branchaddress1" id="branchaddress1" size="60" value="[% library.branchaddress1 |html %]" /></li>
-                <li><label for="branchaddress2">Address line 2: </label><input type="text" name="branchaddress2" id="branchaddress2" size="60" value="[% library.branchaddress2 |html %]" /></li>
-                <li><label for="branchaddress3">Address line 3: </label><input type="text" name="branchaddress3" id="branchaddress3" size="60" value="[% library.branchaddress3 |html %]" /></li>
-                <li><label for="branchcity">City: </label><input type="text" name="branchcity" id="branchcity" size="60" value="[% library.branchcity |html %]" /></li>
-                <li><label for="branchstate">State: </label><input type="text" name="branchstate" id="branchstate" size="60" value="[% library.branchstate |html %]" /></li>
-                <li><label for="branchzip">ZIP/Postal code: </label><input type="text" name="branchzip" id="branchzip"  size="25" maxlength="25" value="[% library.branchzip |html %]" /></li>
-                <li><label for="branchcountry">Country: </label><input type="text" name="branchcountry" id="branchcountry" size="60" value="[% library.branchcountry |html %]" /></li>
-                <li><label for="branchphone">Phone: </label><input type="text" name="branchphone" id="branchphone" size="60" value="[% library.branchphone |html %]" /></li>
-                <li><label for="branchfax">Fax: </label><input type="text" name="branchfax" id="branchfax" size="60" value="[% library.branchfax |html %]" /></li>
-                <li><label for="branchemail">Email: </label><input type="text" name="branchemail" id="branchemail" class="email"  size="80" value="[% library.branchemail |html %]" /></li>
-                <li><label for="branchreplyto">Reply-To: </label> <input type="text" name="branchreplyto" id="branchreplyto" class="email"  size="80" value="[% library.branchreplyto |html %]" /><br /><span class="hint">Default: ReplyToDefault system preference</span></li>
-                <li><label for="branchreturnpath">Return-Path: </label> <input type="text" name="branchreturnpath" id="branchreturnpath" class="email"  size="80" value="[% library.branchreturnpath |html %]" /><br /><span class="hint">Default: ReturnpathDefault system preference</span></li>
-                <li><label for="branchurl">URL: </label><input type="text" name="branchurl" id="branchurl"  size="80" value="[% library.branchurl |html %]" class="url" /></li>
-                <li><label for="opac_info">OPAC info: </label><textarea name="opac_info" id="opac_info">[% library.opac_info |html %]</textarea></li>
-                <li><label for="branchip">IP: </label><input type="text" name="branchip" id="branchip"  size="15" maxlength="15" value="[% library.branchip |html %]" /> <span class="hint">Can be entered as a single IP, or a subnet such as 192.168.1.*</span></li>
-                <li><label for="marcorgccode">MARC organization code</label> <input type="text" name="marcorgcode" id="marcorgcode" size="16" value="[% library.marcorgcode |html %]" /> <span class="hint">If not filled in defaults to system preference MARCOrgCode. You can obtain your code from <a href="http://www.loc.gov/marc/organizations/orgshome.html" target="_blank">Library of Congress</a>.</span>
-                <li><label for="branchnotes">Notes: </label><input type="text" name="branchnotes" id="branchnotes" size="80" value="[% library.branchnotes |html %]" /></li>
+                <li><label for="branchaddress1">Address line 1: </label><input type="text" name="branchaddress1" id="branchaddress1" size="60" value="[% library.branchaddress1 | html %]" /></li>
+                <li><label for="branchaddress2">Address line 2: </label><input type="text" name="branchaddress2" id="branchaddress2" size="60" value="[% library.branchaddress2 | html %]" /></li>
+                <li><label for="branchaddress3">Address line 3: </label><input type="text" name="branchaddress3" id="branchaddress3" size="60" value="[% library.branchaddress3 | html %]" /></li>
+                <li><label for="branchcity">City: </label><input type="text" name="branchcity" id="branchcity" size="60" value="[% library.branchcity | html %]" /></li>
+                <li><label for="branchstate">State: </label><input type="text" name="branchstate" id="branchstate" size="60" value="[% library.branchstate | html %]" /></li>
+                <li><label for="branchzip">ZIP/Postal code: </label><input type="text" name="branchzip" id="branchzip"  size="25" maxlength="25" value="[% library.branchzip | html %]" /></li>
+                <li><label for="branchcountry">Country: </label><input type="text" name="branchcountry" id="branchcountry" size="60" value="[% library.branchcountry | html %]" /></li>
+                <li><label for="branchphone">Phone: </label><input type="text" name="branchphone" id="branchphone" size="60" value="[% library.branchphone | html %]" /></li>
+                <li><label for="branchfax">Fax: </label><input type="text" name="branchfax" id="branchfax" size="60" value="[% library.branchfax | html %]" /></li>
+                <li><label for="branchemail">Email: </label><input type="text" name="branchemail" id="branchemail" class="email"  size="80" value="[% library.branchemail | html %]" /></li>
+                [% IF (Koha.Preference('ILLModule')) %]
+                <li>
+                    <label for="branchillemail">ILL staff email: </label>
+                    <input type="text" name="branchillemail" id="branchillemail" class="email"  size="80" value="[% library.branchillemail | html %]" />
+                    <div class="hint">
+                        [% IF ( CAN_user_parameters_manage_sysprefs ) %]
+                            Default: <a target="_blank" href="/cgi-bin/koha/admin/preferences.pl?tab=&op=search&searchfield=ILLDefaultStaffEmail">ILLDefaultStaffEmail</a> system preference
+                        [% ELSE %]
+                            Default: ILLDefaultStaffEmail system preference
+                        [% END %]
+                    </div>
+                </li>
+                [% END %]
+                <li>
+                    <label for="branchreplyto">Reply-To: </label>
+                    <input type="text" name="branchreplyto" id="branchreplyto" class="email"  size="80" value="[% library.branchreplyto | html %]" />
+                    <div class="hint">
+                         [% IF ( CAN_user_parameters_manage_sysprefs ) %]
+                            Default: <a target="_blank" href="/cgi-bin/koha/admin/preferences.pl?tab=&op=search&searchfield=ReplyToDefault">ReplyToDefault</a> system preference
+                        [% ELSE %]
+                            Default: ReplyToDefault system preference
+                        [% END %]
+                    </div>
+                </li>
+                <li>
+                    <label for="branchreturnpath">Return-Path: </label>
+                    <input type="text" name="branchreturnpath" id="branchreturnpath" class="email"  size="80" value="[% library.branchreturnpath | html %]" />
+                    <div class="hint">
+                         [% IF ( CAN_user_parameters_manage_sysprefs ) %]
+                            Default: <a target="_blank" href="/cgi-bin/koha/admin/preferences.pl?tab=&op=search&searchfield=ReturnpathDefault">ReturnpathDefault</a> system preference
+                        [% ELSE %]
+                            Default: ReturnpathDefault system preference
+                        [% END %]
+                    </div>
+                </li>
+                <li><label for="smtp_server">SMTP server: </label>
+                    <select name="smtp_server" id="smtp_server">
+                    [% IF selected_smtp_server.is_system_default %]
+                        <option value="*" selected="selected">Default</option>
+                    [% ELSE %]
+                        <option value="*">Default</option>
+                    [% END %]
+                    [% FOREACH smtp_server IN smtp_servers %]
+                        [% IF smtp_server.id == selected_smtp_server.id %]
+                            <option value="[% smtp_server.id | html %]" selected="selected">[% smtp_server.name | html %]</option>
+                        [% ELSE %]
+                            <option value="[% smtp_server.id | html %]">[% smtp_server.name | html %]</option>
+                        [% END %]
+                    [% END %]
+                    </select>
+                </li>
+                <li><label for="branchurl">URL: </label><input type="text" name="branchurl" id="branchurl"  size="80" value="[% library.branchurl | html %]" class="url" /></li>
+                <li><label for="opac_info">OPAC info: </label><textarea name="opac_info" id="opac_info">[% library.opac_info | $raw %]</textarea></li>
+                <li>
+                    <label for="branchip">IP: </label>
+                    <input type="text" name="branchip" id="branchip"  size="15" maxlength="15" value="[% library.branchip | html %]" />
+                    <div class="hint">Can be entered as a single IP, or a subnet such as 192.168.1.*</div>
+                </li>
+                <li>
+                    <label for="marcorgcode">MARC organization code</label>
+                    <input type="text" name="marcorgcode" id="marcorgcode" size="16" value="[% library.marcorgcode | html %]" />
+                    <div class="hint">
+                        [% IF ( CAN_user_parameters_manage_sysprefs ) %]
+                            If not filled in defaults to system preference <a target="_blank" href="/cgi-bin/koha/admin/preferences.pl?tab=&op=search&searchfield=MARCOrgCode">MARCOrgCode</a>.
+                        [% ELSE %]
+                            If not filled in defaults to system preference MARCOrgCode.
+                        [% END %]
+                        You can obtain your code from <a href="http://www.loc.gov/marc/organizations/orgshome.html" target="_blank">Library of Congress</a>.
+                    </div>
+                </li>
+                <li><label for="branchnotes">Notes: </label><input type="text" name="branchnotes" id="branchnotes" size="80" value="[% library.branchnotes | html %]" /></li>
                 [% IF ( bookmobileactive ) %]
                 [% mobilebranches = Branches.all( selected => branch, restrict => 'NoMobileStations' ) %]
                 <li>
@@ -164,6 +272,17 @@
                      <span class="hint">Used for bookmobile stations to refer to the corresponding bookmobile library. By assigning a bookmobile library, the library will be treated as bookmobile station.</span>
                 </li>
                 [% END %]
+                <li><label for="pickup_location">Pickup location: </label>
+                    <select name="pickup_location" id="pickup_location">
+                        [% IF !library || library.pickup_location == 1 %]
+                        <option value="1" selected="selected">Yes</option>
+                        <option value="0">No</option>
+                        [% ELSE %]
+                        <option value="1">Yes</option>
+                        <option value="0" selected="selected">No</option>
+                        [% END %]
+                    </select>
+                </li>
             </ol>
         </fieldset>
         <fieldset class="action">
@@ -176,10 +295,10 @@
 [% IF op == 'delete_confirm' and not ( items_count or patrons_count )%]
     <div class="dialog alert">
         <form action="/cgi-bin/koha/admin/branches.pl" method="post">
-            <h3>Are you sure you want to delete [% library.branchname |html %] ([% library.branchcode | html %])?</h3>
+            <h3>Are you sure you want to delete [% library.branchname | html %] ([% library.branchcode | html %])?</h3>
             <input type="hidden" name="op" value="delete_confirmed" />
-            <input type="hidden" name="branchcode" value="[% library.branchcode |html %]" />
-            <input type="hidden" name="branchname" value="[% library.branchname |html %]">
+            <input type="hidden" name="branchcode" value="[% library.branchcode | html %]" />
+            <input type="hidden" name="branchname" value="[% library.branchname | html %]">
             <button type="submit" class="approve"><i class="fa fa-fw fa-check"></i> Yes, delete</button>
         </form>
         <form action="/cgi-bin/koha/admin/branches.pl" method="get">
@@ -190,8 +309,8 @@
 
 [% IF op == 'list' %]
     <h3>Libraries</h3>
-    [% IF libraries.count %]
-        <table id="branchest">
+    [% IF libraries_count > 0 %]
+        <table id="libraries">
             <thead>
                 <tr>
                     <th>Name</th>
@@ -200,81 +319,235 @@
                     <th>MARC organization code</th>
                     <th>IP</th>
                     [% IF ( bookmobileactive ) %]<th>Bookmobile station of</th>[% END %]
-                    <th>Actions</th>
+                    <th>Pickup location</th>
+                    <th>SMTP server</th>
+                    <th data-class-name="actions noExport">Actions</th>
                 </tr>
             </thead>
-            <tbody>
-                [% FOREACH library IN libraries %]
-                    <tr>
-                        <td>[% library.branchname |html %]</td>
-                        <td>[% library.branchcode |html %]</td>
-                        <td>
-                            [% IF library.branchaddress1 %]
-                                [% library.branchaddress1 |html %][% END %]
-                            [% IF library.branchaddress2 %]
-                                <br />[% library.branchaddress2 |html %][% END %]
-                            [% IF library.branchaddress3 %]
-                                <br />[% library.branchaddress3 |html %][% END %]
-                            [% IF library.branchcity %]
-                                <br />[% library.branchcity |html %][% END %][% IF ( library.branchstate ) %],
-                                [% library.branchstate |html %][% END %]
-                            [% IF library.branchzip %]
-                                [% library.branchzip |html %][% END %]
-                            [% IF library.branchcountry %]
-                                <br />[% library.branchcountry |html %][% END %]
-                            [% IF library.branchphone %]
-                                <br />Ph: [% library.branchphone |html %][% END %]
-                            [% IF library.branchfax %]
-                                <br />Fax: [% library.branchfax |html %][% END %]
-                            [% IF library.branchemail %]
-                                <br /><a href="mailto:[% library.branchemail %]">[% library.branchemail |html %]</a>[% END %]
-                            [% IF library.branchurl %]
-                                <br /><a href="[% library.branchurl %]">[% library.branchurl |html %]</a>[% END %]
-                            [% IF library.opac_info %]
-                                <br />OPAC Info: <div>[% library.opac_info %]</div>[% END %]
-                            [% IF library.branchnotes %]
-                                <br />Notes: [% library.branchnotes |html %][% END %]
-                        </td>
-                        <td>[% library.marcorgcode %]</td>
-                        <td>[% library.branchip %]</td>
-                        [% IF ( bookmobileactive ) %]<td>[% library.mobilebranch %]</td>[% END %]
-                        <td class="actions">
-                            <a class="btn btn-default btn-xs" href="/cgi-bin/koha/admin/branches.pl?op=add_form&amp;branchcode=[% library.branchcode |uri %]"><i class="fa fa-pencil"></i> Edit</a>
-                            <form action="/cgi-bin/koha/admin/branches.pl" method="post">
-                                <input type="hidden" name="branchcode" value="[% library.branchcode |html %]" />
-                                <input type="hidden" name="op" value="delete_confirm" />
-                                <button type="submit" id="delete_library_[% library.branchcode | html %]" class="btn btn-default btn-xs"><i class="fa fa-trash"></i> Delete</button>
-                            </form>
-                        </td>
-                    </tr>
-                [% END %]
-            </tbody>
         </table>
     [% ELSE %]
         <div class="dialog message">There are no libraries defined. <a href="/cgi-bin/koha/admin/branches.pl?op=add_form">Start defining libraries</a>.</div>
     [% END %]
 [% END %]
 
-</div>
-</div>
-<div class="yui-b">
-[% INCLUDE 'admin-menu.inc' %]
-</div>
-</div>
+            </main>
+        </div> <!-- /.col-sm-10.col-sm-push-2 -->
+
+        <div class="col-sm-2 col-sm-pull-10">
+            <aside>
+                [% INCLUDE 'admin-menu.inc' %]
+            </aside>
+        </div> <!-- /.col-sm-2.col-sm-pull-10 -->
+     </div> <!-- /.row -->
 
 [% MACRO jsinclude BLOCK %]
-    [% Asset.js("js/admin-menu.js") %]
+    [% Asset.js("js/admin-menu.js") | $raw %]
     [% INCLUDE 'datatables.inc' %]
-    [% Asset.js("lib/tiny_mce/tiny_mce.js") %]
-    <script type="text/javascript">
+    [% INCLUDE 'columns_settings.inc' %]
+    [% Asset.js("lib/tiny_mce/tinymce.min.js") | $raw %]
+    [% INCLUDE 'str/tinymce_i18n.inc' %]
+    <script>
+        function is_empty(x)
+        {
+            return (                                                           //don't put newline after return
+                (typeof x == 'undefined')
+                      ||
+                (x == null)
+                      ||
+                (x == false)        //same as: !x
+                      ||
+                (x.length == 0)
+                      ||
+                (x == 0)            // note this line, you might not need this. 
+                      ||
+                (x == "")
+                      ||
+                (x.replace(/\s/g,"") == "")
+                      ||
+                (!/[^\s]/.test(x))
+                      ||
+                (/^\s*$/.test(x))
+            );
+        }
+
+        var columns_settings = [% TablesSettings.GetColumns( 'admin', 'libraries', 'libraries', 'json' ) | $raw %];
         $(document).ready(function() {
-            $("#branchest").dataTable($.extend(true, {}, dataTablesDefaults, {
-                "aoColumnDefs": [
-                    { "aTargets": [ -1 ], "bSortable": false, "bSearchable": false },
-                ],
-                "iDisplayLength": 10,
-                "sPaginationType": "four_button"
-            }));
+
+            var libraries_url = '/api/v1/libraries';
+            var libraries = $("#libraries").api({
+                "ajax": {
+                    "url": libraries_url
+                },
+                'embed': [ 'smtp_server' ],
+                'emptyTable': '<div class="dialog message">'+_("There are no libraries defined.")+' <a href="/cgi-bin/koha/admin/branches.pl?op=add_form">'+_("Start defining libraries")+'</a>.</div>',
+                "columnDefs": [ {
+                    [% IF ( bookmobileactive ) %]
+                    "targets": [0,1,3,4,5,6,9,10,11,12,13,14,15],
+                    [% ELSE %]
+                    "targets": [0,1,3,4,5,8,9,10,11,12,13,14,15],
+                    [% END %]
+                    "render": function (data, type, row, meta) {
+                        if ( type == 'display' ) {
+                            if ( data != null ) {
+                                return data.escapeHtml();
+                            }
+                            else {
+                                return "";
+                            }
+                        }
+                        return data;
+                    }
+                } ],
+                "columns": [
+                    {
+                        "data": "name",
+                        "searchable": true,
+                        "orderable": true
+                    },
+                    {
+                        "data": "library_id",
+                        "searchable": true,
+                        "orderable": true
+                    },
+                    {
+                        "data": function( row, type, val, meta ) {
+                            const library_info = [];
+                            if ( !is_empty(row.address1) ) library_info.push(row.address1.escapeHtml());
+                            if ( !is_empty(row.address2) ) library_info.push(row.address2.escapeHtml());
+                            if ( !is_empty(row.address3) ) library_info.push(row.address3.escapeHtml());
+                            // geographical_location = city, state postal_code
+                            const locations = [];
+                            if ( !is_empty(row.city) ) locations.push(row.city.escapeHtml());
+                            if ( !is_empty(row.state) ) locations.push(row.state.escapeHtml());
+                            const geographical_location = locations.join(', ');
+                            if ( !is_empty(geographical_location) && !is_empty(row.postal_code) ) {
+                                library_info.push(geographical_location+' '+row.postal_code.escapeHtml());
+                            }
+                            else if ( !is_empty(geographical_location) ) {
+                                library_info.push(geographical_location);
+                            }
+                            if ( !is_empty(row.country) ) library_info.push(row.country.escapeHtml());
+                            if ( !is_empty(row.phone) ) library_info.push(_("Ph: ") + row.phone.escapeHtml());
+                            if ( !is_empty(row.fax) ) library_info.push(_("Fax: ") + row.fax.escapeHtml());
+                            if ( !is_empty(row.email)) library_info.push('<a href="mailto:'+encodeURIComponent(row.email)+'">'+row.email.escapeHtml()+'</a>');
+                            if ( !is_empty(row.url) ) library_info.push('<a href="'+encodeURIComponent(row.url)+'">'+row.url.escapeHtml()+'</a>');
+                            if ( !is_empty(row.opac_info)) library_info.push(_("OPAC Info") + ': <div>'+row.opac_info+'</div>');
+                            if ( !is_empty(row.notes) ) library_info.push(_("Notes")+': '+row.notes.escapeHtml());
+                            return library_info.join('<br/>');
+                        },
+                        "searchable": false,
+                        "orderable": false
+                    },
+                    {
+                        "data": "marc_org_code",
+                        "searchable": true,
+                        "orderable": true
+                    },
+                    {
+                        "data": "ip",
+                        "searchable": true,
+                        "orderable": true
+                    },
+                    [% IF ( bookmobileactive ) %]
+                    {
+                        "data": "mobilebranch",
+                        "searchable": true,
+                        "orderable": true
+                    },
+                    [% END %]
+                    {
+                        "data": "pickup_location",
+                        "searchable": true,
+                        "orderable": true,
+                        "render": function( data, type, row, meta ) {
+                            return (data) ? _("Yes") : _("No");
+                        }
+                    },
+                    {
+                        "data": "smtp_server",
+                        "render": function( data, type, row, meta ) {
+                            if ( data.smtp_server_id ) {
+                                return '<a href="/cgi-bin/koha/admin/smtp_servers.pl?op=edit_form&smtp_server_id='+encodeURIComponent(data.smtp_server_id)+'">'+data.name.escapeHtml()+'</a>';
+                            }
+                            else {
+                                return _("Default");
+                            }
+                        },
+                        "searchable": false,
+                        "visible": true,
+                        "orderable": false
+                    },
+                    {
+                        "data": function( row, type, val, meta ) {
+
+                            var result = '<a class="btn btn-default btn-xs" href="/cgi-bin/koha/admin/branches.pl?op=add_form&amp;branchcode='+encodeURIComponent(row.library_id)+'" role="button"><i class="fa fa-pencil" aria-hidden="true"></i> '+_("Edit")+'</a>';
+                            result += '<form action="/cgi-bin/koha/admin/branches.pl" method="post">';
+                            result += '<input type="hidden" name="branchcode" value="'+row.library_id.escapeHtml()+'" />'+"\n";
+                            result += '<input type="hidden" name="op" value="delete_confirm" />';
+                            result += '<button type="submit" id="delete_library_'+row.library_id.escapeHtml()+'" class="btn btn-default btn-xs" role="button"><i class="fa fa-trash" aria-hidden="true"></i> '+_("Delete")+'</button></form>';
+
+                            return result;
+
+                        },
+                        "searchable": false,
+                        "orderable": false
+                    },
+                    {
+                        "data": "address1",
+                        "searchable": true,
+                        "visible": false,
+                        "orderable": false
+                    },
+                    {
+                        "data": "address2",
+                        "searchable": true,
+                        "visible": false,
+                        "orderable": false
+                    },
+                    {
+                        "data": "address3",
+                        "searchable": true,
+                        "visible": false,
+                        "orderable": false
+                    },
+                    {
+                        "data": "city",
+                        "searchable": true,
+                        "visible": false,
+                        "orderable": false
+                    },
+                    {
+                        "data": "state",
+                        "searchable": true,
+                        "visible": false,
+                        "orderable": false
+                    },
+                    {
+                        "data": "postal_code",
+                        "searchable": true,
+                        "visible": false,
+                        "orderable": false
+                    },
+                    {
+                        "data": "country",
+                        "searchable": true,
+                        "visible": false,
+                        "orderable": false
+                    },
+                    {
+                        "data": "opac_info",
+                        "searchable": true,
+                        "visible": false,
+                        "orderable": false
+                    },
+                    {
+                        "data": "notes",
+                        "searchable": true,
+                        "visible": false,
+                        "orderable": false
+                    }
+                ]
+            }, columns_settings);
 
             [% UNLESS library %]
                 $("#Aform").on("submit", function( event ) {
@@ -288,20 +561,18 @@
                 });
             [% END %]
         });
-        tinyMCE.baseURL = "[% interface %]/lib/tiny_mce";
+
         tinyMCE.init({
-            mode : "textareas",
-            theme : "advanced",
-            content_css : "[% interface %]/[% theme %]/css/tinymce.css",
-            plugins : "table,save,advhr,advlink,contextmenu",
-            theme_advanced_buttons1 : "save,|,bold,italic,|,cut,copy,paste,|,justifyleft,justifycenter,justifyright,justifyfull,|,formatselect,|,link,unlink,anchor,cleanup,help,code,advhr,",
-            theme_advanced_buttons2 : "tablecontrols,|,bullist,numlist,|,outdent,indent,|,undo,redo,|,removeformat,|,visualaid,|,sub,sup,|,charmap",
-            // theme_advanced_buttons3 : "",
-            theme_advanced_toolbar_location : "top",
-            theme_advanced_toolbar_align : "left",
-            theme_advanced_path_location : "bottom",
-            theme_advanced_resizing : true,
-            apply_source_formatting : true
+            branding : false,
+            relative_urls : false,
+            content_css : "[% interface | html %]/[% theme | html %]/css/tinymce.css",
+            menubar : "file edit view insert format tools table",
+            mode : "specific_textareas",
+            plugins : "autoresize table hr link image charmap lists code emoticons",
+            toolbar : [
+                "formatselect | bold italic | cut copy paste | alignleft aligncenter alignright | outdent indent | image link unlink anchor cleanup hr",
+                "table | bullist numlist | undo redo | removeformat | emoticons charmap | forecolor backcolor | code visualaid help"
+            ],
         });
     </script>
 [% END %]

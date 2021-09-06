@@ -18,15 +18,14 @@
 # along with Koha; if not, see <http://www.gnu.org/licenses>.
 #
 
-use C4::Boolean;
+use Modern::Perl;
+use Koha::Script;
 use C4::Context;
 use C4::Debug;
 use C4::Log;
 use Getopt::Long;
 use Pod::Usage;
-use YAML::Syck qw();
-$YAML::Syck::ImplicitTyping = 1;
-$YAML::Syck::SortKeys = 1;
+use YAML::XS;
 our %NOT_SET_PREFS = map { $_, 1 } qw( Version );
 
 =head1 NAME
@@ -55,40 +54,28 @@ sub _debug {
     print STDERR $message . "\n" if ( $C4::Debug::debug );
 }
 
-sub _normalize_value {
-    my ($row) = @_;
-
-    # AFAIK, there are no sysprefs where NULL has a different meaning than ''.
-    return ( $row->{'value'} || '' ) unless ( $row->{'type'} eq 'YesNo' );
-
-    #
-    # In theory, YesNo sysprefs should always contain 1/0.
-    # In practice, however, they don't.
-    # - Yogi Berra
-    #
-    my $bool_value = eval {
-        return C4::Boolean::true_p( $row->{'value'} ) ? 1 : 0;
-    };
-    if ( $@ ) {
-        return 0;
-    } else {
-        return $bool_value;
-    }
-}
-
 sub _set_preference {
     my ( $preference, $value ) = @_;
 
     _debug( "Setting $preference to $value" );
 
-    C4::Context->set_preference( $preference, $value );
+    if (   $preference->{type} eq 'YesNo'
+        && $value ne '0'
+        && $value ne '1' )
+    {
+        print STDERR sprintf "System preference %s is YesNo and expects 1 or 0. '%s' was given, using '0'\n",
+          $preference->{variable}, $value;
+        $value = 0;
+    }
+
+    C4::Context->set_preference( $preference->{variable}, $value );
 }
 
 sub GetPreferences {
     my $dbh = C4::Context->dbh;
 
     return {
-        map { $_->{'variable'},  _normalize_value($_) }
+        map { $_->{variable},  $_->{value} }
         @{ $dbh->selectall_arrayref( "
             SELECT
               variable, value, type
@@ -113,16 +100,10 @@ sub SetPreferences {
     exit 2 if ( scalar( @$current_state ) != scalar( keys %preferences ) );
 
     foreach my $row ( @$current_state ) {
-        # YAML::Syck encodes no as '', so deal with that
-        $preferences{$row->{'variable'}} = $preferences{$row->{'variable'}} eq '' ? 0 : C4::Boolean::true_p( $preferences{$row->{'variable'}} ) if ( $row->{'type'} eq 'YesNo' );
-    }
+        my $new_value = $preferences{ $row->{variable} };
+        next if $new_value && $row->{value} && $new_value eq $row->{value};
 
-    # Iterate through again, now that we've checked all of the YesNo sysprefs
-
-    foreach my $row ( @$current_state ) {
-        next if ( $preferences{$row->{'variable'}} eq $row->{'value'} );
-
-        _set_preference( $row->{'variable'}, $preferences{$row->{'variable'}} );
+        _set_preference( $row, $new_value );
     }
 
     # FIXME This may be not needed
@@ -150,9 +131,7 @@ sub _fetch_preference {
 sub GetPreference {
     my ( $preference ) = @_;
 
-    my $row = _fetch_preference( $preference );
-
-    return _normalize_value( $row );
+    return _fetch_preference( $preference );
 }
 
 sub SetPreference {
@@ -160,11 +139,9 @@ sub SetPreference {
 
     my $row = _fetch_preference( $preference );
 
-    $value = C4::Boolean::true_p($value) ? 1 : 0 if ( $row->{'type'} eq 'YesNo' );
+    exit 3 if ( $value eq $row->{'value'} ); #FIXME exit??
 
-    exit 3 if ( $value eq $row->{'value'} );
-
-    _set_preference( $preference, $value );
+    _set_preference( $row, $value );
 }
 
 sub ClearPreference {
@@ -178,7 +155,7 @@ sub ClearPreference {
 
     exit 3 if ( $value eq $row->{'value'} );
 
-    _set_preference( $preference, $value );
+    _set_preference( $row, $value );
 }
 
 =head1 OPTIONS
@@ -214,8 +191,8 @@ Set the system preference PREFERENCE to the value VALUE. If no such syspref
 exists, will exit with a status of 2. If the syspref already has that value,
 will exit with a status of 3.
 
-If the syspref is YesNo, will accept only a boolean value, but the syntax for
-these is fairly lax (yes/no, on/off, 1/0, n/y, true/false are all accepted).
+If the syspref is YesNo, will accept only a boolean value. The syntax is *not*
+lax and must be 1 or 0.
 
 =item B<clear> I<PREFERENCE>
 
@@ -236,11 +213,7 @@ my %commands = (
             'o:s' => \$outfile
         ) || _print_usage( 1 );
 
-        if ( $outfile ) {
-            YAML::Syck::DumpFile( $outfile, GetPreferences() );
-        } else {
-            print YAML::Syck::Dump( GetPreferences() );
-        }
+        YAML::XS::DumpFile( $outfile || \*STDOUT, GetPreferences() );
     },
     load => sub {
         my ( $infile, $force_version );
@@ -250,7 +223,7 @@ my %commands = (
             'f' => \$force_version,
         );
 
-        my $preferences = YAML::Syck::LoadFile($infile || \*STDIN);
+        my $preferences = YAML::XS::LoadFile($infile || \*STDIN);
 
         die "Expected a YAML mapping" if ( ref($preferences) ne 'HASH' );
 
@@ -294,7 +267,7 @@ print_usage() if ( $ARGV[0] =~ /^(-h|--help|-help|help)$/ );
 
 print_usage( 1 ) if ( !$ARGV[0] || ref($commands{$ARGV[0]}) ne 'CODE' );
 
-$command = $commands{$ARGV[0]};
+my $command = $commands{$ARGV[0]};
 shift @ARGV;
 $command->(@ARGV);
 

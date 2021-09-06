@@ -8,6 +8,7 @@ use strict;
 use MARC::File::USMARC;
 use MARC::Record;
 use MARC::Batch;
+use Koha::Script;
 use C4::Context;
 use C4::Biblio;
 use C4::AuthoritiesMarc;
@@ -66,7 +67,6 @@ my $starttime = gettimeofday;
 my $sth = $dbh->prepare("select bibid from marc_biblio");
 $sth->execute;
 my $i=1;
-my %alreadydone;
 my $counter;
 my %hash;
 while (my ($bibid) = $sth->fetchrow) {

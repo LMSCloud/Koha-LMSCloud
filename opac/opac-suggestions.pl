@@ -27,27 +27,27 @@ use C4::Output;
 use C4::Suggestions;
 use C4::Koha;
 use C4::Scrubber;
+use C4::Search qw( FindDuplicate );
 
 use Koha::AuthorisedValues;
 use Koha::Libraries;
 use Koha::Patrons;
 
-use Koha::DateUtils qw( dt_from_string );
+use Koha::DateUtils;
 
-my $input           = new CGI;
-my $op              = $input->param('op');
+my $input           = CGI->new;
+my $op              = $input->param('op') || 'else';
+my $biblionumber    = $input->param('biblionumber');
 my $suggestion      = $input->Vars;
 my $negcaptcha      = $input->param('negcap');
 my $suggested_by_anyone = $input->param('suggested_by_anyone') || 0;
+my $title_filter    = $input->param('title_filter');
+my $need_confirm    = 0;
 
 # If a spambot accidentally populates the 'negcap' field in the sugesstions form, then silently skip and return.
 if ($negcaptcha ) {
     print $input->redirect("/cgi-bin/koha/opac-suggestions.pl");
     exit;
-} else {
-    # don't pass 'negcap' column to DB, else DBI::Class will error
-    # DBIx::Class::Row::store_column(): No such column 'negcap' on Koha::Schema::Result::Suggestion at  Koha/C4/Suggestions.pm
-    delete $suggestion->{negcap};
 }
 
 #If suggestions are turned off we redirect to 404 error. This will also redirect guest suggestions
@@ -56,14 +56,11 @@ if ( ! C4::Context->preference('suggestion') ) {
     exit;
 }
 
-delete $suggestion->{$_} foreach qw<op suggested_by_anyone>;
-$op = 'else' unless $op;
-
 my ( $template, $borrowernumber, $cookie, @messages );
 my $deleted = $input->param('deleted');
 my $submitted = $input->param('submitted');
 
-if ( C4::Context->preference("AnonSuggestions") or ( C4::Context->preference("OPACViewOthersSuggestions") and $op eq 'else' ) ) {
+if ( ( C4::Context->preference("AnonSuggestions") and Koha::Patrons->find( C4::Context->preference("AnonymousPatron") ) ) or ( C4::Context->preference("OPACViewOthersSuggestions") and $op eq 'else' ) ) {
     ( $template, $borrowernumber, $cookie ) = get_template_and_user(
         {
             template_name   => "opac-suggestions.tt",
@@ -79,10 +76,14 @@ else {
             template_name   => "opac-suggestions.tt",
             query           => $input,
             type            => "opac",
-            authnotrequired => 0,
         }
     );
 }
+
+# don't pass 'negcap' column to DB, else DBI::Class will error
+# DBIx::Class::Row::store_column(): No such column 'negcap' on Koha::Schema::Result::Suggestion at  Koha/C4/Suggestions.pm
+delete $suggestion->{negcap};
+delete $suggestion->{$_} foreach qw<op suggested_by_anyone confirm>;
 
 if ( $op eq 'else' ) {
     if ( C4::Context->preference("OPACViewOthersSuggestions") ) {
@@ -114,14 +115,37 @@ if ( $op eq 'else' ) {
     }
 }
 
-my $patrons_pending_suggestions_count = 0;
-if ( $borrowernumber && C4::Context->preference("MaxOpenSuggestions") ne '' ) {
-    $patrons_pending_suggestions_count = scalar @{ SearchSuggestion( { suggestedby => $borrowernumber, STATUS => 'ASKED' } ) } ;
+if ( $op eq "add_validate" && not $biblionumber ) { # If we are creating the suggestion from an existing record we do not want to search for duplicates
+    $op = 'add_confirm';
+    my $biblio = MarcRecordFromNewSuggestion($suggestion);
+    if ( my ($duplicatebiblionumber, $duplicatetitle) = FindDuplicate($biblio) ) {
+        push @messages, { type => 'error', code => 'biblio_exists', id => $duplicatebiblionumber, title => $duplicatetitle };
+        $need_confirm = 1;
+        $op = 'add';
+    }
 }
 
-my $suggestions_loop = &SearchSuggestion($suggestion);
+my $patrons_pending_suggestions_count = 0;
+my $patrons_total_suggestions_count = 0;
+if ( $borrowernumber ){
+    if ( C4::Context->preference("MaxTotalSuggestions") ne '' && C4::Context->preference("NumberOfSuggestionDays") ne '' ) {
+        my $suggesteddate_from = dt_from_string()->subtract(days=>C4::Context->preference("NumberOfSuggestionDays"));
+        $suggesteddate_from = output_pref({ dt => $suggesteddate_from, dateformat => 'iso', dateonly => 1 });
+        $patrons_total_suggestions_count = Koha::Suggestions->search({ suggestedby => $borrowernumber, suggesteddate => { '>=' => $suggesteddate_from } })->count;
+
+    }
+    if ( C4::Context->preference("MaxOpenSuggestions") ne '' ) {
+        $patrons_pending_suggestions_count = Koha::Suggestions->search({ suggestedby => $borrowernumber, STATUS => 'ASKED' } )->count ;
+    }
+}
+
 if ( $op eq "add_confirm" ) {
-    if ( C4::Context->preference("MaxOpenSuggestions") ne '' && $patrons_pending_suggestions_count >= C4::Context->preference("MaxOpenSuggestions") ) #only check limit for signed in borrowers
+    my $suggestions_loop = &SearchSuggestion($suggestion);
+    if ( C4::Context->preference("MaxTotalSuggestions") ne '' && $patrons_total_suggestions_count >= C4::Context->preference("MaxTotalSuggestions") )
+    {
+        push @messages, { type => 'error', code => 'total_suggestions' };
+    }
+    elsif ( C4::Context->preference("MaxOpenSuggestions") ne '' && $patrons_pending_suggestions_count >= C4::Context->preference("MaxOpenSuggestions") ) #only check limit for signed in borrowers
     {
         push @messages, { type => 'error', code => 'too_many' };
     }
@@ -151,6 +175,7 @@ if ( $op eq "add_confirm" ) {
 
         &NewSuggestion($suggestion);
         $patrons_pending_suggestions_count++;
+        $patrons_total_suggestions_count++;
 
         # delete empty fields, to avoid filter in "SearchSuggestion"
         foreach my $field ( qw( title author publishercode copyrightdate place collectiontitle isbn STATUS ) ) {
@@ -164,6 +189,12 @@ if ( $op eq "add_confirm" ) {
     $op = 'else';
 }
 
+my $suggestions_loop = &SearchSuggestion(
+    {
+        suggestedby => $suggestion->{suggestedby},
+        title       => $title_filter,
+    }
+);
 if ( $op eq "delete_confirm" ) {
     my @delete_field = $input->multi_param("delete_field");
     foreach my $delete_field (@delete_field) {
@@ -197,27 +228,39 @@ foreach my $suggestion(@$suggestions_loop) {
     }
 }
 
-my $patron_reason_loop = GetAuthorisedValues("OPAC_SUG");
+my $patron_reason_loop = GetAuthorisedValues("OPAC_SUG", "opac");
 
-# Is the person allowed to choose their branch
-if ( C4::Context->preference("AllowPurchaseSuggestionBranchChoice") ) {
-    my $branchcode = $input->param('branchcode') || q{};
-
-    if ( !$branchcode
-        && C4::Context->userenv
-        && C4::Context->userenv->{branch} )
-    {
-        $branchcode = C4::Context->userenv->{branch};
-    }
-
-    $template->param( branchcode => $branchcode );
-}
-
-my $mandatoryfields = '';
+my @mandatoryfields;
 {
     last unless ($op eq 'add');
     my $fldsreq_sp = C4::Context->preference("OPACSuggestionMandatoryFields") || 'title';
-    $mandatoryfields = join(', ', (map { '"'.$_.'"'; } sort split(/\s*\,\s*/, $fldsreq_sp)));
+    @mandatoryfields = sort split(/\s*\,\s*/, $fldsreq_sp);
+    foreach (@mandatoryfields) {
+        $template->param( $_."_required" => 1);
+    }
+    if ( $biblionumber ) {
+        my $biblio = Koha::Biblios->find($biblionumber);
+        $template->param(
+            biblionumber    => $biblio->biblionumber,
+            title           => $biblio->title,
+            author          => $biblio->author,
+            copyrightdate   => $biblio->copyrightdate,
+            isbn            => $biblio->biblioitem->isbn,
+            publishercode   => $biblio->biblioitem->publishercode,
+            collectiontitle => $biblio->biblioitem->collectiontitle,
+            place           => $biblio->biblioitem->place,
+        );
+    }
+}
+
+my @unwantedfields;
+{
+    last unless ($op eq 'add');
+    my $fldsreq_sp = C4::Context->preference("OPACSuggestionUnwantedFields");
+    @unwantedfields = sort split(/\s*\,\s*/, $fldsreq_sp);
+    foreach (@unwantedfields) {
+        $template->param( $_."_hidden" => 1);
+    }
 }
 
 $template->param(
@@ -229,8 +272,10 @@ $template->param(
     messages              => \@messages,
     suggestionsview       => 1,
     suggested_by_anyone   => $suggested_by_anyone,
-    mandatoryfields       => $mandatoryfields,
+    title_filter          => $title_filter,
     patrons_pending_suggestions_count => $patrons_pending_suggestions_count,
+    need_confirm => $need_confirm,
+    patrons_total_suggestions_count => $patrons_total_suggestions_count,
 );
 
 output_html_with_http_headers $input, $cookie, $template->output, undef, { force_no_caching => 1 };

@@ -1,3 +1,4 @@
+[% USE raw %]
 [% USE Asset %]
 [% USE Koha %]
 [% USE AuthorisedValues %]
@@ -7,8 +8,7 @@
 [% INCLUDE 'doc-head-open.inc' %]
 <title>Sent notices for [% INCLUDE 'patron-title.inc' no_html = 1 %]</title>
 [% INCLUDE 'doc-head-close.inc' %]
-[% Asset.css("css/datatables.css") %]
-<style type="text/css">
+<style>
     .notice { display: none; }
     .notice-title { font-weight: bold; display: block; }
 </style>
@@ -18,32 +18,49 @@
 [% INCLUDE 'header.inc' %]
 [% PROCESS 'patron-search.inc' %]
 
-<div id="breadcrumbs"><a href="/cgi-bin/koha/mainpage.pl">Home</a> &rsaquo; <a href="/cgi-bin/koha/members/members-home.pl">Patrons</a>  &rsaquo; Sent notices for [% INCLUDE 'patron-title.inc' %]</div>
+<nav id="breadcrumbs" aria-label="Breadcrumb" class="breadcrumb">
+    <ol>
+        <li>
+            <a href="/cgi-bin/koha/mainpage.pl">Home</a>
+        </li>
+        <li>
+            <a href="/cgi-bin/koha/members/members-home.pl">Patrons</a>
+        </li>
+        <li>
+            <a href="#" aria-current="page">
+                Sent notices for [% INCLUDE 'patron-title.inc' %]
+            </a>
+        </li>
+    </ol>
+</nav>
 
-<div id="doc3" class="yui-t2">
-    <div id="bd">
-    <div id="yui-main">
-    <div class="yui-b">
+<div class="main container-fluid">
+    <div class="row">
+        <div class="col-sm-10 col-sm-push-2">
+            <main>
+
 [% INCLUDE 'members-toolbar.inc' %]
 <h1>Sent notices for [% INCLUDE 'patron-title.inc' %]</h1>
 
 [% IF ( QUEUED_MESSAGES ) %]
     <table id="noticestable">
-	<thead>
-	    <tr>
-		<th>Notice</th>
-		<th>Type</th>
-		<th>Status</th>
-		<th>Time</th>
-	    </tr>
-	</thead>
+        <thead>
+            <tr>
+                <th>Notice</th>
+                <th>Type</th>
+                <th>Status</th>
+                <th>Updated on</th>
+                <th>Time created</th>
+                <th>Delivery note</th>
+            </tr>
+        </thead>
 	<tbody>
 	    [% FOREACH QUEUED_MESSAGE IN QUEUED_MESSAGES %]
 	    <tr>
 		<td>
-            <a class="notice-title" data-noticeid="[% QUEUED_MESSAGE.message_id %]" href="#">[% QUEUED_MESSAGE.subject %]</a>
-            <div id="notice[% QUEUED_MESSAGE.message_id %]" class="notice">
-                <iframe srcdoc="[% QUEUED_MESSAGE.content FILTER html_line_break FILTER html %]"></iframe>
+            <a class="notice-title" data-noticeid="[% QUEUED_MESSAGE.message_id | html %]" href="#">[% QUEUED_MESSAGE.subject | html %]</a>
+            <div id="notice[% QUEUED_MESSAGE.message_id | html %]" class="notice">
+                <iframe srcdoc="[% QUEUED_MESSAGE.content | html | html_line_break %]"></iframe>
             </div>
         </td>
 		<td>
@@ -51,20 +68,20 @@
             [% ELSIF ( QUEUED_MESSAGE.message_transport_type == 'print' ) %]print
             [% ELSIF ( QUEUED_MESSAGE.message_transport_type == 'feed' ) %]feed
             [% ELSIF ( QUEUED_MESSAGE.message_transport_type == 'sms' ) %]sms
-            [% ELSE %][% QUEUED_MESSAGE.message_transport_type %][% END %]
+            [% ELSE %][% QUEUED_MESSAGE.message_transport_type | html %][% END %]
         </td>
 		<td>
             [% IF ( QUEUED_MESSAGE.status == 'sent' ) %]sent
             [% ELSIF ( QUEUED_MESSAGE.status == 'pending' ) %]pending
             [% ELSIF ( QUEUED_MESSAGE.status == 'failed' ) %]failed
             [% ELSIF ( QUEUED_MESSAGE.status == 'deleted' ) %]deleted
-            [% ELSE %][% QUEUED_MESSAGE.status %][% END %]
+            [% ELSE %][% QUEUED_MESSAGE.status | html %][% END %]
             [% IF ( QUEUED_MESSAGE.status != 'pending' ) %]
-            <div id="resend_notice[% QUEUED_MESSAGE.message_id %]"  class="notice">
-                <form action="/cgi-bin/koha/members/notices.pl?borrowernumber=[% borrowernumber %]" method="POST">
+            <div id="resend_notice[% QUEUED_MESSAGE.message_id | html %]"  class="notice">
+                <form action="/cgi-bin/koha/members/notices.pl?borrowernumber=[% borrowernumber | html %]" method="POST">
                     <input type="hidden" name="op" value="resend_notice" />
-                    <input type="hidden" name="borrowernumber" value="[% borrowernumber %]" />
-                    <input type="hidden" name="message_id" value="[% QUEUED_MESSAGE.message_id %]" />
+                    <input type="hidden" name="borrowernumber" value="[% borrowernumber | html %]" />
+                    <input type="hidden" name="message_id" value="[% QUEUED_MESSAGE.message_id | html %]" />
                     <fieldset class="action">
                         <button class="btn btn-default btn-xs" type="submit">Resend</button>
                     </fieldset>
@@ -72,8 +89,20 @@
             </div>
             [% END %]
         </td>
-        <td><span title="[% QUEUED_MESSAGE.time_queued %]">[% QUEUED_MESSAGE.time_queued | $KohaDates with_hours => 1 %]</span></td>
-	    </tr>
+        <td data-order="[% QUEUED_MESSAGE.updated_on | html %]">[% QUEUED_MESSAGE.updated_on | $KohaDates  with_hours => 1 %]</td>
+        <td data-order="[% QUEUED_MESSAGE.time_queued | html %]">[% QUEUED_MESSAGE.time_queued | $KohaDates  with_hours => 1 %]</td>
+        <td>
+        [% IF ( QUEUED_MESSAGE.error_code ) %]
+            [% IF ( QUEUED_MESSAGE.error_code == "INVALID_BORNUMBER" ) %]Invalid borrowernumber [% borrowernumber | html %]
+            [% ELSIF ( QUEUED_MESSAGE.error_code == 'NO_EMAIL' ) %]Unable to find an email address for this borrower
+            [% ELSIF ( QUEUED_MESSAGE.error_code == 'MISSING_SMS' ) %]Missing SMS number
+            [% ELSIF ( QUEUED_MESSAGE.error_code == 'DUPLICATE_MESSAGE' ) %]Message is duplicate
+            [% ELSIF ( QUEUED_MESSAGE.error_code == 'NO_NOTES' ) %]No notes from SMS driver
+            [% ELSE %]Error occurred while sending email.
+            [% END %]
+        [% END %]
+        </td>
+        </tr>
 	    [% END %]
 	</tbody>
     </table>
@@ -81,33 +110,23 @@
     <div class="dialog message">There is no record of any messages that have been sent to this patron.</div>
 [% END %]
 
-</div>
-</div>
+            </main>
+        </div> <!-- /.col-sm-10.col-sm-push-2 -->
 
-<div class="yui-b">
-[% INCLUDE 'circ-menu.inc' %]
-</div>
-</div>
+        <div class="col-sm-2 col-sm-pull-10">
+            <aside>
+                [% INCLUDE 'circ-menu.inc' %]
+            </aside>
+        </div> <!-- /.col-sm-2.col-sm-pull-10 -->
+     </div> <!-- /.row -->
 
 [% MACRO jsinclude BLOCK %]
     [% INCLUDE 'datatables.inc' %]
-    <script type="text/javascript">
-
-        /* Set some variables needed in members-menu.js */
-        var borrowernumber = "[% patron.borrowernumber %]";
-        var advsearch = "[% advsearch %]";
-        var dateformat = "[% dateformat %]";
-        var NorwegianPatronDBEnable = "[% NorwegianPatronDBEnable %]";
-        var CATCODE_MULTI = "[% CATCODE_MULTI %]";
-        var catcode = "[% catcode %]";
-        var destination = "[% destination %]";
-        var CAN_user_borrowers_edit_borrowers = "[% CAN_user_borrowers_edit_borrowers %]";
-
+    <script>
         $(document).ready(function() {
             $("#noticestable").dataTable($.extend(true, {}, dataTablesDefaults, {
                 "aaSorting": [[ 3, "desc" ]],
-                "aoColumns": [ null,null,null,{ "sType": "title-string" } ],
-                "sPaginationType": "four_button"
+                "sPaginationType": "full"
             }));
 
             $("#noticestable").on("click", ".notice-title", function(e){
@@ -126,7 +145,8 @@
             });
         });
     </script>
-    [% Asset.js("js/members-menu.js") %]
+    [% INCLUDE 'str/members-menu.inc' %]
+    [% Asset.js("js/members-menu.js") | $raw %]
 [% END %]
 
 [% INCLUDE 'intranet-bottom.inc' %]

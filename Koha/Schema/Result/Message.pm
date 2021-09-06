@@ -29,10 +29,15 @@ __PACKAGE__->table("messages");
   is_auto_increment: 1
   is_nullable: 0
 
+unique identifier assigned by Koha
+
 =head2 borrowernumber
 
   data_type: 'integer'
+  is_foreign_key: 1
   is_nullable: 0
+
+foreign key linking this message to the borrowers table
 
 =head2 branchcode
 
@@ -40,16 +45,22 @@ __PACKAGE__->table("messages");
   is_nullable: 1
   size: 10
 
+foreign key linking the message to the branches table
+
 =head2 message_type
 
   data_type: 'varchar'
   is_nullable: 0
   size: 1
 
+whether the message is for the librarians (L) or the patron (B)
+
 =head2 message
 
   data_type: 'mediumtext'
   is_nullable: 0
+
+the text of the message
 
 =head2 message_date
 
@@ -58,11 +69,15 @@ __PACKAGE__->table("messages");
   default_value: current_timestamp
   is_nullable: 0
 
+the date and time the message was written
+
 =head2 manager_id
 
   data_type: 'integer'
   is_foreign_key: 1
   is_nullable: 1
+
+creator of message
 
 =cut
 
@@ -70,7 +85,7 @@ __PACKAGE__->add_columns(
   "message_id",
   { data_type => "integer", is_auto_increment => 1, is_nullable => 0 },
   "borrowernumber",
-  { data_type => "integer", is_nullable => 0 },
+  { data_type => "integer", is_foreign_key => 1, is_nullable => 0 },
   "branchcode",
   { data_type => "varchar", is_nullable => 1, size => 10 },
   "message_type",
@@ -102,6 +117,21 @@ __PACKAGE__->set_primary_key("message_id");
 
 =head1 RELATIONS
 
+=head2 borrowernumber
+
+Type: belongs_to
+
+Related object: L<Koha::Schema::Result::Borrower>
+
+=cut
+
+__PACKAGE__->belongs_to(
+  "borrowernumber",
+  "Koha::Schema::Result::Borrower",
+  { borrowernumber => "borrowernumber" },
+  { is_deferrable => 1, on_delete => "CASCADE", on_update => "CASCADE" },
+);
+
 =head2 manager
 
 Type: belongs_to
@@ -123,9 +153,14 @@ __PACKAGE__->belongs_to(
 );
 
 
-# Created by DBIx::Class::Schema::Loader v0.07042 @ 2018-02-16 17:54:54
-# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:cNf9ogl9bN+0BC63dS1rmA
+# Created by DBIx::Class::Schema::Loader v0.07049 @ 2021-01-21 13:39:29
+# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:EvxjiNgWGReZ9rEVmS5YVw
 
+sub koha_object_class {
+    'Koha::Patron::Message';
+}
+sub koha_objects_class {
+    'Koha::Patron::Messages';
+}
 
-# You can replace this text with custom content, and it will be preserved on regeneration
 1;

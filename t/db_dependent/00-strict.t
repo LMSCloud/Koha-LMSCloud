@@ -19,8 +19,7 @@ my @dirs = (
     'catalogue',         'cataloguing',
     'changelanguage.pl', 'circ',
     'debian',            'docs',
-    'edithelp.pl',       'errors',
-    'fix-perl-path.PL',  'help.pl',
+    'errors',            'fix-perl-path.PL', 'help.pl',
     'installer',         'koha_perl_deps.pl',
     'kohaversion.pl',    'labels',
     'mainpage.pl',       'Makefile.PL',
@@ -36,7 +35,7 @@ my @dirs = (
 );
 
 $Test::Strict::TEST_STRICT = 0;
-$Test::Strict::TEST_SKIP = [ 'misc/kohalib.pl', 'misc/plack/koha.psgi' ];
+$Test::Strict::TEST_SKIP = [ 'misc/kohalib.pl' ];
 
 my $ncpu;
 if ( $ENV{KOHA_PROVE_CPUS} ) {
@@ -48,7 +47,7 @@ if ( $ENV{KOHA_PROVE_CPUS} ) {
 print "Using $ncpu CPUs...\n"
     if $ENV{DEBUG};
 
-my $pm   = new Parallel::ForkManager($ncpu);
+my $pm   = Parallel::ForkManager->new($ncpu);
 
 foreach my $d (@dirs) {
     $pm->start and next;    # do the fork

@@ -1,9 +1,10 @@
 {
   "/acquisitions/vendors": {
     "get": {
-      "x-mojo-to": "Acquisitions::Vendors#list_vendors",
+      "x-mojo-to": "Acquisitions::Vendors#list",
       "operationId": "listVendors",
-      "tags": ["acquisitions","vendors"],
+      "tags": ["vendors"],
+      "summary": "List vendors",
       "produces": [
         "application/json"
       ],
@@ -19,6 +20,14 @@
         "description": "Case insensitive search on vendor's account number",
         "required": false,
         "type": "string"
+      }, {
+        "$ref": "../parameters.json#/match"
+      }, {
+        "$ref": "../parameters.json#/order_by"
+      }, {
+        "$ref": "../parameters.json#/page"
+      }, {
+        "$ref": "../parameters.json#/per_page"
       }],
       "responses": {
         "200": {
@@ -68,9 +77,10 @@
       }
     },
     "post": {
-      "x-mojo-to": "Acquisitions::Vendors#add_vendor",
+      "x-mojo-to": "Acquisitions::Vendors#add",
       "operationId": "addVendor",
-      "tags": ["acquisitions","vendors"],
+      "tags": ["vendors"],
+      "summary": "Add vendor",
       "parameters": [{
         "name": "body",
         "in": "body",
@@ -84,7 +94,7 @@
         "application/json"
       ],
       "responses": {
-        "200": {
+        "201": {
           "description": "Vendor added",
           "schema": {
             "$ref": "../definitions.json#/vendor"
@@ -130,9 +140,10 @@
   },
   "/acquisitions/vendors/{vendor_id}": {
     "get": {
-      "x-mojo-to": "Acquisitions::Vendors#get_vendor",
+      "x-mojo-to": "Acquisitions::Vendors#get",
       "operationId": "getVendor",
-      "tags": ["acquisitions","vendors"],
+      "tags": ["vendors"],
+      "summary": "Get vendor",
       "parameters": [{
         "$ref": "../parameters.json#/vendoridPathParam"
       }],
@@ -184,9 +195,10 @@
       }
     },
     "put": {
-      "x-mojo-to": "Acquisitions::Vendors#update_vendor",
+      "x-mojo-to": "Acquisitions::Vendors#update",
       "operationId": "updateVendor",
-      "tags": ["acquisitions","vendors"],
+      "tags": ["vendors"],
+      "summary": "Update vendor",
       "parameters": [{
         "$ref": "../parameters.json#/vendoridPathParam"
       }, {
@@ -246,9 +258,10 @@
       }
     },
     "delete": {
-      "x-mojo-to": "Acquisitions::Vendors#delete_vendor",
+      "x-mojo-to": "Acquisitions::Vendors#delete",
       "operationId": "deleteVendor",
-      "tags": ["acquisitions","vendors"],
+      "tags": ["vendors"],
+      "summary": "Delete vendor",
       "parameters": [{
         "$ref": "../parameters.json#/vendoridPathParam"
       }],
@@ -256,11 +269,8 @@
         "application/json"
       ],
       "responses": {
-        "200": {
-          "description": "Vendor deleted",
-          "schema": {
-            "type": "string"
-          }
+        "204": {
+          "description": "Vendor deleted"
         },
         "401": {
           "description": "Authentication required",

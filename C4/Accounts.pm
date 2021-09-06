@@ -18,17 +18,18 @@ package C4::Accounts;
 # along with Koha; if not, see <http://www.gnu.org/licenses>.
 
 
-use strict;
-#use warnings; FIXME - Bug 2505
+use Modern::Perl;
 use C4::Context;
 use C4::Stats;
 use C4::CashRegisterManagement;
+use C4::Members;
 use C4::Log qw(logaction);
 use Koha::Account;
 use Koha::Account::Lines;
 use Koha::Account::Offsets;
 use Koha::Items;
 
+use Mojo::Util qw(deprecated);
 use Data::Dumper qw(Dumper);
 
 use vars qw(@ISA @EXPORT);
@@ -37,11 +38,7 @@ BEGIN {
     require Exporter;
     @ISA    = qw(Exporter);
     @EXPORT = qw(
-      &manualinvoice
-      &getnextacctno
-      &getcharges
       &chargelostitem
-      &ReversePayment
       &purge_zero_balance_fees
     );
 }
@@ -62,29 +59,6 @@ patron.
 
 =head1 FUNCTIONS
 
-=head2 getnextacctno
-
-  $nextacct = &getnextacctno($borrowernumber);
-
-Returns the next unused account number for the patron with the given
-borrower number.
-
-=cut
-
-#'
-# FIXME - Okay, so what does the above actually _mean_?
-sub getnextacctno {
-    my ($borrowernumber) = shift or return;
-    my $sth = C4::Context->dbh->prepare(
-        "SELECT accountno+1 FROM accountlines
-            WHERE    (borrowernumber = ?)
-            ORDER BY accountno DESC
-            LIMIT 1"
-    );
-    $sth->execute($borrowernumber);
-    return ($sth->fetchrow || 1);
-}
-
 =head2 chargelostitem
 
 In a default install of Koha the following lost values are set
@@ -97,7 +71,7 @@ FIXME : if no replacement price, borrower just doesn't get charged?
 
 =cut
 
-sub chargelostitem{
+sub chargelostitem {
     my $dbh = C4::Context->dbh();
     my ($borrowernumber, $itemnumber, $amount, $description) = @_;
     my $branchcode = C4::Context->userenv ? C4::Context->userenv->{'branch'} : undef;
@@ -110,14 +84,16 @@ sub chargelostitem{
     if ($usedefaultreplacementcost && $amount == 0 && $defaultreplacecost){
         $replacementprice = $defaultreplacecost;
     }
-    # first make sure the borrower hasn't already been charged for this item
-    # FIXME this should be more exact
-    #       there is no reason a user can't lose an item, find and return it, and lost it again
-    my $existing_charges = Koha::Account::Lines->search(
+    my $checkout = Koha::Checkouts->find({ itemnumber => $itemnumber });
+    my $issue_id = $checkout ? $checkout->issue_id : undef;
+
+    my $account = Koha::Account->new({ patron_id => $borrowernumber });
+    # first make sure the borrower hasn't already been charged for this item (for this issuance)
+    my $existing_charges = $account->lines->search(
         {
-            borrowernumber => $borrowernumber,
-            itemnumber     => $itemnumber,
-            accounttype    => 'L',
+            itemnumber      => $itemnumber,
+            debit_type_code => 'LOST',
+            issue_id        => $issue_id
         }
     )->count();
 
@@ -125,250 +101,36 @@ sub chargelostitem{
     unless ($existing_charges) {
         #add processing fee
         if ($processfee && $processfee > 0){
-            my $accountline = Koha::Account::Line->new(
+            my $accountline = $account->add_debit(
                 {
-                    borrowernumber    => $borrowernumber,
-                    accountno         => getnextacctno($borrowernumber),
-                    date              => \'NOW()',
-                    amount            => $processfee,
-                    description       => $description,
-                    accounttype       => 'PF',
-                    amountoutstanding => $processfee,
-                    itemnumber        => $itemnumber,
-                    note              => $processingfeenote,
-                    manager_id        => C4::Context->userenv ? C4::Context->userenv->{'number'} : 0,
-                    branchcode        => $branchcode,
+                    amount      => $processfee,
+                    description => $description,
+                    note        => $processingfeenote,
+                    user_id     => C4::Context->userenv ? C4::Context->userenv->{'number'} : undef,
+                    interface   => C4::Context->interface,
+                    library_id  => C4::Context->userenv ? C4::Context->userenv->{'branch'} : undef,
+                    type        => 'PROCESSING',
+                    item_id     => $itemnumber,
+                    issue_id    => $issue_id,
                 }
-            )->store();
-
-            my $account_offset = Koha::Account::Offset->new(
-                {
-                    debit_id => $accountline->id,
-                    type     => 'Processing Fee',
-                    amount   => $accountline->amount,
-                }
-            )->store();
-
-            if ( C4::Context->preference("FinesLog") ) {
-                logaction("FINES", 'CREATE',$borrowernumber,Dumper({
-                    action            => 'create_fee',
-                    borrowernumber    => $accountline->borrowernumber,,
-                    accountno         => $accountline->accountno,
-                    amount            => $accountline->amount,
-                    description       => $accountline->description,
-                    accounttype       => $accountline->accounttype,
-                    amountoutstanding => $accountline->amountoutstanding,
-                    note              => $accountline->note,
-                    itemnumber        => $accountline->itemnumber,
-                    manager_id        => $accountline->manager_id,
-                    branchcode        => $accountline->branchcode,
-                }));
-            }
+            );
         }
         #add replace cost
         if ($replacementprice > 0){
-            my $accountline = Koha::Account::Line->new(
+            my $accountline = $account->add_debit(
                 {
-                    borrowernumber    => $borrowernumber,
-                    accountno         => getnextacctno($borrowernumber),
-                    date              => \'NOW()',
-                    amount            => $replacementprice,
-                    description       => $description,
-                    accounttype       => 'L',
-                    amountoutstanding => $replacementprice,
-                    itemnumber        => $itemnumber,
-                    manager_id        => C4::Context->userenv ? C4::Context->userenv->{'number'} : 0,
-                    branchcode        => $branchcode,
+                    amount      => $replacementprice,
+                    description => $description,
+                    note        => undef,
+                    user_id     => C4::Context->userenv ? C4::Context->userenv->{'number'} : undef,
+                    interface   => C4::Context->interface,
+                    library_id  => C4::Context->userenv ? C4::Context->userenv->{'branch'} : undef,
+                    type        => 'LOST',
+                    item_id     => $itemnumber,
+                    issue_id    => $issue_id,
                 }
-            )->store();
-
-            my $account_offset = Koha::Account::Offset->new(
-                {
-                    debit_id => $accountline->id,
-                    type     => 'Lost Item',
-                    amount   => $accountline->amount,
-                }
-            )->store();
-
-            if ( C4::Context->preference("FinesLog") ) {
-                logaction("FINES", 'CREATE',$borrowernumber,Dumper({
-                    action            => 'create_fee',
-                    borrowernumber    => $accountline->borrowernumber,,
-                    accountno         => $accountline->accountno,
-                    amount            => $accountline->amount,
-                    description       => $accountline->description,
-                    accounttype       => $accountline->accounttype,
-                    amountoutstanding => $accountline->amountoutstanding,
-                    note              => $accountline->note,
-                    itemnumber        => $accountline->itemnumber,
-                    manager_id        => $accountline->manager_id,
-                    branchcode        => $accountline->branchcode,
-                }));
-            }
+            );
         }
-    }
-}
-
-=head2 manualinvoice
-
-  &manualinvoice($borrowernumber, $itemnumber, $description, $type,
-                 $amount, $note);
-
-C<$borrowernumber> is the patron's borrower number.
-C<$description> is a description of the transaction.
-C<$type> may be one of C<CS>, C<CB>, C<CW>, C<CF>, C<CL>, C<N>, C<L>,
-or C<REF>.
-C<$itemnumber> is the item involved, if pertinent; otherwise, it
-should be the empty string.
-
-=cut
-
-#'
-# FIXME: In Koha 3.0 , the only account adjustment 'types' passed to this function
-# are:
-# 		'C' = CREDIT
-# 		'FOR' = FORGIVEN  (Formerly 'F', but 'F' is taken to mean 'FINE' elsewhere)
-# 		'N' = New Card fee
-# 		'F' = Fine
-# 		'A' = Account Management fee
-# 		'M' = Sundry
-# 		'L' = Lost Item
-#
-
-sub manualinvoice {
-    my ( $borrowernumber, $itemnum, $desc, $type, $amount, $note ) = @_;
-    my $manager_id = 0;
-    $manager_id = C4::Context->userenv->{'number'} if C4::Context->userenv;
-    my $dbh      = C4::Context->dbh;
-    my $insert;
-    my $accountno  = getnextacctno($borrowernumber);
-    my $amountleft = $amount;
-    my $branchcode     = C4::Context->userenv->{'branch'};
-
-    my $accountline = Koha::Account::Line->new(
-        {
-            borrowernumber    => $borrowernumber,
-            accountno         => $accountno,
-            date              => \'NOW()',
-            amount            => $amount,
-            description       => $desc,
-            accounttype       => $type,
-            amountoutstanding => $amountleft,
-            itemnumber        => $itemnum || undef,
-            note              => $note,
-            manager_id        => $manager_id,
-            branchcode        => $branchcode
-        }
-    )->store();
-
-    my $account_offset = Koha::Account::Offset->new(
-        {
-            debit_id => $accountline->id,
-            type     => 'Manual Debit',
-            amount   => $amount,
-        }
-    )->store();
-
-    if ( C4::Context->preference("FinesLog") ) {
-        logaction("FINES", 'CREATE',$borrowernumber,Dumper({
-            action            => 'create_fee',
-            borrowernumber    => $borrowernumber,
-            accountno         => $accountno,
-            amount            => $amount,
-            description       => $desc,
-            accounttype       => $type,
-            amountoutstanding => $amountleft,
-            note              => $note,
-            itemnumber        => $itemnum,
-            manager_id        => $manager_id,
-            branchcode        => $branchcode
-        }));
-    }
-
-    return 0;
-}
-
-sub getcharges {
-    my ( $borrowerno, $timestamp, $accountno ) = @_;
-    my $dbh        = C4::Context->dbh;
-    my $timestamp2 = $timestamp - 1;
-    my $query      = "";
-    my $sth = $dbh->prepare(
-            "SELECT * FROM accountlines WHERE borrowernumber=? AND accountno = ?"
-          );
-    $sth->execute( $borrowerno, $accountno );
-
-    my @results;
-    while ( my $data = $sth->fetchrow_hashref ) {
-        push @results,$data;
-    }
-    return (@results);
-}
-
-#FIXME: ReversePayment should be replaced with a Void Payment feature
-sub ReversePayment {
-    my ($accountlines_id) = @_;
-    my $dbh = C4::Context->dbh;
-
-    my $branch     = C4::Context->userenv->{branch};
-    my $manager_id = 0;
-    $manager_id    = C4::Context->userenv->{'number'} if C4::Context->userenv;
-    my $cash_register_mngmt = undef;
-    # Check whether cash registers are activated and mandatory for payment actions.
-    # If thats the case than we need to check whether the manager has opened a cash
-    # register to use for payments.
-    if ( C4::Context->preference("ActivateCashRegisterTransactionsOnly") ) {
-        $cash_register_mngmt = C4::CashRegisterManagement->new($branch, $manager_id);
-        
-        # if there is no open cash register of the manager we return without a doing the payment
-        return undef if (! $cash_register_mngmt->managerHasOpenCashRegister($branch, $manager_id) );
-    }
-    
-    my $accountline        = Koha::Account::Lines->find($accountlines_id);
-    my $amount_outstanding = $accountline->amountoutstanding;
-
-    my $new_amountoutstanding =
-      $amount_outstanding <= 0 ? $accountline->amount * -1 : 0;
-
-    $accountline->description( $accountline->description . " Reversed -" );
-    $accountline->amountoutstanding($new_amountoutstanding);
-    $accountline->store();
-
-    my $account_offset = Koha::Account::Offset->new(
-        {
-            credit_id => $accountline->id,
-            type      => 'Reverse Payment',
-            amount    => $amount_outstanding - $new_amountoutstanding,
-        }
-    )->store();
-    
-    # A payment is reversed. Means for the cash register that the patron gets money back.
-    # If cash registers are activated as too, the cash payment need to registered for the 
-    # opened cash register as cash receipt
-    if ( C4::Context->preference("ActivateCashRegisterTransactionsOnly") && $accountline->accounttype eq 'Pay' && $accountline->amount != 0.0 ) {
-        $cash_register_mngmt->registerReversePayment($branch, $manager_id, (($amount_outstanding - $new_amountoutstanding) * -1), $accountline->id);
-    }
-
-    if ( C4::Context->preference("FinesLog") ) {
-        my $manager_id = 0;
-        $manager_id = C4::Context->userenv->{'number'} if C4::Context->userenv;
-
-        logaction(
-            "FINES", 'MODIFY',
-            $accountline->borrowernumber,
-            Dumper(
-                {
-                    action                => 'reverse_fee_payment',
-                    borrowernumber        => $accountline->borrowernumber,
-                    old_amountoutstanding => $amount_outstanding,
-                    new_amountoutstanding => $new_amountoutstanding,
-                    ,
-                    accountlines_id => $accountline->id,
-                    accountno       => $accountline->accountno,
-                    manager_id      => $manager_id,
-                }
-            )
-        );
     }
 }
 

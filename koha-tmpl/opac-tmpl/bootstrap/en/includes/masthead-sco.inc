@@ -1,34 +1,48 @@
+[% USE raw %]
 [% USE Koha %]
+[% USE KohaNews %]
+[% PROCESS 'html_helpers.inc' %]
 [% SET OpacLangSelectorMode = Koha.Preference('OpacLangSelectorMode') %]
-<div id="wrap">
-    <div class="navbar navbar-inverse navbar-static-top">
-        <div class="navbar-inner">
-            <div class="container-fluid">
-                <a class="brand" href="/cgi-bin/koha/sco/sco-main.pl"><img src="[% interface %]/[% theme %]/images/koha-logo-navbar.png" alt=""></a>
-                <div id="checkouthelp">
-                    <ul class="nav pull-right">
-                        <li><a href="/cgi-bin/koha/sco/help.pl"><i class="icon help"></i> Help</a></li>
-                    </ul>
-                </div>
+[% SET OpacHeader = KohaNews.get( location => "opacheader", lang => lang, library => branchcode, blocktitle => 0 ) %]
 
-                [% IF ( opaclanguagesdisplay ) %]
-                    <div id="members">
-                        <ul class="nav pull-right">
-                            [% INCLUDE 'masthead-langmenu.inc' %]
-                        </ul>
-                    </div> <!-- /members -->
+<div id="wrapper">
+    <div id="header-region" class="noprint">
+        <nav class="navbar navbar-expand">
+            <h1 id="logo">
+                <a class="navbar-brand" href="/cgi-bin/koha/sco/sco-main.pl">
+                    [% IF ( LibraryNameTitle ) %]
+                        [% LibraryNameTitle | html %]
+                    [% ELSE %]
+                        Koha online
+                    [% END %]
+                </a>
+            </h1>
+
+            <ul class="navbar-nav ml-auto">
+                [% IF ( Koha.Preference( 'opaclanguagesdisplay' ) ) %]
+                    <li class="nav-item">
+                        [% INCLUDE 'masthead-langmenu.inc' %]
+                    </li>
                 [% END # / IF opaclanguagedisplay %]
 
-            </div> <!-- /container-fluid -->
-        </div> <!-- /navbar-inner -->
-    </div> <!-- /navbar -->
+                <li class="nav-item">
+                    <ul class="navbar-nav">
+                        <li class="nav-item">
+                            <a class="nav-link" href="/cgi-bin/koha/sco/help.pl"><i class="fa fa-info-circle fa-icon-black" aria-hidden="true"></i> Help</a>
+                        </li>
+                    </ul>
+                </li>
+            </ul>
+        </nav> <!-- /navbar -->
 
-    [% IF ( opacheader ) %]
-        <div class="container-fluid">
-            <div class="row-fluid">
-                <div id="opacheader">
-                    [% opacheader %]
+        [% IF ( OpacHeader ) %]
+            <div class="container-fluid">
+                <div class="row">
+                    <div class="col">
+                        [% PROCESS koha_news_block news => OpacHeader %]
+                    </div>
                 </div>
             </div>
-        </div>
-    [% END %]
+        [% END # /IF opacheader %]
+
+    </div> <!-- /navbar -->

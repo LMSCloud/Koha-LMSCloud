@@ -107,8 +107,7 @@ if ($op eq 'select') {
 ########################################
 #  Read library groups
 ########################################
-my @search_groups =
-  Koha::Library::Groups->get_search_groups( { interface => 'staff' } );
+my @search_groups = Koha::Library::Groups->get_search_groups( { interface => 'staff' }, );
 @search_groups = sort { $a->title cmp $b->title } @search_groups;
 
 

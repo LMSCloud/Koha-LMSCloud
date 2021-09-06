@@ -1,4 +1,5 @@
-[% INCLUDE 'doc-head-open.inc' %]<title>Koha &rsaquo; Lists &rsaquo;  Sending your list</title>
+[% INCLUDE 'doc-head-open.inc' %]
+<title>Sending your list &rsaquo; Lists &rsaquo; Koha</title>
 [% INCLUDE 'doc-head-close.inc' %]
 </head>
 <body id="lists_sendshelfform" class="lists" style="padding: 1em;">
@@ -28,7 +29,7 @@
             <textarea id="comment" name="comment" rows="4" cols="40"></textarea>
     </li>
     <li>
-        <input type="hidden" name="shelfid" value="[% shelfid %]" />
+        <input type="hidden" name="shelfid" value="[% shelfid | html %]" />
     </li></ol></fieldset>
        <fieldset class="action"> <input type="submit" value="Send" /> <a class="cancel close" href="#">Cancel</a> </fieldset>
 </form>

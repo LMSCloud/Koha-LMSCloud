@@ -27,6 +27,7 @@ use C4::Items;
 use C4::Charset;
 use C4::AuthoritiesMarc;
 use C4::MarcModificationTemplates;
+use Koha::Items;
 use Koha::Plugins::Handler;
 use Koha::Logger;
 
@@ -77,12 +78,11 @@ BEGIN {
     SetImportRecordOverlayStatus
     GetImportRecordStatus
     SetImportRecordStatus
+    SetMatchedBiblionumber
     GetImportRecordMatches
     SetImportRecordMatches
 	);
 }
-
-our $logger = Koha::Logger->get( { category => 'C4.ImportBatch' } );
 
 =head1 NAME
 
@@ -194,7 +194,7 @@ sub GetRecordFromImportBiblio {
 
 sub EmbedItemsInImportBiblio {
     my ( $record, $import_record_id ) = @_;
-    my ( $itemtag, $itemsubfield ) = GetMarcFromKohaField("items.itemnumber", '');
+    my ( $itemtag, $itemsubfield ) = GetMarcFromKohaField( "items.itemnumber" );
     my $dbh = C4::Context->dbh;
     my $import_items = $dbh->selectall_arrayref(q|
         SELECT import_items.marcxml
@@ -203,7 +203,7 @@ sub EmbedItemsInImportBiblio {
     |, { Slice => {} }, $import_record_id );
     my @item_fields;
     for my $import_item ( @$import_items ) {
-        my $item_marc = MARC::Record::new_from_xml($import_item->{marcxml});
+        my $item_marc = MARC::Record::new_from_xml($import_item->{marcxml}, 'UTF-8');
         push @item_fields, $item_marc->field($itemtag);
     }
     $record->append_fields(@item_fields);
@@ -266,7 +266,7 @@ sub GetImportBatch {
     my ($batch_id) = @_;
 
     my $dbh = C4::Context->dbh;
-    my $sth = $dbh->prepare_cached("SELECT * FROM import_batches WHERE import_batch_id = ?");
+    my $sth = $dbh->prepare_cached("SELECT b.*, p.name as profile FROM import_batches b LEFT JOIN import_batch_profiles p ON p.id = b.profile_id WHERE import_batch_id = ?");
     $sth->bind_param(1, $batch_id);
     $sth->execute();
     my $result = $sth->fetchrow_hashref;
@@ -278,7 +278,7 @@ sub GetImportBatch {
 =head2 AddBiblioToBatch 
 
   my $import_record_id = AddBiblioToBatch($batch_id, $record_sequence, 
-                $marc_record, $encoding, $z3950random, $update_counts);
+                $marc_record, $encoding, $update_counts);
 
 =cut
 
@@ -287,10 +287,9 @@ sub AddBiblioToBatch {
     my $record_sequence = shift;
     my $marc_record = shift;
     my $encoding = shift;
-    my $z3950random = shift;
     my $update_counts = @_ ? shift : 1;
 
-    my $import_record_id = _create_import_record($batch_id, $record_sequence, $marc_record, 'biblio', $encoding, $z3950random, C4::Context->preference('marcflavour'));
+    my $import_record_id = _create_import_record($batch_id, $record_sequence, $marc_record, 'biblio', $encoding, C4::Context->preference('marcflavour'));
     _add_biblio_fields($import_record_id, $marc_record);
     _update_batch_record_counts($batch_id) if $update_counts;
     return $import_record_id;
@@ -313,7 +312,7 @@ sub ModBiblioInBatch {
 =head2 AddAuthToBatch
 
   my $import_record_id = AddAuthToBatch($batch_id, $record_sequence,
-                $marc_record, $encoding, $z3950random, $update_counts, [$marc_type]);
+                $marc_record, $encoding, $update_counts, [$marc_type]);
 
 =cut
 
@@ -322,13 +321,12 @@ sub AddAuthToBatch {
     my $record_sequence = shift;
     my $marc_record = shift;
     my $encoding = shift;
-    my $z3950random = shift;
     my $update_counts = @_ ? shift : 1;
     my $marc_type = shift || C4::Context->preference('marcflavour');
 
     $marc_type = 'UNIMARCAUTH' if $marc_type eq 'UNIMARC';
 
-    my $import_record_id = _create_import_record($batch_id, $record_sequence, $marc_record, 'auth', $encoding, $z3950random, $marc_type);
+    my $import_record_id = _create_import_record($batch_id, $record_sequence, $marc_record, 'auth', $encoding, $marc_type);
     _add_auth_fields($import_record_id, $marc_record);
     _update_batch_record_counts($batch_id) if $update_counts;
     return $import_record_id;
@@ -458,7 +456,7 @@ sub AddItemsToImportBiblio {
     my @import_items_ids = ();
    
     my $dbh = C4::Context->dbh; 
-    my ($item_tag,$item_subfield) = &GetMarcFromKohaField("items.itemnumber",'');
+    my ($item_tag,$item_subfield) = &GetMarcFromKohaField( "items.itemnumber" );
     foreach my $item_field ($marc_record->field($item_tag)) {
         my $item_marc = MARC::Record->new();
         $item_marc->leader("00000    a              "); # must set Leader/09 to 'a'
@@ -468,7 +466,7 @@ sub AddItemsToImportBiblio {
                                         VALUES (?, ?, ?)");
         $sth->bind_param(1, $import_record_id);
         $sth->bind_param(2, 'staged');
-        $sth->bind_param(3, $item_marc->as_xml());
+        $sth->bind_param(3, $item_marc->as_xml("USMARC"));
         $sth->execute();
         push @import_items_ids, $dbh->{'mysql_insertid'};
         $sth->finish();
@@ -579,7 +577,7 @@ sub BatchCommitRecords {
     my $num_items_errored = 0;
     my $num_ignored = 0;
     # commit (i.e., save, all records in the batch)
-    SetImportBatchStatus('importing');
+    SetImportBatchStatus($batch_id, 'importing');
     my $overlay_action = GetImportBatchOverlayAction($batch_id);
     my $nomatch_action = GetImportBatchNoMatchAction($batch_id);
     my $item_action = GetImportBatchItemAction($batch_id);
@@ -617,7 +615,7 @@ sub BatchCommitRecords {
 
         if ($record_type eq 'biblio') {
             # remove any item tags - rely on BatchCommitItems
-            ($item_tag,$item_subfield) = &GetMarcFromKohaField("items.itemnumber",'');
+            ($item_tag,$item_subfield) = &GetMarcFromKohaField( "items.itemnumber" );
             foreach my $item_field ($marc_record->field($item_tag)) {
                 $marc_record->delete_field($item_field);
             }
@@ -634,7 +632,7 @@ sub BatchCommitRecords {
             if ($record_type eq 'biblio') {
                 my $biblioitemnumber;
                 ($recordid, $biblioitemnumber) = AddBiblio($marc_record, $framework);
-                $query = "UPDATE import_biblios SET matched_biblionumber = ? WHERE import_record_id = ?";
+                $query = "UPDATE import_biblios SET matched_biblionumber = ? WHERE import_record_id = ?"; # FIXME call SetMatchedBiblionumber instead
                 if ($item_result eq 'create_new' || $item_result eq 'replace') {
                     my ($bib_items_added, $bib_items_replaced, $bib_items_errored) = BatchCommitItems($rowref->{'import_record_id'}, $recordid, $item_result);
                     $num_items_added += $bib_items_added;
@@ -667,7 +665,7 @@ sub BatchCommitRecords {
                 $oldxml = $old_marc->as_xml($marc_type);
 
                 ModBiblio($marc_record, $recordid, $oldbiblio->frameworkcode);
-                $query = "UPDATE import_biblios SET matched_biblionumber = ? WHERE import_record_id = ?";
+                $query = "UPDATE import_biblios SET matched_biblionumber = ? WHERE import_record_id = ?"; # FIXME call SetMatchedBiblionumber instead
 
                 if ($item_result eq 'create_new' || $item_result eq 'replace') {
                     my ($bib_items_added, $bib_items_replaced, $bib_items_errored) = BatchCommitItems($rowref->{'import_record_id'}, $recordid, $item_result);
@@ -700,7 +698,7 @@ sub BatchCommitRecords {
                 $num_items_errored += $bib_items_errored;
                 # still need to record the matched biblionumber so that the
                 # items can be reverted
-                my $sth2 = $dbh->prepare_cached("UPDATE import_biblios SET matched_biblionumber = ? WHERE import_record_id = ?");
+                my $sth2 = $dbh->prepare_cached("UPDATE import_biblios SET matched_biblionumber = ? WHERE import_record_id = ?"); # FIXME call SetMatchedBiblionumber instead
                 $sth2->execute($recordid, $rowref->{'import_record_id'});
                 SetImportRecordOverlayStatus($rowref->{'import_record_id'}, 'match_applied');
             }
@@ -742,12 +740,12 @@ sub BatchCommitItems {
         my $item_marc = MARC::Record->new_from_xml( StripNonXmlChars( $row->{'marcxml'} ), 'UTF-8', $row->{'encoding'} );
 
         # Delete date_due subfield as to not accidentally delete item checkout due dates
-        my ( $MARCfield, $MARCsubfield ) = GetMarcFromKohaField( 'items.onloan', GetFrameworkCode($biblionumber) );
+        my ( $MARCfield, $MARCsubfield ) = GetMarcFromKohaField( 'items.onloan' );
         $item_marc->field($MARCfield)->delete_subfield( code => $MARCsubfield );
 
         my $item = TransformMarcToKoha( $item_marc );
 
-        my $duplicate_barcode = exists( $item->{'barcode'} ) && GetItemnumberFromBarcode( $item->{'barcode'} );
+        my $duplicate_barcode = exists( $item->{'barcode'} ) && Koha::Items->find({ barcode => $item->{'barcode'} });
         my $duplicate_itemnumber = exists( $item->{'itemnumber'} );
 
         my $updsth = $dbh->prepare("UPDATE import_items SET status = ?, itemnumber = ? WHERE import_items_id = ?");
@@ -761,7 +759,7 @@ sub BatchCommitItems {
             $updsth->finish();
             $num_items_replaced++;
         } elsif ( $action eq "replace" && $duplicate_barcode ) {
-            my $itemnumber = GetItemnumberFromBarcode( $item->{'barcode'} );
+            my $itemnumber = $duplicate_barcode->itemnumber;
             ModItemFromMarc( $item_marc, $biblionumber, $itemnumber );
             $updsth->bind_param( 1, 'imported' );
             $updsth->bind_param( 2, $item->{itemnumber} );
@@ -776,6 +774,10 @@ sub BatchCommitItems {
             $updsth->execute();
             $num_items_errored++;
         } else {
+            # Remove the itemnumber if it exists, we want to create a new item
+            my ( $itemtag, $itemsubfield ) = GetMarcFromKohaField( "items.itemnumber" );
+            $item_marc->field($itemtag)->delete_subfield( code => $itemsubfield );
+
             my ( $item_biblionumber, $biblioitemnumber, $itemnumber ) = AddItemFromMarc( $item_marc, $biblionumber );
             if( $itemnumber ) {
                 $updsth->bind_param( 1, 'imported' );
@@ -801,6 +803,8 @@ sub BatchCommitItems {
 sub BatchRevertRecords {
     my $batch_id = shift;
 
+    my $logger = Koha::Logger->get( { category => 'C4.ImportBatch' } );
+
     $logger->trace("C4::ImportBatch::BatchRevertRecords( $batch_id )");
 
     my $record_type;
@@ -810,7 +814,7 @@ sub BatchRevertRecords {
     my $num_ignored = 0;
     my $num_items_deleted = 0;
     # commit (i.e., save, all records in the batch)
-    SetImportBatchStatus('reverting');
+    SetImportBatchStatus($batch_id, 'reverting');
     my $overlay_action = GetImportBatchOverlayAction($batch_id);
     my $nomatch_action = GetImportBatchNoMatchAction($batch_id);
     my $dbh = C4::Context->dbh;
@@ -878,7 +882,7 @@ sub BatchRevertRecords {
         my $query;
         if ($record_type eq 'biblio') {
             # remove matched_biblionumber only if there is no 'imported' item left
-            $query = "UPDATE import_biblios SET matched_biblionumber = NULL WHERE import_record_id = ?";
+            $query = "UPDATE import_biblios SET matched_biblionumber = NULL WHERE import_record_id = ?"; # FIXME Remove me
             $query = "UPDATE import_biblios SET matched_biblionumber = NULL WHERE import_record_id = ?  AND NOT EXISTS (SELECT * FROM import_items WHERE import_items.import_record_id=import_biblios.import_record_id and status='imported')";
         } else {
             $query = "UPDATE import_auths SET matched_authid = NULL WHERE import_record_id = ?";
@@ -911,8 +915,9 @@ sub BatchRevertItems {
     $sth->bind_param(1, $import_record_id);
     $sth->execute();
     while (my $row = $sth->fetchrow_hashref()) {
-        my $error = DelItemCheck( $biblionumber, $row->{'itemnumber'});
-        if ($error == 1){
+        my $item = Koha::Items->find($row->{itemnumber});
+        my $error = $item->safe_delete;
+        if ($error eq '1'){
             my $updsth = $dbh->prepare("UPDATE import_items SET status = ? WHERE import_items_id = ?");
             $updsth->bind_param(1, 'reverted');
             $updsth->bind_param(2, $row->{'import_items_id'});
@@ -1023,9 +1028,11 @@ sub GetImportBatchRangeDesc {
     my ($offset, $results_per_group) = @_;
 
     my $dbh = C4::Context->dbh;
-    my $query = "SELECT * FROM import_batches
-                                    WHERE batch_type IN ('batch', 'webservice')
-                                    ORDER BY import_batch_id DESC";
+    my $query = "SELECT b.*, p.name as profile FROM import_batches b
+                                    LEFT JOIN import_batch_profiles p
+                                    ON b.profile_id = p.id
+                                    WHERE b.batch_type IN ('batch', 'webservice')
+                                    ORDER BY b.import_batch_id DESC";
     my @params;
     if ($results_per_group){
         $query .= " LIMIT ?";
@@ -1115,7 +1122,7 @@ sub GetImportRecordsRange {
     my $dbh = C4::Context->dbh;
 
     my $order_by = $parameters->{order_by} || 'import_record_id';
-    ( $order_by ) = grep( /^$order_by$/, qw( import_record_id title status overlay_status ) ) ? $order_by : 'import_record_id';
+    ( $order_by ) = grep( { $_ eq $order_by } qw( import_record_id title status overlay_status ) ) ? $order_by : 'import_record_id';
 
     my $order_by_direction =
       uc( $parameters->{order_by_direction} // 'ASC' ) eq 'DESC' ? 'DESC' : 'ASC';
@@ -1211,6 +1218,22 @@ sub SetImportBatchStatus {
     $sth->execute($new_status, $batch_id);
     $sth->finish();
 
+}
+
+=head2 SetMatchedBiblionumber
+
+  SetMatchedBiblionumber($import_record_id, $biblionumber);
+
+=cut
+
+sub SetMatchedBiblionumber {
+    my ($import_record_id, $biblionumber) = @_;
+
+    my $dbh = C4::Context->dbh;
+    $dbh->do(
+        q|UPDATE import_biblios SET matched_biblionumber = ? WHERE import_record_id = ?|,
+        undef, $biblionumber, $import_record_id
+    );
 }
 
 =head2 GetImportBatchOverlayAction
@@ -1502,10 +1525,10 @@ sub RecordsFromISO2709File {
     my $marc_type = C4::Context->preference('marcflavour');
     $marc_type .= 'AUTH' if ($marc_type eq 'UNIMARC' && $record_type eq 'auth');
 
-    open IN, "<$input_file" or die "$0: cannot open input file $input_file: $!\n";
+    open my $fh, '<', $input_file or die "$0: cannot open input file $input_file: $!\n";
     my @marc_records;
     $/ = "\035";
-    while (<IN>) {
+    while (<$fh>) {
         s/^\s+//;
         s/\s+$//;
         next unless $_; # skip if record has only whitespace, as might occur
@@ -1517,7 +1540,7 @@ sub RecordsFromISO2709File {
                 "Unexpected charset $charset_guessed, expecting $encoding";
         }
     }
-    close IN;
+    close $fh;
     return ( \@errors, \@marc_records );
 }
 
@@ -1560,15 +1583,15 @@ sub RecordsFromMarcPlugin {
     return \@return if !$input_file || !$plugin_class;
 
     # Read input file
-    open IN, "<$input_file" or die "$0: cannot open input file $input_file: $!\n";
+    open my $fh, '<', $input_file or die "$0: cannot open input file $input_file: $!\n";
     $/ = "\035";
-    while (<IN>) {
+    while (<$fh>) {
         s/^\s+//;
         s/\s+$//;
         next unless $_;
         $text .= $_;
     }
-    close IN;
+    close $fh;
 
     # Convert to large MARC blob with plugin
     $text = Koha::Plugins::Handler->run({
@@ -1592,14 +1615,14 @@ sub RecordsFromMarcPlugin {
 # internal functions
 
 sub _create_import_record {
-    my ($batch_id, $record_sequence, $marc_record, $record_type, $encoding, $z3950random, $marc_type) = @_;
+    my ($batch_id, $record_sequence, $marc_record, $record_type, $encoding, $marc_type) = @_;
 
     my $dbh = C4::Context->dbh;
     my $sth = $dbh->prepare("INSERT INTO import_records (import_batch_id, record_sequence, marc, marcxml, marcxml_old,
-                                                         record_type, encoding, z3950random)
-                                    VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
+                                                         record_type, encoding)
+                                    VALUES (?, ?, ?, ?, ?, ?, ?)");
     $sth->execute($batch_id, $record_sequence, $marc_record->as_usmarc(), $marc_record->as_xml($marc_type), '',
-                  $record_type, $encoding, $z3950random);
+                  $record_type, $encoding);
     my $import_record_id = $dbh->{'mysql_insertid'};
     $sth->finish();
     return $import_record_id;
@@ -1637,7 +1660,7 @@ sub _add_biblio_fields {
     # FIXME no controlnumber, originalsource
     $isbn = C4::Koha::GetNormalizedISBN($isbn);
     my $sth = $dbh->prepare("INSERT INTO import_biblios (import_record_id, title, author, isbn, issn) VALUES (?, ?, ?, ?, ?)");
-    $sth->execute($import_record_id, $title, $author, $isbn, $issn);
+    $sth->execute($import_record_id, $title, $author, $isbn, $issn) or die $sth->errstr;
     $sth->finish();
                 
 }

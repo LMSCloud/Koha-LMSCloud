@@ -33,7 +33,7 @@ use C4::Languages qw(getTranslatedLanguages);
 use Date::Calc qw/Date_to_Days Today/;
 use Koha::DateUtils;
 
-my $cgi = new CGI;
+my $cgi = CGI->new;
 
 my $id             = $cgi->param('id');
 my $title          = $cgi->param('title');
@@ -42,11 +42,17 @@ my $expirationdate;
 if ( $cgi->param('expirationdate') ) {
     $expirationdate = output_pref({ dt => dt_from_string( scalar $cgi->param('expirationdate') ), dateformat => 'iso', dateonly => 1 });
 }
-my $timestamp      = output_pref({ dt => dt_from_string( scalar $cgi->param('timestamp') ), dateformat => 'iso', dateonly => 1 });
+my $published_on= output_pref({ dt => dt_from_string( scalar $cgi->param('published_on') ), dateformat => 'iso', dateonly => 1 });
 my $number         = $cgi->param('number');
 my $lang           = $cgi->param('lang');
 my $branchcode     = $cgi->param('branch');
 my $error_message  = $cgi->param('error_message');
+my $wysiwyg;
+if( $cgi->param('editmode') ){
+    $wysiwyg = $cgi->param('editmode') eq "wysiwyg" ? 1 : 0;
+} else {
+    $wysiwyg = C4::Context->preference("NewsToolEditor") eq "tinymce" ? 1 : 0;
+}
 
 # Foreign Key constraints work with NULL, not ''
 # NULL = All branches.
@@ -59,7 +65,6 @@ my ( $template, $borrowernumber, $cookie ) = get_template_and_user(
         template_name   => "tools/koha-news.tt",
         query           => $cgi,
         type            => "intranet",
-        authnotrequired => 0,
         flagsrequired   => { tools => 'edit_news' },
         debug           => 1,
     }
@@ -109,7 +114,7 @@ elsif ( $op eq 'add' ) {
                 content        => $content,
                 lang           => $lang,
                 expirationdate => $expirationdate,
-                timestamp      => $timestamp,
+                published_on=> $published_on,
                 number         => $number,
                 branchcode     => $branchcode,
                 borrowernumber => $borrowernumber,
@@ -129,7 +134,7 @@ elsif ( $op eq 'edit' ) {
             content        => $content,
             lang           => $lang,
             expirationdate => $expirationdate,
-            timestamp      => $timestamp,
+            published_on=> $published_on,
             number         => $number,
             branchcode     => $branchcode,
         }
@@ -144,7 +149,7 @@ elsif ( $op eq 'del' ) {
 
 else {
 
-    my ( $opac_news_count, $opac_news ) = &get_opac_news( undef, $lang, $branchcode );
+    my ( $opac_news_count, $opac_news ) = &get_opac_news( undef, undef, undef );
     
     foreach my $new ( @$opac_news ) {
         next unless $new->{'expirationdate'};
@@ -159,5 +164,8 @@ else {
         opac_news_count => $opac_news_count,
 		);
 }
-$template->param( lang => $lang );
+$template->param(
+    lang => $lang,
+    wysiwyg => $wysiwyg,
+);
 output_html_with_http_headers $cgi, $cookie, $template->output;

@@ -6,18 +6,18 @@ package Koha::BiblioUtils;
 #
 # This file is part of Koha.
 #
-# Koha is free software; you can redistribute it and/or modify it under the
-# terms of the GNU General Public License as published by the Free Software
-# Foundation; either version 3 of the License, or (at your option) any later
-# version.
+# Koha is free software; you can redistribute it and/or modify it
+# under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 3 of the License, or
+# (at your option) any later version.
 #
-# Koha is distributed in the hope that it will be useful, but WITHOUT ANY
-# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
-# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+# Koha is distributed in the hope that it will be useful, but
+# WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+# GNU General Public License for more details.
 #
-# You should have received a copy of the GNU General Public License along
-# with Koha; if not, write to the Free Software Foundation, Inc.,
-# 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+# You should have received a copy of the GNU General Public License
+# along with Koha; if not, see <http://www.gnu.org/licenses>.
 
 =head1 NAME
 
@@ -101,21 +101,50 @@ sub get_from_biblionumber {
 
 =head2 get_all_biblios_iterator
 
-    my $it = Koha::BiblioUtils->get_all_biblios_iterator();
+    my $it = Koha::BiblioUtils->get_all_biblios_iterator(%options);
 
 This will provide an iterator object that will, one by one, provide the
 Koha::BiblioUtils of each biblio. This will include the item data.
 
 The iterator is a Koha::MetadataIterator object.
 
+Possible options are:
+
+=over 4
+
+=item C<slice>
+
+slice may be defined as a hash of two values: index and count. index
+is the slice number to process and count is total number of slices.
+With this information the iterator returns just the given slice of
+records instead of all.
+
+=back
+
 =cut
 
 sub get_all_biblios_iterator {
+    my ($self, %options) = @_;
+
+    my $search_terms = {};
+    my ($slice_modulo, $slice_count);
+    if ($options{slice}) {
+        $slice_count = $options{slice}->{count};
+        $slice_modulo = $options{slice}->{index};
+        $search_terms = \[ 'mod(biblionumber, ?) = ?', $slice_count, $slice_modulo ];
+    }
+
+    my $search_options = { columns => [qw/ biblionumber /] };
+    if ( $options{desc} ){
+        $search_options->{order_by}  = { -desc => 'biblionumber' };
+    }
+
     my $database = Koha::Database->new();
     my $schema   = $database->schema();
     my $rs =
-      $schema->resultset('Biblio')->search( {},
-        { columns => [qw/ biblionumber /] } );
+      $schema->resultset('Biblio')->search(
+        $search_terms,
+        $search_options );
     my $next_func = sub {
         # Warn and skip bad records, otherwise we break the loop
         while (1) {

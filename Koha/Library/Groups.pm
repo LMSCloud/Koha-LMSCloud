@@ -4,18 +4,18 @@ package Koha::Library::Groups;
 #
 # This file is part of Koha.
 #
-# Koha is free software; you can redistribute it and/or modify it under the
-# terms of the GNU General Public License as published by the Free Software
-# Foundation; either version 3 of the License, or (at your option) any later
-# version.
+# Koha is free software; you can redistribute it and/or modify it
+# under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 3 of the License, or
+# (at your option) any later version.
 #
-# Koha is distributed in the hope that it will be useful, but WITHOUT ANY
-# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
-# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+# Koha is distributed in the hope that it will be useful, but
+# WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+# GNU General Public License for more details.
 #
-# You should have received a copy of the GNU General Public License along
-# with Koha; if not, write to the Free Software Foundation, Inc.,
-# 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+# You should have received a copy of the GNU General Public License
+# along with Koha; if not, see <http://www.gnu.org/licenses>.
 
 use Modern::Perl;
 
@@ -62,14 +62,25 @@ sub get_search_groups {
 
     my $field = $interface eq 'staff' ? 'ft_search_groups_staff' : 'ft_search_groups_opac';
 
-    my @search_groups = $self->search( { $field => 1 } );
-
-    return unless @search_groups;
-
-    my @children = map { $_->children() } @search_groups;
-
-    return @children;
+    return $self->search( { $field => 1 } );
 }
+
+
+=head3 get_root_ancestor
+
+my $root_ancestor = $self->get_root_ancestor( {id => $group_id } )
+
+Retrieve root ancestor group for a specified id.
+
+=cut
+
+sub get_root_ancestor {
+    my ( $self, $params ) = @_;
+    my $row = $self->find($params);
+    return $row unless $row->parent_id;
+    return $self->get_root_ancestor( { id => $row->parent_id } );
+}
+
 
 =head3 type
 

@@ -52,7 +52,6 @@ my ($template, $loggedinuser, $cookie) = get_template_and_user({
     template_name => "offline_circ/process_koc.tt",
     query => $query,
     type => "intranet",
-    authnotrequired => 0,
      flagsrequired   => { circulate => "circulate_remaining_permissions" },
 });
 
@@ -335,12 +334,11 @@ sub kocReturnItem {
         C4::Circulation::MarkIssueReturned(
             $borrowernumber,
             $item->itemnumber,
-            undef,
             $circ->{'date'},
             $patron->privacy
         );
 
-        ModItem({ onloan => undef }, $biblio->biblionumber, $item->itemnumber);
+        $item->onloan(undef)->store;
         ModDateLastSeen( $item->itemnumber );
 
         push @output,
@@ -372,7 +370,7 @@ sub kocMakePayment {
     my $patron = Koha::Patrons->find( { cardnumber => $cardnumber } );
 
     Koha::Account->new( { patron_id => $patron->id } )
-      ->pay( { amount => $amount } );
+      ->pay( { amount => $amount, interface => C4::Context->interface } );
 
     push @output,
       {

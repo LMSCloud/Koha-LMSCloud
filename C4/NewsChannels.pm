@@ -58,6 +58,7 @@ sub add_opac_new {
     my $retval = 0;
 
     if ($href_entry) {
+        $href_entry->{number} = 0 if $href_entry->{number} !~ /^\d+$/;
         my @fields = keys %{$href_entry};
         my @values = values %{$href_entry};
         my $field_string = join ',', @fields;
@@ -85,6 +86,7 @@ sub upd_opac_new {
     my $retval = 0;
 
     if ($href_entry) {
+        $href_entry->{number} = 0 if $href_entry->{number} !~ /^\d+$/;
         # take the keys of hash entry and make a list, but...
         my @fields = keys %{$href_entry};
         my @values;
@@ -133,9 +135,8 @@ sub get_opac_new {
     my $sth = $dbh->prepare($query);
     $sth->execute($idnew);
     my $data = $sth->fetchrow_hashref;
-    $data->{$data->{'lang'}} = 1 if defined $data->{lang};
     $data->{expirationdate} = output_pref({ dt => dt_from_string( $data->{expirationdate} ), dateonly => 1 }) if ( $data->{expirationdate} );
-    $data->{timestamp}      = output_pref({ dt => dt_from_string( $data->{timestamp} ), dateonly => 1 }) ;
+    $data->{published_on} = output_pref({ dt => dt_from_string( $data->{published_on} ), dateonly => 1 });
     return $data;
 }
 
@@ -145,7 +146,7 @@ sub get_opac_news {
     my $dbh = C4::Context->dbh;
     my $query = q{
                   SELECT opac_news.*, branches.branchname,
-                         timestamp AS newdate,
+                         published_on AS newdate,
                          borrowers.title AS author_title,
                          borrowers.firstname AS author_firstname,
                          borrowers.surname AS author_surname
@@ -162,7 +163,7 @@ sub get_opac_news {
         $query .= ' AND (opac_news.branchcode IS NULL OR opac_news.branchcode=?)';
         push @values,$branchcode;
     }
-    $query.= ' ORDER BY timestamp DESC ';
+    $query.= ' ORDER BY published_on DESC ';
     #if ($limit) {
     #    $query.= 'LIMIT 0, ' . $limit;
     #}
@@ -191,9 +192,8 @@ sub get_opac_news {
 sub GetNewsToDisplay {
     my ($lang,$branch) = @_;
     my $dbh = C4::Context->dbh;
-    # SELECT *,DATE_FORMAT(timestamp, '%d/%m/%Y') AS newdate
     my $query = q{
-     SELECT opac_news.*,timestamp AS newdate,
+     SELECT opac_news.*,published_on AS newdate,
      borrowers.title AS author_title,
      borrowers.firstname AS author_firstname,
      borrowers.surname AS author_surname
@@ -202,15 +202,12 @@ sub GetNewsToDisplay {
      WHERE   (
         expirationdate >= CURRENT_DATE()
         OR    expirationdate IS NULL
-        OR    expirationdate = '00-00-0000'
      )
-     AND   DATE(timestamp) < DATE_ADD(CURDATE(), INTERVAL 1 DAY)
+     AND   published_on <= CURDATE()
      AND   (opac_news.lang = '' OR opac_news.lang = ?)
      AND   (opac_news.branchcode IS NULL OR opac_news.branchcode = ?)
      ORDER BY number
-    }; # expirationdate field is NOT in ISO format?
-       # timestamp has HH:mm:ss, CURRENT_DATE generates 00:00:00
-       #           by adding 1, that captures today correctly.
+    };
     my $sth = $dbh->prepare($query);
     $lang = $lang // q{};
     $sth->execute($lang,$branch);

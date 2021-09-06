@@ -128,7 +128,7 @@ sub output {
     $vars = { %$vars, %{ $self->{VARS} } };
 
     my $data;
-    binmode( STDOUT, ":utf8" );
+    binmode( STDOUT, ":encoding(UTF-8)" );
     $template->process( $self->filename, $vars, \$data )
       || die "Template process failed: ", $template->error();
     return $data;
@@ -294,6 +294,12 @@ sub themelanguage {
     # Select a language based on cookie, syspref available languages & browser
     my $lang = C4::Languages::getlanguage($query);
 
+    return availablethemes($htdocs, $tmpl, $interface, $lang);
+}
+
+sub availablethemes {
+    my ($htdocs, $tmpl, $interface, $lang) = @_;
+
     # Get theme
     my @themes;
     my $theme_syspref    = ($interface eq 'intranet') ? 'template' : 'opacthemes';
@@ -332,7 +338,6 @@ sub themelanguage {
         return ( $themes[0], $lang, [ uniq(@themes) ] );
     }
 }
-
 
 sub setlanguagecookie {
     my ( $query, $language, $uri ) = @_;

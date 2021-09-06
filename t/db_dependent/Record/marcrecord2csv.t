@@ -1,7 +1,7 @@
 #!/usr/bin/perl;
 
 use Modern::Perl;
-use Test::More tests => 11;
+use Test::More tests => 13;
 use Test::MockModule;
 use MARC::Record;
 use MARC::Field;
@@ -10,12 +10,15 @@ use Text::CSV::Encoded;
 use C4::Biblio qw( AddBiblio );
 use C4::Context;
 use C4::Record;
+use Koha::Database;
+
+use C4::Items;
 
 use t::lib::TestBuilder;
 
+my $schema = Koha::Database->new->schema;
+$schema->storage->txn_begin;
 my $dbh = C4::Context->dbh;
-$dbh->{AutoCommit} = 0;
-$dbh->{RaiseError} = 1;
 
 my $builder = t::lib::TestBuilder->new;
 my $module_biblio = Test::MockModule->new('C4::Biblio');
@@ -29,7 +32,11 @@ my $csv_content = q(Title=245$a|Author=245$c|Subject=650$a);
 my $csv_profile_id_1 = insert_csv_profile({ csv_content => $csv_content });
 my $csv = Text::CSV::Encoded->new();
 
-my $csv_output = C4::Record::marcrecord2csv( $biblionumber, $csv_profile_id_1, 1, $csv );
+# Test bad biblionumber case
+my $csv_output = C4::Record::marcrecord2csv( -1, $csv_profile_id_1, 1, $csv );
+ok(! defined $csv_output, 'Bad biblionumber gives undef as expected.');
+
+$csv_output = C4::Record::marcrecord2csv( $biblionumber, $csv_profile_id_1, 1, $csv );
 
 is( $csv_output, q[Title|Author|Subject
 "The art of computer programming,The art of another title"|"Donald E. Knuth.,Donald E. Knuth. II"|"Computer programming.,Computer algorithms."
@@ -96,7 +103,7 @@ my $authorised_value_1 =
   $builder->build( { source => 'AuthorisedValue', value => { category => 'MY_AV_1', authorised_value => 1, lib => 'This is an AV', lib_opac => 'This is an AV (opac)' } } );
 my $authorised_value_2 = $builder->build(
     { source => 'AuthorisedValue', value => { category => 'MY_AV_2', authorised_value => 2, lib => 'This is another AV', lib_opac => 'This is another AV (opac)' } } );
-$dbh->do(q|DELETE FROM marc_subfield_structure WHERE tagfield=998 and ( tagsubfield='8' or tagsubfield='9')|);
+$dbh->do(q|DELETE FROM marc_subfield_structure WHERE tagfield='998' and ( tagsubfield='8' or tagsubfield='9')|);
 $builder->build(
     { source => 'MarcSubfieldStructure', value => { authorised_value => $authorised_value_1->{category}, tagfield => 998, tagsubfield => '8', frameworkcode => $frameworkcode } }
 );
@@ -119,7 +126,39 @@ is( $csv_output, q[Title|AVs
 ], q|TT way: display first subfield a for first field 245 if indicator 1 == 1 for field 100 is set|
 );
 
+subtest 'Test for subfields 0' => sub {
+    plan tests => 1;
 
+    my $record2        = new_record();
+    my $frameworkcode2 = q||;
+
+    # We change the barcode of the second item record to prevent an error "duplicate entry"
+    my $field     = $record->field('952');
+    my $new_field = MARC::Field->new(
+        '952', ' ', ' ',
+        0 => '1',
+        p => '3010023918',
+    );
+    $field->replace_with($new_field);
+
+    # We create another record
+    my ( $biblionumber2, $biblioitemnumber2 ) = AddBiblio( $record2, $frameworkcode2 );
+
+    # We add two item to two record to test fieldtag 952 and subfieldtag 9520
+    my ( undef, undef, $itemnumber2 ) = AddItemFromMarc( $record2, $biblionumber );
+    my ( undef, undef, $itemnumber ) = AddItemFromMarc( $record, $biblionumber );
+    $csv_content = q(Titre=245a|Nom de personne=100a|Statut « Élagué »=9520);
+    my $csv_profile_id_10 = insert_csv_profile( { csv_content => $csv_content } );
+    $csv_output = C4::Record::marcrecord2csv( $biblionumber, $csv_profile_id_10, 1, $csv );
+    is_deeply(
+        [ split "\n", $csv_output ],
+        [
+            q[Titre|"Nom de personne"|"Statut « Élagué »"],
+            q["The art of computer programming,The art of another title"|"Knuth, Donald Ervin"|Withdrawn;Withdrawn],
+        ],
+        q[subfieldtag 952\$0 is not working, should return 'Withdrawn']
+    );
+};
 
 sub insert_csv_profile {
     my ( $params ) = @_;
@@ -167,6 +206,7 @@ sub new_record {
         ),
         MARC::Field->new(
             952, ' ', ' ',
+            0 => '1',
             p => '3010023917',
             y => 'BK',
             c => 'GEN',

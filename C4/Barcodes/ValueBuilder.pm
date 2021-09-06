@@ -1,5 +1,5 @@
-#!/usr/bin/perl
-#
+package C4::Barcodes::ValueBuilder;
+
 # Copyright 2008-2010 Foundations Bible College
 # Parts copyright 2012 C & P Bibliography Services
 #
@@ -19,8 +19,8 @@
 # along with Koha; if not, see <http://www.gnu.org/licenses>.
 
 package C4::Barcodes::ValueBuilder::incremental;
+use Modern::Perl;
 use C4::Context;
-my $DEBUG = 0;
 
 sub get_barcode {
     my ($args) = @_;
@@ -40,7 +40,6 @@ sub get_barcode {
 
 package C4::Barcodes::ValueBuilder::hbyymmincr;
 use C4::Context;
-my $DEBUG = 0;
 
 sub get_barcode {
     my ($args) = @_;
@@ -53,12 +52,10 @@ sub get_barcode {
     while (my ($count)= $sth->fetchrow_array) {
         $nextnum = $count if $count;
         $nextnum = 0 if $nextnum == 9999; # this sequence only allows for cataloging 9999 items per month
-            warn "Existing incremental number = $nextnum" if $DEBUG;
     }
     $nextnum++;
     $nextnum = sprintf("%0*d", "4",$nextnum);
     $nextnum = $year . $month . $nextnum;
-    warn "New hbyymmincr Barcode = $nextnum" if $DEBUG;
     my $scr = "
         var form = document.getElementById('f');
         if ( !form ) {
@@ -82,16 +79,14 @@ sub get_barcode {
 
 package C4::Barcodes::ValueBuilder::annual;
 use C4::Context;
-my $DEBUG = 0;
 
 sub get_barcode {
     my ($args) = @_;
     my $nextnum;
     my $query = "select max(cast( substring_index(barcode, '-',-1) as signed)) from items where barcode like ?";
     my $sth=C4::Context->dbh->prepare($query);
-    $sth->execute("$args->{year}%");
+    $sth->execute($args->{year} . '-%');
     while (my ($count)= $sth->fetchrow_array) {
-        warn "Examining Record: $count" if $DEBUG;
         $nextnum = $count if $count;
     }
     $nextnum++;

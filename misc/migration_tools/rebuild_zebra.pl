@@ -17,6 +17,7 @@
 
 use Modern::Perl;
 
+use Koha::Script;
 use C4::Context;
 use Getopt::Long;
 use Fcntl qw(:flock);
@@ -144,8 +145,8 @@ if (not $biblios and not $authorities) {
     die $msg;
 }
 
-our @tables_allowed_for_select = ( 'biblioitems', 'items', 'biblio' );
-unless ( grep { /^$table$/ } @tables_allowed_for_select ) {
+our @tables_allowed_for_select = ( 'biblioitems', 'items', 'biblio', 'biblio_metadata' );
+unless ( grep { $_ eq $table } @tables_allowed_for_select ) {
     die "Cannot specify -t|--table with value '$table'. Only "
       . ( join ', ', @tables_allowed_for_select )
       . " are allowed.";
@@ -169,11 +170,9 @@ my $biblioserverdir = C4::Context->zebraconfig('biblioserver')->{directory};
 my $authorityserverdir = C4::Context->zebraconfig('authorityserver')->{directory};
 
 my $kohadir = C4::Context->config('intranetdir');
-my $bib_index_mode  = C4::Context->config('zebra_bib_index_mode')  // 'dom';
-my $auth_index_mode = C4::Context->config('zebra_auth_index_mode') // 'dom';
 
-my ($biblionumbertagfield,$biblionumbertagsubfield) = C4::Biblio::GetMarcFromKohaField("biblio.biblionumber","");
-my ($biblioitemnumbertagfield,$biblioitemnumbertagsubfield) = C4::Biblio::GetMarcFromKohaField("biblioitems.biblioitemnumber","");
+my ($biblionumbertagfield,$biblionumbertagsubfield) = C4::Biblio::GetMarcFromKohaField( "biblio.biblionumber" );
+my ($biblioitemnumbertagfield,$biblioitemnumbertagsubfield) = C4::Biblio::GetMarcFromKohaField( "biblioitems.biblioitemnumber" );
 
 my $marcxml_open = q{<?xml version="1.0" encoding="UTF-8"?>
 <collection xmlns="http://www.loc.gov/MARC21/slim">
@@ -210,7 +209,9 @@ if( !defined $LockFH ) {
                     # the lockfile)
 };
 
+my $start_time = time();
 if ( $verbose_logging ) {
+    my $pretty_time = POSIX::strftime("%H:%M:%S",localtime($start_time));
     print "Zebra configuration information\n";
     print "================================\n";
     print "Zebra biblio directory      = $biblioserverdir\n";
@@ -220,6 +221,7 @@ if ( $verbose_logging ) {
     print "BIBLIONUMBER in :     $biblionumbertagfield\$$biblionumbertagsubfield\n";
     print "BIBLIOITEMNUMBER in : $biblioitemnumbertagfield\$$biblioitemnumbertagsubfield\n";
     print "================================\n";
+    print "Job started: $pretty_time\n";
 }
 
 my $tester = XML::LibXML->new();
@@ -269,6 +271,8 @@ if ($daemon_mode) {
 
 if ( $verbose_logging ) {
     print "====================\n";
+    print "Indexing complete: ". pretty_time() . "\n";
+    print "====================\n";
     print "CLEANING\n";
     print "====================\n";
 }
@@ -281,8 +285,7 @@ if ($keep_export) {
         print "parameter";
     }
     print "\n";
-    print "if you just want to rebuild zebra after changing the record.abs\n";
-    print "or another zebra config file\n";
+    print "if you just want to rebuild zebra after changing zebra config files\n";
 } else {
     unless ($use_tempdir) {
         # if we're using a temporary directory
@@ -364,7 +367,7 @@ sub index_records {
     } else {
         if ( $verbose_logging ) {
             print "====================\n";
-            print "exporting $record_type\n";
+            print "exporting $record_type " . pretty_time() . "\n";
             print "====================\n";
         }
         mkdir "$directory" unless (-d $directory);
@@ -405,7 +408,7 @@ sub index_records {
     } else {
         if ( $verbose_logging ) {
             print "====================\n";
-            print "REINDEXING zebra\n";
+            print "REINDEXING zebra " . pretty_time() . "\n";
             print "====================\n";
         }
         my $record_fmt = 'marcxml';
@@ -478,8 +481,8 @@ sub select_all_authorities {
 
 sub select_all_biblios {
     $table = 'biblioitems'
-      unless grep { /^$table$/ } @tables_allowed_for_select;
-    my $strsth = qq{ SELECT biblionumber FROM $table };
+      unless grep { $_ eq $table } @tables_allowed_for_select;
+    my $strsth = qq{ SELECT DISTINCT biblionumber FROM $table };
     $strsth.=qq{ WHERE $where } if ($where);
     $strsth.=qq{ LIMIT $length } if ($length && !$offset);
     $strsth.=qq{ LIMIT $offset,$length } if ($offset);
@@ -497,7 +500,7 @@ sub export_marc_records_from_sth {
     print {$fh} $marcxml_open;
 
     my $i = 0;
-    my ( $itemtag, $itemsubfield ) = C4::Biblio::GetMarcFromKohaField("items.itemnumber",'');
+    my ( $itemtag, $itemsubfield ) = C4::Biblio::GetMarcFromKohaField( "items.itemnumber" );
     while (my ($record_number) = $sth->fetchrow_array) {
         print "." if ( $verbose_logging );
         print "\r$i" unless ($i++ %100 or !$verbose_logging);
@@ -558,7 +561,7 @@ sub export_marc_records_from_sth {
             }
         }
     }
-    print "\nRecords exported: $num_exported\n" if ( $verbose_logging );
+    print "\nRecords exported: $num_exported " . pretty_time() . "\n" if ( $verbose_logging );
     print {$fh} $marcxml_close;
 
     close $fh;
@@ -595,7 +598,7 @@ sub export_marc_records_from_list {
             }
         }
     }
-    print "\nRecords exported: $num_exported\n" if ( $verbose_logging );
+    print "\nRecords exported: $num_exported " . pretty_time() . "\n" if ( $verbose_logging );
 
     print {$fh} $marcxml_close;
 
@@ -634,7 +637,7 @@ sub generate_deleted_marc_records {
 
         $records_deleted->{$record_number} = 1;
     }
-    print "\nRecords exported: $i\n" if ( $verbose_logging );
+    print "\nRecords exported: $i " . pretty_time() . "\n" if ( $verbose_logging );
 
     print {$fh} $marcxml_close;
 
@@ -828,6 +831,24 @@ sub _create_lockfile { #returns undef on failure
     return ( $fh, $dir.'/'.LOCK_FILENAME );
 }
 
+sub pretty_time {
+    use integer;
+    my $now = time;
+    my $elapsed = $now - $start_time;
+    local $_ = $elapsed;
+    my ( $h, $m, $s );
+    $s = $_ % 60;
+    $_ /= 60;
+    $m = $_ % 60;
+    $_ /= 60;
+    $h = $_ % 24;
+
+    my $now_pretty = POSIX::strftime("%H:%M:%S",localtime($now));
+    my $elapsed_pretty = sprintf "[%02d:%02d:%02d]",$h,$m,$s;
+
+    return "$now_pretty $elapsed_pretty";
+}
+
 sub print_usage {
     print <<_USAGE_;
 $0: reindex MARC bibs and/or authorities in Zebra.
@@ -920,7 +941,7 @@ Parameters:
                             to wait for the lock to free and then continue
                             processing the rebuild request,
 
-    --table                 specify a table (can be items, biblioitems or biblio) to retrieve biblionumber to index.
+    --table                 specify a table (can be items, biblioitems, biblio, biblio_metadata) to retrieve biblionumber to index.
                             biblioitems is the default value.
 
     --help or -h            show this message.

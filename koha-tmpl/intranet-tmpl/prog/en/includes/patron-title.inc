@@ -1,3 +1,4 @@
+[%- USE raw -%]
 [%- USE Koha -%]
 [%- USE Branches -%]
 [%- SET data = {} -%]
@@ -27,6 +28,7 @@
     [%- SET data.title          = title -%]
 [%- END -%]
 [%# Parameter no_html - if 1, the html tags are NOT generated %]
+[%- IF no_title %][% SET data.title = "" %][% END -%]
 [%- IF data.title %]
     [%- IF no_html %]
         [%- span_start = '' %]
@@ -35,6 +37,7 @@
         [%- span_start = '<span class="patron-title">' %]
         [%- span_end   = '</span>' %]
     [%- END %]
+    [% data.title = data.title | html %]
     [%- SET data.title = span_start _ data.title _ span_end _ ' ' -%]
 [%- END -%]
 [%- SET display_patron_name = 1 -%]
@@ -49,17 +52,17 @@
     [%- END -%]
 [%- END -%]
 [%- IF hide_patron_infos_if_needed AND ( display_patron_name OR display_cardnumber ) -%]
-    [%- IF link_to == 'circulation_reserves' %]<a href="/cgi-bin/koha/circ/circulation.pl?borrowernumber=[% data.borrowernumber %]#reserves">
-    [%- ELSE %]<a href="/cgi-bin/koha/members/moremember.pl?borrowernumber=[% data.borrowernumber %]">
+    [%- IF link_to == 'circulation_reserves' %]<a href="/cgi-bin/koha/circ/circulation.pl?borrowernumber=[% data.borrowernumber | uri %]#reserves">
+    [%- ELSE %]<a href="/cgi-bin/koha/members/moremember.pl?borrowernumber=[% data.borrowernumber | uri %]">
     [%- END -%]
 [%- END -%]
 [%- IF display_patron_name -%]
     [%- IF data.category_type == 'I' -%]
         [%- data.surname | html %] [% IF data.othernames %] ([% data.othernames | html %])[% END -%]
     [%- ELSIF invert_name -%]
-        [% data.title%][%- data.surname | html %], [% data.firstname | html %] [% IF data.othernames %] ([% data.othernames | html %]) [% END -%]
+        [% data.title | $raw %][%- data.surname | html %][% IF ( data.firstname ) %], [% data.firstname | html %][% END %][% IF data.othernames %] ([% data.othernames | html %]) [% END -%]
     [%- ELSE -%]
-        [% data.title %][%- data.firstname | html %] [% IF data.othernames %] ([% data.othernames | html %]) [% END %] [% data.surname | html -%]
+        [% data.title | $raw %][%- data.firstname | html %] [% IF data.othernames %] ([% data.othernames | html %]) [% END %] [% data.surname | html -%]
     [%- END -%]
     [%- IF display_cardnumber AND data.cardnumber %] ([% data.cardnumber | html %])[% END -%]
 [%- ELSIF display_cardnumber -%]
@@ -67,7 +70,7 @@
         [%- data.cardnumber | html -%]
     [%- END -%]
 [%- ELSE -%]
-    A patron from library [% Branches.GetName( patron.branchcode ) -%]
+    A patron from library [% Branches.GetName( patron.branchcode ) | html -%]
 [%- END -%]
 
 [%- IF hide_patron_infos_if_needed AND ( display_patron_name OR display_cardnumber ) -%]

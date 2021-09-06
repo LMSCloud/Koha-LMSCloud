@@ -2,18 +2,18 @@
 --
 -- Copyright 2011 Magnus Enger Libriotech
 --
--- Koha is free software; you can redistribute it and/or modify it under the
--- terms of the GNU General Public License as published by the Free Software
--- Foundation; either version 2 of the License, or (at your option) any later
--- version.
+-- Koha is free software; you can redistribute it and/or modify it
+-- under the terms of the GNU General Public License as published by
+-- the Free Software Foundation; either version 3 of the License, or
+-- (at your option) any later version.
 --
--- Koha is distributed in the hope that it will be useful, but WITHOUT ANY
--- WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
--- A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+-- Koha is distributed in the hope that it will be useful, but
+-- WITHOUT ANY WARRANTY; without even the implied warranty of
+-- MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+-- GNU General Public License for more details.
 --
--- You should have received a copy of the GNU General Public License along
--- with this program; if not, write to the Free Software Foundation, Inc.,
--- 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+-- You should have received a copy of the GNU General Public License
+-- along with Koha; if not, see <http://www.gnu.org/licenses>.
 
 INSERT IGNORE INTO biblio_framework VALUES ( 'FA','Hurtigkatalogisering' );
 
@@ -62,7 +62,7 @@ INSERT INTO marc_subfield_structure (tagfield,tagsubfield,liblibrarian,libopac,r
 INSERT INTO marc_subfield_structure (tagfield,tagsubfield,liblibrarian,libopac,repeatable,mandatory,kohafield,tab,authorised_value,authtypecode,value_builder,isurl,hidden,frameworkcode,seealso,link,defaultvalue,maxlength) VALUES ('100','q','Mer fullstendig navneform','Mer fullstendig navneform','0','0','0','1','','','','0','0','FA','','','','9999');
 INSERT INTO marc_subfield_structure (tagfield,tagsubfield,liblibrarian,libopac,repeatable,mandatory,kohafield,tab,authorised_value,authtypecode,value_builder,isurl,hidden,frameworkcode,seealso,link,defaultvalue,maxlength) VALUES ('100','w','Sorteringsdelfelt for delfelt $a','Sorteringsdelfelt for delfelt $a','0','0','0','1','','','','0','0','FA','','','','9999');
 INSERT INTO marc_subfield_structure (tagfield,tagsubfield,liblibrarian,libopac,repeatable,mandatory,kohafield,tab,authorised_value,authtypecode,value_builder,isurl,hidden,frameworkcode,seealso,link,defaultvalue,maxlength) VALUES ('245','a','Tittel','Tittel','0','0','biblio.title','2','','','','0','0','FA','','','','9999');
-INSERT INTO marc_subfield_structure (tagfield,tagsubfield,liblibrarian,libopac,repeatable,mandatory,kohafield,tab,authorised_value,authtypecode,value_builder,isurl,hidden,frameworkcode,seealso,link,defaultvalue,maxlength) VALUES ('245','b','Annen tittelinformasjon','Annen tittelinformasjon','0','0','bibliosubtitle.subtitle','2','','','','0','0','FA','','','','9999');
+INSERT INTO marc_subfield_structure (tagfield,tagsubfield,liblibrarian,libopac,repeatable,mandatory,kohafield,tab,authorised_value,authtypecode,value_builder,isurl,hidden,frameworkcode,seealso,link,defaultvalue,maxlength) VALUES ('245','b','Annen tittelinformasjon','Annen tittelinformasjon','0','0','biblio.subtitle','2','','','','0','0','FA','','','','9999');
 INSERT INTO marc_subfield_structure (tagfield,tagsubfield,liblibrarian,libopac,repeatable,mandatory,kohafield,tab,authorised_value,authtypecode,value_builder,isurl,hidden,frameworkcode,seealso,link,defaultvalue,maxlength) VALUES ('245','c','Ansvarsangivelse','Ansvarsangivelse','0','0','0','2','','','','0','0','FA','','','','9999');
 INSERT INTO marc_subfield_structure (tagfield,tagsubfield,liblibrarian,libopac,repeatable,mandatory,kohafield,tab,authorised_value,authtypecode,value_builder,isurl,hidden,frameworkcode,seealso,link,defaultvalue,maxlength) VALUES ('245','h','Generell materialbetegnelse','Generell materialbetegnelse','0','0','0','2','','','','0','0','FA','','','','9999');
 INSERT INTO marc_subfield_structure (tagfield,tagsubfield,liblibrarian,libopac,repeatable,mandatory,kohafield,tab,authorised_value,authtypecode,value_builder,isurl,hidden,frameworkcode,seealso,link,defaultvalue,maxlength) VALUES ('250','a','Utgave, opplag etc','Utgave, opplag etc','0','0','biblioitems.editionstatement','2','','','','0','-1','FA','','','','9999');

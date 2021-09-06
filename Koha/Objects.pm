@@ -4,25 +4,28 @@ package Koha::Objects;
 #
 # This file is part of Koha.
 #
-# Koha is free software; you can redistribute it and/or modify it under the
-# terms of the GNU General Public License as published by the Free Software
-# Foundation; either version 3 of the License, or (at your option) any later
-# version.
+# Koha is free software; you can redistribute it and/or modify it
+# under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 3 of the License, or
+# (at your option) any later version.
 #
-# Koha is distributed in the hope that it will be useful, but WITHOUT ANY
-# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
-# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+# Koha is distributed in the hope that it will be useful, but
+# WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+# GNU General Public License for more details.
 #
-# You should have received a copy of the GNU General Public License along
-# with Koha; if not, write to the Free Software Foundation, Inc.,
-# 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+# You should have received a copy of the GNU General Public License
+# along with Koha; if not, see <http://www.gnu.org/licenses>.
 
 use Modern::Perl;
 
 use Carp;
 use List::MoreUtils qw( none );
+use Class::Inspector;
 
 use Koha::Database;
+use Koha::Exceptions::Object;
+use Koha::DateUtils qw( dt_from_string );
 
 =head1 NAME
 
@@ -76,6 +79,8 @@ Similar to DBIx::Class::ResultSet->find this method accepts:
 Strictly speaking, columns_values should only refer to columns under an
 unique constraint.
 
+It returns undef if no results were found
+
 my $object = Koha::Objects->find( { col1 => $val1, col2 => $val2 } );
 my $object = Koha::Objects->find( $id );
 my $object = Koha::Objects->find( $idpart1, $idpart2, $attrs ); # composite PK
@@ -85,15 +90,14 @@ my $object = Koha::Objects->find( $idpart1, $idpart2, $attrs ); # composite PK
 sub find {
     my ( $self, @pars ) = @_;
 
-    croak 'Cannot use "->find" in list context' if wantarray;
+    my $object;
 
-    return if !@pars || none { defined($_) } @pars;
-
-    my $result = $self->_resultset()->find( @pars );
-
-    return unless $result;
-
-    my $object = $self->object_class()->_new_from_dbic( $result );
+    unless (!@pars || none { defined($_) } @pars) {
+        my $result = $self->_resultset()->find(@pars);
+        if ($result) {
+            $object = $self->object_class()->_new_from_dbic($result);
+        }
+    }
 
     return $object;
 }
@@ -116,9 +120,21 @@ sub find_or_create {
     return $object;
 }
 
-=head3 Koha::Objects->search();
+=head3 search
 
-my @objects = Koha::Objects->search($params);
+    # list context
+    my @objects = Koha::Objects->search([$params, $attributes]);
+    # scalar context
+    my $objects = Koha::Objects->search([$params, $attributes]);
+    while (my $object = $objects->next) {
+        do_stuff($object);
+    }
+
+This B<instantiates> the I<Koha::Objects> class, and generates a resultset
+based on the query I<$params> and I<$attributes> that are passed (like in DBIC).
+
+In B<list context> it returns an array of I<Koha::Object> objects.
+In B<scalar context> it returns an iterator.
 
 =cut
 
@@ -168,6 +184,116 @@ sub search_related {
         eval "require $object_class";
         return _new_from_dbic( $object_class, $rs );
     }
+}
+
+=head3 delete
+
+=cut
+
+sub delete {
+    my ($self) = @_;
+
+    if ( Class::Inspector->function_exists( $self->object_class, 'delete' ) ) {
+        my $objects_deleted;
+        $self->_resultset->result_source->schema->txn_do( sub {
+            $self->reset; # If we iterated already over the set
+            while ( my $o = $self->next ) {
+                $o->delete;
+                $objects_deleted++;
+            }
+        });
+        return $objects_deleted;
+    }
+
+    return $self->_resultset->delete;
+}
+
+=head3 update
+
+    my $objects = Koha::Objects->new; # or Koha::Objects->search
+    $objects->update( $fields, [ { no_triggers => 0/1 } ] );
+
+This method overloads the DBIC inherited one so if code-level triggers exist
+(through the use of an overloaded I<update> or I<store> method in the Koha::Object
+based class) those are called in a loop on the resultset.
+
+If B<no_triggers> is passed and I<true>, then the DBIC update method is called
+directly. This feature is important for performance, in cases where no code-level
+triggers should be triggered. The developer will explicitly ask for this and QA should
+catch wrong uses as well.
+
+=cut
+
+sub update {
+    my ($self, $fields, $options) = @_;
+
+    Koha::Exceptions::Object::NotInstantiated->throw(
+        method => 'update',
+        class  => $self
+    ) unless ref $self;
+
+    my $no_triggers = $options->{no_triggers};
+
+    if (
+        !$no_triggers
+        && ( Class::Inspector->function_exists( $self->object_class, 'update' )
+          or Class::Inspector->function_exists( $self->object_class, 'store' ) )
+      )
+    {
+        my $objects_updated;
+        $self->_resultset->result_source->schema->txn_do( sub {
+            while ( my $o = $self->next ) {
+                $o->update($fields);
+                $objects_updated++;
+            }
+        });
+        return $objects_updated;
+    }
+
+    return $self->_resultset->update($fields);
+}
+
+=head3 filter_by_last_update
+
+my $filtered_objects = $objects->filter_by_last_update
+
+days exclusive by default (will be inclusive if days_inclusive is passed and set)
+from inclusive
+to   inclusive
+
+=cut
+
+sub filter_by_last_update {
+    my ( $self, $params ) = @_;
+    my $timestamp_column_name = $params->{timestamp_column_name} || 'timestamp';
+    my $days_inclusive = $params->{days_inclusive} || 0;
+    my $conditions;
+    Koha::Exceptions::MissingParameter->throw(
+        "Missing mandatory parameter: days or from or to")
+      unless exists $params->{days}
+          or exists $params->{from}
+          or exists $params->{to};
+
+    my $dtf = Koha::Database->new->schema->storage->datetime_parser;
+    if ( exists $params->{days} ) {
+        my $dt = Koha::DateUtils::dt_from_string();
+        my $operator = $days_inclusive ? '<=' : '<';
+        $conditions->{$operator} = $dtf->format_date( $dt->subtract( days => $params->{days} ) );
+    }
+    if ( exists $params->{from} ) {
+        my $from = ref($params->{from}) ? $params->{from} : dt_from_string($params->{from});
+        $conditions->{'>='} = $dtf->format_date( $from );
+    }
+    if ( exists $params->{to} ) {
+        my $to = ref($params->{to}) ? $params->{to} : dt_from_string($params->{to});
+        $conditions->{'<='} = $dtf->format_date( $to );
+    }
+
+    return $self->search(
+        {
+            $timestamp_column_name => $conditions
+        }
+    );
 }
 
 =head3 single
@@ -236,7 +362,29 @@ sub last {
     return $object;
 }
 
+=head3 empty
 
+    my $empty_rs = Koha::Objects->new->empty;
+
+Sets the resultset empty. This is handy for consistency on method returns
+(e.g. if we know in advance we won't have results but want to keep returning
+an iterator).
+
+=cut
+
+sub empty {
+    my ($self) = @_;
+
+    Koha::Exceptions::Object::NotInstantiated->throw(
+        method => 'empty',
+        class  => $self
+    ) unless ref $self;
+
+    $self = $self->search(\'0 = 1');
+    $self->_resultset()->set_cache([]);
+
+    return $self;
+}
 
 =head3 Koha::Objects->reset();
 
@@ -308,6 +456,64 @@ sub TO_JSON {
     return [ map { $_->TO_JSON } $self->as_list ];
 }
 
+=head3 Koha::Objects->to_api
+
+Returns a representation of the objects, suitable for API output .
+
+=cut
+
+sub to_api {
+    my ($self, $params) = @_;
+
+    return [ map { $_->to_api($params) } $self->as_list ];
+}
+
+=head3 attributes_from_api
+
+    my $attributes = $objects->attributes_from_api( $api_attributes );
+
+Translates attributes from the API to DBIC
+
+=cut
+
+sub attributes_from_api {
+    my ( $self, $attributes ) = @_;
+
+    $self->{_singular_object} ||= $self->object_class->new();
+    return $self->{_singular_object}->attributes_from_api( $attributes );
+}
+
+=head3 from_api_mapping
+
+    my $mapped_attributes_hash = $objects->from_api_mapping;
+
+Attributes map from the API to DBIC
+
+=cut
+
+sub from_api_mapping {
+    my ( $self ) = @_;
+
+    $self->{_singular_object} ||= $self->object_class->new();
+    return $self->{_singular_object}->from_api_mapping;
+}
+
+=head3 prefetch_whitelist
+
+    my $whitelist = $object->prefetch_whitelist()
+
+Returns a hash of prefetchable subs and the type it returns
+
+=cut
+
+sub prefetch_whitelist {
+    my ( $self ) = @_;
+
+    $self->{_singular_object} ||= $self->object_class->new();
+
+    $self->{_singular_object}->prefetch_whitelist;
+}
+
 =head3 Koha::Objects->_wrap
 
 wraps the DBIC object in a corresponding Koha object
@@ -372,19 +578,19 @@ The autoload method is used call DBIx::Class method on a resultset.
 
 Important: If you plan to use one of the DBIx::Class methods you must provide
 relevant tests in t/db_dependent/Koha/Objects.t
-Currently count, pager, update and delete are covered.
+Currently count, is_paged, pager, result_class, single and slice are covered.
 
 =cut
 
 sub AUTOLOAD {
     my ( $self, @params ) = @_;
 
-    my @known_methods = qw( count is_paged pager update delete result_class single slice );
+    my @known_methods = qw( count is_paged pager result_class single slice );
     my $method = our $AUTOLOAD;
     $method =~ s/.*:://;
 
 
-    unless ( grep { /^$method$/ } @known_methods ) {
+    unless ( grep { $_ eq $method } @known_methods ) {
         my $class = ref($self) ? ref($self) : $self;
         Koha::Exceptions::Object::MethodNotCoveredByTests->throw(
             error      => sprintf("The method %s->%s is not covered by tests!", $class, $method),

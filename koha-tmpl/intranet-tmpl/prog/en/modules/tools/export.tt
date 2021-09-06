@@ -1,10 +1,11 @@
+[% USE raw %]
 [% USE Asset %]
 [% USE Branches %]
 [% SET footerjs = 1 %]
 [% INCLUDE 'doc-head-open.inc' %]
-<title>Koha &rsaquo; Tools &rsaquo; Export data</title>
+<title>Export data &rsaquo; Tools &rsaquo; Koha</title>
 [% INCLUDE 'doc-head-close.inc' %]
-<style type="text/css">
+<style>
     fieldset.rows fieldset.rows {
         width: 90%;
     }
@@ -15,19 +16,32 @@
 [% INCLUDE 'header.inc' %]
 [% INCLUDE 'cat-search.inc' %]
 
-<div id="breadcrumbs"><a href="/cgi-bin/koha/mainpage.pl">Home</a> &rsaquo; <a href="/cgi-bin/koha/tools/tools-home.pl">Tools</a> &rsaquo; Export data</div>
+<nav id="breadcrumbs" aria-label="Breadcrumb" class="breadcrumb">
+    <ol>
+        <li>
+            <a href="/cgi-bin/koha/mainpage.pl">Home</a>
+        </li>
+        <li>
+            <a href="/cgi-bin/koha/tools/tools-home.pl">Tools</a>
+        </li>
+        <li>
+            <a href="#" aria-current="page">
+                Export data
+            </a>
+        </li>
+    </ol>
+</nav>
 
-<div id="doc3" class="yui-t2">
-   
-   <div id="bd">
-	<div id="yui-main">
-	<div class="yui-b">
+<div class="main container-fluid">
+    <div class="row">
+        <div class="col-sm-10 col-sm-push-2">
+            <main>
 
 [% FOR m IN messages %]
-    <div class="dialog [% m.type %]">
+    <div class="dialog [% m.type | html %]">
         [% SWITCH m.code %]
         [% CASE 'invalid_mimetype' %]The file used does not have a valid format. Only csv and txt are allowed.
-        [% CASE %][% m.code %]
+        [% CASE %][% m.code | html %]
         [% END %]
     </div>
 [% END %]
@@ -45,7 +59,7 @@
 </ul>
 <div id="bibs">
 <p>
-    <b>Note : The items are exported by this tool unless specified.</b>
+    <strong>Note : The items are exported by this tool unless specified.</strong>
 </p>
 
 <form method="post" enctype="multipart/form-data" action="/cgi-bin/koha/tools/export.pl">
@@ -53,11 +67,11 @@
     <legend> Select records to export </legend>
         <ol>
         <li>
-            <label for="start">From biblio number: </label>
+            <label for="start">From biblionumber: </label>
             <input id="start" type="text" name="StartingBiblionumber" size="5" />
         </li>
         <li>
-            <label for="end">To biblio number: </label>
+            <label for="end">To biblionumber: </label>
             <input id="end" type="text" name="EndingBiblionumber" size="5" />
         </li>
         
@@ -66,7 +80,7 @@
             <select name="itemtype" id="itemtype">
                 <option value="">-- All --</option>
                 [% FOREACH itemtype IN itemtypes %]
-                    <option value="[% itemtype.itemtype %]">[% itemtype.translated_description %]</option>
+                    <option value="[% itemtype.itemtype | html %]">[% itemtype.translated_description | html %]</option>
                 [% END %]
             </select>
         </li>
@@ -96,11 +110,11 @@
         <ol>
             <li>
                     <label for="from">Start date:</label>
-                    <input type="text" size="10" id="from" name="start_accession" value="[% from %]" class="datepickerfrom" />
+                    <input type="text" size="10" id="from" name="start_accession" value="[% from | html %]" class="datepickerfrom" />
             </li>
             <li>
                 <label for="to">End date:</label>
-                <input size="10" id="to" name="end_accession" value="[% end_accession %]" type="text" class="datepickerto" />
+                <input size="10" id="to" name="end_accession" value="[% end_accession | html %]" type="text" class="datepickerto" />
             </li>
         </ol>
     </fieldset>
@@ -111,7 +125,7 @@
         Use a file
     </legend>
         <ol>
-        <li>File containing a list of biblio numbers with one biblio number per line. This list works as a filter: it is compatible with other parameters. (File types accepted: .csv and .txt)</li>
+        <li>File containing a list of biblionumbers with one biblionumber per line. This list works as a filter: it is compatible with other parameters. (File types accepted: .csv and .txt)</li>
         <li><label for="id_list_file">File: </label> <input type="file" id="id_list_file" name="id_list_file" /></li>
         </ol>
     </fieldset>
@@ -127,7 +141,7 @@
         </li>
         <li>
         <label for="export_remove_fields">Don't export fields:</label>
-        <input id="export_remove_fields" type="text" name="export_remove_fields" value="[% export_remove_fields %]" />
+        <input id="export_remove_fields" type="text" name="export_remove_fields" value="[% export_remove_fields | html %]" />
         separate by a blank. (e.g., 100a 200 606)
         </li></ol>
     </fieldset>
@@ -151,7 +165,7 @@
             <label for="bibs_csv_profile">CSV profile: </label>
             <select id="bibs_csv_profile" name="csv_profile_id">
                 [% FOR csv_profile IN csv_profiles %]
-                    <option value="[% csv_profile.export_format_id %]">[% csv_profile.profile %]</option>
+                    <option value="[% csv_profile.export_format_id | html %]">[% csv_profile.profile | html %]</option>
                 [% END %]
             </select>
         </li>
@@ -183,7 +197,7 @@
             <select name="authtype" id="authtype">
                 <option value="">-- All --</option>
                 [% FOREACH authority_type IN authority_types %]
-                    <option value="[% authority_type.authtypecode %]">[% authority_type.authtypetext %]</option>
+                    <option value="[% authority_type.authtypecode | html %]">[% authority_type.authtypetext | html %]</option>
                 [% END %]
             </select>
         </li>
@@ -211,13 +225,13 @@
     <legend>Output format</legend>
         <ol><li>
             <label for="output_format">File format: </label>
-            <select id="output_format" name="output_format">
-                <option value="marc">marc</option>
-                <option value="xml">xml</option>
+            <select id="output_format_auth" name="output_format">
+                <option value="marc">MARC</option>
+                <option value="xml">XML</option>
             </select>
         </li>
         <li>
-        <label for="filename">File name:</label><input id="filename" type="text" name="filename" value="koha.mrc" />
+        <label for="filename_auth">File name:</label><input id="filename_auth" type="text" name="filename_auth" value="koha.mrc" />
         </li></ol>
     </fieldset>
     <input type="hidden" name="op" value="export" />
@@ -230,13 +244,13 @@
 [% IF ( allow_db_export ) %]
 <div id="db">
 <form method="post" action="/cgi-bin/koha/tools/export.pl">
-    <p><b>Note : This export file will be very large, and is generated nightly.</b></p>
+    <p><strong>Note : This export file will be very large, and is generated nightly.</strong></p>
     <fieldset class="rows">
     <legend> Choose a file </legend>
     [% IF ( dbfiles && (dbfiles.size > 0) ) %]
         <ul>
         [% FOREACH dbfile IN dbfiles %]
-            <li><input type="radio" name="filename" value="[% dbfile %]">[% dbfile %]</input></li>
+            <li><input type="radio" name="filename" value="[% dbfile | html %]">[% dbfile | html %]</input></li>
         [% END %]
         </ul>
     [% ELSE %]
@@ -256,13 +270,13 @@
 [% IF ( allow_conf_export ) %]
 <div id="conf">
 <form method="post" action="/cgi-bin/koha/tools/export.pl">
-    <p><b>Note : This export file will be very large, and is generated nightly.</b></p>
+    <p><strong>Note : This export file will be very large, and is generated nightly.</strong></p>
     <fieldset class="rows">
     <legend> Choose a file </legend>
     [% IF ( conffiles && (conffiles.size > 0) ) %]
         <ul>
         [% FOREACH conffile IN conffiles %]
-            <li><input type="radio" name="filename" value="[% conffile %]">[% conffile %]</input></li>
+            <li><input type="radio" name="filename" value="[% conffile | html %]">[% conffile | html %]</input></li>
         [% END %]
         </ul>
     [% ELSE %]
@@ -281,17 +295,20 @@
 
 </div>
 
-</div>
-</div>
-<div class="yui-b noprint">
-[% INCLUDE 'tools-menu.inc' %]
-</div>
-</div>
+            </main>
+        </div> <!-- /.col-sm-10.col-sm-push-2 -->
+
+        <div class="col-sm-2 col-sm-pull-10">
+            <aside>
+                [% INCLUDE 'tools-menu.inc' %]
+            </aside>
+        </div> <!-- .col-sm-2.col-sm-pull-10 -->
+     </div> <!-- /.row -->
 
 [% MACRO jsinclude BLOCK %]
-    [% Asset.js("js/tools-menu.js") %]
+    [% Asset.js("js/tools-menu.js") | $raw %]
     [% INCLUDE 'calendar.inc' %]
-    <script type="text/javascript">
+    <script>
         $(document).ready(function() {
             $('#exporttype').tabs();
 
@@ -312,6 +329,25 @@
             $("#checknone").on("click",function(e){
                 e.preventDefault();
                 $(".branch_select").prop("checked",0);
+            });
+
+            $('#output_format').change(function(){
+                var filename = $('#filename').val();
+                var file_name = filename.split(".");
+                var extension = $(this).val();
+                if (extension == "iso2709") {
+                    extension = "mrc";
+                }
+                $('#filename').val(file_name[0] + "." + extension);
+            });
+            $('#output_format_auth').change(function(){
+                var filename_auth = $('#filename_auth').val();
+                var file_name_auth = filename_auth.split(".");
+                var extension = $(this).val();
+                if (extension == "marc") {
+                    extension = "mrc";
+                }
+                $('#filename_auth').val(file_name_auth[0] + "." + extension);
             });
         });
     </script>

@@ -26,7 +26,7 @@ use Koha::AuthUtils qw(get_script_name);
 use Authen::CAS::Client;
 use CGI qw ( -utf8 );
 use FindBin;
-use YAML;
+use YAML::XS;
 
 
 use vars qw(@ISA @EXPORT @EXPORT_OK %EXPORT_TAGS $debug);
@@ -44,7 +44,7 @@ my $yamlauthfile = C4::Context->config('intranetdir') . "/C4/Auth_cas_servers.ya
 
 # If there's a configuration for multiple cas servers, then we get it
 if (multipleAuth()) {
-    ($defaultcasserver, $casservers) = YAML::LoadFile($yamlauthfile);
+    ($defaultcasserver, $casservers) = YAML::XS::LoadFile($yamlauthfile);
     $defaultcasserver = $defaultcasserver->{'default'};
 } else {
 # Else, we fall back to casServerUrl syspref
@@ -68,11 +68,20 @@ sub getMultipleAuth {
 
 # Logout from CAS
 sub logout_cas {
-    my ($query, $type) = @_;
-    my ( $cas, $uri ) = _get_cas_and_service($query, undef, $type);
-    $uri =~ s/\?logout\.x=1//; # We don't want to keep triggering a logout, if we got here, the borrower is already logged out of Koha
-    print $query->redirect( $cas->logout_url(url => $uri));
+    my ( $query, $type ) = @_;
+    my ( $cas,   $uri )  = _get_cas_and_service( $query, undef, $type );
+
+    # We don't want to keep triggering a logout, if we got here,
+    # the borrower is already logged out of Koha
+    $uri =~ s/\?logout\.x=1//;
+
+    my $logout_url = $cas->logout_url( url => $uri );
+    $logout_url =~ s/url=/service=/
+      if C4::Context->preference('casServerVersion') eq '3';
+
+    print $query->redirect($logout_url);
 }
+
 
 # Login to CAS
 sub login_cas {
@@ -257,17 +266,17 @@ sub logout_if_required {
     my $params = C4::Auth::_get_session_params();
     my $success = CGI::Session->find( $params->{dsn}, sub {delete_cas_session(@_, $ticket)}, $params->{dsn_args} );
 
-    sub delete_cas_session {
-        my $session = shift;
-        my $ticket = shift;
-        if ($session->param('cas_ticket') && $session->param('cas_ticket') eq $ticket ) {
-            $session->delete;
-            $session->flush;
-        }
-    }
-
     print $query->header;
     exit;
+}
+
+sub delete_cas_session {
+    my $session = shift;
+    my $ticket = shift;
+    if ($session->param('cas_ticket') && $session->param('cas_ticket') eq $ticket ) {
+        $session->delete;
+        $session->flush;
+    }
 }
 
 1;

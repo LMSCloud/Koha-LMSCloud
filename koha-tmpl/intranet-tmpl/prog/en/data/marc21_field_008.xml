@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<!DOCTYPE stylesheet [<!ENTITY nbsp "&#160;" >]>
+<!DOCTYPE stylesheet>
 
 <Tagfield tag="008" xmlns="http://koha-community.org" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="./marc21_field_CF.xsd">
   <Material id="BKS"><name>Books</name><description></description>
@@ -181,7 +181,7 @@
       <Value code="r"><description>Directories</description></Value>
       <Value code="s"><description>Statistics</description></Value>
       <Value code="t"><description>Technical reports</description></Value>
-      <Value code="u"><description>Standars/specifications</description></Value>
+      <Value code="u"><description>Standards/specifications</description></Value>
       <Value code="v"><description>Legal cases and case notes</description></Value>
       <Value code="w"><description>Law reports and digests</description></Value>
       <Value code="y"><description>Yearbooks</description></Value>
@@ -212,7 +212,7 @@
       <Value code="r"><description>Directories</description></Value>
       <Value code="s"><description>Statistics</description></Value>
       <Value code="t"><description>Technical reports</description></Value>
-      <Value code="u"><description>Standars/specifications</description></Value>
+      <Value code="u"><description>Standards/specifications</description></Value>
       <Value code="v"><description>Legal cases and case notes</description></Value>
       <Value code="w"><description>Law reports and digests</description></Value>
       <Value code="y"><description>Yearbooks</description></Value>
@@ -243,7 +243,7 @@
       <Value code="r"><description>Directories</description></Value>
       <Value code="s"><description>Statistics</description></Value>
       <Value code="t"><description>Technical reports</description></Value>
-      <Value code="u"><description>Standars/specifications</description></Value>
+      <Value code="u"><description>Standards/specifications</description></Value>
       <Value code="v"><description>Legal cases and case notes</description></Value>
       <Value code="w"><description>Law reports and digests</description></Value>
       <Value code="y"><description>Yearbooks</description></Value>

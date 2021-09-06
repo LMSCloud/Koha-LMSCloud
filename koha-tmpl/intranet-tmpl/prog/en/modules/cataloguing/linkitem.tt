@@ -1,12 +1,30 @@
 [% INCLUDE 'doc-head-open.inc' %]
-<title>Koha &rsaquo; Cataloging &rsquo; Link to host item</title>
+<title>Link to host record &rsaquo; Cataloging &rsaquo; Koha</title>
 [% INCLUDE 'doc-head-close.inc' %]
 </head>
 <body id="catalog_linkitem" class="catalog">
 [% INCLUDE 'header.inc' %]
 [% INCLUDE 'cat-search.inc' %]
-<div id="breadcrumbs"><a href="/cgi-bin/koha/mainpage.pl">Home</a> &rsaquo; <a href="/cgi-bin/koha/cataloguing/addbooks.pl">Cataloging</a>  &rsaquo; Link a host item to <i>[% bibliotitle |html %]</i></div>
-<div id="doc3" class="yui-t2">
+
+<nav id="breadcrumbs" aria-label="Breadcrumb" class="breadcrumb">
+    <ol>
+        <li>
+            <a href="/cgi-bin/koha/mainpage.pl">Home</a>
+        </li>
+        <li>
+            <a href="/cgi-bin/koha/cataloguing/addbooks.pl">Cataloging</a>
+        </li>
+        <li>
+            <a href="#" aria-current="page">
+                Link a host record to <em>[% bibliotitle | html %]</em>
+            </a>
+        </li>
+    </ol>
+</nav>
+
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-sm-6 col-sm-offset-3 col-md-6 col-md-offset-3">
 
 [% IF ( error ) %]
     <div class="dialog alert">
@@ -15,14 +33,14 @@
     </div>
     <form action="/cgi-bin/koha/catalogue/MARCdetail.pl" method="post">
 	<input type="submit" value="OK" />
-	<input type="hidden" name="biblionumber" value="[% biblionumber %]" />
+	<input type="hidden" name="biblionumber" value="[% biblionumber | html %]" />
     </form>
 [% ELSE %]
     [% IF ( success ) %]
-	<div class="dialog">The item has successfully been linked to <i>[% bibliotitle |html %]</i>.</div>    
+    <div class="dialog message">The item has successfully been linked to <em>[% bibliotitle | html %]</em>.</div>
 	<form action="/cgi-bin/koha/catalogue/MARCdetail.pl" method="post">
 	    <input type="submit" value="OK" />
-	    <input type="hidden" name="biblionumber" value="[% biblionumber %]" />
+	    <input type="hidden" name="biblionumber" value="[% biblionumber | html %]" />
 	</form>
     [% ELSE %]
 	[% IF ( missingparameter ) %]
@@ -34,17 +52,23 @@
 		    <input type="text" name="biblionumber" id="biblionumber" class="focus" size="14" /> 
 	    </fieldset>
 	    [% ELSE %]
-	    <input type="hidden" name="biblionumber" id="biblionumber" value="[% biblionumber %]" />
+	    <input type="hidden" name="biblionumber" id="biblionumber" value="[% biblionumber | html %]" />
 	    [% END %]
 
     	    [% IF ( missingbarcode ) %]
 	    <fieldset id="barcode_fieldset">
-		<label for="barcode_fieldset">Select the host item to link[% IF ( bibliotitle ) %] to <i>[% bibliotitle |html %]</i>[% END %]</label>
+        <label for="barcode_fieldset">
+            [% IF (bibliotitle ) %]
+                <span>Select the host record to link to '[% bibliotitle | html %]'</span>
+            [% ELSE %]
+                <span>Select the host record to link</span>
+            [% END %]
+        </label>
 		    <div class="hint">Enter item barcode:</div>
 		    <input type="text" name="barcode" id="barcode" class="barcode focus" size="14" /> 
 	    </fieldset>
 	    [% ELSE %]
-	    <input type="hidden" name="barcode" id="barcode" value="[% barcode %]" />
+	    <input type="hidden" name="barcode" id="barcode" value="[% barcode | html %]" />
 	    [% END %]
 
 	    <input type="submit" value="Select" />

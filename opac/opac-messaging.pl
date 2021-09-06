@@ -29,7 +29,9 @@ use C4::Output;
 use C4::Members;
 use C4::Members::Messaging;
 use C4::Form::MessagingPreferences;
+use Koha::Patrons;
 use Koha::SMS::Providers;
+use Koha::Token;
 
 my $query = CGI->new();
 
@@ -44,42 +46,60 @@ my ( $template, $borrowernumber, $cookie ) = get_template_and_user(
         template_name   => 'opac-messaging.tt',
         query           => $query,
         type            => 'opac',
-        authnotrequired => 0,
         debug           => 1,
     }
 );
 
-my $borrower = Koha::Patrons->find( $borrowernumber )->unblessed;
+my $patron = Koha::Patrons->find( $borrowernumber ); # FIXME and if borrowernumber is invalid?
+
 my $messaging_options = C4::Members::Messaging::GetMessagingOptions();
 
 if ( defined $query->param('modify') && $query->param('modify') eq 'yes' ) {
+    die "Wrong CSRF token" unless Koha::Token->new->check_csrf({
+        session_id => scalar $query->cookie('CGISESSID'),
+        token  => scalar $query->param('csrf_token'),
+    });
+
     my $sms = $query->param('SMSnumber');
     my $sms_provider_id = $query->param('sms_provider_id');
-    if ( defined $sms && ( $borrower->{'smsalertnumber'} // '' ) ne $sms
-            or ( $borrower->{sms_provider_id} // '' ) ne $sms_provider_id ) {
-        ModMember(
-            borrowernumber  => $borrowernumber,
-            smsalertnumber  => $sms,
-            sms_provider_id => $sms_provider_id,
-        );
-        # FIXME will not be needed when ModMember will be replaced
-        $borrower = Koha::Patrons->find( $borrowernumber )->unblessed;
-    }
+    $patron->set({
+        smsalertnumber  => $sms,
+        sms_provider_id => $sms_provider_id,
+    })->store;
 
-    C4::Form::MessagingPreferences::handle_form_action($query, { borrowernumber => $borrowernumber }, $template);
+    C4::Form::MessagingPreferences::handle_form_action($query, { borrowernumber => $patron->borrowernumber }, $template);
+
+    if ( C4::Context->preference('TranslateNotices') ) {
+        $patron->set({ lang => scalar $query->param('lang') })->store;
+    }
 }
 
-C4::Form::MessagingPreferences::set_form_values({ borrowernumber     => $borrower->{'borrowernumber'} }, $template);
+C4::Form::MessagingPreferences::set_form_values({ borrowernumber     => $patron->borrowernumber }, $template);
 
-$template->param( BORROWER_INFO         => $borrower,
+$template->param(
                   messagingview         => 1,
-                  SMSnumber => $borrower->{'smsalertnumber'},
+                  SMSnumber             => $patron->smsalertnumber, # FIXME This is already sent 2 lines above
                   SMSSendDriver                =>  C4::Context->preference("SMSSendDriver"),
                   TalkingTechItivaPhone        =>  C4::Context->preference("TalkingTechItivaPhoneNotification") );
 
 if ( C4::Context->preference("SMSSendDriver") eq 'Email' ) {
     my @providers = Koha::SMS::Providers->search();
-    $template->param( sms_providers => \@providers, sms_provider_id => $borrower->{'sms_provider_id'} );
+    $template->param( sms_providers => \@providers, sms_provider_id => $patron->sms_provider_id );
+}
+
+my $new_session_id = $cookie->value;
+$template->param(
+    csrf_token => Koha::Token->new->generate_csrf({
+            session_id => $new_session_id,
+        }),
+);
+
+if ( C4::Context->preference('TranslateNotices') ) {
+    my $translated_languages = C4::Languages::getTranslatedLanguages( 'opac', C4::Context->preference('template') );
+    $template->param(
+        languages => $translated_languages,
+        patron_lang => $patron->lang,
+    );
 }
 
 output_html_with_http_headers $query, $cookie, $template->output, undef, { force_no_caching => 1 };

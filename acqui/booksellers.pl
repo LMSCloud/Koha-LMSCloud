@@ -69,7 +69,6 @@ my ( $template, $loggedinuser, $cookie, $userflags ) = get_template_and_user(
     {   template_name   => 'acqui/booksellers.tt',
         query           => $query,
         type            => 'intranet',
-        authnotrequired => 0,
         flagsrequired   => { acquisition => '*' },
         debug           => 1,
     }
@@ -82,7 +81,7 @@ my $allbaskets= $query->param('allbaskets')||0;
 my @suppliers;
 
 if ($booksellerid) {
-    push @suppliers, scalar Koha::Acquisition::Booksellers->find( $booksellerid );
+    push @suppliers, Koha::Acquisition::Booksellers->find( $booksellerid );
 } else {
     @suppliers = Koha::Acquisition::Booksellers->search(
                         { name => { -like => "%$supplier%" } },
@@ -114,9 +113,6 @@ my $userbranch = $userenv->{branch};
 my $budgets = GetBudgetHierarchy;
 my $has_budgets = 0;
 foreach my $r (@{$budgets}) {
-    if (!defined $r->{budget_amount} || $r->{budget_amount} == 0) {
-        next;
-    }
     next unless (CanUserUseBudget($loggedinuser, $r, $userflags));
 
     $has_budgets = 1;

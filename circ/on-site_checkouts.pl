@@ -24,21 +24,19 @@ use C4::Output;
 use C4::Koha;
 use Koha::BiblioFrameworks;
 
-my $cgi = new CGI;
+my $cgi = CGI->new;
 
 my ( $template, $loggedinuser, $cookie, $flags ) = get_template_and_user(
     {
         template_name   => "circ/on-site_checkouts.tt",
         query           => $cgi,
         type            => "intranet",
-        authnotrequired => 0,
         flagsrequired => {circulate => "circulate_remaining_permissions"},
     }
 );
 
 # Checking if there is a Fast Cataloging Framework
 $template->param( fast_cataloging => 1 ) if Koha::BiblioFrameworks->find( 'FA' );
-
 
 my $pending_onsite_checkouts = C4::Circulation::GetPendingOnSiteCheckouts();
 

@@ -1,21 +1,12 @@
 [% SET footerjs = 1 %]
 [% INCLUDE 'doc-head-open.inc' %]
-<title>Koha &rsaquo; UNIMARC field 225a builder</title>
+<title>UNIMARC field 225a builder &rsaquo; Koha</title>
 [% INCLUDE 'doc-head-close.inc' %]
-<style type="text/css">
-    #custom-doc {
-        width:37.85em;
-        min-width:492px;
-        margin:auto;
-        text-align:left;
-    }
-</style>
 </head>
 
 <body id="cat_unimarc_field_225a_bis" class="cat">
 
-  <div id="custom-doc" class="yui-t7">
-    <div id="bd">
+    <div class="container-fluid">
       <h1>UNIMARC field 225a builder</h1>
       <div class="autocomplete">
         <form>
@@ -30,10 +21,9 @@
         </form>
       </div>
     </div>
-  </div>
 
 [% MACRO jsinclude BLOCK %]
-    <script type="text/javascript">
+    <script>
         $(document).ready(function(){
             $("#findvalue").autocomplete({
                 source: "/cgi-bin/koha/cataloguing/ysearch.pl?table=biblioitems&field=collectiontitle",
@@ -51,7 +41,7 @@
             };
 
             $('form').submit(function() {
-                var field = opener.document.getElementById("[% index %]");
+                var field = opener.document.getElementById("[% index | html %]");
                 field.value = $('#findvalue').val();
 
                 window.close();

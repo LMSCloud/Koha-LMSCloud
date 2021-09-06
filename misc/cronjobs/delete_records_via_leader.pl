@@ -5,18 +5,18 @@
 #
 # This file is part of Koha.
 #
-# Koha is free software; you can redistribute it and/or modify it under the
-# terms of the GNU General Public License as published by the Free Software
-# Foundation; either version 3 of the License, or (at your option) any later
-# version.
+# Koha is free software; you can redistribute it and/or modify it
+# under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 3 of the License, or
+# (at your option) any later version.
 #
-# Koha is distributed in the hope that it will be useful, but WITHOUT ANY
-# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
-# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+# Koha is distributed in the hope that it will be useful, but
+# WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+# GNU General Public License for more details.
 #
-# You should have received a copy of the GNU General Public License along
-# with Koha; if not, write to the Free Software Foundation, Inc.,
-# 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+# You should have received a copy of the GNU General Public License
+# along with Koha; if not, see <http://www.gnu.org/licenses>.
 #-----------------------------------
 
 use Modern::Perl;
@@ -33,11 +33,13 @@ BEGIN {
 
 use Getopt::Long;
 use Pod::Usage;
+use Koha::Script -cron;
 use C4::Biblio;
 use C4::Items;
 use Koha::Database;
 use Koha::Biblios;
 use Koha::Biblio::Metadatas;
+use Koha::Items;
 
 my $delete_items;
 my $confirm;
@@ -79,13 +81,12 @@ This script has the following parameters :
 
 my @metadatas =    # Should be replaced by a call to C4::Search on zebra index
                    # Record-status when bug 15537 will be pushed
-  Koha::Biblio::Metadatas->search( { format => 'marcxml', marcflavour => C4::Context->preference('marcflavour'), metadata => { LIKE => '%<leader>_____d%' } } );
+  Koha::Biblio::Metadatas->search( { format => 'marcxml', schema => C4::Context->preference('marcflavour'), metadata => { LIKE => '%<leader>_____d%' } } );
 
 my $total_records_count   = @metadatas;
 my $deleted_records_count = 0;
 my $total_items_count     = 0;
 my $deleted_items_count   = 0;
-
 foreach my $m (@metadatas) {
     my $biblionumber = $m->get_column('biblionumber');
 
@@ -94,24 +95,28 @@ foreach my $m (@metadatas) {
     if ($delete_items) {
         my $deleted_count = 0;
         my $biblio = Koha::Biblios->find( $biblionumber );
-        my @items = $biblio ? $biblio->items : ();
+        my @items = Koha::Items->search( { biblionumber => $biblionumber } );
         foreach my $item ( @items ) {
-            my $itemnumber = $item->itemnumber();
+            my $itemnumber = $item->itemnumber;
 
-            my $error = $test ? "Test mode enabled" : DelItemCheck( $biblionumber, $itemnumber );
-            $error = undef if $error eq '1';
-
-            if ($error) {
-                say "ERROR DELETING ITEM $itemnumber: $error";
+            if( $test ){
+                my $result = $item->safe_to_delete;
+                if ( $result eq "1") {
+                    say "TEST MODE: Item $itemnumber would have been deleted";
+                } else {
+                    say "TEST MODE: ERROR DELETING ITEM $itemnumber: $result";
+                }
+            } else {
+                my $result = $item->safe_delete;
+                if ( ref $result eq "Koha::Item" ){
+                    say "DELETED ITEM $itemnumber" if $verbose;
+                    $deleted_items_count++;
+                } else {
+                    say "ERROR DELETING ITEM $itemnumber: $result";
+                }
             }
-            else {
-                say "DELETED ITEM $itemnumber" if $verbose;
-                $deleted_items_count++;
-            }
-
             $total_items_count++;
         }
-
     }
 
     my $error = $test ? q{Test mode enabled} : DelBiblio($biblionumber);

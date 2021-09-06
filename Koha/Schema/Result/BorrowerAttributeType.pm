@@ -29,11 +29,15 @@ __PACKAGE__->table("borrower_attribute_types");
   is_nullable: 0
   size: 10
 
+unique key used to identify each custom field
+
 =head2 description
 
   data_type: 'varchar'
   is_nullable: 0
   size: 255
+
+description for each custom field
 
 =head2 repeatable
 
@@ -41,11 +45,15 @@ __PACKAGE__->table("borrower_attribute_types");
   default_value: 0
   is_nullable: 0
 
+defines whether one patron/borrower can have multiple values for this custom field  (1 for yes, 0 for no)
+
 =head2 unique_id
 
   data_type: 'tinyint'
   default_value: 0
   is_nullable: 0
+
+defines if this value needs to be unique (1 for yes, 0 for no)
 
 =head2 opac_display
 
@@ -53,11 +61,15 @@ __PACKAGE__->table("borrower_attribute_types");
   default_value: 0
   is_nullable: 0
 
+defines if this field is visible to patrons on their account in the OPAC (1 for yes, 0 for no)
+
 =head2 opac_editable
 
   data_type: 'tinyint'
   default_value: 0
   is_nullable: 0
+
+defines if this field is editable by patrons on their account in the OPAC (1 for yes, 0 for no)
 
 =head2 staff_searchable
 
@@ -65,11 +77,15 @@ __PACKAGE__->table("borrower_attribute_types");
   default_value: 0
   is_nullable: 0
 
+defines if this field is searchable via the patron search in the staff interface (1 for yes, 0 for no)
+
 =head2 authorised_value_category
 
   data_type: 'varchar'
   is_nullable: 1
   size: 32
+
+foreign key from authorised_values that links this custom field to an authorized value category
 
 =head2 display_checkout
 
@@ -77,11 +93,15 @@ __PACKAGE__->table("borrower_attribute_types");
   default_value: 0
   is_nullable: 0
 
+defines if this field displays in checkout screens
+
 =head2 category_code
 
   data_type: 'varchar'
   is_nullable: 1
   size: 10
+
+defines a category for an attribute_type
 
 =head2 class
 
@@ -89,6 +109,24 @@ __PACKAGE__->table("borrower_attribute_types");
   default_value: (empty string)
   is_nullable: 0
   size: 255
+
+defines a class for an attribute_type
+
+=head2 keep_for_pseudonymization
+
+  data_type: 'tinyint'
+  default_value: 0
+  is_nullable: 0
+
+defines if this field is copied to anonymized_borrower_attributes (1 for yes, 0 for no)
+
+=head2 mandatory
+
+  data_type: 'tinyint'
+  default_value: 0
+  is_nullable: 0
+
+defines if the attribute is mandatory or not
 
 =cut
 
@@ -115,6 +153,10 @@ __PACKAGE__->add_columns(
   { data_type => "varchar", is_nullable => 1, size => 10 },
   "class",
   { data_type => "varchar", default_value => "", is_nullable => 0, size => 255 },
+  "keep_for_pseudonymization",
+  { data_type => "tinyint", default_value => 0, is_nullable => 0 },
+  "mandatory",
+  { data_type => "tinyint", default_value => 0, is_nullable => 0 },
 );
 
 =head1 PRIMARY KEY
@@ -161,10 +203,38 @@ __PACKAGE__->has_many(
   { cascade_copy => 0, cascade_delete => 0 },
 );
 
+=head2 pseudonymized_borrower_attributes
 
-# Created by DBIx::Class::Schema::Loader v0.07042 @ 2016-10-25 20:32:12
-# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:gsPR8PuUUZHFUkr3MIbTpw
+Type: has_many
+
+Related object: L<Koha::Schema::Result::PseudonymizedBorrowerAttribute>
+
+=cut
+
+__PACKAGE__->has_many(
+  "pseudonymized_borrower_attributes",
+  "Koha::Schema::Result::PseudonymizedBorrowerAttribute",
+  { "foreign.code" => "self.code" },
+  { cascade_copy => 0, cascade_delete => 0 },
+);
 
 
-# You can replace this text with custom content, and it will be preserved on regeneration
+# Created by DBIx::Class::Schema::Loader v0.07049 @ 2021-01-21 13:39:29
+# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:a/IA2iqSJqg3oOS+o1nXFg
+
+__PACKAGE__->add_columns(
+    '+keep_for_pseudonymization' => { is_boolean => 1 },
+);
+
+__PACKAGE__->add_columns(
+    '+mandatory' => { is_boolean => 1 },
+);
+
+sub koha_object_class {
+    'Koha::Patron::Attribute::Type';
+}
+sub koha_objects_class {
+    'Koha::Patron::Attribute::Types';
+}
+
 1;

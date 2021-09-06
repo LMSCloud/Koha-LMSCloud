@@ -8,7 +8,7 @@ I18N/L10N:
               metric: dd/mm/yyyy
               dmydot: dd.mm.yyyy
               iso: yyyy-mm-dd
-        - . <b>Note:</b> Do not change this preference on a production server with overdue items that are accruing fines. Doing so will result in duplicate fines!
+        - . <br/> <strong>NOTE:</strong> Do not change this preference on a production server with overdue items that are accruing fines. Doing so will result in duplicate fines!
     -
         - Format times in
         - pref: TimeFormat
@@ -16,7 +16,7 @@ I18N/L10N:
           choices:
               24hr: 24 hour format ( e.g. "14:18" )
               12hr: 12 hour format ( e.g. "02:18 PM" )
-        - . <b>Note:</b> Do not change this preference on a production server with overdue items that are accruing fines. Doing so will result in duplicate fines!
+        - . <br/> <strong>NOTE:</strong> Do not change this preference on a production server with overdue items that are accruing fines. Doing so will result in duplicate fines!
     -
         - Use
         - pref: CalendarFirstDayOfWeek
@@ -39,12 +39,12 @@ I18N/L10N:
         - pref: opaclanguagesdisplay
           default: 0
           choices:
-              yes: Allow
-              no: "Don't allow"
+              1: Allow
+              0: "Don't allow"
         - patrons to change the language they see on the OPAC.
     -
         - "Enable the following languages on the OPAC:"
-        - pref: opaclanguages
+        - pref: OPACLanguages
           type: opac-languages
         - "This list can be sorted to modify the order of the languages on the interface."
     -
@@ -52,7 +52,7 @@ I18N/L10N:
         - pref: alphabet
           class: long
         - "for lists of browsable letters. This should be a space separated list of uppercase letters."
-        - "<br/> Hint: Changing collation in the database for the 'surname' column of the 'borrowers' table is helpful to make browsing by last name work in members-home.pl when using an alphabet outside of A-Z"
+        - "<br/> Hint: Changing collation in the database for the 'surname' column of the 'borrowers' table is helpful to make browsing by last name work in members-home.pl when using an alphabet outside of A-Z."
     -
         - Format postal addresses using
         - pref: AddressFormat
@@ -61,10 +61,11 @@ I18N/L10N:
               us: US style ([Street number], [Address] - [City], [ZIP/Postal Code], [Country])
               de: German style ([Address] [Street number] - [ZIP/Postal Code] [City] - [Country])
               fr: French style ([Street number] [Address] - [ZIP/Postal Code] [City] - [Country])
+        - "."
     -
         - pref: TranslateNotices
           choices:
-              yes: Allow
-              no: "Don't allow"
+              1: Allow
+              0: "Don't allow"
         - notices to be translated.
-        - If set, notices will be translatable from the "Notices and Slips" interface. The language used to send a notice to a patron will be the one defined for the patron.
+        - If set, notices will be translatable from the "Notices and slips" interface. The language used to send a notice to a patron will be the one defined for the patron.

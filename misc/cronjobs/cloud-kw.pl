@@ -22,9 +22,11 @@ use strict;
 use warnings;
 use diagnostics;
 use Carp;
-use YAML::Syck;
+use YAML::XS;
 use Pod::Usage;
 use Getopt::Long;
+
+use Koha::Script -cron;
 use C4::Context;
 use C4::Log;
 
@@ -42,14 +44,14 @@ sub usage {
     exit;
 } 
 
-usage() if $help || !$conf;          
+usage() if $help || !$conf;
 
 cronlogaction();
 
 my @clouds;
 print "Reading configuration file: $conf\n" if $verbose;
 eval {
-    @clouds = LoadFile( $conf );
+    @clouds = YAML::XS::LoadFile( $conf );
 };
 croak "Unable to read configuration file: $conf\n" if $@;
 
@@ -76,7 +78,7 @@ for my $cloud ( @clouds ) {
         }
     }
 
-    my $index = new ZebraIndex( $cloud->{ZebraIndex} );
+    my $index = ZebraIndex->new( $cloud->{ZebraIndex} );
     $index->scan( $cloud->{Count} );
 
     open my $fh, ">", $cloud->{Output}

@@ -32,14 +32,13 @@ use C4::Ris;
 use Koha::CsvProfiles;
 
 use utf8;
-my $query = new CGI;
+my $query = CGI->new;
 
 my ( $template, $borrowernumber, $cookie ) = get_template_and_user (
     {
         template_name   => "basket/downloadcart.tt",
         query           => $query,
         type            => "intranet",
-        authnotrequired => 0,
         flagsrequired   => { catalogue => 1 },
     }
 );
@@ -71,7 +70,9 @@ if ($bib_list && $format) {
             next unless $record;
 
             if ($format eq 'iso2709') {
-                $output .= $record->as_usmarc();
+                #NOTE: If we don't explicitly UTF-8 encode the output,
+                #the browser will guess the encoding, and it won't always choose UTF-8.
+                $output .= encode("UTF-8", $record->as_usmarc()) // q{};
             }
             elsif ($format eq 'ris') {
                 $output .= marc2ris($record);

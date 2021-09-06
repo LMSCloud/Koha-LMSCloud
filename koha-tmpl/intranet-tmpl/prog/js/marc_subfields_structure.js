@@ -1,11 +1,37 @@
+/* global dataTablesDefaults */
 $(document).ready(function() {
-    $( ".constraints" ).accordion();
-    $('#subfieldtabs').tabs();
+    var tabs = $('#subfieldtabs').tabs();
+    var current_index;
+    tabs.find( ".ui-tabs-nav" ).sortable({
+        axis: "x",
+        start: function (e, ui) {
+            current_index = $(ui.item[0]).index();
+        },
+        stop: function (e, ui) {
+            var new_index = $(ui.item[0]).index();
+            if (current_index < new_index) new_index++;
+            var subfield_code = $(ui.item[0]).attr('id').replace( /^tab_subfield_/, '');
+            var content = $('#sub' + subfield_code + 'field');
+            var panels = $("#subfieldtabs > div");
+            if ( new_index < $(panels).size() ){
+                $(content).insertBefore($("#subfieldtabs > div")[new_index]);
+            } else {
+                $(content).insertAfter($("#subfieldtabs > div")[new_index-1]);
+            }
+            tabs.tabs("refresh");
+        }
+    });
     $("input[id^='hidden_']").click(setHiddenValue);
     $("input[id^='hidden-']").each(function() {
         populateHiddenCheckboxes($(this).attr('id').split('-')[1]);
     });
-
+    $("#table_marcsubfieldstructure").dataTable($.extend(true, {}, dataTablesDefaults, {
+        "columnDefs": [
+            { 'sortable': false, 'targets': [ 'NoSort' ] }
+        ],
+        aaSorting: [],
+        paginate: false
+    }));
 });
 
 /* Function to enable/disable hidden values checkboxes when Flag is (de)selected */
@@ -65,7 +91,10 @@ function setHiddenValue() {
         hidden_value='8';
     }
 
-    enable_cb(tab);
+    var hidden_protected = $('#hidden-'+ tab).attr('data-koha-protected');
+    if ( hidden_protected != 1 ) {
+        enable_cb(tab);
+    }
 
     $('#hidden-' + tab).val(hidden_value);
 
@@ -74,6 +103,7 @@ function setHiddenValue() {
 function populateHiddenCheckboxes(tab) {
     // read the serialized value
     var hidden_value = $('#hidden-' + tab).val();
+    var hidden_protected = $('#hidden-'+ tab).attr('data-koha-protected');
     // deafult to false
     var opac_checked = false;
     var intranet_checked = false;
@@ -138,6 +168,14 @@ function populateHiddenCheckboxes(tab) {
     $("#hidden_collapsed_" + tab).prop('checked',collapsed_checked);
     $("#hidden_flagged_" + tab).prop('checked',flagged_checked);
 
-    enable_cb(tab);
-
+    if ( hidden_protected == 1 ) {
+        $("#hidden_opac_" + tab).prop('disabled','disabled');
+        $("#hidden_intranet_" + tab).prop('disabled','disabled');
+        $("#hidden_editor_" + tab).prop('disabled','disabled');
+        $("#hidden_collapsed_" + tab).prop('disabled','disabled');
+        $("#hidden_flagged_" + tab).prop('disabled','disabled');
+    }
+    else {
+        enable_cb(tab);
+    }
 }

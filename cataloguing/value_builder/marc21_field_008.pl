@@ -36,14 +36,14 @@ my $builder = sub {
     my $lang = C4::Context->preference('DefaultLanguageField008' );
     $lang = "eng" unless $lang;
     $lang = pack("A3", $lang);
-    my $country = C4::Context->preference('DefaultCountryField008') // "xxu";
+    my $country = C4::Context->preference('DefaultCountryField008');
+    $country = "|||" unless $country;
     $country = pack("A3", $country);
 
     my $function_name = $params->{id};
     my $dateentered = date_entered();
     my $res           = "
-<script type=\"text/javascript\">
-//<![CDATA[
+<script>
 
 function Focus$function_name(event) {
     if ( document.getElementById(event.data.id).value ) {
@@ -66,7 +66,6 @@ function Click$function_name(event) {
     newin=window.open(\"../cataloguing/plugin_launcher.pl?plugin_name=marc21_field_008.pl&index=\"+ event.data.id +\"&result=\"+encodeURIComponent(defaultvalue)+leader_parameter,\"tag_editor\",'width=1000,height=600,toolbar=false,scrollbars=yes');
 
 }
-//]]>
 </script>
 ";
 
@@ -139,7 +138,6 @@ my $launcher = sub {
         {   template_name   => "cataloguing/value_builder/marc21_field_008.tt",
             query           => $input,
             type            => "intranet",
-            authnotrequired => 0,
             flagsrequired   => { editcatalogue => '*' },
             debug           => 1,
         }

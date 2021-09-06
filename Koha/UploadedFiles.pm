@@ -4,18 +4,18 @@ package Koha::UploadedFiles;
 #
 # This file is part of Koha.
 #
-# Koha is free software; you can redistribute it and/or modify it under the
-# terms of the GNU General Public License as published by the Free Software
-# Foundation; either version 3 of the License, or (at your option) any later
-# version.
+# Koha is free software; you can redistribute it and/or modify it
+# under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 3 of the License, or
+# (at your option) any later version.
 #
-# Koha is distributed in the hope that it will be useful, but WITHOUT ANY
-# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
-# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+# Koha is distributed in the hope that it will be useful, but
+# WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+# GNU General Public License for more details.
 #
-# You should have received a copy of the GNU General Public License along
-# with Koha; if not, write to the Free Software Foundation, Inc.,
-# 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+# You should have received a copy of the GNU General Public License
+# along with Koha; if not, see <http://www.gnu.org/licenses>.
 
 use Modern::Perl;
 
@@ -72,8 +72,8 @@ sub delete {
     # We use the individual delete on each resultset record
     my $rv = 0;
     while( my $row = $self->next ) {
-        my $delete= $row->delete( $params ); # 1, 0E0 or -1
-        $rv = ( $delete < 0 || $rv < 0 ) ? -1 : ( $rv + $delete );
+        my $deleted = eval { $row->delete( $params ) };
+        $rv++ if $deleted && !$@;
     }
     return $rv==0 ? "0E0" : $rv;
 }
@@ -135,8 +135,8 @@ sub delete_missing {
         # We are passing keep_file since we already know that the file
         # is missing and we do not want to see the warning
         # Apply the same logic as in delete for the return value
-        my $delete = $row->delete({ keep_file => 1 }); # 1, 0E0 or -1
-        $rv = ( $delete < 0 || $rv < 0 ) ? -1 : ( $rv + $delete );
+        my $deleted = eval { $row->delete({ keep_file => 1 }) };
+        $rv++ if $deleted && !$@;
     }
     return $rv==0 ? "0E0" : $rv;
 }

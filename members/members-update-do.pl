@@ -22,10 +22,10 @@ use CGI qw ( -utf8 );
 use C4::Auth;
 use C4::Output;
 use C4::Context;
-use C4::Members;
+use Koha::Patrons;
 use Koha::Patron::Modifications;
 
-my $query = new CGI;
+my $query = CGI->new;
 
 # FIXME Should be a checkauth call
 my ( $template, $loggedinuser, $cookie ) = get_template_and_user(
@@ -33,13 +33,12 @@ my ( $template, $loggedinuser, $cookie ) = get_template_and_user(
         template_name   => "about.tt",
         query           => $query,
         type            => "intranet",
-        authnotrequired => 0,
         flagsrequired   => { borrowers => 'edit_borrowers' },
         debug           => 1,
     }
 );
 
-my $logged_in_user = Koha::Patrons->find( $loggedinuser ) or die "Not logged in";
+my $logged_in_user = Koha::Patrons->find( $loggedinuser );
 
 my @params = $query->param;
 
@@ -57,10 +56,9 @@ foreach my $param (@params) {
 
             if ($query->param("unset_gna_$borrowernumber")) {
                 # Unset gone no address
-                ModMember(
-                    borrowernumber => $borrowernumber,
-                    gonenoaddress  => undef
-                );
+                # FIXME Looks like this could go to $m->approve
+                my $patron = Koha::Patrons->find( $borrowernumber );
+                $patron->gonenoaddress(undef)->store;
             }
 
             $m->approve() if $m;

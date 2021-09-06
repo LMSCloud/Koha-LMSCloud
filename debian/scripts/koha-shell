@@ -20,6 +20,7 @@ use Modern::Perl;
 
 Getopt::Long::Configure("bundling");
 
+my $pwd = `pwd`;
 my %opts;
 my $res = GetOptions( \%opts, "command|c=s", "help|h", "login|l", "shell|s=s",
     "preserve-environment|p|m", "verbose|v" );
@@ -45,13 +46,13 @@ my $perl5lib = read_perl5lib( $instance );
 my @su_args;
 push @su_args, '/usr/bin/sudo';
 push @su_args, '--preserve-env' if $opts{'preserve-environment'};
-push @su_args, '--login' if $opts{login};
+push @su_args, '--login' if $opts{login} || !$opts{command};
 push @su_args, "-u", "$instance-koha";
 push @su_args,
     "env "
   . "KOHA_CONF=/etc/koha/sites/$instance/koha-conf.xml "
   . "PERL5LIB=$perl5lib $shell"
-  . ( $opts{command} ? " -c '$opts{command}'" : '' );
+  . ( $opts{command} ? " -c '$opts{command}'" : " -c 'cd \"$pwd\"; $shell'" );
 
 print "Command: '".join("' '",@su_args)."'\n" if $opts{verbose};
 system("@su_args");
@@ -62,6 +63,8 @@ elsif ( $? & 127 ) {
     printf STDERR "child died with signal %d, %s coredump\n",
       ( $? & 127 ), ( $? & 128 ) ? 'with' : 'without';
 }
+
+exit $? >> 8;
 
 sub show_help {
     my ( $err, $msg ) = @_;

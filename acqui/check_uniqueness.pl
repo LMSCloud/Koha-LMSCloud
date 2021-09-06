@@ -36,14 +36,14 @@ use JSON;
 use C4::Output;
 use C4::Items;
 
-my $input = new CGI;
+my $input = CGI->new;
 my @field = $input->multi_param('field[]');
 my @value = $input->multi_param('value[]');
 
 my $r = {};
 my $i = 0;
 for ( my $i=0; $i<@field; $i++ ) {
-    my $items = C4::Items::SearchItemsByField($field[$i], $value[$i]);
+    my ($items) = C4::Items::SearchItems({ field => $field[$i], query => $value[$i]});
 
     if ( @$items ) {
         push @{ $r->{$field[$i]} }, $value[$i];

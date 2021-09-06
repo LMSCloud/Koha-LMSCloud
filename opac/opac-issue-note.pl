@@ -31,14 +31,13 @@ use Koha::Checkouts;
 use Koha::DateUtils;
 use Koha::Patrons;
 
-my $query = new CGI;
+my $query = CGI->new;
 
 my ( $template, $borrowernumber, $cookie ) = get_template_and_user(
     {
         template_name   => "opac-issue-note.tt",
         query           => $query,
         type            => "opac",
-        authnotrequired => 0,
         debug           => 1,
     }
 );
@@ -67,28 +66,29 @@ if ( $action eq 'issuenote' && C4::Context->preference('AllowCheckoutNotes') ) {
     my $note = $query->param('note');
     my $scrubber = C4::Scrubber->new();
     my $clean_note = $scrubber->scrub($note);
-    if ( $issue->set({ notedate => dt_from_string(), note => $clean_note })->store ) {
+    if ( $issue->set({ notedate => dt_from_string(), note => $clean_note, noteseen => 0 })->store ) {
         if ($clean_note) { # only send email if note not empty
             my $branch = Koha::Libraries->find( $issue->branchcode );
             my $letter = C4::Letters::GetPreparedLetter (
                 module => 'circulation',
                 letter_code => 'CHECKOUT_NOTE',
                 branchcode => $branch,
+                lang => $patron->lang,
                 tables => {
                     'biblio' => $biblio->biblionumber,
                     'borrowers' => $borrowernumber,
                 },
             );
 
-            my $to_address = $branch->branchemail || $branch->branchreplyto || C4::Context->ReplytoDefault || C4::Context->preference('KohaAdminEmailAddress');
-            my $from_address = $patron->email || $patron->emailpro || $patron->B_email;
+            my $to_address = $branch->inbound_email_address;
+            my $reply_address = $patron->email || $patron->emailpro || $patron->B_email;
 
             C4::Letters::EnqueueLetter({
                 letter => $letter,
                 message_transport_type => 'email',
                 borrowernumber => $patron->borrowernumber,
                 to_address => $to_address,
-                from_address => $from_address,
+                reply_address => $reply_address,
             });
         }
     }

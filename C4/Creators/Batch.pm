@@ -15,6 +15,7 @@ sub _check_params {
     my @valid_template_params = (
         'label_id',
         'batch_id',
+        'description',
         'item_number',
         'card_number',
         'branch_code',
@@ -43,6 +44,7 @@ sub new {
     my $type = ref($invocant) || $invocant;
     my $self = {
         batch_id        => 0,
+        description     => '',
         items           => [],
         branch_code     => 'NB',
         batch_stat      => 0,   # False if any data has changed and the db has not been updated
@@ -63,10 +65,10 @@ sub add_item {
         my $batch_id = $sth->fetchrow_array;
         $self->{'batch_id'}= ++$batch_id;
     }
-    my $query = "INSERT INTO creator_batches (batch_id, $number_type, branch_code, creator) VALUES (?,?,?,?);";
+    my $query = "INSERT INTO creator_batches (batch_id, description, $number_type, branch_code, creator) VALUES (?,?,?,?,?);";
     my $sth = C4::Context->dbh->prepare($query);
 #    $sth->{'TraceLevel'} = 3;
-    $sth->execute($self->{'batch_id'}, $number, $self->{'branch_code'}, $1);
+    $sth->execute($self->{'batch_id'}, $self->{'description'}, $number, $self->{'branch_code'}, $1);
     if ($sth->err) {
        warn sprintf('Database returned the following error on attempted INSERT: %s', $sth->errstr);
         return -1;
@@ -149,6 +151,7 @@ sub retrieve {
     while (my $record = $sth->fetchrow_hashref) {
         $self->{'branch_code'} = $record->{'branch_code'};
         $self->{'creator'} = $record->{'creator'};
+        $self->{'description'} = $record->{'description'};
         push (@{$self->{'items'}}, {$number_type => $record->{$number_type}, label_id => $record->{'label_id'}});
         $record_flag = 1;       # true if one or more rows were retrieved
     }
@@ -305,11 +308,18 @@ Copyright 2009 Foundations Bible College.
 
 This file is part of Koha.
 
-Koha is free software; you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software
-Foundation; either version 2 of the License, or (at your option) any later version.
+Koha is free software; you can redistribute it and/or modify it
+under the terms of the GNU General Public License as published by
+the Free Software Foundation; either version 3 of the License, or
+(at your option) any later version.
 
-You should have received a copy of the GNU General Public License along with Koha; if not, write to the Free Software Foundation, Inc., 51 Franklin Street,
-Fifth Floor, Boston, MA 02110-1301 USA.
+Koha is distributed in the hope that it will be useful, but
+WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with Koha; if not, see <http://www.gnu.org/licenses>.
 
 =head1 DISCLAIMER OF WARRANTY
 

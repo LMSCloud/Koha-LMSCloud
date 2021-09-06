@@ -1,3 +1,4 @@
+[% USE Koha %]
 [% USE Branches %]
 <div id="navmenu">
     <div id="navmenulist">
@@ -11,15 +12,24 @@
             <li><a href="/cgi-bin/koha/circ/circulation.pl">Check out</a></li>
             <li><a href="/cgi-bin/koha/circ/returns.pl">Check in</a></li>
             <li><a href="/cgi-bin/koha/circ/renew.pl">Renew</a></li>
-            [% IF Branches.InIndependentBranchesMode %]
+            [% IF !Koha.Preference('IndependentBranchesTransfers') || CAN_user_superlibrarian %]
                 <li><a href="/cgi-bin/koha/circ/branchtransfers.pl">Transfer</a></li>
             [% END %]
-            [% IF ( AutoLocation ) %][% ELSE %][% IF ( IndependentBranches ) %][% ELSE %]
-                <li><a href="/cgi-bin/koha/circ/selectbranchprinter.pl">Set library</a></li>
-            [% END %][% END %]
+            [% IF !( Koha.Preference('IndependentBranches') && !CAN_user_superlibrarian && !CAN_user_editcatalogue_edit_catalogue ) %]
+                [% IF Koha.Preference('UseCirculationDesks') %]
+                <li><a href="/cgi-bin/koha/circ/set-library.pl">Set library and desk</a></li>
+                [% ELSE %]
+                <li><a href="/cgi-bin/koha/circ/set-library.pl">Set library</a></li>
+                [% END %]
+            [% ELSIF Koha.Preference('UseCirculationDesks') %]
+                <li><a href="/cgi-bin/koha/circ/set-library.pl">Set desk</a></li>
+            [% END %]
             [% IF ( fast_cataloging ) %][% IF ( CAN_user_editcatalogue_fast_cataloging ) %]
                 <li><a href="/cgi-bin/koha/cataloguing/addbiblio.pl?frameworkcode=FA">Fast cataloging</a></li>
             [% END %][% END %]
+            [% IF Koha.Preference('AllowCheckoutNotes') && CAN_user_circulate_manage_checkout_notes %]
+                <li><a href="/cgi-bin/koha/circ/checkout-notes.pl">Checkout notes</a> [% IF pending_checkout_notes.count %]<span class="number_box"><a href="/cgi-bin/koha/circ/checkout-notes.pl">[% pending_checkout_notes.count | html %]</a></span>[% END %]</li>
+            [% END %]
         </ul>
 
         <h5>Circulation reports</h5>

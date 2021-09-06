@@ -40,7 +40,7 @@ use Koha::Patrons;
 
 use URI::Escape;
 
-my $query = new CGI;
+my $query = CGI->new;
 my $subscriptionid = $query->param('subscriptionid');
 my $serialseq = $query->param('serialseq');
 my $routingid = $query->param('routingid');
@@ -56,7 +56,6 @@ my ( $template, $loggedinuser, $cookie ) = get_template_and_user(
         template_name   => 'serials/routing.tt',
         query           => $query,
         type            => 'intranet',
-        authnotrequired => 0,
         flagsrequired   => { serials => 'routing' },
     }
 );

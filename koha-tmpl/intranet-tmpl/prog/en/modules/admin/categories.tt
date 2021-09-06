@@ -1,33 +1,98 @@
+[% USE raw %]
 [% USE Asset %]
 [% USE Koha %]
+[% USE Branches %]
 [% USE KohaDates %]
 [% USE Price %]
+[% USE TablesSettings %]
 [% SET footerjs = 1 %]
 [% INCLUDE 'doc-head-open.inc' %]
-<title>Koha &rsaquo; Administration &rsaquo; Patron categories &rsaquo; [% IF op == 'add_form' %][% IF ( categorycode ) %]Modify category '[% categorycode |html %]'[% ELSE %]New category[% END %][% END %]
-[% IF op == 'delete_confirm' %][% IF ( patrons_in_category > 0 ) %]Cannot delete: category [% categorycode |html %] in use[% ELSE %]Confirm deletion of category '[% categorycode |html %]'[% END %][% END %]
+<title>[% IF op == 'add_form' %][% IF ( categorycode ) %]Modify category '[% categorycode | html %]'[% ELSE %]New category[% END %][% END %]
+[% IF op == 'delete_confirm' %][% IF ( patrons_in_category > 0 ) %]Cannot delete: category [% categorycode | html %] in use[% ELSE %]Confirm deletion of category '[% categorycode | html %]'[% END %][% END %] &rsaquo; Patron categories &rsaquo; Administration &rsaquo; Koha
 </title>
 [% INCLUDE 'doc-head-close.inc' %]
-[% Asset.css("css/datatables.css") %]
-<style type="text/css">#enrolmentmessage.hint { display : none; }</style>
+<style>#enrolmentmessage.hint { display : none; }</style>
 </head>
 
 <body id="admin_categorie" class="admin">
 [% INCLUDE 'header.inc' %]
 [% INCLUDE 'patrons-admin-search.inc' %]
 
-<div id="breadcrumbs"><a href="/cgi-bin/koha/mainpage.pl">Home</a> &rsaquo; <a href="/cgi-bin/koha/admin/admin-home.pl">Administration</a> &rsaquo; [% IF op == 'add_form' %] <a href="/cgi-bin/koha/admin/categories.pl">Patron categories</a> &rsaquo; [% IF ( categorycode ) %]Modify category '[% categorycode |html %]'[% ELSE %]New category[% END %][% END %]
-[% IF op == 'delete_confirm' %] <a href="/cgi-bin/koha/admin/categories.pl">Patron categories</a> &rsaquo; [% IF ( patrons_in_category > 0 ) %]Cannot delete: Category [% categorycode |html %] in use[% ELSE %]Confirm deletion of category '[% categorycode |html %]'[% END %][% END %]
-[% IF op == 'delete_confirmed' %] <a href="/cgi-bin/koha/admin/categories.pl">Patron categories</a> &rsaquo; Category deleted[% END %]
-[% IF op == 'list' %]Patron categories[% END %]</div>
+<nav id="breadcrumbs" aria-label="Breadcrumb" class="breadcrumb">
+    <ol>
+        <li>
+            <a href="/cgi-bin/koha/mainpage.pl">Home</a>
+        </li>
+        <li>
+            <a href="/cgi-bin/koha/admin/admin-home.pl">Administration</a>
+        </li>
 
-<div id="doc3" class="yui-t2">
-   <div id="bd">
-    <div id="yui-main">
-    <div class="yui-b">
+        [% IF op == 'add_form' %]
+            <li>
+                <a href="/cgi-bin/koha/admin/categories.pl">Patron categories</a>
+            </li>
+            [% IF ( categorycode ) %]
+                <li>
+                    <a href="#" aria-current="page">
+                        Modify category '[% categorycode | html %]'
+                    </a>
+                </li>
+            [% ELSE %]
+                <li>
+                    <a href="#" aria-current="page">
+                        New category
+                    </a>
+                </li>
+            [% END %]
+        [% END %]
+
+        [% IF op == 'delete_confirm' %]
+            <li>
+                <a href="/cgi-bin/koha/admin/categories.pl">Patron categories</a>
+            </li>
+            [% IF ( patrons_in_category > 0 ) %]
+                <li>
+                    <a href="#" aria-current="page">
+                        Cannot delete: Category [% categorycode | html %] in use
+                    </a>
+                </li>
+            [% ELSE %]
+                <li>
+                    <a href="#" aria-current="page">
+                        Confirm deletion of category '[% categorycode | html %]'
+                    </a>
+                </li>
+            [% END %]
+        [% END %]
+
+        [% IF op == 'delete_confirmed' %]
+            <li>
+                <a href="/cgi-bin/koha/admin/categories.pl">Patron categories</a>
+            </li>
+            <li>
+                <a href="#" aria-current="page">
+                    Category deleted
+                </a>
+            </li>
+        [% END %]
+
+        [% IF op == 'list' %]
+            <li>
+                <a href="#" aria-current="page">
+                    Patron categories
+                </a>
+            </li>
+        [% END %]
+    </ol>
+</nav>
+
+<div class="main container-fluid">
+    <div class="row">
+        <div class="col-sm-10 col-sm-push-2">
+            <main>
 
 [% FOR m IN messages %]
-    <div class="dialog [% m.type %]">
+    <div class="dialog [% m.type | html %]">
         [% SWITCH m.code %]
         [% CASE 'error_on_update' %]
             An error occurred when updating this patron category. Perhaps it already exists.
@@ -44,7 +109,7 @@
         [% CASE 'already_exists' %]
             This patron category already exists.
         [% CASE %]
-            [% m.code %]
+            [% m.code | html %]
         [% END %]
     </div>
 [% END %]
@@ -54,7 +119,7 @@
         <input type="hidden" name="op" value="add_validate" />
         <input type="hidden" name="checked" value="0" />
         [% IF category %]
-            <h1>Modify category [% categorycode |html %]</h1>
+            <h1>Modify category [% categorycode | html %]</h1>
         [% ELSE %]
             <h1>New category</h1>
         [% END %]
@@ -62,8 +127,8 @@
             <ol>
                 [% IF category %]
                     <li>
-                        <span class="label">Category code: </span>[% categorycode |html %]
-                        <input type="hidden" name="categorycode" value="[% category.categorycode |html %]" /><input type="hidden" name="is_a_modif" value="1" />
+                        <span class="label">Category code: </span>[% categorycode | html %]
+                        <input type="hidden" name="categorycode" value="[% category.categorycode | html %]" /><input type="hidden" name="is_a_modif" value="1" />
                     </li>
                 [% ELSE %]
                     <li>
@@ -74,7 +139,7 @@
                 [% END %]
                 <li>
                     <label for="description" class="required">Description: </label>
-                    <input type="text" name="description" id="description" size="40" maxlength="80" class="required" required="required" value="[% category.description |html %]" />
+                    <input type="text" name="description" id="description" size="40" maxlength="80" class="required" required="required" value="[% category.description | html %]" />
                     <span class="required">Required</span>
                 </li>
                 <li>
@@ -85,25 +150,25 @@
                             <li>
                                 <label for="enrolmentperiod" style="width:6em;">In months: </label>
                                 [% IF category.enrolmentperiod %]
-                                    <input type="text" class="enrollmentperiod" name="enrolmentperiod" id="enrolmentperiod" size="3" maxlength="3" value="[% category.enrolmentperiod %]" /> months
+                                    <input type="text" class="enrollmentperiod" name="enrolmentperiod" id="enrolmentperiod" size="3" maxlength="3" value="[% category.enrolmentperiod | html %]" /> months
                                [% ELSE %]
                                     <input type="text" class="enrollmentperiod" name="enrolmentperiod" id="enrolmentperiod" size="3" maxlength="3" value="" /> months
                                [% END %]
                             </li>
                             <li>
                                 <label for="enrolmentperioddate" style="width:6em;">Until date: </label>
-                                <input type="text" class="enrollmentperiod datepicker" name="enrolmentperioddate" id="enrolmentperioddate" value="[% category.enrolmentperioddate | $KohaDates %]" />
+                                <input type="text" class="enrollmentperiod" name="enrolmentperioddate" id="enrolmentperioddate" value="[% category.enrolmentperioddate | $KohaDates %]" />
                             </li>
                         </ol>
                     </fieldset>
                 </li>
                 <li>
                     <label for="dateofbirthrequired">Age required: </label>
-                    <input type="text" name="dateofbirthrequired" id="dateofbirthrequired" value="[% category.dateofbirthrequired %]" size="3" maxlength="3" /> years
+                    <input type="text" name="dateofbirthrequired" id="dateofbirthrequired" value="[% category.dateofbirthrequired | html %]" size="3" maxlength="3" /> years
                 </li>
                 <li>
                     <label for="upperagelimit">Upperage limit: </label>
-                    <input type="text" name="upperagelimit" id="upperagelimit" size="3" maxlength="3" value="[% category.upperagelimit %]" /> years
+                    <input type="text" name="upperagelimit" id="upperagelimit" size="3" maxlength="3" value="[% category.upperagelimit | html %]" /> years
                 </li>
                 <li>
                     <label for="enrolmentfee">Enrollment fee: </label>
@@ -122,7 +187,7 @@
                     </select>
                 </li>
                 <li>
-                    <label for="hidelostitems">Lost items in staff client: </label>
+                    <label for="hidelostitems">Lost items in staff interface: </label>
                     <select name="hidelostitems" id="hidelostitems">
                         [% IF category.hidelostitems %]
                             <option value="0">Shown</option>
@@ -150,19 +215,114 @@
                     </select>
                     <span class="required">Required</span>
                 </li>
-                <li><label for="branches">Branches limitation: </label>
+                <li><label for="branches">Library limitations: </label>
                     <select id="branches" name="branches" multiple size="10">
-                        <option value="">All branches</option>
-                        [% FOREACH branch IN branches_loop %]
-                          [% IF branch.selected %]
-                            <option selected="selected" value="[% branch.branchcode %]">[% branch.branchname |html %]</option>
-                          [% ELSE %]
-                            <option value="[% branch.branchcode %]">[% branch.branchname |html %]</option>
-                          [% END %]
-                        [% END %]
+                        <option value="">All libraries</option>
+                        [% PROCESS options_for_libraries libraries => Branches.all( selected => category.get_library_limits, unfiltered => 1, do_not_select_my_library => 1, restrict => 'NoMobileStations' ) %]
                     </select>
-                    <span>Select <i>All branches</i> if this category type must to be displayed all the time. Otherwise select libraries you want to associate with this value.
+                    <span>Select <em>All libraries</em> if this category type must to be displayed all the time. Otherwise select libraries you want to associate with this value.
                     </span>
+                </li>
+                <li>
+                    <label for="reset_password">Password reset in OPAC: </label>
+                    <select name="reset_password" id="reset_password">
+                      [% IF category.reset_password.defined %]
+                        [% IF category.reset_password %]
+                          [% IF Koha.Preference('OpacResetPassword') %]
+                            <option value="-1">Follow system preference OpacResetPassword (enabled)</option>
+                          [% ELSE %]
+                            <option value="-1">Follow system preference OpacResetPassword (disabled)</option>
+                          [% END %]
+                            <option value="1" selected="selected">Allowed</option>
+                            <option value="0">Not allowed</option>
+                        [% ELSE %]
+                          [% IF Koha.Preference('OpacResetPassword') %]
+                            <option value="-1">Follow system preference OpacResetPassword (enabled)</option>
+                          [% ELSE %]
+                            <option value="-1">Follow system preference OpacResetPassword (disabled)</option>
+                          [% END %]
+                            <option value="1">Allowed</option>
+                            <option value="0" selected="selected">Not allowed</option>
+                        [% END %]
+                      [% ELSE %]
+                          [% IF Koha.Preference('OpacResetPassword') %]
+                            <option value="-1" selected="selected">Follow system preference OpacResetPassword (enabled)</option>
+                          [% ELSE %]
+                            <option value="-1" selected="selected">Follow system preference OpacResetPassword (disabled)</option>
+                          [% END %]
+                            <option value="1">Allowed</option>
+                            <option value="0">Not allowed</option>
+                      [% END %]
+                    </select>
+                </li>
+                <li>
+                    <label for="change_password">Password change in OPAC: </label>
+                    <select name="change_password" id="change_password">
+                      [% IF category.change_password.defined %]
+                        [% IF category.change_password %]
+                          [% IF Koha.Preference('OpacPasswordChange') %]
+                            <option value="-1">Follow system preference OpacPasswordChange (enabled)</option>
+                          [% ELSE %]
+                            <option value="-1">Follow system preference OpacPasswordChange (disabled)</option>
+                          [% END %]
+                            <option value="1" selected="selected">Allowed</option>
+                            <option value="0">Not allowed</option>
+                        [% ELSE %]
+                          [% IF Koha.Preference('OpacPasswordChange') %]
+                            <option value="-1">Follow system preference OpacPasswordChange (enabled)</option>
+                          [% ELSE %]
+                            <option value="-1">Follow system preference OpacPasswordChange (disabled)</option>
+                          [% END %]
+                            <option value="1">Allowed</option>
+                            <option value="0" selected="selected">Not allowed</option>
+                        [% END %]
+                      [% ELSE %]
+                          [% IF Koha.Preference('OpacPasswordChange') %]
+                            <option value="-1" selected="selected">Follow system preference OpacPasswordChange (enabled)</option>
+                          [% ELSE %]
+                            <option value="-1" selected="selected">Follow system preference OpacPasswordChange (disabled)</option>
+                          [% END %]
+                            <option value="1">Allowed</option>
+                            <option value="0">Not allowed</option>
+                      [% END %]
+                    </select>
+                </li>
+                <li>
+                    <label for="min_password_length">Minimum password length:</label>
+                    <input id="min_password_length" type="text" inputmode="numeric" name="min_password_length" value="[% category.min_password_length | html %]"/>
+                    <span>Leave blank to use system default ([% Koha.Preference('minPasswordLength') | html %])</span>
+                </li>
+                <li class="pwd_setting_wrapper">
+                    <label for="require_strong_password">Require strong password:</label>
+                    <select id="require_strong_password" name="require_strong_password">
+                    [% IF category.require_strong_password.defined %]
+                        [% IF category.require_strong_password %]
+                          [% IF Koha.Preference('RequireStrongPassword') %]
+                            <option value="-1">Follow system preference RequireStrongPassword (yes)</option>
+                          [% ELSE %]
+                            <option value="-1">Follow system preference RequireStrongPassword (no)</option>
+                          [% END %]
+                            <option value="1" selected="selected">Yes</option>
+                            <option value="0">No</option>
+                        [% ELSE %]
+                          [% IF Koha.Preference('RequireStrongPassword') %]
+                            <option value="-1">Follow system preference RequireStrongPassword (yes)</option>
+                          [% ELSE %]
+                            <option value="-1">Follow system preference RequireStrongPassword (no)</option>
+                          [% END %]
+                            <option value="1">Yes</option>
+                            <option value="0" selected="selected">No</option>
+                        [% END %]
+                      [% ELSE %]
+                          [% IF Koha.Preference('RequireStrongPassword') %]
+                            <option value="-1">Follow system preference RequireStrongPassword (yes)</option>
+                          [% ELSE %]
+                            <option value="-1">Follow system preference RequireStrongPassword (no)</option>
+                          [% END %]
+                            <option value="1">Yes</option>
+                            <option value="0">No</option>
+                      [% END %]
+                    </select>
                 </li>
                 <li><label for="block_expired">Block expired patrons:</label>
                     <select name="BlockExpiredPatronOpacActions" id="block_expired">
@@ -230,7 +390,20 @@
                             <option value="forever">Forever</option>
                         [% END %]
                     </select>
-                    <span>Controls how long a patrons checkout history is kept for new patrons of this category. "Never" anonymizes checkouts on return, and "Forever" keeps a patron's checkout history indefinitely. When set to "Default", the amount of history kept is controlled by the cronjob <i>batch_anonymise.pl</i> which should be set up by your system administrator.</span>
+                    <span>Controls how long a patrons checkout history is kept for new patrons of this category. "Never" anonymizes checkouts on return, and "Forever" keeps a patron's checkout history indefinitely. When set to "Default", the amount of history kept is controlled by the cronjob <em>batch_anonymise.pl</em> which should be set up by your system administrator.</span>
+                </li>
+                <li>
+                    <label for="exclude_from_local_holds_priority">Exclude from local holds priority:</label>
+                    <select id="exclude_from_local_holds_priority" name="exclude_from_local_holds_priority">
+                    [% IF category.exclude_from_local_holds_priority %]
+                        <option value="1" selected>Yes</option>
+                        <option value="0">No</option>
+                    [% ELSE %]
+                        <option value="1">Yes</option>
+                        <option value="0" selected>No</option>
+                    [% END %]
+                    </select>
+                    <span>If <i>Yes</i>, holds placed by patrons of this category will not be given priority</span>
                 </li>
                 <li>
                     <label for="family_card">Family card: </label>
@@ -268,34 +441,34 @@
         <fieldset>
             <legend>
                 [% IF patrons_in_category > 0 %]
-                    Category [% categorycode |html %] is in use.  Deletion not possible!
+                    Category [% categorycode | html %] is in use.  Deletion not possible!
                 [% ELSE %]
-                    Confirm deletion of category [% categorycode |html %]
+                    Confirm deletion of category [% categorycode | html %]
                 [% END %]
             </legend>
 
             [% IF patrons_in_category > 0  %]
                 <div class="dialog alert">
-                    <strong>This category is used [% patrons_in_category %] times</strong>. Deletion not possible
+                    <strong>This category is used [% patrons_in_category | html %] times</strong>. Deletion not possible
                 </div>
             [% END %]
             <table>
-                <tr><th scope="row">Category code: </th><td>[% category.categorycode |html %]</td></tr>
-                <tr><th scope="row">Description: </th><td>[% category.description |html %]</td></tr>
+                <tr><th scope="row">Category code: </th><td>[% category.categorycode | html %]</td></tr>
+                <tr><th scope="row">Description: </th><td>[% category.description | html %]</td></tr>
                 <tr><th scope="row">Enrollment period: </th>
                     <td>
                         [% IF category.enrolmentperiod %]
-                            [% category.enrolmentperiod %] months
+                            [% category.enrolmentperiod | html %] months
                         [% ELSE %]
                             until [% category.enrolmentperioddate | $KohaDates %]
                         [% END %]
                     </td>
                 </tr>
-                <tr><th scope="row">Age required: </th><td>[% category.dateofbirthrequired %] years</td></tr>
-                <tr><th scope="row">Upperage limit: </th><td>[% category.upperagelimit %] years</td></tr>
+                <tr><th scope="row">Age required: </th><td>[% category.dateofbirthrequired | html %] years</td></tr>
+                <tr><th scope="row">Upperage limit: </th><td>[% category.upperagelimit | html %] years</td></tr>
                 <tr><th scope="row">Enrollment fee: </th><td>[% category.enrolmentfee | $Price %]</td></tr>
                 <tr><th scope="row">Receives overdue notices: </th><td>[% IF category. overduenoticerequired %]Yes[% ELSE %]No[% END %]</td></tr>
-                <tr><th scope="row">Lost items in staff client</th><td>[% IF category.hidelostitems %]Hidden by default[% ELSE %]Shown[% END %]</td></tr>
+                <tr><th scope="row">Lost items in staff interface</th><td>[% IF category.hidelostitems %]Hidden by default[% ELSE %]Shown[% END %]</td></tr>
                 <tr><th scope="row">Hold fee: </th><td>[% category.reservefee | $Price %]</td></tr>
 
                 [% IF ( Koha.Preference('CheckPrevCheckout') == 'softyes' || Koha.Preference('CheckPrevCheckout') == 'softno' ) %]
@@ -333,7 +506,7 @@
                     <input type="submit" value="OK" />
                 [% ELSE %]
                     <input type="hidden" name="op" value="delete_confirmed" />
-                    <input type="hidden" name="categorycode" value="[% categorycode |html %]" />
+                    <input type="hidden" name="categorycode" value="[% categorycode | html %]" />
                     <input type="submit" value="Delete this category" />
                     <a class="cancel" href="/cgi-bin/koha/admin/categories.pl">Cancel</a>
                 [% END %]
@@ -345,15 +518,15 @@
 [% IF op == 'list' %]
 
     <div id="toolbar" class="btn-toolbar">
-        <a class="btn btn-default btn-sm" id="newcategory" href="/cgi-bin/koha/admin/categories.pl?op=add_form"><i class="fa fa-plus"></i> New category</a>
+        <a class="btn btn-default" id="newcategory" href="/cgi-bin/koha/admin/categories.pl?op=add_form"><i class="fa fa-plus"></i> New category</a>
     </div>
 
     <h2>Patron categories</h2>
     [% IF searchfield %]
-        You Searched for [% searchfield |html %]</span>
+        You Searched for [% searchfield | html %]</span>
     [% END %]
     [% IF categories%]
-        <table id="table_categorie">
+        <table id="patron_categories">
             <thead>
                 <tr>
                     <th scope="col">Code</th>
@@ -369,21 +542,22 @@
                     [% IF ( EnhancedMessagingPreferences ) %]
                     <th scope="col">Messaging</th>
                     [% END %]
-                    <th scope="col">Branches limitations</th>
+                    <th scope="col">Library limitations</th>
                     [% IF ( Koha.Preference('CheckPrevCheckout') == 'softyes' || Koha.Preference('CheckPrevCheckout') == 'softno' ) %]
                     <th scope="col">Check previous checkout?</th>
                     [% END %]
                     <th scope="col">Default privacy</th>
                     <th scope="col">Family card</th>
+                    <th scope="col">Exclude from local holds priority</th>
                     <th scope="col">Actions</th>
                 </tr>
             </thead>
             <tbody>
                 [% FOREACH category IN categories %]
                     <tr>
-                        <td>[% category.categorycode |html %]</td>
+                        <td>[% category.categorycode | html %]</td>
                         <td>
-                            <a href="/cgi-bin/koha/admin/categories.pl?op=add_form&amp;categorycode=[% category.categorycode |uri %]">[% category.description |html %]</a>
+                            <a href="/cgi-bin/koha/admin/categories.pl?op=add_form&amp;categorycode=[% category.categorycode |uri %]">[% category.description | html %]</a>
                         </td>
                         <td>
                             [% SWITCH category.category_type %]
@@ -397,18 +571,18 @@
                         </td>
                         <td>
                             [% IF ( category.enrolmentperiod ) %]
-                                [% category.enrolmentperiod %] months
+                                [% category.enrolmentperiod | html %] months
                             [% ELSE %]
                                 until [% category.enrolmentperioddate | $KohaDates %]
                             [% END %]
                         </td>
                         [% IF (category.dateofbirthrequired) %]
-                            <td>[% category.dateofbirthrequired %] years</td>
+                            <td>[% category.dateofbirthrequired | html %] years</td>
                         [% ELSE %]
                             <td>-</td>
                         [% END %]
                         [% IF (category.upperagelimit) %]
-                            <td>[% category.upperagelimit %] years</td>
+                            <td>[% category.upperagelimit | html %] years</td>
                         [% ELSE %]
                             <td>-</td>
                         [% END %]
@@ -429,17 +603,19 @@
                                 [% SET default_messaging = category.default_messaging %]
                                 [% IF default_messaging.size %]
                                     [% FOREACH prefs IN default_messaging %]
+                                        [% NEXT IF !Koha.Preference( 'ILLModule' ) && prefs.message_name.match('^Ill_') %]
                                         [% FOREACH transport IN prefs.transports %]
                                             [% IF ( transport.transport ) %]
                                                 [% IF ( prefs.Item_Due ) %]Item due
                                                 [% ELSIF ( prefs.Advance_Notice ) %]Advance notice
-                                                [% ELSIF ( prefs.Upcoming_Events ) %]Upcoming events
                                                 [% ELSIF ( prefs.Hold_Filled ) %]Hold filled
                                                 [% ELSIF ( prefs.Item_Check_in ) %]Item check-in
                                                 [% ELSIF ( prefs.Item_Checkout ) %]Item checkout
+                                                [% ELSIF ( prefs.Ill_ready ) %]Interlibrary loan ready
+                                                [% ELSIF ( prefs.Ill_unavailable ) %]Interlibrary loan unavailable
                                                 [% ELSE %]Unknown
                                                 [% END %]:
-                                                <strong>[% transport.transport %]</strong><br />
+                                                <strong>[% transport.transport | html %]</strong><br />
                                             [% ELSE %]None<br />[% END %]
                                         [% END %]
                                     [% END %]
@@ -449,19 +625,22 @@
                             </td>
                         [% END %]
                         <td>
-                            [% SET branch_limitations = category.branch_limitations %]
-                            [% IF branch_limitations.size > 0 %]
-                                [% branches_str = "" %]
-                                [% FOREACH branch IN branch_limitations %]
-                                    [% branches_str = branches_str _ " " _ branch.branchname _ "(" _ branch.branchcode _ ")" %]
-                                [% END %]
-                                <span title="[% branches_str %]">
-                                    [% IF branch_limitations.size > 1 %]
-                                        [% branch_limitations.size %] branches limitations
+                            [% SET library_limits = category.library_limits %]
+                            [% IF library_limits.count > 0 %]
+                                [% library_str = "" %]
+                                [% FOREACH library IN library_limits %]
+                                    [%- IF loop.first -%]
+                                        [% library_str = library.branchname _ " (" _ library.branchcode _ ")" %]
                                     [% ELSE %]
-                                        [% branch_limitations.size %] branch limitation
+                                        [% library_str = library_str _ "\n" _ library.branchname _ " (" _ library.branchcode _ ")" %]
                                     [% END %]
-                                </span>
+                                [% END %]
+                                <span class="library_limitation" title="[% library_str | html %]">
+                                    [% IF library_limits.count > 1 %]
+                                        [% library_limits.count | html %] library limitations
+                                    [% ELSE %]
+                                        [% library_limits.count | html %] library limitation
+                                    [% END %]
                             [% ELSE %]
                                 No limitation
                             [% END %]
@@ -489,6 +668,13 @@
                             [% END %]
                         </td>
                         <td>[% IF ( category.family_card ) %]Yes[% ELSE %]No[% END %]</td>
+                        <td>
+                            [% IF category.exclude_from_local_holds_priority %]
+                                Yes
+                            [% ELSE %]
+                                No
+                            [% END %]
+                        </td>
                         <td class="actions">
                             <a class="btn btn-default btn-xs" href="/cgi-bin/koha/admin/categories.pl?op=add_form&amp;categorycode=[% category.categorycode |uri %]"><i class="fa fa-pencil"></i> Edit</a>
                             <a class="btn btn-default btn-xs" href="/cgi-bin/koha/admin/categories.pl?op=delete_confirm&amp;categorycode=[% category.categorycode |uri %]"><i class="fa fa-trash"></i> Delete</a>
@@ -502,22 +688,25 @@
     [% END %]
 [% END %]
 
-</div>
-</div>
-<div class="yui-b">
-[% INCLUDE 'admin-menu.inc' %]
-</div>
-</div>
+            </main>
+        </div> <!-- /.col-sm-10.col-sm-push-2 -->
+
+        <div class="col-sm-2 col-sm-pull-10">
+            <aside>
+                [% INCLUDE 'admin-menu.inc' %]
+            </aside>
+        </div> <!-- /.col-sm-2.col-sm-pull-10 -->
+     </div> <!-- /.row -->
 
 [% MACRO jsinclude BLOCK %]
-    [% Asset.js("js/admin-menu.js") %]
-    [% Asset.js("js/messaging-preference-form.js") %]
+    [% Asset.js("js/admin-menu.js") | $raw %]
+    [% Asset.js("js/messaging-preference-form.js") | $raw %]
     [% INCLUDE 'calendar.inc' %]
     [% INCLUDE 'datatables.inc' %]
-    <script type="text/javascript">
-        var MSG_CATEGORYCODE_CHARS = _("Category code can only contain the following characters: letters, numbers, - and _.");
-        var MSG_ONE_ENROLLMENTPERIOD = ("Please choose an enrollment period in months OR by date.");
+    [% INCLUDE 'columns_settings.inc' %]
+    <script>
+        var columns_settings = [% TablesSettings.GetColumns( 'admin', 'categories', 'patron_categories', 'json' ) | $raw %];
     </script>
-    [% Asset.js("js/categories.js") %]
+    [% Asset.js("js/categories.js") | $raw %]
 [% END %]
 [% INCLUDE 'intranet-bottom.inc' %]

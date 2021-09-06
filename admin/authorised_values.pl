@@ -20,6 +20,8 @@
 use Modern::Perl;
 
 use CGI qw ( -utf8 );
+use List::MoreUtils qw(any);
+
 use C4::Auth;
 use C4::Context;
 use C4::Koha;
@@ -29,7 +31,7 @@ use Koha::AuthorisedValues;
 use Koha::AuthorisedValueCategories;
 use Koha::Libraries;
 
-my $input = new CGI;
+my $input = CGI->new;
 my $id          = $input->param('id');
 my $op          = $input->param('op') || 'list';
 my $searchfield = $input->param('searchfield');
@@ -39,8 +41,7 @@ my @messages;
 
 our ($template, $borrowernumber, $cookie)= get_template_and_user({
     template_name => "admin/authorised_values.tt",
-    authnotrequired => 0,
-    flagsrequired => {parameters => 'parameters_remaining_permissions'},
+    flagsrequired => {parameters => 'manage_auth_values'},
     query => $input,
     type => "intranet",
     debug => 1,
@@ -49,22 +50,21 @@ our ($template, $borrowernumber, $cookie)= get_template_and_user({
 ################## ADD_FORM ##################################
 # called by default. Used to create form to add or  modify a record
 if ($op eq 'add_form') {
-    my ( $selected_branches, $category, $av );
+    my ( @selected_branches, $category, $av );
     if ($id) {
         $av = Koha::AuthorisedValues->new->find( $id );
-        $selected_branches = $av->branch_limitations;
+        @selected_branches = $av->library_limits ? $av->library_limits->as_list : ();
     } else {
         $category = $input->param('category');
     }
 
-    my $branches = Koha::Libraries->search( { -or => [ mobilebranch => undef, mobilebranch => '' ] }, { order_by => ['branchname'] } )->unblessed;
+    my $branches = Koha::Libraries->search( { -or => [ mobilebranch => undef, mobilebranch => '' ] }, { order_by => ['branchname'] } );
     my @branches_loop;
-    foreach my $branch ( @$branches ) {
-        my $selected = ( grep {$_ eq $branch->{branchcode}} @$selected_branches ) ? 1 : 0;
+    while ( my $branch = $branches->next ) {
         push @branches_loop, {
-            branchcode => $branch->{branchcode},
-            branchname => $branch->{branchname},
-            selected   => $selected,
+            branchcode => $branch->branchcode,
+            branchname => $branch->branchname,
+            selected   => any {$_->branchcode eq $branch->branchcode} @selected_branches,
         };
     }
 
@@ -78,7 +78,7 @@ if ($op eq 'add_form') {
 
     if ( $av ) {
         $template->param(
-            category => $av->category,
+            category_name => $av->category,
             authorised_value => $av->authorised_value,
             lib              => $av->lib,
             lib_opac         => $av->lib_opac,
@@ -87,7 +87,7 @@ if ($op eq 'add_form') {
         );
     } else {
         $template->param(
-            category  => $category,
+            category_name  => $category,
             imagesets => C4::Koha::getImageSets(),
         );
     }
@@ -103,17 +103,7 @@ if ($op eq 'add_form') {
     my $duplicate_entry = 0;
     my @branches = grep { $_ ne q{} } $input->multi_param('branches');
 
-    my $already_exists = Koha::AuthorisedValues->search(
-        {
-            category => $new_category,
-            authorised_value => $new_authorised_value,
-        }
-    )->next;
-
-    if ( $already_exists and ( not $id or $already_exists->id != $id ) ) {
-        push @messages, {type => 'error', code => 'already_exists' };
-    }
-    elsif ( $new_category eq 'branches' or $new_category eq 'itemtypes' or $new_category eq 'cn_source' ) {
+    if ( $new_category eq 'branches' or $new_category eq 'itemtypes' or $new_category eq 'cn_source' ) {
         push @messages, {type => 'error', code => 'invalid_category_name' };
     }
     elsif ( $id ) { # Update
@@ -126,7 +116,7 @@ if ($op eq 'add_form') {
         $av->imageurl( $imageurl );
         eval{
             $av->store;
-            $av->replace_branch_limitations( \@branches );
+            $av->replace_library_limits( \@branches );
         };
         if ( $@ ) {
             push @messages, {type => 'error', code => 'error_on_update' };
@@ -135,17 +125,18 @@ if ($op eq 'add_form') {
         }
     }
     else { # Insert
-        my $av = Koha::AuthorisedValue->new( {
-            category => $new_category,
-            authorised_value => $new_authorised_value,
-            lib => scalar $input->param('lib') || undef,
-            lib_opac => scalar $input->param('lib_opac') || undef,
-            imageurl => $imageurl,
-        } );
-
         eval {
+            my $av = Koha::AuthorisedValue->new(
+                {
+                    category         => $new_category,
+                    authorised_value => $new_authorised_value,
+                    lib              => scalar $input->param('lib') || undef,
+                    lib_opac         => scalar $input->param('lib_opac') || undef,
+                    imageurl         => $imageurl,
+                }
+            )->store;
+            $av->replace_library_limits( \@branches );
             $av->store;
-            $av->replace_branch_limitations( \@branches );
         };
 
         if ( $@ ) {
@@ -201,7 +192,17 @@ if ($op eq 'add_form') {
     }
 
     $op = 'list';
-    $template->param( delete_success => 1 );
+} elsif ($op eq 'delete_category') {
+    my $category_name = $input->param('category_name');
+    my $avc = Koha::AuthorisedValueCategories->find( $category_name );
+    my $deleted = eval {$avc->delete};
+    if ( $@ or not $deleted ) {
+        push @messages, {type => 'error', code => 'error_on_delete_category' };
+    } else {
+        push @messages, { type => 'message', code => 'success_on_delete_category' };
+    }
+
+    $op = 'list';
 }
 
 $template->param(
@@ -230,14 +231,14 @@ if ( $op eq 'list' ) {
         $row_data{lib}                   = $av->lib;
         $row_data{lib_opac}              = $av->lib_opac;
         $row_data{imageurl}              = getitemtypeimagelocation( 'intranet', $av->imageurl );
-        $row_data{branches}              = $av->branch_limitations;
+        $row_data{branches}              = $av->library_limits ? $av->library_limits->as_list : [];
         $row_data{id}                    = $av->id;
         push(@loop_data, \%row_data);
     }
 
     $template->param(
         loop     => \@loop_data,
-        category => $searchfield,
+        category => Koha::AuthorisedValueCategories->find($searchfield), # TODO Move this up and add a Koha::AVC->authorised_values method to replace call for avs_by_category
         categories => \@category_list,
     );
 

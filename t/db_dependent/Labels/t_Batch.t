@@ -20,7 +20,7 @@
 
 use Modern::Perl;
 
-use Test::More tests => 24;
+use Test::More tests => 25;
 use MARC::Record;
 use MARC::Field;
 
@@ -29,16 +29,16 @@ use t::lib::TestBuilder;
 use C4::Context;
 use C4::Items;
 use C4::Biblio;
+use Koha::Database;
 use Koha::Libraries;
 
 BEGIN {
     use_ok('C4::Labels::Batch');
 }
 
-# Start transaction
+my $schema = Koha::Database->new->schema;
+$schema->storage->txn_begin;
 my $dbh = C4::Context->dbh;
-$dbh->{AutoCommit} = 0;
-$dbh->{RaiseError} = 1;
 
 my $builder = t::lib::TestBuilder->new;
 $builder->build({ source => 'Branch', value => { branchcode => 'CPL' } })
@@ -50,6 +50,7 @@ my $branch_code = $sth->fetchrow_hashref()->{'branchcode'};
 diag sprintf('Database returned the following error: %s', $sth->errstr) if $sth->errstr;
 
 my $expected_batch = {
+        description     => '',
         creator         => 'Labels',
         items           => [],
         branch_code     => $branch_code,
@@ -119,5 +120,3 @@ is_deeply($updated_batch, $batch, "Updated batch object is correct.");
 # Testing Batch->delete() method.
 my $del_results = $batch->delete();
 ok($del_results eq 0, "Batch->delete() success.");
-
-$dbh->rollback;

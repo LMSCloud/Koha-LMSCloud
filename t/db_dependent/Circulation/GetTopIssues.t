@@ -26,7 +26,6 @@ use C4::Context;
 use C4::Circulation;
 use C4::Biblio;
 use C4::Items;
-use C4::Members;
 
 use Koha::Database;
 use Koha::Patrons;
@@ -36,7 +35,6 @@ my $dbh     = $schema->storage->dbh;
 my $builder = t::lib::TestBuilder->new();
 
 # Start transaction
-$dbh->{RaiseError} = 1;
 $schema->storage->txn_begin();
 
 my $itemtype = $builder->build({ source => 'Itemtype' })->{ itemtype };
@@ -51,23 +49,25 @@ $c4_context->mock('userenv', sub {
 t::lib::Mocks::mock_preference('item-level_itypes', '0');
 
 my $biblionumber = create_biblio('Test 1', $itemtype);
-AddItem({
+Koha::Item->new({
+    biblionumber => $biblionumber,
     barcode => 'GTI_BARCODE_001',
     homebranch => $branch_1->{ branchcode },
     ccode => 'GTI_CCODE',
-}, $biblionumber);
+})->store;
 
 $biblionumber = create_biblio('Test 2', $itemtype);
-AddItem({
+Koha::Item->new({
+    biblionumber => $biblionumber,
     barcode => 'GTI_BARCODE_002',
     homebranch => $branch_2->{ branchcode },
-}, $biblionumber);
+})->store;
 
-my $borrowernumber = AddMember(
+my $borrowernumber = Koha::Patron->new({
     userid => 'gti.test',
     categorycode => $category,
     branchcode => $branch_1->{ branchcode }
-);
+})->store->borrowernumber;
 my $borrower = Koha::Patrons->find( $borrowernumber )->unblessed;
 
 AddIssue($borrower, 'GTI_BARCODE_001');
@@ -118,8 +118,8 @@ $schema->storage->txn_rollback();
 sub create_biblio {
     my ($title, $itemtype) = @_;
 
-    my ($title_tag, $title_subfield) = GetMarcFromKohaField('biblio.title', '');
-    my ($it_tag, $it_subfield) = GetMarcFromKohaField('biblioitems.itemtype', '');
+    my ($title_tag, $title_subfield) = GetMarcFromKohaField( 'biblio.title' );
+    my ($it_tag, $it_subfield) = GetMarcFromKohaField( 'biblioitems.itemtype' );
 
     my $record = MARC::Record->new();
     $record->append_fields(

@@ -50,8 +50,9 @@ use Carp;
 use C4::Auth;
 use C4::Output;
 use CGI qw ( -utf8 );
+use File::Spec;
 
-use C4::Acquisition qw/CloseBasketgroup ReOpenBasketgroup GetOrders GetBasketsByBasketgroup GetBasketsByBookseller ModBasketgroup NewBasketgroup DelBasketgroup GetBasketgroups ModBasket GetBasketgroup GetBasket GetBasketGroupAsCSV/;
+use C4::Acquisition qw/CloseBasketgroup ReOpenBasketgroup GetOrders GetBasketsByBasketgroup GetBasketsByBookseller ModBasketgroup NewBasketgroup DelBasketgroup GetBasketgroups ModBasket GetBasketgroup GetBasket GetBasketGroupAsCSV get_rounded_price/;
 use Koha::EDI qw/create_edi_order get_edifact_ean/;
 
 use Koha::Biblioitems;
@@ -59,13 +60,12 @@ use Koha::Acquisition::Booksellers;
 use Koha::ItemTypes;
 use Koha::Patrons;
 
-our $input=new CGI;
+our $input=CGI->new;
 
 our ($template, $loggedinuser, $cookie)
     = get_template_and_user({template_name => "acqui/basketgroup.tt",
 			     query => $input,
 			     type => "intranet",
-			     authnotrequired => 0,
 			     flagsrequired => {acquisition => 'group_manage'},
 			     debug => 1,
                 });
@@ -78,9 +78,9 @@ sub BasketTotal {
     for my $order (@orders){
         # FIXME The following is wrong
         if ( $bookseller->listincgst ) {
-            $total = $total + ( $order->{ecost_tax_included} * $order->{quantity} );
+            $total = $total + ( get_rounded_price($order->{ecost_tax_included}) * $order->{quantity} );
         } else {
-            $total = $total + ( $order->{ecost_tax_excluded} * $order->{quantity} );
+            $total = $total + ( get_rounded_price($order->{ecost_tax_excluded}) * $order->{quantity} );
         }
     }
     return $total;
@@ -124,30 +124,27 @@ sub displaybasketgroups {
 
 sub printbasketgrouppdf{
     my ($basketgroupid) = @_;
-    
+
     my $pdfformat = C4::Context->preference("OrderPdfFormat");
-    if ($pdfformat eq 'pdfformat::layout3pages' || $pdfformat eq 'pdfformat::layout2pages' || $pdfformat eq 'pdfformat::layout3pagesfr'
-        || $pdfformat eq 'pdfformat::layout2pagesde' || $pdfformat eq 'pdfformat::layout2pagesdinde' ){
-	eval {
-	    use lib '/usr/share/koha/intranet/cgi-bin/acqui';
-        eval "require $pdfformat";
-	    import $pdfformat;
-	};
-	if ($@){
-	}
+    my @valid_pdfformats = qw(pdfformat::layout3pages pdfformat::layout2pages pdfformat::layout3pagesfr pdfformat::layout2pagesde pdfformat::layout2pagesdinde);
+    if (grep {$_ eq $pdfformat} @valid_pdfformats) {
+        $pdfformat = "Koha::$pdfformat";
+        my $pdfformat_filepath = File::Spec->catfile(split /::/, $pdfformat) . '.pm';
+        require $pdfformat_filepath;
+        import $pdfformat qw(printpdf);
     }
     else {
-	print $input->header;  
-	print $input->start_html;  # FIXME Should do a nicer page
-	print "<h1>Invalid PDF Format set</h1>";
-	print "Please go to the systempreferences and set a valid pdfformat";
-	exit;
+        print $input->header;
+        print $input->start_html;  # FIXME Should do a nicer page
+        print "<h1>Invalid PDF Format set</h1>";
+        print "Please go to the systempreferences and set a valid pdfformat";
+        exit;
     }
-    
+
     my $basketgroup = GetBasketgroup($basketgroupid);
     my $bookseller = Koha::Acquisition::Booksellers->find( $basketgroup->{booksellerid} );
     my $baskets = GetBasketsByBasketgroup($basketgroupid);
-    
+
     my %orders;
     for my $basket (@$baskets) {
         my @ba_orders;
@@ -172,8 +169,8 @@ sub printbasketgrouppdf{
 
             $ord->{tax_value} = $ord->{tax_value_on_ordering};
             $ord->{tax_rate} = $ord->{tax_rate_on_ordering};
-            $ord->{total_tax_included} = $ord->{ecost_tax_included} * $ord->{quantity};
-            $ord->{total_tax_excluded} = $ord->{ecost_tax_excluded} * $ord->{quantity};
+            $ord->{total_tax_included} = get_rounded_price($ord->{ecost_tax_included}) * $ord->{quantity};
+            $ord->{total_tax_excluded} = get_rounded_price($ord->{ecost_tax_excluded}) * $ord->{quantity};
 
             my $biblioitem = Koha::Biblioitems->search({ biblionumber => $ord->{biblionumber} })->next;
 
@@ -216,7 +213,7 @@ sub printbasketgrouppdf{
         -type       => 'application/pdf',
         -attachment => ( $basketgroup->{name} || $basketgroupid ) . '.pdf'
     );
-    my $pdf = printpdf($basketgroup, $bookseller, $baskets, \%orders, $bookseller->tax_rate // C4::Context->preference("gist")) || die "pdf generation failed";
+    my $pdf = printpdf($basketgroup, $bookseller, $baskets, \%orders, $bookseller->tax_rate // C4::Context->preference("TaxRates")) || die "pdf generation failed";
     print $pdf;
 
 }
@@ -292,12 +289,12 @@ if ( $op eq "add" ) {
         $freedeliveryplace = $basketgroup->{freedeliveryplace};
         $template->param( closedbg => ($basketgroup ->{'closed'}) ? 1 : 0);
     } else {
+        # When creating a new basket group preselect billing and delivery place based on logged-in user
+        my $patron = Koha::Patrons->find( $loggedinuser );
+        $billingplace  = $patron->branchcode;
+        $deliveryplace = $patron->branchcode;
         $template->param( closedbg => 0);
     }
-    # determine default billing and delivery places depending on librarian homebranch and existing basketgroup data
-    my $patron = Koha::Patrons->find( $loggedinuser ); # FIXME Not needed if billingplace and deliveryplace are set
-    $billingplace  = $billingplace  || $patron->branchcode;
-    $deliveryplace = $deliveryplace || $patron->branchcode;
 
     $template->param( billingplace => $billingplace );
     $template->param( deliveryplace => $deliveryplace );
@@ -337,9 +334,10 @@ if ( $op eq "add" ) {
 # export a closed basketgroup in csv
 #
     my $basketgroupid = $input->param('basketgroupid');
+    my $basketgroup = GetBasketgroup($basketgroupid);
     print $input->header(
         -type       => 'text/csv',
-        -attachment => 'basketgroup' . $basketgroupid . '.csv',
+        -attachment => ( $basketgroup->{name} || $basketgroupid ) . '.csv'
     );
     print GetBasketGroupAsCSV( $basketgroupid, $input );
     exit;

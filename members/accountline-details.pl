@@ -26,14 +26,13 @@ use C4::Context;
 use Koha::Patrons;
 use Koha::Account::Lines;
 
-my $input = new CGI;
+my $input = CGI->new;
 
 my ( $template, $loggedinuser, $cookie ) = get_template_and_user(
     {
         template_name   => "members/accountline-details.tt",
         query           => $input,
         type            => "intranet",
-        authnotrequired => 0,
         flagsrequired   => {
             borrowers     => 'edit_borrowers',
             updatecharges => 'remaining_permissions'

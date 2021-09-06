@@ -40,6 +40,7 @@ use Modern::Perl;
 
 use C4::AuthoritiesMarc;
 use C4::Auth;
+use C4::Biblio qw(GetMarcUrls);
 use C4::Context;
 use C4::Output;
 use CGI qw ( -utf8 );
@@ -49,11 +50,12 @@ use C4::Koha;
 use Koha::Authorities;
 use Koha::Authority::Types;
 
-my $query = new CGI;
+my $query = CGI->new;
 
 my $dbh = C4::Context->dbh;
 
 my $display_hierarchy = C4::Context->preference("AuthDisplayHierarchy");
+my $marcflavour       = C4::Context->preference("marcflavour");
 my $show_marc = $query->param('marc');
 
 # open template
@@ -86,11 +88,14 @@ if ($display_hierarchy){
 my $count = $authority ? $authority->get_usage_count : 0;
 
 my $authority_types = Koha::Authority::Types->search( {}, { order_by => ['authtypecode'] } );
+my $marcurlsarray = GetMarcUrls( $record, $marcflavour );
+
 $template->param(
     authority_types => $authority_types,
     authtypetext    => $authority_types->find($authtypecode)->authtypetext,
     authid          => $authid,
     count           => $count,
+    MARCURLS        => $marcurlsarray,
 );
 
 # find the marc field/subfield used in biblio by this authority
@@ -109,7 +114,6 @@ if ($show_marc) {
 
 # fill arrays
     my @loop_data = ();
-    my $tag;
 
 # loop through each tag
     my @fields    = $record->fields();
@@ -117,7 +121,7 @@ if ($show_marc) {
         my @subfields_data;
 
 # skip UNIMARC fields <200, they are useless for a patron
-        next if C4::Context->preference('marcflavour') eq 'UNIMARC' && $field->tag() <200;
+        next if $marcflavour eq 'UNIMARC' && $field->tag() <200;
 
 # if tag <10, there's no subfield, use the "@" trick
         if ( $field->tag() < 10 ) {
@@ -129,7 +133,7 @@ if ($show_marc) {
             $subfield_data{marc_tag}      = $field->tag();
             push( @subfields_data, \%subfield_data );
         }
-        elsif ( C4::Context->preference('marcflavour') eq 'MARC21' && $field->tag() eq 667 ) {
+        elsif ( $marcflavour eq 'MARC21' && $field->tag() eq 667 ) {
             # tagfield 667 is a nonpublic general note in MARC21, which shouldn't be shown in the OPAC
         }
         else {

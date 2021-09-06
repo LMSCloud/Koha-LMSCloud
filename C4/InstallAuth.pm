@@ -17,20 +17,25 @@ package C4::InstallAuth;
 # You should have received a copy of the GNU General Public License
 # along with Koha; if not, see <http://www.gnu.org/licenses>.
 
-use strict;
-#use warnings; FIXME - Bug 2505
+use Modern::Perl;
 use Digest::MD5 qw(md5_base64);
+use CGI::Session;
 use File::Spec;
 
 require Exporter;
+
 use C4::Context;
 use C4::Output;
 use C4::Templates;
 use C4::Koha;
-use CGI::Session;
 
 use vars qw(@ISA @EXPORT @EXPORT_OK %EXPORT_TAGS);
 
+@ISA    = qw(Exporter);
+@EXPORT = qw(
+  &checkauth
+  &get_template_and_user
+);
 
 =head1 NAME
 
@@ -57,28 +62,18 @@ InstallAuth - Authenticates Koha users for Install process
 
 =head1 DESCRIPTION
 
-    The main function of this module is to provide
-    authentification. However the get_template_and_user function has
-    been provided so that a users login information is passed along
-    automatically. This gets loaded into the template.
-    This package is different from C4::Auth in so far as 
-    C4::Auth uses many preferences which are supposed NOT to be obtainable when installing the database.
+The main function of this module is to provide
+authentification. However the get_template_and_user function has
+been provided so that a users login information is passed along
+automatically. This gets loaded into the template.
+This package is different from C4::Auth in so far as
+C4::Auth uses many preferences which are supposed NOT to be obtainable when installing the database.
     
-    As in C4::Auth, Authentication is based on cookies.
+As in C4::Auth, Authentication is based on cookies.
 
 =head1 FUNCTIONS
 
-=over 2
-
-=cut
-
-@ISA    = qw(Exporter);
-@EXPORT = qw(
-  &checkauth
-  &get_template_and_user
-);
-
-=item get_template_and_user
+=head2 get_template_and_user
 
     my ( $template, $borrowernumber, $cookie ) = get_template_and_user(
         {   template_name   => "opac-main.tt",
@@ -89,19 +84,19 @@ InstallAuth - Authenticates Koha users for Install process
         }
     );
 
-    This call passes the C<query>, C<flagsrequired> and C<authnotrequired>
-    to C<&checkauth> (in this module) to perform authentification.
-    See C<&checkauth> for an explanation of these parameters.
+This call passes the C<query>, C<flagsrequired> and C<authnotrequired>
+to C<&checkauth> (in this module) to perform authentification.
+See C<&checkauth> for an explanation of these parameters.
 
-    The C<template_name> is then used to find the correct template for
-    the page. The authenticated users details are loaded onto the
-    template in the HTML::Template LOOP variable C<USER_INFO>. Also the
-    C<sessionID> is passed to the template. This can be used in templates
-    if cookies are disabled. It needs to be put as and input to every
-    authenticated page.
+The C<template_name> is then used to find the correct template for
+the page. The authenticated users details are loaded onto the
+template in the logged_in_user variable (which is a Koha::Patron object). Also the
+C<sessionID> is passed to the template. This can be used in templates
+if cookies are disabled. It needs to be put as and input to every
+authenticated page.
 
-    More information on the C<gettemplate> sub can be found in the
-    Templates.pm module.
+More information on the C<gettemplate> sub can be found in the
+Templates.pm module.
 
 =cut
 
@@ -143,11 +138,11 @@ sub get_template_and_user {
             $template->param( CAN_user_editcatalogue    => 1 );
             $template->param( CAN_user_updatecharges    => 1 );
             $template->param( CAN_user_acquisition      => 1 );
-            $template->param( CAN_user_management       => 1 );
             $template->param( CAN_user_tools            => 1 );
             $template->param( CAN_user_editauthorities  => 1 );
             $template->param( CAN_user_serials          => 1 );
             $template->param( CAN_user_reports          => 1 );
+            $template->param( CAN_user_problem_reports   => 1 );
         }
 
         my $minPasswordLength = C4::Context->preference('minPasswordLength');
@@ -168,7 +163,7 @@ sub _get_template_language {
     -d $path ? $opaclang : 'en';
 }
 
-=item checkauth
+=head2 checkauth
 
   ($userid, $cookie, $sessionID) = &checkauth($query, $noauth, $flagsrequired, $type);
 
@@ -238,7 +233,7 @@ sub checkauth {
     my $dbh = C4::Context->dbh();
     my $template_name;
     $template_name = "installer/auth.tt";
-    my $sessdir = File::Spec->catdir( File::Spec->tmpdir, 'cgisess_' . C4::Context->config('database') ); # same construction as in C4/Auth
+    my $sessdir = File::Spec->catdir( C4::Context::temporary_directory, 'cgisess_' . C4::Context->config('database') ); # same construction as in C4/Auth
 
     # state variables
     my $loggedin = 0;
@@ -248,7 +243,7 @@ sub checkauth {
     if ( $sessionID = $query->cookie("CGISESSID") ) {
         C4::Context->_new_userenv($sessionID);
         my $session =
-          new CGI::Session( "driver:File;serializer:yaml", $sessionID,
+          CGI::Session->new( "driver:File;serializer:yaml", $sessionID,
             { Directory => $sessdir } );
         if ( $session->param('cardnumber') ) {
             C4::Context->set_userenv(
@@ -260,18 +255,17 @@ sub checkauth {
                 $session->param('branch'),
                 $session->param('branchname'),
                 $session->param('flags'),
-                $session->param('emailaddress'),
-                $session->param('branchprinter')
+                $session->param('emailaddress')
             );
             $cookie = $query->cookie(
                 -name     => 'CGISESSID',
                 -value    => $session->id,
                 -HttpOnly => 1,
+                -secure => ( C4::Context->https_enabled() ? 1 : 0 ),
             );
             $loggedin = 1;
             $userid   = $session->param('cardnumber');
         }
-        my ( $ip, $lasttime );
 
         if ($logout) {
 
@@ -289,7 +283,7 @@ sub checkauth {
     }
     unless ($userid) {
         my $session =
-          new CGI::Session( "driver:File;serializer:yaml", undef, { Directory => $sessdir } );
+          CGI::Session->new( "driver:File;serializer:yaml", undef, { Directory => $sessdir } );
         $sessionID = $session->id;
         $userid    = $query->param('userid');
         C4::Context->_new_userenv($sessionID);
@@ -307,6 +301,7 @@ sub checkauth {
                 -name     => 'CGISESSID',
                 -value    => $sessionID,
                 -HttpOnly => 1,
+                -secure => ( C4::Context->https_enabled() ? 1 : 0 ),
             );
             if ( $return == 2 ) {
 
@@ -352,7 +347,8 @@ sub checkauth {
                 -name    => 'CGISESSID',
                 -value   => '',
                 -HttpOnly => 1,
-                -expires => ''
+                -expires => '',
+                -secure => ( C4::Context->https_enabled() ? 1 : 0 ),
             );
         }
         if ($envcookie) {
@@ -385,7 +381,7 @@ sub checkauth {
     $template->param( login => 1 );
     $template->param( loginprompt => 1 ) unless $info{'nopermission'};
 
-    if ($info{'invalid_username_or_password'} == 1) {
+    if ($info{'invalid_username_or_password'} && $info{'invalid_username_or_password'} == 1) {
                 $template->param( 'invalid_username_or_password' => $info{'invalid_username_or_password'});
     }
 
@@ -394,7 +390,8 @@ sub checkauth {
         -name    => 'CGISESSID',
         -value   => $sessionID,
         -HttpOnly => 1,
-        -expires => ''
+        -expires => '',
+        -secure => ( C4::Context->https_enabled() ? 1 : 0 ),
     );
     print $query->header(
         -type    => 'text/html; charset=utf-8',
@@ -429,8 +426,6 @@ sub checkpw {
 END { }    # module clean-up code here (global destructor)
 1;
 __END__
-
-=back
 
 =head1 SEE ALSO
 

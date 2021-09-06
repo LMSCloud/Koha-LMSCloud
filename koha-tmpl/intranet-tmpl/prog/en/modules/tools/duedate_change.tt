@@ -1,10 +1,11 @@
+[% USE raw %]
 [% USE Asset %]
 [% USE Koha %]
 [% USE KohaDates %]
 [% USE Branches %]
 [% SET footerjs = 1 %]
 [% INCLUDE 'doc-head-open.inc' %]
-<title>Koha &rsaquo; Tools &rsaquo; Update due-dates</title>
+<title>Update due-dates &rsaquo; Tools &rsaquo; Koha</title>
 <link rel="stylesheet" type="text/css" href="[% interface %]/[% theme %]/css/datatables.css" />
 [% INCLUDE 'doc-head-close.inc' %]
 </head>
@@ -13,7 +14,21 @@
 [% INCLUDE 'header.inc' %]
 [% INCLUDE 'cat-search.inc' %]
 
-<div id="breadcrumbs"><a href="/cgi-bin/koha/mainpage.pl">Home</a> &rsaquo; <a href="/cgi-bin/koha/tools/tools-home.pl">Tools</a> &rsaquo; Update due-dates</div>
+<nav id="breadcrumbs" aria-label="Breadcrumb" class="breadcrumb">
+    <ol>
+        <li>
+            <a href="/cgi-bin/koha/mainpage.pl">Home</a>
+        </li>
+        <li>
+            <a href="/cgi-bin/koha/tools/tools-home.pl">Tools</a>
+        </li>
+        <li>
+            <a href="#" aria-current="page">
+                Update due-dates
+            </a>
+        </li>
+    </ol>
+</nav>
 
 [% BLOCK translate_errorcode %]
 [%    SWITCH errorcode %]
@@ -28,11 +43,10 @@
 [%    END %]
 [% END %]
 
-<div id="doc3" class="yui-t2">
-<div id="bd">
-    <div id="yui-main">
-        <div class="yui-b">
-            <div id="update-issues-due-date" class="container">
+<div class="main container-fluid">
+    <div class="row">
+        <div class="col-sm-10 col-sm-push-2">
+            <main>
                 <h1>
                     Update upcoming due-dates of checked-out items
                 </h1>
@@ -154,17 +168,19 @@
                     </form>
                     [% END %]
                 </div>
-            </div>
-        </div><!-- yui-b -->
-    </div><!-- yui-main -->
-    <div class="yui-b noprint">
-        [% INCLUDE 'tools-menu.inc' %]
-    </div>
-</div><!-- bd -->
+            </main>
+        </div> <!-- /.col-sm-10.col-sm-push-2 -->
+
+        <div class="col-sm-2 col-sm-pull-10">
+            <aside>
+                [% INCLUDE 'tools-menu.inc' %]
+            </aside>
+        </div> <!-- /.col-sm-2.col-sm-pull-10 -->
+     </div> <!-- /.row -->
+     
 [% MACRO jsinclude BLOCK %]
     [% INCLUDE 'datatables.inc' %]
-    [% Asset.js("lib/jquery/plugins/jquery-ui-timepicker-addon.min.js") %]
-    [% Asset.js("lib/jquery/plugins/jquery.fixFloat.js") %]
+    [% Asset.js("lib/jquery/plugins/jquery-ui-timepicker-addon.min.js") | $raw %]
     [% INCLUDE 'calendar.inc' %]
     
     <script type="text/javascript">

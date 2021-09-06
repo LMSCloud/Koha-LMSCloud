@@ -1,7 +1,6 @@
 #!/usr/bin/perl
 
-use strict;
-use warnings;
+use Modern::Perl;
 use Carp;
 use Data::Dumper;
 
@@ -28,12 +27,12 @@ my $tmpl_in_dir      = 'koha-tmpl';
 my $tmpl_out_dir     = 'koha-tt';
 
 # template toolkit variables NOT to scope, in other words, variables that need to remain global (case sensitive)
-my @globals = ("themelang","JacketImages","OPACAmazonCoverImages","GoogleJackets","BakerTaylorEnabled",
-"SyndeticsEnabled", "OpacRenewalAllowed", "item_level_itypes","noItemTypeImages",
-"virtualshelves", "RequestOnOpac", "COinSinOPACResults", "OPACXSLTResultsDisplay",
-"OPACItemsResultsDisplay", "LibraryThingForLibrariesID", "opacuserlogin", "TagsEnabled",
-"TagsShowOnList", "TagsInputOnList","loggedinusername","opacbookbag",
-"OPACAmazonEnabled", "SyndeticsCoverImages","using_https");
+my @globals = ( "themelang","JacketImages","OPACAmazonCoverImages","GoogleJackets","BakerTaylorEnabled",
+    "SyndeticsEnabled", "OpacRenewalAllowed", "item_level_itypes","noItemTypeImages",
+    "virtualshelves", "RequestOnOpac", "COinSinOPACResults", "OPACXSLTResultsDisplay",
+    "OPACItemsResultsDisplay", "LibraryThingForLibrariesID", "opacuserlogin", "TagsEnabled",
+    "TagsShowOnList", "TagsInputOnList","loggedinusername","opacbookbag",
+    "OPACAmazonEnabled", "SyndeticsCoverImages" );
 
 # Arguments:
 my $KOHA_ROOT;
@@ -102,7 +101,7 @@ foreach my $file (@template_files) {
 
 	# Process..
 	# NB: if you think you're seeing double, you probably are, *some* (read:most) patterns appear twice: once with quotations marks, once without.
-	#     trying to combine them into a single pattern proved troublesome as a regex like ['"]?(.*?)['"]? was causing problems and fixing the problem caused (alot) more complex regex
+    #     trying to combine them into a single pattern proved troublesome as a regex like ['"]?(.*?)['"]? was causing problems and fixing the problem caused (a lot) more complex regex
 
 	# variables
 	$input_tmpl =~ s/<[!-]*\s*TMPL_VAR\s+NAME\s?=\s?['"]?\s*(\w*?)\s*['"]?\s+ESCAPE=['"](\w*?)['"]\s+DEFAULT=['"]?(.*?)['"]?\s*-*>/[% DEFAULT $cur_scope[-1]$1="$3" |$2 %]/ig;

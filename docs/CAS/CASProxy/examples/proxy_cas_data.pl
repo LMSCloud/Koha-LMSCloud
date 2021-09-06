@@ -23,7 +23,7 @@
 
 =head1 CGI PARAMETERS
 
-=item PGTIOU
+=head2 PGTIOU
 
 The Proxy Granting Ticket IOU the CAS Server returned to us when we gave him the Service Ticket
 This PGTIOU will allow us to retrive the matching PGTID
@@ -43,7 +43,7 @@ my $cas = Authen::CAS::Client->new($casServerUrl);
 # URL of the service we'd like to be proxy for (typically the Koha webservice we want to query)
 my $target_service = "https://.../koha_webservice.pl";
 
-my $cgi = new CGI;
+my $cgi = CGI->new;
 
 print $cgi->header({-type  =>  'text/html'});
 print $cgi->start_html("proxy cas");
@@ -54,10 +54,10 @@ if ($cgi->param('PGTIOU')) {
       # At this point, we must retrieve the PgtId by matching the PgtIou we
       # just received and the PgtIou given by the CAS Server to the callback URL
       # The callback page stored it in the application vars (in our case a storable object in a file)
-      open FILE, "casSession.tmp" or die "Unable to open file";
-      my $hashref = fd_retrieve(\*FILE);
+      open my $fh, '<', "casSession.tmp" or die "Unable to open file";
+      my $hashref = fd_retrieve($fh);
       my $pgtId = %{$hashref->{$cgi->param('PGTIOU')}};
-      close FILE;
+      close $fh;
 
       # Now that we have a PgtId, we can ask the cas server for a proxy ticket...
       my $rp = $cas->proxy( $pgtId, $target_service );

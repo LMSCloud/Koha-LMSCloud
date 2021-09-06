@@ -1,10 +1,11 @@
+[% USE raw %]
 [% USE Asset %]
 [% USE Branches %]
 [% SET footerjs = 1 %]
 [% INCLUDE 'doc-head-open.inc' %]
-<title>Koha &rsaquo; Administration &rsaquo; Transport cost matrix</title>
+<title>Transport cost matrix &rsaquo; Administration &rsaquo; Koha</title>
 [% INCLUDE 'doc-head-close.inc' %]
-<style type="text/css">
+<style>
 .disabled-transfer {
     background-color: #FF8888;
 }
@@ -15,25 +16,39 @@
 [% INCLUDE 'header.inc' %]
 [% INCLUDE 'prefs-admin-search.inc' %]
 
-<div id="breadcrumbs"><a href="/cgi-bin/koha/mainpage.pl">Home</a> &rsaquo; <a href="/cgi-bin/koha/admin/admin-home.pl">Administration</a> &rsaquo; Transport cost matrix</div>
+<nav id="breadcrumbs" aria-label="Breadcrumb" class="breadcrumb">
+    <ol>
+        <li>
+            <a href="/cgi-bin/koha/mainpage.pl">Home</a>
+        </li>
+        <li>
+            <a href="/cgi-bin/koha/admin/admin-home.pl">Administration</a>
+        </li>
+        <li>
+            <a href="#" aria-current="page">
+                Transport cost matrix
+            </a>
+        </li>
+    </ol>
+</nav>
 
-<div id="doc3" class="yui-t1">
+<div class="main container-fluid">
+    <div class="row">
+        <div class="col-sm-10 col-sm-push-2">
+            <main>
 
-<div id="bd">
-    <div id="yui-main">
-    <div class="yui-b">
     <h1 class="parameters">
             Defining transport costs between libraries
     </h1>
 [% IF ( WARNING_transport_cost_matrix_off ) %]
-<div class="dialog message">Because the "UseTransportCostMatrix" system preference is currently not enabled, the transport cost matrix is not being used.  Go <a href="/cgi-bin/koha/admin/preferences.pl?op=search&amp;searchfield=UseTransportCostMatrix">here</a> if you wish to enable this feature.</div>
+<div class="dialog message">Because the "UseTransportCostMatrix" system preference is currently not enabled, the transport cost matrix is not being used.  <br/>Go to the <a href="/cgi-bin/koha/admin/preferences.pl?op=search&amp;searchfield=UseTransportCostMatrix">UseTransportCostMatrix</a> system preference if you wish to enable this feature.</div>
 [% END %]
 
     [% IF ( errors ) %]<div class="dialog alert">
         <h4>There were problems with your submission</h4>
         <ul>
             [% FOR e IN errors %]
-                <li>Invalid value for [% e %]</li>
+                <li>Invalid value for [% e | html %]</li>
             [% END %]
         </ul>
     </div>[% END %]
@@ -51,26 +66,26 @@
                     <tr>
                         <th>From \ To</th>
                         [% FOR b IN Branches.all( restrict => 'NoMobileStations' ) %]
-                        <th>[% b.branchname %]</th>
+                        <th>[% b.branchname | html %]</th>
                         [% END %]
                     </tr>
                 [% FOR bf IN branchfromloop %]
                     <tr>
-                        <th>[% bf.name %]</th>
+                        <th>[% bf.name | html %]</th>
                     [% FOR bt IN bf.branchtoloop %]
                         <td>
                         [% IF bt.skip %]
                             &nbsp;
                         [% ELSE %]
                             [% IF bt.disabled %]
-                            <div id="celldiv_[% bt.id %]" class="disabled-transfer">
+                            <div id="celldiv_[% bt.id | html %]" class="disabled-transfer">
                             [% ELSE %]
-                            <div id="celldiv_[% bt.id %]">
+                            <div id="celldiv_[% bt.id | html %]">
                             [% END %]
                             <div class="enable_cost_input" data-cost-id="[% bt.id | html %]">[% IF bt.disabled %]&nbsp;[% ELSE %][% bt.value | html %][% END %]</div>
                             <input type="hidden" name="cost_[% bt.id | html %]" value="[% bt.value | html %]" />
                             [% IF bt.disabled %]
-                            <input type="hidden" name="disable_[% bt.id %]" value="1" />
+                            <input type="hidden" name="disable_[% bt.id | html %]" value="1" />
                             [% END %]
                             </div>
                         [% END %]
@@ -84,16 +99,20 @@
                 <input type="submit" value="Save" class="submit" /> <a href="/cgi-bin/koha/admin/transport-cost-matrix.pl" class="cancel">Cancel</a>
             </fieldset>
         </form>
-    </div>
-    </div>
-<div class="yui-b">
-[% INCLUDE 'admin-menu.inc' %]
-</div>
-</div>
+
+            </main>
+        </div> <!-- /.col-sm-10.col-sm-push-2 -->
+
+        <div class="col-sm-2 col-sm-pull-10">
+            <aside>
+                [% INCLUDE 'admin-menu.inc' %]
+            </aside>
+        </div> <!-- /.col-sm-2.col-sm-pull-10 -->
+     </div> <!-- /.row -->
 
 [% MACRO jsinclude BLOCK %]
-    [% Asset.js("js/admin-menu.js") %]
-    <script type="text/javascript">
+    [% Asset.js("js/admin-menu.js") | $raw %]
+    <script>
         function check_transport_cost(e) {
             var val = e.value;
             if (val && val != '' && !isNaN(parseFloat(val)) && val >= 0.0) {

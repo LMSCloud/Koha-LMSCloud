@@ -1,46 +1,55 @@
+    [% USE raw %]
 [% USE Asset %]
 [% USE Koha %]
 [% USE KohaDates %]
 [% USE AudioAlerts %]
+[% USE To %]
 [% USE Price %]
 [% INCLUDE 'doc-head-open.inc' %]
-<title>[% IF ( LibraryNameTitle ) %][% LibraryNameTitle %][% ELSE %]Koha [% END %] &rsaquo; Self checkout </title>
+<title>Self checkout &rsaquo; [% IF ( LibraryNameTitle ) %][% LibraryNameTitle | html %][% ELSE %]Koha [% END %]</title>
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-<meta name="generator" content="Koha [% Version %]" /> <!-- leave this for stats -->
-<link rel="shortcut icon" href="[% IF ( Koha.Preference('OpacFavicon') ) %][% Koha.Preference('OpacFavicon') %][% ELSE %][% interface %]/[% theme %]/images/favicon.ico[% END %]" type="image/x-icon" />
-[% Asset.css("lib/bootstrap/css/bootstrap.min.css") %]
-[% Asset.css("lib/jquery/jquery-ui.css") %]
-[% Asset.css("css/sco.css") %]
-[% IF ( Koha.Preference('OPACUserCSS') ) %]<style>[% Koha.Preference('OPACUserCSS') %]</style>[% END %]
-[% IF ( Koha.Preference('SCOUserCSS') ) %]<style>[% Koha.Preference('SCOUserCSS') %]</style>[% END %]
-<!--[if lt IE 9]>
-    <script src="[% interface %]/[% theme %]/lib/respond.min.js"></script>
-<![endif]-->
+<meta name="generator" content="Koha [% Version | html %]" /> <!-- leave this for stats -->
+[% IF ( Koha.Preference('OpacFavicon') ) %]
+<link rel="shortcut icon" href="[% Koha.Preference('OpacFavicon') | url %]" type="image/x-icon" />
+[% ELSE %]
+<link rel="shortcut icon" href="[% interface | html %]/[% theme | html %]/images/favicon.ico" type="image/x-icon" />
+[% END %]
+[% Asset.css("lib/font-awesome/css/font-awesome.min.css") | $raw %]
+[% IF ( bidi ) %]
+    [% Asset.css("lib/jquery/jquery-ui-rtl-1.12.1.min.css") | $raw %]
+    [% Asset.css("css/sco-rtl.css") | $raw %]
+[% ELSE %]
+    [% Asset.css("lib/jquery/jquery-ui-1.12.1.css") | $raw %]
+    [% Asset.css("css/sco.css") | $raw %]
+[% END %]
+[% IF ( Koha.Preference('OPACUserCSS') ) %]<style>[% Koha.Preference('OPACUserCSS') | $raw %]</style>[% END %]
+[% IF ( Koha.Preference('SCOUserCSS') ) %]<style>[% Koha.Preference('SCOUserCSS') | $raw %]</style>[% END %]
 <script>
     function _(s) { return s } // dummy function for gettext
 </script>
-[% Asset.js("lib/modernizr.min.js") %]
+[% Asset.js("lib/modernizr.min.js") | $raw %]
 </head>
 <body id="sco_main" class="sco" onload="dofocus();" onunload="mungeHistory();">
-[% INCLUDE 'masthead-sco.inc' %]
+    [% INCLUDE 'masthead-sco.inc' %]
 
     <div class="main">
         <div class="container-fluid">
-            <div class="row-fluid">
+            <div class="row">
                 [% IF ( display_patron_image ) %]
-                    <div class="span10">
+                    <div class="col-10 order-first order-md-first order-lg-2">
                 [% ELSE %]
-                    <div class="span12">
+                    <div class="col order-first order-md-first order-lg-2">
                 [% END %]
 
-                    <div id="masthead"><h1>[% LibraryName %] Self checkout system</h1></div>
+                    <div id="masthead"><h1>[% LibraryName | html %] Self checkout system</h1></div>
 
                     [% IF ( impossible ) %]<!-- We tried to issue, but failed. -->
-                        <div class="alert">
-                            <h3>Item cannot be checked out.</h3>
+                        <div class="alert alert-warning">
+                            <span class="sco-alert-warning noissue"></span>
+                            <h2>Item cannot be checked out.</h2>
                             <p>Sorry, this item cannot be checked out at this station.</p>
                             [% IF ( title ) %]
-                                <p>Title: <em>[% title |html %]</em> </p>
+                                <p>Title: <em>[% title | html %]</em> </p>
                             [% END %]
 
                             <p>
@@ -74,91 +83,125 @@
                                     Your contact information seems to be incomplete.
                                 [% ELSIF ( circ_error_INVALID_DATE ) %]
                                     Due date is not valid.
+                                [% ELSIF ( circ_error_ADDITIONAL_MATERIALS ) %]
+                                    Item must be checked out at a circulation desk.
                                 [% END %]
                                 Please see a member of the library staff.
                             </p>
 
-                            [% IF ( returnitem && Koha.Preference('AllowSelfCheckReturns') ) %]
+                            [% IF ( returnitem && Koha.Preference('SCOAllowCheckin') ) %]
                                 <form action="/cgi-bin/koha/sco/sco-main.pl" name="errorForm" class="inline" method="post">
                                     <input type="hidden" name="op" value="returnbook" />
-                                    <input type="hidden" name="patronid" value="[% patronid %]" />
-                                    <input type="hidden" name="barcode" value="[% barcode %]" />
-                                    <button type="submit" name="returnbook" class="btn"><i class="return"></i> Return this item</button>
+                                    <input type="hidden" name="patronid" value="[% patronid | html %]" />
+                                    <input type="hidden" name="barcode" value="[% barcode | html %]" />
+                                    <input type="hidden" name="newissues" value="[% newissues | html %]" />
+                                    <button type="submit" name="returnbook" class="btn btn-primary"><i class="fa fa-undo" aria-hidden="true"></i> Return this item</button>
                                 </form>
                             [% END %]
 
                             <form action="/cgi-bin/koha/sco/sco-main.pl" name="errorForm" class="inline" method="post">
                                 <input type="hidden" name="op" value="" />
-                                <input type="hidden" name="patronid" value="[% patronid %]" />
-                                <input type="hidden" name="barcode" value="[% barcode %]" />
-                                <input type="submit" name= "confirm" value="Return to account summary" class="btn back focus" />
+                                <input type="hidden" name="patronid" value="[% patronid | html %]" />
+                                <input type="hidden" name="barcode" value="[% barcode | html %]" />
+                                <input type="hidden" name="newissues" value="[% newissues | html %]" />
+                                <input type="submit" name= "confirm" value="Return to account summary" class="btn btn-info back focus" />
                             </form>
                         </div> <!-- / .alert -->
                     [% END # / IF ( impossible %]
 
                     [% IF ( confirm ) %]<!-- We need to confirm the issue.. -->
-                        <div class="alert"><h3>Please confirm the checkout:</h3>
+                        <div class="alert alert-warning"><h2>Please confirm the checkout:</h2>
+                            <span class="sco-alert-warning confirm"></span>
                             [% IF ( confirm_renew_issue ) %]
                                 <p>This item is already checked out to you.</p>
                             [% END %]
 
-                            [% IF ( renew && Koha.Preference('AllowSelfCheckReturns') ) %]
+                            [% IF ( renew && Koha.Preference('SCOAllowCheckin') ) %]
                                 <form action="/cgi-bin/koha/sco/sco-main.pl" name="confirmForm" class="inline" method="post">
                                     <input type="hidden" name="op" value="returnbook" />
-                                    <input type="hidden" name="patronid" value="[% patronid %]" />
-                                    <input type="hidden" name="barcode" value="[% barcode %]" />
+                                    <input type="hidden" name="patronid" value="[% patronid | html %]" />
+                                    <input type="hidden" name="barcode" value="[% barcode | html %]" />
                                     <input type="hidden" name="confirmed" value="" />
-                                    <button type="submit" name="returnbook" class="btn"><i class="icon return"></i> Return this item</button>
+                                    <input type="hidden" name="newissues" value="[% newissues | html %]" />
+                                    <button type="submit" name="returnbook" class="btn btn-primary"><i class="fa fa-undo" aria-hidden="true"></i> Return this item</button>
                                 </form>
                             [% END %]
 
                             [% UNLESS ( renew ) %]
                                 <form action="/cgi-bin/koha/sco/sco-main.pl" name="confirmForm" class="inline" method="post">
-                                    <input type="hidden" name="op" value="checkout" />
-                                    <input type="hidden" name="patronid" value="[% patronid %]" />
-                                    <input type="hidden" name="barcode" value="[% barcode %]" />
+                                    <input type="hidden" name="op" value="renew" />
+                                    <input type="hidden" name="patronid" value="[% patronid | html %]" />
+                                    <input type="hidden" name="barcode" value="[% barcode | html %]" />
                                     <input type="hidden" name="confirmed" value="1" />
-                                    <button type="submit" name="confirm" class="btn"><i class="icon renew"></i> Renew item</button>
+                                    <input type="hidden" name="newissues" value="[% newissues | html %]" />
+                                    <button type="submit" name="confirm" class="btn btn-primary"><i class="fa fa-refresh" aria-hidden="true"></i> Renew item</button>
                                   </form>
                             [% ELSE %]
                                 <form action="/cgi-bin/koha/sco/sco-main.pl" name="confirmForm" class="inline" method="post">
-                                    <input type="hidden" name="op" value="checkout" />
-                                    <input type="hidden" name="patronid" value="[% patronid %]" />
-                                    <input type="hidden" name="barcode" value="[% barcode %]" />
+                                    <input type="hidden" name="op" value="renew" />
+                                    <input type="hidden" name="patronid" value="[% patronid | html %]" />
+                                    <input type="hidden" name="barcode" value="[% barcode | html %]" />
                                     <input type="hidden" name="confirmed" value="1" />
-                                    <button type="submit" class="btn"><i class="icon renew"></i> Renew item</button>
+                                    <input type="hidden" name="newissues" value="[% newissues | html %]" />
+                                    <button type="submit" class="btn btn-primary"><i class="fa fa-refresh" aria-hidden="true"></i> Renew item</button>
                                 </form>
                             [% END %]
 
                             <form action="/cgi-bin/koha/sco/sco-main.pl" name="confirmForm" class="inline" method="post">
                                 <input type="hidden" name="op" value="" />
-                                <input type="hidden" name="patronid" value="[% patronid %]" />
-                                <button type="submit" class="btn"><i class="icon cancel"></i> Cancel</button>
+                                <input type="hidden" name="patronid" value="[% patronid | html %]" />
+                                <input type="hidden" name="newissues" value="[% newissues | html %]" />
+                                <button type="submit" class="btn btn-primary"><i class="fa fa-cancel" aria-hidden="true"></i> Cancel</button>
                             </form>
                         </div>
                     [% END # / IF confirm %]
 
                     [% IF ( nopermission ) %]
-                        <!-- This is what is displayed if user doesnt have permission -->
-                        <div class="alert">
-                            <h3>Access denied</h3>
+                        <!-- This is what is displayed if user doesn't have permission -->
+                        <div class="alert alert-warning">
+                            <span class="sco-alert-warning nopermission"></span>
+                            <h2>Access denied</h2>
                             <p>Sorry, this self-checkout station has lost authentication.  Please contact the administrator to resolve this problem.</p>
                         </div>
                     [% END %]
 
                     [% IF ( different_ip ) %]
-                        <!-- This is what is displayed if user doesnt have permission -->
-                        <div class="alert">
-                            <h3>Session lost</h3>
+                        <!-- This is what is displayed if user doesn't have permission -->
+                        <div class="alert alert-warning">
+                            <span class="sco-alert-warning sessionlost"></span>
+                            <h2>Session lost</h2>
                             <p>You are accessing self-checkout from a different IP address! please log in again.</p>
                         </div>
                     [% END %]
 
                     [% IF ( invalid_username_or_password ) %]
-                        <!-- This is what is displayed if user doesnt have permission -->
-                        <div class="alert">
-                            <h3>Record not found</h3>
+                        <!-- This is what is displayed if user doesn't have permission -->
+                        <div class="alert alert-warning">
+                            <span class="sco-alert-warning notfound"></span>
+                            <h2>Record not found</h2>
                             <p>Your userid was not found in the database.  Please try again.</p>
+                        </div>
+                    [% END %]
+
+                    [% IF ( issued ) %]
+                        <span class="sco-alert-success issue"></span>
+                        <div class="alert alert-info">
+                            <p>Item checked out</p>
+                        </div>
+                    [% ELSIF ( renewed ) %]
+                        <span class="sco-alert-success renew"></span>
+                        <div class="alert alert-info">
+                            <p>Item renewed</p>
+                        </div>
+                    [% ELSIF ( returned == 0 ) %]
+                        <span class="sco-alert-warning return"></span>
+                        <div class="alert alert-info">
+                            <p>Item not checked in: please see circulation staff for assistance</p>
+                        </div>
+                    [% ELSIF ( returned == 1 ) %]
+                        <span class="sco-alert-success return"></span>
+                        <div class="alert alert-info">
+                            <p>Item checked in</p>
                         </div>
                     [% END %]
 
@@ -167,154 +210,208 @@
 
                         [% IF ( patronid ) %]
                             [% IF ( validuser ) %]
-                                <div class="alert alert-info">You are logged in as [% borrowername %].</div>
+                                <div class="alert alert-info">You are logged in as [% borrowername | html %].</div>
                                 [% INCLUDE 'opac-note.inc' %]
                                 [% IF patron_has_hold_fee %]
-                                    <div class="alert">A hold fee was charged to your account for collecting this item.</div>
+                                    <div class="alert alert-warning">A hold fee was charged to your account for collecting this item.</div>
                                 [% END %]
                             [% END %]
 
                             [% IF ( nouser ) %]
-                                <div class="alert">
-                                    <h4>Sorry</h4>
-                                    <p>The userid <strong>[% patronid %]</strong> was not found in the database.  Please try again.</p>
+                                <div class="alert alert-warning">
+                                    <h3>Sorry</h3>
+                                    <p>The userid <strong>[% patronid | html %]</strong> was not found in the database.  Please try again.</p>
                                 </div>
                             [% END %]
                         [% END # / IF patronid %]
 
                         [% IF ( validuser ) %]
                             <div id="newcheckout" class="sco_entry">
-                                <form id="scan_form" name="scan_form" method="post" action="/cgi-bin/koha/sco/sco-main.pl" onsubmit="return checkout_confirm('[% patronid %]');">
-                                    <fieldset>
-                                        <legend>Check out[% IF ( Koha.Preference('AllowSelfCheckReturns') ) %], return[% END %] or renew an item: </legend>
-                                        <div class="input-append">
+                                <form id="scan_form" name="scan_form" method="post" action="/cgi-bin/koha/sco/sco-main.pl" onsubmit="return checkout_confirm('[% patronid | html %]');">
+                                    <h2>
+                                        [% IF ( Koha.Preference('SCOAllowCheckin') ) %]
+                                            Check out, return, or renew an item:
+                                        [% ELSE %]
+                                            Check out or renew an item:
+                                        [% END %]
+                                    </h2>
+                                    <div class="row">
+                                        <div class="col">
                                             <label for="barcode">Scan a new item or enter its barcode:</label>
-                                            <input id="barcode" name="barcode" size="20" type="text" class="focus" autocomplete="off" />
-                                            <button type="submit" class="btn">Submit</button>
                                         </div>
-                                        <input type="hidden" name="op" value="checkout" />
-                                        <input type="hidden" name="patronid" value="[% patronid %]" />
-                                    </fieldset>
-                                </form>
-
-                                <div>
-                                    <form method="post" action="#" id="logout_form">
-                                        <button type="submit" class="btn"><i class="icon finish"></i> Finish</button>
-                                    </form>
-                                </div>
+                                        <div class="col-3">
+                                            <input id="barcode" name="barcode" size="20" type="text" class="focus form-control" autocomplete="off" />
+                                        </div>
+                                        <div class="col-auto">
+                                            <button type="submit" class="btn btn-primary">Submit</button>
+                                        </div>
+                                        <div class="col ml-auto">
+                                            <button type="button" id="logout_form" class="btn btn-info"><i class="fa fa-check" aria-hidden="true"></i> Finish</button>
+                                            <input type="hidden" name="op" value="checkout" />
+                                            <input type="hidden" name="patronid" value="[% patronid | html %]" />
+                                            <input type="hidden" name="newissues" value="[% newissues | html %]" />
+                                        </div>
+                                    </div> <!-- /.row -->
+                                </form> <!-- /#scan_form -->
                             </div> <!-- / #newcheckout -->
                 </div> <!-- / .span12/12 -->
                 [% IF ( display_patron_image ) %]
-                    <div class="span2">
-                        <img src="/cgi-bin/koha/sco/sco-patron-image.pl?borrowernumber=[% borrowernumber %]&csrf_token=[% csrf_token %]" alt="" />
+                    <div class="col-lg-2">
+                        <img src="/cgi-bin/koha/sco/sco-patron-image.pl?borrowernumber=[% borrowernumber | uri %]&csrf_token=[% csrf_token | uri %]" alt="" />
                     </div>
                 [% END %]
-            </div> <!-- / .row-fluid -->
+            </div> <!-- / .row -->
         </div> <!-- / .container-fluid -->
 
         <div class="container-fluid">
-            <div class="row-fluid">
-                    <div class="span12">
-                        <div id="borrowerdetails">
-                            [% IF ( issues_count ) %]
-                                <table id="loanTable" class="table table-bordered table-striped">
-                                    <caption>Checkouts for [% borrowername %] <span class="count">([%   issues_count %] total)</span></caption>
-                                    <!-- ISSUES TABLE ROWS -->
-                                    <thead>
-                                        <tr>
-                                            <th class="noshow">Checked out on</th>
-                                            <th class="anti-the">Title</th>
-                                            <th>Call no.</th>
-                                            <th class="title-string">Due</th>
-                                            <th class="nosort">Renew</th>
-                                            [% UNLESS ( nofines ) %]
-                                                <th>Fines</th>
-                                            [% END %]
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        [% FOREACH ISSUE IN ISSUES %]
+            <div class="row">
+                <div class="col order-first order-md-first order-lg-2">
+                    <ul class="nav nav-tabs" role="tablist">
+                        <li class="nav-item" role="presentation">
+                            <a class="nav-link active" href="#checkouts-tab" id="checkouts" aria-controls="home" aria-selected="true" data-toggle="tab">Checkouts ([% issues_count | html %])</a>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <a class="nav-link" href="#holds-tab" id="holds" aria-controls="home" aria-selected="false" data-toggle="tab">
+                                [% IF waiting_holds_count %]
+                                    <i class="fa fa-exclamation" aria-hidden="true"></i>
+                                [% END %]
+                                Holds ([% HOLDS.count | html %])
+                            </a>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <a class="nav-link" href="#account-tab" id="account" aria-controls="home" aria-selected="false" data-toggle="tab">Charges ([% total | $Price %])</a>
+                        </li>
+                    </ul>
+                    <div class="tab-content">
+                        <div id="checkouts-tab" class="tab-pane show active" aria-labelledby="checkouts">
+                            <div id="borrowerdetails">
+                                [% IF ( issues_count ) %]
+                                    <table id="loanTable" class="table table-bordered table-striped">
+                                        <caption>Checkouts for [% borrowername | html %] <span class="count">([% issues_count | html %] total)</span></caption>
+                                        <!-- ISSUES TABLE ROWS -->
+                                        <thead>
                                             <tr>
-                                                <td>[% ISSUE.issuedate %]</td>
-                                                <td>
-                                                    [% UNLESS ( noitemlinks ) %]
-                                                        <a href="/cgi-bin/koha/opac-detail.pl?bib=[% ISSUE.  biblionumber %]">[% ISSUE.title |html %]</a>
-                                                    [% ELSE %]
-                                                        <strong>[% ISSUE.title |html %]</strong>
-                                                    [% END %]
-                                                    <span class="item-details">[% ISSUE.author %]</span>
-                                                    ([% ISSUE.barcode %])
-                                                </td>
-                                                <td>[% ISSUE.itemcallnumber %]</td>
-                                                [% IF ( ISSUE.overdue ) %]
-                                                    <td class="overdue"><span title="[% ISSUE.date_due %]">[% ISSUE.date_due | $KohaDates as_due_date => 1 %]</span></td>
-                                                [% ELSE   %]
-                                                    <td><span title="[% ISSUE.date_due %]">[% ISSUE.date_due | $KohaDates as_due_date => 1 %]</span></td>
-                                                [% END %]
-                                                <td>
-                                                    <form action="/cgi-bin/koha/sco/sco-main.pl" method="post">
-                                                        <input type="hidden" name="patronid" value="[% patronid %]" />
-                                                        <input type="hidden" name="barcode" value="[% ISSUE.barcode %]" />
-                                                        [% IF ISSUE.can_be_renewed %]
-                                                            <input type="hidden" name="op" value="checkout" />
-                                                            <input type="hidden" name="confirmed" value="1" />
-                                                            [% UNLESS ( ISSUE.renew ) %]
-                                                                <input type="submit" value="Renew item"  name="confirm  " class="btn renew" />
-                                                            [% ELSE %]
-                                                                <input type="submit" value="Renew item" class="btn renew" />
-                                                            [% END %]
-                                                        [% ELSE %]
-                                                            [% IF ISSUE.renew_error == 'auto_renew' OR ISSUE.renew_error == 'auto_too_soon' %]
-                                                                <span>This item has been scheduled for automatic renewal and cannot be renewed</span>
-                                                            [% ELSIF ISSUE.renew_error == 'onsite_checkout' %]
-                                                                <span>This is a on-site checkout, it cannot be renewed.</span>
-                                                            [% ELSE %]
-                                                                <span>No renewals allowed</span>
-                                                            [% END %]
-                                                            [% IF Koha.Preference('AllowSelfCheckReturns') %]
-                                                                <input type="submit" value="Check in item" name="confirm" class="btn return" />
-                                                                <input type="hidden" name="op" value="returnbook" />
-                                                                <input type="hidden" name="confirmed" value=""  />
-                                                            [% END %]
-                                                        [% END %]
-                                                    </form>
-                                                </td>
+                                                <th class="noshow">Checked out on</th>
+                                                <th class="anti-the">Title</th>
+                                                <th>Call number</th>
+                                                <th>Due</th>
+                                                <th class="nosort">Renew</th>
                                                 [% UNLESS ( nofines ) %]
-                                                    <td>
-                                                        [% IF ( ISSUE.charges ) %]Yes[% ELSE %]No[% END %]
-                                                    </td>
+                                                    <th>Fines</th>
                                                 [% END %]
                                             </tr>
-                                        [% END # / FOREACH ISSUE %]
-                                    </tbody>
-                                </table>
+                                        </thead>
+                                        <tbody>
+                                            [% FOREACH ISSUE IN ISSUES %]
+                                                <tr>
+                                                    <td>[% ISSUE.issuedate | html %]</td>
+                                                    <td>
+                                                        [% UNLESS ( noitemlinks ) %]
+                                                            <a href="/cgi-bin/koha/opac-detail.pl?bib=[% ISSUE.  biblionumber | uri %]">[% ISSUE.title | html %]</a>
+                                                        [% ELSE %]
+                                                            <strong>[% ISSUE.title | html %]</strong>
+                                                        [% END %]
+                                                        [% IF ( newissues.match(ISSUE.barcode)) %]
+                                                            <span class="label label-info">NEW</span>
+                                                        [% END %]
+                                                        <span class="item-details">[% ISSUE.author | html %]</span>
+                                                        ([% ISSUE.barcode | html %])
+                                                    </td>
+                                                    <td>[% ISSUE.itemcallnumber | html %]</td>
+                                                    [% IF ( ISSUE.overdue ) %]
+                                                        <td class="overdue" data-order="[% ISSUE.date_due | html %]">
+                                                            [% ISSUE.date_due | $KohaDates  as_due_date => 1 %]
+                                                        </td>
+                                                    [% ELSE   %]
+                                                        <td data-order="[% ISSUE.date_due | html %]">
+                                                            [% ISSUE.date_due | $KohaDates  as_due_date => 1 %]
+                                                        </td>
+                                                    [% END %]
+                                                    <td>
+                                                        <form action="/cgi-bin/koha/sco/sco-main.pl" method="post">
+                                                            <input type="hidden" name="patronid" value="[% patronid | html %]" />
+                                                            <input type="hidden" name="barcode" value="[% ISSUE.barcode | html %]" />
+                                                            <input type="hidden" name="newissues" value="[% newissues | html %]" />
+                                                            [% IF ISSUE.can_be_renewed %]
+                                                                <input type="hidden" name="op" value="renew" />
+                                                                <input type="hidden" name="confirmed" value="1" />
+                                                                [% UNLESS ( ISSUE.renew ) %]
+                                                                    <input type="submit" value="Renew item"  name="confirm  " class="btn btn-primary btn-sm renew" />
+                                                                [% ELSE %]
+                                                                    <input type="submit" value="Renew item" class="btn btn-primary btn-sm renew" />
+                                                                [% END %]
+                                                            [% ELSE %]
+                                                                [% IF ISSUE.renew_error == 'auto_renew' OR ISSUE.renew_error == 'auto_too_soon' %]
+                                                                    <span>This item has been scheduled for automatic renewal and cannot be renewed</span>
+                                                                [% ELSIF ISSUE.renew_error == 'onsite_checkout' %]
+                                                                    <span>This is a on-site checkout, it cannot be renewed.</span>
+                                                                [% ELSIF ISSUE.renew_error == 'too_unseen' %]
+                                                                    <span>You have renewed this item the maximum number of consecutive times without it being seen by the library.</span>
+                                                                [% ELSE %]
+                                                                    <span>No renewals allowed</span>
+                                                                [% END %]
+                                                                [% IF Koha.Preference('SCOAllowCheckin') %]
+                                                                    <input type="submit" value="Check in item" name="confirm" class="btn btn-info btn-sm return" />
+                                                                    <input type="hidden" name="op" value="returnbook" />
+                                                                    <input type="hidden" name="confirmed" value=""  />
+                                                                [% END %]
+                                                            [% END %]
+                                                        </form>
+                                                    </td>
+                                                    [% UNLESS ( nofines ) %]
+                                                        <td>
+                                                            [% IF ( ISSUE.charges ) %]Yes[% ELSE %]No[% END %]
+                                                        </td>
+                                                    [% END %]
+                                                </tr>
+                                            [% END # / FOREACH ISSUE %]
+                                        </tbody>
+                                    </table>
+                                [% ELSE %]
+                                    <h3>You currently have nothing checked out.</h3>
+                                [% END # / IF issues_count %]
+                            </div> <!-- / #borrowerdetails -->
+                        </div>
+                        <div id="holds-tab" class="tab-pane" role="tabpanel" aria-labelledby="holds">
+                            [% IF HOLDS.count > 0 %]
+                                [% PROCESS 'holds-table.inc' HOLDS = HOLDS, SuspendHoldsOpac = SuspendHoldsOpac, showpriority = showpriority, AutoResumeSuspendedHolds = AutoResumeSuspendedHolds, onlyinfo = 'true' %]
                             [% ELSE %]
-                                <h3>You currently have nothing checked out.</h3>
-                            [% END # / IF issues_count %]
-                        </div> <!-- / #borrowerdetails -->
+                                <h3>You currently have no pending holds.</h3>
+                            [% END %]
+                        </div>
+                        <div id="account-tab" class="tab-pane" role="tabpanel" aria-labelledby="account">
+                            [% PROCESS 'account-table.inc' %]
+                        </div>
+                    </div>
                         [% ELSE # IF validuser %]
                             <div class="sco_entry" >
                                 <form id="mainform" action="/cgi-bin/koha/sco/sco-main.pl" name="mainform" method="post">
-                                    <fieldset class="checkout brief">
+                                    <fieldset>
                                         [% IF ( Koha.Preference('SelfCheckoutByLogin') ) %]
                                             <legend>Log in to your account</legend>
                                             <label for="patronlogin">Login:</label>
-                                            <input type="text" id="patronlogin" class="focus" size="20" name="patronlogin" />
+                                            <input type="text" id="patronlogin" class="focus noEnterSubmit" size="20" name="patronlogin" />
                                             <label for="patronpw">Password:</label>
                                             <input type="password" id="patronpw" size="20" name="patronpw" />
                                             <fieldset class="action">
-                                                <button type="submit" class="btn">Log in</button>
+                                                <button type="submit" class="btn btn-primary">Log in</button>
                                             </fieldset>
                                         [% ELSE %]
-                                            <div class="input-append">
-                                                <label for="patronid">Please enter your card number:</label>
-                                                <input type="text" id="patronid" class="focus" size="20" name="patronid" autocomplete="off" />
-                                                <button type="submit" class="btn">Submit</button>
-                                            </div>
+                                            <div class="form-row">
+                                                <div class="col-auto">
+                                                    <label for="patronid">Please enter your card number:</label>
+                                                </div>
+                                                <div class="col-3">
+                                                    <input type="text" id="patronid" class="form-control focus" size="20" name="patronid" autocomplete="off" />
+                                                </div>
+                                                <div class="col-auto">
+                                                    <button type="submit" class="btn btn-primary">Submit</button>
+                                                </div>
+                                            </div> <!-- /.form-row -->
                                         [% END %]
 
                                         [% FOREACH INPUT IN INPUTS %]
-                                            <input type="hidden" name="[% INPUT.name |html %]" value="[% INPUT.value |html %]">
+                                            <input type="hidden" name="[% INPUT.name | html %]" value="[% INPUT.value | html %]">
                                         [% END %]
                                         <input type="hidden" name="op" value="login" />
                                     </fieldset>
@@ -322,9 +419,9 @@
                             </div> <!-- / .sco_entry -->
                         [% END # / IF validuser %]
                     [% END # / UNLESS ( hide_main %]
-                    [% IF ( Koha.Preference('SCOMainUserBlock' ) ) %]<div id="scomainuserblock">[% Koha.Preference('SCOMainUserBlock' ) %]</div>[% END %]
+                    [% IF ( Koha.Preference('SCOMainUserBlock' ) ) %]<div id="scomainuserblock">[% Koha.Preference('SCOMainUserBlock' ) | $raw %]</div>[% END %]
                 </div> <!-- / .span12 -->
-            </div> <!-- / .row-fluid -->
+            </div> <!-- / .row -->
         </div> <!-- / .container-fluid -->
     </div> <!-- / .main -->
     <span id="audio-alert"></span>
@@ -333,7 +430,6 @@
 [% BLOCK jsinclude %]
     [% INCLUDE 'datatables.inc' %]
     <script>
-        //<![CDATA[
         function mungeHistory() {
             // prevent back button from allowing form resubmission
             if (history && history.pushState) {
@@ -344,7 +440,7 @@
         function sco_init() {
             mainTimeout = setTimeout(function() {
                 location.href = '/cgi-bin/koha/sco/sco-main.pl?op=logout';
-            }, [% SelfCheckTimeout %]);
+            }, [% SelfCheckTimeout | html %]);
         }
         function dofocus() {    // named function req'd for body onload event by some FF and IE7 security models
             // alert("dofocus called");
@@ -367,7 +463,7 @@
             return true;
         }
         [% IF Koha.Preference('AudioAlerts') %]
-            var AUDIO_ALERTS = JSON.parse( '[% AudioAlerts.AudioAlerts | replace( "'", "\\'" ) | replace( '"', '\\"' ) %]' );
+            var AUDIO_ALERTS = JSON.parse( "[% To.json(AudioAlerts.AudioAlerts) | $raw %]" );
             $( document ).ready(function() {
                 if ( AUDIO_ALERTS ) {
                     for ( var k in AUDIO_ALERTS ) {
@@ -391,33 +487,37 @@
             dofocus();
             [% IF ( patronid ) %]sco_init();[% END %]
             $("#loanTable").dataTable($.extend(true, {}, dataTablesDefaults, {
-                "aaSorting": [ 0 ],
-                "aoColumnDefs": [
-                    { "aTargets": [ "nosort" ], "bSortable": false, "bSearchable": false },
-                    { "aTargets": [ "noshow" ], "bVisible": false, "bSearchable": false },
-                    { "sType": "anti-the", "aTargets" : [ "anti-the" ] },
-                    { "sType": "title-string", "aTargets" : [ "title-string" ] }
+                "dom": "t",
+                "order": [ 0 ],
+                "columnDefs": [
+                    { "targets": [ "nosort" ], "sortable": false, "searchable": false },
+                    { "targets": [ "noshow" ], "visible": false, "searchable": false },
+                    { "type": "anti-the", "targets" : [ "anti-the" ] }
                 ]
             }));
 
-            $("#logout_form").submit(function(){
+            $("#logout_form").on("click", function(e){
+                e.preventDefault(e);
                 clearTimeout(mainTimeout);
                 [% IF Koha.Preference('SelfCheckReceiptPrompt') %]
                     var confirmStart = Date.now();
-                    if(confirm(_("Would you like to print a receipt?"))){
-                        if ( (Date.now() - confirmStart) < [% SelfCheckTimeout %] ) {
-                            window.open("/cgi-bin/koha/sco/printslip.pl?borrowernumber=[% borrowernumber %]&amp;print=qslip");
+                    confirmModal("", _("Would you like to print a receipt?"), _("Print receipt and end session"), _("End session"), function(result) {
+                        if ( result && (Date.now() - confirmStart) < [% SelfCheckTimeout | html %] ) {
+                            var win = window.open("/cgi-bin/koha/sco/printslip.pl?borrowernumber=[% borrowernumber | html %]&amp;print=qslip");
+                            location.href = '/cgi-bin/koha/sco/sco-main.pl?op=logout';
                         } else {
-                            alert(_("Timeout while waiting for print confirmation"));
+                            location.href = '/cgi-bin/koha/sco/sco-main.pl?op=logout';
                         }
-                    }
+                    })
+                [% ELSE %]
+                    location.href = '/cgi-bin/koha/sco/sco-main.pl?op=logout';
                 [% END %]
 
                 return true;
             });
     });
-    //]]>
+
     </script>
 
-    [% IF ( Koha.Preference('SCOUserJS') ) %]<script>[% Koha.Preference('SCOUserJS') %]</script>[% END %]
+    [% IF ( Koha.Preference('SCOUserJS') ) %]<script>[% Koha.Preference('SCOUserJS') | $raw %]</script>[% END %]
 [% END %]

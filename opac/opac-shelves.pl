@@ -22,6 +22,7 @@ use Modern::Perl;
 use CGI qw ( -utf8 );
 use C4::Auth;
 use C4::Biblio;
+use C4::External::BakerTaylor qw( image_url link_url );
 use C4::Koha;
 use C4::Items;
 use C4::Members;
@@ -32,7 +33,8 @@ use C4::Divibib::NCIPService qw(DIVIBIBAGENCYID);
 
 use Koha::Biblios;
 use Koha::Biblioitems;
-use Koha::IssuingRules;
+use Koha::CirculationRules;
+use Koha::CsvProfiles;
 use Koha::Items;
 use Koha::ItemTypes;
 use Koha::Patrons;
@@ -41,7 +43,7 @@ use Koha::RecordProcessor;
 
 use constant ANYONE => 2;
 
-my $query = new CGI;
+my $query = CGI->new;
 
 my $template_name = $query->param('rss') ? "opac-shelves-rss.tt" : "opac-shelves.tt";
 
@@ -51,14 +53,32 @@ if ( ! C4::Context->preference('virtualshelves') ) {
     exit;
 }
 
-my ( $template, $loggedinuser, $cookie ) = get_template_and_user({
-        template_name   => $template_name,
-        query           => $query,
-        type            => "opac",
-        authnotrequired => ( C4::Context->preference("OpacPublic") ? 1 : 0 ),
-    });
+my $op = $query->param('op') || 'list';
+my ( $template, $loggedinuser, $cookie );
 
-my $op       = $query->param('op')       || 'list';
+if( $op eq 'view' || $op eq 'list' ){
+    ( $template, $loggedinuser, $cookie ) = get_template_and_user({
+            template_name   => $template_name,
+            query           => $query,
+            type            => "opac",
+            authnotrequired => ( C4::Context->preference("OpacPublic") ? 1 : 0 ),
+        });
+} else {
+    ( $template, $loggedinuser, $cookie ) = get_template_and_user({
+            template_name   => $template_name,
+            query           => $query,
+            type            => "opac",
+            authnotrequired => 0,
+        });
+}
+
+if (C4::Context->preference("BakerTaylorEnabled")) {
+    $template->param(
+        BakerTaylorImageURL => &image_url(),
+        BakerTaylorLinkURL  => &link_url(),
+    );
+}
+
 my $referer  = $query->param('referer')  || $op;
 my $category = $query->param('category') || 1;
 my ( $shelf, $shelfnumber, @messages );
@@ -115,7 +135,7 @@ if ( $op eq 'add_form' ) {
     if ( $shelf ) {
         $op = $referer;
         my $sortfield = $query->param('sortfield');
-        $sortfield = 'title' unless grep {/^$sortfield$/}qw( title author copyrightdate itemcallnumber );
+        $sortfield = 'title' unless grep { $_ eq $sortfield } qw( title author copyrightdate itemcallnumber dateadded );
         if ( $shelf->can_be_managed( $loggedinuser ) ) {
             $shelf->shelfname( scalar $query->param('shelfname') );
             $shelf->sortfield( $sortfield );
@@ -177,10 +197,10 @@ if ( $op eq 'add_form' ) {
     $shelf = Koha::Virtualshelves->find($shelfnumber);
     if ($shelf) {
         if( my $barcode = $query->param('barcode') ) {
-            my $item = GetItem( 0, $barcode);
-            if (defined $item && $item->{itemnumber}) {
+            my $item = Koha::Items->find({ barcode => $barcode });
+            if ( $item ) {
                 if ( $shelf->can_biblios_be_added( $loggedinuser ) ) {
-                    my $added = eval { $shelf->add_biblio( $item->{biblionumber}, $loggedinuser ); };
+                    my $added = eval { $shelf->add_biblio( $item->biblionumber, $loggedinuser ); };
                     if ($@) {
                         push @messages, { type => 'error', code => ref($@), msg => $@ };
                     } elsif ( $added ) {
@@ -235,9 +255,14 @@ if ( $op eq 'view' ) {
     if ( $shelf ) {
         if ( $shelf->can_be_viewed( $loggedinuser ) ) {
             $category = $shelf->category;
-            my $sortfield = $query->param('sortfield') || $shelf->sortfield;    # Passed in sorting overrides default sorting
-            $sortfield = 'title' unless grep {/^$sortfield$/}qw( title author copyrightdate itemcallnumber );
-            my $direction = $query->param('direction') || 'asc';
+            my( $sortfield, $direction );
+            if( defined( $query->param('sortfield') ) ){ # Passed in sorting overrides default sorting
+                ( $sortfield, $direction ) = split /:/, $query->param('sortfield');
+            } else {
+                $sortfield = $shelf->sortfield;
+                $direction = 'asc';
+            }
+            $sortfield = 'title' unless grep $_ eq $sortfield, qw( title author copyrightdate itemcallnumber dateadded );
             $direction = 'asc' if $direction ne 'asc' and $direction ne 'desc';
             my ( $page, $rows );
             unless ( $query->param('print') or $query->param('rss') ) {
@@ -263,6 +288,11 @@ if ( $op eq 'view' ) {
 
             my $patron = Koha::Patrons->find( $loggedinuser );
 
+            my $categorycode; # needed for may_article_request
+            if( C4::Context->preference('ArticleRequests') ) {
+                $categorycode = $patron ? $patron->categorycode : undef;
+            }
+
             # Lists display falls back to search results configuration
             my $xslfile = C4::Context->preference('OPACXSLTListsDisplay');
             my $lang   = $xslfile ? C4::Languages::getlanguage()  : undef;
@@ -273,6 +303,12 @@ if ( $op eq 'view' ) {
             my @divibibIDs = ();
             
             my $record_processor = Koha::RecordProcessor->new({ filters => 'ViewPolicy' });
+
+            my $art_req_itypes;
+            if( C4::Context->preference('ArticleRequests') ) {
+                $art_req_itypes = Koha::CirculationRules->guess_article_requestable_itemtypes({ $patron ? ( categorycode => $patron->categorycode ) : () });
+            }
+
             my @items;
             while ( my $content = $contents->next ) {
                 my $biblionumber = $content->biblionumber;
@@ -286,9 +322,17 @@ if ( $op eq 'view' ) {
                 });
                 $record_processor->process($record);
 
-                if ( $xslfile ) {
-                    $this_item->{XSLTBloc} = XSLTParse4Display( $biblionumber, $record, "OPACXSLTListsDisplay",
-                                                                1, undef, $sysxml, $xslfile, $lang);
+                if ($xslfile) {
+                    my $variables = {
+                        anonymous_session => ($loggedinuser) ? 0 : 1
+                    };
+                    $this_item->{XSLTBloc} = XSLTParse4Display(
+                        $biblionumber,          $record,
+                        "OPACXSLTListsDisplay", 1,
+                        undef,                  $sysxml,
+                        $xslfile,               $lang,
+                        $variables
+                    );
                 }
                 
                 if ( C4::Context->preference('DivibibEnabled') && $record->field("001") && $record->field("003") ) {
@@ -308,12 +352,13 @@ if ( $op eq 'view' ) {
                     $this_item->{description}       = $itemtype->description; #FIXME Should not it be translated_description?
                     $this_item->{notforloan}        = $itemtype->notforloan;
                 }
-                $this_item->{'coins'}           = GetCOinSBiblio($record);
-                $this_item->{'subtitle'}        = GetRecordValue( 'subtitle', $record, GetFrameworkCode( $biblionumber ) );
+                $this_item->{'coins'}           = $biblio->get_coins;
                 $this_item->{'normalized_upc'}  = GetNormalizedUPC( $record, $marcflavour );
                 $this_item->{'normalized_ean'}  = GetNormalizedEAN( $record, $marcflavour );
                 $this_item->{'normalized_oclc'} = GetNormalizedOCLCNumber( $record, $marcflavour );
                 $this_item->{'normalized_isbn'} = GetNormalizedISBN( undef, $record, $marcflavour );
+                # BZ17530: 'Intelligent' guess if result can be article requested
+                $this_item->{artreqpossible} = ( $art_req_itypes->{ $this_item->{itemtype} // q{} } || $art_req_itypes->{ '*' } ) ? 1 : q{};
 
                 unless ( defined $this_item->{size} ) {
 
@@ -334,7 +379,7 @@ if ( $op eq 'view' ) {
 
                 my $items = $biblio->items;
                 while ( my $item = $items->next ) {
-                    $this_item->{allow_onshelf_holds} = Koha::IssuingRules->get_onshelfholds_policy( { item => $item, patron => $patron } );
+                    $this_item->{allow_onshelf_holds} = Koha::CirculationRules->get_onshelfholds_policy( { item => $item, patron => $patron } );
                     last if $this_item->{allow_onshelf_holds};
                 }
 
@@ -342,7 +387,8 @@ if ( $op eq 'view' ) {
                     $this_item->{incart} = 1;
                 }
 
-                $this_item->{biblionumber} = $biblionumber;
+                $this_item->{biblio_object} = $biblio;
+                $this_item->{biblionumber}  = $biblionumber;
                 push @items, $this_item;
             }
             
@@ -358,6 +404,11 @@ if ( $op eq 'view' ) {
                 itemsloop          => \@items,
                 sortfield          => $sortfield,
                 direction          => $direction,
+                csv_profiles => [
+                    Koha::CsvProfiles->search(
+                        { type => 'marc', used_for => 'export_records', staff_only => 0 }
+                    )
+                ],
             );
             if ( $page ) {
                 my $pager = $contents->pager;
@@ -401,9 +452,10 @@ $template->param(
     referer  => $referer,
     shelf    => $shelf,
     messages => \@messages,
-    category => $category,
+    category => ($category == 1 || $category == 2) ? $category : "",
     print    => scalar $query->param('print') || 0,
     listsview => 1,
 );
 
-output_html_with_http_headers $query, $cookie, $template->output, undef, { force_no_caching => 1 };
+my $content_type = $query->param('rss')? 'rss' : 'html';
+output_with_http_headers $query, $cookie, $template->output, $content_type;

@@ -2,6 +2,20 @@ package Koha::SimpleMARC;
 
 # Copyright 2009 Kyle M. Hall <kyle.m.hall@gmail.com>
 
+# Koha is free software; you can redistribute it and/or modify it
+# under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 3 of the License, or
+# (at your option) any later version.
+#
+# Koha is distributed in the hope that it will be useful, but
+# WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with Koha; if not, see <http://www.gnu.org/licenses>.
+
+
 use Modern::Perl;
 
 #use MARC::Record;
@@ -17,6 +31,7 @@ our @EXPORT_OK = ( @{ $EXPORT_TAGS{'all'} } );
 
 our @EXPORT = qw(
   read_field
+  add_field
   update_field
   copy_field
   copy_and_replace_field
@@ -126,8 +141,8 @@ sub copy_and_replace_field {
     if ( ! ( $record && $fromFieldName && $toFieldName ) ) { return; }
 
 
-    if ( not $fromSubfieldName or $fromSubfieldName eq ''
-      or not $toSubfieldName or $toSubfieldName eq ''
+    if ( !defined $fromSubfieldName or $fromSubfieldName eq ''
+      or !defined $toSubfieldName or $toSubfieldName eq ''
     ) {
         _copy_move_field(
             {   record        => $record,
@@ -163,12 +178,51 @@ sub update_field {
 
     if ( ! ( $record && $fieldName ) ) { return; }
 
-    if ( not $subfieldName or $subfieldName eq '' ) {
+    if ( not defined $subfieldName or $subfieldName eq '' ) {
         # FIXME I'm not sure the actual implementation is correct.
         die "This action is not implemented yet";
         #_update_field({ record => $record, field => $fieldName, values => \@values });
     } else {
         _update_subfield({ record => $record, field => $fieldName, subfield => $subfieldName, values => \@values, field_numbers => $field_numbers });
+    }
+}
+
+=head2 add_field
+
+  add_field({
+      record   => $record,
+      field    => $fieldName,
+      subfield => $subfieldName,
+      values   => \@values,
+      field_numbers => $field_numbers,
+  });
+
+  Adds a new field/subfield with supplied value(s).
+  This function always add a new field as opposed to 'update_field' which will
+  either update if field exists and add if it does not.
+
+=cut
+
+
+sub add_field {
+    my ( $params ) = @_;
+    my $record = $params->{record};
+    my $fieldName = $params->{field};
+    my $subfieldName = $params->{subfield};
+    my @values = @{ $params->{values} };
+    my $field_numbers = $params->{field_numbers} // [];
+
+    if ( ! ( $record && $fieldName ) ) { return; }
+    if ( $fieldName > 10 ) {
+        foreach my $value ( @values ) {
+            my $field = MARC::Field->new( $fieldName, '', '', "$subfieldName" => $value );
+            $record->append_fields( $field );
+        }
+    } else {
+        foreach my $value ( @values ) {
+            my $field = MARC::Field->new( $fieldName, $value );
+            $record->append_fields( $field );
+        }
     }
 }
 
@@ -256,7 +310,7 @@ sub read_field {
     my $subfieldName = $params->{subfield};
     my $field_numbers = $params->{field_numbers} // [];
 
-    if ( not $subfieldName or $subfieldName eq '' ) {
+    if ( not defined $subfieldName or $subfieldName eq '' ) {
         _read_field({ record => $record, field => $fieldName, field_numbers => $field_numbers });
     } else {
         _read_subfield({ record => $record, field => $fieldName, subfield => $subfieldName, field_numbers => $field_numbers });
@@ -375,9 +429,15 @@ sub field_equals {
   my @field_numbers = ();
   my $current_field_number = 1;
   FIELDS: for my $field ( $record->field( $fieldName ) ) {
-    my @subfield_values = $subfieldName
-        ? $field->subfield( $subfieldName )
-        : map { $_->[1] } $field->subfields;
+    my @subfield_values;
+    if ( $field->is_control_field ) {
+        push @subfield_values, $field->data;
+    } else {
+        @subfield_values =
+            $subfieldName
+          ? $field->subfield($subfieldName)
+          : map { $_->[1] } $field->subfields;
+    }
 
     SUBFIELDS: for my $subfield_value ( @subfield_values ) {
       if (
@@ -420,9 +480,9 @@ sub move_field {
     my $regex = $params->{regex};
     my $field_numbers = $params->{field_numbers} // [];
 
-    if (   not $fromSubfieldName
+    if (   !defined $fromSubfieldName
         or $fromSubfieldName eq ''
-        or not $toSubfieldName
+        or !defined $toSubfieldName
         or $toSubfieldName eq '' ) {
         _copy_move_field(
             {   record        => $record,
@@ -466,7 +526,7 @@ sub delete_field {
     my $subfieldName = $params->{subfield};
     my $field_numbers = $params->{field_numbers} // [];
 
-    if ( not $subfieldName or $subfieldName eq '' ) {
+    if ( !defined $subfieldName or $subfieldName eq '' ) {
         _delete_field({ record => $record, field => $fieldName, field_numbers => $field_numbers });
     } else {
         _delete_subfield({ record => $record, field => $fieldName, subfield => $subfieldName, field_numbers => $field_numbers });
@@ -504,6 +564,7 @@ sub _delete_subfield {
 
     foreach my $field ( @fields ) {
         $field->delete_subfield( code => $subfieldName );
+        $record->delete_field( $field ) unless $field->subfields();
     }
 }
 

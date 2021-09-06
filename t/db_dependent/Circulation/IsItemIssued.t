@@ -22,13 +22,14 @@ use Test::MockModule;
 
 use C4::Circulation;
 use C4::Items;
-use C4::Members;
 use C4::Biblio;
 use Koha::Database;
 use Koha::DateUtils;
+use Koha::Items;
 use Koha::Patrons;
 
 use t::lib::TestBuilder;
+use t::lib::Mocks;
 
 use MARC::Record;
 
@@ -40,54 +41,46 @@ my $library = $builder->build({ source => 'Branch' });
 my $itemtype = $builder->build({ source => 'Itemtype' })->{itemtype};
 my $patron_category = $builder->build({ source => 'Category' });
 
-C4::Context->_new_userenv('DUMMY SESSION');
-C4::Context->set_userenv(
-    undef, undef, undef, undef, undef,
-    $library->{branchcode},
-    $library->{branchname}
-);
+t::lib::Mocks::mock_userenv({ branchcode => $library->{branchcode} });
 
-
-
-my $borrowernumber = AddMember(
+my $borrowernumber = Koha::Patron->new({
     firstname =>  'my firstname',
     surname => 'my surname',
     categorycode => $patron_category->{categorycode},
     branchcode => $library->{branchcode},
-);
+})->store->borrowernumber;
 
 my $borrower = Koha::Patrons->find( $borrowernumber )->unblessed;
 my $record = MARC::Record->new();
 my ( $biblionumber, $biblioitemnumber ) = AddBiblio( $record, '' );
 
-my ( undef, undef, $itemnumber ) = AddItem(
-    {   homebranch    => $library->{branchcode},
-        holdingbranch => $library->{branchcode},
-        barcode       => 'i_dont_exist',
-        itype         => $itemtype
-    },
-    $biblionumber
+my $item = $builder->build_sample_item(
+    {
+        biblionumber     => $biblionumber,
+        library          => $library->{branchcode},
+        itype            => $itemtype
+    }
 );
 
-my $item = GetItem( $itemnumber );
+is ( IsItemIssued( $item->itemnumber ), 0, "item is not on loan at first" );
 
-is ( IsItemIssued( $item->{itemnumber} ), 0, "item is not on loan at first" );
-
-AddIssue($borrower, 'i_dont_exist');
-is ( IsItemIssued( $item->{itemnumber} ), 1, "item is now on loan" );
+AddIssue($borrower, $item->barcode);
+is ( IsItemIssued( $item->itemnumber ), 1, "item is now on loan" );
 
 is(
-    DelItemCheck( $biblionumber, $itemnumber),
+    $item->safe_delete,
     'book_on_loan',
     'item that is on loan cannot be deleted',
 );
 
-AddReturn('i_dont_exist', $library->{branchcode});
-is ( IsItemIssued( $item->{itemnumber} ), 0, "item has been returned" );
+AddReturn($item->barcode, $library->{branchcode});
+is ( IsItemIssued( $item->itemnumber ), 0, "item has been returned" );
 
+$item->discard_changes; # FIXME We should not need that
+                        # If we do not, $self->checkout in safe_to_delete will not know the item has been checked out
 is(
-    DelItemCheck( $biblionumber, $itemnumber),
-    1,
+    ref($item->safe_delete),
+    'Koha::Item',
     'item that is not on loan can be deleted',
 );
 

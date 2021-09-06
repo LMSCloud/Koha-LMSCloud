@@ -55,19 +55,23 @@ use C4::Output;
 use C4::Serials;
 use Koha::DateUtils;
 
-my $query = new CGI;
+my $query = CGI->new;
 my $dbh   = C4::Context->dbh;
 
 my $mode           = $query->param('mode') || q{};
 my $op             = $query->param('op') || 'display';
 my @subscriptionids = $query->multi_param('subscriptionid');
+my $branchcode     = $query->param('branchcode');
+my $sublength = $query->param('sublength');
+my $subtype = $query->param('subtype');
+my ($numberlength, $weeklength, $monthlength);
+
 my $done = 0;    # for after form has been submitted
 my ( $template, $loggedinuser, $cookie ) = get_template_and_user(
     {
         template_name   => "serials/subscription-renew.tt",
         query           => $query,
         type            => "intranet",
-        authnotrequired => 0,
         flagsrequired   => { serials => 'renew_subscription' },
         debug           => 1,
     }
@@ -79,20 +83,32 @@ if ( $op eq "renew" ) {
     my $subscription = GetSubscription( $subscriptionid );
     output_and_exit( $query, $cookie, $template, 'unknown_subscription') unless $subscription;
     my $startdate = output_pref( { str => scalar $query->param('startdate'), dateonly => 1, dateformat => 'iso' } );
+    ($numberlength, $weeklength, $monthlength) = GetSubscriptionLength( $subtype, $sublength );
     ReNewSubscription(
-        $subscriptionid, $loggedinuser,
-        $startdate, scalar $query->param('numberlength'),
-        scalar $query->param('weeklength'), scalar $query->param('monthlength'),
-        scalar $query->param('note')
+        {
+            subscriptionid => $subscriptionid,
+            user           => $loggedinuser,
+            startdate      => $startdate,
+            numberlength   => $numberlength,
+            weeklength     => $weeklength,
+            monthlength    => $monthlength,
+            note           => scalar $query->param('note'),
+            branchcode     => $branchcode
+        }
     );
 } elsif ( $op eq 'multi_renew' ) {
     for my $subscriptionid ( @subscriptionids ) {
         my $subscription = GetSubscription( $subscriptionid );
         next unless $subscription;
         ReNewSubscription(
-            $subscriptionid, $loggedinuser,
-            $subscription->{enddate}, $subscription->{numberlength},
-            $subscription->{weeklength}, $subscription->{monthlength},
+            {
+                subscriptionid => $subscriptionid,
+                user           => $loggedinuser,
+                startdate      => $subscription->{enddate},
+                numberlength   => $subscription->{numberlength},
+                weeklength     => $subscription->{weeklength},
+                monthlength    => $subscription->{monthlength},
+            }
         );
     }
 } else {

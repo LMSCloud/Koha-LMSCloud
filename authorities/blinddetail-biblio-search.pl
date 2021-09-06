@@ -36,8 +36,7 @@ parameters tables.
 
 =cut
 
-use strict;
-use warnings;
+use Modern::Perl;
 
 use C4::AuthoritiesMarc;
 use C4::Auth;
@@ -50,7 +49,7 @@ use C4::Koha;
 use Koha::Authorities;
 use Koha::Authority::Types;
 
-my $query = new CGI;
+my $query = CGI->new;
 
 my $dbh = C4::Context->dbh;
 
@@ -65,7 +64,6 @@ my ( $template, $loggedinuser, $cookie ) = get_template_and_user(
         template_name   => "authorities/blinddetail-biblio-search.tt",
         query           => $query,
         type            => "intranet",
-        authnotrequired => 0,
         flagsrequired   => { editcatalogue => 'edit_catalogue' },
     }
 );

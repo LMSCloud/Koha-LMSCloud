@@ -25,11 +25,10 @@ use C4::Output;
 use CGI qw ( -utf8 );
 use C4::Members;
 use C4::Letters;
-use C4::Members::Attributes qw(GetBorrowerAttributes);
 use Koha::Patrons;
 use Koha::Patron::Categories;
 
-my $input=new CGI;
+my $input=CGI->new;
 
 
 my $borrowernumber = $input->param('borrowernumber');
@@ -43,12 +42,11 @@ my $borrower = $patron->unblessed;
 my ($template, $loggedinuser, $cookie)= get_template_and_user({template_name => "members/notices.tt",
 				query => $input,
 				type => "intranet",
-				authnotrequired => 0,
                 flagsrequired => {borrowers => 'edit_borrowers'},
 				debug => 1,
 				});
 
-my $logged_in_user = Koha::Patrons->find( $loggedinuser ) or die "Not logged in";
+my $logged_in_user = Koha::Patrons->find( $loggedinuser );
 output_and_exit_if_error( $input, $cookie, $template, { module => 'members', logged_in_user => $logged_in_user, current_patron => $patron } );
 
 if ( $patron->is_child ) {
@@ -71,14 +69,6 @@ if ( $op eq 'resend_notice' ) {
 
 # Getting the messages
 my $queued_messages = C4::Letters::GetQueuedMessages({borrowernumber => $borrowernumber});
-
-if (C4::Context->preference('ExtendedPatronAttributes')) {
-    my $attributes = GetBorrowerAttributes($borrowernumber);
-    $template->param(
-        ExtendedPatronAttributes => 1,
-        extendedattributes => $attributes
-    );
-}
 
 $template->param(
     patron             => $patron,

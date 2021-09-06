@@ -1,8 +1,7 @@
 [% USE Koha %]
 [% IF ( ( Koha.Preference( 'opacuserlogin' ) == 1 ) && loggedinusername ) %]
     <div id="menu">
-        <h4><a href="#" class="menu-collapse-toggle">Your account menu</a></h4>
-        <ul class="menu-collapse">
+        <ul>
             [% IF ( userview ) %]
                 <li class="active">
             [% ELSE %]
@@ -15,7 +14,7 @@
                 [% ELSE %]
                     <li>
                 [% END %]
-                <a href="/cgi-bin/koha/opac-account.pl">your fines</a></li>
+                <a href="/cgi-bin/koha/opac-account.pl">your charges</a></li>
             [% END %]
 
             [% IF ( userupdateview ) %]
@@ -24,6 +23,13 @@
                 <li>
             [% END %]
                 <a href="/cgi-bin/koha/opac-memberentry.pl">your personal details</a></li>
+
+            [% IF Koha.Preference('GDPR_Policy') # remove when extending %]
+                [% IF consentview %]<li class="active">[% ELSE %]<li>[% END %]
+                    <a href="/cgi-bin/koha/opac-patron-consent.pl">your consents</a>
+                </li>
+            [% END %]
+
             [% IF Koha.Preference( 'TagsEnabled' ) == 1 %]
                 [% IF ( tagsview ) %]
                     <li class="active">
@@ -33,7 +39,7 @@
                 <a href="/cgi-bin/koha/opac-tags.pl?mine=1">your tags</a></li>
             [% END %]
 
-            [% IF ( OpacPasswordChange ) %]
+            [% IF logged_in_user.category.effective_change_password %]
                 [% IF ( passwdview ) %]
                     <li class="active">
                 [% ELSE %]
@@ -66,7 +72,7 @@
                 [% ELSE %]
                     <li>
                 [% END %]
-                <a href="/cgi-bin/koha/opac-readingrecord.pl">your reading history</a></li>
+                <a href="/cgi-bin/koha/opac-readingrecord.pl">your checkout history</a></li>
                 [% IF ( OPACPrivacy ) %]
                     [% IF ( privacyview ) %]
                         <li class="active">
@@ -76,6 +82,15 @@
                     <a href="/cgi-bin/koha/opac-privacy.pl">your privacy</a></li>
                 [% END %]
             [% END # / opacreadinghistory %]
+
+            [% IF Koha.Preference('OPACHoldsHistory') == 1 %]
+                [% IF ( holdshistoryview ) %]
+                    <li class="active">
+                [% ELSE %]
+                    <li>
+                [% END %]
+                <a href="/cgi-bin/koha/opac-holdshistory.pl">your holds history</a></li>
+            [% END %]
 
             [% IF Koha.Preference( 'suggestion' ) == 1 %]
                 [% IF ( suggestionsview ) %]

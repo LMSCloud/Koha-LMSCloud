@@ -19,7 +19,7 @@
 
 use Modern::Perl;
 
-use Test::More tests => 5;
+use Test::More tests => 3;
 use t::lib::TestBuilder;
 
 use C4::Reserves qw( ReserveSlip );
@@ -50,41 +50,24 @@ my $patron = $builder->build(
 );
 
 
-my $biblio = $builder->build(
+my $biblio = $builder->build_sample_biblio;
+my $item1 = $builder->build_sample_item(
     {
-        source => 'Biblio',
-        value  => {
-            title => 'Title 1',
-        },
+        biblionumber => $biblio->biblionumber,
+        library      => $library->{branchcode},
     }
 );
-
-my $item1 = $builder->build(
+my $item2 = $builder->build_sample_item(
     {
-        source => 'Item',
-        value  => {
-            biblionumber  => $biblio->{biblionumber},
-            homebranch    => $library->{branchcode},
-            holdingbranch => $library->{branchcode},
-        },
-    }
-);
-
-my $item2 = $builder->build(
-    {
-        source => 'Item',
-        value  => {
-            biblionumber  => $biblio->{biblionumber},
-            homebranch    => $library->{branchcode},
-            holdingbranch => $library->{branchcode},
-        },
+        biblionumber => $biblio->biblionumber,
+        library      => $library->{branchcode},
     }
 );
 
 my $hold1 = Koha::Hold->new(
     {
-        biblionumber   => $biblio->{biblionumber},
-        itemnumber     => $item1->{itemnumber},
+        biblionumber   => $biblio->biblionumber,
+        itemnumber     => $item1->itemnumber,
         waitingdate    => '2000-01-01',
         borrowernumber => $patron->{borrowernumber},
         branchcode     => $library->{branchcode},
@@ -93,8 +76,8 @@ my $hold1 = Koha::Hold->new(
 
 my $hold2 = Koha::Hold->new(
     {
-        biblionumber   => $biblio->{biblionumber},
-        itemnumber     => $item2->{itemnumber},
+        biblionumber   => $biblio->biblionumber,
+        itemnumber     => $item2->itemnumber,
         waitingdate    => '2000-01-01',
         borrowernumber => $patron->{borrowernumber},
         branchcode     => $library->{branchcode},
@@ -118,47 +101,15 @@ my $letter = $builder->build(
 is ( ReserveSlip(), undef, "No hold slip returned if invalid or undef borrowernumber and/or biblionumber" );
 is ( ReserveSlip({
         branchcode     => $library->{branchcode},
-        borrowernumber => $patron->{borrowernumber},
-        biblionumber   => $biblio->{biblionumber},
+        reserve_id     => $hold1->reserve_id,
     })->{code},
     'HOLD_SLIP', "Get a hold slip from library, patron and biblio" );
 
 is (ReserveSlip({
         branchcode     => $library->{branchcode},
-        borrowernumber => $patron->{borrowernumber},
-        biblionumber   => $biblio->{biblionumber},
+        reserve_id     => $hold1->reserve_id,
     })->{content},
-    "Hold found for $patron->{firstname}: Please pick up $biblio->{title} with barcode $item1->{barcode} at $library->{branchcode}.", "Hold slip contains correctly parsed content");
-
-is_deeply(
-    ReserveSlip({
-        branchcode     => $library->{branchcode},
-        borrowernumber => $patron->{borrowernumber},
-        biblionumber   => $biblio->{biblionumber},
-    }),
-    ReserveSlip({
-        branchcode     => $library->{branchcode},
-        borrowernumber => $patron->{borrowernumber},
-        biblionumber   => $biblio->{biblionumber},
-        itemnumber     => $item1->{itemnumber},
-        barcode        => $item1->{barcode},
-    }),
-    "No item as param generate hold slip from first item in reserves");
-
-isnt (
-    ReserveSlip({
-        branchcode     => $library->{branchcode},
-        borrowernumber => $patron->{borrowernumber},
-        biblionumber   => $biblio->{biblionumber},
-    })->{content},
-    ReserveSlip({
-        branchcode     => $library->{branchcode},
-        borrowernumber => $patron->{borrowernumber},
-        biblionumber   => $biblio->{biblionumber},
-        itemnumber     => $item2->{itemnumber},
-        barcode        => $item2->{barcode},
-    })->{content},
-    "Item and/or barcode as params return correct pickup item in hold slip");
+    sprintf( "Hold found for %s: Please pick up %s with barcode %s at %s.", $patron->{firstname}, $biblio->title, $item1->barcode, $library->{branchcode}),"Hold slip contains correctly parsed content");
 
 $schema->storage->txn_rollback;
 

@@ -31,6 +31,7 @@ BEGIN {
 
 use Getopt::Long;
 use Pod::Usage;
+use Koha::Script -cron;
 use C4::ImportBatch;
 
 my ($help, $framework);

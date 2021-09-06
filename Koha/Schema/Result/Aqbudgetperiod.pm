@@ -29,11 +29,15 @@ __PACKAGE__->table("aqbudgetperiods");
   is_auto_increment: 1
   is_nullable: 0
 
+primary key and unique number assigned by Koha
+
 =head2 budget_period_startdate
 
   data_type: 'date'
   datetime_undef_if_invalid: 1
   is_nullable: 0
+
+date when the budget starts
 
 =head2 budget_period_enddate
 
@@ -41,16 +45,22 @@ __PACKAGE__->table("aqbudgetperiods");
   datetime_undef_if_invalid: 1
   is_nullable: 0
 
+date when the budget ends
+
 =head2 budget_period_active
 
   data_type: 'tinyint'
   default_value: 0
   is_nullable: 1
 
+whether this budget is active or not (1 for yes, 0 for no)
+
 =head2 budget_period_description
 
   data_type: 'longtext'
   is_nullable: 1
+
+description assigned to this budget
 
 =head2 budget_period_total
 
@@ -58,10 +68,14 @@ __PACKAGE__->table("aqbudgetperiods");
   is_nullable: 1
   size: [28,6]
 
+total amount available in this budget
+
 =head2 budget_period_locked
 
   data_type: 'tinyint'
   is_nullable: 1
+
+whether this budget is locked or not (1 for yes, 0 for no)
 
 =head2 sort1_authcat
 
@@ -69,11 +83,15 @@ __PACKAGE__->table("aqbudgetperiods");
   is_nullable: 1
   size: 10
 
+statistical category for this budget
+
 =head2 sort2_authcat
 
   data_type: 'varchar'
   is_nullable: 1
   size: 10
+
+second statistical category for this budget
 
 =cut
 
@@ -110,10 +128,32 @@ __PACKAGE__->add_columns(
 
 __PACKAGE__->set_primary_key("budget_period_id");
 
+=head1 RELATIONS
 
-# Created by DBIx::Class::Schema::Loader v0.07042 @ 2018-02-16 17:54:53
-# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:M13qdhmXgKilais2IFkXFw
+=head2 aqbudgets
+
+Type: has_many
+
+Related object: L<Koha::Schema::Result::Aqbudget>
+
+=cut
+
+__PACKAGE__->has_many(
+  "aqbudgets",
+  "Koha::Schema::Result::Aqbudget",
+  { "foreign.budget_period_id" => "self.budget_period_id" },
+  { cascade_copy => 0, cascade_delete => 0 },
+);
 
 
-# You can replace this text with custom content, and it will be preserved on regeneration
+# Created by DBIx::Class::Schema::Loader v0.07049 @ 2021-01-21 13:39:29
+# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:F/ipbU/Wrqy3pDInlmLOTw
+
+sub koha_object_class {
+    'Koha::Acquisition::Budget';
+}
+sub koha_objects_class {
+    'Koha::Acquisition::Budgets';
+}
+
 1;

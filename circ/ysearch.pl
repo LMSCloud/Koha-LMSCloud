@@ -33,7 +33,7 @@ use Koha::DateUtils qw/format_sqldatetime/;
 
 use JSON qw( to_json );
 
-my $input = new CGI;
+my $input = CGI->new;
 my $query = $input->param('term');
 
 binmode STDOUT, ":encoding(UTF-8)";
@@ -52,7 +52,7 @@ if (   C4::Context->preference("IndependentBranches")
     $limit_on_branch = 1;
 }
 
-my @parts = split( / /, $query );
+my @parts = split( /,\s|\s/, $query );
 my @params;
 foreach my $p (@parts) {
     push(
@@ -85,6 +85,7 @@ while ( my $b = $borrowers_rs->next ) {
         firstname      => $b->firstname  // '',
         cardnumber     => $b->cardnumber // '',
         dateofbirth    => format_sqldatetime($b->dateofbirth, undef, undef, 1) // '',
+        age            => $b->get_age    // '',
         address        => $b->address    // '',
         city           => $b->city       // '',
         zipcode        => $b->zipcode    // '',

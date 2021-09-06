@@ -29,15 +29,14 @@ use Koha::BiblioFrameworks;
 use Koha::Caches;
 use Koha::MarcSubfieldStructures;
 
-my $input       = new CGI;
+my $input       = CGI->new;
 
 my ( $template, $borrowernumber, $cookie ) = get_template_and_user (
     {
         template_name   => "admin/koha2marclinks.tt",
         query           => $input,
         type            => "intranet",
-        authnotrequired => 0,
-        flagsrequired   => { parameters => 'parameters_remaining_permissions' },
+        flagsrequired   => { parameters => 'manage_marc_frameworks' },
         debug           => 1,
     }
 );

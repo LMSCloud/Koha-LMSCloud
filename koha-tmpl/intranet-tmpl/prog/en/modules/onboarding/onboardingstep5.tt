@@ -1,15 +1,12 @@
 [% INCLUDE 'doc-head-open.inc' %]
-<title>Koha &rsaquo; Web installer &rsaquo;
+<title>
     [% IF all_done %]
         Complete
     [% ELSE %]
         Create circulation rule
-    [% END %]
+    [% END %] &rsaquo; Web installer &rsaquo; Koha
 </title>
 [% INCLUDE 'installer-doc-head-close.inc' %]
-[% INCLUDE 'validator-strings.inc' %]
-[% INCLUDE 'installer-strings.inc' %]
-<script type="text/javascript" src="[% interface %]/[% theme %]/js/onboarding.js"></script>
 </head>
 
 <body id="installer" class="installer">
@@ -42,7 +39,7 @@
                                         <option value=""> Choose</option>
                                         <option value="*" selected="selected">All</option>
                                         [% FOREACH library IN libraries %]
-                                            <option value="[% library.branchcode %]"> [% library.branchname %]</option>
+                                            <option value="[% library.branchcode | html %]"> [% library.branchname | html %]</option>
                                         [% END %]
                                     </select>
                                     <span class="required">Required</span>
@@ -53,36 +50,36 @@
                                         <option value=""> Choose</option>
                                         <option value="*" selected="selected">All</option>
                                         [% FOREACH category IN categories %]
-                                            <option value = "[% category.categorycode %]"> [%category.description %]</option>
+                                            <option value = "[% category.categorycode | html %]"> [% category.description | html %]</option>
                                         [%END%]
                                     </select>
                                     <span class="required">Required</span>
                                 </li>
 
                                 <li>
-                                    <label for="itemtype"> Item type: </label>
+                                    <label for="itemtype" class="required">Item type: </label>
                                     <select id="itemtype" name="itemtype" required="required">
                                         <option value=""> Choose </option>
                                         <option value="*" selected="selected">All</option>
                                         [% FOREACH item IN itemtypes %]
-                                            <option value = "[% item.itemtype %]"> [% item.itemtype %]
+                                            <option value = "[% item.itemtype | html %]"> [% item.itemtype | html %]
                                         [%END%]
                                     </select>
                                     <span class="required"> Required</span>
                                 </li>
                                 <li>
                                     <label for="maxissueqty" class="required">Current checkouts allowed: </label>
-                                    <input type="number" min="0" name="maxissueqty" id="maxissueqty" size="10" value="50" class="required" required="required" />
+                                    <input type="text" inputmode="numeric" pattern="[0-9]*" name="maxissueqty" id="maxissueqty" size="10" value="50" class="required" required="required" />
                                     <span class="required">Required</span>
                                 </li>
 
                                 <li>
                                     <label for="issuelength" class="required">Loan period: </label>
-                                    <input type="number" min="0" name="issuelength" id="issuelength" size="10" value="14" class="required" required="required" />
+                                    <input type="text" inputmode="numeric" pattern="[0-9]*" name="issuelength" id="issuelength" size="10" value="14" class="required" required="required" />
                                     <span class="required">Required</span>
                                 </li>
                                 <li>
-                                    <label for="lengthunit">Units: </label>
+                                    <label for="lengthunit" class="required">Units: </label>
                                     <select name="lengthunit" id="lengthunit" required="required">
                                         <option value=""> Choose </option>
                                         [% SET units = 'days' %]
@@ -99,17 +96,33 @@
                                             <option value="hours" selected="selected">Hours</option>
                                         [% END %]
                                     </select>
+                                    <span class="required">Required</span>
                                 </li>
                                 <li>
                                     <label for="renewalsallowed" class="required">Renewals allowed: </label>
-                                    <input type="number" min="0" name="renewalsallowed" id="renewalsallowed" size="10" max="10" value="10" class="required" required="required" />
+                                    <input type="text" inputmode="numeric" pattern="[0-9]*" name="renewalsallowed" id="renewalsallowed" size="10" value="10" class="required" required="required" />
                                     <span class="required">Required</span>
                                 </li>
 
                                 <li>
                                     <label for="renewalperiod" class="required">Renewals period: </label>
-                                    <input type="number" min="0" name="renewalperiod" id="renewalperiod" size="10" value="14" class="required" required="required" />
+                                    <input type="text" inputmode="numeric" pattern="[0-9]*" name="renewalperiod" id="renewalperiod" size="10" value="14" class="required" required="required" />
                                     <span class="required">Required</span>
+                                </li>
+
+                                <li>
+                                    <label for="reservesallowed">Holds allowed (total): </label>
+                                    <input type="text" inputmode="numeric" pattern="[0-9]*" name="reservesallowed" id="reservesallowed" size="10" value="10" />
+                                </li>
+
+                                <li>
+                                    <label for="holds_per_day">Holds allowed (daily): </label>
+                                    <input type="text" inputmode="numeric" pattern="[0-9]*" name="holds_per_day" id="holds_per_day" size="10" value="10" />
+                                </li>
+
+                                <li>
+                                    <label for="holds_per_record">Holds per record (count): </label>
+                                    <input type="text" inputmode="numeric" pattern="[0-9]*" name="holds_per_record" id="holds_per_record" size="10" value="1" />
                                 </li>
 
                                 <li>
@@ -134,5 +147,12 @@
                 [% END %]
             </div> <!-- / #onboarding-step5 -->
         </div> <!-- / .row -->
+    </div><!-- / .container-fluid -->
 
-[% INCLUDE 'intranet-bottom.inc' %]
+[% MACRO jsinclude BLOCK %]
+    [% INCLUDE 'validator-strings.inc' %]
+    [% INCLUDE 'installer-strings.inc' %]
+    <script src="[% interface | html %]/[% theme | html %]/js/onboarding.js"></script>
+[% END %]
+
+[% INCLUDE 'installer-intranet-bottom.inc' %]

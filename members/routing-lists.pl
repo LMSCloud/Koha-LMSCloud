@@ -22,20 +22,18 @@ use CGI qw ( -utf8 );
 use C4::Output;
 use C4::Auth qw/:DEFAULT/;
 use C4::Members;
-use C4::Members::Attributes qw(GetBorrowerAttributes);
 use C4::Context;
 use C4::Serials;
 use Koha::Patrons;
 use CGI::Session;
 
-my $query = new CGI;
+my $query = CGI->new;
 
 my ( $template, $loggedinuser, $cookie ) = get_template_and_user (
     {
         template_name   => 'members/routing-lists.tt',
         query           => $query,
         type            => "intranet",
-        authnotrequired => 0,
         flagsrequired   => { circulate => 'circulate_remaining_permissions' },
     }
 );
@@ -47,7 +45,7 @@ my $borrowernumber = $query->param('borrowernumber');
 
 my $branch = C4::Context->userenv->{'branch'};
 
-my $logged_in_user = Koha::Patrons->find( $loggedinuser ) or die "Not logged in";
+my $logged_in_user = Koha::Patrons->find( $loggedinuser );
 my $patron         = Koha::Patrons->find( $borrowernumber );
 output_and_exit_if_error( $query, $cookie, $template, { module => 'members', logged_in_user => $logged_in_user, current_patron => $patron } );
 
@@ -57,13 +55,5 @@ $template->param(
     branch            => $branch, # FIXME This is confusing
     routinglistview   => 1,
 );
-
-if (C4::Context->preference('ExtendedPatronAttributes')) {
-    my $attributes = GetBorrowerAttributes($borrowernumber);
-    $template->param(
-        ExtendedPatronAttributes => 1,
-        extendedattributes => $attributes
-    );
-}
 
 output_html_with_http_headers $query, $cookie, $template->output;

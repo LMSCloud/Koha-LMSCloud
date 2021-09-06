@@ -25,13 +25,12 @@ use C4::Auth;
 use C4::Search::History;
 use C4::Output;
 
-my $cgi = new CGI;
+my $cgi = CGI->new;
 
 my ($template, $loggedinuser, $cookie) = get_template_and_user({
     template_name   => 'catalogue/search-history.tt',
     query           => $cgi,
     type            => "intranet",
-    authnotrequired => 0,
     flagsrequired   => {catalogue => 1},
 });
 

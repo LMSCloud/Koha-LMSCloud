@@ -40,14 +40,16 @@ This module lets you modify a patron's messaging preferences.
 =head2 GetMessagingPreferences
 
   my $preferences = C4::Members::Messaging::GetMessagingPreferences( { borrowernumber => $borrower->{'borrowernumber'},
-                                                                       message_name   => 'DUE' } );
+                                                                       message_name   => 'Item_Due ' } );
 
   my $preferences = C4::Members::Messaging::GetMessagingPreferences( { categorycode => 'LIBRARY',
-                                                                       message_name   => 'DUE' } );
+                                                                       message_name   => 'Item_Due ' } );
 
 returns: a hashref of messaging preferences for a borrower or patron category for a particlar message_name
 
 Requires either a borrowernumber or a categorycode key, but not both.
+
+message_name argument is a message attribute name.
 
 =cut
 
@@ -88,7 +90,6 @@ END_SQL
     my $sth = C4::Context->dbh->prepare($sql);
     $sth->execute(@bind_params);
     my $return;
-    my %transports; # helps build a list of unique message_transport_types
     ROW: while ( my $row = $sth->fetchrow_hashref() ) {
         next ROW unless $row->{'message_attribute_id'};
         $return->{'days_in_advance'} = $row->{'days_in_advance'} if defined $row->{'days_in_advance'};

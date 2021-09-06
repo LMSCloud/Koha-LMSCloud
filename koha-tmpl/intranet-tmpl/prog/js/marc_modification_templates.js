@@ -1,3 +1,4 @@
+/* global __ */
 $(document).ready(function() {
     window.modaction_legend_innerhtml = $("#modaction_legend").text();
     window.action_submit_value = $("#action_submit").val();
@@ -13,33 +14,53 @@ $(document).ready(function() {
         var action = $("#action").val();
         if ( action == 'move_field' || action == 'copy_field' || action == 'copy_and_replace_field') {
             if ( $("#from_subfield").val().length != $("#to_subfield").val().length ) {
-                alert( MSG_MMT_SUBFIELDS_MATCH );
+                alert( __("Both subfield values should be filled or empty.") );
                 return false;
             }
             if ( $("#to_field").val().length <= 0 ) {
-                alert( MSG_MMT_DESTINATION_REQUIRED );
+                alert( __("The destination should be filled.") );
                 return false;
             }
             if ( ( $("#to_field").val()   < 10 && $("#to_subfield").val().length   > 0 ) ||
-                 ( $("#from_field").val() < 10 && $("#from_subfield").val().length > 0 ) ) {
-                 alert( MSG_MMT_CONTROL_FIELD_EMPTY );
-                 return false;
-            }
-            if ( ( $("#from_field").val() < 10 && $("#to_subfield").val().length   === 0 ) ||
-                 ( $("#to_field").val()   < 10 && $("#from_subfield").val().length === 0 ) ) {
-                alert( MSG_MMT_CONTROL_FIELD );
+                ( $("#from_field").val() < 10 && $("#from_subfield").val().length > 0 ) ) {
+                alert( __("If the field is a control field, the subfield should be empty") );
                 return false;
-             }
+            }
+            if ( ( $("#from_field").val() < 10 && $("#to_field").val()   >= 10 ) ||
+                 ( $("#to_field").val()   < 10 && $("#from_field").val() >= 10 ) ) {
+                alert( __("A control field cannot be used with a regular field.") );
+                return false;
+            }
         }
         if ( action == 'update_field' ) {
             if ( $("#from_subfield").val().length <= 0 ) {
-                alert( MSG_MMT_SOURCE_SUBFIELD );
+                alert( __("The source subfield should be filled for update.") );
                 return false;
             }
         }
         if ( $("#from_field").val().length <= 0 ) {
-            alert( MSG_MMT_SOURCE_FIELD );
+            alert( __("The source field should be filled.") );
             return false;
+        }
+        if ( $("#conditional").val() == 'if' || $("#conditional").val() == 'unless' ) {
+            if ( $("#conditional_field").val() == '' ) {
+                alert( __("The conditional field should be filled.") );
+                return false;
+            }
+            if ( $("#conditional_comparison").val() == '' ) {
+                alert( __("The conditional comparison operator should be filled.") );
+                return false
+            }
+            if ( $("#conditional_value").val() == '' &&
+                 ( $("#conditional_comparison").val() == 'equals' || $("#conditional_comparison").val() == 'not_equals' ) ) {
+                if ( document.getElementById('conditional_regex').checked == true ) {
+                    alert( __("The conditional regular expression should be filled.") );
+                    return false;
+                } else {
+                    alert( __("The conditional value should be filled.") );
+                    return false;
+                }
+            }
         }
     });
 
@@ -79,14 +100,22 @@ $(document).ready(function() {
         return confirmDelete();
     });
 
+    $(".edit_action").on("click", function(){
+        var mmta_id = $(this).data("mmta_id");
+        var mmta = $.grep(mmtas, function(elt, id) {
+            return elt['mmta_id'] == mmta_id;
+        });
+        editAction( mmta[0] );
+        updateAllEvery();
+    });
 });
 
 function updateAllEvery(){
     if ( $("#conditional_field").is(":visible") ) {
         if ( $("#conditional_field").val() == $("#from_field").val() && $("#from_field").val().length > 0 ) {
-            $("#field_number option[value='0']").html( MSG_MMT_EVERY );
+            $("#field_number option[value='0']").html( __("Every") );
         } else {
-            $("#field_number option[value='0']").html( MSG_MMT_ALL );
+            $("#field_number option[value='0']").html( __("All") );
         }
     }
 }
@@ -102,6 +131,12 @@ function onActionChange(selectObj) {
         case 'delete_field':
             show('field_number_block');
             hide('with_value_block');
+            hide('to_field_block');
+            break;
+
+        case 'add_field':
+            hide('field_number_block');
+            show('with_value_block');
             hide('to_field_block');
             break;
 
@@ -222,67 +257,67 @@ function clearFormElements(divId) {
 }
 
 function confirmDeleteAction() {
-    return confirm( MSG_MMT_CONFIRM_DEL_TEMPLATE_ACTION );
+    return confirm( __("Are you sure you wish to delete this template action?") );
 }
 
 function confirmDelete() {
-    return confirm( MSG_MMT_CONFIRM_DEL_TEMPLATE );
+    return confirm( __("Are you sure you wish to delete this template?") );
 }
 
 var modaction_legend_innerhtml;
 var action_submit_value;
 
-function editAction( mmta_id, ordering, action, field_number, from_field, from_subfield, field_value, to_field,
-    to_subfield, to_regex_search, to_regex_replace, to_regex_modifiers, conditional, conditional_field, conditional_subfield,
-    conditional_comparison, conditional_value, conditional_regex, description
-) {
+function editAction( mmta ) {
     $("#add_action").show();
-    document.getElementById('mmta_id').value = mmta_id;
+    document.getElementById('mmta_id').value = mmta['mmta_id'];
 
-    setSelectByValue( 'action', action );
-    document.getElementById('action').onchange();
+    setSelectByValue( 'action', mmta['action'] );
+    $('#action').change();
 
-    setSelectByValue( 'field_number', field_number );
+    setSelectByValue( 'field_number', mmta['field_number'] );
 
-    document.getElementById('from_field').value = from_field;
-    document.getElementById('from_subfield').value = from_subfield;
-    document.getElementById('field_value').value = field_value;
-    document.getElementById('to_field').value = to_field;
-    document.getElementById('to_subfield').value = to_subfield;
-    $("#to_regex_search").val(to_regex_search);
-    $("#to_regex_replace").val(to_regex_replace);
-    $("#to_regex_modifiers").val(to_regex_modifiers);
+    document.getElementById('from_field').value = mmta['from_field'];
+    document.getElementById('from_subfield').value = mmta['from_subfield'];
+    document.getElementById('field_value').value = mmta['field_value'];
+    document.getElementById('to_field').value = mmta['to_field'];
+    document.getElementById('to_subfield').value = mmta['to_subfield'];
+    if ( mmta['regex_search'] == '' && mmta['to_regex_replace'] == '' && mmta['to_regex_modifiers'] == '' ) {
+        $('#to_field_regex').prop('checked', false).change();
+    } else {
+        $('#to_field_regex').prop('checked', true).change();
+        $("#to_regex_search").val(mmta['to_regex_search']);
+        $("#to_regex_replace").val(mmta['to_regex_replace']);
+        $("#to_regex_modifiers").val(mmta['to_regex_modifiers']);
+    }
 
-    document.getElementById('to_field_regex').checked = conditional_regex.length;
-    document.getElementById('to_field_regex').onchange();
+    setSelectByValue( 'conditional', mmta['conditional'] );
+    $('#conditional').change();
 
-    setSelectByValue( 'conditional', conditional );
-    document.getElementById('conditional').onchange();
+    document.getElementById('conditional_field').value = mmta['conditional_field'];
+    document.getElementById('conditional_subfield').value = mmta['conditional_subfield'];
 
-    document.getElementById('conditional_field').value = conditional_field;
-    document.getElementById('conditional_subfield').value = conditional_subfield;
+    setSelectByValue( 'conditional_comparison', mmta['conditional_comparison'] );
+    $('#conditional_comparison').change();
 
-    setSelectByValue( 'conditional_comparison', conditional_comparison );
-    document.getElementById('conditional_comparison').onchange();
+    document.getElementById('conditional_value').value = mmta['conditional_value'];
 
-    document.getElementById('conditional_value').value = conditional_value;
+    document.getElementById('conditional_regex').checked = parseInt( mmta['conditional_regex'] );
+    $('#conditional_regex').change();
 
-    document.getElementById('conditional_regex').checked = parseInt( conditional_regex );
-
-    document.getElementById('description').value = description;
+    document.getElementById('description').value = mmta['description'];
 
     window.modaction_legend_innerhtml = document.getElementById('modaction_legend').innerHTML;
-    document.getElementById('modaction_legend').innerHTML = MSG_MMT_EDIT_ACTION.format(ordering);
+    document.getElementById('modaction_legend').innerHTML = __("Edit action %s").format(mmta['ordering']);
 
     window.action_submit_value = document.getElementById('action_submit').value;
-    document.getElementById('action_submit').value = MSG_MMT_UPDATE_ACTION;
+    document.getElementById('action_submit').value = __("Update action");
 }
 
 function cancelEditAction() {
     document.getElementById('mmta_id').value = '';
 
     setSelectByValue( 'action', 'delete_field' );
-    document.getElementById('action').onchange();
+    $('#action').change();
 
     document.getElementById('from_field').value = '';
     document.getElementById('from_subfield').value = '';
@@ -294,17 +329,16 @@ function cancelEditAction() {
     $("#to_regex_modifiers").val("");
     $("#description").val("");
 
-    document.getElementById('to_field_regex').checked = false;
-    document.getElementById('to_field_regex').onchange();
+    $('#to_field_regex').prop('checked', false).change();
 
     setSelectByValue( 'conditional', '' );
-    document.getElementById('conditional').onchange();
+    $('#conditional').change();
 
     document.getElementById('conditional_field').value = '';
     document.getElementById('conditional_subfield').value = '';
 
     setSelectByValue( 'conditional_comparison', '' );
-    document.getElementById('conditional_comparison').onchange();
+    $('#conditional_comparison').change();
 
     document.getElementById('conditional_value').value = '';
 

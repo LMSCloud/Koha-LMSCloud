@@ -1,93 +1,3 @@
-// this function checks id date is like DD/MM/YYYY
-function CheckDate(field) {
-var d = field.value;
-if (d!=="") {
-      var amin = 1900;
-      var amax = 2100;
-      var date = d.split("/");
-      var ok=1;
-      var msg;
-      if ( (date.length < 2) && (ok==1) ) {
-        msg = MSG_SEPARATOR.format(field.name);
-        alert(msg); ok=0; field.focus();
-        return;
-      }
-      var dd   = date[0];
-      var mm   = date[1];
-      var yyyy = date[2];
-      // checking days
-      if ( ((isNaN(dd))||(dd<1)||(dd>31)) && (ok==1) ) {
-        msg = MSG_INCORRECT_DAY.format(field.name);
-        alert(msg); ok=0; field.focus();
-        return false;
-      }
-      // checking months
-      if ( ((isNaN(mm))||(mm<1)||(mm>12)) && (ok==1) ) {
-        msg = MSG_INCORRECT_MONTH.format(field.name);
-        alert(msg); ok=0; field.focus();
-        return false;
-      }
-      // checking years
-      if ( ((isNaN(yyyy))||(yyyy<amin)||(yyyy>amax)) && (ok==1) ) {
-        msg = MSG_INCORRECT_YEAR.format(field.name);
-        alert(msg); ok=0; field.focus();
-        return false;
-      }
-   }
-}
-
-//function test if member is unique and if it's right the member is registred
-function unique() {
-var msg1;
-var msg2;
-if (  document.form.check_member.value==1){
-    if (document.form.categorycode.value != "I"){
-
-        msg1 += MSG_DUPLICATE_PATRON;
-        alert(msg1);
-    check_form_borrowers(0);
-    document.form.submit();
-
-    }else{
-        msg2 += MSG_DUPLICATE_ORGANIZATION;
-        alert(msg2);
-    check_form_borrowers(0);
-    }
-}
-else
-{
-    document.form.submit();
-}
-
-}
-//end function
-//function test if date enrooled < date expiry
-// WARNING: format-specific test.
-function check_manip_date(status) {
-if (status=='verify'){
-// this part of function('verify') is used to check if dateenrolled<date expiry
-if (document.form.dateenrolled !== '' && document.form.dateexpiry.value !=='') {
-var myDate1=document.form.dateenrolled.value.split ('/');
-var myDate2=document.form.dateexpiry.value.split ('/');
-    if ((myDate1[2]>myDate2[2])||(myDate1[2]==myDate2[2] && myDate1[1]>myDate2[1])||(myDate1[2]==myDate2[2] && myDate1[1]>=myDate2[1] && myDate1[0]>=myDate2[0]))
-
-        {
-        document.form.dateenrolled.focus();
-        var msg = MSG_LATE_EXPIRY;
-        alert(msg);
-        }
-    }
-    }
-}
-//end function
-
-function check_password( password ) {
-    if ( password.match(/^\s/) || password.match(/\s$/)) {
-        return false;
-    }
-    return true;
-}
-
 // function to test all fields in forms and nav in different forms(1 ,2 or 3)
 function check_form_borrowers(nav){
     var statut=0;
@@ -124,15 +34,6 @@ function check_form_borrowers(nav){
     }
 }
 
-function Dopop(link) {
-// //   var searchstring=document.form.value[i].value;
-    var newin=window.open(link,'popup','width=600,height=400,resizable=no,toolbar=false,scrollbars=no,top');
-}
-
-function Dopopguarantor(link) {
-    var newin=window.open(link,'popup','width=800,height=500,resizable=no,toolbar=false,scrollbars=yes,top');
-}
-
 function clear_entry(node) {
     var original = $(node).parent();
     $("textarea", original).attr('value', '');
@@ -167,51 +68,60 @@ function update_category_code(category_code) {
     $(mytables).find("li").hide();
     $(mytables).find(" li[data-category_code='"+category_code+"']").show();
     $(mytables).find(" li[data-category_code='']").show();
+
+    //Change password length hint
+    var hint = $("#password").siblings(".hint").first();
+    var min_length = $('select'+category_selector+' option:selected').data('pwdLength');
+    var hint_string = MSG_PASSWORD_LENGTH.format(min_length);
+    hint.html(hint_string);
 }
 
-function select_user(borrowernumber, borrower) {
-    var form = $('#entryform').get(0);
-    if (form.guarantorid.value) {
-        $("#contact-details, #quick_add_form #contact-details").find('a').remove();
-        $("#contactname, #contactfirstname, #quick_add_form #contactname, #quick_add_form #contactfirstname").parent().find('span').remove();
+function select_user(borrowernumber, borrower, relationship) {
+    let is_guarantor = $(`.guarantor-details[data-borrowernumber=${borrower.borrowernumber}]`).length;
+
+    if ( is_guarantor ) {
+        alert("Patron is already a guarantor for this patron");
+    } else {
+        $('#guarantor_id').val(borrower.borrowernumber);
+        $('#guarantor_surname').val(borrower.surname);
+        $('#guarantor_firstname').val(borrower.firstname);
+
+        var fieldset = $('#guarantor_template').clone();
+        fieldset.removeAttr('id');
+
+        var guarantor_id = $('#guarantor_id').val();
+        if ( guarantor_id ) {
+            fieldset.find('.new_guarantor_id').first().val( guarantor_id );
+            fieldset.find('.new_guarantor_id_text').first().text( borrower.cardnumber );
+            fieldset.find('.new_guarantor_link').first().attr("href", "/cgi-bin/koha/members/moremember.pl?borrowernumber=" + guarantor_id );
+        } else {
+            fieldset.find('.guarantor_id').first().hide();
+        }
+        $('#guarantor_id').val("");
+
+        var guarantor_surname = $('#guarantor_surname').val();
+        fieldset.find('.new_guarantor_surname').first().val( guarantor_surname );
+        fieldset.find('.new_guarantor_surname_text').first().text( guarantor_surname );
+        $('#guarantor_surname').val("");
+
+        var guarantor_firstname = $('#guarantor_firstname').val();
+        fieldset.find('.new_guarantor_firstname').first().val( guarantor_firstname );
+        fieldset.find('.new_guarantor_firstname_text').first().text( guarantor_firstname );
+        $('#guarantor_firstname').val("");
+
+        var guarantor_relationship = $('#relationship').val();
+        fieldset.find('.new_guarantor_relationship').first().val( guarantor_relationship );
+        $('#relationship').find('option:eq(0)').prop('selected', true);
+
+        fieldset.find('.guarantor-details').first().attr( 'data-borrowernumber', borrower.borrowernumber );
+
+        $('#guarantor_relationships').append( fieldset );
+        fieldset.show();
+
+        if ( relationship ) {
+            fieldset.find('.new_guarantor_relationship').val(relationship);
+        }
     }
-
-    var id = borrower.borrowernumber;
-    form.guarantorid.value = id;
-    $('#contact-details, #quick_add_form #contact-details')
-        .show()
-        .find('span')
-        .after('<a target="blank" href="/cgi-bin/koha/members/moremember.pl?borrowernumber=' + id + '">' + id + '</a>');
-
-    $(form.contactname)
-        .val(borrower.surname)
-        .before('<span>' + borrower.surname + '</span>').get(0).type = 'hidden';
-    $("#quick_add_form #contactname").val(borrower.surname).before('<span>'+borrower.surname+'</span.').attr({type:"hidden"});
-    $(form.contactfirstname,"#quick_add_form #contactfirstname")
-        .val(borrower.firstname)
-        .before('<span>' + borrower.firstname + '</span>').get(0).type = 'hidden';
-    $("#quick_add_form #contactfirstname").val(borrower.firstname).before('<span>'+borrower.firstname+'</span.').attr({type:"hidden"});
-
-    form.streetnumber.value = borrower.streetnumber;
-    form.address.value = borrower.address;
-    form.address2.value = borrower.address2;
-    form.city.value = borrower.city;
-    form.state.value = borrower.state;
-    form.zipcode.value = borrower.zipcode;
-    form.country.value = borrower.country;
-    form.branchcode.value = borrower.branchcode;
-
-    $("#quick_add_form #streetnumber").val(borrower.streetnumber);
-    $("#quick_add_form #address").val(borrower.address);
-    $("#quick_add_form #address2").val(borrower.address2);
-    $("#quick_add_form #city").val(borrower.city);
-    $("#quick_add_form #state").val(borrower.state);
-    $("#quick_add_form #zipcode").val(borrower.zipcode);
-    $("#quick_add_form #country").val(borrower.country);
-    $("#quick_add_form select[name='branchcode']").val(borrower.branchcode);
-
-    form.guarantorsearch.value = LABEL_CHANGE;
-    $("#quick_add_form #guarantorsearch").val(LABEL_CHANGE);
 
     return 0;
 }
@@ -284,23 +194,26 @@ $(document).ready(function(){
     });
 
     $("fieldset.rows input, fieldset.rows select").addClass("noEnterSubmit");
-    $("#guarantordelete").click(function() {
-        $("#quick_add_form #contact-details, #contact-details").hide().find('a').remove();
-        $("#quick_add_form #guarantorid, #quick_add_form  #contactname, #quick_add_form #contactfirstname, #guarantorid, #contactname, #contactfirstname").each(function () { this.value = ""; });
-        $("#quick_add_form #contactname, #quick_add_form #contactfirstname, #contactname, #contactfirstname")
-            .each(function () { this.type = 'text'; })
-            .parent().find('span').remove();
-        $("#quick_add_form #guarantorsearch, #guarantorsearch").val(LABEL_SET_TO_PATRON);
+
+    $('body').on('click', '#guarantor_search', function(e) {
+        e.preventDefault();
+        var newin = window.open('guarantor_search.pl','popup','width=800,height=600,resizable=no,toolbar=false,scrollbars=yes,top');
     });
 
-    $(document.body).on('change','select[name="select_city"]',function(){
-        $('select[name="select_city"]').val( $(this).val() );
+    $('#guarantor_relationships').on('click', '.guarantor_cancel', function(e) {
+        e.preventDefault();
+        $(this).parents('fieldset').first().remove();
+    });
+
+    $(document.body).on('change','.select_city',function(){
+        var selected_city = $(this).val();
+        var addressfield = $(this).data("addressfield");
         var myRegEx=new RegExp(/(.*)\|(.*)\|(.*)\|(.*)/);
-        $(this).val().match(myRegEx);
-        $('input[name="zipcode"]').val( RegExp.$1 );
-        $('input[name="city"]').val( RegExp.$2 );
-        $('input[name="state"]').val( RegExp.$3 );
-        $('input[name="country"]').val( RegExp.$4 );
+        var matches = selected_city.match( myRegEx );
+        $("#" + addressfield + "zipcode").val( matches[1] );
+        $("#" + addressfield + "city").val( matches[2] );
+        $("#" + addressfield + "state").val( matches[3] );
+        $("#" + addressfield + "country").val( matches[4] );
     });
 
     dateformat = $("#dateofbirth").siblings(".hint").first().html();
@@ -308,6 +221,19 @@ $(document).ready(function(){
     if( $('#dateofbirth').length ) {
         write_age();
     }
+
+    $.validator.addMethod(
+        "phone",
+        function(value, element, phone) {
+            let e164_re = /^(\+[1-9]\d{0,2})?\d{1,12}$/;
+            let has_plus = value.charAt(0) === '+';
+            value = value.replace(/\D/g,'');
+            if ( has_plus ) value = '+' + value;
+            element.value = value;
+
+            return this.optional(element) || e164_re.test(value);
+        },
+        jQuery.validator.messages.phone);
 
     $("#entryform").validate({
         rules: {
@@ -326,6 +252,9 @@ $(document).ready(function(){
             },
             password2: {
                password_match: true
+            },
+            SMSnumber: {
+               phone: true,
             }
         },
         submitHandler: function(form) {

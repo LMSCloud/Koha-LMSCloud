@@ -7,22 +7,21 @@ use MARC::Record;
 
 use t::lib::Mocks;
 use C4::Context;
+use Koha::Database;
 
 BEGIN {
         use_ok('C4::Record');
 }
 
-my $dbh = C4::Context->dbh;
-# Start transaction
-$dbh->{AutoCommit} = 0;
-$dbh->{RaiseError} = 1;
+my $schema = Koha::Database->new->schema;
+$schema->storage->txn_begin;
 
 t::lib::Mocks::mock_preference( "BibtexExportAdditionalFields", q{} );
 
 my @marcarray=marc2marc;
 is ($marcarray[0],"Feature not yet implemented\n","error works");
 
-my $marc=new MARC::Record;
+my $marc=MARC::Record->new;
 my $marcxml=marc2marcxml($marc);
 my $testxml=qq(<?xml version="1.0" encoding="UTF-8"?>
 <record

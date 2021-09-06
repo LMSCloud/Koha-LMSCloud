@@ -3,7 +3,7 @@
 [% USE ItemTypes %]
 [% SET footerjs = 1 %]
 [% INCLUDE 'doc-head-open.inc' %]
-<title>Koha &rsaquo; Reports &rsaquo; Patrons with the most checkouts</title>
+<title>Patrons with the most checkouts &rsaquo; Reports &rsaquo; Koha</title>
 [% INCLUDE 'doc-head-close.inc' %]
 </head>
 
@@ -11,13 +11,37 @@
 [% INCLUDE 'header.inc' %]
 [% INCLUDE 'cat-search.inc' %]
 
-<div id="breadcrumbs"><a href="/cgi-bin/koha/mainpage.pl">Home</a> &rsaquo; <a href="/cgi-bin/koha/reports/reports-home.pl">Reports</a> [% IF ( do_it ) %]&rsaquo; <a href="/cgi-bin/koha/reports/bor_issues_top.pl">Patrons with the most checkouts</a> &rsaquo; Results[% ELSE %]&rsaquo; Patrons with the most checkouts[% END %]</div>
+<nav id="breadcrumbs" aria-label="Breadcrumb" class="breadcrumb">
+    <ol>
+        <li>
+            <a href="/cgi-bin/koha/mainpage.pl">Home</a>
+        </li>
+        <li>
+            <a href="/cgi-bin/koha/reports/reports-home.pl">Reports</a>
+        </li>
+        [% IF ( do_it ) %]
+            <li>
+                <a href="/cgi-bin/koha/reports/bor_issues_top.pl">Patrons with the most checkouts</a>
+            </li>
+            <li>
+                <a href="#" aria-current="page">
+                    Results
+                </a>
+            </li>
+        [% ELSE %]
+            <li>
+                <a href="#" aria-current="page">
+                    Patrons with the most checkouts
+                </a>
+            </li>
+        [% END %]
+    </ol>
+</nav>
 
-<div id="doc3" class="yui-t2">
-   
- <div id="bd">
-  <div id="yui-main">
-	<div class="yui-b">
+<div class="main container-fluid">
+    <div class="row">
+        <div class="col-sm-10 col-sm-push-2">
+            <main>
 
 [% IF ( do_it ) %]
 	[% FOREACH mainloo IN mainloop %]
@@ -38,19 +62,19 @@
                                 [% CASE "Return To" -%]
                                     Checked in before [% loopfilte.filter | $KohaDates %]
                                 [% CASE "Branch" -%]
-                                    Library is [% Branches.GetName( loopfilte.filter ) %]
+                                    Library is [% Branches.GetName( loopfilte.filter ) | html %]
                                 [% CASE "Doc Type" -%]
-                                    Item type is [% ItemTypes.GetDescription( loopfilte.filter ) %]
+                                    Item type is [% ItemTypes.GetDescription( loopfilte.filter ) | html %]
                                 [% CASE "Bor Cat" -%]
-                                    Patron category code is [% loopfilte.filter %]
+                                    Patron category code is [% loopfilte.filter | html %]
                                 [% CASE "Day" -%]
-                                    Day is [% loopfilte.filter %]
+                                    Day is [% loopfilte.filter | html %]
                                 [% CASE "Month" -%]
-                                    Month is [% loopfilte.filter %]
+                                    Month is [% loopfilte.filter | html %]
                                 [% CASE "Year" -%]
-                                    Year is [% loopfilte.filter %]
+                                    Year is [% loopfilte.filter | html %]
                                 [% CASE # default case -%]
-                                    [% loopfilte.crit %] = [% loopfilte.filter %]
+                                    [% loopfilte.crit | html %] = [% loopfilte.filter | html %]
                             [% END -%]
                         </li>
                     [% END %]
@@ -62,7 +86,7 @@
 			<tr>
 				<th rowspan="2">Rank</th>
 				[% FOREACH loopco IN mainloo.loopcol %]
-					<th colspan="2">[% loopco.coltitle %]</th>
+					<th colspan="2">[% loopco.coltitle | html %]</th>
 				[% END %]
 			</tr>
 			<tr>
@@ -74,15 +98,15 @@
 				[% FOREACH loopro IN mainloo.looprow %]
 				<tr>
 					[% IF ( loopro.hilighted ) %]<td>[% ELSE %]<td>[% END %]
-					[% loopro.rowtitle %]</td>
+					[% loopro.rowtitle | html %]</td>
 					[% FOREACH loopcel IN loopro.loopcell %]
 						[% IF ( loopcel.hilighted ) %]<td>[% ELSE %]<td>[% END %]
-							[% IF ( loopcel.reference ) %]<a href="/cgi-bin/koha/members/moremember.pl?borrowernumber=[% loopcel.reference %]">[% END %]
-							[% IF ( loopcel.value ) %][% loopcel.value %][% END %]
+                            [% IF ( loopcel.reference ) %]<a href="/cgi-bin/koha/members/moremember.pl?borrowernumber=[% loopcel.reference | uri %]">[% END %]
+							[% IF ( loopcel.value ) %][% loopcel.value | html %][% END %]
 							[% IF ( loopcel.reference ) %]</a>[% END %]
 						</td>
 						[% IF ( loopcel.hilighted ) %]<td>[% ELSE %]<td>[% END %]
-						[% IF ( loopcel.count ) %][% loopcel.count %][% END %]
+						[% IF ( loopcel.count ) %][% loopcel.count | html %][% END %]
 						</td>
 					[% END %]
 				</tr>
@@ -103,20 +127,20 @@
 				<label for="branch">Library: </label>
 <select name="Filter" id="branch"><option value="" > Any library</option>
     [% FOREACH l IN Branches.all( unfiltered => 1 ) %]
-        <option value="[% l.branchcode %]" >[% l.branchname %] </option>
+        <option value="[% l.branchcode | html %]" >[% l.branchname | html %] </option>
      [% END %] 
     </select>			</li>
 			<li> 
                 <label for="documenttype">Item type: </label><select name="Filter" id="documenttype"><option value="" > Any item type</option>
     [% FOREACH itemtype IN itemtypes %]
-        <option value="[% itemtype.itemtype %]" >[% itemtype.translated_description %] </option>
+        <option value="[% itemtype.itemtype | html %]" >[% itemtype.translated_description | html %] </option>
      [% END %] 
     </select>
 			</li>
 			<li> 
                 <label for="patroncategory">Patron category: </label><select name="Filter" id="patroncategory"><option value="" > Any category code</option>
     [% FOREACH patron_category IN patron_categories%]
-        <option value="[% patron_category.categorycode %]" >[% patron_category.description %] </option>
+        <option value="[% patron_category.categorycode | html %]" >[% patron_category.description | html %] </option>
      [% END %]
     </select>
 			</li>
@@ -157,16 +181,16 @@
 			<label class="inline" for="MIME">Into an application: </label>
 			<select name="MIME" id="MIME">
 			[% FOREACH mimeloo IN mimeloop %]
-				<option value="[% mimeloo.type %]">[% mimeloo.type %]</option>
+				<option value="[% mimeloo.type | html %]">[% mimeloo.type | html %]</option>
 			[% END %]
 			</select>
 			<label class="inline" for="sep">Delimiter: </label>
-            <select name="sep" id="sep" size="1">
+            <select name="sep" id="sep">
             [% FOREACH value IN CGIseplist.values.sort() %]
               [% IF ( value == CGIseplist.default ) %]
-                <option value="[% value %]" selected="selected">[% value %]</option>
+                <option value="[% value | html %]" selected="selected">[% value | html %]</option>
               [% ELSE %]
-                <option value="[% value %]">[% value %]</option>
+                <option value="[% value | html %]">[% value | html %]</option>
               [% END %]
             [% END %]
             </select>
@@ -176,22 +200,25 @@
 
 	<fieldset class="action">
 	<input type="submit" value="Submit" />
-	<input type="hidden" name="report_name" value="[% report_name %]" />
+	<input type="hidden" name="report_name" value="[% report_name | html %]" />
 	<input type="hidden" name="do_it" value="1" />
 	</fieldset>
 	</form>
 [% END %]
 
-</div>
-</div>
-<div class="yui-b">
-[% INCLUDE 'reports-menu.inc' %]
-</div>
-</div>
+            </main>
+        </div> <!-- /.col-sm-10.col-sm-push-2 -->
+
+        <div class="col-sm-2 col-sm-pull-10">
+            <aside>
+                [% INCLUDE 'reports-menu.inc' %]
+            </aside>
+        </div> <!-- /.col-sm-2.col-sm-pull-10 -->
+     </div> <!-- /.row -->
 
 [% MACRO jsinclude BLOCK %]
     [% INCLUDE 'calendar.inc' %]
-    <script type="text/javascript">
+    <script>
         $(document).ready(function() {
             // http://jqueryui.com/demos/datepicker/#date-range
             var dates = $( "#from, #to" ).datepicker({

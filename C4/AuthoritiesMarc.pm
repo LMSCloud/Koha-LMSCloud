@@ -1,6 +1,7 @@
 package C4::AuthoritiesMarc;
 
 # Copyright 2000-2002 Katipo Communications
+# Copyright 2018 The National Library of Finland, University of Helsinki
 #
 # This file is part of Koha.
 #
@@ -29,11 +30,12 @@ use C4::Charset;
 use C4::Log;
 use Koha::MetadataRecord::Authority;
 use Koha::Authorities;
-use Koha::Authority::MergeRequest;
+use Koha::Authority::MergeRequests;
 use Koha::Authority::Types;
 use Koha::Authority;
 use Koha::Libraries;
 use Koha::SearchEngine;
+use Koha::SearchEngine::Indexer;
 use Koha::SearchEngine::Search;
 
 use vars qw(@ISA @EXPORT);
@@ -113,13 +115,10 @@ sub SearchAuthorities {
     $sortby="" unless $sortby;
     my $query;
     my $qpquery = '';
-    my $QParser;
-    $QParser = C4::Context->queryparser if (C4::Context->preference('UseQueryParser'));
     my $attr = '';
         # the marclist may contain "mainentry". In this case, search the tag_to_report, that depends on
         # the authtypecode. Then, search on $a of this tag_to_report
         # also store main entry MARC tag, to extract it at end of search
-    my $mainentrytag;
     ##first set the authtype search and may be multiple authorities
     if ($authtypecode) {
         my $n=0;
@@ -132,9 +131,6 @@ sub SearchAuthorities {
         }
         if ($n>1){
             while ($n>1){$query= "\@or ".$query;$n--;}
-        }
-        if ($QParser) {
-            $qpquery .= '(authtype:' . join('|| authtype:', @auths) . ')';
         }
     }
 
@@ -203,9 +199,6 @@ sub SearchAuthorities {
             $q2 .= $attr;
             $dosearch = 1;
             ++$attr_cnt;
-            if ($QParser) {
-                $qpquery .= " $tags->[$i]:\"$value->[$i]\"";
-            }
         }    #if value
     }
     ##Add how many queries generated
@@ -226,21 +219,8 @@ sub SearchAuthorities {
     } elsif ($sortby eq 'AuthidDsc') {
         $orderstring = '@attr 7=2 @attr 4=109 @attr 1=Local-Number 0';
     }
-    if ($QParser) {
-        $qpquery .= ' all:all' unless $value->[0];
-
-        if ( $value->[0] =~ m/^qp=(.*)$/ ) {
-            $qpquery = $1;
-        }
-
-        $qpquery .= " #$sortby" unless $sortby eq '';
-
-        $QParser->parse( $qpquery );
-        $query = $QParser->target_syntax('authorityserver');
-    } else {
-        $query=($query?$query:"\@attr 1=_ALLRECORDS \@attr 2=103 ''");
-        $query="\@or $orderstring $query" if $orderstring;
-    }
+    $query=($query?$query:"\@attr 1=_ALLRECORDS \@attr 2=103 ''");
+    $query="\@or $orderstring $query" if $orderstring;
 
     $offset = 0 if not defined $offset or $offset < 0;
     my $counter = $offset;
@@ -248,7 +228,7 @@ sub SearchAuthorities {
     my @oAuth;
     my $i;
     $oAuth[0]=C4::Context->Zconn("authorityserver" , 1);
-    my $Anewq= new ZOOM::Query::PQF($query,$oAuth[0]);
+    my $Anewq= ZOOM::Query::PQF->new($query,$oAuth[0]);
     my $oAResult;
     $oAResult= $oAuth[0]->search($Anewq) ;
     while (($i = ZOOM::event(\@oAuth)) != 0) {
@@ -359,10 +339,12 @@ sub GuessAuthTypeCode {
         '110'=>{authtypecode=>'CORPO_NAME'},
         '111'=>{authtypecode=>'MEETI_NAME'},
         '130'=>{authtypecode=>'UNIF_TITLE'},
+        '147'=>{authtypecode=>'NAME_EVENT'},
         '148'=>{authtypecode=>'CHRON_TERM'},
         '150'=>{authtypecode=>'TOPIC_TERM'},
         '151'=>{authtypecode=>'GEOGR_NAME'},
         '155'=>{authtypecode=>'GENRE/FORM'},
+        '162'=>{authtypecode=>'MED_PERFRM'},
         '180'=>{authtypecode=>'GEN_SUBDIV'},
         '181'=>{authtypecode=>'GEO_SUBDIV'},
         '182'=>{authtypecode=>'CHRON_SUBD'},
@@ -492,10 +474,10 @@ sub GetTagsLabels {
         $res->{$tag}->{repeatable} = $repeatable;
   }
   $sth=      $dbh->prepare(
-"SELECT tagfield,tagsubfield,liblibrarian,libopac,tab, mandatory, repeatable,authorised_value,frameworkcode as authtypecode,value_builder,kohafield,seealso,hidden,isurl,defaultvalue
+"SELECT tagfield,tagsubfield,liblibrarian,libopac,tab, mandatory, repeatable,authorised_value,frameworkcode as authtypecode,value_builder,kohafield,seealso,hidden,isurl,defaultvalue, display_order
 FROM auth_subfield_structure 
 WHERE authtypecode=? 
-ORDER BY tagfield,tagsubfield"
+ORDER BY tagfield, display_order, tagsubfield"
     );
     $sth->execute($authtypecode);
 
@@ -506,17 +488,18 @@ ORDER BY tagfield,tagsubfield"
     my $seealso;
     my $hidden;
     my $isurl;
-    my $link;
     my $defaultvalue;
+    my $display_order;
 
     while (
         ( $tag,         $subfield,   $liblibrarian,   , $libopac,      $tab,
         $mandatory,     $repeatable, $authorised_value, $authtypecode,
         $value_builder, $kohafield,  $seealso,          $hidden,
-        $isurl,         $defaultvalue, $link )
+        $isurl,         $defaultvalue, $display_order )
         = $sth->fetchrow
       )
     {
+        $res->{$tag}->{$subfield}->{subfield}         = $subfield;
         $res->{$tag}->{$subfield}->{lib}              = ($forlibrarian or !$libopac)?$liblibrarian:$libopac;
         $res->{$tag}->{$subfield}->{tab}              = $tab;
         $res->{$tag}->{$subfield}->{mandatory}        = $mandatory;
@@ -528,9 +511,10 @@ ORDER BY tagfield,tagsubfield"
         $res->{$tag}->{$subfield}->{seealso}          = $seealso;
         $res->{$tag}->{$subfield}->{hidden}           = $hidden;
         $res->{$tag}->{$subfield}->{isurl}            = $isurl;
-        $res->{$tag}->{$subfield}->{link}            = $link;
         $res->{$tag}->{$subfield}->{defaultvalue}     = $defaultvalue;
+        $res->{$tag}->{$subfield}->{display_order}    = $display_order;
     }
+
     return $res;
 }
 
@@ -575,7 +559,8 @@ sub AddAuthority {
         my $marcorgcode = C4::Context->preference('MARCOrgCode');
         if ( $userenv && $userenv->{'branch'} ) {
             $library = Koha::Libraries->find( $userenv->{'branch'} );
-            $marcorgcode = $library->get_effective_marcorgcode;
+            # userenv's library could not exist because of a trick in misc/commit_file.pl (see FIXME and set_userenv statement)
+            $marcorgcode = $library ? $library->get_effective_marcorgcode : $marcorgcode;
         }
 		if (!$record->leader) {
 			$record->leader($leader);
@@ -649,7 +634,8 @@ sub AddAuthority {
     $record->insert_fields_ordered( MARC::Field->new( '001', $authid ) );
     # Update
     $dbh->do( "UPDATE auth_header SET authtypecode=?, marc=?, marcxml=? WHERE authid=?", undef, $authtypecode, $record->as_usmarc, $record->as_xml_record($format), $authid ) or die $DBI::errstr;
-    ModZebra( $authid, 'specialUpdate', 'authorityserver', $record );
+    my $indexer = Koha::SearchEngine::Indexer->new({ index => $Koha::SearchEngine::AUTHORITIES_INDEX });
+    $indexer->index_records( $authid, "specialUpdate", "authorityserver", $record );
 
     return ( $authid );
 }
@@ -669,26 +655,33 @@ sub DelAuthority {
     my $authid = $params->{authid} || return;
     my $skip_merge = $params->{skip_merge};
     my $dbh = C4::Context->dbh;
+
+    # Remove older pending merge requests for $authid to itself. (See bug 22437)
+    my $condition = { authid => $authid, authid_new => [undef, 0, $authid], done => 0 };
+    Koha::Authority::MergeRequests->search($condition)->delete;
+
     merge({ mergefrom => $authid }) if !$skip_merge;
     $dbh->do( "DELETE FROM auth_header WHERE authid=?", undef, $authid );
     logaction( "AUTHORITIES", "DELETE", $authid, "authority" ) if C4::Context->preference("AuthoritiesLog");
-    ModZebra( $authid, "recordDelete", "authorityserver", undef);
+    my $indexer = Koha::SearchEngine::Indexer->new({ index => $Koha::SearchEngine::AUTHORITIES_INDEX });
+    $indexer->index_records( $authid, "recordDelete", "authorityserver", undef );
 }
 
 =head2 ModAuthority
 
-  $authid= &ModAuthority($authid,$record,$authtypecode)
+  $authid= &ModAuthority($authid,$record,$authtypecode, [ { skip_merge => 1 ] )
 
 Modifies authority record, optionally updates attached biblios.
+The parameter skip_merge is optional and should be used with care.
 
 =cut
 
 sub ModAuthority {
-    my ( $authid, $record, $authtypecode ) = @_;
+    my ( $authid, $record, $authtypecode, $params ) = @_;
     my $oldrecord = GetAuthority($authid);
     #Now rewrite the $record to table with an add
     $authid = AddAuthority($record, $authid, $authtypecode);
-    merge({ mergefrom => $authid, MARCfrom => $oldrecord, mergeto => $authid, MARCto => $record });
+    merge({ mergefrom => $authid, MARCfrom => $oldrecord, mergeto => $authid, MARCto => $record }) if !$params->{skip_merge};
     logaction( "AUTHORITIES", "MODIFY", $authid, "authority BEFORE=>" . $oldrecord->as_formatted ) if C4::Context->preference("AuthoritiesLog");
     return $authid;
 }
@@ -757,14 +750,8 @@ sub FindDuplicateAuthority {
     my $auth_tag_to_report = Koha::Authority::Types->find($authtypecode)->auth_tag_to_report;
 #     warn "record :".$record->as_formatted."  auth_tag_to_report :$auth_tag_to_report";
     # build a request for SearchAuthorities
-    my $QParser;
-    $QParser = C4::Context->queryparser if (C4::Context->preference('UseQueryParser'));
-    my $op;
-    if ($QParser) {
-        $op = '&&';
-    } else {
-        $op = 'and';
-    }
+    my $op = 'AND';
+    $authtypecode =~ s#/#\\/#; # GENRE/FORM contains forward slash which is a reserved character
     my $query='at:'.$authtypecode.' ';
     my $filtervalues=qr([\001-\040\Q!'"`#$%&*+,-./:;<=>?@(){[}_|~\E\]]);
     if ($record->field($auth_tag_to_report)) {
@@ -938,6 +925,8 @@ sub BuildSummary {
 # construct MARC21 summary
 # FIXME - looping over 1XX is questionable
 # since MARC21 authority should have only one 1XX
+        use C4::Heading::MARC21;
+        my $handler = C4::Heading::MARC21->new();
         my $subfields_to_report;
         foreach my $field ($record->field('1..')) {
             my $tag = $field->tag();
@@ -945,31 +934,9 @@ sub BuildSummary {
 # FIXME - 152 is not a good tag to use
 # in MARC21 -- purely local tags really ought to be
 # 9XX
-            if ($tag eq '100') {
-                $subfields_to_report = 'abcdefghjklmnopqrstvxyz';
-            } elsif ($tag eq '110') {
-                $subfields_to_report = 'abcdefghklmnoprstvxyz';
-            } elsif ($tag eq '111') {
-                $subfields_to_report = 'acdefghklnpqstvxyz';
-            } elsif ($tag eq '130') {
-                $subfields_to_report = 'adfghklmnoprstvxyz';
-            } elsif ($tag eq '148') {
-                $subfields_to_report = 'abvxyz';
-            } elsif ($tag eq '150') {
-                $subfields_to_report = 'abvxyz';
-            } elsif ($tag eq '151') {
-                $subfields_to_report = 'avxyz';
-            } elsif ($tag eq '155') {
-                $subfields_to_report = 'abvxyz';
-            } elsif ($tag eq '180') {
-                $subfields_to_report = 'vxyz';
-            } elsif ($tag eq '181') {
-                $subfields_to_report = 'vxyz';
-            } elsif ($tag eq '182') {
-                $subfields_to_report = 'vxyz';
-            } elsif ($tag eq '185') {
-                $subfields_to_report = 'vxyz';
-            }
+
+            $subfields_to_report = $handler->get_auth_heading_subfields_to_report($tag);
+
             if ($subfields_to_report) {
                 push @authorized, {
                     heading => $field->as_string($subfields_to_report),
@@ -994,14 +961,14 @@ sub BuildSummary {
             if ($type eq 'subfi') {
                 push @seefrom, {
                     heading => $field->as_string($marc21subfields),
-                    hemain  => $field->subfield( substr($marc21subfields, 0, 1) ),
+                    hemain  => scalar $field->subfield( substr($marc21subfields, 0, 1) ),
                     type    => ($field->subfield('i') || ''),
                     field   => $field->tag(),
                 };
             } else {
                 push @seefrom, {
                     heading => $field->as_string($marc21subfields),
-                    hemain  => $field->subfield( substr($marc21subfields, 0, 1) ),
+                    hemain  => scalar $field->subfield( substr($marc21subfields, 0, 1) ),
                     type    => $type,
                     field   => $field->tag(),
                 };
@@ -1017,8 +984,8 @@ sub BuildSummary {
             if ($type eq 'subfi') {
                 push @seealso, {
                     heading => $field->as_string($marc21subfields),
-                    hemain  => $field->subfield( substr($marc21subfields, 0, 1) ),
-                    type    => $field->subfield('i'),
+                    hemain  => scalar $field->subfield( substr($marc21subfields, 0, 1) ),
+                    type    => scalar $field->subfield('i'),
                     field   => $field->tag(),
                     search  => $field->as_string($marc21subfields) || '',
                     authid  => $field->subfield('9') || ''
@@ -1026,7 +993,7 @@ sub BuildSummary {
             } else {
                 push @seealso, {
                     heading => $field->as_string($marc21subfields),
-                    hemain  => $field->subfield( substr($marc21subfields, 0, 1) ),
+                    hemain  => scalar $field->subfield( substr($marc21subfields, 0, 1) ),
                     type    => $type,
                     field   => $field->tag(),
                     search  => $field->as_string($marc21subfields) || '',
@@ -1093,42 +1060,45 @@ sub GetAuthorizedHeading {
             return $field->as_string('abcdefghijlmnopqrstuvwxyz');
         }
     } else {
+        use C4::Heading::MARC21;
+        my $handler = C4::Heading::MARC21->new();
+
         foreach my $field ($record->field('1..')) {
-            my $tag = $field->tag();
-            next if "152" eq $tag;
-# FIXME - 152 is not a good tag to use
-# in MARC21 -- purely local tags really ought to be
-# 9XX
-            if ($tag eq '100') {
-                return $field->as_string('abcdefghjklmnopqrstvxyz68');
-            } elsif ($tag eq '110') {
-                return $field->as_string('abcdefghklmnoprstvxyz68');
-            } elsif ($tag eq '111') {
-                return $field->as_string('acdefghklnpqstvxyz68');
-            } elsif ($tag eq '130') {
-                return $field->as_string('adfghklmnoprstvxyz68');
-            } elsif ($tag eq '148') {
-                return $field->as_string('abvxyz68');
-            } elsif ($tag eq '150') {
-                return $field->as_string('abvxyz68');
-            } elsif ($tag eq '151') {
-                return $field->as_string('avxyz68');
-            } elsif ($tag eq '155') {
-                return $field->as_string('abvxyz68');
-            } elsif ($tag eq '180') {
-                return $field->as_string('vxyz68');
-            } elsif ($tag eq '181') {
-                return $field->as_string('vxyz68');
-            } elsif ($tag eq '182') {
-                return $field->as_string('vxyz68');
-            } elsif ($tag eq '185') {
-                return $field->as_string('vxyz68');
-            } else {
-                return $field->as_string();
-            }
+            my $subfields = $handler->get_valid_bib_heading_subfields($field->tag());
+            return $field->as_string($subfields) if ($subfields);
         }
     }
     return;
+}
+
+=head2 CompareFieldWithAuthority
+
+  $match = &CompareFieldWithAuthority({ field => $field, authid => $authid })
+
+Takes a MARC::Field from a bibliographic record and an authid, and returns true if they match.
+
+=cut
+
+sub CompareFieldWithAuthority {
+    my $args = shift;
+
+    my $record = GetAuthority($args->{authid});
+    return unless (ref $record eq 'MARC::Record');
+    if (C4::Context->preference('marcflavour') eq 'UNIMARC') {
+        # UNIMARC has same subfields for bibs and authorities
+        foreach my $field ($record->field('2..')) {
+            return compare_fields($field, $args->{field}, 'abcdefghijlmnopqrstuvwxyz');
+        }
+    } else {
+        use C4::Heading::MARC21;
+        my $handler = C4::Heading::MARC21->new();
+
+        foreach my $field ($record->field('1..')) {
+            my $subfields = $handler->get_valid_bib_heading_subfields($field->tag());
+            return compare_fields($field, $args->{field}, $subfields) if ($subfields);
+        }
+    }
+    return 0;
 }
 
 =head2 BuildAuthHierarchies
@@ -1592,6 +1562,26 @@ sub get_auth_type_location {
     }
 }
 
+=head2 compare_fields
+
+  my match = compare_fields($field1, $field2, 'abcde');
+
+Compares the listed subfields of both fields and return true if they all match
+
+=cut
+
+sub compare_fields {
+    my ($field1, $field2, $subfields) = @_;
+
+    foreach my $subfield (split(//, $subfields)) {
+        my $subfield1 = $field1->subfield($subfield) // '';
+        my $subfield2 = $field2->subfield($subfield) // '';
+        return 0 unless $subfield1 eq $subfield2;
+    }
+    return 1;
+}
+
+
 END { }       # module clean-up code here (global destructor)
 
 1;
@@ -1602,6 +1592,7 @@ __END__
 Koha Development Team <http://koha-community.org/>
 
 Paul POULAIN paul.poulain@free.fr
+Ere Maijala ere.maijala@helsinki.fi
 
 =cut
 

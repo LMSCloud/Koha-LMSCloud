@@ -26,8 +26,8 @@ use C4::Output;
 
 use Koha::Cities;
 
-my $input       = new CGI;
-my $searchfield = $input->param('city_name') // q||;
+my $input       = CGI->new;
+my $city_name_filter = $input->param('city_name_filter') // q||;
 my $cityid      = $input->param('cityid');
 my $op          = $input->param('op') || 'list';
 my @messages;
@@ -36,8 +36,7 @@ my ( $template, $loggedinuser, $cookie ) = get_template_and_user(
     {   template_name   => "admin/cities.tt",
         query           => $input,
         type            => "intranet",
-        authnotrequired => 0,
-        flagsrequired   => { parameters => 'parameters_remaining_permissions' },
+        flagsrequired   => { parameters => 'manage_cities' },
         debug           => 1,
     }
 );
@@ -51,7 +50,6 @@ if ( $op eq 'add_form' ) {
 
     $template->param( city => $city, );
 } elsif ( $op eq 'add_validate' ) {
-    my $cityid       = $input->param('cityid');
     my $city_name    = $input->param('city_name');
     my $city_state   = $input->param('city_state');
     my $city_zipcode = $input->param('city_zipcode');
@@ -84,8 +82,8 @@ if ( $op eq 'add_form' ) {
             push @messages, { type => 'message', code => 'success_on_insert' };
         }
     }
-    $searchfield = q||;
-    $op          = 'list';
+    $city_name = q||;
+    $op        = 'list';
 } elsif ( $op eq 'delete_confirm' ) {
     my $city = Koha::Cities->find($cityid);
     $template->param( city => $city, );
@@ -102,13 +100,12 @@ if ( $op eq 'add_form' ) {
 }
 
 if ( $op eq 'list' ) {
-    my $cities = Koha::Cities->search( { city_name => { -like => "%$searchfield%" } } );
-    $template->param( cities => $cities, );
+    $template->param( cities_count => Koha::Cities->search->count );
 }
 
 $template->param(
     cityid      => $cityid,
-    searchfield => $searchfield,
+    city_name_filter => $city_name_filter,
     messages    => \@messages,
     op          => $op,
 );

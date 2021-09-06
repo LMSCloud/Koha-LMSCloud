@@ -12,13 +12,12 @@ BEGIN {
 }
 
 # Koha modules used
-
+use Koha::Script;
 use C4::Context;
 use C4::Biblio;
 
 
 my $dbh = C4::Context->dbh;
-my %kohafields;
 
 my $sth=$dbh->prepare("SELECT biblio.biblionumber, biblioitemnumber, frameworkcode FROM biblio JOIN biblioitems USING (biblionumber)");
 $sth->execute();
@@ -26,7 +25,7 @@ $sth->execute();
 while (my ($biblionumber,$biblioitemnumber,$frameworkcode)=$sth->fetchrow ){
     my $record = GetMarcBiblio({ biblionumber => $biblionumber });
     C4::Biblio::_koha_marc_update_bib_ids($record, $frameworkcode, $biblionumber, $biblioitemnumber);
-    my $biblionumber = eval {ModBiblioMarc( $record, $biblionumber, $frameworkcode )};
+    my $biblionumber = eval {ModBiblioMarc( $record, $biblionumber )};
     if($@){
         print "Problem with biblionumber : $biblionumber\n";
         exit -1;

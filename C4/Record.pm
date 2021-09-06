@@ -18,10 +18,8 @@ package C4::Record;
 #
 # You should have received a copy of the GNU General Public License
 # along with Koha; if not, see <http://www.gnu.org/licenses>.
-#
-#
-use strict;
-#use warnings; FIXME - Bug 2505
+
+use Modern::Perl;
 
 # please specify in which methods a given module is used
 use MARC::Record; # marc2marcxml, marcxml2marc, changeEncoding
@@ -31,12 +29,13 @@ use Unicode::Normalize; # _entity_encode
 use C4::Biblio; #marc2bibtex
 use C4::Koha; #marc2csv
 use C4::XSLT ();
-use YAML; #marcrecords2csv
+use YAML::XS; #marcrecords2csv
+use Encode;
 use Template;
 use Text::CSV::Encoded; #marc2csv
 use Koha::Items;
 use Koha::SimpleMARC qw(read_field);
-use Koha::XSLT_Handler;
+use Koha::XSLT::Base;
 use Koha::CsvProfiles;
 use Koha::AuthorisedValues;
 use Carp;
@@ -82,7 +81,7 @@ Returns an ISO-2709 scalar
 sub marc2marc {
 	my ($marc,$to_flavour,$from_flavour,$encoding) = @_;
 	my $error;
-    if ($to_flavour =~ m/marcstd/) {
+    if ($to_flavour && $to_flavour =~ m/marcstd/) {
         my $marc_record_obj;
         if ($marc =~ /^MARC::Record/) { # it's already a MARC::Record object
             $marc_record_obj = $marc;
@@ -293,17 +292,16 @@ sub marc2dcxml {
             carp "\t". $warn;
         };
     } elsif ( $record =~ /^MARC::Record/ ) { # if OK makes xslt transformation
-        my $xslt_engine = Koha::XSLT_Handler->new;
+        my $xslt_engine = Koha::XSLT::Base->new;
         if ( $format =~ /^(dc|oaidc|srwdc|rdfdc)$/i ) {
             $output = $xslt_engine->transform( $marcxml, $xsl );
         } else {
             croak "The format argument ($format) not accepted.\n" .
                   "Please pass a valid format (oaidc, srwdc, or rdfdc)\n";
         }
-        my $err = $xslt_engine->err; # error number
-        my $errstr = $xslt_engine->errstr; # error message
+        my $err = $xslt_engine->err; # error code
         if ( $err ) {
-            croak "Error when processing $errstr Error number: $err\n";
+            croak "Error $err while processing\n";
         } else {
             return $output;
         }
@@ -378,8 +376,7 @@ sub marc2endnote {
         Year => $marc_rec_obj->publication_date,
         Abstract => $abstract,
     };
-    my $endnote;
-    my $style = new Biblio::EndnoteStyle();
+    my $style = Biblio::EndnoteStyle->new();
     my $template;
     $template.= "DB - DB\n" if C4::Context->preference("LibraryName");
     $template.="T1 - Title\n" if $marc_rec_obj->title();
@@ -419,29 +416,29 @@ sub marc2csv {
     my $configfile = "../tools/csv-profiles/$id.yaml";
     my ($preprocess, $postprocess, $fieldprocessing);
     if (-e $configfile){
-        ($preprocess,$postprocess, $fieldprocessing) = YAML::LoadFile($configfile);
+        ($preprocess,$postprocess, $fieldprocessing) = YAML::XS::LoadFile($configfile);
     }
 
     # Preprocessing
-    eval $preprocess if ($preprocess);
+    eval $preprocess if ($preprocess); ## no critic (StringyEval)
 
     my $firstpass = 1;
     if ( @$itemnumbers ) {
         for my $itemnumber ( @$itemnumbers) {
             my $item = Koha::Items->find( $itemnumber );
             my $biblionumber = $item->biblio->biblionumber;
-            $output .= marcrecord2csv( $biblionumber, $id, $firstpass, $csv, $fieldprocessing, [$itemnumber] );
+            $output .= marcrecord2csv( $biblionumber, $id, $firstpass, $csv, $fieldprocessing, [$itemnumber] ) // '';
             $firstpass = 0;
         }
     } else {
         foreach my $biblio (@$biblios) {
-            $output .= marcrecord2csv( $biblio, $id, $firstpass, $csv, $fieldprocessing );
+            $output .= marcrecord2csv( $biblio, $id, $firstpass, $csv, $fieldprocessing ) // '';
             $firstpass = 0;
         }
     }
 
     # Postprocessing
-    eval $postprocess if ($postprocess);
+    eval $postprocess if ($postprocess); ## no critic (StringyEval)
 
     return $output;
 }
@@ -473,7 +470,10 @@ sub marcrecord2csv {
     # Getting the record
     my $record = GetMarcBiblio({ biblionumber => $biblio });
     return unless $record;
-    C4::Biblio::EmbedItemsInMarcBiblio( $record, $biblio, $itemnumbers );
+    C4::Biblio::EmbedItemsInMarcBiblio({
+        marc_record  => $record,
+        biblionumber => $biblio,
+        item_numbers => $itemnumbers });
     # Getting the framework
     my $frameworkcode = GetFrameworkCode($biblio);
 
@@ -514,7 +514,7 @@ sub marcrecord2csv {
         my @fields;
         while ( $content =~ m|(\d{3})\$?(.)?|g ) {
             my $fieldtag = $1;
-            my $subfieldtag = $2 || undef;
+            my $subfieldtag = $2;
             push @fields, { fieldtag => $fieldtag, subfieldtag => $subfieldtag };
         }
         if ( @result == 2) {
@@ -559,7 +559,7 @@ sub marcrecord2csv {
             } else {
                 # If not, we get the matching tag name from koha
                 my $tag = $tags->[0];
-                if ( $tag->{subfieldtag} ) {
+                if (defined $tag->{subfieldtag} ) {
                     my $query = "SELECT liblibrarian FROM marc_subfield_structure WHERE tagfield=? AND tagsubfield=?";
                     my @results = $dbh->selectrow_array( $query, {}, $tag->{fieldtag}, $tag->{subfieldtag} );
                     push @marcfieldsheaders, $results[0];
@@ -575,7 +575,6 @@ sub marcrecord2csv {
         if ( $content =~ m|\[\%.*\%\]| ) {
             my $tt = Template->new();
             my $template = $content;
-            my $vars;
             # Replace 00X and 0XX with X or XX
             $content =~ s|fields.00(\d)|fields.$1|g;
             $content =~ s|fields.0(\d{2})|fields.$1|g;
@@ -587,7 +586,7 @@ sub marcrecord2csv {
                 my @fields = $record->field( $tag->{fieldtag} );
                 # If it is a subfield
                 my @loop_values;
-                if ( $tag->{subfieldtag} ) {
+                if (defined $tag->{subfieldtag} ) {
                     my $av = Koha::AuthorisedValues->search_by_marc_field({ frameworkcode => $frameworkcode, tagfield => $tag->{fieldtag}, tagsubfield => $tag->{subfieldtag}, });
                     $av = $av->count ? $av->unblessed : [];
                     my $av_description_mapping = { map { ( $_->{authorised_value} => $_->{lib} ) } @$av };
@@ -624,7 +623,7 @@ sub marcrecord2csv {
                         # Field processing
                         my $marcfield = $tag->{fieldtag}; # This line fixes a retrocompatibility concern
                                                           # The "processing" could be based on the $marcfield variable.
-                        eval $fieldprocessing if ($fieldprocessing);
+                        eval $fieldprocessing if ($fieldprocessing); ## no critic (StringyEval)
 
                         push @loop_values, $value;
                     }
@@ -802,7 +801,7 @@ sub marc2bibtex {
     my $additional_fields;
     if ($BibtexExportAdditionalFields) {
         $BibtexExportAdditionalFields = "$BibtexExportAdditionalFields\n\n";
-        $additional_fields = eval { YAML::Load($BibtexExportAdditionalFields); };
+        $additional_fields = eval { YAML::XS::Load(Encode::encode_utf8($BibtexExportAdditionalFields)); };
         if ($@) {
             warn "Unable to parse BibtexExportAdditionalFields : $@";
             $additional_fields = undef;

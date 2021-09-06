@@ -10,15 +10,22 @@
 [% DEFAULT class = '' size = 20 %]
 
 [% IF avs %]
-  <select id="[% name %]" name="[% name %]" class="[% class %]" >
+  [% IF required %]
+      <select id="[% name | html %]" name="[% name | html %]" class="[% class | html %]" required="required">
+  [% ELSE %]
+      <select id="[% name | html %]" name="[% name | html %]" class="[% class | html %]">
+  [% END %]
+  [% IF blank %]
+    <option value="">None</option>
+  [% END %]
   [% FOR av IN avs %]
     [% IF av.authorised_value == default %]
-      <option value="[% av.authorised_value %]" selected="selected">[% av.lib | html_entity %]</option>
+      <option value="[% av.authorised_value | html %]" selected="selected">[% av.lib | html_entity %]</option>
     [% ELSE %]
-      <option value="[% av.authorised_value %]">[% av.lib | html_entity %]</option>
+      <option value="[% av.authorised_value | html %]">[% av.lib | html_entity %]</option>
     [% END %]
   [% END %]
   </select>
 [% ELSE %]
-  <input type="text" id="[% name %]" name="[% name %]" size="[% size %]" value="[% default | html_entity %]" class="[% class %]" />
+  <input type="text" id="[% name | html %]" name="[% name | html %]" size="[% size | html %]" value="[% default | html_entity %]" class="[% class | html %]" />
 [% END %]

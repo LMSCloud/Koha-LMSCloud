@@ -22,21 +22,22 @@ use C4::Auth;
 use C4::Output;
 use Koha::Plugins;
 
-my $query = new CGI;
+my $query = CGI->new;
 
-my $plugins_enabled = C4::Context->preference('UseKohaPlugins') && C4::Context->config("enable_plugins");
+my $plugins_enabled = C4::Context->config("enable_plugins");
+my $mana_url        = C4::Context->config('mana_config');
 
 my ( $template, $loggedinuser, $cookie ) = get_template_and_user(
     {
         template_name   => "admin/admin-home.tt",
         query           => $query,
         type            => "intranet",
-        authnotrequired => 0,
         flagsrequired   => { parameters => '*' },
         debug           => 1,
     }
 );
 
 $template->param( plugins_enabled => $plugins_enabled, );
+$template->param( mana_url        => $mana_url, );
 
 output_html_with_http_headers $query, $cookie, $template->output;

@@ -25,9 +25,10 @@ use C4::Auth;
 use C4::Output;
 
 use Koha::AuthorisedValues;
+use Koha::Biblios;
 use Koha::CsvProfiles;
 
-my $query = new CGI;
+my $query = CGI->new;
 
 my ( $template, $borrowernumber, $cookie ) = get_template_and_user (
     {
@@ -59,13 +60,11 @@ if (C4::Context->preference('TagsEnabled')) {
 foreach my $biblionumber ( @bibs ) {
     $template->param( biblionumber => $biblionumber );
 
-    my $fw = GetFrameworkCode($biblionumber);
-
     my $dat              = &GetBiblioData($biblionumber);
     next unless $dat;
+    my $biblio           = Koha::Biblios->find( $biblionumber );
     my $record           = &GetMarcBiblio({ biblionumber => $biblionumber });
-    $dat->{subtitle}     = GetRecordValue('subtitle', $record, $fw);
-    my $marcnotesarray   = GetMarcNotes( $record, $marcflavour );
+    my $marcnotesarray   = $biblio->get_marc_notes({ marcflavour => $marcflavour });
     my $marcauthorsarray = GetMarcAuthors( $record, $marcflavour );
     my $marcsubjctsarray = GetMarcSubjects( $record, $marcflavour );
     my $marcseriesarray  = GetMarcSeries  ($record,$marcflavour);

@@ -29,17 +29,29 @@ __PACKAGE__->table("patron_lists");
   is_auto_increment: 1
   is_nullable: 0
 
+unique identifier
+
 =head2 name
 
   data_type: 'varchar'
   is_nullable: 0
   size: 255
 
+the list's name
+
 =head2 owner
 
   data_type: 'integer'
   is_foreign_key: 1
   is_nullable: 0
+
+borrowernumber of the list creator
+
+=head2 shared
+
+  data_type: 'tinyint'
+  default_value: 0
+  is_nullable: 1
 
 =cut
 
@@ -50,6 +62,8 @@ __PACKAGE__->add_columns(
   { data_type => "varchar", is_nullable => 0, size => 255 },
   "owner",
   { data_type => "integer", is_foreign_key => 1, is_nullable => 0 },
+  "shared",
+  { data_type => "tinyint", default_value => 0, is_nullable => 1 },
 );
 
 =head1 PRIMARY KEY
@@ -97,8 +111,8 @@ __PACKAGE__->has_many(
 );
 
 
-# Created by DBIx::Class::Schema::Loader v0.07025 @ 2013-10-14 21:34:14
-# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:iWNlXRM+XvkJMlnu4F0xKw
+# Created by DBIx::Class::Schema::Loader v0.07049 @ 2021-01-21 13:39:29
+# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:+gAlf5GQ7YSgAtFIXgqVWw
 
 
 # You can replace this text with custom content, and it will be preserved on regeneration

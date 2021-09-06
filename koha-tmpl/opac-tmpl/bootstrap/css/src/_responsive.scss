@@ -1,0 +1,573 @@
+@media only screen and ( min-width: 0 ) and ( max-width: 304px ) {
+    /* Screens bewteen 0 and 304 pixels wide */
+    input,
+    select,
+    textarea {
+        max-width: 11em;
+        width: auto;
+    }
+}
+
+@media only screen and ( min-width: 0 ) and ( max-width: 440px ){
+    /* Screens bewteen 0 and 390 pixels wide */
+    .ui-tabs .ui-tabs-nav li a,
+    .statictabs li a {
+        padding: .1em .5em;
+    }
+
+    .input-fluid {
+        width: 90%;
+    }
+
+}
+
+@media only screen and ( min-width: 342px ) and ( max-width: 479px ) {
+    /* Screens bewteen 342 and 479 pixels wide */
+    .input-fluid {
+        width: 75%;
+    }
+
+    .searchsuggestion {
+        display: block;
+    }
+}
+/* Override Bootstrap Responsive CSS fixed navbar */
+@media ( max-width: 979px ) {
+    .navbar-fixed-top,
+    .navbar-fixed-bottom {
+        margin-left: 0;
+        margin-right: 0;
+        position: fixed;
+    }
+}
+
+@media only screen and ( max-width: 576px ) {
+    #advsearch_limits,
+    #subtypes,
+    #booleansearch {
+        select {
+            width: 100%;
+        }
+    }
+
+    #booleansearch,
+    #opac-main-search {
+        input,
+        select {
+            margin-bottom: 5px;
+        }
+    }
+
+    #searchsubmit {
+        width: 100%;
+    }
+
+    #toolbar {
+        border-bottom: 1px solid #E8E8E8;
+    }
+
+    .search_operator {
+        text-align: center;
+    }
+
+    .ui-tabs .ui-tabs-nav {
+        padding: 0;
+    }
+
+    .ui-tabs .ui-tabs-nav li,
+    .ui-tabs .ui-tabs-nav li a,
+    .ui-tabs .ui-tabs-nav .ui-tabs-anchor {
+        display: block;
+        float: none;
+        margin: 0;
+    }
+}
+
+@media only screen and ( max-width: 608px ) {
+    /* Screens below 608 pixels wide */
+    fieldset {
+        &.rows {
+            label {
+                display: block;
+                float: none;
+                text-align: left;
+            }
+
+            li {
+                padding-bottom: .5em;
+            }
+
+            ol {
+                margin-left: 0;
+            }
+
+            .hint {
+                margin-left: 0;
+            }
+        }
+    }
+
+    body {
+        padding: 0;
+    }
+
+    .coverimages {
+        float: none;
+        margin-bottom: .5em;
+    }
+
+    .tdlabel {
+        display: inline;
+    }
+
+    .table td.bibliocol {
+        padding-left: 1.3em;
+    }
+
+    .actions {
+        display: block;
+
+        &:first-child {
+            .btn-link {
+                padding: 0.375rem 0.75rem;
+            }
+        }
+
+        a {
+            @include border-radius-all( 4px );
+            background-color: #F2F2EF;
+            border: 1px solid #DDD;
+            display: block;
+            font-size: 120%;
+            font-weight: bold;
+            margin: 2px 0;
+            text-align: left;
+        }
+
+        .label {
+            display: block;
+            font-weight: bold;
+        }
+    }
+
+    #opac-main-search {
+        .input-append {
+            margin: 0;
+            width: 100%;
+        }
+
+        .librarypulldown .transl1 {
+            width: 94.5%;
+        }
+    }
+
+    .toolbar {
+        .resort {
+            @include border-radius-all( 5px );
+            font-size: 14px;
+            max-width: 100%;
+            padding: 4px 6px;
+        }
+
+        .pagination {
+            li {
+                a {
+                    font-size: 105%;
+                    padding: .3em .7em;
+                }
+            }
+        }
+    }
+
+    .mastheadsearch {
+        @include border-radius-all( 0 );
+        margin: 0;
+
+    }
+
+    .main {
+        @include border-radius-all( 0 );
+        margin: 0;
+        padding: 0;
+    }
+
+    .breadcrumb {
+        margin: 10px 0;
+    }
+
+    #moresearches {
+        margin: .5em 0;
+        text-align: center;
+    }
+
+    #searchsubmit {
+        font-weight: bold;
+    }
+
+    .ui-tabs .ui-tabs-panel {
+        padding: .5em;
+    }
+
+    .ui-tabs-panel,
+    .tabs-container,
+    #topissues,
+    #usertags,
+    #usersuggestions {
+        .item-thumbnail {
+            margin: .5em 0 0 .5em;
+        }
+
+        .table-bordered {
+            border: 0;
+        }
+
+        .table {
+            width: 100%;
+
+            th,
+            thead {
+                display: none;
+            }
+
+            td {
+                border: 0;
+                display: block;
+                padding: .4em .3em;
+            }
+
+            p {
+                margin-bottom: 2px;
+            }
+        }
+
+        tr {
+            display: block;
+
+            td:first-child {
+                border-top: 0;
+            }
+
+            td:last-child {
+                border-bottom: 0;
+            }
+        }
+    }
+
+    .cart-actions {
+        display: flex;
+
+        .btn {
+            flex-grow: 1;
+            padding: 0.375rem 0.75rem
+        }
+    }
+
+    .no-image {
+        display: none;
+    }
+
+    .search-term-input {
+        margin-bottom: 5px;
+    }
+
+    #checkouts_filter {
+        display: block;
+    }
+}
+
+@media only screen and ( max-width: 700px ) {
+    /* Screens below 700 pixels wide */
+    #opac-main-search {
+        label {
+            display: none;
+        }
+    }
+
+    #logo {
+        background: transparent url( "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 13 13'><g><g><path d='M2.2 6.6V13h2.83V8.9H8.2V13h2.83V6.6z'/><path d='M13.23 6.64H0L6.6 0z'/></g></g></svg>" ) no-repeat;
+        margin: 14px;
+        width: 14px;
+
+        a {
+            padding: 14px 0 0;
+            width: 14px;
+        }
+    }
+
+    #user-menu-trigger {
+        display: inline;
+        margin-right: 12px;
+    }
+
+    #members {
+
+    }
+}
+
+@media only screen and ( min-width: 480px ) and ( max-width: 608px ) {
+    /* Screens between 480 and 608 pixels wide */
+    .input-fluid {
+        width: 75%;
+    }
+}
+
+@media only screen and ( min-width: 608px ) {
+
+    .advanced-search-terms {
+        .search-term-row {
+            display: grid;
+            grid-template-columns: 10% 30% 60%;
+            gap: 5px 5px;
+            margin: 5px 0;
+        }
+
+        &.extended {
+            .search-term-row {
+                grid-template-columns: 10% 30% 50% 10%;
+                margin: 5px 0;
+            }
+        }
+    }
+
+    #views {
+        border-bottom: 1px solid #D6D6D6;
+        padding: 0;
+        white-space: nowrap;
+    }
+
+    .view {
+        border-bottom-width: 0;
+        border-radius: 0;
+        border-right-width: 0;
+        border-top-width: 0;
+    }
+
+    .current-view {
+        border: 0;
+        box-shadow: none;
+    }
+}
+
+@media only screen and ( min-width: 608px ) and ( max-width: 767px ) {
+    /* Screens between 608 and 767 pixels wide */
+
+    .breadcrumb {
+        margin: 10px 0;
+    }
+
+    .row-fluid input.span6 {
+        width: 48.9362%;
+    }
+
+    #wrapper {
+        padding: 0 15px;
+    }
+}
+
+@media only screen and ( max-width: 767px ) {
+    /* Screens below 767 pixels wide */
+    a {
+        &.title {
+            font-size: 120%;
+        }
+    }
+
+    #userresults {
+        margin: 0 -20px;
+    }
+
+    .breadcrumb,
+    .menu-collapse {
+        display: none;
+    }
+
+    #search-facets {
+        margin-bottom: .5em;
+
+        h4 {
+            display: block;
+            margin: 0;
+            padding: 0;
+
+            a {
+                border-bottom: 0;
+                font-weight: normal;
+                padding: .7em .2em;
+            }
+        }
+
+        li {
+            padding: .4em;
+        }
+
+        h5 {
+            margin: .2em;
+        }
+
+        ul {
+            padding: 0;
+        }
+    }
+
+    #menu h4 a.menu-open,
+    #search-facets h4 a.menu-open {
+        border-bottom: 1px solid #D8D8D8;
+    }
+
+    #wrapper {
+        padding: 0;
+    }
+
+    .table_controls {
+        display: block;
+
+        label {
+            display: block;
+        }
+    }
+}
+
+@media only screen and ( max-width: 800px ) {
+    /* Screens below 800 pixels wide */
+    .cartlabel,
+    .listslabel,
+    .langlabel,
+    .userlabel {
+        display: none;
+    }
+
+    .navbar {
+        .divider-vertical {
+            margin: 0 2px;
+        }
+    }
+}
+
+@media only screen and ( min-width: 992px ) {
+    /* Screens above 768 pixels wide */
+    #menu {
+        border-right: 1px solid #d8d8d8;
+
+        ul {
+            padding: 1em 0;
+        }
+
+        li {
+            &.active {
+                a {
+                    border-right: 0;
+                    border-top: 1px solid #d8d8d8;
+                }
+            }
+            a {
+                border-bottom: 1px solid #999;
+                margin: .4em 0;
+                margin-right: -1px;
+            }
+        }
+    }
+
+    #didyoumean {
+        margin: .5em 0;
+    }
+
+    .main {
+        margin: .5em 15px;
+    }
+
+    .searchsuggestion {
+        white-space: nowrap;
+    }
+
+    .pagination {
+        li {
+            &.page-num {
+                display: inline;
+            }
+        }
+    }
+
+    a {
+        &.menu-collapse-toggle {
+            &:link,
+            &:visited,
+            &:hover,
+            &:active {
+                color: #727272;
+                cursor: default;
+
+                &::before {
+                    display: none;
+                }
+            }
+        }
+    }
+}
+
+@media only screen and ( min-width: 984px ) {
+    /* Screens above 969 pixels wide */
+    .pagination {
+        li {
+            &.page-first,
+            &.page-last {
+                display: inline;
+            }
+
+            &.page-first {
+                a {
+                    border-left: 1px solid #DDD;
+                }
+            }
+
+            &.page-prev,
+            &.page-next {
+                a {
+                    border-left: 0;
+                    border-radius: 0;
+                }
+            }
+        }
+    }
+}
+
+@media only screen and ( max-width: 1040px ) {
+    #a_listResults,
+    #close_pagination {
+        padding: 5px;
+    }
+
+    #booleansearch {
+        width: unset;
+    }
+
+    .pg_menu {
+        li {
+            a {
+                display: block;
+                float: none;
+                text-align: left;
+            }
+
+            &.back_results {
+                a {
+                    border: 0;
+                    border-bottom: 1px solid #DDD;
+                    border-top: 1px solid #DDD;
+                }
+            }
+        }
+    }
+
+    #ulactioncontainer {
+        min-width: 0;
+    }
+}
+
+@media only screen and ( max-width: 1100px ) {
+    .cartlabel,
+    .listslabel,
+    .langlabel,
+    .userlabel {
+        display: none;
+    }
+}

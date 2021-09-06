@@ -27,11 +27,13 @@ use C4::Auth;
 use C4::Output;
 use C4::AuthoritiesMarc;
 use C4::Biblio;
+use Koha::Virtualshelves;
 
 use Koha::Authorities;
 use Koha::Biblios;
+use Koha::Items;
 
-my $input = new CGI;
+my $input = CGI->new;
 my $op = $input->param('op') // q|form|;
 my $recordtype = $input->param('recordtype') // 'biblio';
 
@@ -39,9 +41,10 @@ my ($template, $loggedinuser, $cookie) = get_template_and_user({
         template_name => 'tools/batch_delete_records.tt',
         query => $input,
         type => "intranet",
-        authnotrequired => 0,
         flagsrequired => { tools => 'records_batchdel' },
 });
+
+$template->param( lists => scalar Koha::Virtualshelves->search([{ category => 1, owner => $loggedinuser }, { category => 2 }]) );
 
 my @records;
 my @messages;
@@ -63,6 +66,13 @@ if ( $op eq 'form' ) {
             $content =~ s/[\r\n]*$//;
             push @record_ids, $content if $content;
         }
+    } elsif ( my $shelf_number = $input->param('shelf_number') ) {
+        my $shelf = Koha::Virtualshelves->find($shelf_number);
+        my $contents = $shelf->get_contents;
+        while ( my $content = $contents->next ) {
+            my $biblionumber = $content->biblionumber;
+            push @record_ids, $biblionumber;
+        }
     } else {
         # The user enters manually the list of id
         push @record_ids, split( /\s\n/, $input->param('recordnumber_list') );
@@ -83,8 +93,7 @@ if ( $op eq 'form' ) {
             my $holds_count = $biblio->holds->count;
             $biblio = $biblio->unblessed;
             my $record = &GetMarcBiblio({ biblionumber => $record_id });
-            $biblio->{subtitle} = GetRecordValue( 'subtitle', $record, GetFrameworkCode( $record_id ) );
-            $biblio->{itemnumbers} = C4::Items::GetItemnumbersForBiblio( $record_id );
+            $biblio->{itemnumbers} = [Koha::Items->search({ biblionumber => $record_id })->get_column('itemnumber')];
             $biblio->{holds_count} = $holds_count;
             $biblio->{issues_count} = C4::Biblio::CountItemsIssued( $record_id );
             push @records, $biblio;
@@ -165,15 +174,15 @@ if ( $op eq 'form' ) {
             }
 
             # Delete items
-            my @itemnumbers = @{ C4::Items::GetItemnumbersForBiblio( $biblionumber ) };
-            ITEMNUMBER: for my $itemnumber ( @itemnumbers ) {
-                my $error = eval { C4::Items::DelItemCheck( $biblionumber, $itemnumber ) };
-                if ( $error != 1 or $@ ) {
+            my $items = Koha::Items->search({ biblionumber => $biblionumber });
+            while ( my $item = $items->next ) {
+                my $deleted_item = eval { $item->safe_delete };
+                if ( !ref($deleted_item) or $@ ) {
                     push @messages, {
                         type => 'error',
                         code => 'item_not_deleted',
                         biblionumber => $biblionumber,
-                        itemnumber => $itemnumber,
+                        itemnumber => $item->itemnumber,
                         error => ($@ ? $@ : $error),
                     };
                     $schema->storage->txn_rollback;

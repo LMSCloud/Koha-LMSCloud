@@ -1,6 +1,6 @@
 use Modern::Perl;
 
-use Test::More tests => 33;
+use Test::More tests => 35;
 
 use Test::MockModule;
 use t::lib::Mocks;
@@ -37,6 +37,7 @@ is( Koha::Number::Price->new(1234567890)->format( $format ),
     '1,234,567,890.00', 'US: format 1234567890' );
 
 is( Koha::Number::Price->new(100000000000000)->format, '100000000000000', 'Numbers too big are not formatted');
+is( Koha::Number::Price->new(-100000000000000)->format, '-100000000000000', 'Negative numbers too big are not formatted');
 
 is( Koha::Number::Price->new->format( { %$format, with_symbol => 1 } ),
     '$0.00', 'US: format 0 with symbol' );
@@ -134,3 +135,17 @@ is( Koha::Number::Price->new->unformat,    '0', 'CHF: unformat 0' );
 is( Koha::Number::Price->new(3)->unformat, '3', 'CHF: unformat 3' );
 is( Koha::Number::Price->new(1234567890)->unformat,
     '1234567890', 'CHF: unformat 1234567890' );
+
+subtest 'Changes for format' => sub { # See also bug 18736
+    plan tests => 3;
+
+    t::lib::Mocks::mock_preference( 'CurrencyFormat', 'US' );
+
+    is( Koha::Number::Price->new(-2.125)->format, "-2.13", "Check negative value" );
+    my $large_number = 2**53; # MAX_INT
+    my $price = Koha::Number::Price->new($large_number);
+    is( $price->format, $price->value, 'Format '.$price->value.' returns value' );
+    like( Koha::Number::Price->new( 2**53/100 )->format,
+        qr/\d\.\d{2}$/, 'This price still seems to be formatted' );
+        # Note that the comparison with MAX_INT is already subject to rounding
+};

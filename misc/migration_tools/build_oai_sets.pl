@@ -42,6 +42,7 @@ use MARC::File::XML;
 use List::MoreUtils qw/uniq/;
 use Getopt::Std;
 
+use Koha::Script;
 use C4::Context;
 use C4::Charset qw/StripNonXmlChars/;
 use C4::Biblio;
@@ -73,7 +74,12 @@ my $query = qq{
     SELECT biblionumber, metadata
     FROM biblio_metadata
     WHERE format='marcxml'
-    AND marcflavour = ?
+    AND  `schema` = ?
+    UNION
+    SELECT biblionumber, metadata
+    FROM deletedbiblio_metadata
+    WHERE format='marcxml'
+    AND  `schema` = ?
 };
 if($length) {
     $query .= "LIMIT $length";
@@ -82,7 +88,7 @@ if($length) {
     }
 }
 my $sth = $dbh->prepare($query);
-$sth->execute( C4::Context->preference('marcflavour') );
+$sth->execute( C4::Context->preference('marcflavour'), C4::Context->preference('marcflavour'));
 my $results = $sth->fetchall_arrayref({});
 print "done.\n" if $verbose;
 
@@ -120,14 +126,16 @@ foreach my $res (@$results) {
     MARC::File::XML->default_record_format(C4::Context->preference('marcflavour'));
     my $record;
     eval {
-        $record = MARC::Record::new_from_xml($marcxml, "utf8", C4::Context->preference('marcflavour'));
+        $record = MARC::Record::new_from_xml($marcxml, "UTF-8", C4::Context->preference('marcflavour'));
     };
     if($@) {
         warn "(biblio $biblionumber) Error while creating record from marcxml: $@";
         next;
     }
     if($embed_items) {
-        C4::Biblio::EmbedItemsInMarcBiblio($record, $biblionumber);
+        C4::Biblio::EmbedItemsInMarcBiblio({
+            marc_record  => $record,
+            biblionumber => $biblionumber });
     }
 
     my @biblio_sets = CalcOAISetsBiblio($record, $mappings);

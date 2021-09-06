@@ -20,16 +20,24 @@ use Modern::Perl;
 use Template::Plugin;
 use base qw( Template::Plugin );
 
+use List::Util qw(any);
 use Koha::Patron::Categories;
 
 sub all {
-    return Koha::Patron::Categories->search_limited;
+    my ( $self, $params ) = @_;
+    return Koha::Patron::Categories->search_with_library_limits($params, { order_by => ['description'] });
 }
 
 sub GetName {
     my ( $self, $categorycode ) = @_;
 
     return Koha::Patron::Categories->find( $categorycode )->description;
+}
+
+sub can_any_reset_password {
+    return ( any { $_->effective_reset_password } @{ Koha::Patron::Categories->search->as_list } )
+        ? 1
+        : 0;
 }
 
 1;
@@ -55,6 +63,11 @@ the following TT code: [% Categories.all() %]
 
 In a template, you can get the name of a patron category using
 [% Categories.GetName( categorycode ) %].
+
+=head2 can_any_reset_password
+
+Returns I<true> is any patron category has the I<effective_reset_password> evaluate to I<true>.
+Returns I<false> otherwise.
 
 =head1 AUTHOR
 

@@ -1,24 +1,25 @@
+[% USE raw %]
 [% USE KohaDates %]
 [% USE To %]
 {
-    "sEcho": [% sEcho %],
-    "iTotalRecords": [% iTotalRecords %],
-    "iTotalDisplayRecords": [% iTotalDisplayRecords %],
+    "sEcho": [% sEcho | html %],
+    "iTotalRecords": [% iTotalRecords | html %],
+    "iTotalDisplayRecords": [% iTotalDisplayRecords | html %],
     "aaData": [
         [% FOREACH data IN aaData %]
             {
                 "dt_type":
-                    "[% data.type %]",
+                    "[% data.type | html %]",
                 "dt_shelfname":
-                    "<a href='/cgi-bin/koha/virtualshelves/shelves.pl?op=view&shelfnumber=[% data.shelfnumber %]'>[% data.shelfname | html%]</a>",
+                    "<a href='/cgi-bin/koha/virtualshelves/shelves.pl?op=view&shelfnumber=[% data.shelfnumber | html %]'>[% data.shelfname | html | $To %]</a>",
                 "dt_count":
-                    "[% data.count %] item(s)",
+                    "[% data.count | html %] item(s)",
                 "dt_is_shared":
                     "[% IF data.type == 2 %]Public[% ELSIF data.is_shared %]Shared[% ELSE %]Private[% END %]",
                 "dt_owner":
-                    "<a href='/cgi-bin/koha/members/moremember.pl?borrowernumber=[% data.owner %]'>[% data.firstname %] [% data.surname %]</a>",
+                    "<a href='/cgi-bin/koha/members/moremember.pl?borrowernumber=[% data.owner | html %]'>[% data.firstname | html | $To %] [% data.surname | html | $To %]</a>",
                 "dt_sortby":
-                    [% IF data.sortby == "author" %]"Author"[% ELSIF data.sortby == "copyrightdate" %]"Year"[% ELSIF data.sortby == "itemcallnumber" %]"Call number"[% ELSE %]"Title"[% END %],
+                    [% IF data.sortby == "author" %]"Author"[% ELSIF data.sortby == "copyrightdate" %]"Year"[% ELSIF data.sortby == "itemcallnumber" %]"Call number"[% ELSIF data.sortby == "dateadded" %]"Date added"[% ELSE %]"Title"[% END %],
                 "dt_created_on":
                     "[% data.created_on | $KohaDates %]",
                 "dt_modification_time":
@@ -33,6 +34,8 @@
 [% BLOCK action_form -%]
 [%~ SET action_block = '' ~%]
 [%~ IF can_manage_shelf OR can_delete_shelf ~%]
+    [%~ shelfnumber = shelfnumber | html ~%]
+    [%~ type        = type | html ~%]
     [%~ IF can_manage_shelf ~%]
         [%~ action_block =                '<form action="shelves.pl" method="get">' ~%]
         [%~ action_block = action_block _ '<input type="hidden" name="shelfnumber" value="' _ shelfnumber  _ '" />' ~%]
@@ -44,7 +47,6 @@
     [%~ END ~%]
     [%~ IF can_manage_shelf OR can_delete_shelf ~%]
         [%~ action_block = action_block _ ' <form action="shelves.pl" method="post">' ~%]
-        [%~ action_block = action_block _ '<input type="hidden" name="shelfoff" value="' _ shelfoff _ '" />' ~%]
         [%~ action_block = action_block _ '<input type="hidden" name="shelves" value="1" />' ~%]
         [%~ action_block = action_block _ '<input type="hidden" name="op" value="delete" />' ~%]
         [%~ action_block = action_block _ '<input type="hidden" name="shelfnumber" value="' _ shelfnumber  _ '" />' ~%]
@@ -56,5 +58,5 @@
 [%~ ELSE ~%]
     [%~ SET action_block = 'None' ~%]
 [%~ END ~%]
-[%~ To.json(action_block) ~%]
+[%~ To.json(action_block) | $raw ~%]
 [%~ END ~%]

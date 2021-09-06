@@ -19,17 +19,17 @@ use Modern::Perl;
 
 use utf8;
 
-use Test::More tests => 6;
+use Test::More tests => 7;
 use Test::Exception;
 
 use t::lib::TestBuilder;
+use t::lib::Mocks;
 
 use Digest::MD5 qw( md5_base64 md5_hex );
 use Try::Tiny;
 
 use C4::Context;
 use C4::Members;
-use C4::Members::Attributes qw( GetBorrowerAttributes );
 use Koha::Patrons;
 use Koha::Patron::Attribute;
 
@@ -52,6 +52,7 @@ subtest 'new() tests' => sub {
     # Create new pending modification
     Koha::Patron::Modification->new(
         {   verification_token => '1234567890',
+            changed_fields     => 'surname,firstname',
             surname            => 'Hall',
             firstname          => 'Kyle'
         }
@@ -68,6 +69,7 @@ subtest 'new() tests' => sub {
     throws_ok {
         Koha::Patron::Modification->new(
             {   verification_token => '1234567890',
+                changed_fields     => 'surname,firstname',
                 surname            => 'Hall',
                 firstname          => 'Daria'
             }
@@ -99,6 +101,7 @@ subtest 'store( extended_attributes ) tests' => sub {
 
     Koha::Patron::Modification->new(
         {   verification_token  => $verification_token,
+            changed_fields      => 'borrowernumber,surname,extended_attributes',
             borrowernumber      => $patron,
             surname             => 'Hall',
             extended_attributes => $valid_json_text
@@ -119,6 +122,7 @@ subtest 'store( extended_attributes ) tests' => sub {
     throws_ok {
         Koha::Patron::Modification->new(
             {   verification_token  => $verification_token,
+                changed_fields      => 'borrowernumber,surname,extended_attributes',
                 borrowernumber      => $patron,
                 surname             => 'Hall',
                 extended_attributes => $invalid_json_text
@@ -146,15 +150,16 @@ subtest 'approve tests' => sub {
         { source => 'BorrowerAttributeType', value => { code => 'CODE_1' } }
     );
     $builder->build(
-        { source => 'BorrowerAttributeType', value => { code => 'CODE_2' } }
+        { source => 'BorrowerAttributeType', value => { code => 'CODE_2', repeatable => 1 } }
     );
     my $verification_token = md5_hex( time().{}.rand().{}.$$ );
     my $valid_json_text
         = '[{"code":"CODE_1","value":"VALUE_1"},{"code":"CODE_2","value":0}]';
     my $patron_modification = Koha::Patron::Modification->new(
-        {   borrowernumber      => $patron_hashref->{borrowernumber},
+        {   verification_token  => $verification_token,
+            changed_fields      => 'borrowernumber,firstname,extended_attributes',
+            borrowernumber      => $patron_hashref->{borrowernumber},
             firstname           => 'Kyle',
-            verification_token  => $verification_token,
             extended_attributes => $valid_json_text
         }
     )->store();
@@ -169,22 +174,25 @@ subtest 'approve tests' => sub {
     );
     is( $patron->firstname, 'Kyle',
         'Patron modification set the right firstname' );
-    my @patron_attributes = GetBorrowerAttributes( $patron->borrowernumber );
-    is( $patron_attributes[0][0]->{code},
+    my $patron_attributes = $patron->extended_attributes;
+    my $attribute_1 = $patron_attributes->next;
+    is( $attribute_1->code,
         'CODE_1', 'Patron modification correctly saved attribute code' );
-    is( $patron_attributes[0][0]->{value},
+    is( $attribute_1->attribute,
         'VALUE_1', 'Patron modification correctly saved attribute value' );
-    is( $patron_attributes[0][1]->{code},
+    my $attribute_2 = $patron_attributes->next;
+    is( $attribute_2->code,
         'CODE_2', 'Patron modification correctly saved attribute code' );
-    is( $patron_attributes[0][1]->{value},
+    is( $attribute_2->attribute,
         0, 'Patron modification correctly saved attribute with value 0, not confused with delete' );
 
     # Create a new Koha::Patron::Modification, skip extended_attributes to
     # bypass checks
     $patron_modification = Koha::Patron::Modification->new(
-        {   borrowernumber     => $patron_hashref->{borrowernumber},
-            firstname          => 'Kylie',
-            verification_token => $verification_token
+        {   verification_token => $verification_token,
+            changed_fields     => 'borrowernumber,firstname',
+            borrowernumber     => $patron_hashref->{borrowernumber},
+            firstname          => 'Kylie'
         }
     )->store();
 
@@ -204,14 +212,15 @@ subtest 'approve tests' => sub {
     $verification_token = md5_hex( time() . {} . rand() . {} . $$ );
 
     $patron_modification = Koha::Patron::Modification->new(
-        {   borrowernumber      => $patron->borrowernumber,
-            extended_attributes => $bigger_json,
-            verification_token  => $verification_token
+        {   verification_token  => $verification_token,
+            changed_fields      => 'borrowernumber,extended_attributes',
+            borrowernumber      => $patron->borrowernumber,
+            extended_attributes => $bigger_json
         }
     )->store();
     ok( $patron_modification->approve,
         'Patron modification correctly approved' );
-    @patron_attributes
+    my @patron_attributes
         = map { $_->unblessed }
         Koha::Patron::Attributes->search(
         { borrowernumber => $patron->borrowernumber } );
@@ -224,25 +233,26 @@ subtest 'approve tests' => sub {
     is( $patron_attributes[1]->{code},
         'CODE_2', 'Attribute updated correctly (code)' );
     is( $patron_attributes[1]->{attribute},
-        'Tomasito', 'Attribute updated correctly (attribute)' );
+        'None', 'Attribute updated correctly (attribute)' );
 
     is( $patron_attributes[2]->{code},
         'CODE_2', 'Attribute updated correctly (code)' );
     is( $patron_attributes[2]->{attribute},
-        'None', 'Attribute updated correctly (attribute)' );
+        'Tomasito', 'Attribute updated correctly (attribute)' );
 
     my $empty_code_json = '[{"code":"CODE_2","value":""}]';
     $verification_token = md5_hex( time() . {} . rand() . {} . $$ );
 
     $patron_modification = Koha::Patron::Modification->new(
-        {   borrowernumber      => $patron->borrowernumber,
-            extended_attributes => $empty_code_json,
-            verification_token  => $verification_token
+        {   verification_token  => $verification_token,
+            changed_fields      => 'borrowernumber,extended_attributes',
+            borrowernumber      => $patron->borrowernumber,
+            extended_attributes => $empty_code_json
         }
     )->store();
     ok( $patron_modification->approve,
         'Patron modification correctly approved' );
-    @patron_attributes
+    $patron_attributes
         = map { $_->unblessed }
         Koha::Patron::Attributes->search(
         { borrowernumber => $patron->borrowernumber } );
@@ -290,10 +300,11 @@ subtest 'pending_count() and pending() tests' => sub {
     Koha::Patron::Attribute->new({ borrowernumber => $patron_2->borrowernumber, code => 'CODE_2', attribute => 'bye' } )->store();
 
     my $modification_1 = Koha::Patron::Modification->new(
-        {   borrowernumber     => $patron_1->borrowernumber,
+        {   verification_token => $verification_token_1,
+            changed_fields     => 'borrowernumber,surname,firstname,extended_attributes',
+            borrowernumber     => $patron_1->borrowernumber,
             surname            => 'Hall',
             firstname          => 'Kyle',
-            verification_token => $verification_token_1,
             extended_attributes => '[{"code":"CODE_1","value":""}]'
         }
     )->store();
@@ -302,19 +313,21 @@ subtest 'pending_count() and pending() tests' => sub {
         1, 'pending_count() correctly returns 1' );
 
     my $modification_2 = Koha::Patron::Modification->new(
-        {   borrowernumber     => $patron_2->borrowernumber,
+        {   verification_token => $verification_token_2,
+            changed_fields     => 'borrowernumber,surname,firstname,extended_attributes',
+            borrowernumber     => $patron_2->borrowernumber,
             surname            => 'Smith',
             firstname          => 'Sandy',
-            verification_token => $verification_token_2,
             extended_attributes => '[{"code":"CODE_2","value":"año"},{"code":"CODE_2","value":"ciao"}]'
         }
     )->store();
 
     my $modification_3 = Koha::Patron::Modification->new(
-        {   borrowernumber     => $patron_3->borrowernumber,
+        {   verification_token => $verification_token_3,
+            changed_fields     => 'borrowernumber,surname,firstname',
+            borrowernumber     => $patron_3->borrowernumber,
             surname            => 'Smithy',
-            firstname          => 'Sandy',
-            verification_token => $verification_token_3
+            firstname          => 'Sandy'
         }
     )->store();
 
@@ -347,8 +360,7 @@ subtest 'pending_count() and pending() tests' => sub {
     is( $p2_pm_attribute_2->attribute, 'ciao', 'patron modification has the right attribute change' );
 
 
-    C4::Context->_new_userenv('xxx');
-    set_logged_in_user( $patron_1 );
+    t::lib::Mocks::mock_userenv({ patron => $patron_1 });
     is( Koha::Patron::Modifications->pending_count($library_1),
         1, 'pending_count() correctly returns 1 if filtered by library' );
 
@@ -373,13 +385,69 @@ subtest 'pending_count() and pending() tests' => sub {
     $schema->storage->txn_rollback;
 };
 
-sub set_logged_in_user {
-    my ($patron) = @_;
-    C4::Context->set_userenv(
-        $patron->borrowernumber, $patron->userid,
-        $patron->cardnumber,     'firstname',
-        'surname',               $patron->library->branchcode,
-        'Midway Public Library', $patron->flags,
-        '',                      ''
-    );
-}
+subtest 'dateofbirth tests' => sub {
+    plan tests => 7;
+
+    $schema->storage->txn_begin;
+
+    # Cleaning the field
+    my $patron = $builder->build_object( { class => 'Koha::Patrons', value => { dateofbirth => '1980-01-01', surname => 'a_surname' } } );
+    my $patron_modification = Koha::Patron::Modification->new( {
+            changed_fields => 'borrowernumber,dateofbirth',
+            borrowernumber => $patron->borrowernumber,
+            dateofbirth => undef
+    })->store;
+    $patron_modification->approve;
+
+    $patron->discard_changes;
+    is( $patron->dateofbirth, undef, 'dateofbirth must a been set to NULL if required' );
+
+    # FIXME ->approve must have been removed it, but it did not. There may be an hidden bug here.
+    Koha::Patron::Modifications->search({ borrowernumber => $patron->borrowernumber })->delete;
+
+    # Adding a dateofbirth
+    $patron_modification = Koha::Patron::Modification->new( {
+            changed_fields => 'borrowernumber,dateofbirth',
+            borrowernumber => $patron->borrowernumber,
+            dateofbirth => '1980-02-02'
+    })->store;
+    $patron_modification->approve;
+
+    $patron->discard_changes;
+    is( $patron->dateofbirth, '1980-02-02', 'dateofbirth must a been set' );
+    is( $patron->surname, 'a_surname', 'surname must not be updated' );
+
+    # FIXME ->approve must have been removed it, but it did not. There may be an hidden bug here.
+    Koha::Patron::Modifications->search({ borrowernumber => $patron->borrowernumber })->delete;
+
+    # Modifying a dateofbirth
+    $patron_modification = Koha::Patron::Modification->new( {
+            changed_fields => 'borrowernumber,dateofbirth',
+            borrowernumber => $patron->borrowernumber,
+            dateofbirth => '1980-03-03',
+            surname => undef
+    })->store;
+    $patron_modification->approve;
+
+    $patron->discard_changes;
+    is( $patron->dateofbirth, '1980-03-03', 'dateofbirth must a been updated' );
+    is( $patron->surname, 'a_surname', 'surname must not be updated' );
+
+    # FIXME ->approve must have been removed it, but it did not. There may be an hidden bug here.
+    Koha::Patron::Modifications->search({ borrowernumber => $patron->borrowernumber })->delete;
+
+    # Modifying something else
+    $patron_modification = Koha::Patron::Modification->new( {
+            changed_fields => 'borrowernumber,surname',
+            borrowernumber => $patron->borrowernumber,
+            surname => 'another_surname',
+            dateofbirth => undef
+    })->store;
+    $patron_modification->approve;
+
+    $patron->discard_changes;
+    is( $patron->surname, 'another_surname', 'surname must be updated' );
+    is( $patron->dateofbirth, '1980-03-03', 'dateofbirth should not have been updated if not needed' );
+
+    $schema->storage->txn_rollback;
+};

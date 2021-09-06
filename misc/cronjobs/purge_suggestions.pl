@@ -28,6 +28,8 @@ BEGIN {
 
 use Getopt::Long;
 use Pod::Usage;
+
+use Koha::Script -cron;
 use C4::Suggestions;
 use C4::Log;
 use C4::Context;
@@ -63,7 +65,7 @@ if( !$confirm || $help || !defined($days) ) {
     print "No confirm parameter passed!\n\n" if !$confirm && !$help;
     print $usage;
 } elsif( $days and $days > 0 ) {
-    cronlogaction();
+    cronlogaction( " ( days: $days )");
     DelSuggestionsOlderThan($days);
 } else {
     warn "This script requires a positive number of days. Aborted.\n";

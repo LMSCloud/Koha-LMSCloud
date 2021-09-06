@@ -24,7 +24,6 @@ use CGI qw ( -utf8 );
 use C4::Auth;
 use C4::Output;
 use C4::Members;
-use C4::Members::Attributes qw(GetBorrowerAttributes);
 use C4::Debug;
 
 use Koha::DateUtils;
@@ -39,7 +38,6 @@ my ( $template, $loggedinuser, $cookie ) = get_template_and_user(
         template_name   => "members/files.tt",
         query           => $cgi,
         type            => "intranet",
-        authnotrequired => 0,
         flagsrequired   => { borrowers => 'edit_borrowers' },
         debug           => 1,
     }
@@ -48,7 +46,7 @@ $template->param( 'borrower_files' => 1 );
 
 my $borrowernumber = $cgi->param('borrowernumber');
 
-my $logged_in_user = Koha::Patrons->find( $loggedinuser ) or die "Not logged in";
+my $logged_in_user = Koha::Patrons->find( $loggedinuser );
 my $patron         = Koha::Patrons->find($borrowernumber);
 output_and_exit_if_error( $cgi, $cookie, $template, { module => 'members', logged_in_user => $logged_in_user, current_patron => $patron } );
 
@@ -105,20 +103,6 @@ else {
         }
     } elsif ( $op eq 'delete' ) {
         $bf->DelFile( id => scalar $cgi->param('file_id') );
-    }
-
-    if (C4::Context->preference('ExtendedPatronAttributes')) {
-        my $attributes = GetBorrowerAttributes($borrowernumber);
-        $template->param(
-            ExtendedPatronAttributes => 1,
-            extendedattributes => $attributes
-        );
-    }
-
-    if ( $patron->is_child ) {
-        my $patron_categories = Koha::Patron::Categories->search_limited({ category_type => 'A' }, {order_by => ['categorycode']});
-        $template->param( 'CATCODE_MULTI' => 1) if $patron_categories->count > 1;
-        $template->param( 'catcode' => $patron_categories->next->categorycode )  if $patron_categories->count == 1;
     }
 
     $template->param(

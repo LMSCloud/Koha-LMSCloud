@@ -42,8 +42,9 @@ use Koha::UploadedFiles;
 use C4::BackgroundJob;
 use C4::MarcModificationTemplates;
 use Koha::Plugins;
+use Koha::ImportBatches;
 
-my $input = new CGI;
+my $input = CGI->new;
 
 my $fileID                     = $input->param('uploadedfileid');
 my $runinbackground            = $input->param('runinbackground');
@@ -58,13 +59,15 @@ my $record_type                = $input->param('record_type');
 my $encoding                   = $input->param('encoding') || 'UTF-8';
 my $format                     = $input->param('format') || 'ISO2709';
 my $marc_modification_template = $input->param('marc_modification_template_id');
+my $basketno                   = $input->param('basketno');
+my $booksellerid               = $input->param('booksellerid');
+my $profile_id                 = $input->param('profile_id');
 
 my ( $template, $loggedinuser, $cookie ) = get_template_and_user(
     {
         template_name   => "tools/stage-marc-import.tt",
         query           => $input,
         type            => "intranet",
-        authnotrequired => 0,
         flagsrequired   => { tools => 'stage_marc_import' },
         debug           => 1,
     }
@@ -74,6 +77,8 @@ $template->param(
     SCRIPT_NAME => '/cgi-bin/koha/tools/stage-marc-import.pl',
     uploadmarc  => $fileID,
     record_type => $record_type,
+    basketno => $basketno,
+    booksellerid => $booksellerid,
 );
 
 my %cookies = parse CGI::Cookie($cookie);
@@ -101,7 +106,6 @@ if ($completedJobID) {
         # BatchStageMarcRecords can handle that
 
     my $job = undef;
-    my $dbh;
     if ($runinbackground) {
         my $job_size = scalar(@$marcrecords);
         # if we're matching, job size is doubled
@@ -119,10 +123,10 @@ if ($completedJobID) {
             exit 0;
         } elsif (defined $pid) {
             # child
-            # close STDOUT to signal to Apache that
-            # we're now running in the background
+            # close STDOUT/STDERR to signal to end CGI session with Apache
+            # Otherwise, the AJAX request to this script won't return properly
             close STDOUT;
-            # close STDERR; # there is no good reason to close STDERR
+            close STDERR;
         } else {
             # fork failed, so exit immediately
             warn "fork failed while attempting to run tools/stage-marc-import.pl as a background job: $!";
@@ -134,9 +138,9 @@ if ($completedJobID) {
 
     }
 
-    # New handle, as we're a child.
-    $dbh = C4::Context->dbh({new => 1});
-    $dbh->{AutoCommit} = 0;
+    my $schema = Koha::Database->new->schema;
+    $schema->storage->txn_begin;
+
     # FIXME branch code
     my ( $batch_id, $num_valid, $num_items, @import_errors ) =
       BatchStageMarcRecords(
@@ -145,8 +149,13 @@ if ($completedJobID) {
         $marc_modification_template,
         $comments,       '',
         $parse_items,    0,
-        50, staging_progress_callback( $job, $dbh )
+        50, staging_progress_callback( $job )
       );
+
+    if($profile_id) {
+        my $ibatch = Koha::ImportBatches->find($batch_id);
+        $ibatch->set({profile_id => $profile_id})->store;
+    }
 
     my $num_with_matches = 0;
     my $checked_matches = 0;
@@ -159,17 +168,18 @@ if ($completedJobID) {
             $matcher_code = $matcher->code();
             $num_with_matches =
               BatchFindDuplicates( $batch_id, $matcher, 10, 50,
-                matching_progress_callback( $job, $dbh ) );
+                matching_progress_callback($job) );
             SetImportBatchMatcher($batch_id, $matcher_id);
             SetImportBatchOverlayAction($batch_id, $overlay_action);
             SetImportBatchNoMatchAction($batch_id, $nomatch_action);
             SetImportBatchItemAction($batch_id, $item_action);
-            $dbh->commit();
+            $schema->storage->txn_commit;
         } else {
             $matcher_failed = 1;
+            $schema->storage->txn_rollback;
         }
     } else {
-        $dbh->commit();
+        $schema->storage->txn_commit;
     }
 
     my $results = {
@@ -181,7 +191,9 @@ if ($completedJobID) {
         checked_matches => $checked_matches,
         matcher_failed  => $matcher_failed,
         matcher_code    => $matcher_code,
-        import_batch_id => $batch_id
+        import_batch_id => $batch_id,
+        booksellerid    => $booksellerid,
+        basketno        => $basketno
     };
     if ($runinbackground) {
         $job->finish($results);
@@ -195,7 +207,9 @@ if ($completedJobID) {
                          checked_matches => $checked_matches,
                          matcher_failed => $matcher_failed,
                          matcher_code => $matcher_code,
-                         import_batch_id => $batch_id
+                         import_batch_id => $batch_id,
+                         booksellerid => $booksellerid,
+                         basketno => $basketno
                         );
     }
 
@@ -210,8 +224,7 @@ if ($completedJobID) {
     my @templates = GetModificationTemplates();
     $template->param( MarcModificationTemplatesLoop => \@templates );
 
-    if ( C4::Context->preference('UseKohaPlugins') &&
-         C4::Context->config('enable_plugins') ) {
+    if ( C4::Context->config('enable_plugins') ) {
 
         my @plugins = Koha::Plugins->new()->GetPlugins({
             method => 'to_marc',
@@ -226,7 +239,6 @@ exit 0;
 
 sub staging_progress_callback {
     my $job = shift;
-    my $dbh = shift;
     return sub {
         my $progress = shift;
         $job->progress($progress);
@@ -235,7 +247,6 @@ sub staging_progress_callback {
 
 sub matching_progress_callback {
     my $job = shift;
-    my $dbh = shift;
     my $start_progress = $job->progress();
     return sub {
         my $progress = shift;

@@ -36,9 +36,7 @@ parameters tables.
 
 =cut
 
-
-use strict;
-use warnings;
+use Modern::Perl;
 
 use C4::AuthoritiesMarc;
 use C4::Auth;
@@ -122,7 +120,8 @@ sub build_tabs {
                         my %subfield_data;
                         $subfield_data{marc_lib}=$tagslib->{$field->tag()}->{$subf[$i][0]}->{lib};
                         if ($tagslib->{$field->tag()}->{$subf[$i][0]}->{isurl}) {
-                          $subfield_data{marc_value}="<a href=\"$subf[$i][1]\">$subf[$i][1]</a>";
+                            $subfield_data{marc_value} = $subf[$i][1];
+                            $subfield_data{is_url} = 1;
                         } else {
                           $subfield_data{marc_value}=$subf[$i][1];
                         }
@@ -165,7 +164,7 @@ sub build_tabs {
 
 
 # 
-my $query=new CGI;
+my $query=CGI->new;
 
 my $dbh=C4::Context->dbh;
 
@@ -175,7 +174,6 @@ my ($template, $loggedinuser, $cookie) = get_template_and_user(
         template_name   => "authorities/detail.tt",
         query           => $query,
         type            => "intranet",
-        authnotrequired => 0,
         flagsrequired   => { catalogue => 1 },
         debug           => 1,
     }

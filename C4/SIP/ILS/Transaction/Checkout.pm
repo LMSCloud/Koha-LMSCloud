@@ -8,7 +8,7 @@ use warnings;
 use strict;
 
 use POSIX qw(strftime);
-use Sys::Syslog qw(syslog);
+use C4::SIP::Sip qw(siplog);
 use Data::Dumper;
 use CGI qw ( -utf8 );
 
@@ -28,42 +28,39 @@ our $debug;
 
 # Most fields are handled by the Transaction superclass
 my %fields = (
-	      security_inhibit => 0,
-	      due              => undef,
-	      renew_ok         => 0,
-	);
+          security_inhibit => 0,
+          due              => undef,
+          renew_ok         => 0,
+    );
 
 sub new {
     my $class = shift;;
     my $self = $class->SUPER::new();
     foreach my $element (keys %fields) {
-		$self->{_permitted}->{$element} = $fields{$element};
+        $self->{_permitted}->{$element} = $fields{$element};
     }
     @{$self}{keys %fields} = values %fields;
 #    $self->{'due'} = time() + (60*60*24*14); # two weeks hence
-	$debug and warn "new ILS::Transaction::Checkout : " . Dumper $self;
+    $debug and warn "new ILS::Transaction::Checkout : " . Dumper $self;
     return bless $self, $class;
 }
 
 sub do_checkout {
 	my $self = shift;
-	syslog('LOG_DEBUG', "ILS::Transaction::Checkout performing checkout...");
-	my $pending        = $self->{item}->pending_queue;
-	my $shelf          = $self->{item}->hold_shelf;
+    my $account = shift;
+	siplog('LOG_DEBUG', "ILS::Transaction::Checkout performing checkout...");
+    my $shelf          = $self->{item}->hold_attached;
 	my $barcode        = $self->{item}->id;
-	my $patron_barcode = $self->{patron}->id;
-        my $overridden_duedate; # usually passed as undef to AddIssue
-	$debug and warn "do_checkout: patron (" . $patron_barcode . ")";
-    my $patron = Koha::Patrons->find( { cardnumber => $patron_barcode } );
-    my $borrower = $patron->unblessed;
-	$debug and warn "do_checkout borrower: . " . Dumper $borrower;
-    my ($issuingimpossible, $needsconfirmation) = _can_we_issue($patron, $barcode,
-        C4::Context->preference("AllowItemsOnHoldCheckout")
-    );
-	my $noerror=1;
-	my $chargeerror=0;
-    if (scalar keys %$issuingimpossible) {
-        foreach (sort keys %$issuingimpossible) {
+    my $patron         = Koha::Patrons->find($self->{patron}->{borrowernumber});
+    my $overridden_duedate; # usually passed as undef to AddIssue
+    my $prevcheckout_block_checkout  = $account->{prevcheckout_block_checkout};
+    $debug and warn "do_checkout borrower: . " . $patron->borrowernumber;
+    my ($issuingimpossible, $needsconfirmation) = _can_we_issue($patron, $barcode, 0);
+
+    my $noerror=1;  # If set to zero we block the issue
+    my $chargeerror=0;
+    if (keys %{$issuingimpossible}) {
+        foreach (keys %{$issuingimpossible}) {
             # do something here so we pass these errors
             $self->screen_msg("Issue failed : $_");
             $noerror = 0;
@@ -73,14 +70,17 @@ sub do_checkout {
         foreach my $confirmation (sort keys %{$needsconfirmation}) {
             if ($confirmation eq 'RENEW_ISSUE'){
                 $self->screen_msg("Item already checked out to you: renewing item.");
-            } elsif ($confirmation eq 'RESERVED' or $confirmation eq 'RESERVE_WAITING') {
-                my $x = $self->{item}->available($patron_barcode);
-                if ($x) {
-                    $self->screen_msg("Item was reserved for you.");
-                } else {
-                    $self->screen_msg("Item is reserved for another patron upon return.");
-                    $noerror = 0;
-                }
+            } elsif ($confirmation eq 'RESERVED' and !C4::Context->preference("AllowItemsOnHoldCheckoutSIP")) {
+                $self->screen_msg("Item is reserved for another patron upon return.");
+                $noerror = 0;
+            } elsif ($confirmation eq 'RESERVED' and C4::Context->preference("AllowItemsOnHoldCheckoutSIP")) {
+                next;
+            } elsif ($confirmation eq 'RESERVE_WAITING'
+                      or $confirmation eq 'TRANSFERRED'
+                      or $confirmation eq 'PROCESSING') {
+               $debug and warn "Item is on hold for another patron.";
+               $self->screen_msg("Item is on hold for another patron.");
+               $noerror = 0;
             } elsif ($confirmation eq 'ISSUED_TO_ANOTHER') {
                 $self->screen_msg("Item already checked out to another patron.  Please return item for check-in.");
                 $noerror = 0;
@@ -98,26 +98,23 @@ sub do_checkout {
                 }
             } elsif ($confirmation eq 'PREVISSUE') {
                 $self->screen_msg("This item was previously checked out by you");
+                $noerror = 0 if ($prevcheckout_block_checkout);
+                last;
+            } elsif ( $confirmation eq 'ADDITIONAL_MATERIALS' ) {
+                $self->screen_msg('Item must be checked out at a circulation desk');
+                $noerror = 0;
+                last;
             } else {
                 # We've been returned a case other than those above
                 $self->screen_msg("Item cannot be issued: $confirmation");
                 $noerror = 0;
-                syslog('LOG_DEBUG', "Blocking checkout Reason:$confirmation");
+                siplog('LOG_DEBUG', "Blocking checkout Reason:$confirmation");
                 last;
             }
         }
     }
     my $itemnumber = $self->{item}->{itemnumber};
-    foreach (@$shelf) {
-        $debug and warn "shelf has ($_->{itemnumber} for $_->{borrowernumber}). this is ($itemnumber, $self->{patron}->{borrowernumber})";
-        ($_->{itemnumber} eq $itemnumber) or next;    # skip it if not this item
-        ($_->{borrowernumber} == $self->{patron}->{borrowernumber}) and last;
-            # if item was waiting for this patron, we're done.  AddIssue takes care of the "W" hold.
-        $debug and warn "Item is on hold shelf for another patron.";
-        $self->screen_msg("Item is on hold shelf for another patron.");
-        $noerror = 0;
-    }
-    my ($fee, undef) = GetIssuingCharges($itemnumber, $self->{patron}->{borrowernumber});
+    my ($fee, undef) = GetIssuingCharges($itemnumber, $patron->borrowernumber);
     if ( $fee > 0 ) {
         $self->{sip_fee_type} = '06';
         $self->{fee_amount} = sprintf '%.2f', $fee;
@@ -140,24 +137,14 @@ sub do_checkout {
 		$self->ok(0);
 		return $self;
 	}
-    # Fill any reserves the patron had on the item.  
-    # TODO: this logic should be pulled internal to AddIssue for all Koha. 
-    $debug and warn "pending_queue: " . (@$pending) ? Dumper($pending) : '[]';
-    foreach (grep {$_->{borrowernumber} eq $self->{patron}->{borrowernumber}} @$pending) {
-        $debug and warn "Filling reserve (borrowernumber,biblionumber,reservedate): "
-            . sprintf("(%s,%s,%s)\n",$_->{borrowernumber},$_->{biblionumber},$_->{reservedate});
-        ModReserveFill($_);
-        # TODO: adjust representation in $self->item
-    }
 	# can issue
-	$debug and warn "do_checkout: calling AddIssue(\$borrower,$barcode, $overridden_duedate, 0)\n"
-		# . "w/ \$borrower: " . Dumper($borrower)
+    $debug and warn sprintf("do_checkout: calling AddIssue(%s, %s, %s, 0)\n", $patron->borrowernumber, $barcode, $overridden_duedate)
 		. "w/ C4::Context->userenv: " . Dumper(C4::Context->userenv);
-    my $issue = AddIssue( $borrower, $barcode, $overridden_duedate, 0 );
+    my $issue = AddIssue( $patron->unblessed, $barcode, $overridden_duedate, 0 );
     $self->{due} = $self->duedatefromissue($issue, $itemnumber);
 
-	$self->ok(1);
-	return $self;
+    $self->ok(1);
+    return $self;
 }
 
 sub _can_we_issue {

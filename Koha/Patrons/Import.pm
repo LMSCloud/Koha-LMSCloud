@@ -2,18 +2,18 @@ package Koha::Patrons::Import;
 
 # This file is part of Koha.
 #
-# Koha is free software; you can redistribute it and/or modify it under the
-# terms of the GNU General Public License as published by the Free Software
-# Foundation; either version 3 of the License, or (at your option) any later
-# version.
+# Koha is free software; you can redistribute it and/or modify it
+# under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 3 of the License, or
+# (at your option) any later version.
 #
-# Koha is distributed in the hope that it will be useful, but WITHOUT ANY
-# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
-# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+# Koha is distributed in the hope that it will be useful, but
+# WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+# GNU General Public License for more details.
 #
-# You should have received a copy of the GNU General Public License along
-# with Koha; if not, write to the Free Software Foundation, Inc.,
-# 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+# You should have received a copy of the GNU General Public License
+# along with Koha; if not, see <http://www.gnu.org/licenses>.
 
 use Modern::Perl;
 use Moo;
@@ -21,10 +21,10 @@ use namespace::clean;
 
 use Carp;
 use Text::CSV;
+use Encode qw( decode_utf8 );
+use Try::Tiny;
 
 use C4::Members;
-use C4::Members::Attributes qw(:all);
-use C4::Members::AttributeTypes;
 
 use Koha::Libraries;
 use Koha::Patrons;
@@ -72,8 +72,13 @@ sub import_patrons {
     my $defaults             = $params->{defaults};
     my $ext_preserve         = $params->{preserve_extended_attributes};
     my $overwrite_cardnumber = $params->{overwrite_cardnumber};
+    my $overwrite_passwords  = $params->{overwrite_passwords};
+    my $dry_run              = $params->{dry_run};
     my $extended             = C4::Context->preference('ExtendedPatronAttributes');
     my $set_messaging_prefs  = C4::Context->preference('EnhancedMessagingPreferences');
+
+    my $schema = Koha::Database->new->schema;
+    $schema->storage->txn_begin if $dry_run;
 
     my @columnkeys = $self->set_column_keys($extended);
     my @feedback;
@@ -101,7 +106,7 @@ sub import_patrons {
         my $status  = $self->text_csv->parse($borrowerline);
         my @columns = $self->text_csv->fields();
         if ( !$status ) {
-            push @missing_criticals, { badparse => 1, line => $line_number, lineraw => $borrowerline };
+            push @missing_criticals, { badparse => 1, line => $line_number, lineraw => decode_utf8($borrowerline) };
         }
         elsif ( @columns == @columnkeys ) {
             @borrower{@columnkeys} = @columns;
@@ -125,13 +130,15 @@ sub import_patrons {
                 elsif ( scalar grep { $key eq $_ } @criticals ) {
 
                     # a critical field is undefined
-                    push @missing_criticals, { key => $key, line => $., lineraw => $borrowerline };
+                    push @missing_criticals, { key => $key, line => $., lineraw => decode_utf8($borrowerline) };
                 }
                 else {
                     $borrower{$key} = '';
                 }
             }
         }
+
+        $borrower{cardnumber} = undef if $borrower{cardnumber} eq "";
 
         # Check if borrower category code exists and if it matches to a known category. Pushing error to missing_criticals otherwise.
         $self->check_borrower_category($borrower{categorycode}, $borrowerline, $line_number, \@missing_criticals);
@@ -154,8 +161,8 @@ sub import_patrons {
             next LINE;
         }
 
-        # Set patron attributes if extended.
-        my $patron_attributes = $self->set_patron_attributes($extended, $borrower{patron_attributes}, \@feedback);
+        # Generate patron attributes if extended.
+        my $patron_attributes = $self->generate_patron_attributes($extended, $borrower{patron_attributes}, \@feedback);
         if( $extended ) { delete $borrower{patron_attributes}; } # Not really a field in borrowers.
 
         # Default date enrolled and date expiry if not already set.
@@ -173,9 +180,16 @@ sub import_patrons {
         elsif ($extended) {
             if ( defined($matchpoint_attr_type) ) {
                 foreach my $attr (@$patron_attributes) {
-                    if ( $attr->{code} eq $matchpoint and $attr->{value} ne '' ) {
-                        my @borrowernumbers = $matchpoint_attr_type->get_patrons( $attr->{value} );
+                    if ( $attr->{code} eq $matchpoint and $attr->{attribute} ne '' ) {
+                        my @borrowernumbers = Koha::Patron::Attributes->search(
+                            {
+                                code      => $matchpoint_attr_type->code,
+                                attribute => $attr->{attribute}
+                            }
+                        )->get_column('borrowernumber');
+
                         $borrowernumber = $borrowernumbers[0] if scalar(@borrowernumbers) == 1;
+                        $patron = Koha::Patrons->find( $borrowernumber );
                         last;
                     }
                 }
@@ -206,13 +220,28 @@ sub import_patrons {
             and $matchpoint ne 'userid'
             and exists $borrower{userid}
             and $borrower{userid}
-            and not Koha::Patron->new( { userid => $borrower{userid} } )->has_valid_userid
+            and not ( $borrowernumber ? $patron->userid( $borrower{userid} )->has_valid_userid : Koha::Patron->new( { userid => $borrower{userid} } )->has_valid_userid )
         ) {
             push @errors, { duplicate_userid => 1, userid => $borrower{userid} };
             $invalid++;
             next LINE;
         }
 
+        my $guarantor_relationship = $borrower{guarantor_relationship};
+        delete $borrower{guarantor_relationship};
+        my $guarantor_id = $borrower{guarantor_id};
+        delete $borrower{guarantor_id};
+
+        # Remove warning for int datatype that cannot be null
+        # Argument "" isn't numeric in numeric eq (==) at /usr/share/perl5/DBIx/Class/Row.pm line 1018
+        for my $field (
+            qw( privacy privacy_guarantor_fines privacy_guarantor_checkouts anonymized login_attempts ))
+        {
+            delete $borrower{$field}
+              if exists $borrower{$field} and $borrower{$field} eq "";
+        }
+
+        my $success = 1;
         if ($borrowernumber) {
 
             # borrower exists
@@ -233,122 +262,202 @@ sub import_patrons {
                 # use values from extant patron unless our csv file includes this column or we provided a default.
                 # FIXME : You cannot update a field with a  perl-evaluated false value using the defaults.
 
-                # The password is always encrypted, skip it!
-                next if $col eq 'password';
+                # The password is always encrypted, skip it unless we are forcing overwrite!
+                next if $col eq 'password' && !$overwrite_passwords;
 
                 unless ( exists( $csvkeycol{$col} ) || $defaults->{$col} ) {
                     $borrower{$col} = $member->{$col} if ( $member->{$col} );
                 }
             }
 
-            unless ( ModMember(%borrower) ) {
+            my $patron = Koha::Patrons->find( $borrowernumber );
+            try {
+                $schema->storage->txn_do(sub {
+                    $patron->set(\%borrower)->store;
+                    # Don't add a new restriction if the existing 'combined' restriction matches this one
+                    if ( $borrower{debarred} && ( ( $borrower{debarred} ne $member->{debarred} ) || ( $borrower{debarredcomment} ne $member->{debarredcomment} ) ) ) {
+
+                        # Check to see if this debarment already exists
+                        my $debarrments = GetDebarments(
+                            {
+                                borrowernumber => $borrowernumber,
+                                expiration     => $borrower{debarred},
+                                comment        => $borrower{debarredcomment}
+                            }
+                        );
+
+                        # If it doesn't, then add it!
+                        unless (@$debarrments) {
+                            AddDebarment(
+                                {
+                                    borrowernumber => $borrowernumber,
+                                    expiration     => $borrower{debarred},
+                                    comment        => $borrower{debarredcomment}
+                                }
+                            );
+                        }
+                    }
+                    if ($patron->category->category_type ne 'S' && $overwrite_passwords && defined $borrower{password} && $borrower{password} ne ''){
+                        try {
+                            $patron->set_password({ password => $borrower{password} });
+                        }
+                        catch {
+                            if ( $_->isa('Koha::Exceptions::Password::TooShort') ) {
+                                push @errors, { passwd_too_short => 1, borrowernumber => $borrowernumber, length => $_->{length}, min_length => $_->{min_length} };
+                            }
+                            elsif ( $_->isa('Koha::Exceptions::Password::WhitespaceCharacters') ) {
+                                push @errors, { passwd_whitespace => 1, borrowernumber => $borrowernumber } ;
+                            }
+                            elsif ( $_->isa('Koha::Exceptions::Password::TooWeak') ) {
+                                push @errors, { passwd_too_weak => 1, borrowernumber => $borrowernumber } ;
+                            }
+                            elsif ( $_->isa('Koha::Exceptions::Password::Plugin') ) {
+                                push @errors, { passwd_plugin_err => 1, borrowernumber => $borrowernumber } ;
+                            }
+                            else {
+                                push @errors, { passwd_unknown_err => 1, borrowernumber => $borrowernumber } ;
+                            }
+                        }
+                    }
+                    if ($extended) {
+                        if ($ext_preserve) {
+                            $patron_attributes = $patron->extended_attributes->merge_and_replace_with( $patron_attributes );
+                        }
+                        # We do not want to filter by branch, maybe we should?
+                        Koha::Patrons->find($borrowernumber)->extended_attributes->delete;
+                        $patron->extended_attributes($patron_attributes);
+                    }
+                    $overwritten++;
+                    push(
+                        @feedback,
+                        {
+                            feedback => 1,
+                            name     => 'lastoverwritten',
+                            value    => $borrower{'surname'} . ' / ' . $borrowernumber
+                        }
+                    );
+                });
+            } catch {
                 $invalid++;
+                $success = 0;
+
+                my $patron_id = defined $matchpoint ? $borrower{$matchpoint} : $matchpoint_attr_type;
+                if ( $_->isa('Koha::Exceptions::Patron::Attribute::UniqueIDConstraint') ) {
+                    push @errors, { patron_attribute_unique_id_constraint => 1, borrowernumber => $borrowernumber, attribute => $_->attribute };
+                } elsif ( $_->isa('Koha::Exceptions::Patron::Attribute::InvalidType') ) {
+                    push @errors, { patron_attribute_invalid_type => 1, borrowernumber => $borrowernumber, attribute_type_code => $_->type };
+                } elsif ( $_->isa('Koha::Exceptions::Patron::Attribute::NonRepeatable') ) {
+                    push @errors, { patron_attribute_non_repeatable => 1, borrowernumber => $borrowernumber, attribute => $_->attribute };
+                } else {
+                    use Data::Printer colored => 1; warn p $_;
+                    push @errors, { unknown_error => 1 };
+                }
 
                 push(
                     @errors,
                     {
+                        # TODO We can raise a better error
                         name  => 'lastinvalid',
                         value => $borrower{'surname'} . ' / ' . $borrowernumber
                     }
                 );
-                next LINE;
             }
-            # Don't add a new restriction if the existing 'combined' restriction matches this one
-            if ( $borrower{debarred} && ( ( $borrower{debarred} ne $member->{debarred} ) || ( $borrower{debarredcomment} ne $member->{debarredcomment} ) ) ) {
-
-                # Check to see if this debarment already exists
-                my $debarrments = GetDebarments(
-                    {
-                        borrowernumber => $borrowernumber,
-                        expiration     => $borrower{debarred},
-                        comment        => $borrower{debarredcomment}
-                    }
-                );
-
-                # If it doesn't, then add it!
-                unless (@$debarrments) {
-                    AddDebarment(
-                        {
-                            borrowernumber => $borrowernumber,
-                            expiration     => $borrower{debarred},
-                            comment        => $borrower{debarredcomment}
-                        }
-                    );
-                }
-            }
-            if ($extended) {
-                if ($ext_preserve) {
-                    my $old_attributes = GetBorrowerAttributes($borrowernumber);
-                    $patron_attributes = extended_attributes_merge( $old_attributes, $patron_attributes );
-                }
-                push @errors, { unknown_error => 1 }
-                  unless SetBorrowerAttributes( $borrower{'borrowernumber'}, $patron_attributes, 'no_branch_limit' );
-            }
-            $overwritten++;
-            push(
-                @feedback,
-                {
-                    feedback => 1,
-                    name     => 'lastoverwritten',
-                    value    => $borrower{'surname'} . ' / ' . $borrowernumber
-                }
-            );
         }
         else {
-            # FIXME: fixup_cardnumber says to lock table, but the web interface doesn't so this doesn't either.
-            # At least this is closer to AddMember than in members/memberentry.pl
-            if ( !$borrower{'cardnumber'} ) {
-                $borrower{'cardnumber'} = fixup_cardnumber(undef);
-            }
-            if ( $borrowernumber = AddMember(%borrower) ) {
+            try {
+                $schema->storage->txn_do(sub {
+                    my $patron = Koha::Patron->new(\%borrower)->store;
+                    $borrowernumber = $patron->id;
 
-                if ( $borrower{debarred} ) {
-                    AddDebarment(
-                        {
-                            borrowernumber => $borrowernumber,
-                            expiration     => $borrower{debarred},
-                            comment        => $borrower{debarredcomment}
-                        }
-                    );
-                }
-
-                if ($extended) {
-                    SetBorrowerAttributes( $borrowernumber, $patron_attributes );
-                }
-
-                if ($set_messaging_prefs) {
-                    C4::Members::Messaging::SetMessagingPreferencesFromDefaults(
-                        {
-                            borrowernumber => $borrowernumber,
-                            categorycode   => $borrower{categorycode}
-                        }
-                    );
-                }
-
-                $imported++;
-                push @imported_borrowers, $borrowernumber; #for patronlist
-                push(
-                    @feedback,
-                    {
-                        feedback => 1,
-                        name     => 'lastimported',
-                        value    => $borrower{'surname'} . ' / ' . $borrowernumber
+                    if ( $patron->is_debarred ) {
+                        AddDebarment(
+                            {
+                                borrowernumber => $patron->borrowernumber,
+                                expiration     => $patron->debarred,
+                                comment        => $patron->debarredcomment,
+                            }
+                        );
                     }
-                );
-            }
-            else {
+
+                    if ($extended) {
+                        # FIXME Hum, we did not filter earlier and now we do?
+                        $patron->extended_attributes->filter_by_branch_limitations->delete;
+                        $patron->extended_attributes($patron_attributes);
+                    }
+
+                    if ($set_messaging_prefs) {
+                        C4::Members::Messaging::SetMessagingPreferencesFromDefaults(
+                            {
+                                borrowernumber => $patron->borrowernumber,
+                                categorycode   => $patron->categorycode,
+                            }
+                        );
+                    }
+
+                    $imported++;
+                    push @imported_borrowers, $patron->borrowernumber; #for patronlist
+                    push(
+                        @feedback,
+                        {
+                            feedback => 1,
+                            name     => 'lastimported',
+                            value    => $patron->surname . ' / ' . $patron->borrowernumber,
+                        }
+                    );
+                });
+            } catch {
                 $invalid++;
-                push @errors, { unknown_error => 1 };
+                $success = 0;
+                my $patron_id = defined $matchpoint ? $borrower{$matchpoint} : $matchpoint_attr_type;
+                if ( $_->isa('Koha::Exceptions::Patron::Attribute::UniqueIDConstraint') ) {
+                    push @errors, { patron_attribute_unique_id_constraint => 1, patron_id => $patron_id, attribute => $_->attribute };
+                } elsif ( $_->isa('Koha::Exceptions::Patron::Attribute::InvalidType') ) {
+                    push @errors, { patron_attribute_invalid_type => 1, patron_id => $patron_id, attribute_type_code => $_->type };
+                } elsif ( $_->isa('Koha::Exceptions::Patron::Attribute::NonRepeatable') ) {
+                    push @errors, { patron_attribute_non_repeatable => 1, patron_id => $patron_id, attribute => $_->attribute };
+
+                } else {
+                    use Data::Printer colored => 1; warn p $_;
+                    push @errors, { unknown_error => 1 };
+                }
                 push(
                     @errors,
                     {
                         name  => 'lastinvalid',
-                        value => $borrower{'surname'} . ' / AddMember',
+                        value => $borrower{'surname'} . ' / Create patron',
                     }
                 );
+            };
+        }
+
+        next LINE unless $success;
+
+        # Add a guarantor if we are given a relationship
+        if ( $guarantor_id ) {
+            my $relationship = Koha::Patron::Relationships->find(
+                {
+                    guarantee_id => $borrowernumber,
+                    guarantor_id => $guarantor_id,
+                }
+            );
+
+            if ( $relationship ) {
+                $relationship->relationship( $guarantor_relationship );
+                $relationship->store();
+            }
+            else {
+                Koha::Patron::Relationship->new(
+                    {
+                        guarantee_id => $borrowernumber,
+                        relationship => $guarantor_relationship,
+                        guarantor_id => $guarantor_id,
+                    }
+                )->store();
             }
         }
     }
+
+    $schema->storage->txn_rollback if $dry_run;
 
     return {
         feedback      => \@feedback,
@@ -383,6 +492,7 @@ sub prepare_columns {
     foreach my $keycol (@csvcolumns) {
         # columnkeys don't contain whitespace, but some stupid tools add it
         $keycol =~ s/ +//g;
+        $keycol =~ s/^\N{BOM}//; # Strip BOM if exists, otherwise it will be part of first column key
         $params->{keycol}->{$keycol} = $col++;
     }
 
@@ -400,12 +510,12 @@ Returns an attribute type based on matchpoint parameter.
 sub set_attribute_types {
     my ($self, $params) = @_;
 
-    my $attribute_types;
+    my $attribute_type;
     if( $params->{extended} ) {
-        $attribute_types = C4::Members::AttributeTypes->fetch($params->{matchpoint});
+        $attribute_type = Koha::Patron::Attribute::Types->find($params->{matchpoint});
     }
 
-    return $attribute_types;
+    return $attribute_type;
 }
 
 =head2 set_column_keys
@@ -421,33 +531,43 @@ sub set_column_keys {
 
     my @columnkeys = map { $_ ne 'borrowernumber' ? $_ : () } Koha::Patrons->columns();
     push( @columnkeys, 'patron_attributes' ) if $extended;
+    push( @columnkeys, qw( guarantor_relationship guarantor_id ) );
 
     return @columnkeys;
 }
 
-=head2 set_patron_attributes
+=head2 generate_patron_attributes
 
- my $patron_attributes = set_patron_attributes($extended, $borrower{patron_attributes}, $feedback);
+ my $patron_attributes = generate_patron_attributes($extended, $borrower{patron_attributes}, $feedback);
 
-Returns a reference to array of hashrefs data structure as expected by SetBorrowerAttributes.
+Returns a Koha::Patron::Attributes as expected by Koha::Patron->extended_attributes
 
 =cut
 
-sub set_patron_attributes {
-    my ($self, $extended, $patron_attributes, $feedback) = @_;
+sub generate_patron_attributes {
+    my ($self, $extended, $string, $feedback) = @_;
 
     unless( $extended ) { return; }
-    unless( defined($patron_attributes) ) { return; }
+    unless( defined $string ) { return; }
 
     # Fixup double quotes in case we are passed smart quotes
-    $patron_attributes =~ s/\xe2\x80\x9c/"/g;
-    $patron_attributes =~ s/\xe2\x80\x9d/"/g;
+    $string =~ s/\xe2\x80\x9c/"/g;
+    $string =~ s/\xe2\x80\x9d/"/g;
 
-    push (@$feedback, { feedback => 1, name => 'attribute string', value => $patron_attributes });
+    push (@$feedback, { feedback => 1, name => 'attribute string', value => $string });
+    return [] unless $string; # Unit tests want the feedback, is it really needed?
 
-    my $result = extended_attributes_code_value_arrayref($patron_attributes);
-
-    return $result;
+    my $csv = Text::CSV->new({binary => 1});  # binary needed for non-ASCII Unicode
+    my $ok   = $csv->parse($string);  # parse field again to get subfields!
+    my @list = $csv->fields();
+    my @patron_attributes =
+      sort { $a->{code} cmp $b->{code} || $a->{attribute} cmp $b->{attribute} }
+      map {
+        my @arr = split /:/, $_, 2;
+        { code => $arr[0], attribute => $arr[1] }
+      } @list;
+    return \@patron_attributes;
+    # TODO: error handling (check $ok)
 }
 
 =head2 check_branch_code
@@ -463,14 +583,14 @@ sub check_branch_code {
 
     # No branch code
     unless( $branchcode ) {
-        push (@$missing_criticals, { key => 'branchcode', line => $line_number, lineraw => $borrowerline, });
+        push (@$missing_criticals, { key => 'branchcode', line => $line_number, lineraw => decode_utf8($borrowerline), });
         return;
     }
 
     # look for branch code
     my $library = Koha::Libraries->find( $branchcode );
     unless( $library ) {
-        push (@$missing_criticals, { key => 'branchcode', line => $line_number, lineraw => $borrowerline,
+        push (@$missing_criticals, { key => 'branchcode', line => $line_number, lineraw => decode_utf8($borrowerline),
                                      value => $branchcode, branch_map => 1, });
     }
 }
@@ -488,14 +608,14 @@ sub check_borrower_category {
 
     # No branch code
     unless( $categorycode ) {
-        push (@$missing_criticals, { key => 'categorycode', line => $line_number, lineraw => $borrowerline, });
+        push (@$missing_criticals, { key => 'categorycode', line => $line_number, lineraw => decode_utf8($borrowerline), });
         return;
     }
 
     # Looking for borrower category
     my $category = Koha::Patron::Categories->find($categorycode);
     unless( $category ) {
-        push (@$missing_criticals, { key => 'categorycode', line => $line_number, lineraw => $borrowerline,
+        push (@$missing_criticals, { key => 'categorycode', line => $line_number, lineraw => decode_utf8($borrowerline),
                                      value => $categorycode, category_map => 1, });
     }
 }
@@ -512,7 +632,7 @@ be formatted to the chosen date format. Populates the correctly formatted date o
 sub format_dates {
     my ($self, $params) = @_;
 
-    foreach my $date_type (qw(dateofbirth dateenrolled dateexpiry)) {
+    foreach my $date_type (qw(dateofbirth dateenrolled dateexpiry date_renewed)) {
         my $tempdate = $params->{borrower}->{$date_type} or next();
         my $formatted_date = eval { output_pref( { dt => dt_from_string( $tempdate ), dateonly => 1, dateformat => 'iso' } ); };
 
@@ -520,7 +640,7 @@ sub format_dates {
             $params->{borrower}->{$date_type} = $formatted_date;
         } else {
             $params->{borrower}->{$date_type} = '';
-            push (@{$params->{missing_criticals}}, { key => $date_type, line => $params->{line}, lineraw => $params->{lineraw}, bad_date => 1 });
+            push (@{$params->{missing_criticals}}, { key => $date_type, line => $params->{line}, lineraw => decode_utf8($params->{lineraw}), bad_date => 1 });
         }
     }
 }

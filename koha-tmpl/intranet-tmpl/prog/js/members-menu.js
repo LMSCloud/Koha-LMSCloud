@@ -1,10 +1,14 @@
-/* global borrowernumber advsearch dateformat _ CAN_user_borrowers_edit_borrowers NorwegianPatronDBEnable CATCODE_MULTI catcode destination */
+/* global borrowernumber advsearch dateformat __ CAN_user_borrowers_edit_borrowers number_of_adult_categories destination Sticky Cookies */
 
 $(document).ready(function(){
+
     $("#filteraction_off, #filteraction_on").on('click', function(e) {
         e.preventDefault();
         $('#filters').toggle();
         $('.filteraction').toggle();
+        if (typeof Sticky !== "undefined" && typeof hcSticky === "function") {
+            Sticky.hcSticky('update');
+        }
     });
     if( advsearch ){
         $("#filteraction_on").toggle();
@@ -12,46 +16,20 @@ $(document).ready(function(){
     } else {
         $("#filteraction_off").toggle();
     }
+
+    searchfield_date_tooltip("");
+    searchfield_date_tooltip('_filter');
     $("#searchfieldstype").change(function() {
-        var MSG_DATE_FORMAT = "";
-        if ( $(this).val() == 'dateofbirth' ) {
-            if( dateformat == 'us' ){
-                MSG_DATE_FORMAT = _("Dates of birth should be entered in the format 'MM/DD/YYYY'");
-            } else if( dateformat == 'iso' ){
-                MSG_DATE_FORMAT = _("Dates of birth should be entered in the format 'YYYY-MM-DD'");
-            } else if( dateformat == 'metric' ){
-                MSG_DATE_FORMAT = _("Dates of birth should be entered in the format 'DD/MM/YYYY'");
-            } else if( dateformat == 'dmydot' ){
-                MSG_DATE_FORMAT = _("Dates of birth should be entered in the format 'DD.MM.YYYY'");
-            }
-            $('#searchmember').attr("title", MSG_DATE_FORMAT).tooltip('show');
-        } else {
-            $('#searchmember').tooltip('destroy');
-        }
+        searchfield_date_tooltip("");
+    });
+    $("#searchfieldstype_filter").change(function() {
+        searchfield_date_tooltip('_filter');
     });
 
     if( CAN_user_borrowers_edit_borrowers ){
-        if( NorwegianPatronDBEnable == 1 ){
-            $("#deletepatronlocal").click(function(){
-                confirm_local_deletion();
-                $(".btn-group").removeClass("open");
-                return false;
-            });
-            $("#deletepatronremote").click(function(){
-                confirm_remote_deletion();
-                $(".btn-group").removeClass("open");
-                return false;
-            });
-            $("#deletepatronboth").click(function(){
-                confirm_both_deletion();
-                $(".btn-group").removeClass("open");
-                return false;
-            });
-        } else {
-            $("#deletepatron").click(function(){
-                window.location='/cgi-bin/koha/members/deletemem.pl?member=' + borrowernumber;
-            });
-        }
+        $("#deletepatron").click(function(){
+            window.location='/cgi-bin/koha/members/deletemem.pl?member=' + borrowernumber;
+        });
         $("#renewpatron").click(function(){
             confirm_reregistration();
             $(".btn-group").removeClass("open");
@@ -171,6 +149,15 @@ $(document).ready(function(){
         $(".btn-group").removeClass("open");
         return false;
     });
+    $("#printcheckinslip").click(function(){
+        printx_window("checkinslip");
+        $(".btn-group").removeClass("open");
+        return false;
+    });
+    $("#printclearscreen").click(function(){
+        printx_window("slip");
+        window.location.replace("/cgi-bin/koha/circ/circulation.pl");
+    });
     $("#searchtohold").click(function(){
         searchToHold();
         return false;
@@ -178,35 +165,53 @@ $(document).ready(function(){
     $("#select_patron_messages").on("change",function(){
         $("#borrower_message").val( $(this).val() );
     });
+
+    $(".edit-patronimage").on("click", function(e){
+        e.preventDefault();
+        var borrowernumber = $(this).data("borrowernumber");
+        $.get("/cgi-bin/koha/members/moremember.pl", { borrowernumber : borrowernumber }, function( data ){
+            var image_form = $(data).find("#picture-upload");
+            image_form.show().find(".cancel").remove();
+            $("#patronImageEdit .modal-body").html( image_form );
+        });
+        var modalTitle = $(this).attr("title");
+        $("#patronImageEdit .modal-title").text(modalTitle);
+        $("#patronImageEdit").modal("show");
+    });
+
 });
-function confirm_local_deletion() {
-    var is_confirmed = window.confirm(_("Are you sure you want to delete this patron from the local database? This cannot be undone."));
-    if (is_confirmed) {
-        window.location='/cgi-bin/koha/members/deletemem.pl?member=' + borrowernumber + '&deletelocal=true&deleteremote=false';
-    }
-}
-function confirm_remote_deletion() {
-    var is_confirmed = window.confirm(_("Are you sure you want to delete this patron from the Norwegian national patron database? This cannot be undone."));
-    if (is_confirmed) {
-        window.location='/cgi-bin/koha/members/deletemem.pl?member=' + borrowernumber + '&deletelocal=false&deleteremote=true';
-    }
-}
-function confirm_both_deletion() {
-    var is_confirmed = window.confirm(_("Are you sure you want to delete this patron both from the local database and from the Norwegian national patron database? This cannot be undone."));
-    if (is_confirmed) {
-        window.location='/cgi-bin/koha/members/deletemem.pl?member=' + borrowernumber + '&deletelocal=true&deleteremote=true';
+
+
+
+function searchfield_date_tooltip(filter) {
+    var field = "#searchmember" + filter;
+    var type = "#searchfieldstype" + filter;
+    if ( $(type).val() == 'dateofbirth' ) {
+        var MSG_DATE_FORMAT = "";
+        if( dateformat == 'us' ){
+            MSG_DATE_FORMAT = __("Dates of birth should be entered in the format 'MM/DD/YYYY'");
+        } else if( dateformat == 'iso' ){
+            MSG_DATE_FORMAT = __("Dates of birth should be entered in the format 'YYYY-MM-DD'");
+        } else if( dateformat == 'metric' ){
+            MSG_DATE_FORMAT = __("Dates of birth should be entered in the format 'DD/MM/YYYY'");
+        } else if( dateformat == 'dmydot' ){
+            MSG_DATE_FORMAT = __("Dates of birth should be entered in the format 'DD.MM.YYYY'");
+        }
+        $(field).attr("title", MSG_DATE_FORMAT).tooltip('show');
+    } else {
+        $(field).tooltip('destroy');
     }
 }
 
 function confirm_updatechild() {
-    var is_confirmed = window.confirm(_("Are you sure you want to update this child to an Adult category?  This cannot be undone."));
+    var is_confirmed = window.confirm( __("Are you sure you want to update this child to an Adult category? This cannot be undone.") );
     if (is_confirmed) {
-        window.location='/cgi-bin/koha/members/update-child.pl?op=update&borrowernumber=' + borrowernumber + '&catcode=' + catcode + '&catcode_multi=' + CATCODE_MULTI;
+        window.location='/cgi-bin/koha/members/update-child.pl?op=update&borrowernumber=' + borrowernumber;
     }
 }
 
 function update_child() {
-    if( CATCODE_MULTI ){
+    if( number_of_adult_categories > 1 ){
         window.open('/cgi-bin/koha/members/update-child.pl?op=multi&borrowernumber=' + borrowernumber,'UpdateChild','width=400,height=300,toolbar=no,scrollbars=yes,resizable=yes');
     } else {
         confirm_updatechild();
@@ -214,7 +219,7 @@ function update_child() {
 }
 
 function confirm_reregistration() {
-    var is_confirmed = window.confirm(_("Are you sure you want to renew this patron's registration?"));
+    var is_confirmed = window.confirm( __("Are you sure you want to renew this patron's registration?") );
     if (is_confirmed) {
         window.location = '/cgi-bin/koha/members/setstatus.pl?borrowernumber=' + borrowernumber + '&amp;destination=' + destination + '&amp;reregistration=y';
     }
@@ -231,6 +236,6 @@ function printx_window(print_type) {
 function searchToHold(){
     var date = new Date();
     date.setTime(date.getTime() + (10 * 60 * 1000));
-    $.cookie("holdfor", borrowernumber, { path: "/", expires: date });
+    Cookies.set("holdfor", borrowernumber, { path: "/", expires: date });
     location.href="/cgi-bin/koha/catalogue/search.pl";
 }

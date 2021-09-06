@@ -1,5 +1,3 @@
-#!/usr/bin/perl
-
 package C4::ShelfBrowser;
 
 # Copyright 2010 Catalyst IT
@@ -25,6 +23,7 @@ use warnings;
 use C4::Biblio;
 use C4::Context;
 use C4::Koha;
+use Koha::Biblios;
 use Koha::Libraries;
 
 use vars qw(@ISA @EXPORT @EXPORT_OK);
@@ -220,30 +219,25 @@ sub GetShelfInfo {
     my $marcflavour = C4::Context->preference("marcflavour");
     my @valid_items;
     for my $item ( @items ) {
-        my $this_biblio = GetBibData($item->{biblionumber});
-        next unless defined $this_biblio;
-        $item->{'title'} = $this_biblio->{'title'};
-        my $this_record = GetMarcBiblio({ biblionumber => $this_biblio->{'biblionumber'} });
+        my $biblio = Koha::Biblios->find( $item->{biblionumber} );
+        next unless defined $biblio;
+
+        $item->{biblio_object} = $biblio;
+        $item->{biblionumber}  = $biblio->biblionumber;
+        $item->{title}         = $biblio->title;
+        $item->{subtitle}      = $biblio->subtitle;
+        $item->{medium}        = $biblio->medium;
+        $item->{part_number}   = $biblio->part_number;
+        $item->{part_name}     = $biblio->part_name;
+        my $this_record = GetMarcBiblio({ biblionumber => $biblio->biblionumber });
         $item->{'browser_normalized_upc'} = GetNormalizedUPC($this_record,$marcflavour);
         $item->{'browser_normalized_oclc'} = GetNormalizedOCLCNumber($this_record,$marcflavour);
         $item->{'browser_normalized_isbn'} = GetNormalizedISBN(undef,$this_record,$marcflavour);
         $item->{'browser_normalized_ean'} = GetNormalizedEAN($this_record,$marcflavour);
-        $item->{'subtitle'} = GetRecordValue('subtitle', $this_record, GetFrameworkCode( $item->{biblionumber} ));
         $item->{'browser_urls'} = GetMarcUrls($this_record,$marcflavour);
         push @valid_items, $item;
     }
     return @valid_items;
-}
-
-# Fetches some basic biblio data needed by the shelf stuff
-sub GetBibData {
-	my ($bibnum) = @_;
-
-    my $dbh         = C4::Context->dbh;
-    my $sth = $dbh->prepare("SELECT biblionumber, title FROM biblio WHERE biblionumber=?");
-    $sth->execute($bibnum);
-    my $bib = $sth->fetchrow_hashref();
-    return $bib;
 }
 
 1;
