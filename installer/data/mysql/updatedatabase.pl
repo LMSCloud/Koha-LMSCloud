@@ -19543,7 +19543,8 @@ if( CheckVersion( $DBversion ) ) {
     |);
     if( $OpacNavRight ){
         # If there is a value in the OpacNavRight preference, insert it into opac_news
-        $dbh->do("INSERT INTO opac_news (branchcode, lang, title, content ) VALUES (NULL, ?, '', ?)", undef, "OpacNavRight_$langs[0]", $OpacNavRight);
+        $dbh->do("INSERT INTO opac_news (branchcode, lang, title, content ) VALUES (NULL, ?, '', ?)", undef, "OpacNavRight_de-DE", $OpacNavRight);
+        $dbh->do("INSERT INTO opac_news (branchcode, lang, title, content ) VALUES (NULL, ?, '', ?)", undef, "OpacNavRight_en", $OpacNavRight);
     }
     # Remove the OpacNavRight system preference
     $dbh->do("DELETE FROM systempreferences WHERE variable='OpacNavRight'");
@@ -19552,10 +19553,11 @@ if( CheckVersion( $DBversion ) ) {
         SELECT value FROM systempreferences WHERE variable='OpacMainPageLeftPanel';
     |);
     if( $OpacMainPageLeftPanel ){
-        # If there is a value in the OpacNavRight preference, insert it into opac_news
-        $dbh->do("INSERT INTO opac_news (branchcode, lang, title, content ) VALUES (NULL, ?, '', ?)", undef, "OpacMainPageLeftPanel_$langs[0]", $OpacMainPageLeftPanel);
+        # If there is a value in the OpacMainPageLeftPanel preference, insert it into opac_news
+        $dbh->do("INSERT INTO opac_news (branchcode, lang, title, content ) VALUES (NULL, ?, '', ?)", undef, "OpacMainPageLeftPanel_de-DE", $OpacMainPageLeftPanel);
+        $dbh->do("INSERT INTO opac_news (branchcode, lang, title, content ) VALUES (NULL, ?, '', ?)", undef, "OpacMainPageLeftPanel_en", $OpacMainPageLeftPanel);
     }
-    # Remove the OpacNavRight system preference
+    # Remove the OpacMainPageLeftPanel system preference
     $dbh->do("DELETE FROM systempreferences WHERE variable='OpacMainPageLeftPanel'");
     SetVersion ($DBversion);
     print "Upgrade to $DBversion done (Bug 22318: Move contents of OpacNavRight and OpacMainPageLeftPanel preference to Koha news system)\n";
@@ -20408,6 +20410,10 @@ if( CheckVersion( $DBversion ) ) {
 $DBversion = '19.06.00.017';
 if ( CheckVersion($DBversion) ) {
 
+    $dbh->do(q{
+        INSERT IGNORE INTO authorised_value_categories( category_name ) VALUES ('PAYMENT_TYPE')
+    });
+    
     $dbh->do(qq{
         INSERT INTO
           authorised_values (category,authorised_value,lib)

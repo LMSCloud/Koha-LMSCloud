@@ -14,9 +14,9 @@ INSERT INTO account_debit_types ( code, description, can_be_invoiced, can_be_sol
 ('RESERVE', 'Hold fee', 0, 0, NULL, 1),
 ('RESERVE_EXPIRED', 'Hold waiting too long', 0, 0, NULL, 1),
 ('VOID', 'Credit has been voided', 0, 0, NULL, 1),
-('CLAIM_LEVEL1', 'Claim fee level 1', 0, NULL, 1),
-('CLAIM_LEVEL2', 'Claim fee level 2', 0, NULL, 1),
-('CLAIM_LEVEL3', 'Claim fee level 3', 0, NULL, 1),
-('CLAIM_LEVEL4', 'Claim fee level 4', 0, NULL, 1),
-('CLAIM_LEVEL5', 'Claim fee level 5', 0, NULL, 1),
-('NOTIFICATION', 'Notification fee', 0, NULL, 1);
+('CLAIM_LEVEL1', 'Claim fee level 1', 0, 0, NULL, 1),
+('CLAIM_LEVEL2', 'Claim fee level 2', 0, 0, NULL, 1),
+('CLAIM_LEVEL3', 'Claim fee level 3', 0, 0, NULL, 1),
+('CLAIM_LEVEL4', 'Claim fee level 4', 0, 0, NULL, 1),
+('CLAIM_LEVEL5', 'Claim fee level 5', 0, 0, NULL, 1),
+('NOTIFICATION', 'Notification fee', 0, 0, NULL, 1);
