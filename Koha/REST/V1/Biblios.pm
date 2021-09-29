@@ -315,7 +315,7 @@ Controller function that handles retrieving biblio's bookings
 sub get_bookings {
     my $c = shift->openapi->valid_input or return;
 
-    my $biblio = Koha::Biblios->find( { biblionumber => $c->validation->param('biblio_id') }, { prefetch => ['bookings'] } );
+    my $biblio = Koha::Biblios->find( { biblionumber => $c->param('biblio_id') }, { prefetch => ['bookings'] } );
 
     unless ( $biblio ) {
         return $c->render(
@@ -349,7 +349,10 @@ Controller function that handles retrieving biblio's items
 sub get_items {
     my $c = shift->openapi->valid_input or return;
 
-    my $biblio = Koha::Biblios->find( { biblionumber => $c->validation->param('biblio_id') }, { prefetch => ['items'] } );
+    my $bookable = delete $c->validation->output->{'bookable'};
+
+    my $biblio = Koha::Biblios->find( { biblionumber => $c->param('biblio_id') }, { prefetch => ['items'] } );
+    my $bookable_only = $bookable;
 
     unless ( $biblio ) {
         return $c->render(
@@ -363,6 +366,7 @@ sub get_items {
     return try {
 
         my $items_rs = $biblio->items;
+        $items_rs = $items_rs->filter_by_bookable if $bookable_only;
         my $items    = $c->objects->search( $items_rs );
         return $c->render(
             status  => 200,
