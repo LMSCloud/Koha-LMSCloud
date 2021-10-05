@@ -951,7 +951,6 @@ $(document).ready(function() {
 
                     $.getJSON( sSource, aoData, function (json) {
                         fnCallback(json);
-                        $("#relatives-issues-tab").text(relativesIssuesTable.dataTable().api().rows().count() + ' ' + $("#relatives-issues-tab").text());
                     } );
                 },
             }));
