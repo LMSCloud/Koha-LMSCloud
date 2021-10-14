@@ -19242,9 +19242,7 @@ if ( CheckVersion($DBversion) ) {
         SET
           interface = 'cron'
         WHERE
-          manager_id IS NULL
-        AND
-          branchcode IS NULL;
+          manager_id IS NULL;
     });
 
     $dbh->do(qq{
@@ -21089,25 +21087,25 @@ if ( CheckVersion($DBversion) ) {
               is_system
             )
             VALUES
-              ('ACCOUNT', 'Account creation fee', 0, NULL, 1),
-              ('ACCOUNT_RENEW', 'Account renewal fee', 0, NULL, 1),
-              ('RESERVE_EXPIRED', 'Hold waiting too long', 0, NULL, 1),
-              ('LOST', 'Lost item', 1, NULL, 1),
-              ('MANUAL', 'Manual fee', 1, NULL, 0),
-              ('NEW_CARD', 'New card fee', 1, NULL, 1),
-              ('OVERDUE', 'Overdue fine', 0, NULL, 1),
-              ('PROCESSING', 'Lost item processing fee', 0, NULL, 1),
-              ('RENT', 'Rental fee', 0, NULL, 1),
-              ('RENT_DAILY', 'Daily rental fee', 0, NULL, 1),
-              ('RENT_RENEW', 'Renewal of rental item', 0, NULL, 1),
-              ('RENT_DAILY_RENEW', 'Renewal of daily rental item', 0, NULL, 1),
-              ('RESERVE', 'Hold fee', 0, NULL, 1),
-              ('CLAIM_LEVEL1', 'Claim fee level 1', 0, NULL, 1),
-              ('CLAIM_LEVEL2', 'Claim fee level 2', 0, NULL, 1),
-              ('CLAIM_LEVEL3', 'Claim fee level 3', 0, NULL, 1),
-              ('CLAIM_LEVEL4', 'Claim fee level 4', 0, NULL, 1),
-              ('CLAIM_LEVEL5', 'Claim fee level 5', 0, NULL, 1),
-              ('NOTIFICATION', 'Notification fee', 0, NULL, 1)
+              ('ACCOUNT', 'Anmeldegebühr', 0, NULL, 1),
+              ('ACCOUNT_RENEW', 'Benutzungsgebühr, 0, NULL, 1),
+              ('RESERVE_EXPIRED', 'Nicht abgeholte Vormerkung', 0, NULL, 1),
+              ('LOST', 'Medienersatz', 1, NULL, 1),
+              ('MANUAL', 'Manuelle Gebühr', 1, NULL, 0),
+              ('NEW_CARD', 'Neuer Ausweis', 1, NULL, 1),
+              ('OVERDUE', 'Säumnisgebühr', 0, NULL, 1),
+              ('PROCESSING', 'Bearbeitungsgebühr Medienverlust', 0, NULL, 1),
+              ('RENT', 'Leihgebühr', 0, NULL, 1),
+              ('RENT_DAILY', 'Tägliche Leihgebühr', 0, NULL, 1),
+              ('RENT_RENEW', 'Leihgebühr durch Verlängerung', 0, NULL, 1),
+              ('RENT_DAILY_RENEW', 'Tägliche Leihgebühr durch Verlängerung', 0, NULL, 1),
+              ('RESERVE', 'Vormerkgebühr', 0, NULL, 1),
+              ('CLAIM_LEVEL1', 'Mahngebühr Stufe 1', 0, NULL, 1),
+              ('CLAIM_LEVEL2', 'Mahngebühr Stufe 2', 0, NULL, 1),
+              ('CLAIM_LEVEL3', 'Mahngebühr Stufe 3', 0, NULL, 1),
+              ('CLAIM_LEVEL4', 'Mahngebühr Stufe 4', 0, NULL, 1),
+              ('CLAIM_LEVEL5', 'Mahngebühr Stufe 5', 0, NULL, 1),
+              ('NOTIFICATION', 'Benachrichtigungsgebühr', 0, NULL, 1)
         }
     );
 
@@ -21184,7 +21182,7 @@ if ( CheckVersion($DBversion) ) {
     # Update accountype 'CL4' to 'CLAIM_LEVEL5'
     $dbh->do(
         qq{
-          UPDATE accountlines SET accounttype = 'NOTIFICATION' WHERE accounttype = 'NOTIFICATION'
+          UPDATE accountlines SET accounttype = 'NOTIFICATION' WHERE accounttype = 'NOTF'
         }
     );
 
@@ -21249,8 +21247,8 @@ if ( CheckVersion($DBversion) ) {
             is_system
           )
           SELECT
-            DISTINCT(accounttype),
-            "Unexpected type found during upgrade",
+            accounttype,
+            CONCAT("Gebührenart ",IFNULL(accounttype,'--')),
             1,
             NULL,
             0
@@ -21258,6 +21256,8 @@ if ( CheckVersion($DBversion) ) {
             accountlines
           WHERE
             amount >= 0
+          GROUP BY
+            accounttype
         }
     );
 
@@ -21361,11 +21361,12 @@ if ( CheckVersion($DBversion) ) {
               is_system
             )
             VALUES
-              ('PAYMENT', 'Payment', 0, 1),
-              ('WRITEOFF', 'Writeoff', 0, 1),
-              ('FORGIVEN', 'Forgiven', 1, 1),
-              ('CREDIT', 'Credit', 1, 1),
-              ('LOST_RETURN', 'Lost item fee refund', 0, 1)
+              ('PAYMENT',      'Zahlung', 0, 1),
+              ('WRITEOFF',     'Gebührenerlass', 0, 1),
+              ('FORGIVEN',     'Gebührenerlass', 1, 1),
+              ('CREDIT',       'Gutschrift', 1, 1),
+              ('LOST_RETURN',  'Erstattung der Medienersatzgebühr', 0, 1),
+              ('CANCELLATION', 'Stornierte Gebühr', 0, 1)
         }
     );
 
@@ -21431,6 +21432,13 @@ if ( CheckVersion($DBversion) ) {
           UPDATE accountlines SET accounttype = 'WRITEOFF' WHERE accounttype = 'W' OR accounttype = 'WO'
         }
     );
+    
+    # Update accountype 'CAN' to 'CANCELLATION'
+    $dbh->do(
+        qq{
+          UPDATE accountlines SET accounttype = 'CANCELLATION' WHERE accounttype = 'CAN'
+        }
+    );
 
     # Add any unexpected accounttype codes to credit_types as appropriate
     $dbh->do(
@@ -21442,14 +21450,16 @@ if ( CheckVersion($DBversion) ) {
             is_system
           )
           SELECT
-            DISTINCT(accounttype),
-            "Unexpected type found during upgrade",
+            accounttype,
+            CONCAT("Gutschriftenart ",IFNULL(accounttype,'--')),
             1,
             0
           FROM
             accountlines
           WHERE
             amount < 0
+          GROUP BY
+            accounttype
         }
     );
 
@@ -21712,7 +21722,7 @@ if ( CheckVersion($DBversion) ) {
         qq{
             INSERT IGNORE INTO account_credit_types (code, description, can_be_added_manually, is_system)
             VALUES
-              ('REFUND', 'A refund applied to a patrons fine', 0, 1)
+              ('REFUND', 'Rückerstattung', 0, 1)
         }
     );
 
@@ -21747,7 +21757,7 @@ if( CheckVersion( $DBversion ) ) {
 
     $dbh->do(q{
         INSERT IGNORE INTO account_credit_types ( code, description, can_be_added_manually, is_system )
-        VALUES ('PURCHASE', 'Purchase', 0, 1);
+        VALUES ('PURCHASE', 'Verkauf', 0, 1);
     });
 
     my $sth = $dbh->prepare(q{
@@ -22148,7 +22158,7 @@ if( CheckVersion( $DBversion ) ) {
         INSERT IGNORE INTO
           account_credit_types ( code, description, can_be_added_manually, is_system )
         VALUES
-          ('LOST_FOUND', 'Lost item fee refund', 0, 1)
+          ('LOST_FOUND', 'Erstattung der Medienersatzgebühr', 0, 1)
     });
 
     # Migrate LOST_RETURN to LOST_FOUND
@@ -22396,7 +22406,7 @@ if ( CheckVersion($DBversion) ) {
         qq{
             INSERT IGNORE INTO account_credit_types (code, description, can_be_added_manually, is_system)
             VALUES
-              ('DISCOUNT', 'A discount applied to a patrons fine', 0, 1)
+              ('DISCOUNT', 'Rabatt auf eine Gebühr', 0, 1)
         }
     );
 
@@ -24468,7 +24478,7 @@ if ( CheckVersion($DBversion) ) {
         qq{
             INSERT IGNORE INTO account_credit_types (code, description, can_be_added_manually, is_system)
             VALUES
-              ('OVERPAYMENT', 'Overpayment refund', 0, 1)
+              ('OVERPAYMENT', 'Rückerstattung einer Überzahlung', 0, 1)
         }
     );
 
@@ -24644,11 +24654,6 @@ if( CheckVersion( $DBversion ) ) {
 
 $DBversion = '20.06.00.064';
 if ( CheckVersion($DBversion) ) {
-
-    $dbh->do(q{
-        INSERT IGNORE INTO account_credit_types (code, description, can_be_added_manually, is_system)
-        VALUES ('CANCELLATION', 'Cancelled charge', 0, 1)
-    });
 
     $dbh->do(q{
         INSERT IGNORE INTO account_offset_types ( type ) VALUES ('CANCELLATION');
