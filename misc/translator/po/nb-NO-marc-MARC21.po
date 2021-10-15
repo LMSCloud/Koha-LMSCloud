@@ -8,8 +8,8 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: Koha 21.05\n"
-"POT-Creation-Date: 2021-05-11 20:06-0300\n"
-"PO-Revision-Date: 2019-04-11 08:27+0000\n"
+"POT-Creation-Date: 2021-09-13 00:05-0300\n"
+"PO-Revision-Date: 2021-08-26 07:29+0000\n"
 "Last-Translator: Magnus Enger <magnus@enger.priv.no>\n"
 "Language-Team: Norwegian Bokmål <>\n"
 "Language: nb\n"
@@ -18,7 +18,7 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
 "X-Generator: Pootle 2.8\n"
-"X-POOTLE-MTIME: 1554971270.174915\n"
+"X-POOTLE-MTIME: 1629962960.132831\n"
 "X-Pootle-Path: /nb/21.05/nb-NO-marc-MARC21.po\n"
 "X-Pootle-Revision: 1\n"
 
@@ -169,9 +169,9 @@ msgstr ""
 
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:715
 #: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:789
-#, fuzzy, c-format
+#, c-format
 msgid "(index-term-genre"
-msgstr "Ikke fastsatt"
+msgstr "(index-term-genre"
 
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:656
 #: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:737
@@ -189,15 +189,15 @@ msgstr ""
 
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:222
 #: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:257
-#, fuzzy, c-format
+#, c-format
 msgid "+AND+(bib-level:a+OR+bib-level:b)"
-msgstr "+and+(bib-level:a+or+bib-level:b)"
+msgstr "+AND+(bib-level:a+OR+bib-level:b)"
 
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:239
 #: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:274
-#, fuzzy, c-format
+#, c-format
 msgid "+NOT+(bib-level:a+OR+bib-level:b)"
-msgstr "+and+(bib-level:a+or+bib-level:b)"
+msgstr "+NOT+(bib-level:a+OR+bib-level:b)"
 
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:25
 #: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:27
@@ -248,9 +248,9 @@ msgstr "/cgi-bin/koha/catalogue/labeledMARCdetail.pl?biblionumber="
 
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:195
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetResults.xsl:844
-#, fuzzy, c-format
+#, c-format
 msgid "/cgi-bin/koha/catalogue/search.pl"
-msgstr "/cgi-bin/koha/catalogue/search.pl?q="
+msgstr "/cgi-bin/koha/catalogue/search.pl"
 
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:653
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:712
@@ -272,8 +272,8 @@ msgstr "/cgi-bin/koha/catalogue/search.pl?q=Control-number:"
 
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:225
 #, c-format
-msgid "/cgi-bin/koha/catalogue/search.pl?q=Host-item:"
-msgstr "/cgi-bin/koha/catalogue/search.pl?q=Host-item:"
+msgid "/cgi-bin/koha/catalogue/search.pl?q=Host-item:("
+msgstr "/cgi-bin/koha/catalogue/search.pl?q=Host-item:("
 
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slimUtils.xsl:295
 #, c-format
@@ -307,9 +307,9 @@ msgid "/cgi-bin/koha/catalogue/search.pl?q=control-number:"
 msgstr "/cgi-bin/koha/catalogue/search.pl?q=control-number:"
 
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:722
-#, fuzzy, c-format
+#, c-format
 msgid "/cgi-bin/koha/catalogue/search.pl?q=index-term-genre"
-msgstr "/cgi-bin/koha/catalogue/search.pl?q=rcn:"
+msgstr "/cgi-bin/koha/catalogue/search.pl?q=index-term-genre"
 
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:222
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:239
@@ -363,9 +363,9 @@ msgstr "/cgi-bin/koha/opac-detail.pl?biblionumber="
 
 #: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:230
 #: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:646
-#, fuzzy, c-format
+#, c-format
 msgid "/cgi-bin/koha/opac-search.pl"
-msgstr "/cgi-bin/koha/opac-search.pl?q="
+msgstr "/cgi-bin/koha/opac-search.pl"
 
 #: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:734
 #: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:786
@@ -387,8 +387,8 @@ msgstr "/cgi-bin/koha/opac-search.pl?q=Control-number:"
 
 #: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:260
 #, c-format
-msgid "/cgi-bin/koha/opac-search.pl?q=Host-item:"
-msgstr "/cgi-bin/koha/opac-search.pl?q=Host-item:"
+msgid "/cgi-bin/koha/opac-search.pl?q=Host-item:("
+msgstr "/cgi-bin/koha/opac-search.pl?q=Host-item:("
 
 #: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:339
 #: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slimUtils.xsl:293
@@ -420,9 +420,9 @@ msgid "/cgi-bin/koha/opac-search.pl?q=control-number:"
 msgstr "/cgi-bin/koha/opac-search.pl?q=control-number:"
 
 #: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:796
-#, fuzzy, c-format
+#, c-format
 msgid "/cgi-bin/koha/opac-search.pl?q=index-term-genre"
-msgstr "/cgi-bin/koha/opac-search.pl?q=rcn:"
+msgstr "/cgi-bin/koha/opac-search.pl?q=index-term-genre"
 
 #: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:257
 #: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:274

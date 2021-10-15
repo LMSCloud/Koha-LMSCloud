@@ -143,7 +143,6 @@
                                              [%- CASE 'LostReserve' -%]Lost reserve
                                              [%- CASE 'CancelReserve' -%]Cancelled reserve
                                              [%- CASE 'TransferCancellation' -%]Transfer was cancelled whilst in transit
-                                             [%- CASE -%][% trigger | html %]
                                          [%- END -%]
                                      </p>
                                  </div>
@@ -438,38 +437,40 @@
                                 [% END %]
                                     <div class="modal-dialog">
                                         <div class="modal-content">
-                                            <div class="modal-header">
-                                                <h3>
-                                                    Please return item to: [% Branches.GetName( TransferWaitingAt ) | html %]
-                                                </h3>
-                                            </div>
-                                            <div class="modal-body">
-                                                <p>
-                                                    <a href="/cgi-bin/koha/catalogue/detail.pl?type=intra&amp;biblionumber=[% itembiblionumber | uri %]">
-                                                        [% item.barcode | html %]: [% title | html %]
-                                                    </a>
-                                                </p>
-                                                [% INCLUDE all_checkin_messages %]
-                                            </div>
-                                            <div class="modal-footer">
-                                                <!-- CONFIRM -->
-                                                <button type="button" data-dismiss="modal" class="btn btn-default approve"><i class="fa fa-check"></i> OK</button>
-                                                <!-- PRINT SLIP -->
-                                                <button type="button" data-dismiss="modal" class="btn btn-default openWin" data-url="transfer-slip.pl?transferitem=[% itemnumber | uri %]&amp;&amp;branchcode=[% TransferWaitingAt | uri %]&amp;op=slip"><i class="fa fa-print"></i> Print transfer slip</button>
-                                                <!-- CANCEL TRANSFER -->
-                                                <form method="post" action="returns.pl" name="mainform">
-                                                    <button class="btn btn-default deny" type="submit"><i class="fa fa-times"></i> Cancel transfer</button>
-                                                    <input type="hidden" name="return_date_override" value="[% return_date_override | html %]" />
-                                                    <input type="hidden" name="return_date_override_remember" value="[% return_date_override_remember | html %]" />
-                                                    <input type="hidden" name="itemnumber" value="[% itemnumber | html %]" />
-                                                    <input type="hidden" name="canceltransfer" value="1" />
-                                                    [% FOREACH inputloo IN inputloop %]
-                                                        <input type="hidden" name="ri-[% inputloo.counter | html %]" value="[% inputloo.barcode | html %]" />
-                                                        <input type="hidden" name="dd-[% inputloo.counter | html %]" value="[% inputloo.duedate | html %]" />
-                                                        <input type="hidden" name="bn-[% inputloo.counter | html %]" value="[% inputloo.borrowernumber | html %]" />
-                                                    [% END %]
-                                                </form> <!-- /mainform -->
-                                            </div> <!-- /.modal-footer -->
+                                            <form method="post" action="returns.pl" name="wrongtransferform" id="wrongtransferform">
+                                                <input type="hidden" name="return_date_override" value="[% return_date_override | html %]" />
+                                                <input type="hidden" name="return_date_override_remember" value="[% return_date_override_remember | html %]" />
+                                                <input type="hidden" name="itemnumber" value="[% itemnumber | html %]" />
+                                                <input type="hidden" name="transit" value="[% NewTransfer | html %]" />
+                                                [% FOREACH inputloo IN inputloop %]
+                                                    <input type="hidden" name="ri-[% inputloo.counter | html %]" value="[% inputloo.barcode | html %]" />
+                                                    <input type="hidden" name="dd-[% inputloo.counter | html %]" value="[% inputloo.duedate | html %]" />
+                                                    <input type="hidden" name="bn-[% inputloo.counter | html %]" value="[% inputloo.borrowernumber | html %]" />
+                                                [% END %]
+
+                                                <div class="modal-header">
+                                                    <h3>
+                                                        Wrong transfer detected, please return item to: [% Branches.GetName( TransferWaitingAt ) | html %]
+                                                    </h3>
+                                                </div>
+
+                                                <div class="modal-body">
+                                                    <p>
+                                                        <a href="/cgi-bin/koha/catalogue/detail.pl?type=intra&amp;biblionumber=[% itembiblionumber | uri %]">[% item.barcode | html %]: [% title | html %]</a>
+                                                    </p>
+
+                                                    [% INCLUDE all_checkin_messages %]
+                                                </div>
+
+                                                <div class="modal-footer">
+                                                    <!-- CONFIRM -->
+                                                    <button class="btn btn-default approve" type="submit"><i class="fa fa-check"></i> OK</button>
+                                                    <!-- PRINT SLIP -->
+                                                    <button type="button" data-dismiss="modal" class="btn btn-default submit openWin" data-transfer="[% NewTransfer | html %]" data-url="transfer-slip.pl?transferitem=[% itemnumber | uri %]&amp;&amp;branchcode=[% TransferWaitingAt | uri %]&amp;op=slip"><i class="fa fa-print"></i> Print transfer slip</button>
+                                                    <!-- CANCEL TRANSFER -->
+                                                    <button type="button" data-dismiss="modal" class="btn btn-default deny cancel"><i class="fa fa-times"></i> Cancel transfer</button>
+                                                </div> <!-- /.modal-footer -->
+                                            </form> <!-- /wrongtransferform -->
                                         </div> <!-- /.modal-content -->
                                     </div> <!-- /.modal-dialog -->
                                 </div> <!-- /#wrong-transfer-modal -->
@@ -612,7 +613,7 @@
                                                         <button type="button" data-dismiss="modal" class="btn btn-default deny" name="notransfer" value="No"><i class="fa fa-times"></i> No</button>
                                                     [% ELSE %]
                                                         <button type="button" data-dismiss="modal" class="btn btn-default approve"><i class="fa fa-check"></i> OK</button>
-                                                        <button type="button" data-dismiss="modal" name="dotransfer" class="btn btn-default print openWin" data-url="transfer-slip.pl?transferitem=[% itemnumber | uri %]&amp;branchcode=[% transfer | uri %]&amp;op=slip"><i class="fa fa-print"></i> Print slip</button>
+                                                        <button type="button" data-dismiss="modal" class="btn btn-default print openWin" data-url="transfer-slip.pl?transferitem=[% itemnumber | uri %]&amp;branchcode=[% transfer | uri %]&amp;op=slip"><i class="fa fa-print"></i> Print slip</button>
                                                     [% END %]
                                                     <input type="hidden" name="return_date_override" value="[% return_date_override | html %]" />
                                                     <input type="hidden" name="return_date_override_remember" value="[% return_date_override_remember | html %]" />
@@ -1014,7 +1015,13 @@
             }).on('hidden.bs.modal', function() {
                 $("#barcode").prop("disabled", false).focus();
             });
-            $(".modal.noblock").modal({ backdrop: 'static'}).on('shown.bs.modal', function() {
+            $(".modal.noblock").on('show.bs.modal', function() {
+                /* If the modal doesn't block further action, the backdrop should be hidden.
+                   In order for this to happen smoothly we add a class to the body tag which
+                   targeted in the CSS */
+                $("body").addClass("nobackdrop");
+            }).modal()
+            .on('shown.bs.modal', function() {
                 $("#barcode").prop("disabled", false).focus();
             }).on('hidden.bs.modal', function() {
                 $("#barcode").prop("disabled", false).focus();
@@ -1132,6 +1139,16 @@
 
             $('.openWin').on("click",function(e){
                 Dopop( $(this).data("url") );
+            });
+
+            $('.submit').on("click",function(e){
+                this.form.submit();
+            });
+
+            $('.cancel').on("click",function(e){
+                var docancel = $("<input>").attr("type", "hidden").attr("name", "canceltransfer").val(1);
+                $('#wrongtransferform').append(docancel);
+                this.form.submit();
             });
 
             $('.print').on("click",function(e){

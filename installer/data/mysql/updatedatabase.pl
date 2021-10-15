@@ -25605,25 +25605,29 @@ if( CheckVersion( $DBversion ) ) {
 
 $DBversion = '20.12.00.048';
 if( CheckVersion( $DBversion ) ) {
-    if ( column_exists( 'borrowers', 'relationship' ) ) {
-        $dbh->do(q{
-            ALTER TABLE borrowers DROP COLUMN relationship
-        });
-    }
 
-    if ( column_exists( 'deletedborrowers', 'relationship' ) ) {
-        $dbh->do(q{
-            ALTER TABLE deletedborrowers DROP COLUMN relationship
-        });
-    }
+    # This DB upgrade has been commented out because it removes
+    # actively used data, the relationship columns will be added back
 
-    if ( column_exists( 'borrower_modifications', 'relationship' ) ) {
-        $dbh->do(q{
-            ALTER TABLE borrower_modifications DROP COLUMN relationship
-        });
-    }
+    # if ( column_exists( 'borrowers', 'relationship' ) ) {
+    #     $dbh->do(q{
+    #         ALTER TABLE borrowers DROP COLUMN relationship
+    #     });
+    # }
 
-    NewVersion( $DBversion, 26995, "Drop column relationship from borrower tables");
+    # if ( column_exists( 'deletedborrowers', 'relationship' ) ) {
+    #     $dbh->do(q{
+    #         ALTER TABLE deletedborrowers DROP COLUMN relationship
+    #     });
+    # }
+
+    # if ( column_exists( 'borrower_modifications', 'relationship' ) ) {
+    #     $dbh->do(q{
+    #         ALTER TABLE borrower_modifications DROP COLUMN relationship
+    #     });
+    # }
+
+    NewVersion( $DBversion, 26995, "[SKIP] Drop column relationship from borrower tables [not executed]");
 }
 
 $DBversion = '20.12.00.049';
@@ -25653,6 +25657,238 @@ if ( CheckVersion($DBversion) ) {
 $DBversion = '21.05.00.000';
 if( CheckVersion( $DBversion ) ) {
     NewVersion( $DBversion, "", "Koha 21.05.00 release" );
+}
+
+$DBversion = '21.05.01.000';
+if ( CheckVersion($DBversion) ) {
+    $dbh->do('DELETE FROM sessions');
+    $dbh->do('ALTER TABLE sessions MODIFY a_session LONGBLOB NOT NULL');
+
+    NewVersion( $DBversion, '28489', 'Modify sessions.a_session from longtext to longblob' );
+}
+
+$DBversion = '21.05.01.001';
+if( CheckVersion( $DBversion ) ) {
+    if( !column_exists( 'borrower_modifications', 'relationship' ) ) {
+      $dbh->do(q{
+          ALTER TABLE borrower_modifications ADD COLUMN `relationship` varchar(100) COLLATE utf8mb4_unicode_ci DEFAULT NULL AFTER `borrowernotes`
+      });
+    }
+
+    if( !column_exists( 'borrowers', 'relationship' ) ) {
+      $dbh->do(q{
+          ALTER TABLE borrowers ADD COLUMN `relationship` varchar(100) COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT 'used for children to include the relationship to their guarantor' AFTER `borrowernotes`
+      });
+    }
+
+    if( !column_exists( 'deletedborrowers', 'relationship' ) ) {
+      $dbh->do(q{
+          ALTER TABLE deletedborrowers ADD COLUMN `relationship` varchar(100) COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT 'used for children to include the relationship to their guarantor' AFTER `borrowernotes`
+      });
+    }
+
+    NewVersion( $DBversion, 28490, "Bring back accidentally deleted relationship columns");
+}
+
+$DBversion = '21.05.01.002';
+if( CheckVersion( $DBversion ) ) {
+
+    # Add 'WrongTransfer' to branchtransfers cancellation_reason enum
+    $dbh->do(
+        q{
+            ALTER TABLE
+                `branchtransfers`
+            MODIFY COLUMN
+                `cancellation_reason` enum(
+                    'Manual',
+                    'StockrotationAdvance',
+                    'StockrotationRepatriation',
+                    'ReturnToHome',
+                    'ReturnToHolding',
+                    'RotatingCollection',
+                    'Reserve',
+                    'LostReserve',
+                    'CancelReserve',
+                    'ItemLost',
+                    'WrongTransfer'
+                )
+            AFTER `comments`
+          }
+    );
+
+    NewVersion( $DBversion, 24434, "Add 'WrongTransfer' to branchtransfers.cancellation_reason enum");
+}
+
+$DBversion = '21.05.01.003';
+if( CheckVersion( $DBversion ) ) {
+    NewVersion( $DBversion, "", "Koha 21.05.01 release" );
+}
+
+$DBversion = '21.05.01.004';
+if( CheckVersion( $DBversion ) ) {
+    $dbh->do( q{
+        INSERT IGNORE INTO systempreferences (variable, value, explanation, options, type)
+        VALUES ('NewsLog', '0', 'If enabled, log OPAC News changes', '', 'YesNo')
+    });
+
+    NewVersion( $DBversion, 26205, "Add new system preference NewsLog to log news changes");
+}
+
+$DBversion = '21.05.02.000';
+if( CheckVersion( $DBversion ) ) {
+    NewVersion( $DBversion, "", "Koha 21.05.02 release" );
+}
+
+$DBversion = '21.05.02.001';
+if( CheckVersion( $DBversion ) ) {
+    my @fields = qw(
+      branchname
+      branchaddress1
+      branchaddress2
+      branchaddress3
+      branchzip
+      branchcity
+      branchstate
+      branchcountry
+      branchphone
+      branchfax
+      branchemail
+      branchillemail
+      branchreplyto
+      branchreturnpath
+      branchurl
+      branchip
+      branchnotes
+      opac_info
+      marcorgcode
+    );
+    for my $f ( @fields ) {
+        $dbh->do(qq{
+            UPDATE branches
+            SET $f = NULL
+            WHERE $f = ""
+        });
+    }
+
+    NewVersion( $DBversion, 28567, "Set to NULL empty branches fields");
+}
+
+$DBversion = '21.05.02.002';
+if( CheckVersion( $DBversion ) ) {
+    if ( column_exists('message_queue', 'delivery_note') ) {
+        $dbh->do(q{
+            ALTER TABLE message_queue CHANGE COLUMN delivery_note failure_code MEDIUMTEXT
+        });
+    }
+
+    if( !column_exists( 'message_queue', 'failure_code' ) ) {
+        $dbh->do(q{
+            ALTER TABLE message_queue ADD failure_code mediumtext AFTER content_type
+        });
+    }
+
+    NewVersion( $DBversion, 28813, "Update delivery_note to failure_code in message_queue");
+}
+
+$DBversion = '21.05.02.003';
+if( CheckVersion( $DBversion ) ) {
+    $dbh->do(q{update systempreferences set value=1 where variable in ('AcquisitionLog', 'NewsLog', 'NoticesLog') and value='on'});
+    $dbh->do(q{update systempreferences set value=0 where variable in ('AcquisitionLog', 'NewsLog', 'NoticesLog') and value='off'});
+
+    NewVersion( $DBversion, 28872, "Update syspref values from on and off to 1 and 0");
+}
+
+$DBversion = '21.05.03.000';
+if( CheckVersion( $DBversion ) ) {
+    NewVersion( $DBversion, "", "Koha 21.05.03 release" );
+}
+
+$DBversion = '21.05.03.001';
+if( CheckVersion( $DBversion ) ) {
+        $dbh->do(q{
+            DELETE FROM circulation_rules
+            WHERE rule_name = 'rentaldiscount' AND rule_value=''
+        });
+    NewVersion( $DBversion, "28774", "Delete blank rental discounts" );
+}
+
+$DBversion = '21.05.03.002';
+if ( CheckVersion( $DBversion ) ) {
+
+    use Koha::AuthUtils qw(hash_password);
+
+    my $sth = $dbh->prepare(q{
+        SELECT client_id, secret
+        FROM api_keys
+    });
+    $sth->execute;
+    my $results = $sth->fetchall_arrayref({});
+
+    $sth = $dbh->prepare(q{
+        UPDATE api_keys
+        SET
+            secret = ?
+        WHERE
+            client_id = ?
+    });
+
+    foreach my $api_key (@$results) {
+        unless ( $api_key->{secret} =~ m/^\$2a\$08\$/ ) {
+            my $digest = Koha::AuthUtils::hash_password( $api_key->{secret} );
+            $sth->execute( $digest, $api_key->{client_id} );
+        }
+    }
+
+    NewVersion( $DBversion, 28772, "Store hashed API key secrets" );
+}
+
+$DBversion = '21.05.03.003';
+if ( CheckVersion( $DBversion ) ) {
+    $dbh->do( q{
+        INSERT IGNORE INTO systempreferences ( `variable`, `value`, `options`, `explanation`, `type` ) VALUES
+        ('PassItemMarcToXSLT','1',NULL,'If enabled, item fields in the MARC record will be made avaiable to XSLT sheets. Otherwise they will be removed.','YesNo');
+    });
+    # foreach my $pref ('XSLTDetailsDisplay','XSLTListsDisplay','XSLTResultsDisplay','OPACXSLTDetailsDisplay','OPACXSLTListsDisplay','OPACXSLTResultsDisplay'){
+        # if( C4::Context->preference($pref) ne 'default' ){
+            # print "NOTE: You have defined a custom stylesheet. If your custom stylesheets are utilizing item fields you must enable the system preference 'PassItemMarcToXSLT'\n";
+            # last;
+        # }
+    # }
+
+    NewVersion( $DBversion, 28373, "Add PassItemMarcToXSLT system preference");
+}
+
+$DBversion = '21.05.04.000';
+if( CheckVersion( $DBversion ) ) {
+    NewVersion( $DBversion, "", "Koha 21.05.04 release" );
+}
+
+$DBversion = '21.05.04.001';
+if( CheckVersion( $DBversion ) ) {
+    $dbh->do(q{
+        UPDATE systempreferences SET value = IF(value = 'yes',1,0)
+        WHERE variable = 'DefaultHoldExpirationdate';
+    });
+    NewVersion( $DBversion, "29073", "Make DefaultHoldExpirationdate use 1/0 values" );
+}
+
+$DBversion = '21.05.04.002';
+if( CheckVersion( $DBversion ) ) {
+    $dbh->do(q{
+        INSERT IGNORE INTO systempreferences
+        ( variable, value, options, explanation, type ) VALUES
+        ('FacetOrder','Alphabetical','Alphabetical|Usage','Specify the order of facets within each category','Choice')
+    });
+    NewVersion( $DBversion, 28826, "Add system preference FacetOrder");
+}
+
+$DBversion = '21.05.04.003';
+if( CheckVersion( $DBversion ) ) {
+    $dbh->do( q{
+        INSERT IGNORE INTO systempreferences (variable, value, options, explanation, type)
+        VALUES ('CreateAVFromCataloguing', '1', '', 'Ability to create authorized values from the cataloguing module', 'YesNo')
+    });
+    NewVersion( $DBversion, 29137, "Add system preference CreateAVFromCataloguing");
 }
 
 # SEE bug 13068

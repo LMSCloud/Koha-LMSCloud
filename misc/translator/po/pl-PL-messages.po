@@ -7,9 +7,9 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Koha 21.05\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2021-05-11 20:24-0300\n"
-"PO-Revision-Date: 2021-02-28 21:47+0000\n"
-"Last-Translator: rysiek_d <rysiek_d@o2.pl>\n"
+"POT-Creation-Date: 2021-07-19 08:29-0300\n"
+"PO-Revision-Date: 2021-09-15 05:54+0000\n"
+"Last-Translator: Ilona <szczudlo@biblos.pk.edu.pl>\n"
 "Language-Team: none\n"
 "Language: pl\n"
 "MIME-Version: 1.0\n"
@@ -18,7 +18,7 @@ msgstr ""
 "Plural-Forms: nplurals=3; plural=(n==1 ? 0 : n%10>=2 && n%10<=4 && (n%100<10 "
 "|| n%100>=20) ? 1 : 2);\n"
 "X-Generator: Pootle 2.8\n"
-"X-POOTLE-MTIME: 1614548865.601346\n"
+"X-POOTLE-MTIME: 1631685282.491025\n"
 "X-Pootle-Path: /pl/21.05/pl-PL-messages.po\n"
 "X-Pootle-Revision: 1\n"
 
@@ -102,28 +102,28 @@ msgid "Invalid field weight '{weight}', must be a positive decimal number."
 msgstr ""
 "Nieprawidłowa zawartość pola '{weight}', musi być dodatnią liczbą dziesiętną."
 
-#: koha-tmpl/intranet-tmpl/prog/en/modules/tools/batchMod-del.tt:129
-#: koha-tmpl/intranet-tmpl/prog/en/modules/tools/batchMod-del.tt:271
+#: koha-tmpl/intranet-tmpl/prog/en/modules/tools/batchMod-del.tt:136
+#: koha-tmpl/intranet-tmpl/prog/en/modules/tools/batchMod-del.tt:278
 msgid "Item does not belong to your library"
 msgstr "Egzemplarz nie należy do Twojej biblioteki"
 
-#: koha-tmpl/intranet-tmpl/prog/en/modules/tools/batchMod-del.tt:130
-#: koha-tmpl/intranet-tmpl/prog/en/modules/tools/batchMod-del.tt:272
+#: koha-tmpl/intranet-tmpl/prog/en/modules/tools/batchMod-del.tt:137
+#: koha-tmpl/intranet-tmpl/prog/en/modules/tools/batchMod-del.tt:279
 msgid "Item has a waiting hold"
 msgstr "Egzemplarz posiada rezerwację"
 
-#: koha-tmpl/intranet-tmpl/prog/en/modules/tools/batchMod-del.tt:131
-#: koha-tmpl/intranet-tmpl/prog/en/modules/tools/batchMod-del.tt:273
+#: koha-tmpl/intranet-tmpl/prog/en/modules/tools/batchMod-del.tt:138
+#: koha-tmpl/intranet-tmpl/prog/en/modules/tools/batchMod-del.tt:280
 msgid "Item has linked analytics"
 msgstr "Element połączył dane analityczne"
 
-#: koha-tmpl/intranet-tmpl/prog/en/modules/tools/batchMod-del.tt:128
-#: koha-tmpl/intranet-tmpl/prog/en/modules/tools/batchMod-del.tt:270
+#: koha-tmpl/intranet-tmpl/prog/en/modules/tools/batchMod-del.tt:135
+#: koha-tmpl/intranet-tmpl/prog/en/modules/tools/batchMod-del.tt:277
 msgid "Item is checked out"
 msgstr "Egzemplarz jest wypożyczony"
 
-#: koha-tmpl/intranet-tmpl/prog/en/modules/tools/batchMod-del.tt:132
-#: koha-tmpl/intranet-tmpl/prog/en/modules/tools/batchMod-del.tt:274
+#: koha-tmpl/intranet-tmpl/prog/en/modules/tools/batchMod-del.tt:139
+#: koha-tmpl/intranet-tmpl/prog/en/modules/tools/batchMod-del.tt:281
 msgid "Last item for bibliographic record with biblio-level hold on it"
 msgstr ""
 "Ostatni egzemplarz rekordu bibliograficznego, który ma go na poziomie "
@@ -155,19 +155,19 @@ msgstr "Kolejność"
 #: koha-tmpl/intranet-tmpl/prog/en/modules/acqui/z3950_search.tt:189
 msgctxt "verb"
 msgid "Order"
-msgstr "Kolejność"
+msgstr "Wybierz"
 
-#: koha-tmpl/intranet-tmpl/prog/en/modules/catalogue/detail.tt:821
+#: koha-tmpl/intranet-tmpl/prog/en/modules/catalogue/detail.tt:825
 #, perl-brace-format
 msgctxt "pluralization"
 msgid "There is one archived suggestion."
 msgid_plural "There are {count} archived suggestions."
-msgstr[0] "Jest jedna zarchiwizowana sugestia."
-msgstr[1] "Istnieje {count} zarchiwizowanych sugestii."
-msgstr[2] "Istnieje {count} zarchiwizowanych sugestii."
+msgstr[0] "Istnieje jedna zarchiwizowana propozycja zakupu."
+msgstr[1] "Istnieją {count} zarchiwizowane propozycje zakupu."
+msgstr[2] "Istnieje {count} zarchiwizowanych propozycji zakupu."
 
-#: koha-tmpl/intranet-tmpl/prog/en/modules/tools/batchMod-del.tt:133
-#: koha-tmpl/intranet-tmpl/prog/en/modules/tools/batchMod-del.tt:275
+#: koha-tmpl/intranet-tmpl/prog/en/modules/tools/batchMod-del.tt:140
+#: koha-tmpl/intranet-tmpl/prog/en/modules/tools/batchMod-del.tt:282
 msgid "Unknown reason"
 msgstr "Nieznany powód"
 
@@ -179,40 +179,40 @@ msgstr ""
 "Próbowałeś usunąć wszystkie mapowania dla wymaganego indeksu, musisz "
 "zostawić co najmniej jedno mapowanie"
 
-#: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-main.tt:228
+#: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-main.tt:229
 msgid "checkout"
 msgid_plural "checkouts"
-msgstr[0] ""
-msgstr[1] ""
+msgstr[0] "wypożyczenie"
+msgstr[1] "wypożyczenia"
 msgstr[2] ""
 
-#: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-main.tt:244
+#: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-main.tt:245
 msgid "hold pending"
 msgid_plural "holds pending"
-msgstr[0] ""
-msgstr[1] ""
-msgstr[2] ""
+msgstr[0] "zamówienie"
+msgstr[1] "zamówienia"
+msgstr[2] "zamówień"
 
-#: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-main.tt:252
+#: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-main.tt:253
 msgid "hold waiting"
 msgid_plural "holds waiting"
-msgstr[0] ""
-msgstr[1] ""
-msgstr[2] ""
+msgstr[0] "zamówienie oczekujące na odbiór"
+msgstr[1] "zamówienia oczekujące na odbiór"
+msgstr[2] "zamówień oczekujących na odbiór"
 
-#: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-main.tt:269
-#: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-main.tt:276
+#: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-main.tt:270
+#: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-main.tt:277
 msgid "message"
 msgid_plural "messages"
-msgstr[0] ""
-msgstr[1] ""
+msgstr[0] "wiadomość"
+msgstr[1] "wiadomości"
 msgstr[2] ""
 
-#: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-main.tt:236
+#: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-main.tt:237
 msgid "overdue"
 msgid_plural "overdues"
-msgstr[0] ""
-msgstr[1] ""
+msgstr[0] "przetrzymanie"
+msgstr[1] "przetrzymania"
 msgstr[2] ""
 
 #: koha-tmpl/intranet-tmpl/prog/en/modules/catalogue/results.tt:564

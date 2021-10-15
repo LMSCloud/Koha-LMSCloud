@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Koha 21.05\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2021-05-11 18:56-0300\n"
+"POT-Creation-Date: 2021-09-12 23:46-0300\n"
 "PO-Revision-Date: 2021-05-27 11:20+0000\n"
 "Last-Translator: Anneli Österman <anneli.osterman@ouka.fi>\n"
 "Language-Team: none\n"
@@ -192,7 +192,7 @@ msgid "Add to cart"
 msgstr "Lisää koriin"
 
 #: koha-tmpl/intranet-tmpl/prog/js/datatables.js:51
-#: koha-tmpl/intranet-tmpl/prog/js/marc_modification_templates.js:118
+#: koha-tmpl/intranet-tmpl/prog/js/marc_modification_templates.js:122
 msgid "All"
 msgstr "Kaikki"
 
@@ -295,15 +295,15 @@ msgstr ""
 "Haluatko varmasti päivittää tämän lapsiasiakkaan aikuiseksi? Tätä toimintoa "
 "ei voi peruuttaa."
 
-#: koha-tmpl/intranet-tmpl/prog/js/marc_modification_templates.js:260
+#: koha-tmpl/intranet-tmpl/prog/js/marc_modification_templates.js:264
 msgid "Are you sure you wish to delete this template action?"
 msgstr "Haluatko varmasti poistaa tämän toiminnon?"
 
-#: koha-tmpl/intranet-tmpl/prog/js/marc_modification_templates.js:264
+#: koha-tmpl/intranet-tmpl/prog/js/marc_modification_templates.js:268
 msgid "Are you sure you wish to delete this template?"
 msgstr "Haluatko varmasti poistaa tämän pohjan?"
 
-#: koha-tmpl/intranet-tmpl/prog/js/pages/results.js:455
+#: koha-tmpl/intranet-tmpl/prog/js/pages/results.js:446
 msgid "At least two records must be selected for merging"
 msgstr "Valitse vähintään kaksi tietuetta yhdistettäväksi"
 
@@ -478,7 +478,7 @@ msgstr "Virhe: Hinta ei ole numeromuodossa, tarkista hinta ja yritä uudelleen."
 msgid "Edit"
 msgstr "Muokkaa"
 
-#: koha-tmpl/intranet-tmpl/prog/js/marc_modification_templates.js:310
+#: koha-tmpl/intranet-tmpl/prog/js/marc_modification_templates.js:314
 #, javascript-format
 msgid "Edit action %s"
 msgstr "Muokkaa toimintoa %s"
@@ -508,7 +508,7 @@ msgstr ""
 msgid "Error; your data might not have been saved"
 msgstr "Virhe; tietojasi ei ehkä tallennettu"
 
-#: koha-tmpl/intranet-tmpl/prog/js/marc_modification_templates.js:116
+#: koha-tmpl/intranet-tmpl/prog/js/marc_modification_templates.js:120
 msgid "Every"
 msgstr ""
 
@@ -558,6 +558,10 @@ msgstr "Tilin käyttösumma ylittää emotilin budjetoinnin"
 #: koha-tmpl/intranet-tmpl/prog/js/acq.js:309
 msgid "Fund amount exceeds period allocation"
 msgstr "Tilin käyttösumma ylittää jakson budjetoinnin"
+
+#: koha-tmpl/intranet-tmpl/prog/js/browser.js:120
+msgid "Go back to the results"
+msgstr ""
 
 #: koha-tmpl/intranet-tmpl/prog/js/holds.js:147
 msgid "Hold is <strong>suspended</strong>"
@@ -636,7 +640,7 @@ msgid "Last"
 msgstr ""
 
 #: koha-tmpl/intranet-tmpl/prog/js/addorderiso2709.js:90
-#: koha-tmpl/intranet-tmpl/prog/js/z3950_search.js:124
+#: koha-tmpl/intranet-tmpl/prog/js/z3950_search.js:113
 msgid "Loading"
 msgstr "Ladataan"
 
@@ -695,6 +699,8 @@ msgstr ""
 msgid "New budget-parent is beneath budget"
 msgstr ""
 
+#: koha-tmpl/intranet-tmpl/prog/js/browser.js:93
+#: koha-tmpl/intranet-tmpl/prog/js/browser.js:95
 #: koha-tmpl/intranet-tmpl/prog/js/calendar.js:111
 #: koha-tmpl/intranet-tmpl/prog/js/datatables.js:12
 msgid "Next"
@@ -788,8 +794,8 @@ msgid "Note: _ALL_ value will override all other values"
 msgstr ""
 
 #: koha-tmpl/intranet-tmpl/prog/js/pages/results.js:337
-#: koha-tmpl/intranet-tmpl/prog/js/pages/results.js:373
-#: koha-tmpl/intranet-tmpl/prog/js/pages/results.js:381
+#: koha-tmpl/intranet-tmpl/prog/js/pages/results.js:364
+#: koha-tmpl/intranet-tmpl/prog/js/pages/results.js:372
 msgid "Nothing is selected"
 msgstr ""
 
@@ -831,16 +837,12 @@ msgstr "Varattu"
 msgid "On-site checkout"
 msgstr "On-site-laina"
 
-#: koha-tmpl/intranet-tmpl/prog/js/pages/results.js:345
-msgid "One or more selected items cannot be placed on hold."
-msgstr "Yksi tai useampi valittu nide ei ole varattavissa."
-
 #: koha-tmpl/intranet-tmpl/prog/js/checkouts.js:125
 msgid "Patron note"
 msgstr ""
 
 #: koha-tmpl/intranet-tmpl/prog/js/cart.js:86
-#: koha-tmpl/intranet-tmpl/prog/js/pages/results.js:363
+#: koha-tmpl/intranet-tmpl/prog/js/pages/results.js:354
 msgid "Place hold"
 msgstr "Varaa"
 
@@ -895,14 +897,16 @@ msgid ""
 "Press <i>ctrl</i> or <i>⌘</i> + <i>C</i> to copy the table data<br>to your "
 "system clipboard.<br><br>To cancel, click this message or press escape."
 msgstr ""
-"Paina <i>ctrl</i> tai <i>⌘</i> + <i>C</i> kopioidaksesi taulukon tiedot<br>"
-"järjestelmäsi leikepöydälle.<br><br>Peruuttaaksesi, klikkaa tätä ilmoitusta "
-"tai paina Esc (escape)."
+"Paina <i>ctrl</i> tai <i>⌘</i> + <i>C</i> kopioidaksesi taulukon "
+"tiedot<br>järjestelmäsi leikepöydälle.<br><br>Peruuttaaksesi, klikkaa tätä "
+"ilmoitusta tai paina Esc (escape)."
 
 #: koha-tmpl/intranet-tmpl/prog/js/calendar.js:110
 msgid "Prev"
 msgstr "Edellinen"
 
+#: koha-tmpl/intranet-tmpl/prog/js/browser.js:88
+#: koha-tmpl/intranet-tmpl/prog/js/browser.js:90
 #: koha-tmpl/intranet-tmpl/prog/js/datatables.js:13
 msgid "Previous"
 msgstr "Edellinen"
@@ -958,6 +962,11 @@ msgstr "Uusittu, erääntyy:"
 #: koha-tmpl/intranet-tmpl/prog/js/checkouts.js:1014
 msgid "Resolve"
 msgstr "Ratkaise"
+
+#: koha-tmpl/intranet-tmpl/prog/js/browser.js:97
+#, fuzzy
+msgid "Results"
+msgstr "Jatka"
 
 #: koha-tmpl/intranet-tmpl/prog/js/holds.js:135
 msgid "Resume"
@@ -1226,7 +1235,7 @@ msgstr "Varausta ei voitu keskeyttää, virheellinen päivämäärä"
 msgid "Update"
 msgstr "Päivitä"
 
-#: koha-tmpl/intranet-tmpl/prog/js/marc_modification_templates.js:313
+#: koha-tmpl/intranet-tmpl/prog/js/marc_modification_templates.js:317
 msgid "Update action"
 msgstr ""
 
@@ -1285,8 +1294,8 @@ msgstr ""
 msgid "You have made changes to system preferences."
 msgstr "Olet tehnyt muutoksia järjestelmäasetuksiin."
 
-#: koha-tmpl/intranet-tmpl/prog/js/pages/results.js:433
-#: koha-tmpl/intranet-tmpl/prog/js/pages/results.js:444
+#: koha-tmpl/intranet-tmpl/prog/js/pages/results.js:424
+#: koha-tmpl/intranet-tmpl/prog/js/pages/results.js:435
 msgid "You must select at least one record"
 msgstr "Valitse vähintään yksi tietue"
 
@@ -1370,3 +1379,6 @@ msgstr "liian monta uusintaa"
 #, javascript-format
 msgid "until %s"
 msgstr ""
+
+#~ msgid "One or more selected items cannot be placed on hold."
+#~ msgstr "Yksi tai useampi valittu nide ei ole varattavissa."

@@ -24,6 +24,7 @@ use Test::Warn;
 
 use t::lib::TestBuilder;
 use t::lib::Mocks;
+use t::lib::Dates;
 
 use C4::Auth;
 use Koha::Database;
@@ -46,7 +47,7 @@ subtest 'list() tests' => sub {
     $schema->storage->txn_rollback;
 
     subtest 'librarian access tests' => sub {
-        plan tests => 13;
+        plan tests => 16;
 
         $schema->storage->txn_begin;
 
@@ -64,6 +65,10 @@ subtest 'list() tests' => sub {
           ->status_is(200);
 
         $t->get_ok("//$userid:$password@/api/v1/patrons?cardnumber=" . $librarian->cardnumber)
+          ->status_is(200)
+          ->json_is('/0/cardnumber' => $librarian->cardnumber);
+
+        $t->get_ok("//$userid:$password@/api/v1/patrons?q={\"cardnumber\":\"" . $librarian->cardnumber ."\"}")
           ->status_is(200)
           ->json_is('/0/cardnumber' => $librarian->cardnumber);
 
@@ -477,7 +482,13 @@ subtest 'update() tests' => sub {
         $newpatron->{patron_id} = $unauthorized_patron->to_api->{patron_id};
         $newpatron->{restricted} = $unauthorized_patron->to_api->{restricted};
         $newpatron->{anonymized} = $unauthorized_patron->to_api->{anonymized};
-        is_deeply($result->tx->res->json, $newpatron, 'Returned patron from update matches expected');
+
+        my $got = $result->tx->res->json;
+        my $updated_on_got = delete $got->{updated_on};
+        my $updated_on_expected = delete $newpatron->{updated_on};
+        is_deeply($got, $newpatron, 'Returned patron from update matches expected');
+        t::lib::Dates::compare( $updated_on_got, $updated_on_expected, 'updated_on values matched' );
+
 
         is(Koha::Patrons->find( $patron_2->id )->cardnumber,
            $newpatron->{ cardnumber }, 'Patron is really updated!');

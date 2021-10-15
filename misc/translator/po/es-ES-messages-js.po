@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Koha 21.05\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2021-05-11 18:44-0300\n"
+"POT-Creation-Date: 2021-09-12 23:44-0300\n"
 "PO-Revision-Date: 2021-05-12 08:19-0300\n"
 "Language-Team: Koha Translation Team \n"
 "Language: es\n"
@@ -186,7 +186,7 @@ msgid "Add to cart"
 msgstr "Agregar al carrito"
 
 #: koha-tmpl/intranet-tmpl/prog/js/datatables.js:51
-#: koha-tmpl/intranet-tmpl/prog/js/marc_modification_templates.js:118
+#: koha-tmpl/intranet-tmpl/prog/js/marc_modification_templates.js:122
 msgid "All"
 msgstr "Todo"
 
@@ -291,15 +291,15 @@ msgstr ""
 "¿Está seguro de querer promover este niño a categoría adulto? Esto no puede "
 "deshacerse."
 
-#: koha-tmpl/intranet-tmpl/prog/js/marc_modification_templates.js:260
+#: koha-tmpl/intranet-tmpl/prog/js/marc_modification_templates.js:264
 msgid "Are you sure you wish to delete this template action?"
 msgstr "¿Está seguro de que desea eliminar esta acción de plantilla?"
 
-#: koha-tmpl/intranet-tmpl/prog/js/marc_modification_templates.js:264
+#: koha-tmpl/intranet-tmpl/prog/js/marc_modification_templates.js:268
 msgid "Are you sure you wish to delete this template?"
 msgstr "¿Está seguro de querer borrar esta plantilla?"
 
-#: koha-tmpl/intranet-tmpl/prog/js/pages/results.js:455
+#: koha-tmpl/intranet-tmpl/prog/js/pages/results.js:446
 msgid "At least two records must be selected for merging"
 msgstr "Al menos dos registros deben ser seleccionados para la combinación"
 
@@ -481,7 +481,7 @@ msgstr ""
 msgid "Edit"
 msgstr "Editar"
 
-#: koha-tmpl/intranet-tmpl/prog/js/marc_modification_templates.js:310
+#: koha-tmpl/intranet-tmpl/prog/js/marc_modification_templates.js:314
 #, javascript-format
 msgid "Edit action %s"
 msgstr "Editar acción %s"
@@ -511,7 +511,7 @@ msgstr ""
 msgid "Error; your data might not have been saved"
 msgstr "Error, sus datos pueden no haberse guardado"
 
-#: koha-tmpl/intranet-tmpl/prog/js/marc_modification_templates.js:116
+#: koha-tmpl/intranet-tmpl/prog/js/marc_modification_templates.js:120
 msgid "Every"
 msgstr "Cada"
 
@@ -563,6 +563,10 @@ msgstr "El monto del fondo excede la asignación del fondo padre"
 #: koha-tmpl/intranet-tmpl/prog/js/acq.js:309
 msgid "Fund amount exceeds period allocation"
 msgstr "El monto del fondo excede el período de asignación"
+
+#: koha-tmpl/intranet-tmpl/prog/js/browser.js:120
+msgid "Go back to the results"
+msgstr ""
 
 #: koha-tmpl/intranet-tmpl/prog/js/holds.js:147
 msgid "Hold is <strong>suspended</strong>"
@@ -641,7 +645,7 @@ msgid "Last"
 msgstr "Último"
 
 #: koha-tmpl/intranet-tmpl/prog/js/addorderiso2709.js:90
-#: koha-tmpl/intranet-tmpl/prog/js/z3950_search.js:124
+#: koha-tmpl/intranet-tmpl/prog/js/z3950_search.js:113
 msgid "Loading"
 msgstr "Cargando"
 
@@ -700,6 +704,8 @@ msgstr ""
 msgid "New budget-parent is beneath budget"
 msgstr "El nuevo presupuesto padre está por debajo del presupuesto"
 
+#: koha-tmpl/intranet-tmpl/prog/js/browser.js:93
+#: koha-tmpl/intranet-tmpl/prog/js/browser.js:95
 #: koha-tmpl/intranet-tmpl/prog/js/calendar.js:111
 #: koha-tmpl/intranet-tmpl/prog/js/datatables.js:12
 msgid "Next"
@@ -793,8 +799,8 @@ msgid "Note: _ALL_ value will override all other values"
 msgstr "Nota: El valor _ALL_ anulará todos los otros valores"
 
 #: koha-tmpl/intranet-tmpl/prog/js/pages/results.js:337
-#: koha-tmpl/intranet-tmpl/prog/js/pages/results.js:373
-#: koha-tmpl/intranet-tmpl/prog/js/pages/results.js:381
+#: koha-tmpl/intranet-tmpl/prog/js/pages/results.js:364
+#: koha-tmpl/intranet-tmpl/prog/js/pages/results.js:372
 msgid "Nothing is selected"
 msgstr "No hay nada seleccionado."
 
@@ -836,16 +842,12 @@ msgstr "Reservado"
 msgid "On-site checkout"
 msgstr "Préstamo in situ"
 
-#: koha-tmpl/intranet-tmpl/prog/js/pages/results.js:345
-msgid "One or more selected items cannot be placed on hold."
-msgstr "Uno o más ítems seleccionados no se pueden reservar."
-
 #: koha-tmpl/intranet-tmpl/prog/js/checkouts.js:125
 msgid "Patron note"
 msgstr "Nota de usuario"
 
 #: koha-tmpl/intranet-tmpl/prog/js/cart.js:86
-#: koha-tmpl/intranet-tmpl/prog/js/pages/results.js:363
+#: koha-tmpl/intranet-tmpl/prog/js/pages/results.js:354
 msgid "Place hold"
 msgstr "Hacer reserva"
 
@@ -911,6 +913,8 @@ msgstr ""
 msgid "Prev"
 msgstr "Previo"
 
+#: koha-tmpl/intranet-tmpl/prog/js/browser.js:88
+#: koha-tmpl/intranet-tmpl/prog/js/browser.js:90
 #: koha-tmpl/intranet-tmpl/prog/js/datatables.js:13
 msgid "Previous"
 msgstr "Previo"
@@ -966,6 +970,11 @@ msgstr "Renovación, vencimiento:"
 #: koha-tmpl/intranet-tmpl/prog/js/checkouts.js:1014
 msgid "Resolve"
 msgstr "Resolver"
+
+#: koha-tmpl/intranet-tmpl/prog/js/browser.js:97
+#, fuzzy
+msgid "Results"
+msgstr "Reanudar"
 
 #: koha-tmpl/intranet-tmpl/prog/js/holds.js:135
 msgid "Resume"
@@ -1235,7 +1244,7 @@ msgstr "No se ha podido suspender la reserva, fecha no válida"
 msgid "Update"
 msgstr "Actualizar"
 
-#: koha-tmpl/intranet-tmpl/prog/js/marc_modification_templates.js:313
+#: koha-tmpl/intranet-tmpl/prog/js/marc_modification_templates.js:317
 msgid "Update action"
 msgstr "Actualizar acción"
 
@@ -1295,8 +1304,8 @@ msgstr "Usted no puede recibir más ítems"
 msgid "You have made changes to system preferences."
 msgstr "Usted ha realizado cambios a las preferencias el sistema"
 
-#: koha-tmpl/intranet-tmpl/prog/js/pages/results.js:433
-#: koha-tmpl/intranet-tmpl/prog/js/pages/results.js:444
+#: koha-tmpl/intranet-tmpl/prog/js/pages/results.js:424
+#: koha-tmpl/intranet-tmpl/prog/js/pages/results.js:435
 msgid "You must select at least one record"
 msgstr "Debe seleccionar al menos un registro"
 
@@ -1380,3 +1389,6 @@ msgstr "demasiados renovaciones"
 #, javascript-format
 msgid "until %s"
 msgstr "hasta %s"
+
+#~ msgid "One or more selected items cannot be placed on hold."
+#~ msgstr "Uno o más ítems seleccionados no se pueden reservar."

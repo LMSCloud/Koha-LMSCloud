@@ -355,7 +355,7 @@
                                     [% FOREACH image IN item.cover_images %]
                                         <div class="cover-image local-coverimg">
                                             <a href="/cgi-bin/koha/catalogue/image.pl?itemnumber=[% image.itemnumber | uri %]&amp;imagenumber=[% image.imagenumber | uri %]" title="Local cover image">
-                                                <img src="/cgi-bin/koha/catalogue/image.pl?thumbnail=1&amp;imagenumber=[% image.imagenumber | uri %]" alt="Local cover image" />
+                                                <img src="/cgi-bin/koha/catalogue/image.pl?thumbnail=1&amp;imagenumber=[% image.imagenumber | uri %]" alt="Local cover image" data-link="/cgi-bin/koha/catalogue/imageviewer.pl?itemnumber=[% item.itemnumber | uri %]&amp;imagenumber=[% image.imagenumber | uri %]" />
                                             </a>
                                         </div>
                                     [% END %]
@@ -394,7 +394,11 @@ Note that permanent location is a code, and location may be an authval.
                     [% IF ( itemdata_ccode ) %]<td>[% item.ccode | html %]</td>[% END %]
                     <td class="itemcallnumber">[% IF ( item.itemcallnumber ) %] [% item.itemcallnumber | html %][% END %]</td>
                     [% IF ( volinfo ) %]
-                        <td class="enumchron" data-order="[% item.publisheddate | html %]">
+                        [% IF itemdata_publisheddate #If there is at least one published date, use it for sorting %]
+                            <td class="enumchron" data-order="[% item.publisheddate | html %]">
+                        [% ELSE %]
+                            <td class="enumchron">
+                        [% END %]
                             [% IF ( itemdata_enumchron ) %]
                                 [% IF item.enumchron && item.serialseq %]
                                     <span class="enum">[% item.enumchron | html %]</span>

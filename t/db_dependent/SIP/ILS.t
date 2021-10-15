@@ -20,7 +20,7 @@
 
 use Modern::Perl;
 
-use Test::More tests => 11;
+use Test::More tests => 14;
 
 use t::lib::TestBuilder;
 use t::lib::Mocks;
@@ -30,6 +30,7 @@ use C4::Circulation;
 use Koha::CirculationRules;
 use Koha::Database;
 use Koha::DateUtils;
+use Koha::Holds;
 
 BEGIN {
     use_ok('C4::SIP::ILS');
@@ -71,8 +72,59 @@ is( $ils->test_cardnumber_compare( 'A1234', 'a1234' ),
 is( $ils->test_cardnumber_compare( 'A1234', 'b1234' ),
     q{}, 'borrower bc test identifies difference' );
 
+subtest add_hold => sub {
+    plan tests => 4;
+
+    my $library = $builder->build_object( { class => 'Koha::Libraries' } );
+    my $patron = $builder->build_object(
+        {
+            class => 'Koha::Patrons',
+            value => {
+                branchcode => $library->branchcode,
+            }
+        }
+    );
+    t::lib::Mocks::mock_userenv(
+        { branchcode => $library->branchcode, flags => 1 } );
+
+    my $item = $builder->build_sample_item(
+        {
+            library => $library->branchcode,
+        }
+    );
+
+    Koha::CirculationRules->set_rules(
+        {
+            categorycode => $patron->categorycode,
+            branchcode   => $library->branchcode,
+            itemtype     => $item->effective_itemtype,
+            rules        => {
+                onshelfholds     => 1,
+                reservesallowed  => 3,
+                holds_per_record => 3,
+                issuelength      => 5,
+                lengthunit       => 'days',
+            }
+        }
+    );
+
+    my $ils = C4::SIP::ILS->new( { id => $library->branchcode } );
+
+    # Send empty AD segments (i.e. empty string for patron_pwd)
+    my $transaction = $ils->add_hold( $patron->cardnumber, "", $item->barcode, undef );
+    isnt(
+        $transaction->{screen_msg},
+        'Invalid patron password.',
+        "Empty password succeeds"
+    );
+    ok( $transaction->{ok}, "Transaction returned success");
+    is( $item->biblio->holds->count(), 1, "Hold was placed on bib");
+    # FIXME: Should we not allow for item-level holds when we're passed an item barcode...
+    is( $item->holds->count(),0,"Hold was placed at bib level");
+};
+
 subtest cancel_hold => sub {
-    plan tests => 5;
+    plan tests => 6;
 
     my $library = $builder->build_object ({ class => 'Koha::Libraries' });
     my $patron = $builder->build_object(
@@ -114,6 +166,68 @@ subtest cancel_hold => sub {
     );
     is( $item->biblio->holds->count(), 1, "Hold was placed on bib");
     is( $item->holds->count(),1,"Hold was placed on specific item");
+
+    my $ils = C4::SIP::ILS->new({ id => $library->branchcode });
+    my $sip_patron = C4::SIP::ILS::Patron->new( $patron->cardnumber );
+    my $transaction = $ils->cancel_hold($patron->cardnumber,"",$item->barcode,undef);
+
+    isnt( $transaction->{screen_msg}, 'Invalid patron password.', "Empty password succeeds" );
+    is( $transaction->{screen_msg},"Hold Cancelled.","We get a success message when hold cancelled");
+
+    is( $item->biblio->holds->count(), 0, "Bib has 0 holds remaining");
+    is( $item->holds->count(), 0,  "Item has 0 holds remaining");
+};
+
+subtest cancel_waiting_hold => sub {
+    plan tests => 7;
+
+    my $library = $builder->build_object ({ class => 'Koha::Libraries' });
+    my $patron = $builder->build_object(
+        {
+            class => 'Koha::Patrons',
+            value => {
+                branchcode => $library->branchcode,
+            }
+        }
+    );
+    t::lib::Mocks::mock_userenv({ branchcode => $library->branchcode, flags => 1 });
+
+    my $item = $builder->build_sample_item({
+        library       => $library->branchcode,
+    });
+
+    Koha::CirculationRules->set_rules(
+        {
+            categorycode => $patron->categorycode,
+            branchcode   => $library->branchcode,
+            itemtype     => $item->effective_itemtype,
+            rules        => {
+                onshelfholds     => 1,
+                reservesallowed  => 3,
+                holds_per_record => 3,
+                issuelength      => 5,
+                lengthunit       => 'days',
+            }
+        }
+    );
+
+    my $reserve_id = AddReserve(
+        {
+            branchcode     => $library->branchcode,
+            borrowernumber => $patron->borrowernumber,
+            biblionumber   => $item->biblio->biblionumber,
+            itemnumber     => $item->itemnumber,
+        }
+    );
+    is( $item->biblio->holds->count(), 1, "Hold was placed on bib");
+    is( $item->holds->count(),1,"Hold was placed on specific item");
+
+    my $hold = Koha::Holds->find( $reserve_id );
+    ok( $hold, 'Get hold object' );
+    $hold->update({ found => 'W' });
+    $hold->get_from_storage;
+
+    is( $hold->found, 'W', "Hold was correctly set to waiting." );
 
     my $ils = C4::SIP::ILS->new({ id => $library->branchcode });
     my $sip_patron = C4::SIP::ILS::Patron->new( $patron->cardnumber );
@@ -172,6 +286,27 @@ subtest checkout => sub {
 
     $checkout->discard_changes();
     is( $checkout->renewals, 1, "Renewals has been reduced");
+};
+
+subtest renew_all => sub {
+    plan tests => 1;
+
+    my $library = $builder->build_object ({ class => 'Koha::Libraries' });
+    my $patron = $builder->build_object(
+        {
+            class => 'Koha::Patrons',
+            value => {
+                branchcode => $library->branchcode,
+            }
+        }
+    );
+    t::lib::Mocks::mock_userenv({ branchcode => $library->branchcode, flags => 1 });
+
+    my $ils = C4::SIP::ILS->new({ id => $library->branchcode });
+
+    # Send empty AD segments (i.e. empty string for patron_pwd)
+    my $transaction = $ils->renew_all( $patron->cardnumber, "", undef );
+    isnt( $transaction->{screen_msg}, 'Invalid patron password.', "Empty password succeeds" );
 };
 
 $schema->storage->txn_rollback;

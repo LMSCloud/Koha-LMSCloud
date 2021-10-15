@@ -190,7 +190,7 @@
 
                 <form method="post" action="/cgi-bin/koha/opac-memberentry.pl" id="memberentry-form" autocomplete="off">
 
-                [% FOREACH field = ['streetnumber' 'streettype'  'cardnumber' 'branchcode' 'categorycode' 'title' 'surname' 'firstname' 'dateofbirth' 'initials' 'othernames' 'address' 'address2' 'city' 'state' 'zipcode' 'country' 'phone' 'phonepro' 'mobile' 'email' 'emailpro' 'fax' 'B_address' 'B_address2' 'B_city' 'B_state' 'B_zipcode' 'B_country' 'B_phone' 'B_email' 'contactnote' 'altcontactsurname' 'altcontactfirstname' 'altcontactaddress1' 'altcontactaddress2' 'altcontactaddress3' 'altcontactstate' 'altcontactzipcode' 'altcontactcountry' 'altcontactphone' 'password' ] %]
+                [% FOREACH field = ['streetnumber' 'streettype'  'cardnumber' 'branchcode' 'categorycode' 'title' 'surname' 'firstname' 'dateofbirth' 'initials' 'othernames' 'address' 'address2' 'city' 'state' 'zipcode' 'country' 'phone' 'phonepro' 'mobile' 'email' 'emailpro' 'fax' 'B_streettype' 'B_address' 'B_address2' 'B_city' 'B_state' 'B_zipcode' 'B_country' 'B_phone' 'B_email' 'contactnote' 'altcontactsurname' 'altcontactfirstname' 'altcontactaddress1' 'altcontactaddress2' 'altcontactaddress3' 'altcontactstate' 'altcontactzipcode' 'altcontactcountry' 'altcontactphone' 'password' ] %]
                     [% IF mandatory.defined( field ) %]
                         [% SET required.$field = 'required' %]
                     [% END %]
@@ -209,7 +209,7 @@
 
                                                 <label for="borrower_cardnumber" class="[% required.cardnumber | html %]">Library card number:</label>
 
-                                                [% IF borrower && !(cardnumber_wrong_length || cardnumber_already_exists) %]
+                                                [% IF borrower && !(cardnumber_wrong_length || cardnumber_already_exists) && action == 'edit' %]
                                                     [% borrower.cardnumber | html %]
                                                 [% ELSE %]
                                                     [% IF minlength_cardnumber == maxlength_cardnumber %]
@@ -373,6 +373,7 @@
 
                                         [% UNLESS hidden.defined('sex') %]
                                             <li class="lradio">
+                                                <div class="label"></div>
                                                 <label for="sex-female" class="radio inline"><span class="patronsex-female">Female:</span></label>
                                                 [% IF borrower.sex == 'F' %]
                                                     <input type="radio" name="borrower_sex" id="sex-female" value="F" checked="checked" />
@@ -435,9 +436,9 @@
                                                         <option value=""></option>
                                                         [% FOR roadtype IN roadtypes %]
                                                             [% IF roadtype.authorised_value == patron.streettype %]
-                                                                <option value="[% roadtype.authorised_value | html %]" selected="selected">[% roadtype.lib | html %]</option>
+                                                                <option value="[% roadtype.authorised_value | html %]" selected="selected">[% roadtype.lib_opac OR roadtype.lib | html %]</option>
                                                             [% ELSE %]
-                                                                <option value="[% roadtype.authorised_value | html %]">[% roadtype.lib | html %]</option>
+                                                                <option value="[% roadtype.authorised_value | html %]">[% roadtype.lib_opac OR roadtype.lib | html %]</option>
                                                             [% END %]
                                                         [% END %]
                                                     </select>
@@ -592,6 +593,26 @@
                                     <legend id="alternateaddress_legend">Alternate address</legend>
 
                                     <ol>
+                                        [% SET roadtypes = AuthorisedValues.GetAuthValueDropbox('ROADTYPE') %]
+                                        [% IF roadtypes %]
+                                            [% UNLESS hidden.defined('B_streettype') %]
+                                                <li>
+                                                    <label for="borrower_B_streettype" class="[% required.B_streettype | html %]">Street type:</label>
+
+                                                    <select name="borrower_B_streettype" name="borrower_B_streettype" class="[% required.B_streettype | html %]">
+                                                        <option value=""></option>
+                                                        [% FOR roadtype IN roadtypes %]
+                                                            [% IF roadtype.authorised_value == patron.streettype %]
+                                                                <option value="[% roadtype.authorised_value | html %]" selected="selected">[% roadtype.lib | html %]</option>
+                                                            [% ELSE %]
+                                                                <option value="[% roadtype.authorised_value | html %]">[% roadtype.lib | html %]</option>
+                                                            [% END %]
+                                                        [% END %]
+                                                    </select>
+                                                    <div class="required_label [% required.B_streettype | html %]">Required</div>
+                                                </li>
+                                            [% END %]
+                                        [% END %]
                                         [% UNLESS hidden.defined('B_address') %]
                                             <li>
                                                 <label for="borrower_B_address" class="[% required.B_address | html %]">Address:</label>
@@ -813,11 +834,11 @@
                                     </div>
 
                                     <ol>
-                                        <li><label for="borrower_password" class="[% required.password | html %]">Password</label>
+                                        <li><label for="password" class="[% required.password | html %]">Password:</label>
                                             <input type="password" name="borrower_password" id="password" class="[% required.password | html %]" />
                                             <div class="required_label [% required.password | html %]">Required</div>
                                         </li>
-                                        <li><label for="borrower_password2" class="[% required.password | html %]">Confirm password</label>
+                                        <li><label for="password2" class="[% required.password | html %]">Confirm password:</label>
                                             <input type="password" name="borrower_password2" id="password2" />
                                             <div class="required_label [% required.password | html %]">Required</div>
                                         </li>
@@ -900,7 +921,13 @@
                                     <legend>GDPR consent</legend>
                                     <ol>
                                     <li>
-                                        <label></label><span><input type="checkbox" name="borrower_gdpr_proc_consent" value="agreed"> I agree with your processing of my personal data as outlined in the <a target="_blank" href="[% Koha.Preference('PrivacyPolicyURL') | url %]">privacy policy</a>. <div class="required">Required</div></span>
+                                        <div class="label"></div>
+                                        <label class="checkbox-label" for="borrower_gdpr_proc_consent">
+                                            <input type="checkbox" name="borrower_gdpr_proc_consent" id="borrower_gdpr_proc_consent" class="required" value="agreed">
+                                            I agree with your processing of my personal data as outlined in the <a target="_blank" href="[% Koha.Preference('PrivacyPolicyURL') | url %]">privacy policy</a>.
+                                        </label>
+                                        <label class="error" for="borrower_gdpr_proc_consent" style="display: none;"></label>
+                                        <div class="required_label required">Required</div>
                                     </li>
                                     </ol>
                                 </fieldset>

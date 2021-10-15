@@ -380,10 +380,10 @@ sub transferbook {
     # That'll save a database query.
     my ( $resfound, $resrec, undef ) =
       CheckReserves( $itemnumber );
-    if ( $resfound and not $ignoreRs ) {
+    if ( $resfound ) {
         $resrec->{'ResFound'} = $resfound;
         $messages->{'ResFound'} = $resrec;
-        $dotransfer = 1;
+        $dotransfer = 0 unless $ignoreRs;
     }
 
     #actually do the transfer....
@@ -1623,6 +1623,7 @@ sub AddIssue {
                 )->store;
             }
             $issue->discard_changes;
+            C4::Auth::track_login_daily( $borrower->{userid} );
             if ( $item_object->location && $item_object->location eq 'CART'
                 && ( !$item_object->permanent_location || $item_object->permanent_location ne 'CART' ) ) {
             ## Item was moved to cart via UpdateItemLocationOnCheckin, anything issued should be taken off the cart.
@@ -2098,7 +2099,10 @@ sub AddReturn {
         if (defined $update_loc_rules->{_ALL_}) {
             if ($update_loc_rules->{_ALL_} eq '_PERM_') { $update_loc_rules->{_ALL_} = $item->permanent_location; }
             if ($update_loc_rules->{_ALL_} eq '_BLANK_') { $update_loc_rules->{_ALL_} = ''; }
-            if ( defined $item->location && $item->location ne $update_loc_rules->{_ALL_}) {
+            if (
+                ( defined $item->location && $item->location ne $update_loc_rules->{_ALL_}) ||
+                (!defined $item->location && $update_loc_rules->{_ALL_} ne "")
+               ) {
                 $messages->{'ItemLocationUpdated'} = { from => $item->location, to => $update_loc_rules->{_ALL_} };
                 $item->location($update_loc_rules->{_ALL_})->store({skip_record_index=>1});
             }
@@ -2252,16 +2256,21 @@ sub AddReturn {
             if ( $transfer->tobranch eq $branch ) {
                 $transfer->receive;
                 $messages->{'TransferArrived'} = $transfer->frombranch;
+                # validTransfer=1 allows us returning the item back if the reserve is cancelled
+                $validTransfer = 1 if $transfer->reason eq 'Reserve';
             }
             else {
                 $messages->{'WrongTransfer'}     = $transfer->tobranch;
                 $messages->{'WrongTransferItem'} = $item->itemnumber;
+                $messages->{'TransferTrigger'}   = $transfer->reason;
             }
         }
         else {
             if ( $transfer->tobranch eq $branch ) {
                 $transfer->receive;
                 $messages->{'TransferArrived'} = $transfer->frombranch;
+                # validTransfer=1 allows us returning the item back if the reserve is cancelled
+                $validTransfer = 1 if $transfer->reason eq 'Reserve';
             }
             else {
                 $messages->{'WasTransfered'}   = $transfer->tobranch;
@@ -2340,6 +2349,7 @@ sub AddReturn {
                 item     => $item->unblessed,
                 borrower => $patron->unblessed,
                 branch   => $branch,
+                issue    => $issue
             });
         }
 
@@ -3563,27 +3573,28 @@ sub GetIssuingCharges {
     if ( my $item_data = $sth->fetchrow_hashref ) {
         $item_type = $item_data->{itemtype};
         $charge    = $item_data->{rentalcharge};
-        # FIXME This should follow CircControl
-        my $branch = C4::Context::mybranch();
-        
-        # If the costs are for an renewal and we are supposed to apply conditions of the
-        # issuing branch then we need to apply the rules of the issuing branch
-        if ( $isrenewal && C4::Context->preference('UseIssuingBranchConditionsForRenewals') && $issuebranch ) {
-            $branch = $issuebranch;
-        }
-        my $mobilebranch = Koha::Libraries->get_effective_branch($branch);
 
-        my $patron = Koha::Patrons->find( $borrowernumber );
-        my $discount = Koha::CirculationRules->get_effective_rule({
-            categorycode => $patron->categorycode,
-            branchcode   => $branch,
-            itemtype     => $item_type,
-            rule_name    => 'rentaldiscount'
-        });
-        if ($discount) {
-            $charge = ( $charge * ( 100 - $discount->rule_value ) ) / 100;
-        }
         if ($charge) {
+            # FIXME This should follow CircControl
+            my $branch = C4::Context::mybranch();
+            
+            # If the costs are for an renewal and we are supposed to apply conditions of the
+            # issuing branch then we need to apply the rules of the issuing branch
+            if ( $isrenewal && C4::Context->preference('UseIssuingBranchConditionsForRenewals') && $issuebranch ) {
+                $branch = $issuebranch;
+            }
+            $branch = Koha::Libraries->get_effective_branch($branch);
+        
+            my $patron = Koha::Patrons->find( $borrowernumber );
+            my $discount = Koha::CirculationRules->get_effective_rule({
+                categorycode => $patron->categorycode,
+                branchcode   => $branch,
+                itemtype     => $item_type,
+                rule_name    => 'rentaldiscount'
+            });
+            if ($discount) {
+                $charge = ( $charge * ( 100 - $discount->rule_value ) ) / 100;
+            }
             $charge = sprintf '%.2f', $charge; # ensure no fractions of a penny returned
         }
     }
@@ -3716,8 +3727,8 @@ B<Example>:
 
 sub SendCirculationAlert {
     my ($opts) = @_;
-    my ($type, $item, $borrower, $branch) =
-        ($opts->{type}, $opts->{item}, $opts->{borrower}, $opts->{branch});
+    my ($type, $item, $borrower, $branch, $issue) =
+        ($opts->{type}, $opts->{item}, $opts->{borrower}, $opts->{branch}, $opts->{issue});
     my %message_name = (
         CHECKIN  => 'Item_Check_in',
         CHECKOUT => 'Item_Checkout',
@@ -3727,7 +3738,23 @@ sub SendCirculationAlert {
         borrowernumber => $borrower->{borrowernumber},
         message_name   => $message_name{$type},
     });
-    my $issues_table = ( $type eq 'CHECKOUT' || $type eq 'RENEWAL' ) ? 'issues' : 'old_issues';
+
+
+    my $tables = {
+        items => $item->{itemnumber},
+        biblio      => $item->{biblionumber},
+        biblioitems => $item->{biblionumber},
+        borrowers   => $borrower,
+        branches    => $branch,
+    };
+
+    # TODO: Currently, we need to pass an issue_id as identifier for old_issues, but still an itemnumber for issues.
+    # See C4::Letters:: _parseletter_sth
+    if( $type eq 'CHECKIN' ){
+        $tables->{old_issues} = $issue->issue_id;
+    } else {
+        $tables->{issues} = $item->{itemnumber};
+    }
 
     my $schema = Koha::Database->new->schema;
     my @transports = keys %{ $borrower_preferences->{transports} };
@@ -3745,14 +3772,7 @@ sub SendCirculationAlert {
             branchcode => $branch,
             message_transport_type => $mtt,
             lang => $borrower->{lang},
-            tables => {
-                $issues_table => $item->{itemnumber},
-                'items'       => $item->{itemnumber},
-                'biblio'      => $item->{biblionumber},
-                'biblioitems' => $item->{biblionumber},
-                'borrowers'   => $borrower,
-                'branches'    => $branch,
-            }
+            tables => $tables,
         ) or next;
 
         C4::Context->dbh->do(q|LOCK TABLE message_queue READ|) unless $do_not_lock;
@@ -3781,19 +3801,24 @@ This function validate the line of brachtransfer but with the wrong destination 
 
 sub updateWrongTransfer {
 	my ( $itemNumber,$waitingAtLibrary,$FromLibrary ) = @_;
-	my $dbh = C4::Context->dbh;	
-# first step validate the actual line of transfert .
-	my $sth =
-        	$dbh->prepare(
-			"update branchtransfers set datearrived = now(),tobranch=?,comments='wrongtransfer' where itemnumber= ? AND datearrived IS NULL"
-          	);
-        	$sth->execute($FromLibrary,$itemNumber);
 
-# second step create a new line of branchtransfer to the right location .
-	ModItemTransfer($itemNumber, $FromLibrary, $waitingAtLibrary);
+    # first step: cancel the original transfer
+    my $item = Koha::Items->find($itemNumber);
+    my $transfer = $item->get_transfer;
+    $transfer->set({ datecancelled => dt_from_string, cancellation_reason => 'WrongTransfer' })->store();
 
-#third step changing holdingbranch of item
-    my $item = Koha::Items->find($itemNumber)->holdingbranch($FromLibrary)->store;
+    # second step: create a new transfer to the right location
+    my $new_transfer = $item->request_transfer(
+        {
+            to            => $transfer->to_library,
+            reason        => $transfer->reason,
+            comment       => $transfer->comments,
+            ignore_limits => 1,
+            enqueue       => 1
+        }
+    );
+
+    return $new_transfer;
 }
 
 =head2 CalcDateDue

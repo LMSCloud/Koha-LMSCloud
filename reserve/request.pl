@@ -309,6 +309,11 @@ foreach my $biblionumber (@biblionumbers) {
     my %biblioloopiter = ();
 
     my $biblio = Koha::Biblios->find( $biblionumber );
+    unless ($biblio) {
+        $biblioloopiter{noitems} = 1;
+        $template->param('nobiblio' => 1);
+        last;
+    }
 
     my $force_hold_level;
     if ( $patron ) {
@@ -371,19 +376,6 @@ foreach my $biblionumber (@biblionumbers) {
     my $count = Koha::Holds->search( { biblionumber => $biblionumber } )->count();
     my $totalcount = $count;
 
-    # FIXME think @optionloop, is maybe obsolete, or  must be switchable by a systeme preference fixed rank or not
-    # make priorities options
-
-    my @optionloop;
-    for ( 1 .. $count + 1 ) {
-        push(
-             @optionloop,
-             {
-              num      => $_,
-              selected => ( $_ == $count + 1 ),
-             }
-            );
-    }
     # adding a fixed value for priority options
     my $fixedRank = $count+1;
 
@@ -400,12 +392,12 @@ foreach my $biblionumber (@biblionumbers) {
 
     unless ( $items->count ) {
         # FIXME Then why do we continue?
-        $template->param('noitems' => 1);
+        $template->param('noitems' => 1) unless ( $multi_hold );
         $biblioloopiter{noitems} = 1;
     }
 
-    ## Here we go backwards again to create hash of biblioitemnumber to itemnumbers,
-    ## when by definition all of the itemnumber have the same biblioitemnumber
+    ## Here we go backwards again to create hash of biblioitemnumber to itemnumbers
+    ## this is important when we have analytic items which may be on another record
     my ( $iteminfos_of );
     while ( my $item = $items->next ) {
         $item = $item->unblessed;
@@ -415,7 +407,6 @@ foreach my $biblionumber (@biblionumbers) {
         $iteminfos_of->{$itemnumber} = $item;
     }
 
-    ## Should be same as biblionumber
     my @biblioitemnumbers = keys %itemnumbers_of_biblioitem;
 
     my $biblioiteminfos_of = {
@@ -424,7 +415,7 @@ foreach my $biblionumber (@biblionumbers) {
             ( $biblioitem->{biblioitemnumber} => $biblioitem )
           } @{ Koha::Biblioitems->search(
                 { biblioitemnumber => { -in => \@biblioitemnumbers } },
-                { select => ['biblioitemnumber', 'publicationyear', 'itemtype']}
+                { select => ['biblionumber', 'biblioitemnumber', 'publicationyear', 'itemtype']}
             )->unblessed
           }
     };
@@ -462,8 +453,7 @@ foreach my $biblionumber (@biblionumbers) {
         # it's complicated logic to analyse.
         # (before this loop was inside that sub loop so it was O(n^2) )
         my $items_any_available;
-
-        $items_any_available = ItemsAnyAvailableAndNotRestricted( { biblionumber => $biblioitemnumber, patron => $patron })
+        $items_any_available = ItemsAnyAvailableAndNotRestricted( { biblionumber => $biblioitem->{biblionumber}, patron => $patron })
             if $patron;
 
         foreach my $itemnumber ( @{ $itemnumbers_of_biblioitem{$biblioitemnumber} } )    {
@@ -570,8 +560,7 @@ foreach my $biblionumber (@biblionumbers) {
 
                 $item->{'holdallowed'} = $branchitemrule->{'holdallowed'};
 
-                my $reserves_control_branch = $pickup || C4::Reserves::GetReservesControlBranch( $item, $patron_unblessed );
-                my $can_item_be_reserved = CanItemBeReserved( $patron->borrowernumber, $itemnumber, $reserves_control_branch )->{status};
+                my $can_item_be_reserved = CanItemBeReserved( $patron->borrowernumber, $itemnumber )->{status};
                 $item->{not_holdable} = $can_item_be_reserved unless ( $can_item_be_reserved eq 'OK' );
 
                 $item->{item_level_holds} = Koha::CirculationRules->get_opacitemholds_policy( { item => $item_object, patron => $patron } );
@@ -585,17 +574,19 @@ foreach my $biblionumber (@biblionumbers) {
                     && IsAvailableForItemLevelRequest($item_object, $patron, undef, $items_any_available)
                   )
                 {
-                    $item->{available} = 1;
-                    $num_available++;
-
-                    if ( $branchitemrule->{'hold_fulfillment_policy'} eq 'any' )
-                    {
-                        $item->{any_pickup_location} = 1;
+                    # Send the pickup locations count to the UI, the pickup locations will be pulled using the API
+                    my $pickup_locations = $item_object->pickup_locations({ patron => $patron });
+                    $item->{pickup_locations_count} = $pickup_locations->count;
+                    if ( $item->{pickup_locations_count} > 0 ) {
+                        $num_available++;
+                        $item->{available} = 1;
+                        # pass the holding branch for use as default
+                        my $default_pickup_location = $pickup_locations->search({ branchcode => $item->{holdingbranch} })->next;
+                        $item->{default_pickup_location} = $default_pickup_location;
                     }
                     else {
-                        my @pickup_locations = $item_object->pickup_locations({ patron => $patron });
-
-                        $item->{pickup_locations} = join( ', ', map { $_->branchname } @pickup_locations );
+                        $item->{available} = 0;
+                        $item->{not_holdable} = "no_valid_pickup_location";
                     }
 
                     push( @available_itemtypes, $item->{itype} );
@@ -655,19 +646,7 @@ foreach my $biblionumber (@biblionumbers) {
         } @reserves
       )
     {
-        my $priority = $res->priority();
         my %reserve;
-        my @optionloop;
-        for ( my $i = 1 ; $i <= $totalcount ; $i++ ) {
-            push(
-                @optionloop,
-                {
-                    num      => $i,
-                    selected => ( $i == $priority ),
-                }
-            );
-        }
-
         if ( $res->is_found() ) {
             $reserve{'holdingbranch'} = $res->item()->holdingbranch();
             $reserve{'biblionumber'}  = $res->item()->biblionumber();
@@ -700,7 +679,6 @@ foreach my $biblionumber (@biblionumbers) {
         $reserve{'barcode'}        = $res->item() ? $res->item()->barcode() : undef;
         $reserve{'priority'}       = $res->priority();
         $reserve{'lowestPriority'} = $res->lowestPriority();
-        $reserve{'optionloop'}     = \@optionloop;
         $reserve{'suspend'}        = $res->suspend();
         $reserve{'suspend_until'}  = $res->suspend_until();
         $reserve{'reserve_id'}     = $res->reserve_id();
@@ -722,7 +700,6 @@ foreach my $biblionumber (@biblionumbers) {
 
     # display infos
     $template->param(
-                     optionloop        => \@optionloop,
                      bibitemloop       => \@bibitemloop,
                      itemdata_enumchron => $itemdata_enumchron,
                      itemdata_ccode    => $itemdata_ccode,
@@ -754,8 +731,8 @@ foreach my $biblionumber (@biblionumbers) {
 }
 
 $template->param( biblioloop => \@biblioloop );
-$template->param( biblionumbers => $biblionumbers );
 $template->param( no_reserves_allowed => $no_reserves_allowed );
+$template->param( biblionumbers => join('/', @biblionumbers) );
 $template->param( exceeded_maxreserves => $exceeded_maxreserves );
 $template->param( exceeded_holds_per_record => $exceeded_holds_per_record );
 $template->param( subscriptionsnumber => CountSubscriptionFromBiblionumber($biblionumber));

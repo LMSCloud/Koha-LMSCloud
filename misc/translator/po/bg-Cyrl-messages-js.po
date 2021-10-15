@@ -7,8 +7,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Koha 21.05\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2021-05-11 18:03-0300\n"
-"PO-Revision-Date: 2021-04-19 19:29+0000\n"
+"POT-Creation-Date: 2021-09-12 23:35-0300\n"
+"PO-Revision-Date: 2021-08-21 07:17+0000\n"
 "Last-Translator: Илиян Дамянов <aioiliyan@gmail.com>\n"
 "Language-Team: none\n"
 "Language: bg\n"
@@ -19,7 +19,7 @@ msgstr ""
 "X-Generator: Pootle 2.8\n"
 "X-Pootle-Path: /bg/21.05/bg-Cyrl-messages-js.po\n"
 "X-Pootle-Revision: 1\n"
-"X-POOTLE-MTIME: 1618860594.514797\n"
+"X-POOTLE-MTIME: 1629530279.722443\n"
 
 #: koha-tmpl/intranet-tmpl/prog/js/holds.js:88
 msgid " (current) "
@@ -193,7 +193,7 @@ msgid "Add to cart"
 msgstr "Добавяне към количка за книги"
 
 #: koha-tmpl/intranet-tmpl/prog/js/datatables.js:51
-#: koha-tmpl/intranet-tmpl/prog/js/marc_modification_templates.js:118
+#: koha-tmpl/intranet-tmpl/prog/js/marc_modification_templates.js:122
 msgid "All"
 msgstr "Всички"
 
@@ -296,15 +296,15 @@ msgstr ""
 "Наистина ли искате да актуализирате това дете до категория за възрастни? "
 "Това не може да бъде отменено."
 
-#: koha-tmpl/intranet-tmpl/prog/js/marc_modification_templates.js:260
+#: koha-tmpl/intranet-tmpl/prog/js/marc_modification_templates.js:264
 msgid "Are you sure you wish to delete this template action?"
 msgstr "Наистина ли искате да изтриете това действие на шаблон?"
 
-#: koha-tmpl/intranet-tmpl/prog/js/marc_modification_templates.js:264
+#: koha-tmpl/intranet-tmpl/prog/js/marc_modification_templates.js:268
 msgid "Are you sure you wish to delete this template?"
 msgstr "Наистина ли искате да изтриете този шаблон?"
 
-#: koha-tmpl/intranet-tmpl/prog/js/pages/results.js:455
+#: koha-tmpl/intranet-tmpl/prog/js/pages/results.js:446
 msgid "At least two records must be selected for merging"
 msgstr "Най-малко два записа трябва да бъдат избрани за сливане"
 
@@ -482,7 +482,7 @@ msgstr ""
 msgid "Edit"
 msgstr "Редактиране"
 
-#: koha-tmpl/intranet-tmpl/prog/js/marc_modification_templates.js:310
+#: koha-tmpl/intranet-tmpl/prog/js/marc_modification_templates.js:314
 #, javascript-format
 msgid "Edit action %s"
 msgstr "Редактиране на действие %s"
@@ -512,7 +512,7 @@ msgstr ""
 msgid "Error; your data might not have been saved"
 msgstr "Грешка; данните ви може да не са запазени"
 
-#: koha-tmpl/intranet-tmpl/prog/js/marc_modification_templates.js:116
+#: koha-tmpl/intranet-tmpl/prog/js/marc_modification_templates.js:120
 msgid "Every"
 msgstr "Всеки"
 
@@ -562,6 +562,10 @@ msgstr "Сумата на фонда надвишава разпределени
 #: koha-tmpl/intranet-tmpl/prog/js/acq.js:309
 msgid "Fund amount exceeds period allocation"
 msgstr "Сумата на фонда надвишава разпределението на периода"
+
+#: koha-tmpl/intranet-tmpl/prog/js/browser.js:120
+msgid "Go back to the results"
+msgstr "Назад към резултати"
 
 #: koha-tmpl/intranet-tmpl/prog/js/holds.js:147
 msgid "Hold is <strong>suspended</strong>"
@@ -640,7 +644,7 @@ msgid "Last"
 msgstr "Последнa"
 
 #: koha-tmpl/intranet-tmpl/prog/js/addorderiso2709.js:90
-#: koha-tmpl/intranet-tmpl/prog/js/z3950_search.js:124
+#: koha-tmpl/intranet-tmpl/prog/js/z3950_search.js:113
 msgid "Loading"
 msgstr "Зареждане"
 
@@ -699,6 +703,8 @@ msgstr ""
 msgid "New budget-parent is beneath budget"
 msgstr "Новият източник на бюджета е под бюджета"
 
+#: koha-tmpl/intranet-tmpl/prog/js/browser.js:93
+#: koha-tmpl/intranet-tmpl/prog/js/browser.js:95
 #: koha-tmpl/intranet-tmpl/prog/js/calendar.js:111
 #: koha-tmpl/intranet-tmpl/prog/js/datatables.js:12
 msgid "Next"
@@ -792,8 +798,8 @@ msgid "Note: _ALL_ value will override all other values"
 msgstr "Забележка: _ALL_ стойността ще замени всички останали стойности"
 
 #: koha-tmpl/intranet-tmpl/prog/js/pages/results.js:337
-#: koha-tmpl/intranet-tmpl/prog/js/pages/results.js:373
-#: koha-tmpl/intranet-tmpl/prog/js/pages/results.js:381
+#: koha-tmpl/intranet-tmpl/prog/js/pages/results.js:364
+#: koha-tmpl/intranet-tmpl/prog/js/pages/results.js:372
 msgid "Nothing is selected"
 msgstr "Нищо не е избрано"
 
@@ -835,17 +841,12 @@ msgstr "Резервация"
 msgid "On-site checkout"
 msgstr "Заемане на място"
 
-#: koha-tmpl/intranet-tmpl/prog/js/pages/results.js:345
-msgid "One or more selected items cannot be placed on hold."
-msgstr ""
-"Един или повече избрани библиотечни документи не могат да бъдат резервирани."
-
 #: koha-tmpl/intranet-tmpl/prog/js/checkouts.js:125
 msgid "Patron note"
 msgstr "Бележка на читателя"
 
 #: koha-tmpl/intranet-tmpl/prog/js/cart.js:86
-#: koha-tmpl/intranet-tmpl/prog/js/pages/results.js:363
+#: koha-tmpl/intranet-tmpl/prog/js/pages/results.js:354
 msgid "Place hold"
 msgstr "Направете резервация"
 
@@ -909,6 +910,8 @@ msgstr ""
 msgid "Prev"
 msgstr "Предишна"
 
+#: koha-tmpl/intranet-tmpl/prog/js/browser.js:88
+#: koha-tmpl/intranet-tmpl/prog/js/browser.js:90
 #: koha-tmpl/intranet-tmpl/prog/js/datatables.js:13
 msgid "Previous"
 msgstr "Предишен"
@@ -964,6 +967,10 @@ msgstr "Презаписване, дата на връщане:"
 #: koha-tmpl/intranet-tmpl/prog/js/checkouts.js:1014
 msgid "Resolve"
 msgstr "Анализиране"
+
+#: koha-tmpl/intranet-tmpl/prog/js/browser.js:97
+msgid "Results"
+msgstr "Резултати"
 
 #: koha-tmpl/intranet-tmpl/prog/js/holds.js:135
 msgid "Resume"
@@ -1232,7 +1239,7 @@ msgstr "Резервацията не може да бъде преустано�
 msgid "Update"
 msgstr "Актуализиране"
 
-#: koha-tmpl/intranet-tmpl/prog/js/marc_modification_templates.js:313
+#: koha-tmpl/intranet-tmpl/prog/js/marc_modification_templates.js:317
 msgid "Update action"
 msgstr "Обновяване на действие"
 
@@ -1292,8 +1299,8 @@ msgstr "Не можете да получите повече библиотеч�
 msgid "You have made changes to system preferences."
 msgstr "Направихте промени в системните настройки."
 
-#: koha-tmpl/intranet-tmpl/prog/js/pages/results.js:433
-#: koha-tmpl/intranet-tmpl/prog/js/pages/results.js:444
+#: koha-tmpl/intranet-tmpl/prog/js/pages/results.js:424
+#: koha-tmpl/intranet-tmpl/prog/js/pages/results.js:435
 msgid "You must select at least one record"
 msgstr "Трябва да изберете поне един запис"
 
@@ -1377,3 +1384,8 @@ msgstr "твърде много презаписвания"
 #, javascript-format
 msgid "until %s"
 msgstr "до %s"
+
+#~ msgid "One or more selected items cannot be placed on hold."
+#~ msgstr ""
+#~ "Един или повече избрани библиотечни документи не могат да бъдат "
+#~ "резервирани."

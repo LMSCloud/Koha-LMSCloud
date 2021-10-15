@@ -906,7 +906,7 @@ sub _parseletter_sth {
     ($table eq 'debits'       )    ? "SELECT * FROM accountlines WHERE   accountlines_id = ?"                         :
     ($table eq 'items'        )    ? "SELECT items.*,itemtypes.description AS itemtypename FROM $table LEFT JOIN itemtypes ON items.itype = itemtypes.itemtype WHERE itemnumber = ?" :
     ($table eq 'issues'       )    ? "SELECT * FROM $table WHERE     itemnumber = ?"                                  :
-    ($table eq 'old_issues'   )    ? "SELECT * FROM $table WHERE     itemnumber = ? ORDER BY timestamp DESC LIMIT 1"  :
+    ($table eq 'old_issues'   )    ? "SELECT * FROM $table WHERE     issue_id = ?"  :
     ($table eq 'reserves'     )    ? "SELECT * FROM $table WHERE borrowernumber = ? and biblionumber = ?"             :
     ($table eq 'borrowers'    )    ? "SELECT * FROM $table WHERE borrowernumber = ?"                                  :
     ($table eq 'account'      )    ? "SELECT * FROM borrowers WHERE borrowernumber = ?"                               :
@@ -1053,11 +1053,19 @@ sub _parseletter {
   my $success = EnqueueLetter( { letter => $letter, 
         borrowernumber => '12', message_transport_type => 'email' } )
 
-places a letter in the message_queue database table, which will
+Places a letter in the message_queue database table, which will
 eventually get processed (sent) by the process_message_queue.pl
 cronjob when it calls SendQueuedMessages.
 
-return message_id on success
+Return message_id on success
+
+Parameters
+* letter - required; A letter hashref as returned from GetPreparedLetter
+* message_transport_type - required; One of the available mtts
+* borrowernumber - optional if 'to_address' is passed; The borrowernumber of the patron we enqueuing the notice for
+* to_address - optional if 'borrowernumber' is passed; The destination email address for the notice (defaults to patron->notice_email_address)
+* from_address - optional; The from address for the notice, defaults to patron->library->from_email_address
+* reply_address - optional; The reply address for the notice, defaults to patron->library->reply_to
 
 =cut
 
@@ -1088,7 +1096,7 @@ sub EnqueueLetter {
     my $dbh       = C4::Context->dbh();
     my $statement = << 'ENDSQL';
 INSERT INTO message_queue
-( borrowernumber, subject, content, metadata, letter_code, message_transport_type, status, time_queued, to_address, from_address, reply_address, content_type, branchcode, delivery_note )
+( borrowernumber, subject, content, metadata, letter_code, message_transport_type, status, time_queued, to_address, from_address, reply_address, content_type, failure_code, branchcode )
 VALUES
 ( ?,              ?,       ?,       ?,        ?,           ?,                      ?,      CAST(NOW() AS DATETIME),       ?,          ?,            ?,           ?,           ?,              ? )
 ENDSQL
@@ -1106,8 +1114,8 @@ ENDSQL
         $params->{'from_address'},                # from_address
         $params->{'reply_address'},               # reply_address
         $params->{'letter'}->{'content-type'},    # content_type
+        $params->{'failure_code'}        || '',   # failure_code
         $params->{'branchcode'},                  # branchcode
-        $params->{'delivery_note'}        || ''   # delivery_note
     );
     return $dbh->last_insert_id(undef,undef,'message_queue', undef);
 }
@@ -1265,7 +1273,7 @@ sub GetQueuedMessages {
 
     my $dbh = C4::Context->dbh();
     my $statement = << 'ENDSQL';
-SELECT message_id, borrowernumber, subject, content, message_transport_type, status, time_queued, updated_on, delivery_note
+SELECT message_id, borrowernumber, subject, content, message_transport_type, status, time_queued, updated_on, failure_code
 FROM message_queue
 ENDSQL
 
@@ -1319,7 +1327,7 @@ sub GetMessage {
     return unless $message_id;
     my $dbh = C4::Context->dbh;
     return $dbh->selectrow_hashref(q|
-        SELECT message_id, borrowernumber, subject, content, metadata, letter_code, message_transport_type, status, time_queued, updated_on, to_address, from_address, reply_address, content_type, branchcode, delivery_note
+        SELECT message_id, borrowernumber, subject, content, metadata, letter_code, message_transport_type, status, time_queued, updated_on, to_address, from_address, reply_address, content_type, failure_code, branchcode
         FROM message_queue
         WHERE message_id = ?
     |, {}, $message_id );
@@ -1424,7 +1432,7 @@ sub _get_unsent_messages {
 
     my $dbh = C4::Context->dbh();
     my $statement = qq{
-        SELECT mq.message_id, mq.borrowernumber, mq.subject, mq.content, mq.message_transport_type, mq.status, mq.time_queued, mq.from_address, mq.reply_address, mq.to_address, mq.content_type, b.branchcode, mq.letter_code, mq.delivery_note
+        SELECT mq.message_id, mq.borrowernumber, mq.subject, mq.content, mq.message_transport_type, mq.status, mq.time_queued, mq.from_address, mq.reply_address, mq.to_address, mq.content_type, b.branchcode, mq.letter_code, mq.failure_code
         FROM message_queue mq
         LEFT JOIN borrowers b ON b.borrowernumber = mq.borrowernumber
         WHERE status = ?
@@ -1483,20 +1491,26 @@ sub _send_message_by_email {
     unless ($to_address) {
         unless ($patron) {
             warn "FAIL: No 'to_address' and INVALID borrowernumber ($message->{borrowernumber})";
-            _set_message_status( { message_id => $message->{'message_id'},
-                                   status     => 'failed',
-                                   delivery_note => 'Invalid borrowernumber '.$message->{borrowernumber},
-                                   error_code => 'INVALID_BORNUMBER' } );
+            _set_message_status(
+                {
+                    message_id   => $message->{'message_id'},
+                    status       => 'failed',
+                    failure_code => 'INVALID_BORNUMBER'
+                }
+            );
             return;
         }
         $to_address = $patron->notice_email_address;
         unless ($to_address) {  
             # warn "FAIL: No 'to_address' and no email for " . ($member->{surname} ||'') . ", borrowernumber ($message->{borrowernumber})";
             # warning too verbose for this more common case?
-            _set_message_status( { message_id => $message->{'message_id'},
-                                   status     => 'failed',
-                                   delivery_note => 'Unable to find an email address for this borrower',
-                                   error_code => 'NO_EMAIL' } );
+            _set_message_status(
+                {
+                    message_id   => $message->{'message_id'},
+                    status       => 'failed',
+                    failure_code => 'NO_EMAIL'
+                }
+            );
             return;
         }
     }
@@ -1513,17 +1527,32 @@ sub _send_message_by_email {
     my $library;
 
     if ($patron) {
-    
         # check if the branch is a bookmobile station
         # if yes use letters of the bookmobile the branch 
         my $branchcode = Koha::Libraries->get_effective_branch($patron->library->branchcode);
         
         my $library = Koha::Libraries->find( $branchcode );
-        $branch_email      = $library->branchemail;
+        $branch_email      = $library->from_email_address;
         $branch_replyto    = $library->branchreplyto;
         $branch_returnpath = $library->branchreturnpath;
     }
 
+    # NOTE: Patron may not be defined above so branch_email may be undefined still
+    # so we need to fallback to KohaAdminEmailAddress as a last resort.
+    my $from_address =
+         $message->{'from_address'}
+      || $branch_email
+      || C4::Context->preference('KohaAdminEmailAddress');
+    if( !$from_address ) {
+        _set_message_status(
+            {
+                message_id   => $message->{'message_id'},
+                status       => 'failed',
+                failure_code => 'NO_FROM',
+            }
+        );
+        return;
+    };
     my $email = Koha::Email->create(
         {
             to => $to_address,
@@ -1532,7 +1561,7 @@ sub _send_message_by_email {
                 ? ( bcc => C4::Context->preference('NoticeBcc') )
                 : ()
             ),
-            from     => $message->{'from_address'}  || $branch_email,
+            from     => $from_address,
             reply_to => $message->{'reply_address'} || $branch_replyto,
             sender   => $branch_returnpath,
             subject  => "" . $message->{subject}
@@ -1578,7 +1607,7 @@ sub _send_message_by_email {
             {
                 message_id => $message->{'message_id'},
                 status     => 'sent',
-                delivery_note => ''
+                failure_code => ''
             }
         );
         return 1;
@@ -1588,10 +1617,11 @@ sub _send_message_by_email {
             {
                 message_id => $message->{'message_id'},
                 status     => 'failed',
-                delivery_note => $Mail::Sendmail::error
+                failure_code => 'SENDMAIL'
             }
         );
         carp "$_";
+        carp "$Mail::Sendmail::error";
         return;
     };
 }
@@ -1646,26 +1676,46 @@ sub _send_message_by_sms {
     unless ( $patron and $patron->smsalertnumber ) {
         _set_message_status( { message_id => $message->{'message_id'},
                                status     => 'failed',
-                               delivery_note => 'Missing SMS number',
-                               error_code => 'MISSING_SMS' } );
+                               failure_code => 'MISSING_SMS' } );
         return;
     }
 
     if ( _is_duplicate( $message ) ) {
-        _set_message_status( { message_id => $message->{'message_id'},
-                               status     => 'failed',
-                               delivery_note => 'Message is duplicate',
-                               error_code => 'DUPLICATE_MESSAGE' } );
+        _set_message_status(
+            {
+                message_id   => $message->{'message_id'},
+                status       => 'failed',
+                failure_code => 'DUPLICATE_MESSAGE'
+            }
+        );
         return;
     }
 
-    my $success = C4::SMS->send_sms( { destination => $patron->smsalertnumber,
-                                       message     => $message->{'content'},
-                                     } );
-    _set_message_status( { message_id => $message->{'message_id'},
-                           status     => ($success ? 'sent' : 'failed'),
-                           delivery_note => ($success ? '' : 'No notes from SMS driver'),
-                           error_code => 'NO_NOTES' } );
+    my $success = C4::SMS->send_sms(
+        {
+            destination => $patron->smsalertnumber,
+            message     => $message->{'content'},
+        }
+    );
+
+    if ($success) {
+        _set_message_status(
+            {
+                message_id   => $message->{'message_id'},
+                status       => 'sent',
+                failure_code => ''
+            }
+        );
+    }
+    else {
+        _set_message_status(
+            {
+                message_id   => $message->{'message_id'},
+                status       => 'failed',
+                failure_code => 'NO_NOTES'
+            }
+        );
+    }
 
     return $success;
 }
@@ -1690,10 +1740,10 @@ sub _set_message_status {
     }
 
     my $dbh = C4::Context->dbh();
-    my $statement = 'UPDATE message_queue SET status= ?, delivery_note= ? WHERE message_id = ?';
+    my $statement = 'UPDATE message_queue SET status= ?, failure_code= ? WHERE message_id = ?';
     my $sth = $dbh->prepare( $statement );
     my $result = $sth->execute( $params->{'status'},
-                                $params->{'delivery_note'} || '',
+                                $params->{'failure_code'} || '',
                                 $params->{'message_id'} );
     return $result;
 }
@@ -1854,7 +1904,7 @@ sub _get_tt_params {
             module   => 'Koha::Old::Checkouts',
             singular => 'old_checkout',
             plural   => 'old_checkouts',
-            fk       => 'itemnumber',
+            pk       => 'issue_id',
         },
         overdues => {
             module   => 'Koha::Checkouts',

@@ -7,8 +7,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Koha 21.05\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2021-05-11 21:17-0300\n"
-"PO-Revision-Date: 2021-03-22 08:31+0000\n"
+"POT-Creation-Date: 2021-09-13 00:19-0300\n"
+"PO-Revision-Date: 2021-08-23 10:50+0000\n"
 "Last-Translator: Onur Erdem <onurerdem@sdu.edu.tr>\n"
 "Language-Team: none\n"
 "Language: tr\n"
@@ -17,7 +17,7 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
 "X-Generator: Pootle 2.8\n"
-"X-POOTLE-MTIME: 1616401862.110126\n"
+"X-POOTLE-MTIME: 1629715803.665580\n"
 "X-Pootle-Path: /tr/21.05/tr-TR-messages-js.po\n"
 "X-Pootle-Revision: 1\n"
 
@@ -194,7 +194,7 @@ msgid "Add to cart"
 msgstr "Sepete ekleyin"
 
 #: koha-tmpl/intranet-tmpl/prog/js/datatables.js:51
-#: koha-tmpl/intranet-tmpl/prog/js/marc_modification_templates.js:118
+#: koha-tmpl/intranet-tmpl/prog/js/marc_modification_templates.js:122
 msgid "All"
 msgstr "Tümü"
 
@@ -297,15 +297,15 @@ msgstr ""
 "Bu çocuk kullanıcıyı Yetişkin kategorisine yükseltmek istediğinizden emin "
 "misiniz? Bu işlem geri alınamaz."
 
-#: koha-tmpl/intranet-tmpl/prog/js/marc_modification_templates.js:260
+#: koha-tmpl/intranet-tmpl/prog/js/marc_modification_templates.js:264
 msgid "Are you sure you wish to delete this template action?"
 msgstr "Bu şablon eylemini silmek istediğinizden emin misiniz?"
 
-#: koha-tmpl/intranet-tmpl/prog/js/marc_modification_templates.js:264
+#: koha-tmpl/intranet-tmpl/prog/js/marc_modification_templates.js:268
 msgid "Are you sure you wish to delete this template?"
 msgstr "Bu şablonu silmek istediğinizden emin misiniz?"
 
-#: koha-tmpl/intranet-tmpl/prog/js/pages/results.js:455
+#: koha-tmpl/intranet-tmpl/prog/js/pages/results.js:446
 msgid "At least two records must be selected for merging"
 msgstr "Birleştirmek için en az iki kayıt seçilmelidir"
 
@@ -482,7 +482,7 @@ msgstr ""
 msgid "Edit"
 msgstr "Düzenle"
 
-#: koha-tmpl/intranet-tmpl/prog/js/marc_modification_templates.js:310
+#: koha-tmpl/intranet-tmpl/prog/js/marc_modification_templates.js:314
 #, javascript-format
 msgid "Edit action %s"
 msgstr "Eylemi düzenle %s"
@@ -512,7 +512,7 @@ msgstr ""
 msgid "Error; your data might not have been saved"
 msgstr "Hata, veriniz kaydedilmemiş olabilir"
 
-#: koha-tmpl/intranet-tmpl/prog/js/marc_modification_templates.js:116
+#: koha-tmpl/intranet-tmpl/prog/js/marc_modification_templates.js:120
 msgid "Every"
 msgstr "Her"
 
@@ -562,6 +562,10 @@ msgstr "Fon miktarı ana ödeneği aşıyor"
 #: koha-tmpl/intranet-tmpl/prog/js/acq.js:309
 msgid "Fund amount exceeds period allocation"
 msgstr "Fon miktarı dönem ödeneğini aşıyor"
+
+#: koha-tmpl/intranet-tmpl/prog/js/browser.js:120
+msgid "Go back to the results"
+msgstr "Sonuçlara geri dön"
 
 #: koha-tmpl/intranet-tmpl/prog/js/holds.js:147
 msgid "Hold is <strong>suspended</strong>"
@@ -642,7 +646,7 @@ msgid "Last"
 msgstr "Son"
 
 #: koha-tmpl/intranet-tmpl/prog/js/addorderiso2709.js:90
-#: koha-tmpl/intranet-tmpl/prog/js/z3950_search.js:124
+#: koha-tmpl/intranet-tmpl/prog/js/z3950_search.js:113
 msgid "Loading"
 msgstr "Yükleniyor"
 
@@ -701,6 +705,8 @@ msgstr ""
 msgid "New budget-parent is beneath budget"
 msgstr "Yeni bütçe, ana bütçenin altındadır"
 
+#: koha-tmpl/intranet-tmpl/prog/js/browser.js:93
+#: koha-tmpl/intranet-tmpl/prog/js/browser.js:95
 #: koha-tmpl/intranet-tmpl/prog/js/calendar.js:111
 #: koha-tmpl/intranet-tmpl/prog/js/datatables.js:12
 msgid "Next"
@@ -794,8 +800,8 @@ msgid "Note: _ALL_ value will override all other values"
 msgstr "Not: _ALL_ değeri, diğer tüm değerleri geçersiz kılar"
 
 #: koha-tmpl/intranet-tmpl/prog/js/pages/results.js:337
-#: koha-tmpl/intranet-tmpl/prog/js/pages/results.js:373
-#: koha-tmpl/intranet-tmpl/prog/js/pages/results.js:381
+#: koha-tmpl/intranet-tmpl/prog/js/pages/results.js:364
+#: koha-tmpl/intranet-tmpl/prog/js/pages/results.js:372
 msgid "Nothing is selected"
 msgstr "Hiçbir materyal seçilmedi"
 
@@ -837,16 +843,12 @@ msgstr "Beklemede"
 msgid "On-site checkout"
 msgstr "Yerinde ödünç alma"
 
-#: koha-tmpl/intranet-tmpl/prog/js/pages/results.js:345
-msgid "One or more selected items cannot be placed on hold."
-msgstr "Bir ya da daha fazla seçili materyal ayırtılamaz. "
-
 #: koha-tmpl/intranet-tmpl/prog/js/checkouts.js:125
 msgid "Patron note"
 msgstr "Kullanıcı notu"
 
 #: koha-tmpl/intranet-tmpl/prog/js/cart.js:86
-#: koha-tmpl/intranet-tmpl/prog/js/pages/results.js:363
+#: koha-tmpl/intranet-tmpl/prog/js/pages/results.js:354
 msgid "Place hold"
 msgstr "Ayırt"
 
@@ -908,6 +910,8 @@ msgstr ""
 msgid "Prev"
 msgstr "Bir önceki"
 
+#: koha-tmpl/intranet-tmpl/prog/js/browser.js:88
+#: koha-tmpl/intranet-tmpl/prog/js/browser.js:90
 #: koha-tmpl/intranet-tmpl/prog/js/datatables.js:13
 msgid "Previous"
 msgstr "Önceki"
@@ -963,6 +967,10 @@ msgstr "Süresi uzatıldı , yeni iade tarihi:"
 #: koha-tmpl/intranet-tmpl/prog/js/checkouts.js:1014
 msgid "Resolve"
 msgstr "Çözümle"
+
+#: koha-tmpl/intranet-tmpl/prog/js/browser.js:97
+msgid "Results"
+msgstr "Sonuçlar"
 
 #: koha-tmpl/intranet-tmpl/prog/js/holds.js:135
 msgid "Resume"
@@ -1230,7 +1238,7 @@ msgstr "Ayırtma askıya alınamadı, geçersiz tarih"
 msgid "Update"
 msgstr "Güncelle"
 
-#: koha-tmpl/intranet-tmpl/prog/js/marc_modification_templates.js:313
+#: koha-tmpl/intranet-tmpl/prog/js/marc_modification_templates.js:317
 msgid "Update action"
 msgstr "İşlemi güncelle"
 
@@ -1290,8 +1298,8 @@ msgstr "Daha fazla materyal alamazsınız"
 msgid "You have made changes to system preferences."
 msgstr "Sistem tercihlerinde değişiklik yaptınız."
 
-#: koha-tmpl/intranet-tmpl/prog/js/pages/results.js:433
-#: koha-tmpl/intranet-tmpl/prog/js/pages/results.js:444
+#: koha-tmpl/intranet-tmpl/prog/js/pages/results.js:424
+#: koha-tmpl/intranet-tmpl/prog/js/pages/results.js:435
 msgid "You must select at least one record"
 msgstr "En az bir kayıt seçmelisiniz"
 
@@ -1374,3 +1382,6 @@ msgstr "çok fazla süre uzatma"
 #, javascript-format
 msgid "until %s"
 msgstr "%s tarihine kadar"
+
+#~ msgid "One or more selected items cannot be placed on hold."
+#~ msgstr "Bir ya da daha fazla seçili materyal ayırtılamaz. "

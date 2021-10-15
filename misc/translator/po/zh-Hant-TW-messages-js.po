@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Koha 21.05\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2021-05-11 21:36-0300\n"
+"POT-Creation-Date: 2021-09-13 00:22-0300\n"
 "PO-Revision-Date: 2021-03-25 07:44+0000\n"
 "Last-Translator: Frank Chou <frank@sris.com.tw>\n"
 "Language-Team: none\n"
@@ -182,7 +182,7 @@ msgid "Add to cart"
 msgstr "新增到書目清單"
 
 #: koha-tmpl/intranet-tmpl/prog/js/datatables.js:51
-#: koha-tmpl/intranet-tmpl/prog/js/marc_modification_templates.js:118
+#: koha-tmpl/intranet-tmpl/prog/js/marc_modification_templates.js:122
 msgid "All"
 msgstr "所有"
 
@@ -282,15 +282,15 @@ msgid ""
 "be undone."
 msgstr "您確定更新此兒童為成人嗎？執行後不能復原。"
 
-#: koha-tmpl/intranet-tmpl/prog/js/marc_modification_templates.js:260
+#: koha-tmpl/intranet-tmpl/prog/js/marc_modification_templates.js:264
 msgid "Are you sure you wish to delete this template action?"
 msgstr "您確定要刪除此模版作業嗎？"
 
-#: koha-tmpl/intranet-tmpl/prog/js/marc_modification_templates.js:264
+#: koha-tmpl/intranet-tmpl/prog/js/marc_modification_templates.js:268
 msgid "Are you sure you wish to delete this template?"
 msgstr "您確定要移除此模板嗎？"
 
-#: koha-tmpl/intranet-tmpl/prog/js/pages/results.js:455
+#: koha-tmpl/intranet-tmpl/prog/js/pages/results.js:446
 msgid "At least two records must be selected for merging"
 msgstr "合併時必須選定兩筆紀錄"
 
@@ -462,7 +462,7 @@ msgstr "錯誤：價格不是有效的數字，請檢查價格並再試！"
 msgid "Edit"
 msgstr "編輯"
 
-#: koha-tmpl/intranet-tmpl/prog/js/marc_modification_templates.js:310
+#: koha-tmpl/intranet-tmpl/prog/js/marc_modification_templates.js:314
 #, javascript-format
 msgid "Edit action %s"
 msgstr "編輯動作 %s"
@@ -490,7 +490,7 @@ msgstr "錯誤：不能儲存錯誤的資料。請更正並再試。"
 msgid "Error; your data might not have been saved"
 msgstr "錯誤；可能沒有儲存您的資料"
 
-#: koha-tmpl/intranet-tmpl/prog/js/marc_modification_templates.js:116
+#: koha-tmpl/intranet-tmpl/prog/js/marc_modification_templates.js:120
 msgid "Every"
 msgstr "每次"
 
@@ -540,6 +540,10 @@ msgstr "基金超過上層的分配額度"
 #: koha-tmpl/intranet-tmpl/prog/js/acq.js:309
 msgid "Fund amount exceeds period allocation"
 msgstr "基金超過期間的分配額度"
+
+#: koha-tmpl/intranet-tmpl/prog/js/browser.js:120
+msgid "Go back to the results"
+msgstr ""
 
 #: koha-tmpl/intranet-tmpl/prog/js/holds.js:147
 msgid "Hold is <strong>suspended</strong>"
@@ -618,7 +622,7 @@ msgid "Last"
 msgstr "最後項"
 
 #: koha-tmpl/intranet-tmpl/prog/js/addorderiso2709.js:90
-#: koha-tmpl/intranet-tmpl/prog/js/z3950_search.js:124
+#: koha-tmpl/intranet-tmpl/prog/js/z3950_search.js:113
 msgid "Loading"
 msgstr "載入中"
 
@@ -675,6 +679,8 @@ msgstr "註: 欄位列於'UniqueItemsFields'系統偏好將不會被複製"
 msgid "New budget-parent is beneath budget"
 msgstr "新預算-上層預算低於預算"
 
+#: koha-tmpl/intranet-tmpl/prog/js/browser.js:93
+#: koha-tmpl/intranet-tmpl/prog/js/browser.js:95
 #: koha-tmpl/intranet-tmpl/prog/js/calendar.js:111
 #: koha-tmpl/intranet-tmpl/prog/js/datatables.js:12
 msgid "Next"
@@ -768,8 +774,8 @@ msgid "Note: _ALL_ value will override all other values"
 msgstr "說明：_ALL_ 的值將取代其他的值"
 
 #: koha-tmpl/intranet-tmpl/prog/js/pages/results.js:337
-#: koha-tmpl/intranet-tmpl/prog/js/pages/results.js:373
-#: koha-tmpl/intranet-tmpl/prog/js/pages/results.js:381
+#: koha-tmpl/intranet-tmpl/prog/js/pages/results.js:364
+#: koha-tmpl/intranet-tmpl/prog/js/pages/results.js:372
 msgid "Nothing is selected"
 msgstr "未選擇任何項目"
 
@@ -811,16 +817,12 @@ msgstr "預約中"
 msgid "On-site checkout"
 msgstr "現場借出"
 
-#: koha-tmpl/intranet-tmpl/prog/js/pages/results.js:345
-msgid "One or more selected items cannot be placed on hold."
-msgstr "無法預約一個或更多的館藏。"
-
 #: koha-tmpl/intranet-tmpl/prog/js/checkouts.js:125
 msgid "Patron note"
 msgstr "讀者說明"
 
 #: koha-tmpl/intranet-tmpl/prog/js/cart.js:86
-#: koha-tmpl/intranet-tmpl/prog/js/pages/results.js:363
+#: koha-tmpl/intranet-tmpl/prog/js/pages/results.js:354
 msgid "Place hold"
 msgstr "預約"
 
@@ -882,6 +884,8 @@ msgstr ""
 msgid "Prev"
 msgstr "上一頁"
 
+#: koha-tmpl/intranet-tmpl/prog/js/browser.js:88
+#: koha-tmpl/intranet-tmpl/prog/js/browser.js:90
 #: koha-tmpl/intranet-tmpl/prog/js/datatables.js:13
 msgid "Previous"
 msgstr "上一頁"
@@ -937,6 +941,11 @@ msgstr "續借到期日："
 #: koha-tmpl/intranet-tmpl/prog/js/checkouts.js:1014
 msgid "Resolve"
 msgstr "解決"
+
+#: koha-tmpl/intranet-tmpl/prog/js/browser.js:97
+#, fuzzy
+msgid "Results"
+msgstr "恢復"
 
 #: koha-tmpl/intranet-tmpl/prog/js/holds.js:135
 msgid "Resume"
@@ -1201,7 +1210,7 @@ msgstr "不能暫停預約，日期不明"
 msgid "Update"
 msgstr "更新"
 
-#: koha-tmpl/intranet-tmpl/prog/js/marc_modification_templates.js:313
+#: koha-tmpl/intranet-tmpl/prog/js/marc_modification_templates.js:317
 msgid "Update action"
 msgstr "更新作業"
 
@@ -1260,8 +1269,8 @@ msgstr "您不能再簽收任何館藏"
 msgid "You have made changes to system preferences."
 msgstr "您必須改變系統偏好。"
 
-#: koha-tmpl/intranet-tmpl/prog/js/pages/results.js:433
-#: koha-tmpl/intranet-tmpl/prog/js/pages/results.js:444
+#: koha-tmpl/intranet-tmpl/prog/js/pages/results.js:424
+#: koha-tmpl/intranet-tmpl/prog/js/pages/results.js:435
 msgid "You must select at least one record"
 msgstr "您必須選擇至少一個紀錄"
 
@@ -1344,3 +1353,6 @@ msgstr "續借過多"
 #, javascript-format
 msgid "until %s"
 msgstr "直到 %s"
+
+#~ msgid "One or more selected items cannot be placed on hold."
+#~ msgstr "無法預約一個或更多的館藏。"

@@ -551,6 +551,7 @@ sub get_template_and_user {
             && $in->{'template_name'} =~ /opac-(.+)\.(?:tt|tmpl)$/ ) {
             my $pagename = $1;
             unless ( $pagename =~ /^(?:MARC|ISBD)?detail$/
+                or $pagename =~ /^showmarc$/
                 or $pagename =~ /^addbybiblionumber$/
                 or $pagename =~ /^review$/ 
                 or $pagename =~ /^basket$/ ) {
@@ -796,13 +797,6 @@ sub _version_check {
     }
 }
 
-sub _session_log {
-    (@_) or return 0;
-    open my $fh, '>>', "/tmp/sessionlog" or warn "ERROR: Cannot append to /tmp/sessionlog";
-    printf $fh join( "\n", @_ );
-    close $fh;
-}
-
 sub _timeout_syspref {
     my $default_timeout = 600;
     my $timeout = C4::Context->preference('timeout') || $default_timeout;
@@ -946,7 +940,6 @@ sub checkauth {
             $session->flush;
             C4::Context->_unset_userenv($sessionID);
 
-            #_session_log(sprintf "%20s from %16s logged out at %30s (manually).\n", $userid,$ip,(strftime "%c",localtime));
             $sessionID = undef;
             $userid    = undef;
 
@@ -969,7 +962,6 @@ sub checkauth {
             }
             C4::Context->_unset_userenv($sessionID);
 
-            #_session_log(sprintf "%20s from %16s logged out at %30s (inactivity).\n", $userid,$ip,(strftime "%c",localtime));
             $userid    = undef;
             $sessionID = undef;
         }
@@ -983,7 +975,6 @@ sub checkauth {
             $session->flush;
             C4::Context->_unset_userenv($sessionID);
 
-            #_session_log(sprintf "%20s from %16s logged out at %30s (ip changed to %16s).\n", $userid,$ip,(strftime "%c",localtime), $info{'newip'});
             $sessionID = undef;
             $userid    = undef;
         }
@@ -1115,7 +1106,14 @@ sub checkauth {
                 else {
                     my $retuserid;
                     my $request_method = $query->request_method();
-                    if ($request_method eq 'POST'){
+
+                    if (
+                        $request_method eq 'POST'
+                        || ( C4::Context->preference('AutoSelfCheckID')
+                            && $q_userid eq C4::Context->preference('AutoSelfCheckID') )
+                      )
+                    {
+
                         ( $return, $cardnumber, $retuserid, $cas_ticket ) =
                           checkpw( $dbh, $q_userid, $password, $query, $type );
                         $userid = $retuserid if ($retuserid);
@@ -1144,7 +1142,6 @@ sub checkauth {
             # $return: 1 = valid user
             if ($return) {
 
-                #_session_log(sprintf "%20s from %16s logged in  at %30s.\n", $userid,$ENV{'REMOTE_ADDR'},(strftime '%c', localtime));
                 if ( $flags = haspermission( $userid, $flagsrequired ) ) {
                     $loggedin = 1;
                 }
@@ -1873,28 +1870,32 @@ sub _get_session_params {
     my $storage_method = C4::Context->preference('SessionStorage');
     if ( $storage_method eq 'mysql' ) {
         my $dbh = C4::Context->dbh;
-        return { dsn => "driver:MySQL;serializer:yaml;id:md5", dsn_args => { Handle => $dbh } };
+        return { dsn => "serializer:yamlxs;driver:MySQL;id:md5", dsn_args => { Handle => $dbh } };
     }
     elsif ( $storage_method eq 'Pg' ) {
         my $dbh = C4::Context->dbh;
-        return { dsn => "driver:PostgreSQL;serializer:yaml;id:md5", dsn_args => { Handle => $dbh } };
+        return { dsn => "serializer:yamlxs;driver:PostgreSQL;id:md5", dsn_args => { Handle => $dbh } };
     }
     elsif ( $storage_method eq 'memcached' && Koha::Caches->get_instance->memcached_cache ) {
         my $memcached = Koha::Caches->get_instance()->memcached_cache;
-        return { dsn => "driver:memcached;serializer:yaml;id:md5", dsn_args => { Memcached => $memcached } };
+        return { dsn => "serializer:yamlxs;driver:memcached;id:md5", dsn_args => { Memcached => $memcached } };
     }
     else {
         # catch all defaults to tmp should work on all systems
         my $dir = C4::Context::temporary_directory;
         my $instance = C4::Context->config( 'database' ); #actually for packages not exactly the instance name, but generally safer to leave it as it is
-        return { dsn => "driver:File;serializer:yaml;id:md5", dsn_args => { Directory => "$dir/cgisess_$instance" } };
+        return { dsn => "serializer:yamlxs;driver:File;id:md5", dsn_args => { Directory => "$dir/cgisess_$instance" } };
     }
 }
 
 sub get_session {
     my $sessionID      = shift;
     my $params = _get_session_params();
-    return CGI::Session->new( $params->{dsn}, $sessionID, $params->{dsn_args} );
+    my $session = CGI::Session->new( $params->{dsn}, $sessionID, $params->{dsn_args} );
+    if ( ! $session ){
+        die CGI::Session->errstr();
+    }
+    return $session;
 }
 
 

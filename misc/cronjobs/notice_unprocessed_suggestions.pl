@@ -49,9 +49,6 @@ for my $number_of_days (@days) {
         my $patron = Koha::Patrons->find( $budget->{budget_owner_id} );
         my $email_address = $patron->notice_email_address;
         my $usebranch = Koha::Libraries->get_effective_branch( $patron->branchcode );
-        my $library =  Koha::Libraries->find( $usebranch );
-        my $admin_email_address = $library->branchemail
-          || C4::Context->preference('KohaAdminEmailAddress');
 
         if ($email_address) {
             say "Patron " . $patron->borrowernumber . " is going to be notified" if $verbose;
@@ -72,7 +69,6 @@ for my $number_of_days (@days) {
                         letter                 => $letter,
                         borrowernumber         => $patron->borrowernumber,
                         message_transport_type => 'email',
-                        from_address           => $admin_email_address,
                         branchcode             => $usebranch
                     }
                 );

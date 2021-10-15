@@ -1,6 +1,6 @@
 [% USE Koha %]
 [% INCLUDE 'doc-head-open.inc' %]
-<title>Your messaging settings &rsaquo; [% IF ( LibraryNameTitle ) %][% IF ( LibraryNameTitle ) %][% LibraryNameTitle | html %][% ELSE %]Koha online[% END %][% ELSE %]Koha online[% END %] catalog</title>
+<title>Your messaging settings &rsaquo; [% IF ( LibraryNameTitle ) %][% LibraryNameTitle | html %][% ELSE %]Koha online[% END %] catalog</title>
 [% INCLUDE 'doc-head-close.inc' %]
 [% BLOCK cssinclude %][% END %]
 </head>
@@ -42,6 +42,7 @@
                             <input type="hidden" name="modify" value="yes" />
 
                                 <table class="table table-bordered table-condensed table-striped">
+                                    <caption class="sr-only">Your messaging settings</caption>
                                     <thead>
                                         <tr>
                                             <th>&nbsp;</th>

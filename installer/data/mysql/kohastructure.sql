@@ -1376,6 +1376,7 @@ CREATE TABLE `borrower_modifications` (
   `contactfirstname` mediumtext COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `contacttitle` mediumtext COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `borrowernotes` longtext COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `relationship` varchar(100) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `sex` varchar(1) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `password` varchar(30) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `flags` int(11) DEFAULT NULL,
@@ -1493,6 +1494,7 @@ CREATE TABLE `borrowers` (
   `contactfirstname` mediumtext COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT 'used for children to include first name of guarantor',
   `contacttitle` mediumtext COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT 'used for children to include title (Mr., Mrs., etc) of guarantor',
   `borrowernotes` longtext COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT 'a note on the patron/borrower''s account that is only visible in the staff interface',
+  `relationship` varchar(100) COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT 'used for children to include the relationship to their guarantor',
   `sex` varchar(1) COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT 'patron/borrower''s gender',
   `password` varchar(60) COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT 'patron/borrower''s Bcrypt encrypted password',
   `flags` int(11) DEFAULT NULL COMMENT 'will include a number associated with the staff member''s permissions',
@@ -1625,7 +1627,7 @@ CREATE TABLE `branchtransfers` (
   `tobranch` varchar(10) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '' COMMENT 'the branch the transfer was going to',
   `comments` longtext COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT 'any comments related to the transfer',
   `reason` enum('Manual','StockrotationAdvance','StockrotationRepatriation','ReturnToHome','ReturnToHolding','RotatingCollection','Reserve','LostReserve','CancelReserve','TransferCancellation') COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT 'what triggered the transfer',
-  `cancellation_reason` enum('Manual','StockrotationAdvance','StockrotationRepatriation','ReturnToHome','ReturnToHolding','RotatingCollection','Reserve','LostReserve','CancelReserve','ItemLost') COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT 'what triggered the transfer cancellation',
+  `cancellation_reason` enum('Manual','StockrotationAdvance','StockrotationRepatriation','ReturnToHome','ReturnToHolding','RotatingCollection','Reserve','LostReserve','CancelReserve','ItemLost', 'WrongTransfer') COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT 'what triggered the transfer cancellation',
   PRIMARY KEY (`branchtransfer_id`),
   KEY `frombranch` (`frombranch`),
   KEY `tobranch` (`tobranch`),
@@ -2622,6 +2624,7 @@ CREATE TABLE `deletedborrowers` (
   `contactfirstname` mediumtext COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT 'used for children to include first name of guarantor',
   `contacttitle` mediumtext COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT 'used for children to include title (Mr., Mrs., etc) of guarantor',
   `borrowernotes` longtext COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT 'a note on the patron/borrower''s account that is only visible in the staff interface',
+  `relationship` varchar(100) COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT 'used for children to include the relationship to their guarantor',
   `sex` varchar(1) COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT 'patron/borrower''s gender',
   `password` varchar(60) COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT 'patron/borrower''s encrypted password',
   `flags` int(11) DEFAULT NULL COMMENT 'will include a number associated with the staff member''s permissions',
@@ -3868,8 +3871,8 @@ CREATE TABLE `message_queue` (
   `from_address` longtext COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `reply_address` longtext COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `content_type` mediumtext COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `failure_code` mediumtext COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `branchcode` varchar(10)  COLLATE utf8mb4_unicode_ci NOT NULL,
-  `delivery_note` mediumtext COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   PRIMARY KEY (`message_id`),
   KEY `borrowernumber` (`borrowernumber`),
   KEY `message_transport_type` (`message_transport_type`),
@@ -4928,7 +4931,7 @@ DROP TABLE IF EXISTS `sessions`;
 /*!40101 SET character_set_client = utf8 */;
 CREATE TABLE `sessions` (
   `id` varchar(32) COLLATE utf8mb4_unicode_ci NOT NULL,
-  `a_session` longtext COLLATE utf8mb4_unicode_ci NOT NULL,
+  `a_session` longblob NOT NULL,
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;

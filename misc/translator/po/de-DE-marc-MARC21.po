@@ -1,8 +1,8 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: Koha 21.05\n"
-"POT-Creation-Date: 2021-09-07 07:27+0200\n"
-"PO-Revision-Date: 2021-09-06 16:20+0200\n"
+"POT-Creation-Date: 2021-10-15 14:14+0200\n"
+"PO-Revision-Date: 2021-10-15 10:10+0200\n"
 "Last-Translator: Katrin Fischer <katrin.fischer@bsz-bw.de>\n"
 "Language-Team: \n"
 "Language: de\n"
@@ -280,8 +280,8 @@ msgstr "/cgi-bin/koha/catalogue/search.pl?q=Control-number:"
 
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:238
 #, c-format
-msgid "/cgi-bin/koha/catalogue/search.pl?q=Host-item:"
-msgstr "/cgi-bin/koha/catalogue/search.pl?q=Host-item:"
+msgid "/cgi-bin/koha/catalogue/search.pl?q=Host-item:("
+msgstr "/cgi-bin/koha/catalogue/search.pl?q=Host-item:("
 
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slimUtils.xsl:295
 #, c-format
@@ -408,8 +408,8 @@ msgstr "/cgi-bin/koha/opac-search.pl?q=Control-number:"
 
 #: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:319
 #, c-format
-msgid "/cgi-bin/koha/opac-search.pl?q=Host-item:"
-msgstr "/cgi-bin/koha/opac-search.pl?q=Host-item:"
+msgid "/cgi-bin/koha/opac-search.pl?q=Host-item:("
+msgstr "/cgi-bin/koha/opac-search.pl?q=Host-item:("
 
 #: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:405
 #: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slimUtils.xsl:337
@@ -2355,7 +2355,7 @@ msgstr "Algonkin-Sprachen (Weitere)"
 
 #: koha-tmpl/intranet-tmpl/prog/en/modules/cataloguing/value_builder/marc21_linking_section.tt:29
 #, c-format
-msgid "All Item Types"
+msgid "All item types"
 msgstr "Alle Medientypen"
 
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21Languages.xsl:23

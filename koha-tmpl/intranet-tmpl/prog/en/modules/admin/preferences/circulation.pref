@@ -558,7 +558,7 @@ Circulation:
               choices:
                   1: block
                   0: allow
-            - renewing of items.
+            - renewing of items from the staff interface.
         -
             - Select the receiver of family card member overdue notices. Send overdue notices to
             - pref: FamilyCardMemberOverdueReceiver
@@ -785,7 +785,7 @@ Circulation:
               class: integer
             - days from now) at checkin time. Note that this number of days will be used too in calculating the default end date for the Holds to pull-report. But it does not interfere with issuing, renewing or transferring items.
         -
-            - Check the
+            - Check the rule from the
             - pref: ReservesControlBranch
               choices:
                   ItemHomeLibrary: "item's home library"
@@ -986,8 +986,8 @@ Circulation:
             - pref: DefaultHoldExpirationdate
               default: 0
               choices:
-                  yes: Set
-                  no: Don't set
+                  1: Set
+                  0: Don't set
             - default expiration date for holds automatically.
             - If enabled, set expiration date
             - pref: DefaultHoldExpirationdatePeriod

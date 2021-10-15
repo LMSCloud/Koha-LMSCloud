@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Koha 21.05\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2021-05-11 18:32-0300\n"
+"POT-Creation-Date: 2021-09-12 23:42-0300\n"
 "PO-Revision-Date: 2020-12-28 13:17+0000\n"
 "Last-Translator: Eugenios Papadopoulos <eugenios.papadopoulos@gmail.com>\n"
 "Language-Team: none\n"
@@ -195,7 +195,7 @@ msgid "Add to cart"
 msgstr "Προσθήκη στο καλάθι"
 
 #: koha-tmpl/intranet-tmpl/prog/js/datatables.js:51
-#: koha-tmpl/intranet-tmpl/prog/js/marc_modification_templates.js:118
+#: koha-tmpl/intranet-tmpl/prog/js/marc_modification_templates.js:122
 msgid "All"
 msgstr "Όλα"
 
@@ -303,17 +303,17 @@ msgstr ""
 "Είστε σίγουροι ότι επιθυμείτε να αναβαθμίσετε αυτό το παιδί σε κατηγορία "
 "Ενηλίκων; Η ενέργεια είναι μη αναστρέψιμη."
 
-#: koha-tmpl/intranet-tmpl/prog/js/marc_modification_templates.js:260
+#: koha-tmpl/intranet-tmpl/prog/js/marc_modification_templates.js:264
 msgid "Are you sure you wish to delete this template action?"
 msgstr ""
 "Είστε σίγουροι ότι επιθυμείτε να διαγράψετε αυτή την προτυποποιημένη "
 "ενέργεια;"
 
-#: koha-tmpl/intranet-tmpl/prog/js/marc_modification_templates.js:264
+#: koha-tmpl/intranet-tmpl/prog/js/marc_modification_templates.js:268
 msgid "Are you sure you wish to delete this template?"
 msgstr "Είστε σίγουροι ότι επιθυμείτε να διαγράψετε αυτό το πρότυπο;"
 
-#: koha-tmpl/intranet-tmpl/prog/js/pages/results.js:455
+#: koha-tmpl/intranet-tmpl/prog/js/pages/results.js:446
 msgid "At least two records must be selected for merging"
 msgstr "Πρέπει να επιλεγούν τουλάχιστον δύο εγγραφές για τη συγχώνευση."
 
@@ -495,7 +495,7 @@ msgstr ""
 msgid "Edit"
 msgstr "Επεξεργασία"
 
-#: koha-tmpl/intranet-tmpl/prog/js/marc_modification_templates.js:310
+#: koha-tmpl/intranet-tmpl/prog/js/marc_modification_templates.js:314
 #, javascript-format
 msgid "Edit action %s"
 msgstr "Επεξεργασία ενέργειας %s"
@@ -525,7 +525,7 @@ msgstr ""
 msgid "Error; your data might not have been saved"
 msgstr "Σφάλμα; τα δεδομένα σας μπορεί να μην αποθηκεύτηκαν"
 
-#: koha-tmpl/intranet-tmpl/prog/js/marc_modification_templates.js:116
+#: koha-tmpl/intranet-tmpl/prog/js/marc_modification_templates.js:120
 msgid "Every"
 msgstr "Κάθε"
 
@@ -575,6 +575,10 @@ msgstr "Το ποσό του κεφαλαίου υπερβαίνει τον γο
 #: koha-tmpl/intranet-tmpl/prog/js/acq.js:309
 msgid "Fund amount exceeds period allocation"
 msgstr "Το ποσό του κεφαλαίου υπερβαίνει τον περιοδικό καταμερισμό"
+
+#: koha-tmpl/intranet-tmpl/prog/js/browser.js:120
+msgid "Go back to the results"
+msgstr ""
 
 #: koha-tmpl/intranet-tmpl/prog/js/holds.js:147
 msgid "Hold is <strong>suspended</strong>"
@@ -653,7 +657,7 @@ msgid "Last"
 msgstr "Τελευταία"
 
 #: koha-tmpl/intranet-tmpl/prog/js/addorderiso2709.js:90
-#: koha-tmpl/intranet-tmpl/prog/js/z3950_search.js:124
+#: koha-tmpl/intranet-tmpl/prog/js/z3950_search.js:113
 msgid "Loading"
 msgstr "Φόρτωση"
 
@@ -712,6 +716,8 @@ msgstr ""
 msgid "New budget-parent is beneath budget"
 msgstr "Ο νέος γονικός προϋπολογισμός είναι κάτω από τον τρέχον προϋπολογισμό"
 
+#: koha-tmpl/intranet-tmpl/prog/js/browser.js:93
+#: koha-tmpl/intranet-tmpl/prog/js/browser.js:95
 #: koha-tmpl/intranet-tmpl/prog/js/calendar.js:111
 #: koha-tmpl/intranet-tmpl/prog/js/datatables.js:12
 msgid "Next"
@@ -806,8 +812,8 @@ msgid "Note: _ALL_ value will override all other values"
 msgstr "Σημείωση: η τιμή _ALL_ θα αντικαταστήσει όλες τις υπόλοιπες τιμές"
 
 #: koha-tmpl/intranet-tmpl/prog/js/pages/results.js:337
-#: koha-tmpl/intranet-tmpl/prog/js/pages/results.js:373
-#: koha-tmpl/intranet-tmpl/prog/js/pages/results.js:381
+#: koha-tmpl/intranet-tmpl/prog/js/pages/results.js:364
+#: koha-tmpl/intranet-tmpl/prog/js/pages/results.js:372
 msgid "Nothing is selected"
 msgstr "Δεν έχει επιλεγεί τίποτα"
 
@@ -849,16 +855,12 @@ msgstr "Σε κράτηση"
 msgid "On-site checkout"
 msgstr "Κατ' εξαίρεση δανεισμός"
 
-#: koha-tmpl/intranet-tmpl/prog/js/pages/results.js:345
-msgid "One or more selected items cannot be placed on hold."
-msgstr "Ένα ή περισσότερα επιλεγμένα τεκμήρια δε μπορούν να κρατηθούν."
-
 #: koha-tmpl/intranet-tmpl/prog/js/checkouts.js:125
 msgid "Patron note"
 msgstr "Σημείωση μέλους"
 
 #: koha-tmpl/intranet-tmpl/prog/js/cart.js:86
-#: koha-tmpl/intranet-tmpl/prog/js/pages/results.js:363
+#: koha-tmpl/intranet-tmpl/prog/js/pages/results.js:354
 msgid "Place hold"
 msgstr "Κράτηση"
 
@@ -923,6 +925,8 @@ msgstr ""
 msgid "Prev"
 msgstr "Προηγούμενο"
 
+#: koha-tmpl/intranet-tmpl/prog/js/browser.js:88
+#: koha-tmpl/intranet-tmpl/prog/js/browser.js:90
 #: koha-tmpl/intranet-tmpl/prog/js/datatables.js:13
 msgid "Previous"
 msgstr "Προηγούμενο"
@@ -978,6 +982,11 @@ msgstr "Ανανεωμένο, λήξη:"
 #: koha-tmpl/intranet-tmpl/prog/js/checkouts.js:1014
 msgid "Resolve"
 msgstr "Επίλυση"
+
+#: koha-tmpl/intranet-tmpl/prog/js/browser.js:97
+#, fuzzy
+msgid "Results"
+msgstr "Συνέχεια"
 
 #: koha-tmpl/intranet-tmpl/prog/js/holds.js:135
 msgid "Resume"
@@ -1246,7 +1255,7 @@ msgstr "Αδυναμία αναστολής κράτησης, μη έγκυρη 
 msgid "Update"
 msgstr "Ενημέρωση"
 
-#: koha-tmpl/intranet-tmpl/prog/js/marc_modification_templates.js:313
+#: koha-tmpl/intranet-tmpl/prog/js/marc_modification_templates.js:317
 msgid "Update action"
 msgstr "Ενημέρωση ενέργειας"
 
@@ -1306,8 +1315,8 @@ msgstr "Δε μπορείτε να παραλάβετε άλλα τεκμήρι�
 msgid "You have made changes to system preferences."
 msgstr "Έχετε κάνει αλλαγές στις προτιμήσεις συστήματος."
 
-#: koha-tmpl/intranet-tmpl/prog/js/pages/results.js:433
-#: koha-tmpl/intranet-tmpl/prog/js/pages/results.js:444
+#: koha-tmpl/intranet-tmpl/prog/js/pages/results.js:424
+#: koha-tmpl/intranet-tmpl/prog/js/pages/results.js:435
 msgid "You must select at least one record"
 msgstr "Πρέπει να επιλέξετε τουλάχιστον μια εγγραφή"
 
@@ -1390,3 +1399,6 @@ msgstr "πάρα πολλές ανανεώσεις"
 #, javascript-format
 msgid "until %s"
 msgstr "μέχρι %s"
+
+#~ msgid "One or more selected items cannot be placed on hold."
+#~ msgstr "Ένα ή περισσότερα επιλεγμένα τεκμήρια δε μπορούν να κρατηθούν."

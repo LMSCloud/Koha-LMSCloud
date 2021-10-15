@@ -23,11 +23,13 @@ use Test::More tests => 10;
 use Test::MockModule;
 use t::lib::Mocks;
 use t::lib::TestBuilder;
+use t::lib::Dates;
 
 use C4::Items qw( ModItemTransfer );
 use C4::Circulation;
 
 use Koha::AuthUtils;
+use Koha::DateUtils;
 
 BEGIN {
     use_ok('C4::ILSDI::Services');
@@ -39,7 +41,7 @@ my $builder = t::lib::TestBuilder->new;
 
 subtest 'AuthenticatePatron test' => sub {
 
-    plan tests => 14;
+    plan tests => 16;
 
     $schema->storage->txn_begin;
 
@@ -56,7 +58,8 @@ subtest 'AuthenticatePatron test' => sub {
         source => 'Borrower',
         value  => {
             cardnumber => undef,
-            password => Koha::AuthUtils::hash_password( $plain_password )
+            password => Koha::AuthUtils::hash_password( $plain_password ),
+            lastseen => "2001-01-01 12:34:56"
         }
     });
 
@@ -64,9 +67,12 @@ subtest 'AuthenticatePatron test' => sub {
     $query->param( 'username', $borrower->{userid});
     $query->param( 'password', $plain_password);
 
+    t::lib::Mocks::mock_preference( 'TrackLastPatronActivity', '' );
     my $reply = C4::ILSDI::Services::AuthenticatePatron( $query );
     is( $reply->{id}, $borrower->{borrowernumber}, "userid and password - Patron authenticated" );
     is( $reply->{code}, undef, "Error code undef");
+    my $seen_patron = Koha::Patrons->find({ borrowernumber => $reply->{id} });
+    is( $seen_patron->lastseen(), '2001-01-01 12:34:56','Last seen not updated if not tracking patrons');
 
     $query->param('password','ilsdi-passworD');
     $reply = C4::ILSDI::Services::AuthenticatePatron( $query );
@@ -79,10 +85,14 @@ subtest 'AuthenticatePatron test' => sub {
     is( $reply->{code}, 'PatronNotFound', "non-existing userid - PatronNotFound" );
     is( $reply->{id}, undef, "id undef");
 
+    t::lib::Mocks::mock_preference( 'TrackLastPatronActivity', '1' );
     $query->param( 'username', uc( $borrower->{userid} ));
     $reply = C4::ILSDI::Services::AuthenticatePatron( $query );
+    my $now = dt_from_string;
     is( $reply->{id}, $borrower->{borrowernumber}, "userid is not case sensitive - Patron authenticated" );
     is( $reply->{code}, undef, "Error code undef");
+    $seen_patron = Koha::Patrons->find({ borrowernumber => $reply->{id} });
+    is( t::lib::Dates::compare( $seen_patron->lastseen, $now), 0, 'Last seen updated to today if tracking patrons' );
 
     $query->param( 'username', $borrower->{cardnumber} );
     $reply = C4::ILSDI::Services::AuthenticatePatron( $query );

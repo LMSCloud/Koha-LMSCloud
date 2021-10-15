@@ -8,8 +8,8 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: Koha 21.05\n"
-"POT-Creation-Date: 2021-05-11 20:06-0300\n"
-"PO-Revision-Date: 2020-05-13 08:59+0000\n"
+"POT-Creation-Date: 2021-09-13 00:05-0300\n"
+"PO-Revision-Date: 2021-08-11 08:14+0000\n"
 "Last-Translator: Magnus Enger <magnus@enger.priv.no>\n"
 "Language-Team: Norwegian Bokmål <>\n"
 "Language: nb\n"
@@ -18,7 +18,7 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
 "X-Generator: Pootle 2.8\n"
-"X-POOTLE-MTIME: 1589360399.571138\n"
+"X-POOTLE-MTIME: 1628669699.574695\n"
 "X-Pootle-Path: /nb/21.05/nb-NO-marc-NORMARC.po\n"
 "X-Pootle-Revision: 1\n"
 
@@ -295,7 +295,7 @@ msgstr "00-05 Registreringsdato"
 #: koha-tmpl/intranet-tmpl/prog/en/modules/cataloguing/value_builder/normarc_leader.tt:2
 #, c-format
 msgid "000 - Bygging av postens hode &rsaquo; Cataloging &rsaquo; Koha"
-msgstr ""
+msgstr "000 - Bygging av postens hode &rsaquo; Katalogisering &rsaquo; Koha"
 
 #: koha-tmpl/intranet-tmpl/prog/en/modules/cataloguing/value_builder/normarc_leader.tt:8
 #, c-format
@@ -308,9 +308,9 @@ msgid "007 Fysisk beskrivelse av dokumentet"
 msgstr "007 Fysisk beskrivelse av dokumentet"
 
 #: koha-tmpl/intranet-tmpl/prog/en/modules/cataloguing/value_builder/normarc_field_007.tt:2
-#, fuzzy, c-format
+#, c-format
 msgid "007 feltbygger &rsaquo; Cataloging &rsaquo; Koha"
-msgstr "Koha &rsaquo; Katalogisering &rsaquo; 007 feltbygger"
+msgstr "007 feltbygger &rsaquo; Katalogisering &rsaquo; Koha"
 
 #: koha-tmpl/intranet-tmpl/prog/en/modules/cataloguing/value_builder/normarc_field_008.tt:6
 #, c-format
@@ -974,9 +974,9 @@ msgid "Fantasikart"
 msgstr "Fantasikart"
 
 #: koha-tmpl/intranet-tmpl/prog/en/modules/cataloguing/value_builder/normarc_field_008.tt:2
-#, fuzzy, c-format
+#, c-format
 msgid "Feltbygger for 008 &rsaquo; Katalogisering &rsaquo; Koha"
-msgstr "Koha &rsaquo; Katalogisering &rsaquo; Feltbygger for 008"
+msgstr "Feltbygger for 008 &rsaquo; Katalogisering &rsaquo; Koha"
 
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/NORMARCslim2intranetResults.xsl:553
 #: koha-tmpl/opac-tmpl/bootstrap/en/xslt/NORMARCslim2OPACResults.xsl:561

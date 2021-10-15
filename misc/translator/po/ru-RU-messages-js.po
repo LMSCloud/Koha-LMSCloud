@@ -3,15 +3,20 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Koha 21.05\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2021-05-11 20:43-0300\n"
-"PO-Revision-Date: 2021-05-12 08:08-0300\n"
-"Language-Team: Koha Translation Team \n"
+"POT-Creation-Date: 2021-09-13 00:11-0300\n"
+"PO-Revision-Date: 2021-08-09 08:25+0000\n"
+"Last-Translator: Igor A. Sychev <Igor.A.Sychev@mail.ru>\n"
+"Language-Team: Koha Translation Team\n"
 "Language: ru\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=3; plural=(n%10==1 && n%100!=11 ? 0 : n%10>=2 && n"
+"%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2);\n"
+"X-Generator: Pootle 2.8\n"
 "X-Pootle-Path: /ru/21.05/ru-RU-messages-js.po\n"
 "X-Pootle-Revision: 1\n"
+"X-POOTLE-MTIME: 1628497527.397477\n"
 
 #: koha-tmpl/intranet-tmpl/prog/js/holds.js:88
 msgid " (current) "
@@ -186,7 +191,7 @@ msgid "Add to cart"
 msgstr "Добавить в корзину"
 
 #: koha-tmpl/intranet-tmpl/prog/js/datatables.js:51
-#: koha-tmpl/intranet-tmpl/prog/js/marc_modification_templates.js:118
+#: koha-tmpl/intranet-tmpl/prog/js/marc_modification_templates.js:122
 msgid "All"
 msgstr "все"
 
@@ -290,15 +295,15 @@ msgstr ""
 "Вы уверены, что хотите обновить категорию с ребёнка на совершеннолетнего?  "
 "Это нельзя отменить."
 
-#: koha-tmpl/intranet-tmpl/prog/js/marc_modification_templates.js:260
+#: koha-tmpl/intranet-tmpl/prog/js/marc_modification_templates.js:264
 msgid "Are you sure you wish to delete this template action?"
 msgstr "Вы действительно хотите удалить это действие шаблона?"
 
-#: koha-tmpl/intranet-tmpl/prog/js/marc_modification_templates.js:264
+#: koha-tmpl/intranet-tmpl/prog/js/marc_modification_templates.js:268
 msgid "Are you sure you wish to delete this template?"
 msgstr "Вы действительно хотите удалить этот шаблон?"
 
-#: koha-tmpl/intranet-tmpl/prog/js/pages/results.js:455
+#: koha-tmpl/intranet-tmpl/prog/js/pages/results.js:446
 msgid "At least two records must be selected for merging"
 msgstr "Необходимо выбрать как минимум две записи для объединения"
 
@@ -476,7 +481,7 @@ msgstr ""
 msgid "Edit"
 msgstr "Редактировать"
 
-#: koha-tmpl/intranet-tmpl/prog/js/marc_modification_templates.js:310
+#: koha-tmpl/intranet-tmpl/prog/js/marc_modification_templates.js:314
 #, javascript-format
 msgid "Edit action %s"
 msgstr "Редактировать действие %s"
@@ -506,7 +511,7 @@ msgstr ""
 msgid "Error; your data might not have been saved"
 msgstr "Ошибка; ваши данные могли быть не сохранены"
 
-#: koha-tmpl/intranet-tmpl/prog/js/marc_modification_templates.js:116
+#: koha-tmpl/intranet-tmpl/prog/js/marc_modification_templates.js:120
 msgid "Every"
 msgstr "Каждый"
 
@@ -556,6 +561,10 @@ msgstr "Сумма средств превышает отчисления из �
 #: koha-tmpl/intranet-tmpl/prog/js/acq.js:309
 msgid "Fund amount exceeds period allocation"
 msgstr "Сумма средств превышает выделенный период"
+
+#: koha-tmpl/intranet-tmpl/prog/js/browser.js:120
+msgid "Go back to the results"
+msgstr ""
 
 #: koha-tmpl/intranet-tmpl/prog/js/holds.js:147
 msgid "Hold is <strong>suspended</strong>"
@@ -634,7 +643,7 @@ msgid "Last"
 msgstr "Последнее"
 
 #: koha-tmpl/intranet-tmpl/prog/js/addorderiso2709.js:90
-#: koha-tmpl/intranet-tmpl/prog/js/z3950_search.js:124
+#: koha-tmpl/intranet-tmpl/prog/js/z3950_search.js:113
 msgid "Loading"
 msgstr "Загружается"
 
@@ -693,6 +702,8 @@ msgstr ""
 msgid "New budget-parent is beneath budget"
 msgstr "Новый источник сметы меньше бюджета"
 
+#: koha-tmpl/intranet-tmpl/prog/js/browser.js:93
+#: koha-tmpl/intranet-tmpl/prog/js/browser.js:95
 #: koha-tmpl/intranet-tmpl/prog/js/calendar.js:111
 #: koha-tmpl/intranet-tmpl/prog/js/datatables.js:12
 msgid "Next"
@@ -787,8 +798,8 @@ msgid "Note: _ALL_ value will override all other values"
 msgstr "Примечание: значение _ALL_ отменит все другие значения."
 
 #: koha-tmpl/intranet-tmpl/prog/js/pages/results.js:337
-#: koha-tmpl/intranet-tmpl/prog/js/pages/results.js:373
-#: koha-tmpl/intranet-tmpl/prog/js/pages/results.js:381
+#: koha-tmpl/intranet-tmpl/prog/js/pages/results.js:364
+#: koha-tmpl/intranet-tmpl/prog/js/pages/results.js:372
 msgid "Nothing is selected"
 msgstr "Ничего не выбрано"
 
@@ -831,17 +842,12 @@ msgstr "Зарезервировано"
 msgid "On-site checkout"
 msgstr "Оформление выдачи на месте"
 
-#: koha-tmpl/intranet-tmpl/prog/js/pages/results.js:345
-msgid "One or more selected items cannot be placed on hold."
-msgstr ""
-"Один или несколько выбранных экземпляров не могут быть зарезервированы."
-
 #: koha-tmpl/intranet-tmpl/prog/js/checkouts.js:125
 msgid "Patron note"
 msgstr "Примечание читателя"
 
 #: koha-tmpl/intranet-tmpl/prog/js/cart.js:86
-#: koha-tmpl/intranet-tmpl/prog/js/pages/results.js:363
+#: koha-tmpl/intranet-tmpl/prog/js/pages/results.js:354
 msgid "Place hold"
 msgstr "Установить резервирование"
 
@@ -905,6 +911,8 @@ msgstr ""
 msgid "Prev"
 msgstr "Предыдущее"
 
+#: koha-tmpl/intranet-tmpl/prog/js/browser.js:88
+#: koha-tmpl/intranet-tmpl/prog/js/browser.js:90
 #: koha-tmpl/intranet-tmpl/prog/js/datatables.js:13
 msgid "Previous"
 msgstr "Предыдущее"
@@ -960,6 +968,11 @@ msgstr "Продлено, дата возврата:"
 #: koha-tmpl/intranet-tmpl/prog/js/checkouts.js:1014
 msgid "Resolve"
 msgstr "Разрешить"
+
+#: koha-tmpl/intranet-tmpl/prog/js/browser.js:97
+#, fuzzy
+msgid "Results"
+msgstr "Возобновить"
 
 #: koha-tmpl/intranet-tmpl/prog/js/holds.js:135
 msgid "Resume"
@@ -1022,7 +1035,7 @@ msgstr "Сентябрь"
 
 #: koha-tmpl/intranet-tmpl/prog/js/datatables.js:19
 msgid "Show _MENU_ entries"
-msgstr "Виводить _MENU_ записей"
+msgstr "Выводить _MENU_ записей"
 
 #: koha-tmpl/intranet-tmpl/prog/js/datatables.js:16
 msgid "Showing _START_ to _END_ of _TOTAL_ entries"
@@ -1230,7 +1243,7 @@ msgstr "Невозможно приостановить резервирован
 msgid "Update"
 msgstr "Обновить"
 
-#: koha-tmpl/intranet-tmpl/prog/js/marc_modification_templates.js:313
+#: koha-tmpl/intranet-tmpl/prog/js/marc_modification_templates.js:317
 msgid "Update action"
 msgstr "Обновить действие"
 
@@ -1291,8 +1304,8 @@ msgstr "Вы не можете получить больше экземпляр�
 msgid "You have made changes to system preferences."
 msgstr "Вы внесли изменения в параметры системы."
 
-#: koha-tmpl/intranet-tmpl/prog/js/pages/results.js:433
-#: koha-tmpl/intranet-tmpl/prog/js/pages/results.js:444
+#: koha-tmpl/intranet-tmpl/prog/js/pages/results.js:424
+#: koha-tmpl/intranet-tmpl/prog/js/pages/results.js:435
 msgid "You must select at least one record"
 msgstr "Вы должны выбрать по крайней мере одну запись"
 
@@ -1375,3 +1388,7 @@ msgstr "слишком много продлений"
 #, javascript-format
 msgid "until %s"
 msgstr "до %s"
+
+#~ msgid "One or more selected items cannot be placed on hold."
+#~ msgstr ""
+#~ "Один или несколько выбранных экземпляров не могут быть зарезервированы."

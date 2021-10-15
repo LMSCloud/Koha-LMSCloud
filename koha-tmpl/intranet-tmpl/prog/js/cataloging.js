@@ -43,8 +43,8 @@ function openAuth(tagsubfieldid,authtype,source) {
     var elementsubfcode=getSubfieldCode(element.name);
     var mainmainstring=element.value;
     var mainstring = new Array();
-    var inputs = element.parentNode.parentNode.getElementsByTagName("input");
 
+    var inputs = element.closest('ul').getElementsByTagName('input');
     for (var myindex =0; myindex<inputs.length;myindex++){
         if (inputs[myindex].name && inputs[myindex].name.match(tagsubfield)){
             var subfieldcode=getSubfieldCode(inputs[myindex].name);
@@ -89,7 +89,7 @@ var Select2Utils = {
 
     initSelect2: function(selects) {
         if ($.fn.select2) {
-            if ( window.CAN_user_parameters_manage_auth_values === undefined || ! CAN_user_parameters_manage_auth_values ) {
+            if ( window.auth_values_creation === undefined || ! auth_values_creation ) {
                 $(selects).select2().on("select2:clear", function () {
                     $(this).on("select2:opening.cancelOpen", function (evt) {
                         evt.preventDefault();
