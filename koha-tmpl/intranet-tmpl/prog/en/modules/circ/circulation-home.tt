@@ -51,6 +51,10 @@
                             <li>
                                 <a class="circ-button" href="/cgi-bin/koha/cataloguing/addbiblio.pl?frameworkcode=FA"><i class="fa fa-plus"></i> Fast cataloging</a>
                             </li>
+                            <li>
+                                <a class="circ-button" href="/cgi-bin/koha/circ/pendingbookings.pl"><i class="fa-solid fa-calendar-days"></i> Bookings to collect</a>
+                            </li>
+                        </ul>
                         [% END %]
                     [% END %]
                     [% IF ( Koha.Preference('AllowCheckoutNotes') && CAN_user_circulate_manage_checkout_notes ) %]
@@ -67,7 +71,7 @@
             </div>
 
             <div class="col-sm-5 col-md-4">
-                <h3>Holds</h3>
+                <h3>Holds & Bookings</h3>
 
                 <ul class="buttons-list">
                     <li>
