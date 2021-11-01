@@ -1125,7 +1125,7 @@
      </xsl:if>
      <!-- Browse keywords -->
      <xsl:if test="marc:datafield[substring(@tag, 1, 1) = '6' and not(@tag=653 or @tag=655 or @tag=689)]">
-         <xsl:for-each select="marc:datafield[substring(@tag, 1, 1) = '6'][not(@tag=653 or @tag=655 or @tag=689)]">
+         <xsl:for-each select="marc:datafield[substring(@tag, 1, 1) = '6' and marc:subfield[@code='a'] != ''][not(@tag=653 or @tag=655 or @tag=689)]">
          <xsl:text> | </xsl:text> 
          <a>
             <xsl:attribute name="href">/cgi-bin/koha/opac-search.pl?q=su<xsl:value-of select="$SubjectModifier"/>:<xsl:value-of select="$TracingQuotesLeft"/><xsl:value-of select="translate(marc:subfield[@code='a'],'();','')"/><xsl:value-of select="$TracingQuotesRight"/></xsl:attribute>
