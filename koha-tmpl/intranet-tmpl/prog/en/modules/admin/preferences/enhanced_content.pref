@@ -154,8 +154,8 @@ Enhanced content:
         -
             - pref: MunzingerEncyclopediaSearchEnabled
               choices:
-                  yes: Activate
-                  no: "Don't activate"
+                  1: Activate
+                  0: "Don't activate"
             - Munzinger encyclopedia search in OPAC. Activate only if you want to enrich OPAC search results with results of the Munzinger encyclopedia collections. You need to contract with Munzinger to use this feature.
             - Munzinger supports communication using an encrypted key. A library, that wants to use Munzinger must create a key file /etc/koha/munzinger.key containing the two lines
             - <br>key=[KEY]
@@ -447,8 +447,8 @@ Enhanced content:
         -
             - pref: ekzLocalServicesEnabled
               choices:
-                  yes: Enable
-                  no: "Don't enable"
+                  1: Enable
+                  0: "Don't enable"
             - the local ekz web services that will create title data and items as required for media ordered online in the media shop of ekz.bibliotheksservice GmbH.
         -
             - The handlers of ekz web services will send their processing notices to the e-mail address
@@ -500,8 +500,8 @@ Enhanced content:
         -
             - pref:  ekzWebServicesHideOrderedTitlesInOpac
               choices:
-                  yes: Hide
-                  no: Show
+                  1: Hide
+                  0: Show
             - the title data created by the ekz web services for ordered media in the OPAC. If title data are hidden initially, you have to explicitly activate the visibility of the title data after receiving an item.
         -
             - When an ekz web service signals an order and an item is created, set the item's subfields as specified. (e.g. 7=-1|x=Item created by ekz web service.)
@@ -532,22 +532,22 @@ Enhanced content:
             - The ekz invoice synchronization will 
             - pref: ekzInvoiceSkipAdditionalCosts
               choices:
-                  yes: "ignore and not add"
-                  no: "add"
+                  1: "ignore and not add"
+                  0: "add"
             - additional costs (e.g. handling charges) to the item price.
         -
             - The ekz invoice synchronization will 
             - pref: ekzInvoiceCloseWhenCreated
               choices:
-                  yes: close
-                  no: "not close"
+                  1: close
+                  0: "not close"
             - the invoices it creates in Koha.
     ekz Cover:
         -
             - pref: EKZCover
               choices:
-                  yes: Enable
-                  no: "Don't enable"
+                  1: Enable
+                  0: "Don't enable"
             - cover display from the German library service company EKZ.
         -
             - Base URL to read covers from EKZ service:
@@ -556,8 +556,8 @@ Enhanced content:
         -
             - pref: BibtipEnabled
               choices:
-                  yes: Enable
-                  no: "Don't enable"
+                  1: Enable
+                  0: "Don't enable"
             - Bibtip recommandations in OPAC.
         -
             - Name of the Bibtip catalog used to request recommendations from Bibtip service:
@@ -566,8 +566,8 @@ Enhanced content:
         -
             - pref: DivibibEnabled
               choices:
-                  yes: Enable
-                  no: "Don't enable"
+                  1: Enable
+                  0: "Don't enable"
             - the Divibib Onleihe integration in Koha. Onleihe title und item data needs to be synchronized regularly to use the Onleihe integration. 
             - The integration activates the use of the Onleihe NCIP services to get availabilty status and to authenticate patrons.
         -
@@ -582,8 +582,8 @@ Enhanced content:
         -
             - pref: DivibibLog
               choices:
-                  yes: Enable
-                  no: "Don't enable"
+                  1: Enable
+                  0: "Don't enable"
             - the Divibib interface action log e.g. Divibib authentications.
         -
             - pref: DivibibAuthDisabledForGroups
@@ -594,8 +594,8 @@ Enhanced content:
         -
             - pref: BrockhausSearchActive
               choices:
-                  yes: Activate
-                  no: "Don't activate"
+                  1: Activate
+                  0: "Don't activate"
             - Brockhaus encyclopedia search in OPAC. Activate only if you want to enrich OPAC search results with results of the Brockhaus encyclopedia collections. You need to contract with Brockhaus to use this feature.
         -
             - In order to use Brockhaus encyclopedia collection search, configure the Brockhaus customer id  
@@ -628,8 +628,8 @@ Enhanced content:
         -
             - pref: FilmfriendSearchActive
               choices:
-                  yes: Activate
-                  no: "Don't activate"
+                  1: Activate
+                  0: "Don't activate"
             - filmfriend portal search in OPAC. Activate only if you want to enrich OPAC search results with results of the filmfriend film collections. You need to contract with filmfriend to use this feature.
         -
             - In order to use film collection search, configure the filmfriend customer ID (aka tenant ID)

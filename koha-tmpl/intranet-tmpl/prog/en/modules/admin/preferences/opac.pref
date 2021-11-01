@@ -264,8 +264,8 @@ OPAC:
             - pref: OPACMySummaryCallNumber
               default: 0
               choices:
-                  yes: Show
-                  no: "Don't show"
+                  1: Show
+                  0: "Don't show"
             - a column containing the call number of the items on the "my summary" tab.
         -
             - 'Add additional elements to the "More Searches" bar on the OPAC, with the following HTML (leave blank to disable):'
@@ -283,8 +283,8 @@ OPAC:
             - pref: OPACMySummaryLibrary
               default: 0
               choices:
-                  yes: Show
-                  no: "Don't show"
+                  1: Show
+                  0: "Don't show"
             - a column containing the issuing library branch of the checked out / overdue items on the "my summary" tab.
         -
             - "Note to display on the patron summary page. This note only appears if the patron is logged in:"
@@ -372,8 +372,8 @@ OPAC:
             - pref: OpacDetailVolumeDisplay
               default: 1
               choices:
-                  yes: Show
-                  no: "Don't show"
+                  1: Show
+                  0: "Don't show"
             - " linked titles in OPAC detailed view based on the linked records in fields 770$w, 772$w, 773$w, 774$w, 775$w, 776$w, 777$w, 780$w, 785$w, 787$w, 800$w, 810$w, 811$w, 830$w."
             - "."
         -
@@ -986,14 +986,14 @@ OPAC:
             - pref: EnablePayPalOpacPayments
               default: 1
               choices:
-                  yes: Allow
-                  no: "Don't allow"
+                  1: Allow
+                  0: "Don't allow"
             - "patrons to make payments from the OPAC via PayPal in"
             - pref: PayPalSandboxMode
               default: 1
               choices:
-                  yes: "Sandbox"
-                  no: "Production"
+                  1: "Sandbox"
+                  0: "Production"
             - "mode."
         -
             - "The email address to receive PayPal payments is "
@@ -1017,8 +1017,8 @@ OPAC:
             - pref: GirosolutionCreditcardOpacPaymentsEnabled
               default: 0
               choices:
-                  yes: Allow
-                  no: "Don't allow"
+                  1: Allow
+                  0: "Don't allow"
             - "patrons to make credit card payments from the OPAC via GiroSolution."
         -
             - "The library's GiroSolution Project ID for credit card payments is "
@@ -1030,8 +1030,8 @@ OPAC:
             - pref: GirosolutionGiropayOpacPaymentsEnabled
               default: 0
               choices:
-                  yes: Allow
-                  no: "Don't allow"
+                  1: Allow
+                  0: "Don't allow"
             - "patrons to make GiroPay payments from the OPAC via GiroSolution."
         -
             - "The library's GiroSolution Project ID for GiroPay payments is "
@@ -1053,8 +1053,8 @@ OPAC:
             - pref: Epay21PaypageOpacPaymentsEnabled
               default: 0
               choices:
-                  yes: Allow
-                  no: "Don't allow"
+                  1: Allow
+                  0: "Don't allow"
             - "patrons to make paypage payments from the OPAC via epay21."
         -
             - "The URL for accessing epay21 paypage webservices is "
@@ -1089,8 +1089,8 @@ OPAC:
             - pref: PmpaymentPaypageOpacPaymentsEnabled
               default: 0
               choices:
-                  yes: Allow
-                  no: "Don't allow"
+                  1: Allow
+                  0: "Don't allow"
             - "patrons to make paypage payments from the OPAC via pmPayment."
         -
             - "The URL for accessing pmPayment paypage webservices is "
@@ -1121,8 +1121,8 @@ OPAC:
             - pref: EpayblPaypageOpacPaymentsEnabled
               default: 0
               choices:
-                  yes: Allow
-                  no: "Don't allow"
+                  1: Allow
+                  0: "Don't allow"
             - "patrons to make paypage payments from the OPAC via the ePayBL paypage."
         -
             - "The URL for accessing ePayBL webservices is "
