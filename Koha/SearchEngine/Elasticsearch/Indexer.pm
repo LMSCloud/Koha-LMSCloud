@@ -118,7 +118,7 @@ sub update_index {
             my $elasticsearch = $self->get_elasticsearch();
             $response = $elasticsearch->bulk(
                 index => $self->index_name,
-                type => 'data', # is just hard coded in Indexer.pm?
+                # type => 'data', # is just hard coded in Indexer.pm?
                 body => \@body
             );
             if ($response->{errors}) {
@@ -255,10 +255,7 @@ sub update_mappings {
         try {
             my $response = $elasticsearch->indices->put_mapping(
                 index => $self->index_name,
-                type => $type,
-                body => {
-                    $type => $mappings->{$type}
-                }
+                body => $mappings->{$type}
             );
         } catch {
             $self->set_index_status_recreate_required();
