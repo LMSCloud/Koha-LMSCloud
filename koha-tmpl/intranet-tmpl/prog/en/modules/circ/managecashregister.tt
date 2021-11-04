@@ -1,29 +1,13 @@
+[% USE raw %]
 [% USE Asset %]
 [% USE KohaDates %]
 [% USE Branches %]
 [% SET footerjs = 1 %]
 [% INCLUDE 'doc-head-open.inc' %]
-<title>Koha &rsaquo; Circulation &rsaquo; Cash register management</title>
+<title>Cash register management &rsaquo; Circulation &rsaquo; Koha</title>
 [% INCLUDE 'doc-head-close.inc' %]
 [% Asset.css("css/datatables.css") %]
-
-<style type="text/css">
-    #closecashregister .cash-amount, #payoutcashregister .cash-amount, #adjustcashregister .cash-amount {
-        text-align: right;
-    }
-</style>
 </head>
-
-<body id="circ_managecashregister" class="circ">
-[% INCLUDE 'header.inc' %]
-[% INCLUDE 'circ-search.inc' %]
-
-<div id="breadcrumbs">
-         <a href="/cgi-bin/koha/mainpage.pl">Home</a>
-&rsaquo; <a href="/cgi-bin/koha/circ/circulation-home.pl">Circulation</a>
-&rsaquo; <a class="cashregisterlink" href="/cgi-bin/koha/circ/managecashregister.pl">Cash register management</a> [% IF status == 'manage' %]
-&rsaquo; Open cash register: [% cashreg.cash_register_name %][% END %]
-</div>
 
 [% BLOCK cashActionName %][% SWITCH cashaction %]
 [% CASE 'OPEN' %]Cash register opened
@@ -36,11 +20,37 @@
 [% CASE 'CLOSE' %]Cash register closed
 [% END %][% END %]
 
-<div id="doc3" class="yui-t1">
-    <div id="bd">
-        <div id="yui-main">
-            <div class="yui-b">
-                <div class="yui-gc">
+<body id="circ_managecashregister" class="circ">
+[% INCLUDE 'header.inc' %]
+[% INCLUDE 'circ-search.inc' %]
+    <nav id="breadcrumbs" aria-label="Breadcrumb" class="breadcrumb">
+        <ol>
+            <li>
+                <a href="/cgi-bin/koha/mainpage.pl">Home</a>
+            </li>
+            <li>
+                <a href="/cgi-bin/koha/circ/circulation-home.pl">Circulation</a>
+            </li>
+            <li>
+                <a class="cashregisterlink" href="/cgi-bin/koha/circ/managecashregister.pl">Cash register management</a>
+            </li>
+            <li>
+                <a href="#" aria-current="page">
+                    [% IF status == 'manage' %]
+                        Cash register: [% cashreg.cash_register_name %]
+                    [% ELSE %]
+                        Select cash register
+                    [% END %]
+                </a>
+            </li>
+        </ol>
+    </nav>
+
+
+    <div class="main container-fluid">
+        <div class="row">
+            <div class="col-sm-10 col-sm-push-2">
+                <main>
                     <div id="cash-register-configuration">
                         <h1>
                             Cash register management
@@ -101,7 +111,7 @@
                                 <a id="linkfinesreport" class="btn btn-default btn-xs cashregisterlink" href="/cgi-bin/koha/circ/managecashregister.pl?cash_register_id=[% cash_register.cash_register_id %]&op=finesreport"><i class="fa fa-balance-scale"></i> Fines overviews</a>
                             </div>
                             [% IF manageaction == 'payout' %]
-                                <h3>Cash payment</h3>
+                                <h2>Cash payment</h2>
                                 <form name="payoutcashregister" id="payoutcashregister" action="/cgi-bin/koha/circ/managecashregister.pl" method="post">
                                 <input type="hidden" name="op" value="payout">
                                 <input type="hidden" name="cash_register_id" value="[% cash_register.cash_register_id %]">
@@ -162,7 +172,7 @@
                                 </fieldset>
                                 </form>
                             [% ELSIF manageaction == 'deposit' %]
-                                <h3>Deposit</h3>
+                                <h2>Deposit</h2>
                                 <form name="payoutcashregister" id="payoutcashregister" action="/cgi-bin/koha/circ/managecashregister.pl" method="post">
                                 <input type="hidden" name="op" value="deposit">
                                 <input type="hidden" name="cash_register_id" value="[% cash_register.cash_register_id %]">
@@ -223,7 +233,7 @@
                                 </fieldset>
                                 </form>
                             [% ELSIF manageaction == 'adjust' %]
-                                <h3>Difference posting</h3>
+                                <h2>Difference posting</h2>
                                 <form name="adjustcashregister" id="adjustcashregister" action="/cgi-bin/koha/circ/managecashregister.pl" method="post">
                                 <input type="hidden" name="op" value="adjust">
                                 <input type="hidden" name="cash_register_id" value="[% cash_register.cash_register_id %]">
@@ -284,7 +294,7 @@
                                 </fieldset>
                                 </form>
                             [% ELSIF manageaction == 'close' %]
-                                <h3>Close cash register</h3>
+                                <h2>Close cash register</h2>
                                 <form name="closecashregister" id="closecashregister" action="/cgi-bin/koha/circ/managecashregister.pl" method="post">
                                 <input type="hidden" name="op" value="close">
                                 <input type="hidden" name="cash_register_id" value="[% cash_register.cash_register_id %]">
@@ -347,7 +357,7 @@
                                                                         
                                     </fieldset>
                                 </form>
-                                <h3>Cash register journal</h3>
+                                <h2>Cash register journal</h2>
                                 <div>
                                     <table id="cashregjournal">
                                         <thead>
@@ -375,10 +385,10 @@
                                                 <td>[% IF (trans.borrowernumber) %][% IF ( ! trans.patron_is_deleted ) %]<a href="/cgi-bin/koha/members/boraccount.pl?borrowernumber=[% trans.borrowernumber %]">[% END %][% trans.patron_name %][% IF ( ! trans.patron_is_deleted ) %]</a>[% END %][% END %]</td>
                                                 <td>[% trans.manager_name %]</td>
                                                 <td>[% contentbefore = 0 %]
-                                                    [% IF (trans.description) %][% trans.description %][% contentbefore = 1 %][% END%]
-                                                    [% IF (trans.accountlines_note) %][% IF (contentbefore == 1) %]<br />[% END%]Charge description: [% trans.accountlines_note %][% contentbefore = 1 %][% END%]
-                                                    [% IF (trans.accountlines_description) %][% IF (contentbefore == 1) %]<br />[% END%]Charge note: [% trans.accountlines_description %][% contentbefore = 1 %][% END%]
-                                                    [% IF (trans.title) %][% IF contentbefore == 1 %]<b r/>[% END%]Title: [% trans.title %][% contentbefore = 1 %][% END%]
+                                                    [% IF (trans.description) %][% trans.description %][% contentbefore = 1 %][% END %]
+                                                    [% IF (trans.accountlines_note) %][% IF (contentbefore == 1) %]<br />[% END %]Charge description: [% trans.accountlines_note %][% contentbefore = 1 %][% END %]
+                                                    [% IF (trans.accountlines_description) %][% IF (contentbefore == 1) %]<br />[% END %]Charge note: [% trans.accountlines_description %][% contentbefore = 1 %][% END %]
+                                                    [% IF (trans.title) %][% IF contentbefore == 1 %]<br />[% END %]Title: [% trans.title %][% END %]
                                                 </td>
                                                 <td>[% reasonkey = trans.action _ trans.reason %][% authValuesAll.$reasonkey || trans.reason %]</td>
                                             </tr>
@@ -396,7 +406,7 @@
                             [% END %]
                         [% END %]
                         [% IF status == 'close' && manageaction == 'close' %]
-                            <h3>Close cash register</h3>
+                            <h2>Close cash register</h2>
                             <form name="closecashregister" id="closecashregister" action="/cgi-bin/koha/circ/managecashregister.pl" method="post">
                             <input type="hidden" name="op" value="close">
                             <input type="hidden" name="cash_register_id" value="[% cash_register.cash_register_id %]">
@@ -445,39 +455,40 @@
                         [% END %]
                         [% debug %]
                     </div>
-                </div>
-            </div>
-        </div>
-        <!-- sidebar -->
-        <div class="yui-b">
-            [% IF ( status == 'manage' || status == 'close' ) %]
-            <div class="cashregisterinfo">
-                <h5>[% cash_register.cash_register_name %]</h5>
-                <ul>
-                    <li class="cashregisterinfo">Library: [% Branches.GetName(cash_register.cash_register_branchcode) %]</li>
-                    <li class="cashregisterimportantinfo">Cash balance: [% cash_register.cash_register_balance_formatted %]</li>
-                    <li class="cashregisterinfo">Opened on: [% cash_register_info.opening_booking_time %]</li>
-                    <li class="cashregisterinfo">Opened by: [% cash_register_info.opening_manager %]</li>
-                    [% FOREACH additionalOpener IN cash_register_info.also_used_by_manager %]
-                    <li class="cashregisterinfo">Also in use by: [% additionalOpener.name %]</li>
+                </main>
+            </div> <!-- /.col-sm-10.col-sm-push-2 -->
+
+            <div class="col-sm-2 col-sm-pull-10">
+                <aside>
+                    [% IF ( status == 'manage' || status == 'close' ) %]
+                    <div class="cashregisterinfo">
+                        <h5>[% cash_register.cash_register_name %]</h5>
+                        <ul>
+                            <li class="cashregisterinfo">Library: [% Branches.GetName(cash_register.cash_register_branchcode) %]</li>
+                            <li class="cashregisterimportantinfo">Cash balance: [% cash_register.cash_register_balance_formatted %]</li>
+                            <li class="cashregisterinfo">Opened on: [% cash_register_info.opening_booking_time %]</li>
+                            <li class="cashregisterinfo">Opened by: [% cash_register_info.opening_manager %]</li>
+                            [% FOREACH additionalOpener IN cash_register_info.also_used_by_manager %]
+                            <li class="cashregisterinfo">Also in use by: [% additionalOpener.name %]</li>
+                            [% END %]
+                            <li class="cashregisterinfo">Opening balance: [% cash_register_info.opening_balance_formatted %]</li>
+                            <li class="cashregisterinfo">Cash receipts: [% cash_register_info.inpayments_amount_formatted %]</li>
+                            <li class="cahsregisterinfo">Cash payments: [% cash_register_info.payouts_amount_formatted %]</li>
+                        [% IF ( lastTransaction ) %]
+                            <li>&nbsp;</li>
+                            <li><span class="hint">Last transaction</span></li>
+                            [% cashaction = lastTransaction.action %]
+                            <li class="cashregisterinfo">Action: [% INCLUDE cashActionName %]</li>
+                            <li class="cashregisterinfo">Amount: [% lastTransaction.booking_amount_formatted %]</li>
+                            <li class="cashregisterinfo">Time: [% lastTransaction.booking_time %]</li>
+                        [% END %]
+                        </ul>
+                    </div>
                     [% END %]
-                    <li class="cashregisterinfo">Opening balance: [% cash_register_info.opening_balance_formatted %]</li>
-                    <li class="cashregisterinfo">Cash receipts: [% cash_register_info.inpayments_amount_formatted %]</li>
-                    <li class="cahsregisterinfo">Cash payments: [% cash_register_info.payouts_amount_formatted %]</li>
-                [% IF ( lastTransaction ) %]
-                    <li>&nbsp;</li>
-                    <li><span class="hint">Last transaction</span></li>
-                    [% cashaction = lastTransaction.action %]
-                    <li class="cashregisterinfo">Action: [% INCLUDE cashActionName %]</li>
-                    <li class="cashregisterinfo">Amount: [% lastTransaction.booking_amount_formatted %]</li>
-                    <li class="cashregisterinfo">Time: [% lastTransaction.booking_time %]</li>
-                [% END %]
-                </ul>
-            </div>
-            [% END %]
-        </div>
+                </aside>
+            </div> <!-- /.col-sm-2.col-sm-pull-10 -->
+        </div> <!-- /.row -->
     </div>
-</div>
 
 [% MACRO jsinclude BLOCK %]
     [% INCLUDE 'datatables.inc' %]

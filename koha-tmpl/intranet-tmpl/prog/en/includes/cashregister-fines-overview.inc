@@ -351,14 +351,14 @@
     
     [% FOREACH cashreg IN finesstats.data.cashregister.keys.sort %]
     <h4 style="margin-top:20px">Cash register: [% cashreg %]</h4>
-    <table id="cashregoverview">
+    <table class="cashregoverview">
         <thead>
             <tr>
-                <th>Payment type</th>
-                <th>Reason</th>
-                <th>Type</th>
-                <th>Count</th>
-                <th>Sum</th>
+                <th class="colpaymenttype">Payment type</th>
+                <th class="colreason">Reason</th>
+                <th class="coltype">Type</th>
+                <th class="colcount">Count</th>
+                <th class="colsum">Sum</th>
             </tr>
         </thead>
         <tbody>
@@ -367,11 +367,11 @@
                     [% FOREACH accounttype IN finesstats.data.cashregister.$cashreg.$action.$reason.keys.sort %]
                         [% showstat = finesstats.data.cashregister.$cashreg.$action.$reason.$accounttype %]
                         <tr>
-                            <td>[% resolveCashRegisterActionName(action) %]</td>
-                            <td>[% reason %]</td>
-                            <td>[% IF (accounttype) %][% resolveFinesTypeName(accounttype) %][% END %]</td>
-                            <td style="text-align:right;">[% showstat.count %]</td>
-                            <td style="text-align:right;">[% showstat.fines_amount_formatted %]</td>
+                            <td class="colpaymenttype">[% resolveCashRegisterActionName(action) %]</td>
+                            <td class="colreason">[% reason %]</td>
+                            <td class="coltype">[% IF (accounttype) %][% resolveFinesTypeName(accounttype) %][% END %]</td>
+                            <td class="colcount" style="text-align:right;">[% showstat.count %]</td>
+                            <td class="colsum" style="text-align:right;">[% showstat.fines_amount_formatted %]</td>
                         </tr>
                     [% END %]
                 [% END %]
@@ -389,10 +389,10 @@
     <table id="accountmanagementfeebyborrowertype">
         <thead>
             <tr>
-                <th>Payment type</th>
-                <th>Borrower category</th>
-                <th>Count</th>
-                <th>Sum</th>
+                <th class="colpaymenttype">Payment type</th>
+                <th class="colcategory">Borrower category</th>
+                <th class="colcount">Count</th>
+                <th class="colsum">Sum</th>
             </tr>
         </thead>
         <tbody>
@@ -400,10 +400,10 @@
                 [% FOREACH categ IN finesstats.data.accountfee.borrower_type.$ptype.keys.sort %]
                     [% showstat = finesstats.data.accountfee.borrower_type.$ptype.$categ %]
                     <tr>
-                        <td>[% resolveAccountOffsetActionTypeName(ptype) %]</td>
-                        <td>[% categ %]</td>
-                        <td style="text-align:right;">[% showstat.count %]</td>
-                        <td style="text-align:right;">[% showstat.fines_amount_formatted %]</td>
+                        <td class="colpaymenttype">[% resolveAccountOffsetActionTypeName(ptype) %]</td>
+                        <td class="colcategory">[% categ %]</td>
+                        <td class="colcount" style="text-align:right;">[% showstat.count %]</td>
+                        <td class="colsum" style="text-align:right;">[% showstat.fines_amount_formatted %]</td>
                     </tr>
                 [% END %]
             [% END %]
@@ -416,10 +416,10 @@
     <table id="accountmanagementfeebyborrowertown">
         <thead>
             <tr>
-                <th>Payment type</th>
-                <th>Town</th>
-                <th>Count</th>
-                <th>Sum</th>
+                <th class="colpaymenttype">Payment type</th>
+                <th class="coltown">Town</th>
+                <th class="colcount">Count</th>
+                <th class="colsum">Sum</th>
             </tr>
         </thead>
         <tbody>
@@ -427,10 +427,10 @@
                 [% FOREACH categ IN finesstats.data.accountfee.borrower_town.$ptype.keys.sort %]
                     [% showstat = finesstats.data.accountfee.borrower_town.$ptype.$categ %]
                     <tr>
-                        <td>[% resolveAccountOffsetActionTypeName(ptype) %]</td>
-                        <td>[% categ %]</td>
-                        <td style="text-align:right;">[% showstat.count %]</td>
-                        <td style="text-align:right;">[% showstat.fines_amount_formatted %]</td>
+                        <td class="colpaymenttype">[% resolveAccountOffsetActionTypeName(ptype) %]</td>
+                        <td class="coltown">[% categ %]</td>
+                        <td class="colcount" style="text-align:right;">[% showstat.count %]</td>
+                        <td class="colsum" style="text-align:right;">[% showstat.fines_amount_formatted %]</td>
                     </tr>
                 [% END %]
             [% END %]
@@ -480,9 +480,9 @@
                     <td style="text-align:right;">[% showstat.fines_amount_formatted %]</td>
                     <td>
                         [% IF (showstat.entrytype == 1) %]
-                            [% resolveFinesTypeName(showstat.accounttype) %]
+                            [% resolveFinesTypeName(showstat.debit_type) %]
                         [% ELSE %]
-                            [% resolveCashRegisterActionName(showstat.accounttype) %] ([% showstat.cash_register_name %]) [% IF (showstat.reason) %] ([% showstat.reason %])[% END %]
+                            [% resolveCashRegisterActionName(showstat.credit_type) %][% IF (showstat.cash_register_name) %] ([% showstat.cash_register_name %][% IF (showstat.reason) %], [% showstat.reason %][% END %]) [% ELSIF (showstat.reason) %] ([% showstat.reason %])[% END %]
                         [% END %]
                     </td>
                     <td>
@@ -503,6 +503,53 @@
 
 [% MACRO jsextrainclude BLOCK %]
     <script type="text/javascript">
+        var exportColumns = ":visible:not(.noExport)";
+        var export_format = {
+            body: function ( data, row, column, node ) {
+                var newnode = $(node);
+
+                if ( newnode.find(".noExport").length > 0 ) {
+                    newnode = newnode.clone();
+                    newnode.find(".noExport").remove();
+                }
+
+                return newnode.text().replace( /\n/g, ' ' ).trim();
+            }
+        }
+        var export_buttons = [
+            {
+                extend: 'excelHtml5',
+                text: _("Excel"),
+                exportOptions: {
+                    columns: exportColumns,
+                    format:  export_format
+                },
+            },
+            {
+                extend: 'csvHtml5',
+                text: _("CSV"),
+                exportOptions: {
+                    columns: exportColumns,
+                    format:  export_format
+                },
+            },
+            {
+                extend: 'copyHtml5',
+                text: _("Copy"),
+                exportOptions: {
+                    columns: exportColumns,
+                    format:  export_format
+                },
+            },
+            {
+                extend: 'print',
+                text: _("Print"),
+                exportOptions: {
+                    columns: exportColumns,
+                    format:  export_format
+                },
+            }
+        ];
         function number_format (number, decimals, dec_point, thousands_sep) {
             var n = number, prec = decimals;
 
@@ -553,14 +600,14 @@
             $("#journalto:visible").datetimepicker({});
 
             [% IF (finesstats.type == 'finesoverview') %]
-            $("#finesoverview").dataTable($.extend(true, {}, dataTablesDefaults, {
+            $("#finesoverview").dataTable({
                 'bAutoWidth': false,
-                'aoColumnDefs': [
-                    { "bSortable": true, "bSearchable": false, 'aTargets': ["_all"] },
-                    { "aTargets": [ 4 ], "asSorting": [ "desc","asc" ], "sType": "natural"  },
-                    { "aTargets": [ 0,1,2,4 ], "asSorting": [ "asc","desc" ]  },
+                'columnDefs': [
+                    { "sortable": true, "searchable": false, 'targets': ["_all"] },
+                    { "targets": [ 4 ], "sorting": [ "desc","asc" ], "type": "natural"  },
+                    { "targets": [ 0,1,2,4 ], "sorting": [ "asc","desc" ]  },
                 ],
-                "aoColumns": [ { "sWidth": '150px' }, { "sWidth": '150px' }, { sWidth: '150px' }, { "sType": 'natural' }, { "sType": 'natural' }],
+                "columns": [ { "width": '200px' }, { "width": '200px' }, { width: '200px' }, { "type": 'natural' }, { "type": 'natural' }],
                 "iDisplayLength": 1000,
                 "iDisplayStart": 0,
                 "order": [[ 0, "asc" ],[ 1, "asc" ],[ 2, "asc" ]],
@@ -573,15 +620,15 @@
                 "oLanguage": {
                     "sEmptyTable": _("No paid fines during the selected period.")
                 }
-            }));
-            $("#finestypeoverview").dataTable($.extend(true, {}, dataTablesDefaults, {
-                'bAutoWidth': false,
-                'aoColumnDefs': [
-                    { "bSortable": true, "bSearchable": false, 'aTargets': ["_all"] },
-                    { "aTargets": [ 3 ], "asSorting": [ "desc","asc" ], "sType": "natural"  },
-                    { "aTargets": [ 0,1,3 ], "asSorting": [ "asc","desc" ]  },
+            });
+            $("#finestypeoverview").dataTable({
+                "bAutoWidth": false,
+                "columnDefs": [
+                    { "sortable": true, "searchable": false, 'targets': ["_all"] },
+                    { "targets": [ 3 ], "sorting": [ "desc","asc" ], "type": "natural"  },
+                    { "targets": [ 0,1,3 ], "sorting": [ "asc","desc" ]  },
                 ],
-                "aoColumns": [ { "sWidth": '150px' }, { "sWidth": '150px' }, { "sType": 'natural' }, { "sType": 'natural' }],
+                "columns": [ { "width": '200px' }, { "width": '200px' }, { "type": 'natural' }, { "type": 'natural' }],
                 "iDisplayLength": 1000,
                 "iDisplayStart": 0,
                 "order": [[ 0, "asc" ],[ 1, "asc" ]],
@@ -590,26 +637,29 @@
                 "serverSide": false,
                 "bFilter": false,
                 "bInfo" : false,
-                "autoWidth": true,
+                "autoWidth": false,
                 "oLanguage": {
                     "sEmptyTable": _("No paid fines during the selected period.")
                 }
-            }));
+            });
             [% END %]
             
             [% IF (finesstats.type == 'inoutpaymentoverview' ) %]
-            $("#inpaymentoverview,#outpaymentoverview").dataTable($.extend(true, {}, dataTablesDefaults, {
-                'bAutoWidth': true,
-                'aoColumnDefs': [
-                    { "bSortable": true, "bSearchable": false, 'aTargets': ["_all"] },
-                    { "aTargets": [ 2 ], "asSorting": [ "desc","asc" ], "sType": "natural"  },
-                    { "aTargets": [ 0,1 ], "asSorting": [ "asc","desc" ]  },
+            $("#inpaymentoverview,#outpaymentoverview").dataTable({
+                "bAutoWidth": false,
+                "autoWidth": false,
+                "bDestroy":true,
+                "columnDefs": [
+                    { "sortable": true, "searchable": false, 'targets': ["_all"] },
+                    { "targets": [ 2 ], "sorting": [ "desc","asc" ], "type": "natural"  },
+                    { "targets": [ 0,1 ], "sorting": [ "asc","desc" ]  },
                 ],
-                "aoColumns": [ { "sType": 'natural' }, null, null],
-                "iDisplayLength": 100,
+                "columns": [ { "width": '200px' }, { "type": 'natural' }, null ],
+                "iDisplayLength": 1000,
                 "iDisplayStart": 0,
                 "order": [[ 0, "asc" ]],
                 "bSort" : true,
+                "paging": false, //Dont want paging
                 "bPaginate": false,
                 "serverSide": false,
                 "bFilter": false,
@@ -629,13 +679,23 @@
             [% ELSIF ( finesstats.type == 'paidfinesbymanager' || finesstats.type == 'finesbymanager' || finesstats.type == 'paymentsbymanager') %][% groupcol = '5' %][% sortdir = 'asc' %]
             [% END %]
             $("#finesbydate").dataTable($.extend(true, {}, dataTablesDefaults, {
-                'bAutoWidth': true,
-                'aoColumnDefs': [
-                    { "bSortable": true, "bSearchable": false, 'aTargets': ["_all"] },
-                    { "aTargets": [ 1 ], "asSorting": [ "desc","asc" ], "sType": "natural"  },
-                    { "visible": false, "aTargets": [[% groupcol %],6] }
-                ],
-                "aoColumns": [ { "sType": 'natural' }, null, null, null, null, null, null],
+                "bAutoWidth": false,
+                "autoWidth": false,
+                "columnDefs": [
+                    { "sortable": true, "searchable": false, 'targets': ["_all"] },
+                    { "targets": [ 1 ], "sorting": [ "desc","asc" ], "type": "natural"  },
+                    { "visible": false, "targets": [[% groupcol %],6] }
+                ],[% IF (! printview) %]
+                "buttons": {
+                    extend: 'collection',
+                    autoClose: true,
+                    fade: 100,
+                    className: "export_controls",
+                    titleAttr: _("Export or print"),
+                    text: '<i class="fa fa-lg fa-download"></i> <span class="dt-button-text">' + _("Export") + '</span>',
+                    buttons: export_buttons
+                },[% END %]
+                "columns": [ { "type": 'natural' }, null, null, null, null, null, null],
                 "iDisplayLength": 100,
                 "iDisplayStart": 0,
                 "order": [[[% groupcol %], "[% sortdir %]"],[3,"asc"]],

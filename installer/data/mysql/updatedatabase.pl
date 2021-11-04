@@ -19585,6 +19585,12 @@ if ( CheckVersion($DBversion) ) {
           `accounttype` = 'Rep'
       }
     );
+    
+    $dbh->do(
+        qq{
+          UPDATE authorised_values SET authorised_value = 'L' WHERE category = 'ACCOUNT_TYPE_MAPPING' AND authorised_value = 'Rep'
+        }
+    );
 
     SetVersion($DBversion);
     printf "Upgrade to $DBversion done (Bug 22564 - Fix accounttype 'Rep' - %d updated)\n", $rows;
@@ -20301,6 +20307,12 @@ if ( CheckVersion($DBversion) ) {
         WHERE
           accounttype = 'L';
     });
+    
+    $dbh->do(
+        qq{
+          UPDATE authorised_values SET authorised_value = 'LOST' WHERE category = 'ACCOUNT_TYPE_MAPPING' AND authorised_value = 'L'
+        }
+    );
 
     $dbh->do(qq{
         UPDATE
@@ -20310,6 +20322,12 @@ if ( CheckVersion($DBversion) ) {
         WHERE
           accounttype = 'CR';
     });
+    
+    $dbh->do(
+        qq{
+          UPDATE authorised_values SET authorised_value = 'LOST_RETURN' WHERE category = 'ACCOUNT_TYPE_MAPPING' AND authorised_value = 'CR'
+        }
+    );
 
     SetVersion($DBversion);
     print "Upgrade to $DBversion done (Bug 22563: Fix accounttypes for 'L', 'LR' and 'CR')\n";
@@ -20369,6 +20387,12 @@ if ( CheckVersion($DBversion) ) {
         WHERE
           accounttype = 'Rent';
     });
+    
+    $dbh->do(
+        qq{
+          UPDATE authorised_values SET authorised_value = 'RENT' WHERE category = 'ACCOUNT_TYPE_MAPPING' AND authorised_value = 'Rent'
+        }
+    );
 
     SetVersion($DBversion);
     print "Upgrade to $DBversion done (Bug 11573: Fix accounttypes for 'Rent')\n";
@@ -20416,9 +20440,11 @@ if ( CheckVersion($DBversion) ) {
         INSERT INTO
           authorised_values (category,authorised_value,lib)
         VALUES
-          ('PAYMENT_TYPE','SIP00','Cash via SIP2'),
-          ('PAYMENT_TYPE','SIP01','VISA via SIP2'),
-          ('PAYMENT_TYPE','SIP02','Creditcard via SIP2')
+          ('PAYMENT_TYPE','SIP00','Barzahlung mit SIP2'),
+          ('PAYMENT_TYPE','SIP01','VISA mit SIP2'),
+          ('PAYMENT_TYPE','SIP02','Kreditkarte mit SIP2'),
+          ('PAYMENT_TYPE','ONLINE','Online-Bezahlung'),
+          ('PAYMENT_TYPE','SEPA','Lastschrift')
     });
 
     $dbh->do(qq{
@@ -20449,6 +20475,29 @@ if ( CheckVersion($DBversion) ) {
           payment_type = 'SIP02'
         WHERE
           accounttype = 'Pay02';
+    });
+    
+    $dbh->do(qq{
+        UPDATE
+          accountlines
+        SET
+          payment_type = 'ONLINE'
+        WHERE
+             (description like '%GiroSolution%' OR description like '%epay21%' OR description like '%ePayBL%' OR description like '%pmPayment%')
+          AND note like 'Online%'
+          AND payment_type is NULL
+          AND accounttype  = 'Pay'
+    });
+    
+    $dbh->do(qq{
+        UPDATE
+          accountlines
+        SET
+          payment_type = 'SEPA'
+        WHERE
+              description like '%Zahlung (SEPA Lastschrift)%'
+          AND payment_type is NULL
+          AND accounttype  = 'Pay'
     });
 
     my $sth = $dbh->prepare( q{SELECT * FROM accountlines WHERE accounttype REGEXP '^Pay[[:digit:]]{2}$' } );
@@ -20782,6 +20831,11 @@ if ( CheckVersion($DBversion) ) {
           accounttype = 'A';
     });
 
+    $dbh->do(
+        qq{
+          UPDATE authorised_values SET authorised_value = 'ACCOUNT' WHERE category = 'ACCOUNT_TYPE_MAPPING' AND authorised_value = 'A'
+        }
+    );
     SetVersion($DBversion);
     print "Upgrade to $DBversion done (Bug 11573: Fix accounttypes for 'A')\n";
 }
@@ -21115,11 +21169,21 @@ if ( CheckVersion($DBversion) ) {
           UPDATE accountlines SET accounttype = 'RESERVE' WHERE accounttype = 'Res'
         }
     );
+    $dbh->do(
+        qq{
+          UPDATE authorised_values SET authorised_value = 'RESERVE' WHERE category = 'ACCOUNT_TYPE_MAPPING' AND authorised_value = 'Res'
+        }
+    );
 
     # Update accountype 'PF' to 'PROCESSING'
     $dbh->do(
         qq{
           UPDATE accountlines SET accounttype = 'PROCESSING' WHERE accounttype = 'PF'
+        }
+    );
+    $dbh->do(
+        qq{
+          UPDATE authorised_values SET authorised_value = 'PROCESSING' WHERE category = 'ACCOUNT_TYPE_MAPPING' AND authorised_value = 'PF'
         }
     );
 
@@ -21129,11 +21193,21 @@ if ( CheckVersion($DBversion) ) {
           UPDATE accountlines SET accounttype = 'RESERVE_EXPIRED' WHERE accounttype = 'HE'
         }
     );
+    $dbh->do(
+        qq{
+          UPDATE authorised_values SET authorised_value = 'RESERVE_EXPIRED' WHERE category = 'ACCOUNT_TYPE_MAPPING' AND authorised_value = 'HE'
+        }
+    );
 
     # Update accountype 'N' to 'NEW_CARD'
     $dbh->do(
         qq{
           UPDATE accountlines SET accounttype = 'NEW_CARD' WHERE accounttype = 'N'
+        }
+    );
+    $dbh->do(
+        qq{
+          UPDATE authorised_values SET authorised_value = 'NEW_CARD' WHERE category = 'ACCOUNT_TYPE_MAPPING' AND authorised_value = 'N'
         }
     );
 
@@ -21143,11 +21217,21 @@ if ( CheckVersion($DBversion) ) {
           UPDATE accountlines SET accounttype = 'MANUAL' WHERE accounttype = 'M'
         }
     );
+    $dbh->do(
+        qq{
+          UPDATE authorised_values SET authorised_value = 'MANUAL' WHERE category = 'ACCOUNT_TYPE_MAPPING' AND authorised_value = 'M'
+        }
+    );
     
     # Update accountype 'CL1' to 'CLAIM_LEVEL1'
     $dbh->do(
         qq{
           UPDATE accountlines SET accounttype = 'CLAIM_LEVEL1' WHERE accounttype = 'CL1'
+        }
+    );
+    $dbh->do(
+        qq{
+          UPDATE authorised_values SET authorised_value = 'CLAIM_LEVEL1' WHERE category = 'ACCOUNT_TYPE_MAPPING' AND authorised_value = 'CL1'
         }
     );
     
@@ -21157,11 +21241,21 @@ if ( CheckVersion($DBversion) ) {
           UPDATE accountlines SET accounttype = 'CLAIM_LEVEL2' WHERE accounttype = 'CL2'
         }
     );
+    $dbh->do(
+        qq{
+          UPDATE authorised_values SET authorised_value = 'CLAIM_LEVEL2' WHERE category = 'ACCOUNT_TYPE_MAPPING' AND authorised_value = 'CL2'
+        }
+    );
     
     # Update accountype 'CL3' to 'CLAIM_LEVEL3'
     $dbh->do(
         qq{
           UPDATE accountlines SET accounttype = 'CLAIM_LEVEL3' WHERE accounttype = 'CL3'
+        }
+    );
+    $dbh->do(
+        qq{
+          UPDATE authorised_values SET authorised_value = 'CLAIM_LEVEL3' WHERE category = 'ACCOUNT_TYPE_MAPPING' AND authorised_value = 'CL3'
         }
     );
     
@@ -21171,6 +21265,11 @@ if ( CheckVersion($DBversion) ) {
           UPDATE accountlines SET accounttype = 'CLAIM_LEVEL4' WHERE accounttype = 'CL4'
         }
     );
+    $dbh->do(
+        qq{
+          UPDATE authorised_values SET authorised_value = 'CLAIM_LEVEL4' WHERE category = 'ACCOUNT_TYPE_MAPPING' AND authorised_value = 'CL4'
+        }
+    );
     
     # Update accountype 'CL4' to 'CLAIM_LEVEL5'
     $dbh->do(
@@ -21178,11 +21277,21 @@ if ( CheckVersion($DBversion) ) {
           UPDATE accountlines SET accounttype = 'CLAIM_LEVEL5' WHERE accounttype = 'CL5'
         }
     );
+    $dbh->do(
+        qq{
+          UPDATE authorised_values SET authorised_value = 'CLAIM_LEVEL5' WHERE category = 'ACCOUNT_TYPE_MAPPING' AND authorised_value = 'CL5'
+        }
+    );
     
     # Update accountype 'CL4' to 'CLAIM_LEVEL5'
     $dbh->do(
         qq{
           UPDATE accountlines SET accounttype = 'NOTIFICATION' WHERE accounttype = 'NOTF'
+        }
+    );
+    $dbh->do(
+        qq{
+          UPDATE authorised_values SET authorised_value = 'NOTIFICATION' WHERE category = 'ACCOUNT_TYPE_MAPPING' AND authorised_value = 'NOTF'
         }
     );
 
@@ -21196,6 +21305,11 @@ if ( CheckVersion($DBversion) ) {
         WHERE
           accounttype = 'F';
     });
+    $dbh->do(
+        qq{
+          UPDATE authorised_values SET authorised_value = 'OVERDUE' WHERE category = 'ACCOUNT_TYPE_MAPPING' AND authorised_value = 'F'
+        }
+    );
 
     # Moving MANUAL_INV to account_debit_types
     $dbh->do(
@@ -21227,6 +21341,16 @@ if ( CheckVersion($DBversion) ) {
         $dbh->do(
             qq{
               UPDATE accountlines SET accounttype = ? WHERE accounttype = ?
+            },
+            {},
+            (
+                $row->{code},
+                $row->{subcode}
+            )
+        );
+        $dbh->do(
+            qq{
+              UPDATE authorised_values SET authorised_value = ? WHERE category = 'ACCOUNT_TYPE_MAPPING' AND authorised_value = ?
             },
             {},
             (
@@ -21361,7 +21485,7 @@ if ( CheckVersion($DBversion) ) {
               is_system
             )
             VALUES
-              ('PAYMENT',      'Zahlung', 0, 1),
+              ('PAYMENT',      'Gebühr bezahlt', 0, 1),
               ('WRITEOFF',     'Gebührenerlass', 0, 1),
               ('FORGIVEN',     'Gebührenerlass', 1, 1),
               ('CREDIT',       'Gutschrift', 1, 1),
@@ -21423,6 +21547,11 @@ if ( CheckVersion($DBversion) ) {
     $dbh->do(
         qq{
           UPDATE accountlines SET accounttype = 'PAYMENT' WHERE accounttype = 'Pay' OR accounttype = 'PAY'
+        }
+    );
+    $dbh->do(
+        qq{
+          UPDATE accountlines SET payment_type = 'CASH' WHERE accounttype = 'PAYMENT' AND payment_type IS NULL
         }
     );
 
@@ -21681,7 +21810,7 @@ if ( CheckVersion($DBversion) ) {
               is_system
             )
             VALUES
-              ('PAYOUT', 'Payment from library to patron', 0, NULL, 1)
+              ('PAYOUT', 'Auszahlung an den Benutzer', 0, NULL, 1)
         }
     );
 
@@ -21767,7 +21896,7 @@ if( CheckVersion( $DBversion ) ) {
     my $already_exists = $sth->fetchrow;
     if ( not $already_exists ) {
         $dbh->do(q{
-           INSERT INTO authorised_values (category,authorised_value,lib) VALUES ('PAYMENT_TYPE','CASH','Cash')
+           INSERT INTO authorised_values (category,authorised_value,lib) VALUES ('PAYMENT_TYPE','CASH','Barzahlung')
         });
     }
 
@@ -22406,7 +22535,7 @@ if ( CheckVersion($DBversion) ) {
         qq{
             INSERT IGNORE INTO account_credit_types (code, description, can_be_added_manually, is_system)
             VALUES
-              ('DISCOUNT', 'Rabatt auf eine Gebühr', 0, 1)
+              ('DISCOUNT', 'Erlass auf eine Gebühr', 0, 1)
         }
     );
 
@@ -25015,6 +25144,11 @@ if( CheckVersion( $DBversion ) ) {
     });
     $dbh->do(q{
         UPDATE systempreferences
+        SET value="1"
+        WHERE type = "YesNo" AND value IN ("Yes","yes")
+    });
+    $dbh->do(q{
+        UPDATE systempreferences
         SET value="0"
         WHERE ( ( type = "YesNo" AND ( value NOT IN ( "1", "0" ) OR value IS NULL ) ) )
     });
@@ -25356,7 +25490,7 @@ if( CheckVersion( $DBversion ) ) {
               is_system
             )
             VALUES
-              ('VOID', 'Credit has been voided', 0, 0, NULL, 1)
+              ('VOID', 'Stornierte Transaktion', 0, 0, NULL, 1)
         }
     );
 
@@ -25889,6 +26023,21 @@ if( CheckVersion( $DBversion ) ) {
         VALUES ('CreateAVFromCataloguing', '1', '', 'Ability to create authorized values from the cataloguing module', 'YesNo')
     });
     NewVersion( $DBversion, 29137, "Add system preference CreateAVFromCataloguing");
+}
+
+$DBversion = '21.05.04.004';
+if( CheckVersion( $DBversion ) ) {
+    $dbh->do(q{
+        UPDATE systempreferences
+        SET value="1"
+        WHERE type = "YesNo" AND value IN ("Yes","yes")
+    });
+    $dbh->do(q{
+        UPDATE systempreferences
+        SET value="0"
+        WHERE ( ( type = "YesNo" AND ( value NOT IN ( "1", "0" ) OR value IS NULL ) ) )
+    });
+    NewVersion( $DBversion, "29073", "Set systempreferences to 1/0 values where yes/no values are set");
 }
 
 # SEE bug 13068
