@@ -71,3 +71,5 @@ sort:
     type: icu_collation_keyword
     index: false
     numeric: true
+    language: de
+    country: DE

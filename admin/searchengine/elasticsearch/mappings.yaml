@@ -1148,6 +1148,24 @@ biblios:
         sort: ~
         suggestible: ''
     type: ''
+  antolin-age:
+    label: antolin-age
+    mappings:
+      - facet: ''
+        marc_field: 856z
+        marc_type: marc21
+        sort: ~
+        suggestible: ''
+    type: ''
+  antolin-count:
+    label: antolin-count
+    mappings:
+      - facet: ''
+        marc_field: 856x
+        marc_type: marc21
+        sort: ~
+        suggestible: ''
+    type: number
   arl:
     label: arl
     mappings:
@@ -1167,7 +1185,7 @@ biblios:
         suggestible: ''
     type: ''
   author:
-    facet_order: 1
+    facet_order: 10
     label: author
     mappings:
       - facet: 1
@@ -1237,6 +1255,11 @@ biblios:
         suggestible: ''
       - facet: 1
         marc_field: 700a
+        marc_type: normarc
+        sort: ~
+        suggestible: 1
+      - facet: 1
+        marc_field: 900a
         marc_type: normarc
         sort: ~
         suggestible: 1
@@ -1451,7 +1474,7 @@ biblios:
         suggestible: ''
     type: ''
   ccode:
-    facet_order: 7
+    facet_order: 6
     label: collection-code
     mappings:
       - facet: 1
@@ -1621,20 +1644,44 @@ biblios:
         sort: ~
         suggestible: ''
     type: ''
+  control-number-agency:
+    label: control-number-agency
+    mappings:
+      - facet: ''
+        marc_field: 003
+        marc_type: marc21
+        sort: ~
+        suggestible: ''
+      - facet: ''
+        marc_field: 003
+        marc_type: unimarc
+        sort: ~
+        suggestible: ''
+    type: ''
   copydate:
     label: copydate
     mappings:
-      - facet: 1
+      - facet: 0
         marc_field: 260c
         marc_type: marc21
         sort: ~
         suggestible: ''
-      - facet: 1
+      - facet: 0
+        marc_field: 264c
+        marc_type: marc21
+        sort: ~
+        suggestible: ''
+      - facet: 0
         marc_field: 260c
         marc_type: normarc
         sort: ~
         suggestible: ''
-    type: date
+      - facet: 0
+        marc_field: 264c
+        marc_type: normarc
+        sort: ~
+        suggestible: ''
+    type: ''
   copynumber:
     label: copynumber
     mappings:
@@ -1850,6 +1897,33 @@ biblios:
         sort: ~
         suggestible: ''
     type: ''
+  ekz-age:
+    label: ekz-age
+    mappings:
+      - facet: ''
+        marc_field: 945[aa]a
+        marc_type: marc21
+        sort: ~
+        suggestible: ''
+    type: number
+  ekz-fsk:
+    label: ekz-fsk
+    mappings:
+      - facet: ''
+        marc_field: 945[af]a
+        marc_type: marc21
+        sort: ~
+        suggestible: ''
+    type: number
+  ekz-usk:
+    label: ekz-usk
+    mappings:
+      - facet: ''
+        marc_field: 945[au]a
+        marc_type: marc21
+        sort: ~
+        suggestible: ''
+    type: number
   extent:
     label: extent
     mappings:
@@ -1958,7 +2032,7 @@ biblios:
         suggestible: ''
     type: ''
   holdingbranch:
-    facet_order: 8
+    facet_order: 2
     label: holdinglibrary
     mappings:
       - facet: 1
@@ -1978,7 +2052,7 @@ biblios:
         suggestible: ''
     type: string
   homebranch:
-    facet_order: 9
+    facet_order: 1
     label: homelibrary
     mappings:
       - facet: 1
@@ -2029,7 +2103,7 @@ biblios:
     label: identifier-other
     mappings:
       - facet: ''
-        marc_field: 024aa
+        marc_field: 024a
         marc_type: marc21
         sort: ~
         suggestible: ''
@@ -2239,7 +2313,7 @@ biblios:
         suggestible: ''
     type: ''
   itype:
-    facet_order: 2
+    facet_order: 4
     label: itype
     mappings:
       - facet: 1
@@ -2273,6 +2347,54 @@ biblios:
         sort: ~
         suggestible: ''
     type: string
+  kateg-no:
+    label: kateg-no
+    mappings:
+      - facet: ''
+        marc_field: 153a
+        marc_type: marc21
+        sort: 0
+        suggestible: ''
+      - facet: ''
+        marc_field: 153e
+        marc_type: marc21
+        sort: 0
+        suggestible: ''
+      - facet: ''
+        marc_field: 153a
+        marc_type: unimarc
+        sort: 0
+        suggestible: ''
+      - facet: ''
+        marc_field: 153e
+        marc_type: unimarc
+        sort: 0
+        suggestible: ''
+    type: number
+  kateg-name:
+    label: kateg-name
+    mappings:
+      - facet: ''
+        marc_field: 153j
+        marc_type: marc21
+        sort: 0
+        suggestible: ''
+      - facet: ''
+        marc_field: 153h
+        marc_type: marc21
+        sort: 0
+        suggestible: ''
+      - facet: ''
+        marc_field: 153j
+        marc_type: unimarc
+        sort: 0
+        suggestible: ''
+      - facet: ''
+        marc_field: 153h
+        marc_type: unimarc
+        sort: 0
+        suggestible: ''
+    type: ''
   koha-auth-number:
     label: koha-auth-number
     mappings:
@@ -2487,6 +2609,11 @@ biblios:
         sort: ~
         suggestible: ''
       - facet: ''
+        marc_field: 8529
+        marc_type: marc21
+        sort: ~
+        suggestible: ''
+      - facet: ''
         marc_field: 8969
         marc_type: marc21
         sort: ~
@@ -2592,7 +2719,7 @@ biblios:
         suggestible: ''
     type: ''
   ln:
-    facet_order: 10
+    facet_order: 9
     label: ln
     mappings:
       - facet: 1
@@ -2673,7 +2800,7 @@ biblios:
         suggestible: ''
     type: string
   location:
-    facet_order: 3
+    facet_order: 7
     label: location
     mappings:
       - facet: 1
@@ -2942,7 +3069,7 @@ biblios:
     label: name-geographic
     mappings:
       - facet: ''
-        marc_field: 651
+        marc_field: 651a
         marc_type: marc21
         sort: ~
         suggestible: ''
@@ -3097,6 +3224,20 @@ biblios:
         sort: 0
         suggestible: ''
     type: boolean
+  other-classification-number:
+    label: other-classification-number
+    mappings:
+      - facet: 0
+        marc_field: 084(2a)
+        marc_type: marc21
+        sort: 0
+        suggestible: ''
+      - facet: 0
+        marc_field: 084(2a)
+        marc_type: unimarc
+        sort: 0
+        suggestible: ''
+    type: ''
   other-control-number:
     label: other-control-number
     mappings:
@@ -3144,6 +3285,11 @@ biblios:
         sort: ~
         suggestible: ''
       - facet: ''
+        marc_field: 264a
+        marc_type: marc21
+        sort: ~
+        suggestible: ''
+      - facet: ''
         marc_field: 008_/15-17
         marc_type: normarc
         sort: ~
@@ -3181,6 +3327,11 @@ biblios:
         sort: ~
         suggestible: ''
       - facet: 1
+        marc_field: 264b
+        marc_type: marc21
+        sort: ~
+        suggestible: ''
+      - facet: 1
         marc_field: 210c
         marc_type: unimarc
         sort: ~
@@ -3191,6 +3342,26 @@ biblios:
         sort: ~
         suggestible: ''
     type: string
+  publyear:
+    facet_order: 3
+    label: publyear
+    mappings:
+      - facet: 1
+        marc_field: 008_/7-10
+        marc_type: marc21
+        sort: 1
+        suggestible: 1
+      - facet: 1
+        marc_field: 260c
+        marc_type: marc21
+        sort: 1
+        suggestible: 1
+      - facet: 1
+        marc_field: 264c
+        marc_type: marc21
+        sort: 1
+        suggestible: 1
+    type: year
   reading-grade-level:
     label: reading-grade-level
     mappings:
@@ -3394,7 +3565,7 @@ biblios:
         suggestible: ''
     type: ''
   su-geo:
-    facet_order: 4
+    facet_order: 12
     label: su-geo
     mappings:
       - facet: 1
@@ -3414,7 +3585,7 @@ biblios:
         suggestible: ''
     type: string
   subject:
-    facet_order: 6
+    facet_order: 11
     label: subject
     mappings:
       - facet: 1
@@ -3438,7 +3609,17 @@ biblios:
         sort: ~
         suggestible: 1
       - facet: 1
-        marc_field: 611
+        marc_field: 611a
+        marc_type: marc21
+        sort: ~
+        suggestible: 1
+      - facet: 1
+        marc_field: 611t
+        marc_type: marc21
+        sort: ~
+        suggestible: 1
+      - facet: 1
+        marc_field: 630a
         marc_type: marc21
         sort: ~
         suggestible: 1
@@ -3493,7 +3674,27 @@ biblios:
         sort: ~
         suggestible: 1
       - facet: 1
-        marc_field: 651
+        marc_field: 651a
+        marc_type: marc21
+        sort: ~
+        suggestible: 1
+      - facet: 1
+        marc_field: 651v
+        marc_type: marc21
+        sort: ~
+        suggestible: 1
+      - facet: 1
+        marc_field: 651x
+        marc_type: marc21
+        sort: ~
+        suggestible: 1
+      - facet: 1
+        marc_field: 651y
+        marc_type: marc21
+        sort: ~
+        suggestible: 1
+      - facet: 1
+        marc_field: 651z
         marc_type: marc21
         sort: ~
         suggestible: 1
@@ -3638,6 +3839,21 @@ biblios:
         sort: ~
         suggestible: 1
     type: string
+  subject-genre-form:
+    facet_order: 5
+    label: subject-genre-form
+    mappings:
+      - facet: 1
+        marc_field: 072a
+        marc_type: marc21
+        sort: ~
+        suggestible: 1
+      - facet: 1
+        marc_field: 072a
+        marc_type: unimarc
+        sort: ~
+        suggestible: 1
+    type: ''
   subject-name-personal:
     label: subject-name-personal
     mappings:
@@ -3666,6 +3882,42 @@ biblios:
         sort: ~
         suggestible: ''
     type: boolean
+  systematik:
+    label: systematik
+    mappings:
+      - facet: ''
+        marc_field: 852a
+        marc_type: marc21
+        sort: ~
+        suggestible: ''
+    type: ''
+  systematik-class-part:
+    label: systematik
+    mappings:
+      - facet: ''
+        marc_field: 852h
+        marc_type: marc21
+        sort: ~
+        suggestible: ''
+    type: ''
+  systematik-num-part:
+    label: systematik
+    mappings:
+      - facet: ''
+        marc_field: 852j
+        marc_type: marc21
+        sort: ~
+        suggestible: ''
+    type: number
+  systematik-prefix:
+    label: systematik
+    mappings:
+      - facet: ''
+        marc_field: 852k
+        marc_type: marc21
+        sort: ~
+        suggestible: ''
+    type: ''
   ta:
     label: ta
     mappings:
@@ -3759,6 +4011,36 @@ biblios:
         suggestible: ''
       - facet: ''
         marc_field: 245a
+        marc_type: marc21
+        sort: 1
+        suggestible: 1
+      - facet: ''
+        marc_field: 245b
+        marc_type: marc21
+        sort: 1
+        suggestible: 1
+      - facet: ''
+        marc_field: 245f
+        marc_type: marc21
+        sort: 1
+        suggestible: 1
+      - facet: ''
+        marc_field: 245g
+        marc_type: marc21
+        sort: 1
+        suggestible: 1
+      - facet: ''
+        marc_field: 245n
+        marc_type: marc21
+        sort: 1
+        suggestible: 1
+      - facet: ''
+        marc_field: 245p
+        marc_type: marc21
+        sort: 1
+        suggestible: 1
+      - facet: ''
+        marc_field: 245s
         marc_type: marc21
         sort: 1
         suggestible: 1
@@ -4292,7 +4574,7 @@ biblios:
         suggestible: ''
     type: ''
   title-series:
-    facet_order: 5
+    facet_order: 8
     label: title-series
     mappings:
       - facet: 1
@@ -4391,3 +4673,12 @@ biblios:
         sort: ~
         suggestible: ''
     type: ''
+  zkshid:
+    label: zkshid
+    mappings:
+      - facet: ''
+        marc_field: 998[i ]a
+        marc_type: marc21
+        sort: ~
+        suggestible: ''
+    type: number

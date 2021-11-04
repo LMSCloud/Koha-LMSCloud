@@ -447,6 +447,8 @@ sub _convert_facets {
         holdingbranch  => 'HoldingLibrary',
         homebranch     => 'HomeLibrary',
         ln             => 'Language',
+        'subject-genre-form' => 'Genres',
+        publyear       => 'Years',
     );
     my @facetable_fields =
       Koha::SearchEngine::Elasticsearch->get_facetable_fields;
@@ -504,7 +506,9 @@ sub _convert_facets {
         }
         if( C4::Context->preference('FacetOrder') eq 'Alphabetical' ){
             @{ $facet->{facets} } =
-                sort { $a->{facet_label_value} cmp $b->{facet_label_value} } @{ $facet->{facets} };
+                sort { $a->{facet_label_value} cmp $b->{facet_label_value} } @{ $facet->{facets} } if ( $type ne 'publyear');
+            @{ $facet->{facets} } =
+                reverse sort { $a->{facet_label_value} cmp $b->{facet_label_value} } @{ $facet->{facets} } if ( $type eq 'publyear');
         }
         push @facets, $facet if exists $facet->{facets};
     }

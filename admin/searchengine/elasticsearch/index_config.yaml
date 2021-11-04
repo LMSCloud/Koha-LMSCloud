@@ -9,11 +9,14 @@ index:
         filter:
           - icu_folding
         char_filter:
+          - german_specific_char_filter
           - punctuation
       analyzer_standard:
         tokenizer: icu_tokenizer
         filter:
           - icu_folding
+        char_filter:
+          - german_specific_char_filter
       analyzer_stdno:
         tokenizer: whitespace
         filter:
@@ -41,6 +44,29 @@ index:
         type: pattern_replace
         pattern: '\s*(?<!\p{Lu})[.\-,;]*\s*$'
         replacement: ''
+      german_specific_char_filter:
+        type: mapping
+        mappings:
+          - '??? => drei fragezeichen'
+          - '!!! => drei ausrufezeichen'
+          - 'Æ => ae'
+          - 'ӕ => ae'
+          - 'ä => ae'
+          - 'Ä => Ae'
+          - 'ā => aa'
+          - 'ï => ie'
+          - 'ī => ii'
+          - 'ü => ue'
+          - 'ū => uu'
+          - 'ëē => ee'
+          - 'Œ => Oe'
+          - 'œ => oe'
+          - 'ö => oe'
+          - 'ø => oe'
+          - 'ō => oo'
+          - 'ß => ss'
 index.mapping.total_fields.limit: 10000
 index.number_of_replicas: 1
 index.number_of_shards: 5
+index.max_result_window: 100000
+index.max_rescore_window: 100000

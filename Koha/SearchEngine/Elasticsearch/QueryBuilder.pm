@@ -84,7 +84,6 @@ our %index_field_convert = (
     'rcn' => 'record-control-number',
     'su' => 'subject',
     'su-to' => 'subject',
-    #'su-geo' => 'subject',
     'su-ut' => 'subject',
     'ti' => 'title',
     'se' => 'title-series',
@@ -133,6 +132,18 @@ our %index_field_convert = (
     'hi' => 'host-item-number',
     'itu' => 'index-term-uncontrolled',
     'itg' => 'index-term-genre',
+    'cna' => 'control-number-agency',
+    'sbg' => 'subject-genre-form',
+    'ocn' => 'other-classification-number', # replaces lcn on 084 values with asb|kab|ssd|sfb values
+    'katno' => 'kateg-no',
+    'katname' => 'kateg-name',
+    'sys' => 'systematik',
+    'sysp' => 'systematik-prefix',
+    'sysc' => 'systematik-class-part',
+    'sysn' => 'systematik-num-part',
+    'fsk' => 'ekz-fsk',
+    'usk' => 'ekz-usk',
+    'age' => 'ekz-age'
 );
 my $field_name_pattern = '[\w\-]+';
 my $multi_field_pattern = "(?:\\.$field_name_pattern)*";
@@ -233,6 +244,8 @@ sub build_query {
         'title-series' => { terms => { field => "title-series__facet", size => $size } },
         ccode          => { terms => { field => "ccode__facet", size => $size } },
         ln             => { terms => { field => "ln__facet", size => $size } },
+        'subject-genre-form'  => { terms => { field => "subject-genre-form__facet", size => $size } },
+        'publyear'     => { terms => { field => "publyear__facet", size => $size } },
     };
 
     my $display_library_facets = C4::Context->preference('DisplayLibraryFacets');
@@ -922,12 +935,17 @@ to ensure those parts are correct.
 sub clean_search_term {
     my ( $self, $term ) = @_;
 
+    # replace lower case operators or|and|not with uppercase expressions
+    $term =~ s/\s+(and|or|not)\s+/' '.uc($1).' '/gei;
+    $term =~ s/[?]{3}/drei fragezeichen/g;
+    $term =~ s/[!]{3}/drei ausrufezeichen/g;
+    
     # Lookahead for checking if we are inside quotes
     my $lookahead = '(?=(?:[^\"]*+\"[^\"]*+\")*+[^\"]*+$)';
 
     # Some hardcoded searches (like with authorities) produce things like
     # 'an=123', when it ought to be 'an:123' for our purposes.
-    $term =~ s/=/:/g;
+    $term =~ s/([^><])=/$1:/g;
 
     $term = $self->_convert_index_strings_freeform($term);
 

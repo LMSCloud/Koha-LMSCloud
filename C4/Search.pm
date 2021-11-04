@@ -588,7 +588,9 @@ sub getRecords {
         foreach my $f (@facets_loop) {
             if( C4::Context->preference('FacetOrder') eq 'Alphabetical' ){
                 $f->{facets} =
-                    [ sort { uc($a->{facet_label_value}) cmp uc($b->{facet_label_value}) } @{ $f->{facets} } ];
+                    [ sort { uc($a->{facet_label_value}) cmp uc($b->{facet_label_value}) } @{ $f->{facets} } ] if ( $f->{type_link_value} ne 'publyear' );
+                $f->{facets} =
+                    [ reverse sort { uc($a->{facet_label_value}) cmp uc($b->{facet_label_value}) } @{ $f->{facets} } ] if ( $f->{type_link_value} eq 'publyear' );
             }
         }
     }
@@ -1093,6 +1095,7 @@ sub getIndexes{
                     'popularity',
                     'pubdate',
                     'Publisher',
+                    'publyear',
                     'Provider',
                     'pv',
                     'Reading-grade-level',

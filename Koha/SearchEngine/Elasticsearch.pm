@@ -469,6 +469,13 @@ sub _process_mappings {
         if ($sort && $meta->{altscript}) {
             next;
         }
+        
+        if (exists($options->{indicator1})) {
+            next if ( $options->{indicator1} ne '*' && $meta->{field}->indicator(1) ne $options->{indicator1} );
+        }
+        if (exists($options->{indicator2})) {
+            next if ( $options->{indicator2} ne '*' && $meta->{field}->indicator(2) ne $options->{indicator2} );
+        }
 
         # Copy (scalar) data since can have multiple targets
         # with differing options for (possibly) mutating data
@@ -492,6 +499,22 @@ sub _process_mappings {
                 # a list of lists that will be flattened by perl.
                 # The next callback will receive the possibly expanded list of values.
                 $values = [ map { $callback->($_) } @{$values} ];
+            }
+        }
+        
+        # remove text between MARC non-sorting characters \x{0098} and \x{009c} in sort values
+        # and remove the non-sorting characters in all other values
+        if ( $sort ) {
+            for (my $i=0;$i<=$#$values;$i++) {
+                $values->[$i] =~ s/^\s*\x{0098}([^\x{009c}]*)\x{009c}\s*// if ($values->[$i]);
+                $values->[$i] =~ s/(\s*)\x{0098}([^\x{009c}]*)\x{009c}(\s*)/($1 && $3 ? $3 : '')/ge if ($values->[$i]);
+                $values->[$i] =~ s/^\s*((Der|Die|Das|Den|Dem|Ein|Eine|Einen|Le|La|Les|Un|Une|De|Des|The|A|An|El|En|La|Los|Las|Un|Unos|Una|Unas)\s)+//i;
+                $values->[$i] =~ s/^\s*(L'|D')//i;
+            }
+        }
+        else {
+            for (my $i=0;$i<=$#$values;$i++) {
+                $values->[$i] =~ s/[\x{0098}\x{009c}]+//g if ($values->[$i]);
             }
         }
 
@@ -625,7 +648,16 @@ sub marc_records_to_documents {
                         foreach my $subfields_group (keys %{$subfields_join_mappings}) {
                             my $data_field = $field->clone; #copy field to preserve for alt scripts
                             $data_field->delete_subfield(match => qr/^$/); #remove empty subfields, otherwise they are printed as a space
-                            my $data = $data_field->as_string( $subfields_group ); #get values for subfields as a combined string, preserving record order
+                            # get values for subfields as a combined string, using the specified subfield order
+                            my @fieldvals;
+                            foreach my $subf(split(//,$subfields_group)) {
+                                foreach my $subv($data_field->subfield($subf)) {
+                                    $subv =~ s/(^\s+|\s+$)// if ($subv);
+                                    push @fieldvals, $subv if ($subv);
+                                }
+                            }
+                            my $data = join(" ",@fieldvals);
+                            # my $data = $data_field->as_string( $subfields_group ); #get values for subfields as a combined string, preserving record order
                             if ($data) {
                                 $self->_process_mappings($subfields_join_mappings->{$subfields_group}, $data, $record_document, {
                                         altscript => $altscript,
@@ -817,9 +849,9 @@ sub _array_to_marc {
     return $record;
 }
 
-=head2 _field_mappings($facet, $suggestible, $sort, $search, $target_name, $target_type, $range)
+=head2 _field_mappings($facet, $suggestible, $sort, $search, $target_name, $target_type, $range, $indicator1, $indicator2)
 
-    my @mappings = _field_mappings($facet, $suggestible, $sort, $search, $target_name, $target_type, $range)
+    my @mappings = _field_mappings($facet, $suggestible, $sort, $search, $target_name, $target_type, $range, $indicator1, $indicator2)
 
 Get mappings, an internal data structure later used by
 L<_process_mappings($mappings, $data, $record_document, $meta)> to process MARC target
@@ -872,12 +904,22 @@ so "0-2" means the first three characters of MARC data.
 If only "<START>" is provided only one character at position "<START>" will
 be extracted.
 
+=item C<$indicator1>
+
+An optional value of an indicator. To be indexed, the indicator of the MARC field 
+value need to be equally to the specified indicator 1.
+
+=item C<$indicator2>
+
+An optional value of an indicator. To be indexed, the indicator of the MARC field 
+value need to be equally to the specified indicator 2.
+
 =back
 
 =cut
 
 sub _field_mappings {
-    my ($_self, $facet, $suggestible, $sort, $search, $target_name, $target_type, $range) = @_;
+    my ($_self, $facet, $suggestible, $sort, $search, $target_name, $target_type, $range, $indicator1, $indicator2) = @_;
     my %mapping_defaults = ();
     my @mappings;
 
@@ -891,6 +933,13 @@ sub _field_mappings {
     my $default_options = {};
     if ($substr_args) {
         $default_options->{substr} = $substr_args;
+    }
+    
+    if ( $indicator1 ) {
+        $default_options->{indicator1} = $indicator1;
+    }
+    if ( $indicator2 ) {
+        $default_options->{indicator2} = $indicator2;
     }
 
     # TODO: Should probably have per type value callback/hook
@@ -964,7 +1013,7 @@ which is terribly slow.
 sub _get_marc_mapping_rules {
     my ($self) = @_;
     my $marcflavour = lc C4::Context->preference('marcflavour');
-    my $field_spec_regexp = qr/^([0-9]{3})([()0-9a-zA-Z]+)?(?:_\/(\d+(?:-\d+)?))?$/;
+    my $field_spec_regexp = qr/^([0-9]{3})(\[[0-9a-zA-Z* ]{2}\])?([()0-9a-zA-Z]+)?(?:_\/(\d+(?:-\d+)?))?$/;
     my $leader_regexp = qr/^leader(?:_\/(\d+(?:-\d+)?))?$/;
     my $rules = {
         'leader' => [],
@@ -995,14 +1044,26 @@ sub _get_marc_mapping_rules {
         if ($marc_field =~ $field_spec_regexp) {
             my $field_tag = $1;
 
+            my ($indicator1,$indicator2);
+            
+            if (defined $2) {
+                my $indicators = $2;
+                if ( substr($indicators,1,1) ne '*' ) {
+                    $indicator1 = substr($indicators,1,1);
+                }
+                if ( substr($indicators,2,1) ne '*' ) {
+                    $indicator2 = substr($indicators,2,1);
+                }
+            }
+
             my @subfields;
             my @subfield_groups;
             # Parse and separate subfields form subfield groups
-            if (defined $2) {
+            if (defined $3) {
                 my $subfield_group = '';
                 my $open_group = 0;
 
-                foreach my $token (split //, $2) {
+                foreach my $token (split //, $3) {
                     if ($token eq "(") {
                         if ($open_group) {
                             Koha::Exceptions::Elasticsearch::MARCFieldExprParseError->throw(
@@ -1039,8 +1100,8 @@ sub _get_marc_mapping_rules {
                 push @subfields, '*';
             }
 
-            my $range = defined $3 ? $3 : undef;
-            my @mappings = $self->_field_mappings($facet, $suggestible, $sort, $search, $name, $type, $range);
+            my $range = defined $4 ? $4 : undef;
+            my @mappings = $self->_field_mappings($facet, $suggestible, $sort, $search, $name, $type, $range, $indicator1, $indicator2);
             if ($field_tag < 10) {
                 $rules->{control_fields}->{$field_tag} //= [];
                 push @{$rules->{control_fields}->{$field_tag}}, @mappings;
@@ -1304,7 +1365,7 @@ sub get_facetable_fields {
 
     # These should correspond to the ES field names, as opposed to the CCL
     # things that zebra uses.
-    my @search_field_names = qw( author itype location su-geo title-series subject ccode holdingbranch homebranch ln );
+    my @search_field_names = qw( author itype location su-geo title-series subject ccode holdingbranch homebranch ln subject-genre-form publyear);
     my @faceted_fields = Koha::SearchFields->search(
         { name => { -in => \@search_field_names }, facet_order => { '!=' => undef } }, { order_by => ['facet_order'] }
     );

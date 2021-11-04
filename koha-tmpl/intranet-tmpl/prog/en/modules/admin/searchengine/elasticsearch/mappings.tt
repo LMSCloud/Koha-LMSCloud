@@ -443,6 +443,8 @@ a.add, a.delete {
                                                 [% CASE 'holdingbranch' %]Holding libraries
                                                 [% CASE 'homebranch' %]Home libraries
                                                 [% CASE 'ln' %]Language
+                                                [% CASE 'subject-genre-form'' %]Genres
+                                                [% CASE 'publyear'' %]Publication years
                                                 [% CASE %][% f | html %]
                                                 [% END %]
                                             </td>
