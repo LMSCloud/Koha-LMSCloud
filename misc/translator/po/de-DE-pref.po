@@ -3,7 +3,7 @@ msgstr ""
 "Project-Id-Version: Koha 21.05\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2013-05-16 03:26+0200\n"
-"PO-Revision-Date: 2021-10-15 14:16+0200\n"
+"PO-Revision-Date: 2021-11-04 20:53+0100\n"
 "Last-Translator: Katrin Fischer <katrin.fischer@bsz-bw.de>\n"
 "Language-Team: \n"
 "Language: de\n"
@@ -2664,11 +2664,11 @@ msgstr "Erlaube nicht"
 # Cataloging > Interface > CreateAVFromCataloguing
 msgid ""
 "cataloguing.pref#CreateAVFromCataloguing# authorized values to be created "
-"within the cataloguing module. Librarien will need the manage_auth_values "
+"within the cataloguing module. Librarian will need the manage_auth_values "
 "subpermission."
 msgstr ""
-"die Erfassung neuer normierter Werte im Katalogmodul. Bibliothekare "
-"benötigen dafür die manage_auth_values-Berechtigung."
+"das Anlegen von neuen normierten Werten im Katalogisierungsmodul. "
+"Bibliothekspersonal benötigt die Berechtigung manage_auth_values."
 
 # Cataloging > Interface
 msgid "cataloguing.pref#DefaultClassificationSource# Use"
@@ -7828,6 +7828,12 @@ msgstr "Zeige"
 # Enhanced content > Local or remote cover images
 msgid "enhanced_content.pref#CustomCoverImages# Don't display"
 msgstr "Zeige keine"
+
+# Enhanced content > Local or remote cover images
+msgid ""
+"enhanced_content.pref#CustomCoverImages# For control fields you can use just "
+"{field}, like {001}."
+msgstr "Kontrollfelder können Sie mit {field} angeben wie z.B. {001}."
 
 # Enhanced content > Local or remote cover images
 msgid ""
