@@ -19,6 +19,7 @@ sub updateSimpleVariables {
     my $dbh = C4::Context->dbh;
     $dbh->do("UPDATE systempreferences SET value='0' WHERE variable='Mana' and value='2'");
     $dbh->do("UPDATE systempreferences SET value='0' WHERE variable='UsageStats' and value='2'");
+    $dbh->do("UPDATE systempreferences SET value='0' WHERE variable='OpacBrowseSearch' and value='1'");
 }
 
 sub updateSidebarLinks {
@@ -34,6 +35,98 @@ sub updateSidebarLinks {
             print "Updated value of variable $variable\n";
         }
     }
+}
+
+sub replaceModifierList {
+    my $index = shift;
+    my $modifierlist = shift;
+    my $searchstring = shift;
+    my $quotionMark = '';
+    
+    if ( $searchstring =~ s/^\s*"(.*)"$/$1/ ) {
+        $quotionMark = '"';
+    }
+    elsif ( $searchstring =~ s/^\s*'(.*)'$/$1/ ) {
+        $quotionMark = "'";
+    }
+    
+    my %modifier;
+    
+    # print "Index ($index), modifier ($modifierlist), search ($searchstring) $quotionMark\n";
+    foreach my $mod( grep { $_ =~ s/(^\s+|\s+$)//; $_ ne '' } split(/,/,$modifierlist) ) {
+        $modifier{$mod}=1;
+    }
+    
+    $index = 'ocn' if ( $index eq 'lcn' && $searchstring =~ /^\s*(sfb|kab|ssd|asb)/ );
+    
+    if ( ((defined $modifier{ltrn} && defined $modifier{rtrn}) || defined $modifier{lrtrn} ) && (defined $modifier{phr} || defined $modifier{'first-in-subfield'})  && defined $modifier{ext} ) {
+        $searchstring =~ s/(\s)/\\$1/;
+        $searchstring = '*' . $searchstring . '*';
+        $index .= '.phrase';
+    }
+    elsif ( defined $modifier{rtrn} && (defined $modifier{phr} || defined $modifier{'first-in-subfield'}) ) {
+        $searchstring =~ s/(\s)/\\$1/;
+        $searchstring .= '*';
+        $index .= '.phrase';
+    }
+    elsif ( defined $modifier{ltrn} && (defined $modifier{phr} || defined $modifier{'first-in-subfield'}) ) {
+        $searchstring =~ s/(\s)/\\$1/;
+        $searchstring = '*' . $searchstring;
+        $index .= '.phrase';
+    }
+    elsif ( (defined $modifier{phr} || defined $modifier{'first-in-subfield'}) && defined $modifier{ext} ) {
+        $searchstring = "\"$searchstring\"";
+        $index .= '.phrase';
+    }
+    elsif ( defined $modifier{'first-in-subfield'} ) {
+        $searchstring =~ s/(\s)/\\$1/;
+        $searchstring = '*' . $searchstring . '*';
+        $index .= '.phrase';
+    }
+    elsif ( defined $modifier{phr} ) {
+        $searchstring = "($searchstring)";
+    }
+    elsif ( defined $modifier{'st-numeric'} || defined $modifier{ge} || defined $modifier{gt} || defined $modifier{le} || defined $modifier{le} ) {
+        if ( defined $modifier{ge} ) {
+            $searchstring = "(>=$searchstring)";
+        }
+        elsif ( defined $modifier{gt} ) {
+            $searchstring = "(>$searchstring)";
+        }
+        elsif ( defined $modifier{le} ) {
+            $searchstring = "(<=$searchstring)";
+        }
+        elsif ( defined $modifier{lt} ) {
+            $searchstring = "(<$searchstring)";
+        }
+        else {
+            $searchstring = "($searchstring)";
+        }
+    }
+    elsif( $quotionMark && $searchstring =~ /\s/ ) {
+        $searchstring = "($searchstring)";
+    }
+    
+    return "$index:$searchstring";
+}
+
+sub updateQuery {
+    my $query = shift;
+    
+    $query =~ s/(\s+(and|or|not)\s+)/uc($1)/seg;
+    $query =~ s/=/:/sg;
+    $query =~ s/(^|\W)([a-zA-Z][a-z0-9A-Z-]*)((\,(ext|phr|rtrn|ltrn|lrtrn|st-numeric|gt|ge|lt|le|eq|st-date|startswithnt|first-in-subfield))*)[:=]\s*(["][^"]+["]|['][^']+[']|[^\s]+)/$1.replaceModifierList($2,$3,$6)/eg;
+    
+    # rtrn : right truncation
+    # ltrn : left truncation
+    # lrtrn : left and right truncation
+    # st-date : type date
+    # st-numeric : type number (integer)
+    # ext : exact search on whole subfield (does not work with icu)
+    # phr : search on phrase anywhere in the subfield
+    # startswithnt : subfield starts with
+
+    return $query;
 }
 
 sub updateEntryPages {
@@ -56,6 +149,9 @@ sub updateEntryPages {
 
         # replace rss feed image
         $value =~ s!<img src="[^"]*feed-icon-16x16.png">!<i class="fa fa-rss" aria-hidden="true"></i>!sg;
+        
+        $value =~ s!(<a\s+href\s*=\s*\'opac-search\.pl\?q=)([^\']+)(\')!"$1".updateQuery($2)."$3"!seg;
+        $value =~ s!(<a\s+href\s*=\s*\"opac-search\.pl\?q=)([^\"]+)(\")!"$1".updateQuery($2)."$3"!seg;
 
     
         if ( $origvalue ne $value ) {
@@ -112,6 +208,17 @@ sub updateMoreSearchesContent {
         my $origvalue = $value;
         $value =~ s/<ul>/<ul class="nav" id="moresearches">/;
         $value =~ s/<li>/<li class="nav-item">/g;
+
+        if ( $value !~ m!<a href="/cgi-bin/koha/opac-browse\.pl">! ) {
+            my $replace = q{ [% IF Koha.Preference('SearchEngine') == 'Elasticsearch' && Koha.Preference( 'OpacBrowseSearch' ) == 1 %]<li class="nav-item"><a href="/cgi-bin/koha/opac-browse.pl"><i class="fa fa-search-plus" style="color:#4caf50"></i> Indexsuche</a></li>[% END %]};
+            if ( $variable =~ /_en$/ ) {
+                $replace = q{ [% IF Koha.Preference('SearchEngine') == 'Elasticsearch' && Koha.Preference( 'OpacBrowseSearch' ) == 1 %]<li class="nav-item"><a href="/cgi-bin/koha/opac-browse.pl"><i class="fa fa-search-plus" style="color:#4caf50"></i> Index search</a></li>[% END %]};
+            }
+            if ( $value =~ m!<li[^>]*><a href="/cgi-bin/koha/opac-search\.pl">(.|\n)*?</li>! ) {
+                $value =~ s!(<li[^>]*><a href="/cgi-bin/koha/opac-search\.pl">(.|\n)*?</li>)!"$1\n$replace"!e;
+            }
+        }
+
         if ( $origvalue ne $value ) {
             $dbh->do("UPDATE systempreferences SET value=? WHERE variable=?", undef, $value, $variable);
             print "Updated value of variable $variable\n";
