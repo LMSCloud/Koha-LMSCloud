@@ -2,7 +2,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Koha 21.05\n"
 "POT-Creation-Date: 2021-10-15 10:06+0200\n"
-"PO-Revision-Date: 2021-10-15 15:49+0200\n"
+"PO-Revision-Date: 2021-10-22 11:15+0200\n"
 "Last-Translator: Katrin Fischer <katrin.fischer@bsz-bw.de>\n"
 "Language-Team: \n"
 "Language: de\n"
@@ -9564,7 +9564,7 @@ msgstr "%sBeschreibung: %s%s%s %s%s"
 #: koha-tmpl/intranet-tmpl/prog/en/modules/circ/managecashregister.tt:380
 #, c-format
 msgid "%sCharge note: %s%s%s %s%s"
-msgstr "%sNotiz: %s%s%s, %s%s"
+msgstr "%sNotiz: %s%s%s %s%s"
 
 #. %1$s:  IF ( ITEM_DAT.issue )
 #. %2$s:  INCLUDE 'patron-title.inc' patron => ITEM_DAT.patron hide_patron_infos_if_needed=1
@@ -11390,7 +11390,7 @@ msgstr "(Unbekannt)"
 #: koha-tmpl/intranet-tmpl/prog/en/includes/accounts.inc:53
 #, c-format
 msgid "(Voided)"
-msgstr "(Ungültig)"
+msgstr "(Storniert)"
 
 #: koha-tmpl/intranet-tmpl/prog/en/modules/admin/systempreferences.tt:279
 #, c-format
@@ -16711,7 +16711,7 @@ msgstr "Sind Sie sicher dass Sie dieses Plug-in deinstallieren möchten? ( %s )"
 #. SCRIPT
 #: koha-tmpl/intranet-tmpl/prog/en/modules/members/boraccount.tt:350
 msgid "Are you sure you want to void this credit?"
-msgstr "Sind Sie sicher, dass Sie dieses Guthaben ungültig machen möchten?"
+msgstr "Sind Sie sicher, dass Sie diese Transaktion stornieren möchten?"
 
 #. SCRIPT
 #: koha-tmpl/intranet-tmpl/prog/en/modules/members/pay.tt:206
@@ -51528,7 +51528,7 @@ msgstr "Lädt..."
 #. IFRAME
 #: koha-tmpl/intranet-tmpl/prog/en/modules/ill/ILLZKSHA_slips.tt:25
 msgid "ProcessingSlip %s"
-msgstr "ProcessingSlip $s"
+msgstr "ProcessingSlip %s"
 
 #: koha-tmpl/intranet-tmpl/prog/en/modules/admin/categories.tt:213
 #: koha-tmpl/intranet-tmpl/prog/en/modules/members/memberentrygen.tt:862
@@ -67502,7 +67502,7 @@ msgstr "Optische Hilfen"
 #: koha-tmpl/intranet-tmpl/prog/en/includes/accounts.inc:68
 #, c-format
 msgid "Void payment"
-msgstr "Zahlung ungültig machen"
+msgstr "Zahlung stornieren"
 
 #: koha-tmpl/intranet-tmpl/prog/en/modules/reserve/request.tt:593
 #, c-format
