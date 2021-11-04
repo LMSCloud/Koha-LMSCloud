@@ -93,3 +93,27 @@ div.cashregisterinfo ul li {
 #pat_member #searchform .hasDatepicker {
     width: 7em !important;
 }
+#closecashregister .cash-amount, #payoutcashregister .cash-amount, #adjustcashregister .cash-amount {
+    text-align: right;
+}
+#circ_managecashregister #finestypeoverview, 
+#circ_managecashregister #finesoverview, 
+#circ_managecashregister #inpaymentoverview, 
+#circ_managecashregister #outpaymentoverview,
+#circ_managecashregister #finesbydate {
+    width: unset;
+    margin: unset;
+}
+#circ_managecashregister .cashregoverview th.colpaymenttype, 
+#circ_managecashregister .cashregoverview th.colreason, 
+#circ_managecashregister .cashregoverview th.coltype,
+#circ_managecashregister #accountmanagementfeebyborrowertype th.colpaymenttype, 
+#circ_managecashregister #accountmanagementfeebyborrowertype th.colcategory,  
+#circ_managecashregister #accountmanagementfeebyborrowertown th.colpaymenttype,
+#circ_managecashregister #accountmanagementfeebyborrowertown th.coltown 
+{
+    min-width: 200px;
+}
+#circ_managecashregister table th, #circ_managecashregister table td {
+    padding: .3em .3em;;
+}
