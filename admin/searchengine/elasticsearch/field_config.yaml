@@ -27,6 +27,9 @@ search:
     ignore_malformed: true
   year:
     type: short
+  date:
+    type: date
+    format: yyyy-MM-dd
   stdno:
     type: text
     analyzer: analyzer_stdno

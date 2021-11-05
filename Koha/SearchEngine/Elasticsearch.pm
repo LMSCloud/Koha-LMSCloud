@@ -212,6 +212,8 @@ sub get_elasticsearch_mappings {
                     $es_type = 'stdno';
                 } elsif ($type eq 'year') {
                     $es_type = 'year';
+                } elsif ($type eq 'date') {
+                    $es_type = 'date';
                 }
 
                 if ($search) {
@@ -1009,6 +1011,15 @@ sub _field_mappings {
             my ($value) = @_;
             # Replace "u" with "0" for sorting
             return map { s/[u\s]/0/gr } ( $value =~ /[0-9u\s]{4}/g );
+        };
+    }
+    elsif ($target_type eq 'date') {
+        $default_options->{value_callbacks} //= [];
+        # Only accept years containing digits and "u"
+        push @{$default_options->{value_callbacks}}, sub {
+            my ($value) = @_;
+            # Replace "u" with "0" for sorting
+            return ( $value =~ /[12][0-9][0-9][0-9]-[01][0-9]-[0123][0-9]/g );
         };
     }
 
