@@ -198,8 +198,8 @@
                                         <span class="title_resp_stmt"><xsl:if test="not(contains(text(),'/'))"><xsl:text> / </xsl:text></xsl:if><xsl:apply-templates/> <xsl:text> </xsl:text> </span>
                                     </xsl:when>
                                     <xsl:otherwise>
-                                        <xsl:apply-templates/>
                                         <xsl:text>: </xsl:text>
+                                        <xsl:apply-templates/>
                                     </xsl:otherwise>
                                 </xsl:choose>
                             </xsl:for-each>
@@ -854,9 +854,9 @@
                 </span>
             </xsl:if>
 
-            <xsl:if test="marc:datafield[substring(@tag, 1, 1) = '6' and not(@tag=653 or @tag=655 or @tag=689)]">
+            <xsl:if test="marc:datafield[substring(@tag, 1, 1) = '6' and not(@tag=653 or @tag=655 or @tag=689) and marc:subfield[@code=a] ]">
             <span class="results_summary subjects"><span class="label">Subject(s): </span>
-                <xsl:for-each select="marc:datafield[substring(@tag, 1, 1) = '6'][not(@tag=653 or @tag=655 or @tag=689)]">
+                <xsl:for-each select="marc:datafield[substring(@tag, 1, 1) = '6'][not(@tag=653 or @tag=655 or @tag=689) and marc:subfield[@code=a]]">
             <span property="keywords">
             <a>
             <xsl:attribute name="class">subject</xsl:attribute>
