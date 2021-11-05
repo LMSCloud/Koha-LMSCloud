@@ -48,6 +48,13 @@ sub search {
 
     # Get the module_bit from a given permission code
     if ( $has_permission ) {
+        if ( defined $has_permission && !ref $has_permission && ref \$has_permission eq 'SCALAR' ) {
+            my $permission = {};
+            my @permissionParts = split(/\./,$has_permission);
+            $permission->{permission} = $permissionParts[0] if ( defined $permissionParts[0] && length($permissionParts[0]) );
+            $permission->{subpermission} = $permissionParts[1] if ( defined $permissionParts[1] && length($permissionParts[1]) );
+            $has_permission = $permission;
+        }
         ($has_permission->{module_bit}) = $dbh->selectrow_array(q|
             SELECT bit FROM userflags WHERE flag=?
         |, undef, $has_permission->{permission});
