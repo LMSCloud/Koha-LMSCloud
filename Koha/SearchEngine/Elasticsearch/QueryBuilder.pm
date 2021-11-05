@@ -143,7 +143,9 @@ our %index_field_convert = (
     'sysn' => 'systematik-num-part',
     'fsk' => 'ekz-fsk',
     'usk' => 'ekz-usk',
-    'age' => 'ekz-age'
+    'age' => 'ekz-age',
+    'antc' => 'antolin-count',
+    'anta' => 'antolin-age',
 );
 my $field_name_pattern = '[\w\-]+';
 my $multi_field_pattern = "(?:\\.$field_name_pattern)*";
