@@ -37,6 +37,19 @@ sub updateSidebarLinks {
     }
 }
 
+sub whitener {
+    my $searchstring = shift;
+    $searchstring =~ s/(\s)/\\$1/g;
+    return $searchstring;
+}
+
+sub replaceWhitespaceInPhraseSearchKeepingTTSyntax {
+    my $searchstring = shift;
+    $searchstring =~ s/([^\[%]+)(?!%\])(?=(\[%|$))/whitener($1)/eg;
+    $searchstring =~ s/(?<=\[%)([^%|]*[^\s])(?=\s*[%|])/$1.replace(' ','\\ ')/g;
+    return $searchstring;
+}
+
 sub replaceModifierList {
     my $index = shift;
     my $modifierlist = shift;
@@ -45,6 +58,9 @@ sub replaceModifierList {
     
     if ( $searchstring =~ s/^\s*"(.*)"$/$1/ ) {
         $quotionMark = '"';
+    }
+    elsif ( $searchstring =~ s/^\s*&quot;(.*)&quot;$/$1/ ) {
+        $quotionMark = '&quot;';
     }
     elsif ( $searchstring =~ s/^\s*'(.*)'$/$1/ ) {
         $quotionMark = "'";
@@ -60,33 +76,33 @@ sub replaceModifierList {
     $index = 'ocn' if ( $index eq 'lcn' && $searchstring =~ /^\s*(sfb|kab|ssd|asb)/ );
     
     if ( ((defined $modifier{ltrn} && defined $modifier{rtrn}) || defined $modifier{lrtrn} ) && (defined $modifier{phr} || defined $modifier{'first-in-subfield'})  && defined $modifier{ext} ) {
-        $searchstring =~ s/(\s)/\\$1/;
+        $searchstring = replaceWhitespaceInPhraseSearchKeepingTTSyntax($searchstring);
         $searchstring = '*' . $searchstring . '*';
         $index .= '.phrase';
     }
     elsif ( defined $modifier{rtrn} && (defined $modifier{phr} || defined $modifier{'first-in-subfield'}) ) {
-        $searchstring =~ s/(\s)/\\$1/;
+        $searchstring = replaceWhitespaceInPhraseSearchKeepingTTSyntax($searchstring);
         $searchstring .= '*';
         $index .= '.phrase';
     }
     elsif ( defined $modifier{ltrn} && (defined $modifier{phr} || defined $modifier{'first-in-subfield'}) ) {
-        $searchstring =~ s/(\s)/\\$1/;
+        $searchstring =~ replaceWhitespaceInPhraseSearchKeepingTTSyntax($searchstring);
         $searchstring = '*' . $searchstring;
         $index .= '.phrase';
     }
     elsif ( (defined $modifier{phr} || defined $modifier{'first-in-subfield'}) && defined $modifier{ext} ) {
-        $searchstring = "\"$searchstring\"";
+        $searchstring = "$quotionMark$searchstring$quotionMark";
         $index .= '.phrase';
     }
     elsif ( defined $modifier{'first-in-subfield'} ) {
-        $searchstring =~ s/(\s)/\\$1/;
+        $searchstring = replaceWhitespaceInPhraseSearchKeepingTTSyntax($searchstring);
         $searchstring = '*' . $searchstring . '*';
         $index .= '.phrase';
     }
     elsif ( defined $modifier{phr} ) {
         $searchstring = "($searchstring)";
     }
-    elsif ( defined $modifier{'st-numeric'} || defined $modifier{ge} || defined $modifier{gt} || defined $modifier{le} || defined $modifier{le} ) {
+    elsif ( (defined $modifier{'st-numeric'} || defined $modifier{'st-date-normalized'} || defined $modifier{'st-date'}) || defined $modifier{ge} || defined $modifier{gt} || defined $modifier{le} || defined $modifier{le} ) {
         if ( defined $modifier{ge} ) {
             $searchstring = "(>=$searchstring)";
         }
@@ -115,7 +131,7 @@ sub updateQuery {
     
     $query =~ s/(\s+(and|or|not)\s+)/uc($1)/seg;
     $query =~ s/=/:/sg;
-    $query =~ s/(^|\W)([a-zA-Z][a-z0-9A-Z-]*)((\,(ext|phr|rtrn|ltrn|lrtrn|st-numeric|gt|ge|lt|le|eq|st-date|startswithnt|first-in-subfield))*)[:=]\s*(["][^"]+["]|['][^']+[']|[^\s]+)/$1.replaceModifierList($2,$3,$6)/eg;
+    $query =~ s/(^|\W)([a-zA-Z][a-z0-9A-Z-]*)(((\,|%2[Cc])(ext|phr|rtrn|ltrn|st-numeric|gt|ge|lt|le|eq|st-date-normalized|st-date|startswithnt|first-in-subfield))*)([:=]|%3[Aa])\s*(["][^"]+["]|&quot;[^"]+&quot;|['][^']+[']|[^\s]+)/$1.replaceModifierList($2,$3,$8)/eg;
     
     # rtrn : right truncation
     # ltrn : left truncation
