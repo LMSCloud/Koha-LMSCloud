@@ -37,8 +37,8 @@
  	<div class="span12"></div>
  </div>
  <div class="row-fluid">
- 	<div class="span12"><a href='opac-search.pl?q=sys%2Cphr%2Cext%2Crtrn%3A"[% MYENTRY.classification |uri %]"'><i class="fa fa-list-ul"></i>&nbsp;&nbsp;All titles</a>
-        <span style="font-size:0.75em"><i> <a href='opac-search.pl?q=sys%2Cphr%2Cext%2Crtrn%3A"[% MYENTRY.classification |uri %]"'>([% MYENTRY.number %] titles)</a></i></span>
+ 	<div class="span12"><a href='opac-search.pl?q=sys.phrase:[% MYENTRY.classification.replace(' ','\ ') |uri %]*'><i class="fa fa-list-ul"></i>&nbsp;&nbsp;All titles</a>
+        <span style="font-size:0.75em"><i> <a href='opac-search.pl?q=sys.phrase:[% MYENTRY.classification.replace(' ','\ ') |uri %]*'>([% MYENTRY.number %] titles)</a></i></span>
     </div>
  </div>
  <div class="row-fluid">
@@ -59,17 +59,17 @@
  	<div class="span12">
  		[% IF ( ENTRY.endnode ) %] 
 			[% IF ( ENTRY.classification.substr((ENTRY.classification.length - 1), 1) == " " ) %] 
-                <a href='opac-search.pl?q=sys%2Cphr%3A"[% ENTRY.classification |uri %]"'><i class="fa fa-list-ul"></i>&nbsp;&nbsp;[% ENTRY.description |html %]</a>
+                <a href='opac-search.pl?q=sys.phrase:[% ENTRY.classification.replace(' ','\ ') |uri %]'><i class="fa fa-list-ul"></i>&nbsp;&nbsp;[% ENTRY.description |html %]</a>
 			[% ELSE %]
-                <a href='opac-search.pl?q=sys%2Cphr%2Cext%2Crtrn%3A"[% ENTRY.classification |uri %]"'><i class="fa fa-list-ul"></i>&nbsp;&nbsp;[% ENTRY.description |html %]</a>
+                <a href='opac-search.pl?q=sys.phrase:[% ENTRY.classification.replace(' ','\ ') |uri %]*'><i class="fa fa-list-ul"></i>&nbsp;&nbsp;[% ENTRY.description |html %]</a>
 			[% END %]
  		[% ELSE %]
             <a href="opac-browser-asb.pl?level=[% ENTRY.level %]&amp;filter=[% ENTRY.browse_classification |uri %]&amp;prefixed=[% PREFIXED %]"><i class="fa fa-folder-o"></i>&nbsp;&nbsp;[% ENTRY.description |html %]</a>
  		[% END %]
  		[% IF ( ENTRY.classification.substr((ENTRY.classification.length - 1), 1) == " " ) %] 
-            <span style="font-size:0.75em"><i> <a href='opac-search.pl?q=sys%2Cphr%3A"[% ENTRY.classification |uri %]"'>([% ENTRY.number %] titles)</a></i></span> 
+            <span style="font-size:0.75em"><i> <a href='opac-search.pl?q=sys.phrase:[% ENTRY.classification.replace(' ','\ ') |uri %]'>([% ENTRY.number %] titles)</a></i></span> 
         [% ELSE %]
-            <span style="font-size:0.75em"><i> <a href='opac-search.pl?q=sys%2Cphr%2Cext%2Crtrn%3A"[% ENTRY.classification |uri %]"'>([% ENTRY.number %] titles)</a></i></span> 
+            <span style="font-size:0.75em"><i> <a href='opac-search.pl?q=sys.phrase:[% ENTRY.classification.replace(' ','\ ') |uri %]*'>([% ENTRY.number %] titles)</a></i></span> 
         [% END %]
  	</div>
  </div>
@@ -88,17 +88,17 @@
  	<div class="span12">
  		[% IF ( ENTRY.endnode ) %] 
 			[% IF ( ENTRY.classification.substr((ENTRY.classification.length - 1), 1) == " " ) %] 
-                <a href='opac-search.pl?q=sys%2Cphr%3A"[% ENTRY.classification |uri %]"'><i class="fa fa-list-ul"></i>&nbsp;&nbsp;[% ENTRY.description |html %]</a>
+                <a href='opac-search.pl?q=sys.phrase:[% ENTRY.classification.replace(' ','\ ') |uri %]'><i class="fa fa-list-ul"></i>&nbsp;&nbsp;[% ENTRY.description |html %]</a>
 			[% ELSE %]
-                <a href='opac-search.pl?q=sys%2Cphr%2Cext%2Crtrn%3A"[% ENTRY.classification |uri %]"'><i class="fa fa-list-ul"></i>&nbsp;&nbsp;[% ENTRY.description |html %]</a>
+                <a href='opac-search.pl?q=sys.phrase:[% ENTRY.classification.replace(' ','\ ') |uri %]*'><i class="fa fa-list-ul"></i>&nbsp;&nbsp;[% ENTRY.description |html %]</a>
 			[% END %]
  		[% ELSE %]
             <a href="opac-browser-asb.pl?level=[% ENTRY.level %]&amp;filter=[% ENTRY.browse_classification |uri %]&amp;prefixed=[% PREFIXED %]"><i class="fa fa-folder-o"></i>&nbsp;&nbsp;[% ENTRY.description |html %]</a>
  		[% END %]
  		[% IF ( ENTRY.classification.substr((ENTRY.classification.length - 1), 1) == " " ) %] 
-            <span style="font-size:0.75em"><i> <a href='opac-search.pl?q=sys%2Cphr%3A"[% ENTRY.classification |uri %]"'>([% ENTRY.number %] titles)</a></i></span> 
+            <span style="font-size:0.75em"><i> <a href='opac-search.pl?q=sys.phrase:[% ENTRY.classification.replace(' ','\ ') |uri %]'>([% ENTRY.number %] titles)</a></i></span> 
         [% ELSE %]
-            <span style="font-size:0.75em"><i> <a href='opac-search.pl?q=sys%2Cphr%2Cext%2Crtrn%3A"[% ENTRY.classification |uri %]"'>([% ENTRY.number %] titles)</a></i></span> 
+            <span style="font-size:0.75em"><i> <a href='opac-search.pl?q=sys.phrase:[% ENTRY.classification.replace(' ','\ ') |uri %]*'>([% ENTRY.number %] titles)</a></i></span> 
         [% END %]
  	</div>
  </div>
@@ -117,17 +117,17 @@
  	<div class="span12">
  		[% IF ( MEDIA_ENTRY.endnode ) %]
 			[% IF ( MEDIA_ENTRY.classification.substr((MEDIA_ENTRY.classification.length - 1), 1) == " " ) %] 
-                <a href='opac-search.pl?q=sys%2Cphr%3A"[% MEDIA_ENTRY.classification |uri %]"'><i class="fa fa-list-ul"></i>&nbsp;&nbsp;[% MEDIA_ENTRY.description |html %]</a>
+                <a href='opac-search.pl?q=sys.phrase:[% MEDIA_ENTRY.classification.replace(' ','\ ') |uri %]'><i class="fa fa-list-ul"></i>&nbsp;&nbsp;[% MEDIA_ENTRY.description |html %]</a>
             [% ELSE %]
-                <a href='opac-search.pl?q=sys%2Cphr%2Cext%2Crtrn%3A"[% MEDIA_ENTRY.classification |uri %]"'><i class="fa fa-list-ul"></i>&nbsp;&nbsp;[% MEDIA_ENTRY.description |html %]</a>
+                <a href='opac-search.pl?q=sys.phrase:[% MEDIA_ENTRY.classification.replace(' ','\ ') |uri %]*'><i class="fa fa-list-ul"></i>&nbsp;&nbsp;[% MEDIA_ENTRY.description |html %]</a>
 			[% END %]
  		[% ELSE %]
             <a href="opac-browser-asb.pl?level=[% MEDIA_ENTRY.level %]&amp;filter=[% MEDIA_ENTRY.browse_classification |uri %]&amp;prefixed=[% PREFIXED %]"><i class="fa fa-folder-o"></i>&nbsp;&nbsp;[% MEDIA_ENTRY.description | html %]</a>
  		[% END %]
         [% IF ( MEDIA_ENTRY.classification.substr((MEDIA_ENTRY.classification.length - 1), 1) == " " ) %] 
-            <span style="font-size:0.75em"><i> <a href='opac-search.pl?q=sys%2Cphr%3A"[% MEDIA_ENTRY.classification |uri %]"'>([% MEDIA_ENTRY.number %] titles)</a></i></span> 
+            <span style="font-size:0.75em"><i> <a href='opac-search.pl?q=sys.phrase:[% MEDIA_ENTRY.classification.replace(' ','\ ') |uri %]'>([% MEDIA_ENTRY.number %] titles)</a></i></span> 
         [% ELSE %]
-            <span style="font-size:0.75em"><i> <a href='opac-search.pl?q=sys%2Cphr%2Cext%2Crtrn%3A"[% MEDIA_ENTRY.classification |uri %]"'>([% MEDIA_ENTRY.number %] titles)</a></i></span> 
+            <span style="font-size:0.75em"><i> <a href='opac-search.pl?q=sys.phrase:[% MEDIA_ENTRY.classification.replace(' ','\ ') |uri %]*'>([% MEDIA_ENTRY.number %] titles)</a></i></span> 
         [% END %]
  	</div>
  </div>
@@ -146,17 +146,17 @@
  	<div class="span12">
 		[% IF ( LEVEL_FOLDER.endnode ) %] 
 			[% IF ( LEVEL_FOLDER.classification.substr((LEVEL_FOLDER.classification.length - 1), 1) == " " ) %] 
-                <a href='opac-search.pl?q=sys%2Cphr%3A"[% LEVEL_FOLDER.classification |uri %]"'><i class="fa fa-list-ul"></i>&nbsp;&nbsp;[% LEVEL_FOLDER.description |html %]</a>
+                <a href='opac-search.pl?q=sys.phrase:[% LEVEL_FOLDER.classification.replace(' ','\ ') |uri %]'><i class="fa fa-list-ul"></i>&nbsp;&nbsp;[% LEVEL_FOLDER.description |html %]</a>
 			[% ELSE %]
-                <a href='opac-search.pl?q=sys%2Cphr%2Cext%2Crtrn%3A"[% LEVEL_FOLDER.classification |uri %]"'><i class="fa fa-list-ul"></i>&nbsp;&nbsp;[% LEVEL_FOLDER.description |html %]</a>
+                <a href='opac-search.pl?q=sys.phrase:[% LEVEL_FOLDER.classification.replace(' ','\ ') |uri %]*'><i class="fa fa-list-ul"></i>&nbsp;&nbsp;[% LEVEL_FOLDER.description |html %]</a>
 			[% END %]
  		[% ELSE %]
             <a href="opac-browser-asb.pl?level=[% LEVEL_FOLDER.level %]&amp;filter=[% LEVEL_FOLDER.browse_classification |uri %]&amp;prefixed=[% PREFIXED %]"><i class="fa fa-folder-o"></i>&nbsp;&nbsp;[% LEVEL_FOLDER.description |html %]</a>
  		[% END %]
  		[% IF ( LEVEL_FOLDER.classification.substr((LEVEL_FOLDER.classification.length - 1), 1) == " " ) %] 
-            <span style="font-size:0.75em"><i> <a href='opac-search.pl?q=sys%2Cphr%3A"[% LEVEL_FOLDER.classification |uri %]"'>([% LEVEL_FOLDER.number %] titles)</a></i></span>
+            <span style="font-size:0.75em"><i> <a href='opac-search.pl?q=sys.phrase:[% LEVEL_FOLDER.classification.replace(' ','\ ') |uri %]'>([% LEVEL_FOLDER.number %] titles)</a></i></span>
  		[% ELSE %]
-            <span style="font-size:0.75em"><i> <a href='opac-search.pl?q=sys%2Cphr%2Cext%2Crtrn%3A"[% LEVEL_FOLDER.classification |uri %]"'>([% LEVEL_FOLDER.number %] titles)</a></i></span>
+            <span style="font-size:0.75em"><i> <a href='opac-search.pl?q=sys.phrase:[% LEVEL_FOLDER.classification.replace(' ','\ ') |uri %]*'>([% LEVEL_FOLDER.number %] titles)</a></i></span>
 		[% END %]
  	</div>
  </div>
@@ -179,17 +179,17 @@
  	<div class="span12">
  		[% IF ( ENTRY.endnode ) %] 
 			[% IF ( ENTRY.classification.substr((ENTRY.classification.length - 1), 1) == " " ) %] 
-                <a href='opac-search.pl?q=sys%2Cphr%3A"[% ENTRY.classification |uri %]"'><i class="fa fa-list-ul"></i>&nbsp;&nbsp;[% ENTRY.description |html %]</a>
+                <a href='opac-search.pl?q=sys.phrase:[% ENTRY.classification.replace(' ','\ ') |uri %]'><i class="fa fa-list-ul"></i>&nbsp;&nbsp;[% ENTRY.description |html %]</a>
 			[% ELSE %]
-                <a href='opac-search.pl?q=sys%2Cphr%2Cext%2Crtrn%3A"[% ENTRY.classification |uri %]"'><i class="fa fa-list-ul"></i>&nbsp;&nbsp;[% ENTRY.description |html %]</a>
+                <a href='opac-search.pl?q=sys.phrase:[% ENTRY.classification.replace(' ','\ ') |uri %]*'><i class="fa fa-list-ul"></i>&nbsp;&nbsp;[% ENTRY.description |html %]</a>
 			[% END %]
  		[% ELSE %]
  		<a href="opac-browser-asb.pl?level=[% ENTRY.level %]&amp;filter=[% ENTRY.browse_classification |uri %]&amp;prefixed=[% PREFIXED %]"><i class="fa fa-folder-o"></i>&nbsp;&nbsp;[% ENTRY.description |html %]</a>
  		[% END %]
  		[% IF ( ENTRY.classification.substr((ENTRY.classification.length - 1), 1) == " " ) %] 
-            <span style="font-size:0.75em"><i> <a href='opac-search.pl?q=sys%2Cphr%3A"[% ENTRY.classification |uri %]"'>([% ENTRY.number %] titles)</a></i></span> 
+            <span style="font-size:0.75em"><i> <a href='opac-search.pl?q=sys.phrase:[% ENTRY.classification.replace(' ','\ ') |uri %]'>([% ENTRY.number %] titles)</a></i></span> 
         [% ELSE %]
-            <span style="font-size:0.75em"><i> <a href='opac-search.pl?q=sys%2Cphr%2Cext%2Crtrn%3A"[% ENTRY.classification |uri %]"'>([% ENTRY.number %] titles)</a></i></span> 
+            <span style="font-size:0.75em"><i> <a href='opac-search.pl?q=sys.phrase:[% ENTRY.classification.replace(' ','\ ') |uri %]*'>([% ENTRY.number %] titles)</a></i></span> 
         [% END %]
  	</div>
  </div>
