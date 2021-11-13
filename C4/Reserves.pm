@@ -1473,7 +1473,7 @@ sub ItemsAnyAvailableAndNotRestricted {
             || IsItemOnHoldAndFound( $i->id )
             || ( $i->damaged
                  && ! C4::Context->preference('AllowHoldsOnDamagedItems') )
-            || Koha::ItemTypes->find( $i->effective_itemtype() )->notforloan
+            || ( $i->effective_itemtype() && Koha::ItemTypes->find( $i->effective_itemtype() )->notforloan )
             || $branchitemrule->{holdallowed} eq 'from_home_library' && Koha::Libraries->get_effective_branch($param->{patron}->branchcode) ne $i->homebranch
             || $branchitemrule->{holdallowed} eq 'from_local_hold_group' && ! $item_library->validate_hold_sibling( { branchcode => Koha::Libraries->get_effective_branch($param->{patron}->branchcode) } )
             || CanItemBeReserved( $param->{patron}->borrowernumber, $i->id )->{status} ne 'OK';
