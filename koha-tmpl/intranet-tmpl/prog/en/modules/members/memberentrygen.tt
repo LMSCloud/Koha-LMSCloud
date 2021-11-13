@@ -1633,12 +1633,12 @@ legend:hover {
                 var toggle_to = '';
                 var toggle_from = '';
                 if( $("#entryform:visible").length ) {
-                    toggle_to = "#quick_add_form label";
-                    toggle_from = "#entryform label";
+                    toggle_to = "#quick_add_form label:not(.error)";
+                    toggle_from = "#entryform label:not(.error)";
                     $("#memberentry_guarantor").appendTo("#quick_add_form");
                 } else {
-                    toggle_to="#entryform label";
-                    toggle_from = "#quick_add_form label";
+                    toggle_to="#entryform label:not(.error)";
+                    toggle_from = "#quick_add_form label:not(.error)";
                     $("#memberentry_guarantor").appendTo("#memberentry_guarantor_anchor");
                 }
                 $(toggle_from).each(function() {
@@ -1648,6 +1648,9 @@ legend:hover {
                         return;
                     }
                     $(toggle_to+"[for='"+input_label+"']").next().val(  $(this).next().val() );
+                    if ( input_label == 'city' && $(this).next('.select_city')) {
+                        $(toggle_to+"[for='"+input_label+"']").nextAll('input').val(  $(this).nextAll('input').val() );
+                    }
                 });
 
                 $(".toggler").toggle();
@@ -1748,10 +1751,22 @@ legend:hover {
                         input_label='title';
                     }
                     if( qaddfields.indexOf( input_label ) != -1 || $(this).attr('class') == 'required' ){
-                       $(this).parent().clone().appendTo("#quick_add_list");
+                       var newelem = $(this).parent().clone();
+                       if ( input_label == 'dateofbirth' ) {
+                            var datelem = newelem.find('input');
+                            datelem.removeClass('hasDatepicker');
+                            datelem.removeClass('datepicker');
+                            datelem.removeAttr("id");
+                            datelem.datepicker();
+                            datelem.nextAll('.ui-datepicker-trigger').nextAll('.ui-datepicker-trigger').remove();
+                       }
+                       newelem.appendTo("#quick_add_list");
                        [% UNLESS mandatorypassword %]
                              if( input_label == 'password' ) $("#entryform label[for='password2']").parent().clone().appendTo("#quick_add_list");
                        [% END %]
+                       if( input_label == 'dateofbirth' ) {
+                           newelem.datepicker();
+                       }
                     }
                 });
                 if ( $("#memberentry_guarantor").length ) {
