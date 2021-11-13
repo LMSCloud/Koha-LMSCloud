@@ -14,6 +14,12 @@ OPAC:
                   homebranch: "home library"
             - . Please note that this feature is currently available for MARC21 and UNIMARC.
         -
+            - pref: OPACSearchAutoComplete
+              choices:
+                  0: Show
+                  1: "Don't show"
+            - suggestions for simple search terms in OPAC with the catalog search field (Elasticsearch only). 
+        -
             - Use the
             - pref: opacthemes
               choices: opac-templates

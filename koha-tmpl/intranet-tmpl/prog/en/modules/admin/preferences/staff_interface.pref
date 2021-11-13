@@ -68,6 +68,12 @@ Staff interface:
               class: url
             - for the staff interface's favicon. (This should be a complete URL, starting with <code>http://</code>.)
         -
+            - pref: IntranetCatalogSearchAutoComplete
+              choices:
+                  0: Show
+                  1: "Don't show"
+            - suggestions for simple search terms with the staff interface cataloge search (Elasticsearch only). 
+        -
             - 'Display lists in the staff interface using XSLT stylesheet at: '
             - pref: XSLTListsDisplay
               class: file
