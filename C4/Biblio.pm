@@ -1742,6 +1742,7 @@ sub GetMarcUrls {
             if ( $marcflavour eq 'MARC21' ) {
                 my $s3   = $field->subfield('3');
                 my $link = $field->subfield('y');
+                my $type = $field->subfield('q');
                 unless ( $url =~ /^\w+:/ ) {
                     if ( $field->indicator(1) eq '7' ) {
                         $url = $field->subfield('2') . "://" . $url;
@@ -1763,6 +1764,7 @@ sub GetMarcUrls {
                 $marcurl->{'linktext'} = $link || $s3 || C4::Context->preference('URLLinkText') || $url;
                 $marcurl->{'part'} = $s3 if ($link);
                 $marcurl->{'toc'} = 1 if ( defined($s3) && $s3 =~ /^[Tt]able/ );
+                $marcurl->{'cover'} = 1 if ( defined($type) && $type =~ /cover/ );
             } else {
                 $marcurl->{'linktext'} = $field->subfield('2') || C4::Context->preference('URLLinkText') || $url;
                 $marcurl->{'MARCURL'} = $url;

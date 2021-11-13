@@ -42,8 +42,10 @@
                                     [% END %]
                                     [% IF ( Koha.Preference('EKZCover') && Koha.Preference('EKZCoverURL') ) %] 
                                         [% FOREACH myurl IN item.browser_urls %] 
-                                           [% IF ( myurl.MARCURL.match(Koha.Preference('EKZCoverURL')) ) %]
-                                            <img src="[% myurl.MARCURL %]"></img>
+                                           [% IF ( myurl.MARCURL.match(Koha.Preference('EKZCoverURL')) || myurl.MARCURL.match(Koha.Preference('EKZCoverURL').replace('http:','https:')) ) %]
+                                            <img src="[% myurl.MARCURL.replace('http:','https:') %]" alt="Cover"></img>
+                                           [% ELSIF myurl.cover %]
+                                            <img src="[% myurl.MARCURL %]" alt="Cover"></img>
                                            [% END # /IF match %]
                                         [% END # /FOREACH  %]
                                     [% END %]
