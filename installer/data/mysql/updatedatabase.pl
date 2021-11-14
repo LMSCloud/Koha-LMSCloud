@@ -12332,7 +12332,7 @@ if ( CheckVersion($DBversion) ) {
              `id` int(11) NOT NULL AUTO_INCREMENT, 
              `name` varchar(255) NOT NULL COMMENT 'the name of the field as it will be stored in the search engine',
              `label` varchar(255) NOT NULL COMMENT 'the human readable name of the field, for display', 
-             `type` ENUM('', 'string', 'date', 'number', 'boolean', 'sum') NOT NULL COMMENT 'what type of data this holds, relevant when storing it in the search engine',
+             `type` ENUM('', 'string', 'date', 'number', 'boolean', 'sum','string_plus') NOT NULL COMMENT 'what type of data this holds, relevant when storing it in the search engine',
              PRIMARY KEY (`id`),
              UNIQUE KEY (`name`)
              ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci
@@ -13186,7 +13186,7 @@ if ( CheckVersion($DBversion) ) {
 $DBversion = '16.05.10.001';
 if( CheckVersion( $DBversion ) ) {
     $dbh->do(q{
-        ALTER TABLE search_field CHANGE COLUMN type type ENUM('', 'string', 'date', 'number', 'boolean', 'sum') NOT NULL
+        ALTER TABLE search_field CHANGE COLUMN type type ENUM('', 'string', 'date', 'number', 'boolean', 'sum','string_plus') NOT NULL
         COMMENT 'what type of data this holds, relevant when storing it in the search engine';
     });
 
@@ -14654,7 +14654,7 @@ if( CheckVersion( $DBversion ) ) {
 $DBversion = "16.12.00.011";
 if( CheckVersion( $DBversion ) ) {
     $dbh->do(q{
-        ALTER TABLE search_field CHANGE COLUMN type type ENUM('', 'string', 'date', 'number', 'boolean', 'sum') NOT NULL
+        ALTER TABLE search_field CHANGE COLUMN type type ENUM('', 'string', 'date', 'number', 'boolean', 'sum','string_plus') NOT NULL
         COMMENT 'what type of data this holds, relevant when storing it in the search engine';
     });
 
@@ -17363,7 +17363,7 @@ if( CheckVersion( $DBversion ) ) {
 
 $DBversion = '18.06.00.003';
 if( CheckVersion( $DBversion ) ) {
-    $dbh->do( "ALTER TABLE search_field CHANGE COLUMN type type ENUM('', 'string', 'date', 'number', 'boolean', 'sum', 'isbn', 'stdno') NOT NULL COMMENT 'what type of data this holds, relevant when storing it in the search engine'" );
+    $dbh->do( "ALTER TABLE search_field CHANGE COLUMN type type ENUM('', 'string', 'date', 'number', 'boolean', 'sum', 'isbn', 'stdno','string_plus') NOT NULL COMMENT 'what type of data this holds, relevant when storing it in the search engine'" );
     SetVersion( $DBversion );
     print "Upgrade to $DBversion done (Bug 20073 - Add new types for Elasticsearch fields)\n";
 }
@@ -26044,6 +26044,27 @@ $DBversion = '21.05.05.003';
 if( CheckVersion( $DBversion ) ) {
     NewVersion( $DBversion, "", "Koha 21.05.05 release" );
 }
+
+$DBversion = '21.05.05.004';
+if( CheckVersion( $DBversion ) ) {
+    $dbh->do( q{
+        INSERT IGNORE INTO systempreferences (variable, value, options, explanation, type) VALUES
+        ('OPACSearchAutoComplete',1,NULL,'Enable the OPAC seach field auto completion. Only available with Elasticsearch as indexer.','YesNo'),
+        ('IntranetCatalogSearchAutoComplete',1,NULL,'Enable the Intranet cataloge seach field auto completion. Only available with Elasticsearch as indexer.','YesNo'),
+        ('ElasticsearchAdditionalAvailabilitySearch','',NULL,'Additional search condition for Elasticsearch to limit search result to titles with available items.','Free')
+    });
+    NewVersion( $DBversion, "", "Add parameter to activate search field auto completion in OPAC and Intranet and for additional parameters of availability Search with Elasticsearch.");
+}
+
+$DBversion = '21.05.05.005';
+if( CheckVersion( $DBversion ) ) {
+    
+    $dbh->do( "ALTER TABLE search_field CHANGE COLUMN type type ENUM('', 'string', 'date', 'number', 'boolean', 'sum', 'isbn', 'stdno','string_plus','availability','year') NOT NULL COMMENT 'what type of data this holds, relevant when storing it in the search engine'" );
+    $dbh->do( "ALTER TABLE search_field MODIFY `weight` tinyint unsigned DEFAULT NULL" );
+
+    NewVersion( $DBversion, "", "Add type string_plus for field type of table search_field to add trigram and reverse suggestion phrase indexes.");
+}
+
 
 # SEE bug 13068
 # if there is anything in the atomicupdate, read and execute it.
