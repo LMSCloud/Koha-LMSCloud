@@ -1263,7 +1263,8 @@ biblios:
         marc_type: normarc
         sort: ~
         suggestible: 1
-    type: string
+    type: string_plus
+    weight: 4
   author-in-order:
     label: author-in-order
     mappings:
@@ -1399,6 +1400,16 @@ biblios:
         sort: ~
         suggestible: ''
     type: ''
+  availability:
+    label: availability
+    mappings:
+      - facet: ''
+        marc_field: 952(017q)
+        marc_type: marc21
+        sort: 1
+        suggestible: ''
+    type: availability
+    mandatory: 1
   barcode:
     label: barcode
     mappings:
@@ -1408,6 +1419,7 @@ biblios:
         sort: ~
         suggestible: ''
     type: ''
+    weight: 5
   bgf-number:
     label: bgf-number
     mappings:
@@ -3634,6 +3646,21 @@ biblios:
         sort: ~
         suggestible: 1
       - facet: 1
+        marc_field: 647a
+        marc_type: marc21
+        sort: ~
+        suggestible: 1
+      - facet: 1
+        marc_field: 647c
+        marc_type: marc21
+        sort: ~
+        suggestible: 1
+      - facet: 1
+        marc_field: 648a
+        marc_type: marc21
+        sort: ~
+        suggestible: 1
+      - facet: 1
         marc_field: 650a
         marc_type: marc21
         sort: ~
@@ -3700,6 +3727,61 @@ biblios:
         suggestible: 1
       - facet: 1
         marc_field: 653a
+        marc_type: marc21
+        sort: ~
+        suggestible: 1
+      - facet: 1
+        marc_field: 654a
+        marc_type: marc21
+        sort: ~
+        suggestible: 1
+      - facet: 1
+        marc_field: 654b
+        marc_type: marc21
+        sort: ~
+        suggestible: 1
+      - facet: 1
+        marc_field: 654c
+        marc_type: marc21
+        sort: ~
+        suggestible: 1
+      - facet: 1
+        marc_field: 655a
+        marc_type: marc21
+        sort: ~
+        suggestible: 1
+      - facet: 1
+        marc_field: 655b
+        marc_type: marc21
+        sort: ~
+        suggestible: 1
+      - facet: 1
+        marc_field: 655c
+        marc_type: marc21
+        sort: ~
+        suggestible: 1
+      - facet: 1
+        marc_field: 656a
+        marc_type: marc21
+        sort: ~
+        suggestible: 1
+      - facet: 1
+        marc_field: 657a
+        marc_type: marc21
+        sort: ~
+        suggestible: 1
+      - facet: 1
+        marc_field: 658a
+        marc_type: marc21
+        sort: ~
+        suggestible: 1
+      - facet: 1
+        marc_field: 662abcefgh
+        marc_type: marc21
+        sort: ~
+        suggestible: 1
+      - facet: 1
+        marc_field: 688a
         marc_type: marc21
         sort: ~
         suggestible: 1
@@ -3838,7 +3920,8 @@ biblios:
         marc_type: normarc
         sort: ~
         suggestible: 1
-    type: string
+    type: string_plus
+    weight: 2
   subject-genre-form:
     facet_order: 5
     label: subject-genre-form
@@ -3853,7 +3936,8 @@ biblios:
         marc_type: unimarc
         sort: ~
         suggestible: 1
-    type: ''
+    type: string_plus
+    weight: 3
   subject-name-personal:
     label: subject-name-personal
     mappings:
@@ -4464,8 +4548,9 @@ biblios:
         marc_type: normarc
         sort: ~
         suggestible: ''
-    type: string
+    type: string_plus
     mandatory: 1
+    weight: 8
   title-abbreviated:
     label: title-abbreviated
     mappings:
@@ -4581,12 +4666,12 @@ biblios:
         marc_field: 440a
         marc_type: marc21
         sort: ~
-        suggestible: ''
+        suggestible: 1
       - facet: 1
         marc_field: 490a
         marc_type: marc21
         sort: ~
-        suggestible: ''
+        suggestible: 1
       - facet: 1
         marc_field: 225a
         marc_type: unimarc
@@ -4602,7 +4687,7 @@ biblios:
         marc_type: normarc
         sort: ~
         suggestible: ''
-    type: string
+    type: string_plus
   title-uniform:
     label: title-uniform
     mappings:
