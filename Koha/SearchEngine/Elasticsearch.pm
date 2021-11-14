@@ -208,12 +208,16 @@ sub get_elasticsearch_mappings {
                     $es_type = 'boolean';
                 } elsif ($type eq 'number' || $type eq 'sum') {
                     $es_type = 'integer';
+                } elsif ($type eq 'availability') {
+                    $es_type = 'availability';
                 } elsif ($type eq 'isbn' || $type eq 'stdno') {
                     $es_type = 'stdno';
                 } elsif ($type eq 'year') {
                     $es_type = 'year';
                 } elsif ($type eq 'date') {
                     $es_type = 'date';
+                } elsif ($type eq 'string_plus') {
+                    $es_type = 'string_plus';
                 }
 
                 if ($search) {
@@ -656,7 +660,8 @@ sub marc_records_to_documents {
                             foreach my $subf(split(//,$subfields_group)) {
                                 foreach my $subv($data_field->subfield($subf)) {
                                     $subv =~ s/(^\s+|\s+$)// if ($subv);
-                                    push @fieldvals, $subv if ($subv);
+                                    push @fieldvals, $subv if ($tag ne '952' && $subv);
+                                    push @fieldvals, $subv if ($tag eq '952' && defined($subv));
                                 }
                             }
                             my $data = join(" ",@fieldvals);
@@ -1015,10 +1020,9 @@ sub _field_mappings {
     }
     elsif ($target_type eq 'date') {
         $default_options->{value_callbacks} //= [];
-        # Only accept years containing digits and "u"
+        # Only accept dates containing a yyyy-MM-DD formatted date
         push @{$default_options->{value_callbacks}}, sub {
             my ($value) = @_;
-            # Replace "u" with "0" for sorting
             return ( $value =~ /[12][0-9][0-9][0-9]-[01][0-9]-[0123][0-9]/g );
         };
     }

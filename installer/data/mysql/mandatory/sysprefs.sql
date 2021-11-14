@@ -225,6 +225,7 @@ INSERT INTO systempreferences ( `variable`, `value`, `options`, `explanation`, `
 ('ekzWebServicesSetItemSubfieldsWhenOrdered','',NULL,'When an ekz web service signals an order and an item is created, set the item\'s subfields as specified. (e.g. 7=-1|x=Item created by ekz web service.)','Free'),
 ('ekzWebServicesSetItemSubfieldsWhenReceived','',NULL,'When the ekz delivery note synchronisation signals an item receipt, update the item\'s subfields as specified. (e.g. 7=5|x=notforloan set to 5 by ekz web service)','Free'),
 ('ekzWebServicesUserName','',NULL,'Name of library staff who is registered and authorized in the library\'s account at ekz.bibliotheksservice GmbH. This name is part of the credentials used in the requests of the ekz web services.','Free'),
+('ElasticsearchAdditionalAvailabilitySearch','',NULL,'Additional search condition for Elasticsearch to limit search result to titles with available items.','Free'),
 ('ElasticsearchIndexStatus_authorities', '0', 'Authorities index status', NULL, NULL),
 ('ElasticsearchIndexStatus_biblios', '0', 'Biblios index status', NULL, NULL),
 ('ElasticsearchMARCFormat', 'ISO2709', 'ISO2709|ARRAY', 'Elasticsearch MARC format. ISO2709 format is recommended as it is faster and takes less space, whereas array is searchable.', 'Choice'),

@@ -210,6 +210,7 @@ sub build_query {
     if ($options{whole_record}) {
         push @$fields, 'marc_data_array.*';
     }
+    $res->{track_total_hits} = JSON::true;
     $res->{query} = {
         query_string => {
             query            => $query,
@@ -1086,7 +1087,11 @@ sub _fix_limit_special_cases {
             push @new_lim, "date-of-publication:$date";
         }
         elsif ( $l =~ /^available$/ ) {
-            push @new_lim, 'onloan:false';
+            push @new_lim, 'availability:true';
+            my $addterm = C4::Context->preference('ElasticsearchAdditionalAvailabilitySearch');
+            if ( $addterm && $addterm !~ /^\s*$/ ) {
+                push @new_lim, $addterm;
+            }
         }
         else {
             my ( $field, $term ) = $l =~ /^\s*([\w,-]*?):(.*)/;
