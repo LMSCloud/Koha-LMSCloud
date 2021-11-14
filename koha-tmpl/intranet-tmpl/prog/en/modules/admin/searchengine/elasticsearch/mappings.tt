@@ -175,6 +175,11 @@ a.add, a.delete {
                               [% ELSE %]
                                 <option value="string">String</option>
                               [% END %]
+                              [% IF search_field.type == "string_plus" %]
+                                <option value="string_plus" selected="selected">String (with DidYouMean index)</option>
+                              [% ELSE %]
+                                <option value="string_plus">String (with DidYouMean index)</option>
+                              [% END %]
                               [% IF search_field.type == "date" %]
                                 <option value="date" selected="selected">Date</option>
                               [% ELSE %]
@@ -209,6 +214,11 @@ a.add, a.delete {
                                 <option value="stdno" selected="selected">Std. Number</option>
                               [% ELSE %]
                                 <option value="stdno">Std. Number</option>
+                              [% END %]
+                              [% IF search_field.type == "availability" %]
+                                <option value="availability" selected="selected">Availability</option>
+                              [% ELSE %]
+                                <option value="availability">Availability</option>
                               [% END %]
                             </select>
                       </td>
@@ -443,8 +453,8 @@ a.add, a.delete {
                                                 [% CASE 'holdingbranch' %]Holding libraries
                                                 [% CASE 'homebranch' %]Home libraries
                                                 [% CASE 'ln' %]Language
-                                                [% CASE 'subject-genre-form'' %]Genres
-                                                [% CASE 'publyear'' %]Publication years
+                                                [% CASE 'subject-genre-form' %]Genres
+                                                [% CASE 'publyear' %]Publication years
                                                 [% CASE %][% f | html %]
                                                 [% END %]
                                             </td>
