@@ -1440,6 +1440,25 @@ sub get_facetable_fields {
     return ( @faceted_fields, @not_faceted_fields );
 }
 
+=head2 get_didyoumean_fields
+
+my @get_didyoumean_fields = Koha::SearchEngine::Elasticsearch->get_didyoumean_fields();
+
+Returns the list of ES field names indexed by type string_plus.
+
+=cut
+
+sub get_didyoumean_fields {
+    my ($self) = @_;
+
+    my @didyoumean_fields;
+    for my $field (  Koha::SearchFields->search( { type => 'string_plus' }, { order_by => ['name'] } ) ) {
+        push @didyoumean_fields, $field->name;
+    }
+    # This could certainly be improved
+    return ( @didyoumean_fields );
+}
+
 =head2 clear_search_fields_cache
 
 Koha::SearchEngine::Elasticsearch->clear_search_fields_cache();

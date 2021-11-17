@@ -55,6 +55,12 @@ use Koha::SearchEngine::Elasticsearch::QueryBuilder;
 
 Does a index scan for the given C<$text> 
 
+Supports the following reuest parameters.
+$request->{text} contains the text to provide DidYouMean suggestions for.
+$request->{count} contains optionally the number of suggestions that should be delivered. Default is 3.
+$request->{field} contains optionally an arrayref with the names of indexes to use for the suggestions indexes.
+Default are all fields indexed by type string_plus.
+
 =head3 Returns
 
 This returns a list of search expressions.
@@ -95,10 +101,14 @@ sub find {
 
 =head2 _build_query
 
-    my $query = $self->_build_query($prefix, $field, $options);
+    my $query = $self->_build_query( $request );
 
-Arguments are the same as for L<browse>. This will return a query structure
-for elasticsearch to use.
+To build a DidYouMean-Query the request can provide the a hash with settings for the request.
+
+$request->{text} contains the text to provide DidYouMean suggestions for.
+$request->{count} contains optionally the number of suggestions that should be delivered. Default is 3.
+$request->{field} contains optionally an arrayref with the names of indexes to use for the suggestions indexes.
+Default are all fields indexed by type string_plus.
 
 =cut
 
@@ -119,7 +129,18 @@ sub _build_query {
     
     my $field = $request->{field};
     my @fields;
-    @fields = ('title','author','subject','title-series') if (!defined $field || $field =~ /^\s*$/);
+    
+    if (!defined $field || $field =~ /^\s*$/)  {
+        
+        # Default DidYouMean fields are
+        # @fields = ('title','author','subject','title-series');
+        
+        # But let's read alle fields indexed with type string_plus.
+        # string_plus indexed fields should contain a trigram and 
+        # reverse index which are necessary to build suggestions.
+        
+        @fields = $self->get_didyoumean_fields();
+    }
     
     if ( $field ) {
         my $index_params = Koha::SearchEngine::Elasticsearch::QueryBuilder->get_index_field_convert();
