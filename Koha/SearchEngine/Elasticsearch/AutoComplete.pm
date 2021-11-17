@@ -143,7 +143,7 @@ sub _build_query {
     
     my $field = $request->{field};
     my @fields;
-    @fields = ('title','author','subject','title-series','local-classification','publyear','subject-genre-form') if (!defined $field || $field =~ /^\s*$/);
+    @fields = grep { $_ =~ s/^\s+|\s+$//; $_ } split(/,/,C4::Context->preference('ElasticsearchDefaultAutoCompleteIndexFields')) if (!defined $field || $field =~ /^\s*$/);
     
     if ( $field ) {
         my $index_params = Koha::SearchEngine::Elasticsearch::QueryBuilder->get_index_field_convert();
@@ -152,6 +152,11 @@ sub _build_query {
         } else {
             $fields[0] = $field;
         }
+    }
+    
+    # Default fields are 'title,author,subject,title-series,local-classification'
+    if (! scalar(@fields) ) {
+        @fields = ('title','author','subject','title-series','local-classification');
     }
     
     my $mappings = $self->get_elasticsearch_mappings();

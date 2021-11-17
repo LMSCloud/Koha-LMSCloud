@@ -26051,7 +26051,8 @@ if( CheckVersion( $DBversion ) ) {
         INSERT IGNORE INTO systempreferences (variable, value, options, explanation, type) VALUES
         ('OPACSearchAutoComplete',1,NULL,'Enable the OPAC seach field auto completion. Only available with Elasticsearch as indexer.','YesNo'),
         ('IntranetCatalogSearchAutoComplete',1,NULL,'Enable the Intranet cataloge seach field auto completion. Only available with Elasticsearch as indexer.','YesNo'),
-        ('ElasticsearchAdditionalAvailabilitySearch','',NULL,'Additional search condition for Elasticsearch to limit search result to titles with available items.','Free')
+        ('ElasticsearchAdditionalAvailabilitySearch','',NULL,'Additional search condition for Elasticsearch to limit search result to titles with available items.','Free'),
+        ('ElasticsearchDefaultAutoCompleteIndexFields','title,author,subject,title-series,local-classification',NULL,'Default index fields used for Elasticsearch autocompletion','Free')
     });
     NewVersion( $DBversion, "", "Add parameter to activate search field auto completion in OPAC and Intranet and for additional parameters of availability Search with Elasticsearch.");
 }

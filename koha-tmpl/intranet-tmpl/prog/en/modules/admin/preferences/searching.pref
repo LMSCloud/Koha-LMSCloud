@@ -91,6 +91,10 @@ Searching:
             - "Add "
             - pref: ElasticsearchAdditionalAvailabilitySearch
             - " as additional search condition to the availability query when limiting a search result to titles with available items."
+        -
+            - "Use the following index fields separated by comma "
+            - pref: ElasticsearchDefaultAutoCompleteIndexFields
+            - " to query suggestions for search field auto completion if no query field is selected. Each of the index fields need to have a suggestion index enabled."
     Search form:
         -
             - pref : LoadSearchHistoryToTheFirstLoggedUser
