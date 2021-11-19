@@ -20,8 +20,10 @@ use strict;
 # You should have received a copy of the GNU General Public License
 # along with Koha; if not, see <http://www.gnu.org/licenses>.
 
-use C4::Accounts;
+use C4::Context;
 use Koha::AuthorisedValues;
+use Koha::Account::DebitTypes;
+use Koha::Patrons;
 
 use parent qw(C4::SIP::ILS::Transaction);
 
@@ -56,51 +58,46 @@ sub charge {
     my $fee_comment          = shift;
     
     my $charge_ok = 1;
-    my $accountType;
+    my $debit_type;
     my $description;
     
-    my $authorisedValueSearch = Koha::AuthorisedValues->search({ category => "MANUAL_INV" },{ order_by => ['authorised_value'] } );
-    my $manualFeeTypes = {};
-    if ( $authorisedValueSearch->count ) {
-        while ( my $authval = $authorisedValueSearch->next ) {
-            my $value   = $authval->authorised_value || '';
-            my $valname = $authval->lib_opac;
-            $manualFeeTypes->{$value} = $valname;
-        }
+    my $feeTypes = {};
+    foreach my $debit_type ( Koha::Account::DebitTypes->search() ) {
+        $feeTypes->{$debit_type->code} = $debit_type->description;
     }
-    $authorisedValueSearch = Koha::AuthorisedValues->search({ category => "MANUAL_INV_SIP2_MAPPED" },{ order_by => ['authorised_value'] } );
-    my $manualFeeTypesSIPMapped = {};
+    my $authorisedValueSearch = Koha::AuthorisedValues->search({ category => "DEBIT_TYPE_SIP2_MAPPED" },{ order_by => ['authorised_value'] } );
+    my $feeTypesSIPMapped = {};
     if ( $authorisedValueSearch->count ) {
         while ( my $authval = $authorisedValueSearch->next ) {
             my $value   = $authval->authorised_value || '';
             my $valname = $authval->lib;
-            $manualFeeTypesSIPMapped->{$value} = [$valname,$authval->lib_opac];
+            $feeTypesSIPMapped->{$value} = [$valname,$authval->lib_opac];
         }
     }
     
-    if ( exists($manualFeeTypes->{$prod_code}) ) {
-        $accountType = $prod_code;
-        $description = $manualFeeTypes->{$prod_code};
+    if ( exists($feeTypes->{$prod_code}) ) {
+        $debit_type = $prod_code;
+        $description = $feeTypes->{$prod_code};
     }
-    elsif ( exists($manualFeeTypesSIPMapped->{$prod_code}) && exists($manualFeeTypes->{$manualFeeTypesSIPMapped->{$prod_code}->[0]}) ) {
-        $accountType = $manualFeeTypes->{$manualFeeTypesSIPMapped->{$prod_code}->[0]};
-        $description = $manualFeeTypesSIPMapped->{$prod_code}->[1];
+    elsif ( exists($feeTypesSIPMapped->{$prod_code}) && exists($feeTypes->{$feeTypesSIPMapped->{$prod_code}->[0]}) ) {
+        $debit_type = $feeTypesSIPMapped->{$prod_code}->[0];
+        $description = $feeTypesSIPMapped->{$prod_code}->[1];
     }
-    elsif ( exists($manualFeeTypes->{$fee_type}) ) {
-        $accountType = $fee_type;
-        $description = $manualFeeTypes->{$fee_type};
+    elsif ( exists($feeTypes->{$fee_type}) ) {
+        $debit_type = $fee_type;
+        $description = $feeTypes->{$fee_type};
     }
     else {
-        if ( exists($manualFeeTypesSIPMapped->{$fee_type}) && exists($manualFeeTypes->{$manualFeeTypesSIPMapped->{$fee_type}->[0]})) {
-            $accountType = $manualFeeTypes->{$manualFeeTypesSIPMapped->{$fee_type}->[0]};
-            $description = $manualFeeTypesSIPMapped->{$fee_type}->[1];
+        if ( exists($feeTypesSIPMapped->{$fee_type}) && exists($feeTypes->{$feeTypesSIPMapped->{$fee_type}->[0]})) {
+            $debit_type = $feeTypesSIPMapped->{$fee_type}->[0];
+            $description = $feeTypesSIPMapped->{$fee_type}->[1];
         }
-        elsif ( exists($manualFeeTypesSIPMapped->{$fee_type.$product_identifier}) && exists($manualFeeTypes->{$manualFeeTypesSIPMapped->{$fee_type.$product_identifier}->[0]})) {
-            $accountType = $manualFeeTypes->{$manualFeeTypesSIPMapped->{$fee_type.$product_identifier}->[0]};
-            $description = $manualFeeTypesSIPMapped->{$fee_type.$product_identifier}->[1];
+        elsif ( exists($feeTypesSIPMapped->{$fee_type.$product_identifier}) && exists($feeTypes->{$feeTypesSIPMapped->{$fee_type.$product_identifier}->[0]})) {
+            $debit_type = $feeTypesSIPMapped->{$fee_type.$product_identifier}->[0];
+            $description = $feeTypesSIPMapped->{$fee_type.$product_identifier}->[1];
         }
         else {
-            $self->screen_msg("Manual fee type invalid.");
+            $self->screen_msg("Debit type invalid.");
             $self->ok(0);
             $charge_ok = 0;
         }
@@ -116,9 +113,29 @@ sub charge {
     }
 
     if ( $charge_ok) {
-        C4::Accounts::manualinvoice($borrowernumber, '', $description, $accountType, $amount, $fee_comment);
-        # $self->screen_msg("Fee booked to user account.");
-        $self->ok(1);
+        my $patron = Koha::Patrons->find($borrowernumber);
+        
+        if ( $patron ) {
+            my $line = $patron->account->add_debit(
+                {
+                    amount      => $amount,
+                    description => $description,
+                    note        => $fee_comment,
+                    user_id     => C4::Context->userenv->{number},
+                    interface   => C4::Context->interface,
+                    library_id  => C4::Context->userenv->{branch},
+                    type        => $debit_type
+                }
+            );
+
+            if ( C4::Context->preference('AccountAutoReconcile') ) {
+                $patron->account->reconcile_balance;
+            }
+            $self->ok(1);
+        } else {
+            $self->screen_msg("Invalid patron id.");
+            $self->ok(0);
+        }
     }
 }
 

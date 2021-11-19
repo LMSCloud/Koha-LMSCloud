@@ -26066,6 +26066,19 @@ if( CheckVersion( $DBversion ) ) {
     NewVersion( $DBversion, "", "Add type string_plus for field type of table search_field to add trigram and reverse suggestion phrase indexes.");
 }
 
+$DBversion = '21.05.05.006';
+if( CheckVersion( $DBversion ) ) {
+    
+    my $num_categ = $dbh->selectrow_array("SELECT COUNT(*) FROM authorised_value_categories WHERE category_name = 'MANUAL_INV_SIP2_MAPPED'");
+    if ($num_categ > 0) {
+        $dbh->do( "INSERT INTO authorised_value_categories(category_name,is_system) VALUES ('DEBIT_TYPE_SIP2_MAPPED',0)" );
+        $dbh->do( "UPDATE authorised_values SET category = 'DEBIT_TYPE_SIP2_MAPPED' WHERE category = 'MANUAL_INV_SIP2_MAPPED'" );
+        $dbh->do( "DELETE FROM authorised_value_categories WHERE category_name = 'MANUAL_INV_SIP2_MAPPED'" );
+    }
+
+    NewVersion( $DBversion, "", "Rename authorised values category MANUAL_INV_SIP2_MAPPED to DEBIT_TYPE_SIP2_MAPPED.");
+}
+
 
 # SEE bug 13068
 # if there is anything in the atomicupdate, read and execute it.
