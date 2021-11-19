@@ -170,6 +170,13 @@ sub _build_query {
                     gram_size => 3,
                     direct_generator => [ 
                         {
+                            field => "${field}.reverse",
+                            pre_filter => "reverse",
+                            post_filter => "reverse",
+                            suggest_mode => "popular",
+                            min_doc_freq => 1
+                        },
+                        {
                             field => "${field}.trigram",
                             suggest_mode => "popular",
                             min_doc_freq => 1
