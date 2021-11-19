@@ -14,12 +14,17 @@ updateSimpleVariables();
 updateMoreSearchesContent();
 updateEntryPages();
 updateSidebarLinks();
+updateOPACUserJS();
 
 sub updateSimpleVariables {
     my $dbh = C4::Context->dbh;
     $dbh->do("UPDATE systempreferences SET value='0' WHERE variable='Mana' and value='2'");
     $dbh->do("UPDATE systempreferences SET value='0' WHERE variable='UsageStats' and value='2'");
     $dbh->do("UPDATE systempreferences SET value='1' WHERE variable='OpacBrowseSearch'");
+    $dbh->do("UPDATE systempreferences SET value='0' WHERE variable='QueryAutoTruncate'");
+    $dbh->do("UPDATE systempreferences SET value='0' WHERE variable='QueryFuzzy'");
+    $dbh->do("UPDATE systempreferences SET value='relevance' WHERE variable='defaultSortField'");
+    $dbh->do("UPDATE systempreferences SET value='dsc' WHERE variable='defaultSortOrder'");
     $dbh->do("UPDATE systempreferences SET value='NOT homebranch:eBib' WHERE variable='ElasticsearchAdditionalAvailabilitySearch'");
     $dbh->do("UPDATE systempreferences SET value='title,author,subject,title-series,local-classification,publyear,subject-genre-form' WHERE variable='ElasticsearchDefaultAutoCompleteIndexFields'");
     $dbh->do(q{UPDATE systempreferences SET value='[{ "name": "ElasticsearchSuggester", "enabled": 1}, { "name": "AuthorityFile"}, { "name": "ExplodedTerms"}, { "name": "LibrisSpellcheck"}]' WHERE variable='OPACdidyoumean'});
@@ -318,6 +323,16 @@ sub updateClass {
     return join(" ",@newclasses);
 }
 
+sub removeLineTrimmed {
+    my $text = shift;
+    my $replacements = shift;
+    
+    foreach my $repl(@$replacements) {
+        $text =~ s/[\n][ \t]*\Q$repl\E[ \t]*//g;
+    }
+    return $text;
+}
+
 sub updateMoreSearchesContent {
     my $dbh = C4::Context->dbh;
     my $sth = $dbh->prepare("SELECT value,variable FROM systempreferences WHERE variable like 'OpacMoreSearchesContent_%'");
@@ -336,6 +351,24 @@ sub updateMoreSearchesContent {
                 $value =~ s!(<li[^>]*><a href="/cgi-bin/koha/opac-search\.pl">(.|\n)*?</li>)!"$1\n$replace"!e;
             }
         }
+
+        if ( $origvalue ne $value ) {
+            $dbh->do("UPDATE systempreferences SET value=? WHERE variable=?", undef, $value, $variable);
+            print "Updated value of variable $variable\n";
+        }
+    }
+}
+
+sub updateOPACUserJS {
+    my $dbh = C4::Context->dbh;
+    my $sth = $dbh->prepare("SELECT value,variable FROM systempreferences WHERE variable = 'OPACUserJS'");
+    $sth->execute;
+    while ( my ($value,$variable) = $sth->fetchrow ) {
+        my $origvalue = $value;
+        my @replace;
+        $replace[0] = '$("#availability_facet").hide();';
+        $replace[1] = '$("h5#facet-locations").text("Standorte");';
+        $value = removeLineTrimmed($value,\@replace);
 
         if ( $origvalue ne $value ) {
             $dbh->do("UPDATE systempreferences SET value=? WHERE variable=?", undef, $value, $variable);
