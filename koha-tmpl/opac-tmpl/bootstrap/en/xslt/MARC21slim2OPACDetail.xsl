@@ -854,9 +854,9 @@
                 </span>
             </xsl:if>
 
-            <xsl:if test="marc:datafield[substring(@tag, 1, 1) = '6' and not(@tag=653 or @tag=655 or @tag=689) and marc:subfield[@code=a] ]">
+            <xsl:if test="marc:datafield[substring(@tag, 1, 1) = '6' and marc:subfield[@code='a'] != '' and not(@tag=653 or @tag=655 or @tag=689)]">
             <span class="results_summary subjects"><span class="label">Subject(s): </span>
-                <xsl:for-each select="marc:datafield[substring(@tag, 1, 1) = '6'][not(@tag=653 or @tag=655 or @tag=689) and marc:subfield[@code=a]]">
+                <xsl:for-each select="marc:datafield[substring(@tag, 1, 1) = '6' and marc:subfield[@code='a'] != '' and not(@tag=653 or @tag=655 or @tag=689)]">
             <span property="keywords">
             <a>
             <xsl:attribute name="class">subject</xsl:attribute>
