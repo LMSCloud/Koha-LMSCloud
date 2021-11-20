@@ -552,6 +552,15 @@
         <span class="byAuthor">by </span><span class="author">
         <!-- #13383 -->
         <xsl:for-each select="marc:datafield[(@tag=100 or @tag=700 or @tag=110 or @tag=710 or @tag=111 or @tag=711) and @ind1!='z']">
+            <a>
+            <xsl:choose>
+                <xsl:when test="marc:subfield[@code=9] and $UseAuthoritiesForTracings='1'">
+                    <xsl:attribute name="href">/cgi-bin/koha/opac-search.pl?q=an:"<xsl:value-of select="marc:subfield[@code=9]"/>"</xsl:attribute>
+                </xsl:when>
+                <xsl:otherwise>
+                    <xsl:attribute name="href">/cgi-bin/koha/opac-search.pl?q=au:"<xsl:value-of select="marc:subfield[@code='a']"/>"</xsl:attribute>
+                </xsl:otherwise>
+            </xsl:choose>
             <xsl:call-template name="chopPunctuation">
                 <xsl:with-param name="chopString">
                     <xsl:call-template name="subfieldSelect">
@@ -667,6 +676,7 @@
                     <xsl:text>]</xsl:text>
                 </span>
             </xsl:if>
+            </a>
             <xsl:choose>
                 <xsl:when test="position()=last()"><xsl:text>.</xsl:text></xsl:when><xsl:otherwise><span class="separator"><xsl:text> | </xsl:text></span></xsl:otherwise>
             </xsl:choose>
