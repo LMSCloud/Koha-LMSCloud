@@ -508,22 +508,6 @@ sub _process_mappings {
                 $values = [ map { $callback->($_) } @{$values} ];
             }
         }
-        
-        # remove text between MARC non-sorting characters \x{0098} and \x{009c} in sort values
-        # and remove the non-sorting characters in all other values
-        if ( $sort ) {
-            for (my $i=0;$i<=$#$values;$i++) {
-                $values->[$i] =~ s/^\s*\x{0098}([^\x{009c}]*)\x{009c}\s*// if ($values->[$i]);
-                $values->[$i] =~ s/(\s*)\x{0098}([^\x{009c}]*)\x{009c}(\s*)/($1 && $3 ? $3 : '')/ge if ($values->[$i]);
-                $values->[$i] =~ s/^\s*((Der|Die|Das|Den|Dem|Ein|Eine|Einen|Le|La|Les|Un|Une|De|Des|The|A|An|El|En|La|Los|Las|Un|Unos|Una|Unas)\s)+//i;
-                $values->[$i] =~ s/^\s*(L'|D')//i;
-            }
-        }
-        else {
-            for (my $i=0;$i<=$#$values;$i++) {
-                $values->[$i] =~ s/[\x{0098}\x{009c}]+//g if ($values->[$i]);
-            }
-        }
 
         # Skip mapping if all values has been removed
         next unless @{$values};
@@ -537,6 +521,26 @@ sub _process_mappings {
             # Nonfiling chars does not make sense for multiple values
             # Only apply on first element
             $values->[0] = substr $values->[0], $nonfiling_chars;
+        }
+        
+        # Remove text between MARC non-sorting characters \x{0098} and \x{009c} in sort values
+        # and remove the non-sorting characters in all other values.
+        # Remove common articles and special characters that are not needed for sorting.
+        if ( $sort ) {
+            for (my $i=0;$i<=$#$values;$i++) {
+                $values->[$i] =~ s/^\s*[\x{0098}¬]([^\x{009c}¬]*)[\x{009c}¬]\s*// if ($values->[$i]);
+                $values->[$i] =~ s/(\s*)[\x{0098}¬]([^\x{009c}¬]*)[\x{009c}¬](\s*)/($1 && $3 ? $3 : '')/ge if ($values->[$i]);
+                $values->[$i] =~ s/[(){}»«›‹›‹…"'`':,;<>\.¡¿?!¬#\x{00}-\x{1F}]+// if ($values->[$i]);
+                $values->[$i] =~ s/^[\s\-\+]+// if ($values->[$i]);
+                $values->[$i] =~ s/^\s*((Der|Die|Das|Den|Dem|Ein|Eine|Einen|Le|La|Les|Un|Une|De|Des|The|A|An|El|En|La|Los|Las|Un|Unos|Una|Unas)\s)+//;
+                $values->[$i] =~ s/^\s*(L'|D')//i;
+                $values->[$i] =~ s/^\s+// if ($values->[$i]);
+            }
+        }
+        else {
+            for (my $i=0;$i<=$#$values;$i++) {
+                $values->[$i] =~ s/[\x{0098}\x{009c}]+//g if ($values->[$i]);
+            }
         }
 
         $values = [ grep(!/^$/, @{$values}) ];
