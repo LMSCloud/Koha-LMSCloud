@@ -7,7 +7,11 @@ use DBI;
 use Getopt::Long;
 # Koha modules
 use C4::Context;
+use Koha::SearchEngine::Elasticsearch;
 
+BEGIN{ $| = 1; }
+
+binmode(STERR, ":utf8");
 binmode(STDOUT, ":utf8");
 
 updateSimpleVariables();
@@ -15,11 +19,13 @@ updateMoreSearchesContent();
 updateEntryPages();
 updateSidebarLinks();
 updateOPACUserJS();
+rebuildElasticSearchIndex();
 
 sub updateSimpleVariables {
     my $dbh = C4::Context->dbh;
     $dbh->do("UPDATE systempreferences SET value='0' WHERE variable='Mana' and value='2'");
     $dbh->do("UPDATE systempreferences SET value='0' WHERE variable='UsageStats' and value='2'");
+    $dbh->do("UPDATE systempreferences SET value='Elasticsearch' WHERE variable='SearchEngine'");
     $dbh->do("UPDATE systempreferences SET value='1' WHERE variable='OpacBrowseSearch'");
     $dbh->do("UPDATE systempreferences SET value='0' WHERE variable='QueryAutoTruncate'");
     $dbh->do("UPDATE systempreferences SET value='0' WHERE variable='QueryFuzzy'");
@@ -375,4 +381,9 @@ sub updateOPACUserJS {
             print "Updated value of variable $variable\n";
         }
     }
+}
+
+sub rebuildElasticSearchIndex {
+    # Loading Elasticsearch index configuration
+    system "/usr/share/koha/bin/search_tools/rebuild_elasticsearch.pl --reset --biblios --verbose --commit 5000 --processes 4";
 }
