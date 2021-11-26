@@ -88,8 +88,22 @@ index:
       german_specific_char_filter:
         type: mapping
         mappings:
+          - 'drei ??? => drei fragezeichen'
+          - 'drei !!! => drei ausrufezeichen'
+          - 'Drei ??? => drei fragezeichen'
+          - 'Drei !!! => drei ausrufezeichen'
           - '??? => drei fragezeichen'
           - '!!! => drei ausrufezeichen'
+          - '? => \\ fragezeichen '
+          - '! => \\ ausrufezeichen '
+          - '¿ => \\ fragezeichen '
+          - '¡ => \\ ausrufezeichen '
+          - '& => \\ und '
+          - '$ => \\ dollar '
+          - '¢ => \\ cent '
+          - '€ => \\ euro '
+          - '¥ => \\ yen '
+          - '£ => \\ pfund '
           - 'Æ => ae'
           - 'ӕ => ae'
           - 'ä => ae'
