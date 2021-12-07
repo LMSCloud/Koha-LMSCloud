@@ -677,6 +677,10 @@
                                 <li role="presentation">
                                         <a href="#reserves" id="holds-tab" aria-controls="reserves" role="tab" data-toggle="tab">Holds ([% holds_count || 0 | html %])</a>
                                 </li>
+                                [% WRAPPER tab_item tabname="bookings" %]
+                                    [% SET bookings_count = patron.bookings.filter_by_future.count %]
+                                    <span>Bookings ([% bookings_count || 0 | html %])</span>
+                                [% END %]
                             [% END %]
 
                             [% IF Koha.Preference('UseRecalls') %]
@@ -736,23 +740,23 @@
 
                         <div class="tab-content">
                             [% INCLUDE "checkouts-table.inc" %]
-                            
-							[% IF ( Koha.Preference('DivibibEnabled') ) %]
-								<div id="divibib-issues" role="tabpanel" class="tab-pane">
-									<table id="divibib-issues-table" style="width: 100% !Important;">
-										<thead>
-											<tr>
-												<th scope="col">Due date hidden not formatted</th>
-												<th scope="col">Due date</th>
-												<th scope="col">Title</th>
-												<th scope="col">Item type</th>
-												<th scope="col">Checked out on</th>
-												<th scope="col">Checked out from</th>
-											</tr>
-										</thead>
-									</table>
-								</div>
-							[% END %]
+
+                            [% IF ( Koha.Preference('DivibibEnabled') ) %]
+                                <div id="divibib-issues" role="tabpanel" class="tab-pane">
+                                    <table id="divibib-issues-table" style="width: 100% !Important;">
+                                        <thead>
+                                            <tr>
+                                                <th scope="col">Due date hidden not formatted</th>
+                                                <th scope="col">Due date</th>
+                                                <th scope="col">Title</th>
+                                                <th scope="col">Item type</th>
+                                                <th scope="col">Checked out on</th>
+                                                <th scope="col">Checked out from</th>
+                                            </tr>
+                                        </thead>
+                                    </table>
+                                </div>
+                            [% END %]
 
                             [% INCLUDE "relatives-issues-table.inc" %]
 
@@ -842,6 +846,14 @@
                                         <p>Patron has nothing on hold.</p>
                                     [% END %]
                                 </div> [% # /div#reserves %]
+
+                                [% WRAPPER tab_panel tabname="bookings" %]
+                                    [% IF ( bookings_count ) %]
+                                        <table id="bookings-table" style="width: 100% !Important;"></table>
+                                    [% ELSE %]
+                                        <p>Patron has nothing booked.</p>
+                                    [% END %]
+                                [% END %]
                             [% END %]
 
                             [% IF Koha.Preference('UseRecalls') %]
@@ -872,6 +884,8 @@
         [% IF Koha.Preference('ClaimReturnedLostValue') %]
             [% INCLUDE 'modals/resolve_return_claim.inc' %]
         [% END %]
+
+        [% INCLUDE modals/cancel_booking.inc %]
 
 [% MACRO jsinclude BLOCK %]
     [% INCLUDE 'datatables.inc' %]
@@ -908,6 +922,8 @@
     [% END %]
     [% Asset.js("js/holds.js") | $raw %]
     [% INCLUDE 'calendar.inc' %]
+    [% Asset.js("js/bookings.js") | $raw %]
+    [% Asset.js("js/cancel_booking_modal.js") | $raw %]
     [% INCLUDE 'str/members-menu.inc' %]
     [% Asset.js("js/members-menu.js") | $raw %]
     [% Asset.js("js/recalls.js") | $raw %]
@@ -937,7 +953,92 @@
             $("#view_restrictions").on("click",function(){
                 $('#debarments-tab-link').click();
             });
+
+            $("#view_guarantees_finesandcharges").on("click",function(){
+                $('#guarantees_finesandcharges-tab').click();
+            });
+
+            // Bookings
+            var bookings_table;
+            // Load bookings table on tab selection
+            $('[data-tabname="bookings"]').on( "click", function(){
+                if ( !bookings_table ) {
+                    var today = new Date();
+                    var bookings_table_url = "/api/v1/bookings";
+                    bookings_table = $('#bookings-table').kohaTable({
+                        "ajax": {
+                            "url": bookings_table_url
+                        },
+                        "embed": [
+                            "biblio",
+                            "item",
+                            "patron"
+                        ],
+                        "columns": [{
+                            "data": "booking_id",
+                            "title": "Booking ID",
+                            "visible": false,
+                            "searchable": false,
+                            "orderable": false
+                        },
+                        {
+                            "data": "biblio.title",
+                            "title": "Title",
+                            "searchable": true,
+                            "orderable": true,
+                            "render": function(data,type,row,meta) {
+                                return row.biblio.title;
+                            }
+                        },
+                        {
+                            "data": "item.external_id",
+                            "title": "Item",
+                            "searchable": true,
+                            "orderable": true,
+                            "defaultContent": "Any item",
+                            "render": function(data,type,row,meta) {
+                                if ( row.item ) {
+                                    return row.item.external_id;
+                                } else {
+                                    return null;
+                                }
+                            }
+                        },
+                        {
+                            "data": "start_date",
+                            "title": "Start date",
+                            "searchable": true,
+                            "orderable": true,
+                            "render": function(data, type, row, meta) {
+                                return $datetime(row.start_date);
+                            }
+                        },
+                        {
+                            "data": "end_date",
+                            "title": "End date",
+                            "searchable": true,
+                            "orderable": true,
+                            "render": function(data, type, row, meta) {
+                                return $datetime(row.end_date);
+                            }
+                        },
+                        {
+                            "data": "",
+                            "title": "Actions",
+                            "searchable": false,
+                            "orderable": false,
+                            "render": function(data, type, row, meta) {
+                                var result = '<button type="button" class="btn btn-default btn-xs cancel-action" data-toggle="modal" data-target="#cancelBookingModal" data-booking="'+row.booking_id+'"><i class="fa fa-trash" aria-hidden="true"></i> '+_("Cancel")+'</button>';
+                                return result;
+                            }
+                        }]
+                    }, [], 1, { patron_id: "[% patron.borrowernumber | html %]", end_date: { ">=": today.toISOString() } });
+                };
+            });
+            // Bookings
+
          });
+
         function uncheck_sibling(me){
             nodename=me.getAttribute("name");
             if (nodename =="barcodes[]"){
