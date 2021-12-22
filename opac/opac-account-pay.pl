@@ -63,6 +63,7 @@ if ( $payment_method ne 'paypal' &&
 unless ( C4::Context->preference('EnablePayPalOpacPayments') ||
          C4::Context->preference('GirosolutionGiropayOpacPaymentsEnabled') ||
          C4::Context->preference('GirosolutionCreditcardOpacPaymentsEnabled') ||
+         C4::Context->preference('GirosolutionPaypageOpacPaymentsEnabled') ||
          C4::Context->preference('Epay21PaypageOpacPaymentsEnabled') ||
          C4::Context->preference('PmPaymentPaypageOpacPaymentsEnabled') ||
          C4::Context->preference('EpayblPaypageOpacPaymentsEnabled') ||
@@ -200,7 +201,7 @@ elsif ( $payment_method eq 'gs_creditcard' && C4::Context->preference('Girosolut
     my $errorTemplate = 'GIROSOLUTION_ERROR_PROCESSING';
     my $girosolutionRedirectToCreditcardUrl = '';
 
-    # init payment action by sending the required HTML form to the configured endpoint, and then, if succeeded, redirect to the GiroSolution GiroPay URL delivered in its response
+    # init payment action by sending the required HTML form to the configured endpoint, and then, if succeeded, redirect to the GiroSolution Creditcard URL delivered in its response
     my $girosolutionCreditcard = C4::Epayment::GiroSolution->new( { patron => $patron, amount_to_pay => $amount_to_pay, accountlinesIds => \@accountlines, paytype => 11 } );
     ( $error, $errorTemplate, $girosolutionRedirectToCreditcardUrl ) = $girosolutionCreditcard->paymentAction();
 
@@ -214,6 +215,33 @@ elsif ( $payment_method eq 'gs_creditcard' && C4::Context->preference('Girosolut
 
         if ( $girosolutionRedirectToCreditcardUrl ) {
             print $cgi->redirect( $girosolutionRedirectToCreditcardUrl );
+        }
+    }
+    output_html_with_http_headers( $cgi, $cookie, $template->output, undef, { force_no_caching => 1 } ) if $error;
+}
+
+
+elsif ( $payment_method eq 'gs_paypage' && C4::Context->preference('GirosolutionPaypageOpacPaymentsEnabled') ) {    # Girosolution Paypage
+
+    $logger->debug("opac-account-pay.pl/girosolution_paypage START creating new C4::Epayment::GiroSolution object. cardnumber:" . $patron->cardnumber() . ": amount_to_pay:" . $amount_to_pay . ":");
+
+    my $errorTemplate = 'GIROSOLUTION_ERROR_PROCESSING';
+    my $girosolutionRedirectToPaypageUrl = '';
+
+    # init payment action by sending the required HTML form to the configured endpoint, and then, if succeeded, redirect to the GiroSolution Paypage URL delivered in its response
+    my $girosolutionPaypage = C4::Epayment::GiroSolution->new( { patron => $patron, amount_to_pay => $amount_to_pay, accountlinesIds => \@accountlines, paytype => 1001 } );    # paytype 1001: fictional, used to indicate paypage payment)
+    ( $error, $errorTemplate, $girosolutionRedirectToPaypageUrl ) = $girosolutionPaypage->paymentAction();
+
+    if ( $error || $errorTemplate ) {
+        $logger->error("opac-account-pay.pl/girosolution_paypage END error:$error: errorTemplate:$errorTemplate:");
+        if ( $errorTemplate ) {
+            $template->param( error => $errorTemplate );
+        }
+    } else {
+        $logger->debug("opac-account-pay.pl/girosolution_paypage END error:$error: errorTemplate:$errorTemplate: girosolutionRedirectToPaypageUrl:$girosolutionRedirectToPaypageUrl:");
+
+        if ( $girosolutionRedirectToPaypageUrl ) {
+            print $cgi->redirect( $girosolutionRedirectToPaypageUrl );
         }
     }
     output_html_with_http_headers( $cgi, $cookie, $template->output, undef, { force_no_caching => 1 } ) if $error;

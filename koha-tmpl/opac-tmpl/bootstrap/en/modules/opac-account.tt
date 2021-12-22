@@ -3,7 +3,7 @@
 [% USE KohaDates %]
 [% USE AuthorisedValues %]
 [% USE Price %]
-[% SET ENABLE_OPAC_PAYMENTS = Koha.Preference('EnablePayPalOpacPayments') || Koha.Preference('GirosolutionGiropayOpacPaymentsEnabled') || Koha.Preference('GirosolutionCreditcardOpacPaymentsEnabled') || Koha.Preference('Epay21PaypageOpacPaymentsEnabled') || Koha.Preference('PmpaymentPaypageOpacPaymentsEnabled') || Koha.Preference('EpayblPaypageOpacPaymentsEnabled') || plugins %]
+[% SET ENABLE_OPAC_PAYMENTS = Koha.Preference('EnablePayPalOpacPayments') || Koha.Preference('GirosolutionGiropayOpacPaymentsEnabled') || Koha.Preference('GirosolutionCreditcardOpacPaymentsEnabled') || Koha.Preference('GirosolutionPaypageOpacPaymentsEnabled') || Koha.Preference('Epay21PaypageOpacPaymentsEnabled') || Koha.Preference('PmpaymentPaypageOpacPaymentsEnabled') || Koha.Preference('EpayblPaypageOpacPaymentsEnabled') || plugins %]
 [% SET DISPLAY_PAYMENT_BLOCK = 0 %]
 [% INCLUDE 'doc-head-open.inc' %]
 <title>[% IF ( LibraryNameTitle ) %][% LibraryNameTitle %][% ELSE %]Koha online[% END %] catalog &rsaquo; Your fines and charges</title>
@@ -64,6 +64,10 @@
                             [% ELSIF payment_error == "GIROSOLUTION_ERROR_PROCESSING" %]
                                 <p>Unable to verify payment.</p>
                                 <p>Please contact the library to verify your payment.</p>
+                            [% ELSIF payment_error == "GIROSOLUTION_TIMEOUT" %]
+                                <p>Timeout during payment action.</p>
+                            [% ELSIF payment_error == "GIROSOLUTION_ABORTED_BY_USER" %]
+                                <p>Payment action aborted by user.</p>
 
                             [% ELSIF payment_error == "EPAY21_UNABLE_TO_CONNECT" %]
                                 <p>Unable to connect to ekom21/epay21.</p>
@@ -229,6 +233,24 @@
                                                     <!-- giropay Logo --><img style="margin:5px;" src="https://www.giropay.de/fileadmin/user_upload/giropay/logos/onlineueberweisung_giropay_200px.png" border="0" alt="giropay logo"><!-- giropay Logo -->
                                                     </div>
                                                     <br><a href="https://www.giropay.de" target="_blank" title="GIROPAY – SECURE ONLINE PAYMENT">More informations about Giropay</a>
+                                                </label>
+                                            </div>
+                                        [% END %]
+
+                                        [% IF Koha.Preference('GirosolutionPaypageOpacPaymentsEnabled') %]
+                                            <div class="control-group">
+                                                <label class="radio">
+                                                    <input type="radio" style="float: unset;" name="payment_method" id="payment_method-gs_paypage" value="gs_paypage" checked="checked">
+                                                    <div style="border:1px solid #b8b8b8; border-radius: 4px; max-width:394px; display: inline-block;">
+                                                        <strong style="margin:5px;" > online payment via S-Public Services </strong><br>
+                                                        <img style="max-width:64px; width:auto; max-height:24px; height:auto; margin:5px;" src="https://epay.ekom21.de/epay21/images/mastercard.png">
+                                                        <img style="max-width:64px; width:auto; max-height:24px; height:auto; margin:5px;" src="https://epay.ekom21.de/epay21/images/visa.png">
+                                                        <img style="max-width:64px; width:auto; max-height:28px; height:auto; margin:5px;" src="https://epay.ekom21.de/epay21/images/paypal.png">
+                                                        <img style="max-width:64px; width:auto; max-height:24px; height:auto; margin:5px;" src="https://epay.ekom21.de/epay21/images/giropay.png">
+                                                        <img style="max-width:64px; width:auto; max-height:26px; height:auto; margin:5px;" src="https://epay.ekom21.de/epay21/images/paydirekt.png">
+                                                        <img style="max-width:64px; width:auto; max-height:26px; height:auto; margin:5px;" src="https://epay.ekom21.de/epay21/images/sepa-logo-neu.png">
+                                                    </div>
+                                                    <br><a title="S-Public Services - digital payment and administration solutions" target="_blank" href="https://s-publicservices.de/">More informations about S-Public Services</a>
                                                 </label>
                                             </div>
                                         [% END %]

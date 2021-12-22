@@ -51,7 +51,7 @@ sub new {
     $self->{patron} = $params->{patron};
     $self->{amount_to_pay} = $params->{amount_to_pay};
     $self->{accountlinesIds} = $params->{accountlinesIds};    # ref to array containing the accountlines_ids of accountlines to be payed
-    $self->{paytype} = $params->{paytype};    # paytype 1: giropay   paytype 11: creditcard
+    $self->{paytype} = $params->{paytype};    # paytype 1: giropay   paytype 11: creditcard   paytype 1001: fiction representing paypage payment
     
     $self->{logger}->debug("new() cardnumber:" . $self->{patron}->cardnumber() . ": amount_to_pay:" . $self->{amount_to_pay} . ": accountlinesIds:" . Dumper($self->{accountlinesIds}) . ": paytype:" . $self->{paytype} . ":");
     $self->{logger}->trace("new()  Dumper(class):" . Dumper($class) . ":");
@@ -61,7 +61,9 @@ sub new {
     # Contrary to other payment service providers, Girosolution does not provide separate URLs for test and production environment.
     # One of the both environments is to be chosen for each GiroSolution project individually in the 'GiroSolution cockpit' configuration tool by the customer.
     # Switching between the two environments is possible. 
-    $self->{girosolutionWebservicesURL} = 'https://payment.girosolution.de/girocheckout/api/v2/transaction/start';    # used for init payment service (both test and production environment)
+    $self->{girosolutionWebservicesURL}->{'1'} = 'https://payment.girosolution.de/girocheckout/api/v2/transaction/start';    # used for giropay init payment service (both test and production environment)
+    $self->{girosolutionWebservicesURL}->{'11'} = 'https://payment.girosolution.de/girocheckout/api/v2/transaction/start';    # used for creditcard init payment service (both test and production environment)
+    $self->{girosolutionWebservicesURL}->{'1001'} = 'https://payment.girosolution.de/girocheckout/api/v2/paypage/init';    # used for paypage init payment service (both test and production environment)
 
     $self->{now} = DateTime->from_epoch( epoch => Time::HiRes::time, time_zone => C4::Context->tz() );
     my $calculatedHashVal = $self->calculateHashVal($self->{now});
@@ -73,7 +75,7 @@ sub new {
     $self->{ua}->ssl_opts( "verify_hostname" => 1 );
 
     $self->{logger}->debug("new() returns; self->{now}:$self->{now}:");
-    $self->{logger}->trace("new() returns self:" . Dumper($self) . ":");
+    #$self->{logger}->trace("new() returns self:" . Dumper($self) . ":");
     return $self;
 }
 
@@ -83,19 +85,31 @@ sub getSystempreferences {
     $self->{logger}->debug("getSystempreferences() START");
     my $paytypeGiropay = 1;
     my $paytypeCreditcard = 11;
+    my $paytypePaypage = 1001;
 
     $self->{girosolutionOpacPaymentsEnabled}->{$paytypeGiropay} = C4::Context->preference('GirosolutionGiropayOpacPaymentsEnabled');    # GiroSolution payment service via giropay enabled or not
     $self->{girosolutionOpacPaymentsEnabled}->{$paytypeCreditcard} = C4::Context->preference('GirosolutionCreditcardOpacPaymentsEnabled');    # GiroSolution payment service via credit card enabled or not
+    
     $self->{girosolutionMerchantId} = C4::Context->preference('GirosolutionMerchantId');    # the library's GiroSolution merchant ID (refers to library, not to township)
+
     $self->{girosolutionProjectId}->{$paytypeGiropay} = C4::Context->preference('GirosolutionGiropayProjectId');    # the library's GiroSolution 'Project ID' for GiroPay payments (refers to payment method)
     $self->{girosolutionProjectId}->{$paytypeCreditcard} = C4::Context->preference('GirosolutionCreditcardProjectId');    # the library's GiroSolution 'Project ID' for credit card payments (refers to payment method)
+    $self->{girosolutionProjectId}->{$paytypePaypage} = C4::Context->preference('GirosolutionPaypageProjectId');    # the library's GiroSolution 'Project ID' for paypage payments (refers to payment method)
+
     $self->{girosolutionProjectPwd}->{$paytypeGiropay} = C4::Context->preference('GirosolutionGiropayProjectPwd');    # the library's GiroSolution project password for GiroPay payments
     $self->{girosolutionProjectPwd}->{$paytypeCreditcard} = C4::Context->preference('GirosolutionCreditcardProjectPwd');    # the library's GiroSolution project password for credit card payments
+    $self->{girosolutionProjectPwd}->{$paytypePaypage} = C4::Context->preference('GirosolutionPaypageProjectPwd');    # the library's GiroSolution project password for paypage payments
+
     $self->{girosolutionRemittanceInfo} = C4::Context->preference('GirosolutionRemittanceInfo');    # Text pattern for 'remittance information' (Verwendungszweck), supports placeholder <<borrowers.cardnumber>>. (maximum length: 27 characters; permitted characters: a-z A-Z 0-9 ':?,-(+.)/)
 
     $self->{opac_base_url} = C4::Context->preference('OPACBaseURL');    # The GiroSolution software seems to work only with https URL (not with http).
+    
+    # special preferences for paypage payments
+    $self->{girosolutionPaypageOrderDesc} = C4::Context->preference('GirosolutionPaypageOrderDesc');    # designation of payment action, shown on paypage
+    $self->{girosolutionPaypageOrganizationName} = C4::Context->preference('GirosolutionPaypageOrganizationName');    # designation of the library, shown on paypage
+    $self->{girosolutionPaypagePaytypesTestmode} = C4::Context->preference('GirosolutionPaypagePaytypesTestmode');    # 0: display payment types of production configuration on paypage   1: display payment types of test configuration on paypage
 
-    $self->{logger}->debug("getSystempreferences() END girosolutionOpacPaymentsEnabled->{$paytypeGiropay}:$self->{girosolutionOpacPaymentsEnabled}->{$paytypeGiropay}: ->{$paytypeCreditcard}:$self->{girosolutionOpacPaymentsEnabled}->{$paytypeCreditcard}: girosolutionMerchantId:$self->{girosolutionMerchantId}:");
+    $self->{logger}->debug("getSystempreferences() END girosolutionOpacPaymentsEnabled->{$paytypeGiropay}:$self->{girosolutionOpacPaymentsEnabled}->{$paytypeGiropay}: ->{$paytypeCreditcard}:$self->{girosolutionOpacPaymentsEnabled}->{$paytypeCreditcard}: ->{$paytypePaypage}:$self->{girosolutionOpacPaymentsEnabled}->{$paytypePaypage}: girosolutionMerchantId:$self->{girosolutionMerchantId}:");
 }
 
 sub getProjectId {
@@ -147,7 +161,7 @@ sub calculateHashVal {
     return ( $merchantTxId );
 }
 
-# init payment and return the GiroPay or CreditCard URL delivered in the response
+# init payment and return the GiroPay or CreditCard or Paypage URL delivered in the response of Girosolution's 'transaction/start' or 'paypage/init' webservice
 sub initPayment {
     my $self = shift;
     my $retError = 0;
@@ -156,7 +170,7 @@ sub initPayment {
     my $girosolutionmsg = '';
 
     # URL of endpoint for for payment initialization
-    my $initPaymentUrl = $self->{girosolutionWebservicesURL};    # init payment (https://payment.girosolution.de/girocheckout/api/v2/transaction/start)
+    my $initPaymentUrl = $self->{girosolutionWebservicesURL}->{$self->{paytype}};    # init payment (https://payment.girosolution.de/girocheckout/api/v2/transaction/start or .../payment/init)
 
     # set all required request params
     my $merchantId = $self->{girosolutionMerchantId};
@@ -165,6 +179,15 @@ sub initPayment {
     my $amount = $self->{amount_to_pay} * 100;    # not Euro but Cent are required
     my $currency = 'EUR';
     my $purpose = $self->createRemittanceInfoText( $self->{girosolutionRemittanceInfo}, $self->{patron}->cardnumber() );    # Remittance info text will be displayed during giropay action. This field accepts only characters conforming to SEPA, i.e.: a-z A-Z 0-9 ' : ? , - ( + . ) /
+    
+    # 7 special request params for paypage payments
+    my $description = $self->{girosolutionPaypageOrderDesc};
+    my $pagetype = '0';    # compatibility default ('Bezahlseite')
+    my $single = '2';    # single==2: URL of paypage gets invalid after successful payment action
+    my $type = 'SALE';
+    my $payprojects = $projectId;
+    my $organization = $self->{girosolutionPaypageOrganizationName};
+    my $test = $self->{girosolutionPaypagePaytypesTestmode};
 
     my $messageUrl = URI->new( $self->{opac_base_url} . "/cgi-bin/koha/opac-account-pay-girosolution-message.pl" );
     # set URL query arguments
@@ -173,7 +196,7 @@ sub initPayment {
             amountKoha => $self->{amount_to_pay},
             accountlinesKoha => $self->{accountlinesIds},
             borrowernumberKoha => $self->{patron}->borrowernumber(),
-            paytypeKoha => $self->{paytype}    # 1: giropay   11: creditcard
+            paytypeKoha => $self->{paytype}    # 1: giropay   11: creditcard   1001: paypage
         }
     );
 
@@ -184,14 +207,16 @@ sub initPayment {
             amountKoha => $self->{amount_to_pay},
             accountlinesKoha => $self->{accountlinesIds},
             borrowernumberKoha => $self->{patron}->borrowernumber(),
-            paytypeKoha => $self->{paytype}    # 1: giropay   11: creditcard
+            paytypeKoha => $self->{paytype}    # 1: giropay   11: creditcard   1001: paypage
         }
     );
 
     my $urlNotify = $messageUrl->as_string();    # uri_escape_utf8($messageUrl->as_string()) not accepted
     my $urlRedirect = $returnUrl->as_string();    # uri_escape_utf8($returnUrl->as_string()) not accepted
 
-    my $paramstr = 
+    my $paramstr = '';
+if ( $self->{paytype} == 1 || $self->{paytype} == 11 ) {    # payment via giropay or creditcard
+    $paramstr = 
         $merchantId .
         $projectId .
         $merchantTxId .
@@ -200,12 +225,34 @@ sub initPayment {
         $purpose .
         $urlRedirect .
         $urlNotify;
+} else {    # payment via paypage
+    $paramstr = 
+        $merchantId .
+        $projectId .
+        $merchantTxId .
+        $amount .
+        $currency .
+        $purpose .
+        $description .
+        $pagetype .
+        $single .
+        $type .
+        $payprojects .
+        $organization .
+        $test .
+        $urlRedirect .    # successUrl
+        $urlRedirect .    # backUrl
+        $urlRedirect .    # failUrl
+        $urlNotify;
+}
 
     my $key = $self->getProjectPwd();
     my $hashval = $self->genHmacMd5($key, $paramstr);
     $self->{logger}->debug("initPayment() paramstr:$paramstr: hashval:$hashval:");
 
-    my $requestParams = {
+    my $requestParams = '';
+if ( $self->{paytype} == 1 || $self->{paytype} == 11 ) {    # payment via giropay or creditcard
+    $requestParams = {
         'merchantId' => $merchantId,
         'projectId'  => $projectId,
         'merchantTxId' => $merchantTxId,
@@ -216,6 +263,28 @@ sub initPayment {
         'urlNotify' => $urlNotify,
         'hash' => $hashval
     };
+} else {    # $self->{paytype} == 1001 -> payment via paypage
+    $requestParams = {
+        'merchantId' => $merchantId,
+        'projectId'  => $projectId,
+        'merchantTxId' => $merchantTxId,
+        'amount' => $amount,
+        'currency' => $currency,
+        'purpose' => $purpose,
+        'description' => $description,
+        'pagetype' => $pagetype,
+        'single' => $single,
+        'type' => $type,
+        'payprojects' => $payprojects,
+        'organization' => $organization,
+        'test' => $test,
+        'successUrl' => $urlRedirect,
+        'backUrl' => $urlRedirect,
+        'failUrl' => $urlRedirect,
+        'notifyUrl' => $urlNotify,
+        'hash' => $hashval
+    };
+}
 
     $self->{logger}->debug("initPayment() is calling POST initPaymentUrl:$initPaymentUrl: requestParams:" . Dumper($requestParams) . ":");
     my $response = $self->{ua}->request( POST $initPaymentUrl, $requestParams );
@@ -235,7 +304,11 @@ sub initPayment {
 
                     if ( $responseHeaderHash eq $compHash && $contentJson->{rc} eq '0' ) {
                         $retError = 0;
-                        $retGirosolutionRedirectUrl = $contentJson->{redirect};
+                        if ( $self->{paytype} == 1 || $self->{paytype} == 11 ) {    # payment via giropay or creditcard
+                            $retGirosolutionRedirectUrl = $contentJson->{redirect};
+                        } else {                                                    # $self->{paytype} == 1001 -> payment via paypage
+                            $retGirosolutionRedirectUrl = $contentJson->{url};
+                        }
                     }
                 }
                 if ( ! $retGirosolutionRedirectUrl ) {
@@ -276,9 +349,12 @@ sub checkOnlinePaymentStatusAndPayInKoha {
     $self->{logger}->debug("checkOnlinePaymentStatusAndPayInKoha() START cgi:" . Dumper($cgi) . ":");
 
     # Params set by Koha in GiroSolution::initPayment() are sent as URL query arguments.
-    # Already used in constructor: $cgi->param('borrowernumberKoha') $cgi->param('amountKoha') and $cgi->param('accountlinesKoha') and and $cgi->param('paytypeKoha');;
+    # Already used in constructor: $cgi->param('borrowernumberKoha') $cgi->param('amountKoha') and $cgi->param('accountlinesKoha') and $cgi->param('paytypeKoha');
 
-    # Params set by girocheckout are sent as added URL query arguments.
+    # Params set by girocheckout are sent as added URL query arguments in case of Giropay and CreditCard and Paypage (HTTP GET).
+    my $gcPaymethod      = $cgi->param('gcPaymethod');    # sent only if GiroCheckout payment method is Paypage
+    my $gcType           = $cgi->param('gcType');    # sent only if GiroCheckout payment method is Paypage
+    my $gcProjectId      = $cgi->param('gcProjectId');    # sent only if GiroCheckout payment method is Paypage
     my $gcReference      = $cgi->param('gcReference');
     my $gcMerchantTxId   = $cgi->param('gcMerchantTxId');
     my $gcBackendTxId    = $cgi->param('gcBackendTxId');
@@ -287,15 +363,21 @@ sub checkOnlinePaymentStatusAndPayInKoha {
     my $gcResultPayment  = $cgi->param('gcResultPayment');
     my $gcHash           = $cgi->param('gcHash');
 
+    $self->{logger}->debug("checkOnlinePaymentStatusAndPayInKoha() gcPaymethod:" . ($gcPaymethod?$gcPaymethod:'undef') . ": gcType:" . ($gcType?$gcType:'undef') . ": gcProjectId:" . ($gcProjectId?$gcProjectId:'undef') . ":");
     $self->{logger}->debug("checkOnlinePaymentStatusAndPayInKoha() gcReference:$gcReference: gcMerchantTxId:$gcMerchantTxId:");
     $self->{logger}->debug("checkOnlinePaymentStatusAndPayInKoha() gcBackendTxId:$gcBackendTxId: gcResultPayment:$gcResultPayment:");
     $self->{logger}->debug("checkOnlinePaymentStatusAndPayInKoha() gcAmount:$gcAmount: gcCurrency:$gcCurrency:");
 
-    my $projectPwd = $self->getProjectPwd();    # password of GiroSolution project for payment method GiroPay or payment method CreditCard
+    my $projectPwd = $self->getProjectPwd();    # password of GiroSolution project for payment method GiroPay or CreditCard or Paypage
 
-    # verify that the 6 CGI arguments of girocheckout are not manipulated
+    # verify that the 6 (or 9 in case of Paypage) CGI arguments of girocheckout are not manipulated
     my $hashesAreEqual = 0;
-    my $paramstr = $gcReference . $gcMerchantTxId . $gcBackendTxId . $gcAmount . $gcCurrency . $gcResultPayment;
+    my $paramstr = '';
+    if ( $self->{paytype} == 1001 ) {    # GiroCheckout payment method is Paypage, so we have to check 9 sent GiroCheckout parameters
+        $paramstr = $gcPaymethod . $gcType . $gcProjectId . $gcReference . $gcMerchantTxId . $gcBackendTxId . $gcAmount . $gcCurrency . $gcResultPayment;
+    } else {    # GiroCheckout payment method is Giropay or CreditCard, so we have to check 6 sent GiroCheckout parameters
+        $paramstr = $gcReference . $gcMerchantTxId . $gcBackendTxId . $gcAmount . $gcCurrency . $gcResultPayment;
+    }
     my $compHash = $self->genHmacMd5($projectPwd, $paramstr);
     if ( $compHash eq $gcHash ) {
         $hashesAreEqual = 1;
@@ -349,14 +431,51 @@ sub checkOnlinePaymentStatusAndPayInKoha {
         if ( $sumAmountoutstanding == $self->{amount_to_pay} ) {
             $self->{logger}->debug("checkOnlinePaymentStatusAndPayInKoha() will call account->pay()");
 
-            my $descriptionText = 'Zahlung (GiroSolution)';    # should always be overwritten
+            my $descriptionText = 'Zahlung (S-Public Services)';    # should always be overwritten
             my $noteText = "Online-Zahlung $gcReference";    # should always be overwritten
-            if ( $self->{paytype} == 1 ) {    # giropay
-                $descriptionText = "Überweisung (GiroPay/GiroSolution)";
-                $noteText = "Online-Überweisung $gcReference";
-            } elsif ( $self->{paytype} == 11 ) {    # creditcard
-                $descriptionText = "Kreditkarte (GiroSolution)";
-                $noteText = "Online-Kreditkarte $gcReference";
+            if ( $gcPaymethod ) { # gcPaymethod is sent only if GiroCheckout payment method is Paypage, i.e. $self->{paytype} == 1001
+                if ( $gcPaymethod == 1 ||      # giropay
+                     $gcPaymethod == 17 ||     # giropay-ID + giropay
+                     $gcPaymethod == 18 ) {    # giropay mit Zahlungsbestätigung
+                    $descriptionText = "giropay (S-Public Services)";
+                    $noteText = "Online-giropay $gcReference";
+                } elsif ( $gcPaymethod == 2 ) {    # eps
+                    $descriptionText = "eps (S-Public Services)";
+                    $noteText = "Online-eps $gcReference";
+                } elsif ( $gcPaymethod == 6 ||     # Lastschrift
+                          $gcPaymethod == 7 ) {    # Lastschrift mit Sperrdatei
+                    $descriptionText = "Lastschrift (S-Public Services)";
+                    $noteText = "Online-Lastschrift $gcReference";
+                } elsif ( $gcPaymethod == 11 ) {    # creditcard
+                    $descriptionText = "Kreditkarte (S-Public Services)";
+                    $noteText = "Online-Kreditkarte $gcReference";
+                } elsif ( $gcPaymethod == 12 ) {    # iDEAL
+                    $descriptionText = "iDEAL (S-Public Services)";
+                    $noteText = "Online-iDEAL $gcReference";
+                } elsif ( $gcPaymethod == 14 ) {    # PayPal
+                    $descriptionText = "PayPal (S-Public Services)";
+                    $noteText = "Online-PayPal $gcReference";
+                } elsif ( $gcPaymethod == 23 ) {    # paydirekt
+                    $descriptionText = "paydirekt (S-Public Services)";
+                    $noteText = "Online-paydirekt $gcReference";
+                } elsif ( $gcPaymethod == 26 ) {    # Bluecode
+                    $descriptionText = "Bluecode (S-Public Services)";
+                    $noteText = "Online-Bluecode $gcReference";
+                } elsif ( $gcPaymethod == 27 ) {    # SOFORT-Überweisung
+                    $descriptionText = "SOFORT-Überweisung (S-Public Services)";
+                    $noteText = "Online-SOFORT-Überweisung $gcReference";
+                } elsif ( $gcPaymethod == 33 ) {    # Maestro
+                    $descriptionText = "Maestro (S-Public Services)";
+                    $noteText = "Online-Maestro $gcReference";
+                }
+            } else {    # direct forward to giropay or creditcard payment
+                if ( $self->{paytype} == 1 ) {    # giropay
+                    $descriptionText = "Überweisung (GiroPay/S-Public Services)";
+                    $noteText = "Online-Überweisung $gcReference";
+                } elsif ( $self->{paytype} == 11 ) {    # creditcard
+                    $descriptionText = "Kreditkarte (S-Public Services)";
+                    $noteText = "Online-Kreditkarte $gcReference";
+                }
             }
             $self->{logger}->debug("checkOnlinePaymentStatusAndPayInKoha() descriptionText:$descriptionText: noteText:$noteText:");
 
@@ -413,9 +532,15 @@ sub verifyPaymentInKoha {
     $self->{logger}->debug("verifyPaymentInKoha() START cgi:" . Dumper($cgi) . ":");
 
     # Params set by Koha in GiroSolution::initPayment() are sent as URL query arguments.
-    # Already used in constructor: $cgi->param('borrowernumberKoha') $cgi->param('amountKoha') and $cgi->param('accountlinesKoha') and and $cgi->param('paytypeKoha');;
+    # Already used in constructor: $cgi->param('borrowernumberKoha') $cgi->param('amountKoha') and $cgi->param('accountlinesKoha') and $cgi->param('paytypeKoha');
 
-    # Params set by girocheckout are sent as added URL query arguments.
+    # Params set by girocheckout are sent as added URL query arguments in case of Giropay and CreditCard (HTTP GET).
+    # Params set by girocheckout are sent as HTML form arguments in case of Paypage (successUrl and failUrl) (HTTP POST).
+    # In any case (Giropay/CreditCard/Paypage) we can use $cgi->param(...) here to access them.
+    # None of these 9 gc* params is sent in case of the Paypage backUrl (patron aborted payment action already on the paypage).
+    my $gcPaymethod      = $cgi->param('gcPaymethod');    # sent only if GiroCheckout payment method is Paypage (unless backUrl is called)
+    my $gcType           = $cgi->param('gcType');    # sent only if GiroCheckout payment method is Paypage (unless backUrl is called)
+    my $gcProjectId      = $cgi->param('gcProjectId');    # sent only if GiroCheckout payment method is Paypage (unless backUrl is called)
     my $gcReference      = $cgi->param('gcReference');
     my $gcMerchantTxId   = $cgi->param('gcMerchantTxId');
     my $gcBackendTxId    = $cgi->param('gcBackendTxId');
@@ -423,16 +548,22 @@ sub verifyPaymentInKoha {
     my $gcCurrency       = $cgi->param('gcCurrency');
     my $gcResultPayment  = $cgi->param('gcResultPayment');
     my $gcHash           = $cgi->param('gcHash');
+    
 
     $self->{logger}->debug("verifyPaymentInKoha() gcReference:$gcReference: gcMerchantTxId:$gcMerchantTxId:");
     $self->{logger}->debug("verifyPaymentInKoha() gcBackendTxId:$gcBackendTxId: gcResultPayment:$gcResultPayment:");
     $self->{logger}->debug("verifyPaymentInKoha() gcAmount:$gcAmount: gcCurrency:$gcCurrency:");
 
-    my $projectPwd = $self->getProjectPwd();    # password of GiroSolution project for payment method GiroPay or payment method CreditCard
+    my $projectPwd = $self->getProjectPwd();    # password of GiroSolution project for payment method GiroPay or CreditCard or Paypage
 
-    # verify that the 6 CGI arguments of girocheckout are not manipulated
+    # verify that the 6 (or 9 in case of Paypage) CGI arguments of girocheckout are not manipulated
     my $hashesAreEqual = 0;
-    my $paramstr = $gcReference . $gcMerchantTxId . $gcBackendTxId . $gcAmount . $gcCurrency . $gcResultPayment;
+    my $paramstr = '';
+    if ( $self->{paytype} == 1001 ) {    # GiroCheckout payment method is Paypage, so we have to check 9 sent GiroCheckout parameters
+        $paramstr = $gcPaymethod . $gcType . $gcProjectId . $gcReference . $gcMerchantTxId . $gcBackendTxId . $gcAmount . $gcCurrency . $gcResultPayment;
+    } else {    # GiroCheckout payment method is Giropay or CreditCard, so we have to check 6 sent GiroCheckout parameters
+        $paramstr = $gcReference . $gcMerchantTxId . $gcBackendTxId . $gcAmount . $gcCurrency . $gcResultPayment;
+    }
     my $compHash = $self->genHmacMd5($projectPwd, $paramstr);
     if ( $compHash eq $gcHash ) {
         $hashesAreEqual = 1;
@@ -482,16 +613,20 @@ sub verifyPaymentInKoha {
         } else {
             $retError = 42;
             $girosolutionmsg = " gcResultPayment:$gcResultPayment:";
-            # XXXWH prepared for future use, when GIROSOLUTION_TIMEOUT and GIROSOLUTION_ABORTED_BY_USER are handled in the required tt-files
-            #if ( $gcResultPayment == 4501 ) {    # timeout / no input by patron
-            #    $retErrorTemplate = 'GIROSOLUTION_TIMEOUT';
-            #} elsif ( $gcResultPayment == 4502 || $gcResultPayment == 4900 ) {    # patron aborted payment action
-            #    $retErrorTemplate = 'GIROSOLUTION_ABORTED_BY_USER';
-            #}
+            if ( $gcResultPayment == 4501 ) {    # timeout / no input by patron
+                $retErrorTemplate = 'GIROSOLUTION_TIMEOUT';
+            } elsif ( !defined($gcResultPayment) || $gcResultPayment == 4502 || $gcResultPayment == 4900 ) {    # patron aborted payment action
+                $retErrorTemplate = 'GIROSOLUTION_ABORTED_BY_USER';
+            }
         }
     } else {
         $retError = 43;
-        $girosolutionmsg = " hashesAreEqual:$hashesAreEqual: paramstr:$paramstr: compHash:$compHash: gcHash:$gcHash:";
+        $girosolutionmsg = " hashesAreEqual:$hashesAreEqual: paramstr:$paramstr: compHash:$compHash: gcHash:$gcHash: gcResultPayment:" . (defined($gcResultPayment)?$gcResultPayment:'undef') . ":";
+        if ( !defined($gcResultPayment) ) {    # patron aborted payment action on the paypage already
+            $retError = 44;
+            $girosolutionmsg = " hashesAreEqual:$hashesAreEqual: paramstr:$paramstr: compHash:$compHash: gcHash:$gcHash: gcResultPayment:undef:";
+            $retErrorTemplate = 'GIROSOLUTION_ABORTED_BY_USER';
+        }
     }
 
     if ( $girosolutionmsg ) {

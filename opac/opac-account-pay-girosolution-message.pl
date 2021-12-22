@@ -36,9 +36,11 @@ my $kohaPaymentId;
 my $logger = Koha::Logger->get({ interface => 'epayment' });    # logger common to all e-payment methods
 $logger->debug("opac-account-pay-girosolution-message.pl START cgi:" . Dumper($cgi) . ":");
 
-if ( C4::Context->preference('GirosolutionCreditcardOpacPaymentsEnabled') || C4::Context->preference('GirosolutionGiropayOpacPaymentsEnabled') ) {
+if ( C4::Context->preference('GirosolutionCreditcardOpacPaymentsEnabled') || C4::Context->preference('GirosolutionGiropayOpacPaymentsEnabled') || C4::Context->preference('GirosolutionPaypageOpacPaymentsEnabled') ) {
 
     # Params set by Koha in GiroSolution::initPayment() are sent as URL query arguments.
+    # When Girosolution calls this notify/message URL it uses HTTP GET in case of Giropay and CreditCard and Paypage, so we can use $cgi->param(...) to get all params, i.e. both the *Koha query params and the gc* form params.
+    # This is differing from the call of the return/success/fail URL in the Paypage case. (See opac-account-pay-girosolution-return.pl)
     my $amountKoha = $cgi->param('amountKoha');
     my @accountlinesKoha = $cgi->multi_param('accountlinesKoha');
     my $borrowernumberKoha = $cgi->param('borrowernumberKoha');

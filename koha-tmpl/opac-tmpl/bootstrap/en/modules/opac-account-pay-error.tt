@@ -39,6 +39,10 @@
                             [% ELSIF error == "GIROSOLUTION_ERROR_PROCESSING" %]
                                 <p>Unable to verify payment via GiroSolution.</p>
                                 <p>Please contact the library to verify your payment.</p>
+                            [% ELSIF payment_error == "GIROSOLUTION_TIMEOUT" %]
+                                <p>Timeout during payment action.</p>
+                            [% ELSIF payment_error == "GIROSOLUTION_ABORTED_BY_USER" %]
+                                <p>Payment action aborted by user.</p>
 
                             [% ELSIF error == "EPAY21_UNABLE_TO_CONNECT" %]
                                 <p>Unable to connect to ekom21/epay21.</p>

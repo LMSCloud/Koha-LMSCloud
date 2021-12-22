@@ -39,13 +39,21 @@ my $cgi = new CGI;
 my $logger = Koha::Logger->get({ interface => 'epayment' });    # logger common to all e-payment methods
 $logger->debug("opac-account-pay-girosolution-return.pl START cgi:" . Dumper($cgi) . ":");
 
-if ( C4::Context->preference('GirosolutionCreditcardOpacPaymentsEnabled') || C4::Context->preference('GirosolutionGiropayOpacPaymentsEnabled') ) {
+if ( C4::Context->preference('GirosolutionCreditcardOpacPaymentsEnabled') || C4::Context->preference('GirosolutionGiropayOpacPaymentsEnabled') || C4::Context->preference('GirosolutionPaypageOpacPaymentsEnabled') ) {
 
-    # Params set by Koha in GiroSolution::initPayment() are sent as URL query arguments.
+    # When Girosolution calls this return/success/fail URL it uses HTTP GET in case of Giropay and CreditCard, so we can use $cgi->param(...) to get all params, i.e. both the gc* form params and the *Koha query params.
+    # When Girosolution calls this return/success/fail URL it uses HTTP POST in case of Paypage, so we can use $cgi->param(...) to get the gc* form params, but have to use $cgi->url_param(...) to get the *Koha query params.
+    # This is differing from the call of the notify/message URL in the Paypage case. (See opac-account-pay-girosolution-message.pl)
     my $amountKoha = $cgi->param('amountKoha');
     my @accountlinesKoha = $cgi->multi_param('accountlinesKoha');
     my $borrowernumberKoha = $cgi->param('borrowernumberKoha');
     my $paytypeKoha = $cgi->param('paytypeKoha');
+    
+    # Girosolution sends a HTTP POST request in case of Paypage, with the gc* params as form params, so the *Koha params of the query URL have to be accessed via $cgi->url_param().
+    $amountKoha = $cgi->url_param('amountKoha') if !$amountKoha;
+    @accountlinesKoha = $cgi->url_param('accountlinesKoha') if !@accountlinesKoha;
+    $borrowernumberKoha = $cgi->url_param('borrowernumberKoha') if !$borrowernumberKoha;
+    $paytypeKoha = $cgi->url_param('paytypeKoha') if !$paytypeKoha;
 
     $logger->debug("opac-account-pay-girosolution-return.pl creating new C4::Epayment::GiroSolution object. borrowernumberKoha:$borrowernumberKoha: amountKoha:$amountKoha: accountlinesKoha:" . Dumper(@accountlinesKoha) . ": paytypeKoha:$paytypeKoha:");
 
