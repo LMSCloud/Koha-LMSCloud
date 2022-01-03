@@ -1,4 +1,4 @@
-package pdfformat::layout2pagesdinde;
+package Koha::pdfformat::layout2pagesdinde;
 
 # Script to print the order in German DIN format. Initial for Duisburg public library (Stadtbibliothek Duisburg)
 # Written in Feb. 2021 by m.m.oehme@gmail.com
@@ -73,7 +73,7 @@ sub printpage1 {
 
     ############################################################################
     # print sender line in address field
-    my $sender=$billing_library->branchname." - ". $billing_library->branchaddress1." - ". $billing_library->branchzip." ".$billing_library->branchcity;
+    my $sender=$delivery_library->branchname." - ". $delivery_library->branchaddress1." - ". $delivery_library->branchzip." ".$delivery_library->branchcity;
     $text->font( $pdf->corefont("Arial", -encoding => "utf8"), 3/mm );
     $text->translate(25/mm,  ($height-55)/mm);
     $text->text($sender, -underline => 'auto');
@@ -297,7 +297,7 @@ sub printorders {
         foreach my $line (@{$orders->{$basket->{basketno}}}) {
             $arrbasket = undef;
             $titleinfo = "";
-            
+
             $titleinfo =  $line->{title} . " / " . $line->{author} .
                 ( $line->{isbn} ? " ISBN: " . $line->{isbn} : '' ) .
                 ( $line->{issn} ? " ISSN: " . $line->{issn} : '' ) .

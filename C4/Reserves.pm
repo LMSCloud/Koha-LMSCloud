@@ -621,7 +621,7 @@ sub CanReserveBeCanceledFromOpac {
     my ($reserve_id, $borrowernumber) = @_;
 
     return unless $reserve_id and $borrowernumber;
-    my $reserve = Koha::Holds->find($reserve_id);
+    my $reserve = Koha::Holds->find($reserve_id) or return;
 
     return 0 unless $reserve->borrowernumber == $borrowernumber;
     return $reserve->is_cancelable_from_opac;
@@ -925,10 +925,9 @@ sub CheckReserves {
                     my $effectivereservebranch = Koha::Libraries->get_effective_branch($res->{branchcode});
                     
                     next if ($branchitemrule->{'holdallowed'} eq 'not_allowed');
-                    next if (($branchitemrule->{'holdallowed'} eq 'from_home_library') && ($branch ne $patron->branchcode && $effectivereservebranch ne $patron->branchcode));
-                    
-                    my $library = Koha::Libraries->find({branchcode=>Koha::Libraries->get_effective_branch($item->homebranch)});
-                    next if (($branchitemrule->{'holdallowed'} eq 'from_local_hold_group') && (!$library->validate_hold_sibling({branchcode => Koha::Libraries->get_effective_branch($patron->branchcode)}) ));
+                    next if (($branchitemrule->{'holdallowed'} eq 'from_home_library') && ($item->homebranch ne Koha::Libraries->get_effective_branch($patron->branchcode)));
+                    my $library = Koha::Libraries->find({branchcode=>$item->homebranch});
+                    next if (($branchitemrule->{'holdallowed'} eq 'from_local_hold_group') && (!$library->validate_hold_sibling({branchcode => $patron->branchcode}) ));
                     my $hold_fulfillment_policy = $branchitemrule->{hold_fulfillment_policy};
                     next if ( ($hold_fulfillment_policy eq 'holdgroup') && (!$library->validate_hold_sibling({branchcode => Koha::Libraries->get_effective_branch($res->{branchcode})})) );
                     next if ( ($hold_fulfillment_policy eq 'homebranch') && ($effectivereservebranch ne $item->$hold_fulfillment_policy) );
@@ -1016,7 +1015,7 @@ sub AutoUnsuspendReserves {
 Change a hold request's priority or cancel it.
 
 C<$rank> specifies the effect of the change.  If C<$rank>
-is 'W' or 'n', nothing happens.  This corresponds to leaving a
+is 'n', nothing happens.  This corresponds to leaving a
 request alone when changing its priority in the holds queue
 for a bib.
 
@@ -1027,6 +1026,9 @@ the request is set to that value.  Since priority != 0 means
 that the item is not waiting on the hold shelf, setting the
 priority to a non-zero value also sets the request's found
 status and waiting date to NULL.
+
+If the hold is 'found' (waiting, in-transit, processing) the
+only field that can be updated is the expiration date.
 
 The optional C<$itemnumber> parameter is used only when
 C<$rank> is a non-zero integer; if supplied, the itemnumber
@@ -1051,8 +1053,8 @@ sub ModReserve {
     my $borrowernumber = $params->{'borrowernumber'};
     my $biblionumber = $params->{'biblionumber'};
     my $cancellation_reason = $params->{'cancellation_reason'};
+    my $date = $params->{expirationdate};
 
-    return if $rank eq "W";
     return if $rank eq "n";
 
     return unless ( $reserve_id || ( $borrowernumber && ( $biblionumber || $itemnumber ) ) );
@@ -1069,6 +1071,13 @@ sub ModReserve {
 
     if ( $rank eq "del" ) {
         $hold->cancel({ cancellation_reason => $cancellation_reason });
+    }
+    elsif ($hold->found && $hold->priority eq '0' && $date) {
+        logaction( 'HOLDS', 'MODIFY', $hold->reserve_id, Dumper($hold->unblessed) )
+            if C4::Context->preference('HoldsLog');
+
+        # The only column that can be updated for a found hold is the expiration date
+        $hold->expirationdate(dt_from_string($date))->store();
     }
     elsif ($rank =~ /^\d+/ and $rank > 0) {
         logaction( 'HOLDS', 'MODIFY', $hold->reserve_id, Dumper($hold->unblessed) )
@@ -1464,7 +1473,7 @@ sub ItemsAnyAvailableAndNotRestricted {
             || IsItemOnHoldAndFound( $i->id )
             || ( $i->damaged
                  && ! C4::Context->preference('AllowHoldsOnDamagedItems') )
-            || Koha::ItemTypes->find( $i->effective_itemtype() )->notforloan
+            || ( $i->effective_itemtype() && Koha::ItemTypes->find( $i->effective_itemtype() )->notforloan )
             || $branchitemrule->{holdallowed} eq 'from_home_library' && Koha::Libraries->get_effective_branch($param->{patron}->branchcode) ne $i->homebranch
             || $branchitemrule->{holdallowed} eq 'from_local_hold_group' && ! $item_library->validate_hold_sibling( { branchcode => Koha::Libraries->get_effective_branch($param->{patron}->branchcode) } )
             || CanItemBeReserved( $param->{patron}->borrowernumber, $i->id )->{status} ne 'OK';
@@ -1698,9 +1707,9 @@ sub _FixPriority {
 
     # if index exists in array then move it to new position
     if ( $key > -1 && $rank ne 'del' && $rank > 0 ) {
-        my $new_rank = $rank -
-          1;    # $new_rank is what you want the new index to be in the array
+        my $new_rank = $rank - 1; # $new_rank is what you want the new index to be in the array
         my $moving_item = splice( @priority, $key, 1 );
+        $new_rank = scalar @priority if $new_rank > scalar @priority;
         splice( @priority, $new_rank, 0, $moving_item );
     }
 
@@ -1718,10 +1727,9 @@ sub _FixPriority {
         );
     }
 
-    $sth = $dbh->prepare( "SELECT reserve_id FROM reserves WHERE lowestPriority = 1 ORDER BY priority" );
-    $sth->execute();
-
     unless ( $ignoreSetLowestRank ) {
+        $sth = $dbh->prepare( "SELECT reserve_id FROM reserves WHERE lowestPriority = 1 AND biblionumber = ? ORDER BY priority" );
+        $sth->execute($biblionumber);
       while ( my $res = $sth->fetchrow_hashref() ) {
         _FixPriority({
             reserve_id => $res->{'reserve_id'},
@@ -1907,9 +1915,9 @@ sub _koha_notify_reserve {
             message_name => 'Hold_Filled'
     } );
 
-    my $library = Koha::Libraries->find( $hold->branchcode )->unblessed;
-
-    my $admin_email_address = $library->{branchemail} || C4::Context->preference('KohaAdminEmailAddress');
+    my $library = Koha::Libraries->find( $hold->branchcode );
+    my $admin_email_address = $library->from_email_address;
+    $library = $library->unblessed;
 
     my %letter_params = (
         module => 'reserves',

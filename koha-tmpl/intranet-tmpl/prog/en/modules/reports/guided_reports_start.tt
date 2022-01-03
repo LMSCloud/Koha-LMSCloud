@@ -275,13 +275,13 @@
                                                 [% IF (usecache) %]
                                                     <th>Cache expiry (seconds)</th>
                                                 [% ELSE %]
-                                                    <th class="hidden">&nbsp;</th>
+                                                    <th class="NoVisible">Cache expiry (seconds)</th>
                                                 [% END %]
                                                 <th>Saved results</th>
                                                 [% IF has_obsolete_reports %]
                                                     <th>Update</th>
                                                 [% ELSE %]
-                                                    <th class="hidden">&nbsp;</th>
+                                                    <th class="NoVisible">Update</th>
                                                 [% END %]
                                                 <th class="NoSort noExport">Actions</th>
                                             </tr>
@@ -1544,7 +1544,7 @@
 
             $("body").on('click',".fetch_chart_data",function(){
                 if( [% unlimited_total || 0 | $raw %] > 1000 ){
-                    if( confirm( _("Fetching full chart data for reports with many rows can cause performance issues. Are you sure you with to chart this report?") ) ){
+                    if( confirm( _("Fetching full chart data for reports with many rows can cause performance issues. Are you sure you want to chart this report?") ) ){
                         return true;
                     } else {
                         return false;
@@ -1717,9 +1717,6 @@
                     'bAutoWidth': false,
                     'sPaginationType': 'full',
                     'aaSorting': [[ 1, "asc" ]],
-                    'aoColumnDefs': [
-                        { "visible": false, "aTargets" : [ "hidden" ] }
-                    ],
                     'oLanguage': {
                         'sZeroRecords': _("No matching reports found")
                     },
@@ -1736,7 +1733,6 @@
                 if( activeTab ){
                     $("#tabs").tabs("option","active", activeTab );
                 }
-                $("#subgroup_filter_block").hide();
 
                 $("#subgroup_filter").change(function() {
                     var selected = $(this).find('option:selected');

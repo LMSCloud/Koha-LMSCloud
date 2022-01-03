@@ -138,11 +138,21 @@ $template->param(
 ) if $tagslib->{$bt_tag}->{$bt_subtag}->{hidden} <= 0 && # <=0 OPAC visible.
      $tagslib->{$bt_tag}->{$bt_subtag}->{hidden} > -8;   # except -8;
 
+my $norequests = 1;
 my $allow_onshelf_holds;
 my $items = $biblio->items;
+
 while ( my $item = $items->next ) {
-    $allow_onshelf_holds = Koha::CirculationRules->get_onshelfholds_policy( { item => $item, patron => $patron } );
-    last if $allow_onshelf_holds;
+    $norequests = 0
+      if $norequests
+        && !$item->withdrawn
+        && !$item->itemlost
+        && ($item->notforloan < 0 || not $item->notforloan )
+        && !Koha::ItemTypes->find($item->effective_itemtype)->notforloan
+        && $item->itemnumber;
+
+    $allow_onshelf_holds = Koha::CirculationRules->get_onshelfholds_policy( { item => $item, patron => $patron } )
+      unless $allow_onshelf_holds;
 }
 
 if( $allow_onshelf_holds || CountItemsIssued($biblionumber) || $biblio->has_items_waiting_or_intransit ) {
@@ -311,7 +321,7 @@ foreach my $field (@fields) {
         }
         else {
             $item->{ $subf[$i][0] } .= GetAuthorisedValueDesc( $field->tag(), $subf[$i][0],
-                $subf[$i][1], '', $tagslib, '', 'opac' );
+                $subf[$i][1], '', $tagslib, '', 'opac' ) // q{};
         }
 
         my $kohafield = $tagslib->{ $field->tag() }->{ $subf[$i][0] }->{kohafield};
@@ -381,6 +391,7 @@ $template->param(
     item_header_loop    => \@item_header_loop,
     item_subfield_codes => \@item_subfield_codes,
     biblio              => $biblio,
+    norequests          => $norequests,
 );
 
 output_html_with_http_headers $query, $cookie, $template->output;

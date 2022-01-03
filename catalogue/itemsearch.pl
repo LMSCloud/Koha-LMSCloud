@@ -121,7 +121,7 @@ if ( Koha::MarcSubfieldStructures->search( { frameworkcode => '', kohafield => '
     $template->param( has_new_status => 1 );
 }
 
-if (scalar keys %params > 0) {
+if ( defined $format ) {
     # Parameters given, it's a search
 
     my $filter = {
@@ -283,7 +283,7 @@ if (scalar keys %params > 0) {
 my @branches = map { value => $_->branchcode, label => $_->branchname }, Koha::Libraries->search( {}, { order_by => 'branchname' } );
 my @homebranches = map { value => $_->branchcode, label => $_->branchname }, Koha::Libraries->search( { -or => [ mobilebranch => undef, mobilebranch => '' ] }, { order_by => 'branchname' } );
 my @itemtypes;
-foreach my $itemtype ( Koha::ItemTypes->search ) {
+foreach my $itemtype ( Koha::ItemTypes->search_with_localization ) {
     push @itemtypes, {
         value => $itemtype->itemtype,
         label => $itemtype->translated_description,

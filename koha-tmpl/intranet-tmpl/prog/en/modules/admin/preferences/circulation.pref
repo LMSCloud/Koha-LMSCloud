@@ -333,8 +333,8 @@ Circulation:
         -
             - pref: UseIssuingBranchConditionsForRenewals
               choices:
-                  yes: Strictly apply
-                  no: "Don't strictly apply"
+                  1: Strictly apply
+                  0: "Don't strictly apply"
             - circulation rules of the issuing library for renewals. If not set to strictly apply, Koha applies circulation rules for renewals based on the setting of the "CircControl" parameter.
         -
             - Prevent patrons from making holds on the OPAC if they owe more than
@@ -423,15 +423,15 @@ Circulation:
         -
             - pref: OverdueNoticeSkipWhenClosed
               choices:
-                  yes: "Don't create"
-                  no: "Create"
+                  1: "Don't create"
+                  0: "Create"
             - overdue notices on closing days of a library if the use of the calendar is deactivated for period calculation of overdue notices. 
         -
             - pref: BookMobileStationOverdueRulesActive
               default: 0
               choices:
-                  yes: Enable
-                  no: "Don't enable"
+                  1: Enable
+                  0: "Don't enable"
             - bookmobile station specific overdue rules. If activated, book mobile stations can have individual overdue and claiming fee rules. Requires to have the preference BookMobileSupportEnabled enabled.
 
         -
@@ -443,8 +443,8 @@ Circulation:
             - Allocate messages to the 
             - pref: PrintPreferenceBranch
               choices:
-                  yes: "issuing branch"
-                  no: "patrons home branch"
+                  1: "issuing branch"
+                  0: "patrons home branch"
             - "when processing prepared messages for further processing."
         -
             - pref: OverduesBlockCirc
@@ -558,7 +558,7 @@ Circulation:
               choices:
                   1: block
                   0: allow
-            - renewing of items.
+            - renewing of items from the staff interface.
         -
             - Select the receiver of family card member overdue notices. Send overdue notices to
             - pref: FamilyCardMemberOverdueReceiver
@@ -570,14 +570,14 @@ Circulation:
             - If a patron owes more than the value of OPACFineNoRenewals,
             - pref: OPACFineNoRenewalsBlockAutoRenew
               choices:
-                  yes: Block
-                  no: Allow
+                  1: Block
+                  0: Allow
             - his/her auto renewals.
         -
             - pref: IssuingBranchBecomesHomeBranch
               choices:
-                  yes: Reset
-                  no: "Don't reset"
+                  1: Reset
+                  0: "Don't reset"
             - the home library of an item with the issuing library. The setting is useful, if the library system does not support transfers. 
         -
             - If a patron owes more than the value of <a href="/cgi-bin/koha/admin/preferences.pl?op=search&searchfield=OPACFineNoRenewals">OPACFineNoRenewals</a>,
@@ -689,8 +689,8 @@ Circulation:
         -
             - pref: ReturnBranchBecomesHomeBranch
               choices:
-                  yes: Reset
-                  no: "Don't reset"
+                  1: Reset
+                  0: "Don't reset"
             - the home library of an item with the return library. The setting is useful, if the library system does not support transfers at all. 
             - <br />Returned Material will remain at the return/holding library.
         -
@@ -785,7 +785,7 @@ Circulation:
               class: integer
             - days from now) at checkin time. Note that this number of days will be used too in calculating the default end date for the Holds to pull-report. But it does not interfere with issuing, renewing or transferring items.
         -
-            - Check the
+            - Check the rule from the
             - pref: ReservesControlBranch
               choices:
                   ItemHomeLibrary: "item's home library"
@@ -838,8 +838,8 @@ Circulation:
         -
             - pref: OPACAllowUserToChooseMobileStation
               choices:
-                  yes: Show
-                  no: "Don't show"
+                  1: Show
+                  0: "Don't show"
             - book mobile stations in branches select box when placing a hold.
         -
             - pref: ReservesNeedReturns
@@ -986,8 +986,8 @@ Circulation:
             - pref: DefaultHoldExpirationdate
               default: 0
               choices:
-                  yes: Set
-                  no: Don't set
+                  1: Set
+                  0: Don't set
             - default expiration date for holds automatically.
             - If enabled, set expiration date
             - pref: DefaultHoldExpirationdatePeriod
@@ -1122,15 +1122,15 @@ Circulation:
         -
             - pref: ActivateCashRegisterTransactionsOnly
               choices:
-                  yes: "Use cash registers."
-                  no: "Don't use cash registers."
+                  1: "Use cash registers."
+                  0: "Don't use cash registers."
             - "By activating cash registers, all cash transactions must be treated through an opened cash register. If activated, all payments of patrons and refunds can be managed by staff members who are authorized to use a cash register only."
         -
             - "Permit " 
             - pref: PermitConcurrentCashRegisterUsers
               choices:
-                  yes: "all authorized staff users"
-                  no: "only one staff user"
+                  1: "all authorized staff users"
+                  0: "only one staff user"
             - "to book to an opened cash register." 
         -
             - pref: useDefaultReplacementCost
@@ -1337,8 +1337,8 @@ Circulation:
          -
             - pref: RFIDWebService
               choices:
-                  yes: Enable
-                  no: "Don't enable"
+                  1: Enable
+                  0: "Don't enable"
             - "the RFID-Web-Service batch checkin/checkout using an RFID-Reader with an RFID-Web-Service.<br />" 
             - "The RFID-Web-Service must be provided by the RFID vendor. The RFID-Web-Service is typically running on a Koha-Client."
          -

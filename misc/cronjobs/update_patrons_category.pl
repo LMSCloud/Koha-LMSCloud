@@ -47,6 +47,7 @@ update_patrons_category.pl -f=categorycode -t=categorycode
 update_patrons_category.pl --help | --man
 
 Options:
+
    --help                   brief help message
    --man                    full documentation
    -too_old                 update if over  maximum age for current category
@@ -136,12 +137,6 @@ Use this option to specify a condition built with columns from the borrowers tab
 e.g.
 --where 'email IS NULL'
 will update all patrons with no value for email
-
---where 'categorycode LIKE "%CHILD"'
-will update all patrons with a category ending in CHILD.
-
---where 'categorycode LIKE RESIDENT%'
-will update all patrons whose category does not begin with RESIDENT.
 
 =back
 

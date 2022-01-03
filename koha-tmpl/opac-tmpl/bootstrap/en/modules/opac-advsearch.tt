@@ -36,11 +36,11 @@
                             [% ELSE %]
                                 <div class="advanced-search-terms">
                             [% END # /IF ( expanded_options ) %]
-                                [% FOREACH search_box IN search_boxes_loop %]
+                                [% FOREACH search_box IN [ 1, 2, 3] %]
                                     <div class="search-term-row">
                                         <div class="search-term-input">
                                             [% IF ( expanded_options ) %]
-                                                [% IF ( search_box.boolean ) %]
+                                                [% IF ( !loop.first ) %]
                                                     <select name="op" class="form-control">
                                                         <option value="and" selected="selected">and</option>
                                                         <option value="or">or</option>
@@ -489,8 +489,7 @@
                 [% END %]
             [% END # / IF expanded_options %]
 
-            [% IF ( OpacAdvSearchMoreOptions and OpacAdvSearchMoreOptions.size > 0 and expanded_options ) or
-                  ( OpacAdvSearchOptions     and OpacAdvSearchOptions.size > 0     and not expanded_options ) %]
+            [% IF ( OpacAdvSearchMoreOptions and OpacAdvSearchMoreOptions.size > 0 and expanded_options ) or ( OpacAdvSearchOptions and OpacAdvSearchOptions.size > 0 and not expanded_options ) %]
                 <div class="text-center">
                     <fieldset class="action">
                         <!-- SEARCH BUTTONS -->
@@ -531,6 +530,11 @@ $(document).ready(function() {
 
     [% IF ( ReturnToSearch ) %]
         if (form_serialized = jQuery.cookie("form_serialized")) {
+            // Add missing term inputs if there were more than 3
+            var count = (form_serialized.match(/&q=/g) || []).length;
+            for(var i = 3 ; i < count ; i++) {
+                $("a.ButtonPlus:last").click();
+            }
             $('#advsearch form').deserialize(form_serialized);
         }
         if (form_serialized_limits = jQuery.cookie("form_serialized_limits")) {
@@ -549,7 +553,6 @@ $(document).ready(function() {
         //Clear all form cookies
         jQuery.removeCookie("form_serialized", { path: '/'});
         jQuery.removeCookie("form_serialized_limits", { path: '/'});
-        jQuery.removeCookie("num_paragraph", { path: '/'});
         jQuery.removeCookie("search_path_code", { path: '/'});
     [% END %]
     $('#advsearch form').submit(function() {
@@ -576,16 +579,9 @@ $(document).ready(function() {
         ];
         jQuery.cookie("form_serialized_limits", form_serialized_limits,{ path: '/'});
         [% IF ( expanded_options ) %]
-        var numPar = $("#booleansearch fieldset p").size();
-        if (numPar > [% search_boxes_count | html %]){
-            jQuery.cookie("num_paragraph", numPar,{ path: '/'});
-        }else{
-            jQuery.removeCookie("num_paragraph", { path: '/'});
-        }
         jQuery.cookie("search_path_code", 'exs',{ path: '/'});
         [% ELSE %]
         jQuery.cookie("search_path_code", 'ads',{ path: '/'});
-        jQuery.removeCookie("num_paragraph", { path: '/'});
         [% END %]
     });
 

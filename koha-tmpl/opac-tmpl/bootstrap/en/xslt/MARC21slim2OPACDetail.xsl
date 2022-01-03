@@ -198,8 +198,8 @@
                                         <span class="title_resp_stmt"><xsl:if test="not(contains(text(),'/'))"><xsl:text> / </xsl:text></xsl:if><xsl:apply-templates/> <xsl:text> </xsl:text> </span>
                                     </xsl:when>
                                     <xsl:otherwise>
-                                        <xsl:apply-templates/>
                                         <xsl:text>: </xsl:text>
+                                        <xsl:apply-templates/>
                                     </xsl:otherwise>
                                 </xsl:choose>
                             </xsl:for-each>
@@ -316,7 +316,7 @@
                         <xsl:attribute name="href">/cgi-bin/koha/opac-search.pl?q=rcn:<xsl:value-of select="str:encode-uri(marc:controlfield[@tag=001], true())"/>+AND+(bib-level:a+OR+bib-level:b)</xsl:attribute>
                     </xsl:when>
                     <xsl:otherwise>
-                        <xsl:attribute name="href">/cgi-bin/koha/opac-search.pl?q=Host-item:<xsl:value-of select="str:encode-uri(translate(marc:datafield[@tag=245]/marc:subfield[@code='a'], '/', ''), true())"/></xsl:attribute>
+                        <xsl:attribute name="href">/cgi-bin/koha/opac-search.pl?q=Host-item:(<xsl:value-of select="str:encode-uri(translate(marc:datafield[@tag=245]/marc:subfield[@code='a'], '/', ''), true())"/>)</xsl:attribute>
                     </xsl:otherwise>
                 </xsl:choose>
                 <xsl:text>Show analytics</xsl:text>
@@ -854,9 +854,9 @@
                 </span>
             </xsl:if>
 
-            <xsl:if test="marc:datafield[substring(@tag, 1, 1) = '6' and not(@tag=653 or @tag=655 or @tag=689)]">
+            <xsl:if test="marc:datafield[substring(@tag, 1, 1) = '6' and marc:subfield[@code='a'] != '' and not(@tag=653 or @tag=655 or @tag=689)]">
             <span class="results_summary subjects"><span class="label">Subject(s): </span>
-                <xsl:for-each select="marc:datafield[substring(@tag, 1, 1) = '6'][not(@tag=653 or @tag=655 or @tag=689)]">
+                <xsl:for-each select="marc:datafield[substring(@tag, 1, 1) = '6' and marc:subfield[@code='a'] != '' and not(@tag=653 or @tag=655 or @tag=689)]">
             <span property="keywords">
             <a>
             <xsl:attribute name="class">subject</xsl:attribute>
@@ -1334,8 +1334,9 @@
                             </a>
                         </xsl:when>
                         <xsl:otherwise>
-                            <a><xsl:attribute name="href">/cgi-bin/koha/opac-search.pl?q=ti,phr:<xsl:value-of select="str:encode-uri(translate($f773, '()', ''), true())"/></xsl:attribute>
-                            <xsl:value-of select="$f773"/>
+                            <a>
+                                <xsl:attribute name="href">/cgi-bin/koha/opac-search.pl?q=ti,phr:<xsl:value-of select="str:encode-uri(translate(marc:subfield[@code='t'], '()', ''), true())"/><xsl:if test="marc:subfield[@code='a']">+AND+au:<xsl:value-of select="str:encode-uri(translate(marc:subfield[@code='a'], '()', ''), true())"/></xsl:if></xsl:attribute>
+                                <xsl:value-of select="$f773"/>
                             </a>
                         </xsl:otherwise>
                     </xsl:choose>

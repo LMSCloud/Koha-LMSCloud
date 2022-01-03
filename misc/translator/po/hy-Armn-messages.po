@@ -7,8 +7,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Koha 21.05\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2021-05-11 19:28-0300\n"
-"PO-Revision-Date: 2021-05-15 12:54+0000\n"
+"POT-Creation-Date: 2021-10-20 05:30-0300\n"
+"PO-Revision-Date: 2021-06-01 05:37+0000\n"
 "Last-Translator: tigran <tigran@flib.sci.am>\n"
 "Language-Team: none\n"
 "Language: hy\n"
@@ -17,7 +17,7 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=1; plural=0;\n"
 "X-Generator: Pootle 2.8\n"
-"X-POOTLE-MTIME: 1621083252.434835\n"
+"X-POOTLE-MTIME: 1622525839.382080\n"
 "X-Pootle-Path: /hy/21.05/hy-Armn-messages.po\n"
 "X-Pootle-Revision: 1\n"
 
@@ -97,28 +97,28 @@ msgstr "'{index}' ցուցիչը հարկ է վերաինդեքսավորել։"
 msgid "Invalid field weight '{weight}', must be a positive decimal number."
 msgstr "Դաշտի անվավեր քաշ '{weight}', պետք է լինի դրական տասնորդական թիվ։"
 
-#: koha-tmpl/intranet-tmpl/prog/en/modules/tools/batchMod-del.tt:129
-#: koha-tmpl/intranet-tmpl/prog/en/modules/tools/batchMod-del.tt:271
+#: koha-tmpl/intranet-tmpl/prog/en/modules/tools/batchMod-del.tt:136
+#: koha-tmpl/intranet-tmpl/prog/en/modules/tools/batchMod-del.tt:278
 msgid "Item does not belong to your library"
 msgstr "Նյութը չի պատկանում քո գրադարանին"
 
-#: koha-tmpl/intranet-tmpl/prog/en/modules/tools/batchMod-del.tt:130
-#: koha-tmpl/intranet-tmpl/prog/en/modules/tools/batchMod-del.tt:272
+#: koha-tmpl/intranet-tmpl/prog/en/modules/tools/batchMod-del.tt:137
+#: koha-tmpl/intranet-tmpl/prog/en/modules/tools/batchMod-del.tt:279
 msgid "Item has a waiting hold"
 msgstr "նյութը ունի սպասող պահում"
 
-#: koha-tmpl/intranet-tmpl/prog/en/modules/tools/batchMod-del.tt:131
-#: koha-tmpl/intranet-tmpl/prog/en/modules/tools/batchMod-del.tt:273
+#: koha-tmpl/intranet-tmpl/prog/en/modules/tools/batchMod-del.tt:138
+#: koha-tmpl/intranet-tmpl/prog/en/modules/tools/batchMod-del.tt:280
 msgid "Item has linked analytics"
 msgstr "Նյութը ունի հղված վերլուծականներ"
 
-#: koha-tmpl/intranet-tmpl/prog/en/modules/tools/batchMod-del.tt:128
-#: koha-tmpl/intranet-tmpl/prog/en/modules/tools/batchMod-del.tt:270
+#: koha-tmpl/intranet-tmpl/prog/en/modules/tools/batchMod-del.tt:135
+#: koha-tmpl/intranet-tmpl/prog/en/modules/tools/batchMod-del.tt:277
 msgid "Item is checked out"
 msgstr "նյութը դուրս է տրված"
 
-#: koha-tmpl/intranet-tmpl/prog/en/modules/tools/batchMod-del.tt:132
-#: koha-tmpl/intranet-tmpl/prog/en/modules/tools/batchMod-del.tt:274
+#: koha-tmpl/intranet-tmpl/prog/en/modules/tools/batchMod-del.tt:139
+#: koha-tmpl/intranet-tmpl/prog/en/modules/tools/batchMod-del.tt:281
 msgid "Last item for bibliographic record with biblio-level hold on it"
 msgstr "Մատենագիտական գրառման վերջին նյութը, մատենագիտական մակարդակի պահումով"
 
@@ -150,15 +150,15 @@ msgctxt "verb"
 msgid "Order"
 msgstr "Պատվեր"
 
-#: koha-tmpl/intranet-tmpl/prog/en/modules/catalogue/detail.tt:821
-#, perl-brace-format
+#: koha-tmpl/intranet-tmpl/prog/en/modules/catalogue/detail.tt:825
+#, fuzzy, perl-brace-format
 msgctxt "pluralization"
 msgid "There is one archived suggestion."
 msgid_plural "There are {count} archived suggestions."
-msgstr[0] "Կան {count} արխիվացված առաջարկ"
+msgstr[0] "Կա արխիվացված մեկ առաջարկ:"
 
-#: koha-tmpl/intranet-tmpl/prog/en/modules/tools/batchMod-del.tt:133
-#: koha-tmpl/intranet-tmpl/prog/en/modules/tools/batchMod-del.tt:275
+#: koha-tmpl/intranet-tmpl/prog/en/modules/tools/batchMod-del.tt:140
+#: koha-tmpl/intranet-tmpl/prog/en/modules/tools/batchMod-del.tt:282
 msgid "Unknown reason"
 msgstr "Անհայտ պատճառ"
 
@@ -170,28 +170,28 @@ msgstr ""
 "Դուք փորձել եք ջնջել բոլոր գծագրումները պահանջվող ցուցիչի համար, դուք պետք է "
 "թողեք առնվազն մեկ քարտեզագրություն"
 
-#: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-main.tt:228
+#: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-main.tt:227
 msgid "checkout"
 msgid_plural "checkouts"
 msgstr[0] "դուրս տրումներ"
 
-#: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-main.tt:244
+#: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-main.tt:243
 msgid "hold pending"
 msgid_plural "holds pending"
 msgstr[0] "առկախված պահումներ"
 
-#: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-main.tt:252
+#: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-main.tt:251
 msgid "hold waiting"
 msgid_plural "holds waiting"
 msgstr[0] "սպասող պահումներ"
 
-#: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-main.tt:269
-#: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-main.tt:276
+#: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-main.tt:268
+#: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-main.tt:275
 msgid "message"
 msgid_plural "messages"
 msgstr[0] "հաղորդագրություններ"
 
-#: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-main.tt:236
+#: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-main.tt:235
 msgid "overdue"
 msgid_plural "overdues"
 msgstr[0] "Ժամկետանցներ"

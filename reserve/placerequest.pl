@@ -94,18 +94,20 @@ if ( $type eq 'str8' && $borrower ) {
         my $can_override = C4::Context->preference('AllowHoldPolicyOverride');
         if ( defined $checkitem && $checkitem ne '' ) {
 
+            my $item_pickup_location = $input->param("item_pickup_$checkitem");
+
             my $item = Koha::Items->find($checkitem);
 
             if ( $item->biblionumber ne $biblionumber ) {
                 $biblionumber = $item->biblionumber;
             }
 
-            my $can_item_be_reserved = CanItemBeReserved($borrower->{'borrowernumber'}, $item->itemnumber, $branch)->{status};
+            my $can_item_be_reserved = CanItemBeReserved($borrower->{'borrowernumber'}, $item->itemnumber, $item_pickup_location)->{status};
 
             if ( $can_item_be_reserved eq 'OK' || ( $can_item_be_reserved ne 'itemAlreadyOnHold' && $can_override ) ) {
                 AddReserve(
                     {
-                        branchcode       => $branch,
+                        branchcode       => $item_pickup_location,
                         borrowernumber   => $borrower->{'borrowernumber'},
                         biblionumber     => $biblionumber,
                         priority         => $rank[0],

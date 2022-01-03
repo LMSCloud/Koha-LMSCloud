@@ -108,6 +108,7 @@ if ( $op eq 'addreport' ) {
                         message_transport_type => $transport,
                         to_address             => $library->inbound_email_address,
                         reply_address          => $reply_address,
+                        branchcode             => $patron->branchcode,
                     });
                 } else {
                     C4::Letters::EnqueueLetter({
@@ -116,6 +117,7 @@ if ( $op eq 'addreport' ) {
                         message_transport_type => $transport,
                         to_address             => C4::Context->preference('KohaAdminEmailAddress'),
                         reply_address          => $reply_address,
+                        branchcode             => $patron->branchcode,
                     });
                 }
 

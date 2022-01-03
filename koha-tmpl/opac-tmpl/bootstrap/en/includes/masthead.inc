@@ -9,10 +9,10 @@
 [% SET OpacCustomSearch = KohaNews.get( location => "OpacCustomSearch", lang => lang, library => branchcode, blocktitle => 0 ) %]
 [% SET OpacLoginInstructions = KohaNews.get( location => "OpacLoginInstructions", lang => lang, library => branchcode ) %]
 
+<button id="scrolltocontent">Skip to main content</button>
 <div id="wrapper">
     <div id="header-region" class="noprint">
         <nav class="navbar navbar-expand">
-            <button id="scrolltocontent">Skip to main content</button>
             <div id="logo">
             <a class="navbar-brand" href="/cgi-bin/koha/opac-main.pl">
                 [% IF ( LibraryNameTitle ) %]
@@ -49,7 +49,7 @@
                                     [% IF number_of_public_shelves >= 10 %][% LAST %][% END %]
                                 [% END %]
                                 [% IF some_public_shelves > 10 %]
-                                    <a class="dropdown-item listmenulink" href="/cgi-bin/koha/opac-shelves.pl?op=list&amp;category=2" tabindex="-1" role="menuitem">View All</a>
+                                    <a class="dropdown-item listmenulink" href="/cgi-bin/koha/opac-shelves.pl?op=list&amp;category=2" tabindex="-1" role="menuitem">View all</a>
                                 [% END %]
                             [% END %]
                             [% IF some_public_shelves.count > 0 %]
@@ -66,7 +66,7 @@
                                             [% IF number_of_private_shelves >= 10 %][% LAST %][% END %]
                                         [% END %]
                                         [% IF some_private_shelves > 10 %]
-                                            <a class="dropdown-item listmenulink" href="/cgi-bin/koha/opac-shelves.pl?op=list&amp;category=1" tabindex="-1" role="menuitem">View All</a>
+                                            <a class="dropdown-item listmenulink" href="/cgi-bin/koha/opac-shelves.pl?op=list&amp;category=1" tabindex="-1" role="menuitem">View all</a>
                                         [% END %]
                                     [% ELSE %]
                                         <a class="dropdown-item disabled" href="#" tabindex="-1" role="menuitem">No private lists</a>
@@ -93,12 +93,13 @@
                                     <i class="fa fa-user fa-icon-black fa-fw" aria-hidden="true"></i>
                                     <span class="userlabel">Welcome, [% INCLUDE 'patron-title.inc' patron = logged_in_user no_html = 1 %]</span>
                                 </a>
+                                <a tabindex="-1" role="menuitem" class="logout js-hide" href="/cgi-bin/koha/opac-main.pl?logout.x=1"><i class="fa fa-fw fa-sign-out" aria-hidden="true"></i> Log out</a>
                             [% ELSE %]
                                 [% IF Koha.Preference('casAuthentication') %]
                                     [%# CAS authentication is too complicated for modal window %]
                                         <a class="nav-link login-link" href="/cgi-bin/koha/opac-user.pl"><i class="fa fa-user fa-icon-black fa-fw" aria-hidden="true"></i> <span class="userlabel">Log in to your account</span></a>
                                 [% ELSIF ( Koha.Preference('GoogleOpenIDConnect') == 1 ) %]
-                                    <a class="nav-link login-link" href="/cgi-bin/koha/svc/auth/googleopenidconnect" role="button" data-toggle="modal"><i class="fa fa-user fa-icon-black fa-fw" aria-hidden="true"></i> <span class="userlabel">Log in to your account</span></a>
+                                    <a class="nav-link login-link" href="/cgi-bin/koha/svc/auth/googleopenidconnect"><i class="fa fa-user fa-icon-black fa-fw" aria-hidden="true"></i> <span class="userlabel">Log in to your account</span></a>
                                 [% ELSE %]
                                     <a href="/cgi-bin/koha/opac-user.pl" class="nav-link login-link loginModal-trigger"><i class="fa fa-user fa-icon-black fa-fw" aria-hidden="true"></i> <span class="userlabel">Log in to your account</span></a>
                                 [% END %]
@@ -155,7 +156,7 @@
             [% UNLESS ( advsearch ) %]
                 <div class="row">
                     <div class="col">
-                            <div id="opac-main-search">
+                            <div id="opac-main-search" class="mastheadsearch">
                                 [% IF ( OpacCustomSearch ) %]
                                     [% PROCESS koha_news_block news => OpacCustomSearch %]
                                 [% ELSE %]
@@ -250,7 +251,7 @@
                                                             </optgroup>
                                                             <optgroup label="Groups">
                                                                 [% FOREACH lsg IN LibrarySearchGroups %]
-                                                                    [% IF lsg.id == opac_name %]
+                                                                    [% IF 'multibranchlimit-' _ lsg.id == opac_name || lsg.id == opac_name %]
                                                                         <option selected="selected" value="multibranchlimit-[% lsg.id | html %]">[% lsg.title | html %]</option>
                                                                     [% ELSE %]
                                                                         <option value="multibranchlimit-[% lsg.id | html %]">[% lsg.title | html %]</option>
@@ -391,7 +392,7 @@
                                 <h3>Shibboleth login</h3>
                                 <p><a href="[% shibbolethLoginUrl | $raw %]">Log in using a Shibboleth account</a>.</p>
                                 [% UNLESS Koha.Preference('opacShibOnly') %]
-                                    <h3>Local Login</h3>
+                                    <h3>Local login</h3>
                                 [% END %]
                             [% END %]
                         [% END %]

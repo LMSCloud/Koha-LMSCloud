@@ -1,36 +1,9 @@
 [% MACRO resolveFinesTypeName(finestat) BLOCK -%][% SWITCH finestat %]
-  [% CASE 'Pay' %]Payment
-  [% CASE 'Pay00' %]Cash payment via SIP2
-  [% CASE 'Pay01' %]VISA Payment via SIP2
-  [% CASE 'Pay02' %]Credit card payment via SIP2
-  [% CASE 'N' %]New card
-  [% CASE 'F' %]Fine
-  [% CASE 'A' %]Account management fee
-  [% CASE 'M' %]Sundry
-  [% CASE 'L' %]Lost item
-  [% CASE 'W' %]Writeoff
-  [% CASE 'CAN' %]Fine cancelled
-  [% CASE 'FU' %]Accruing fine
-  [% CASE 'HE' %]Hold waiting too long
-  [% CASE 'Rent' %]Rental fee
-  [% CASE 'FOR' %]Forgiven
-  [% CASE 'LR' %]Lost item fee refund
-  [% CASE 'PAY' %]Payment
-  [% CASE 'WO' %]Writeoff
-  [% CASE 'C' %]Credit
-  [% CASE 'CR' %]Credit
-  [% CASE 'CL1' %]Overdue fine (level 1)
-  [% CASE 'CL2' %]Overdue fine (level 2)
-  [% CASE 'CL3' %]Overdue fine (level 3)
-  [% CASE 'CL4' %]Overdue fine (level 4)
-  [% CASE 'CL5' %]Overdue fine (level 5)
-  [% CASE 'NOTF' %]Notice fee
-  [% CASE 'Res' %]Reservation
   [% CASE 'PaymentOfPaidBackPayment' %]Payment of another reversed payment
   [% CASE 'PartialPaymentOfPaidBackPayment' %]Partial payment of another reversed payment
   [% CASE 'PartialPaymentReverseOfPaidBackPayment' %]Partial payment of a reversed payment
   [% CASE 'ReversedPaymentOfPaidBackPayment' %]Reversed payment of another reversed payment
-  [% CASE %]([% finestat %])
+  [% CASE %][% finestat %]
 [% END %][% END-%]
 
 [% MACRO resolveCashRegisterActionName(action) BLOCK -%]

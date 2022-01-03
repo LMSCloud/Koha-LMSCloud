@@ -25,8 +25,15 @@ search:
     type: integer
     null_value: 0
     ignore_malformed: true
+  availability:
+    type: text
+    analyzer: analyzer_availability
+    search_analyzer: analyzer_phrase
   year:
     type: short
+  date:
+    type: date
+    format: yyyy-MM-dd
   stdno:
     type: text
     analyzer: analyzer_stdno
@@ -38,6 +45,27 @@ search:
         search_analyzer: analyzer_phrase
       raw:
         type: keyword
+  string_plus:
+    type: text
+    analyzer: analyzer_standard
+    search_analyzer: analyzer_standard
+    fields:
+      phrase:
+        type: text
+        analyzer: analyzer_phrase
+        search_analyzer: analyzer_phrase
+      raw:
+        type: keyword
+        normalizer: nfkc_cf_normalizer
+      ci_raw:
+        type: keyword
+        normalizer: icu_folding_normalizer
+      trigram:
+        type: text
+        analyzer: trigram
+      reverse:
+        type: text
+        analyzer: reverse
   default:
     type: text
     analyzer: analyzer_standard
@@ -62,12 +90,14 @@ facet:
 suggestible:
   default:
     type: completion
-    analyzer: simple
+    analyzer: analyzer_standard
     max_input_length: 100
-    search_analyzer: simple
+    search_analyzer: analyzer_standard
 # Sort
 sort:
   default:
     type: icu_collation_keyword
     index: false
     numeric: true
+    language: de
+    country: DE

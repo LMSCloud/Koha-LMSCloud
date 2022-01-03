@@ -124,7 +124,7 @@ sub count {
         body => $query
     );
 
-    return $result->{hits}->{total};
+    return $result->{hits}->{total}->{value};
 }
 
 =head2 search_compat
@@ -172,7 +172,7 @@ sub search_compat {
     # consumers of this expect a name-spaced result, we provide the default
     # configuration.
     my %result;
-    $result{biblioserver}{hits} = $hits->{'total'};
+    $result{biblioserver}{hits} = $hits->{'total'}->{'value'};
     $result{biblioserver}{RECORDS} = \@records;
     return (undef, \%result, $self->_convert_facets($results->{aggregations}));
 }
@@ -247,7 +247,7 @@ sub search_auth_compat {
         }
         push @records, \%result;
     }
-    return ( \@records, $hits->{'total'} );
+    return ( \@records, $hits->{'total'}->{'value'} );
 }
 
 =head2 count_auth_use
@@ -349,7 +349,7 @@ sub simple_search_compat {
     foreach my $es_record (@{$hits->{'hits'}}) {
         push @records, $self->decode_record_from_result($es_record->{'_source'});
     }
-    return (undef, \@records, $hits->{'total'});
+    return (undef, \@records, $hits->{'total'}->{'value'});
 }
 
 =head2 extract_biblionumber
@@ -418,34 +418,6 @@ sub max_result_window {
     return $max_result_window;
 }
 
-=head2 max_result_window
-
-Returns the maximum number of results that can be fetched
-
-This directly requests Elasticsearch for the setting index.max_result_window (or
-the default value for this setting in case it is not set)
-
-=cut
-
-sub max_result_window {
-    my ($self) = @_;
-
-    $self->store(
-        Catmandu::Store::ElasticSearch->new(%{ $self->get_elasticsearch_params })
-    ) unless $self->store;
-
-    my $index_name = $self->store->index_name;
-    my $settings = $self->store->es->indices->get_settings(
-        index  => $index_name,
-        params => { include_defaults => 1, flat_settings => 1 },
-    );
-
-    my $max_result_window = $settings->{$index_name}->{settings}->{'index.max_result_window'};
-    $max_result_window //= $settings->{$index_name}->{defaults}->{'index.max_result_window'};
-
-    return $max_result_window;
-}
-
 =head2 _convert_facets
 
     my $koha_facets = _convert_facets($es_facets);
@@ -475,6 +447,8 @@ sub _convert_facets {
         holdingbranch  => 'HoldingLibrary',
         homebranch     => 'HomeLibrary',
         ln             => 'Language',
+        'subject-genre-form' => 'Genres',
+        publyear       => 'Years',
     );
     my @facetable_fields =
       Koha::SearchEngine::Elasticsearch->get_facetable_fields;
@@ -530,8 +504,15 @@ sub _convert_facets {
                 type_link_value => $type,
             };
         }
+        if( C4::Context->preference('FacetOrder') eq 'Alphabetical' ){
+            @{ $facet->{facets} } =
+                sort { $a->{facet_label_value} cmp $b->{facet_label_value} } @{ $facet->{facets} } if ( $type ne 'publyear');
+            @{ $facet->{facets} } =
+                reverse sort { $a->{facet_label_value} cmp $b->{facet_label_value} } @{ $facet->{facets} } if ( $type eq 'publyear');
+        }
         push @facets, $facet if exists $facet->{facets};
     }
+
 
     @facets = sort { $a->{order} <=> $b->{order} } @facets;
     return \@facets;

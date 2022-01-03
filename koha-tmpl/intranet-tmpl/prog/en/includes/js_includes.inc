@@ -128,6 +128,42 @@
 [% END %]
 [% END %]
 
+[% IF ( Koha.Preference('SearchEngine') == 'Elasticsearch' && Koha.Preference('IntranetCatalogSearchAutoComplete') ) %]
+    <script type="text/javascript">
+    $(document).ready(function(){
+        $( "#catalog_search #search-form" ).autocomplete({
+            source: function(request, response) {
+                if ( request.term.match(/[:=]/) ) {
+                    response([]);
+                    return;
+                }
+                var index = '';
+                if ( $('#idx') ) {
+                    index = $( "#idx" ).val().replace(/,.*$/,'');
+                    if ( index == 'kw' ) {
+                        index = '';
+                    }
+                }
+                $.ajax({
+                    url: "/cgi-bin/koha/svc/catsearch-autocomplete",
+                    dataType: "json",
+                    data: {
+                        text : request.term,
+                        field : index,
+                        count : 20
+                    },
+                    success: function(data) {
+                        response( data.suggestions );
+                    }
+                });
+            },
+            minLength: 3,
+            delay: 300
+        });
+    });
+    </script>
+[% END %]
+
 [% IF ( PatronAutoComplete ) %]
     <script>
     // PatronAutoComplete

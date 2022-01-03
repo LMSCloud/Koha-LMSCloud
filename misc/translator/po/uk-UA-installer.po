@@ -2,17 +2,17 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: Koha 21.05\n"
-"PO-Revision-Date: 2021-05-13 10:49+0000\n"
+"PO-Revision-Date: 2021-10-21 07:34+0000\n"
 "Last-Translator: Serhij Dubyk <dubyk@ukr.net>\n"
 "Language-Team: Koha Translation Team\n"
 "Language: uk\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Plural-Forms: nplurals=3; plural=(n%10==1 && n%100!=11 ? 0 : n%10>=2 && n"
-"%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2);\n"
+"Plural-Forms: nplurals=3; plural=(n%10==1 && n%100!=11 ? 0 : n%10>=2 && "
+"n%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2);\n"
 "X-Generator: Pootle 2.8\n"
-"X-POOTLE-MTIME: 1620902952.956009\n"
+"X-POOTLE-MTIME: 1634801661.888509\n"
 "X-Pootle-Path: /uk/21.05/uk-UA-installer.po\n"
 "X-Pootle-Revision: 1\n"
 
@@ -155,9 +155,8 @@ msgid "1/2 weeks"
 msgstr ""
 
 #: installer/data/mysql/en/mandatory/sample_frequencies.yml:subscription_frequencies:1:row:12
-#, fuzzy
 msgid "1/2 year"
-msgstr "%s рік"
+msgstr ""
 
 #: installer/data/mysql/en/mandatory/sample_frequencies.yml:subscription_frequencies:1:row:9
 #, fuzzy
@@ -218,7 +217,7 @@ msgstr "Вам призначено нову пропозицію: %s."
 #: installer/data/mysql/en/mandatory/sample_notices.yml:letter:1:row:57:mul:3
 #, fuzzy
 msgid "A new suggestion is ready to be processed: %s by %s."
-msgstr "Вам призначено нову пропозицію: %s."
+msgstr "Вам призначено нову пропозицію: %s.by %s."
 
 #: installer/data/mysql/en/mandatory/sample_notices.yml:letter:1:row:4:mul:2
 #, fuzzy
@@ -239,9 +238,8 @@ msgid ""
 msgstr ""
 
 #: installer/data/mysql/en/mandatory/sample_notices.yml:letter:1:row:58
-#, fuzzy
 msgid "A suggestion has been assigned to you"
-msgstr "Вам призначено нову пропозицію: %s."
+msgstr "Вам призначено нову пропозицію"
 
 #: installer/data/mysql/en/mandatory/sample_notices.yml:letter:1:row:57
 #, fuzzy
@@ -348,12 +346,12 @@ msgstr ""
 #: installer/data/mysql/en/mandatory/sample_notices.yml:letter:1:row:4:mul:7
 #, fuzzy
 msgid "Amount paid: %s"
-msgstr "Сума до оплати: "
+msgstr "Сума до оплати: %s"
 
 #: installer/data/mysql/en/mandatory/sample_notices.yml:letter:1:row:4:mul:8
 #, fuzzy
 msgid "Amount remaining: %s"
-msgstr "Залишилося коштів"
+msgstr "Залишилося коштів: %s"
 
 #: installer/data/mysql/en/mandatory/sample_notices.yml:letter:1:row:5:mul:2
 #, fuzzy
@@ -397,59 +395,48 @@ msgid "Art copyist"
 msgstr "Орієнтовна ціна"
 
 #: installer/data/mysql/en/mandatory/sample_notices.yml:letter:1:row:10
-#, fuzzy
 msgid "Article request"
-msgstr "Замовлення статей"
+msgstr "Замовлення статті"
 
 #: installer/data/mysql/en/mandatory/sample_notices.yml:letter:1:row:6
-#, fuzzy
 msgid "Article request - canceled"
-msgstr "Замовлення статей "
+msgstr "Замовлення статті — скасовано"
 
 #: installer/data/mysql/en/mandatory/sample_notices.yml:letter:1:row:7
-#, fuzzy
 msgid "Article request - completed"
-msgstr "Замовлення статей "
+msgstr "Замовлення статті — завершено"
 
 #: installer/data/mysql/en/mandatory/sample_notices.yml:letter:1:row:8
-#, fuzzy
 msgid "Article request - open"
-msgstr "Замовлення статей "
+msgstr "Замовлення статті — відкрито"
 
 #: installer/data/mysql/en/mandatory/sample_notices.yml:letter:1:row:10
-#, fuzzy
 msgid "Article request - print slip"
-msgstr "Замовлення статей"
+msgstr "Замовлення статті — друк квитанції"
 
 #: installer/data/mysql/en/mandatory/sample_notices.yml:letter:1:row:9
-#, fuzzy
 msgid "Article request - processing"
-msgstr "Замовлення статей"
+msgstr "Замовлення статті — обробка"
 
 #: installer/data/mysql/en/mandatory/sample_notices.yml:letter:1:row:6
-#, fuzzy
 msgid "Article request canceled"
-msgstr "Замовлення статей "
+msgstr "Замовлення статті скасовано"
 
 #: installer/data/mysql/en/mandatory/sample_notices.yml:letter:1:row:7
-#, fuzzy
 msgid "Article request completed"
-msgstr "Замовлення статей "
+msgstr "Замовлення статті завершено"
 
 #: installer/data/mysql/en/mandatory/sample_notices.yml:letter:1:row:9
-#, fuzzy
 msgid "Article request processing"
-msgstr "Замовлення статей"
+msgstr "Замовлення статті в обробці"
 
 #: installer/data/mysql/en/mandatory/sample_notices.yml:letter:1:row:8
-#, fuzzy
 msgid "Article request received"
-msgstr "Замовлення статей "
+msgstr "Отримано замовлення статті"
 
 #: installer/data/mysql/en/mandatory/sample_notices.yml:letter:1:row:10:mul:1
-#, fuzzy
 msgid "Article request:"
-msgstr "Замовлення статей: "
+msgstr "Замовлення статті: "
 
 #: installer/data/mysql/en/mandatory/sample_notices.yml:letter:1:row:6:mul:7
 #, fuzzy
@@ -496,9 +483,8 @@ msgid "Audio tape"
 msgstr "Звукові оповіщення"
 
 #: installer/data/mysql/en/optional/auth_val.yml:authorised_values:2:row:4
-#, fuzzy
 msgid "Audiobook"
-msgstr "книжки"
+msgstr "Аудіокнига"
 
 #: installer/data/mysql/en/optional/marc21_relatorterms.yml:authorised_values:1:row:22
 msgid "Author"
@@ -550,14 +536,12 @@ msgid "Barcode: %s"
 msgstr "Штрих-код: %s"
 
 #: installer/data/mysql/en/mandatory/sample_notices.yml:letter:1:row:61:mul:12
-#, fuzzy
 msgid "Barcode: %s %s"
-msgstr "Штрих-код: %s"
+msgstr "Штрих-код: %s %s"
 
 #: installer/data/mysql/en/mandatory/sample_notices.yml:letter:1:row:17:mul:11
-#, fuzzy
 msgid "Barcode: %s%s"
-msgstr "Штрих-код: %s"
+msgstr "Штрих-код: %s%s"
 
 #: installer/data/mysql/en/optional/marc21_holdings_coded_values.yml:authorised_values:1:row:2
 #, fuzzy
@@ -638,9 +622,8 @@ msgid "Books"
 msgstr "Книжки"
 
 #: installer/data/mysql/en/optional/marc21_relatorterms.yml:authorised_values:1:row:30
-#, fuzzy
 msgid "Bookseller"
-msgstr "Книжки"
+msgstr "Книгопродавець"
 
 #: installer/data/mysql/en/optional/auth_val.yml:authorised_values:5:row:10
 #, fuzzy
@@ -729,7 +712,7 @@ msgstr ""
 #: installer/data/mysql/en/mandatory/auth_values.yml:authorised_values:1:row:3
 #, fuzzy
 msgid "Cash via SIP2"
-msgstr "Оплата (готівка через SIP2) %s"
+msgstr "Оплата (готівка через SIP2)"
 
 #: installer/data/mysql/en/optional/auth_val.yml:authorised_values:5:row:2
 msgid "Catalog"
@@ -745,9 +728,8 @@ msgid "Change service requested"
 msgstr "Так, скасувати замовлення на статтю"
 
 #: installer/data/mysql/en/mandatory/sample_notices.yml:letter:1:row:6:mul:14
-#, fuzzy
 msgid "Chapters: %s"
-msgstr "Розділи: "
+msgstr "Розділи: %s"
 
 #: installer/data/mysql/en/mandatory/sample_notices.yml:letter:1:row:11
 #, fuzzy
@@ -801,9 +783,8 @@ msgid "Choreographer"
 msgstr ", фотограф"
 
 #: installer/data/mysql/en/optional/sample_libraries_holidays.yml:repeatable_holidays:1:row:3
-#, fuzzy
 msgid "Christmas"
-msgstr "Кріс Кормак {Chris Cormack}"
+msgstr "Різдво"
 
 #: installer/data/mysql/en/optional/marc21_relatorterms.yml:authorised_values:1:row:41
 #, fuzzy
@@ -1004,7 +985,7 @@ msgstr ""
 
 #: installer/data/mysql/en/optional/sample_itemtypes.yml:itemtypes:1:row:7
 msgid "Continuing Resources"
-msgstr "Серіальні видання"
+msgstr "Продовжувані видання"
 
 #: installer/data/mysql/en/optional/marc21_relatorterms.yml:authorised_values:1:row:65
 #, fuzzy
@@ -1065,7 +1046,7 @@ msgstr "Кредит"
 #: installer/data/mysql/en/mandatory/auth_values.yml:authorised_values:1:row:5
 #, fuzzy
 msgid "Creditcard via SIP2"
-msgstr "Оплата (кредитна картка через SIP2) %s"
+msgstr "Оплата (кредитна картка через SIP2)"
 
 #: installer/data/mysql/en/optional/marc21_relatorterms.yml:authorised_values:1:row:68
 #, fuzzy
@@ -1112,16 +1093,15 @@ msgstr "Менеджер пакування для дистрибутивів: "
 #: installer/data/mysql/en/mandatory/sample_notices.yml:letter:1:row:17:mul:12
 #, fuzzy
 msgid "Date due: %s%s"
-msgstr "Очікується на дату: %s"
+msgstr "Очікується на дату: %s%s"
 
 #: installer/data/mysql/en/mandatory/sample_notices.yml:letter:1:row:6:mul:12
 msgid "Date: %s"
 msgstr "Дата: %s "
 
 #: installer/data/mysql/en/mandatory/sample_notices.yml:letter:1:row:39:mul:1
-#, fuzzy
 msgid "Dear %s %s %s,"
-msgstr "Штрих-код „%s“ %s%s %s"
+msgstr ""
 
 #: installer/data/mysql/en/mandatory/sample_notices.yml:letter:1:row:8:mul:1
 #, fuzzy
@@ -1342,9 +1322,8 @@ msgid "Electrotyper"
 msgstr "електронний ресурс"
 
 #: installer/data/mysql/en/mandatory/sample_notices.yml:letter:1:row:19:mul:10
-#, fuzzy
 msgid "Email: %s"
-msgstr "Електронічна пошта: "
+msgstr "Ел. пошта: %s"
 
 #: installer/data/mysql/en/optional/marc21_relatorterms.yml:authorised_values:1:row:94
 msgid "Engineer"
@@ -1386,9 +1365,8 @@ msgid "Facsimilist"
 msgstr "факсиміле"
 
 #: installer/data/mysql/en/mandatory/sample_notices.yml:letter:1:row:19:mul:9
-#, fuzzy
 msgid "Fax: %s"
-msgstr "Факс: "
+msgstr "Факс: %s"
 
 #: installer/data/mysql/en/optional/auth_val.yml:authorised_values:3:row:6
 msgid "Fiction"
@@ -1506,7 +1484,7 @@ msgstr ""
 #: installer/data/mysql/en/mandatory/sample_notices.yml:letter:1:row:37:mul:1
 #, fuzzy
 msgid "Hello %s %s %s."
-msgstr "Вітаємо, %s "
+msgstr "Вітаємо, %s %s %s."
 
 #: installer/data/mysql/en/mandatory/sample_notices.yml:letter:1:row:40:mul:1
 #, fuzzy
@@ -1606,9 +1584,8 @@ msgid "ILL request to partners"
 msgstr "Історія запитів МБА"
 
 #: installer/data/mysql/en/mandatory/sample_notices.yml:letter:1:row:28
-#, fuzzy
 msgid "ILL request unavailable"
-msgstr "%s недоступно: "
+msgstr "Запит МБА недоступний"
 
 #: installer/data/mysql/en/optional/sample_quotes.yml:quotes:1:row:30
 msgid ""
@@ -1639,14 +1616,12 @@ msgstr ""
 "Щоб повідомити про цю помилку, будь ласка, зверніться до адміністратора Коха."
 
 #: installer/data/mysql/en/mandatory/sample_notices.yml:letter:1:row:55:mul:9
-#, fuzzy
 msgid "If you have any questions, please email us at %s"
-msgstr "Якщо у Вас є обліковий запис Шібболет, будь ласка, "
+msgstr "Якщо у Вас виникли запитання, будь ласка, напишіть нам на %s"
 
 #: installer/data/mysql/en/mandatory/sample_notices.yml:letter:1:row:52:mul:7
-#, fuzzy
 msgid "If you have any questions, please email us at %s."
-msgstr "Якщо у Вас є обліковий запис Шібболет, будь ласка, "
+msgstr "Якщо у Вас виникли запитання, будь ласка, напишіть нам на %s."
 
 #: installer/data/mysql/en/mandatory/sample_notices.yml:letter:1:row:19:mul:12
 msgid ""
@@ -1780,7 +1755,7 @@ msgstr "Випуски"
 #: installer/data/mysql/en/mandatory/sample_notices.yml:letter:1:row:6:mul:11
 #, fuzzy
 msgid "Issue: %s"
-msgstr "Випуск: "
+msgstr "Випуск: %s"
 
 #: installer/data/mysql/en/optional/sample_quotes.yml:quotes:1:row:27
 msgid ""
@@ -2323,7 +2298,7 @@ msgstr "друкована музика"
 
 #: installer/data/mysql/en/mandatory/sample_notices.yml:letter:1:row:6:mul:15
 msgid "Notes: %s"
-msgstr "Нотатки: %s"
+msgstr "Примітки: %s"
 
 #: installer/data/mysql/en/mandatory/sample_notices.yml:letter:1:row:42
 msgid "Notification about an accepted share"
@@ -2421,9 +2396,8 @@ msgstr ""
 
 # 557 (Organiser of meeting) Особа або організація, відповідальні за підготовку конференції, про яку йде мова в документі.
 #: installer/data/mysql/en/optional/marc21_relatorterms.yml:authorised_values:1:row:147
-#, fuzzy
 msgid "Organizer of meeting"
-msgstr ", організатор конференції"
+msgstr "Організатор зустрічі"
 
 #: installer/data/mysql/en/optional/marc21_relatorterms.yml:authorised_values:1:row:146
 #, fuzzy
@@ -2473,9 +2447,8 @@ msgid "Owner"
 msgstr "Власник "
 
 #: installer/data/mysql/en/mandatory/sample_notices.yml:letter:1:row:6:mul:13
-#, fuzzy
 msgid "Pages: %s"
-msgstr "Сторінки: "
+msgstr "Сторінки: %s"
 
 # Плакати, постери
 # Один або багато аркушів, головним чином, зображувальні матеріали, призначені для розклеювання у людних місцях для привертання уваги до події, діяльності тощо. Включають також повністю декоративні постери, які почали виробляти з 1960 року.
@@ -2485,9 +2458,8 @@ msgid "Papermaker"
 msgstr "папір"
 
 #: installer/data/mysql/en/mandatory/sample_notices.yml:letter:1:row:37:mul:6
-#, fuzzy
 msgid "Password: %s"
-msgstr "Пароль: "
+msgstr "Пароль: %s"
 
 #: installer/data/mysql/en/optional/marc21_relatorterms.yml:authorised_values:1:row:170
 #, fuzzy
@@ -2501,11 +2473,11 @@ msgstr "Батьківський код"
 
 #: installer/data/mysql/en/optional/marc21_relatorterms.yml:authorised_values:1:row:150
 msgid "Patron"
-msgstr "Відвідувач"
+msgstr "Користувач"
 
 #: installer/data/mysql/en/optional/auth_val.yml:authorised_values:5:row:3
 msgid "Patrons"
-msgstr "Відвідувачі"
+msgstr "Користувачі"
 
 #: installer/data/mysql/en/optional/sample_quotes.yml:quotes:1:row:22
 msgid ""
@@ -2528,9 +2500,8 @@ msgid "Permitting agency"
 msgstr "друкований оригінал"
 
 #: installer/data/mysql/en/mandatory/sample_notices.yml:letter:1:row:19:mul:8
-#, fuzzy
 msgid "Phone: %s"
-msgstr "Телефон: "
+msgstr "Телефон: %s"
 
 #: installer/data/mysql/en/optional/marc21_relatorterms.yml:authorised_values:1:row:155
 #, fuzzy
@@ -2567,7 +2538,7 @@ msgstr ""
 #: installer/data/mysql/en/mandatory/sample_notices.yml:letter:1:row:44:mul:8
 #, fuzzy
 msgid "Please order for the library:"
-msgstr "Будь ласка, поверніть примірник до джерельної бібліотеки: %s"
+msgstr "Будь ласка, поверніть примірник до джерельної бібліотеки:"
 
 #: installer/data/mysql/en/mandatory/sample_notices.yml:letter:1:row:51:mul:7
 msgid "Please pick it up at your convenience."
@@ -2595,7 +2566,7 @@ msgstr "Друкарки"
 #: installer/data/mysql/en/mandatory/sample_notices.yml:letter:1:row:59:mul:3
 #, fuzzy
 msgid "Problem page: %s"
-msgstr "Проблему знайдено на сторінці: "
+msgstr "Проблему знайдено на сторінці: %s"
 
 #: installer/data/mysql/en/optional/marc21_relatorterms.yml:authorised_values:1:row:162
 #, fuzzy
@@ -2855,7 +2826,7 @@ msgstr "Додаткові поля для підписок"
 
 #: installer/data/mysql/en/optional/sample_libraries_holidays.yml:description:1
 msgid "Sample holidays: Sunday, Christmas, New Year's"
-msgstr ""
+msgstr "Зразки свят: неділя, Різдво, новий рік"
 
 #: installer/data/mysql/en/optional/marc21_holdings_coded_values.yml:authorised_values:1:row:109
 msgid "Sample issue retained"
@@ -2964,7 +2935,7 @@ msgstr ""
 #: installer/data/mysql/en/mandatory/sample_notices.yml:letter:1:row:43
 #, fuzzy
 msgid "Share list <<listname>>"
-msgstr "Поділитися списком"
+msgstr "Поділитися списком <<listname>>"
 
 #: installer/data/mysql/en/mandatory/sample_notices.yml:letter:1:row:42
 msgid "Share on list <<listname>> accepted"
@@ -3176,9 +3147,8 @@ msgid "Surveyor"
 msgstr "огляди"
 
 #: installer/data/mysql/en/optional/marc21_relatorterms.yml:authorised_values:1:row:211
-#, fuzzy
 msgid "Teacher"
-msgstr "Тетчер Рі {Thatcher Rea}"
+msgstr "Вчитель"
 
 #: installer/data/mysql/en/optional/marc21_relatorterms.yml:authorised_values:1:row:210
 #, fuzzy
@@ -3198,7 +3168,7 @@ msgstr "Друкарка: "
 # для /marc21_field_007.tmpl можна з маленької
 #: installer/data/mysql/en/optional/marc21_holdings_coded_values.yml:authorised_values:1:row:80
 msgid "Text"
-msgstr "Текст "
+msgstr "Текст"
 
 #: installer/data/mysql/en/optional/marc21_holdings_coded_values.yml:authorised_values:1:row:83
 #, fuzzy
@@ -3208,9 +3178,8 @@ msgstr "друк шрифтом Брайля"
 # 106 - Великий друк
 # Код відображає, що документ надруковано спеціальним великогабаритним друком, призначеним для людей з поганим зором
 #: installer/data/mysql/en/optional/marc21_holdings_coded_values.yml:authorised_values:1:row:82
-#, fuzzy
 msgid "Text, large print"
-msgstr "великий друк"
+msgstr "Текст, великий друк"
 
 #: installer/data/mysql/en/optional/marc21_holdings_coded_values.yml:authorised_values:1:row:84
 #, fuzzy
@@ -3223,21 +3192,18 @@ msgstr "оновлюване листове видання, з відривни�
 # 124^b - інші
 # 125^a - інші
 #: installer/data/mysql/en/optional/marc21_holdings_coded_values.yml:authorised_values:1:row:85
-#, fuzzy
 msgid "Text, other"
-msgstr ", інші"
+msgstr "Текст, інше"
 
 # 106 - Звичайний друк
 # Код «r» відображає, що документ є звичайним текстом, призначеним для «читання очима».
 #: installer/data/mysql/en/optional/marc21_holdings_coded_values.yml:authorised_values:1:row:81
-#, fuzzy
 msgid "Text, regular print"
-msgstr "звичайний друк"
+msgstr "Текст, звичайний друк"
 
 #: installer/data/mysql/en/mandatory/sample_notices.yml:letter:1:row:12:mul:5
-#, fuzzy
 msgid "Thank you for visiting %s."
-msgstr "Змініть налаштування Hea"
+msgstr "Дякуємо за відвідування %s."
 
 #: installer/data/mysql/en/mandatory/sample_notices.yml:letter:1:row:7:mul:17
 msgid "Thank you!"
@@ -3270,12 +3236,12 @@ msgstr ""
 #: installer/data/mysql/en/mandatory/sample_notices.yml:letter:1:row:28:mul:3
 #, fuzzy
 msgid "The Interlibrary loans request number %s you placed for"
-msgstr "Новий запит міжбібліотечного абонементу"
+msgstr "Новий запит міжбібліотечного абонементу %s"
 
 #: installer/data/mysql/en/mandatory/sample_notices.yml:letter:1:row:27:mul:3
 #, fuzzy
 msgid "The Interlibrary loans request number %s you placed for:"
-msgstr "Новий запит міжбібліотечного абонементу"
+msgstr "Новий запит міжбібліотечного абонементу %s"
 
 #: installer/data/mysql/en/optional/sample_quotes.yml:quotes:1:row:16
 msgid ""
@@ -3293,9 +3259,8 @@ msgid "The copy on the shelf is damaged"
 msgstr ""
 
 #: installer/data/mysql/en/mandatory/sample_notices.yml:letter:1:row:51:mul:3
-#, fuzzy
 msgid "The following issue is now available:"
-msgstr "Наступні ідентифікатори одночасно існують у таблицях %s та %s: "
+msgstr ""
 
 #: installer/data/mysql/en/mandatory/sample_notices.yml:letter:1:row:14:mul:3
 #, fuzzy
@@ -3323,14 +3288,12 @@ msgid "The following item(s) will be due soon:"
 msgstr "Наступні примірники були змінені: "
 
 #: installer/data/mysql/en/mandatory/sample_notices.yml:letter:1:row:60:mul:20
-#, fuzzy
 msgid "The following item, %s, has correctly been renewed and is now due on %s"
-msgstr "Наступні поля є обов'язковими і не заповнені: "
+msgstr ""
 
 #: installer/data/mysql/en/mandatory/sample_notices.yml:letter:1:row:60:mul:3
-#, fuzzy
 msgid "The following item, %s, has not been renewed because:"
-msgstr "Наступні ідентифікатори одночасно існують у таблицях %s та %s: "
+msgstr ""
 
 #: installer/data/mysql/en/mandatory/sample_notices.yml:letter:1:row:11:mul:1
 #, fuzzy
@@ -3384,14 +3347,12 @@ msgid ""
 msgstr ""
 
 #: installer/data/mysql/en/mandatory/sample_notices.yml:letter:1:row:62:mul:3
-#, fuzzy
 msgid "There were %s items that were not renewed."
-msgstr "Даруйте, жоден з цих примірників не може бути замовлений. "
+msgstr ""
 
 #: installer/data/mysql/en/mandatory/sample_notices.yml:letter:1:row:62:mul:6
-#, fuzzy
 msgid "There were %s items that were renewed."
-msgstr "Даруйте, жоден з цих примірників не може бути замовлений. "
+msgstr ""
 
 #: installer/data/mysql/en/optional/marc21_relatorterms.yml:authorised_values:1:row:212
 #, fuzzy
@@ -3481,14 +3442,12 @@ msgid "Useful patron attribute types:"
 msgstr "Новий вид атрибута відвідувача"
 
 #: installer/data/mysql/en/mandatory/sample_notices.yml:letter:1:row:37:mul:5
-#, fuzzy
 msgid "User:  %s"
-msgstr "Користувач "
+msgstr "Користувач: %s"
 
 #: installer/data/mysql/en/mandatory/sample_notices.yml:letter:1:row:59:mul:1
-#, fuzzy
 msgid "Username: %s"
-msgstr "Ім’я користувача: "
+msgstr "Логін: %s"
 
 #: installer/data/mysql/en/mandatory/sample_notices.yml:letter:1:row:40
 #, fuzzy
@@ -3588,9 +3547,8 @@ msgid "Volume, Number, Issue"
 msgstr "Номер тому"
 
 #: installer/data/mysql/en/mandatory/sample_notices.yml:letter:1:row:6:mul:10
-#, fuzzy
 msgid "Volume: %s"
-msgstr "Томи: "
+msgstr "Том: %s"
 
 #: installer/data/mysql/en/mandatory/sample_notices.yml:letter:1:row:50
 #, fuzzy
@@ -3623,9 +3581,8 @@ msgid "We have completed your request for an article from %s (%s)."
 msgstr ""
 
 #: installer/data/mysql/en/mandatory/sample_notices.yml:letter:1:row:8:mul:3
-#, fuzzy
 msgid "We have received your request for an article from %s (%s)."
-msgstr "Запис, який Ви запросили, не існує (%s)."
+msgstr ""
 
 #: installer/data/mysql/en/mandatory/sample_notices.yml:letter:1:row:46:mul:3
 msgid ""
@@ -3657,6 +3614,12 @@ msgid ""
 "by a team of software providers and library technology staff from around the "
 "globe."
 msgstr ""
+"Ласкаво просимо до АБІС Коха. Коха є багатофункціональною бібліотечною "
+"системою з відкритим джерельним кодом. Перші версії її були створені в Новій "
+"Зеландії компанією Katipo Communications Ltd, перше впровадження її було в "
+"січні 2000 року для бібліотечної спілки Хороуенуа {Horowhenua}. На даний час "
+"АБІС Коха підтримується постачальниками програмного забезпечення та "
+"фахівцями з бібліотечних технологій з усього світу."
 
 #: installer/data/mysql/en/optional/sample_news.yml:opac_news:1:row:2
 #, fuzzy
@@ -3724,9 +3687,8 @@ msgid ""
 msgstr ""
 
 #: installer/data/mysql/en/mandatory/sample_notices.yml:letter:1:row:47:mul:3
-#, fuzzy
 msgid "You have a hold available for pickup as of %s:"
-msgstr "Жодна з бібліотек не доступна як місце для отримання. "
+msgstr ""
 
 #: installer/data/mysql/en/mandatory/sample_notices.yml:letter:1:row:60:mul:11
 #, fuzzy
@@ -3795,17 +3757,16 @@ msgstr "Подробиці обліку за умовчанням"
 msgid ""
 "Your request for an article from %s (%s) has been canceled for the following "
 "reason:"
-msgstr "Продовжити Ваше випозичання не вдалося через такі причини: "
+msgstr "Продовжити Ваше випозичання %s (%s) не вдалося через такі причини: "
 
 #: installer/data/mysql/en/mandatory/sample_notices.yml:letter:1:row:60:mul:15
 #, fuzzy
 msgid "Your total unpaid fines are too high."
-msgstr "У Вас є неоплачені пені. Сума: %s. "
+msgstr "У Вас є неоплачені пені. Сума: "
 
 #: installer/data/mysql/en/mandatory/sample_notices.yml:letter:1:row:38:mul:6
-#, fuzzy
 msgid "has returned all items.%s"
-msgstr "%s Цей запис не має жодного примірника. %s "
+msgstr ""
 
 #: installer/data/mysql/en/mandatory/sample_notices.yml:letter:1:row:27:mul:7
 msgid "is ready for pick up from %s."
@@ -3826,9 +3787,8 @@ msgid "kohaadmin@yoursite.org"
 msgstr "адміністратор Коха"
 
 #: installer/data/mysql/en/mandatory/sample_notices.yml:letter:1:row:62:mul:11
-#, fuzzy
 msgid "was renewed until %s"
-msgstr "%s з %s до %s"
+msgstr ""
 
 #: installer/data/mysql/en/mandatory/sample_numberpatterns.yml:subscription_numberpatterns:1:row:4
 msgid "{X} {Y}"

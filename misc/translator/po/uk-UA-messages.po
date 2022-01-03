@@ -3,17 +3,18 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Koha 21.05\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2021-05-11 21:24-0300\n"
-"PO-Revision-Date: 2021-05-13 10:43+0000\n"
+"POT-Creation-Date: 2021-10-20 10:29-0300\n"
+"PO-Revision-Date: 2021-09-08 11:30+0000\n"
 "Last-Translator: Serhij Dubyk <dubyk@ukr.net>\n"
 "Language-Team: Koha Translation Team\n"
 "Language: uk\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Plural-Forms: nplurals=3; plural=(n%10==1 && n%100!=11 ? 0 : n%10>=2 && n%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2);\n"
+"Plural-Forms: nplurals=3; plural=(n%10==1 && n%100!=11 ? 0 : n%10>=2 && n"
+"%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2);\n"
 "X-Generator: Pootle 2.8\n"
-"X-POOTLE-MTIME: 1620902590.865392\n"
+"X-POOTLE-MTIME: 1631100653.719849\n"
 "X-Pootle-Path: /uk/21.05/uk-UA-messages.po\n"
 "X-Pootle-Revision: 1\n"
 
@@ -95,31 +96,31 @@ msgstr "Індекс „{index}“ потрібно переіндексуват
 msgid "Invalid field weight '{weight}', must be a positive decimal number."
 msgstr "Недійсна вага поля „{weight}“, має бути позитивним десятковим числом."
 
-#: koha-tmpl/intranet-tmpl/prog/en/modules/tools/batchMod-del.tt:129
-#: koha-tmpl/intranet-tmpl/prog/en/modules/tools/batchMod-del.tt:271
+#: koha-tmpl/intranet-tmpl/prog/en/modules/tools/batchMod-del.tt:136
+#: koha-tmpl/intranet-tmpl/prog/en/modules/tools/batchMod-del.tt:278
 msgid "Item does not belong to your library"
 msgstr "Примірник не належить до Вашої бібліотеки/підрозділу"
 
-#: koha-tmpl/intranet-tmpl/prog/en/modules/tools/batchMod-del.tt:130
-#: koha-tmpl/intranet-tmpl/prog/en/modules/tools/batchMod-del.tt:272
+#: koha-tmpl/intranet-tmpl/prog/en/modules/tools/batchMod-del.tt:137
+#: koha-tmpl/intranet-tmpl/prog/en/modules/tools/batchMod-del.tt:279
 msgid "Item has a waiting hold"
 msgstr "На примірник очікує замовлення"
 
-#: koha-tmpl/intranet-tmpl/prog/en/modules/tools/batchMod-del.tt:131
-#: koha-tmpl/intranet-tmpl/prog/en/modules/tools/batchMod-del.tt:273
+#: koha-tmpl/intranet-tmpl/prog/en/modules/tools/batchMod-del.tt:138
+#: koha-tmpl/intranet-tmpl/prog/en/modules/tools/batchMod-del.tt:280
 msgid "Item has linked analytics"
 msgstr "Примірник має прив’язані аналітичні описи"
 
-#: koha-tmpl/intranet-tmpl/prog/en/modules/tools/batchMod-del.tt:128
-#: koha-tmpl/intranet-tmpl/prog/en/modules/tools/batchMod-del.tt:270
+#: koha-tmpl/intranet-tmpl/prog/en/modules/tools/batchMod-del.tt:135
+#: koha-tmpl/intranet-tmpl/prog/en/modules/tools/batchMod-del.tt:277
 msgid "Item is checked out"
 msgstr "Примірник видано"
 
-#: koha-tmpl/intranet-tmpl/prog/en/modules/tools/batchMod-del.tt:132
-#: koha-tmpl/intranet-tmpl/prog/en/modules/tools/batchMod-del.tt:274
+#: koha-tmpl/intranet-tmpl/prog/en/modules/tools/batchMod-del.tt:139
+#: koha-tmpl/intranet-tmpl/prog/en/modules/tools/batchMod-del.tt:281
 msgid "Last item for bibliographic record with biblio-level hold on it"
 msgstr ""
-"Останній примірник бібліографічного запису має замовлення на рівні біб-запису"
+"Останній примірник бібліографічного запису має замовлення на рівні бібзапису"
 
 #: koha-tmpl/intranet-tmpl/prog/en/modules/admin/searchengine/elasticsearch/mappings.tt:63
 msgid "Mappings have been reset successfully."
@@ -149,7 +150,7 @@ msgctxt "verb"
 msgid "Order"
 msgstr "Порядок"
 
-#: koha-tmpl/intranet-tmpl/prog/en/modules/catalogue/detail.tt:821
+#: koha-tmpl/intranet-tmpl/prog/en/modules/catalogue/detail.tt:825
 #, perl-brace-format
 msgctxt "pluralization"
 msgid "There is one archived suggestion."
@@ -158,8 +159,8 @@ msgstr[0] "Є {count} заархівована пропозиція."
 msgstr[1] "Є {count} заархівовані пропозиції."
 msgstr[2] "Є {count} заархівованих пропозицій."
 
-#: koha-tmpl/intranet-tmpl/prog/en/modules/tools/batchMod-del.tt:133
-#: koha-tmpl/intranet-tmpl/prog/en/modules/tools/batchMod-del.tt:275
+#: koha-tmpl/intranet-tmpl/prog/en/modules/tools/batchMod-del.tt:140
+#: koha-tmpl/intranet-tmpl/prog/en/modules/tools/batchMod-del.tt:282
 msgid "Unknown reason"
 msgstr "Невідома причина"
 
@@ -171,36 +172,36 @@ msgstr ""
 "Ви намагалися вилучити усі відображення для необхідного індексу, необхідно "
 "залишити принаймні одне відображення"
 
-#: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-main.tt:228
+#: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-main.tt:227
 msgid "checkout"
 msgid_plural "checkouts"
 msgstr[0] "видача"
 msgstr[1] "видачі"
 msgstr[2] "видач"
 
-#: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-main.tt:244
+#: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-main.tt:243
 msgid "hold pending"
 msgid_plural "holds pending"
 msgstr[0] "(замовлення перебуває на розгляді)"
 msgstr[1] "(замовлення перебувають на розгляді)"
 msgstr[2] "(замовлень перебувають на розгляді)"
 
-#: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-main.tt:252
+#: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-main.tt:251
 msgid "hold waiting"
 msgid_plural "holds waiting"
 msgstr[0] "(замовлення в очікуванні)"
 msgstr[1] "(замовлення в очікуванні)"
 msgstr[2] "(замовлень в очікуванні)"
 
-#: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-main.tt:269
-#: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-main.tt:276
+#: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-main.tt:268
+#: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-main.tt:275
 msgid "message"
 msgid_plural "messages"
 msgstr[0] "повідомлення"
 msgstr[1] "повідомлення"
 msgstr[2] "повідомлень"
 
-#: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-main.tt:236
+#: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-main.tt:235
 msgid "overdue"
 msgid_plural "overdues"
 msgstr[0] "(прострочення)"

@@ -808,6 +808,9 @@
                         'name': 'branch_sorton',
                         'value': 'branches.branchname'
                     },{
+                        'name': 'borrowernotes_sorton',
+                        'value': 'borrowers.borrowernotes'
+                    },{
                         'name': 'debarred_sorton',
                         'value': 'debarredcomment borrowers.lost borrowers.gonenoaddress',
                     },{

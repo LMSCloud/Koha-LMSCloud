@@ -8,8 +8,8 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: Koha 21.05\n"
-"POT-Creation-Date: 2021-05-11 20:06-0300\n"
-"PO-Revision-Date: 2021-05-06 07:00+0000\n"
+"POT-Creation-Date: 2021-09-13 00:05-0300\n"
+"PO-Revision-Date: 2021-08-10 09:06+0000\n"
 "Last-Translator: Magnus Enger <magnus@enger.priv.no>\n"
 "Language-Team: Norwegian Bokmål <>\n"
 "Language: nb\n"
@@ -18,7 +18,7 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
 "X-Generator: Pootle 2.8\n"
-"X-POOTLE-MTIME: 1620284424.517855\n"
+"X-POOTLE-MTIME: 1628586396.822318\n"
 "X-Pootle-Path: /nb/21.05/nb-NO-marc-UNIMARC.po\n"
 "X-Pootle-Revision: 1\n"
 
@@ -869,9 +869,9 @@ msgid "45 rpm"
 msgstr "45 o/min"
 
 #: koha-tmpl/intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_4XX.tt:5
-#, fuzzy, c-format
+#, c-format
 msgid "4XX plugin &rsaquo; Cataloging &rsaquo; Koha"
-msgstr "Koha &rsaquo; Katalogisering &rsaquo; 4XX-plugin"
+msgstr "4XX-plugin &rsaquo; Katalogisering &rsaquo; Koha"
 
 #: koha-tmpl/intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_leader.tt:16
 #, c-format
@@ -4508,9 +4508,9 @@ msgid "UNIMARC field 210c builder"
 msgstr "UNIMARC-felt 210c verktøy"
 
 #: koha-tmpl/intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_210c_bis.tt:3
-#, fuzzy, c-format
+#, c-format
 msgid "UNIMARC field 210c builder &rsaquo; Koha"
-msgstr "UNIMARC-felt 210c verktøy"
+msgstr "Verktøy for UNIMARC-felt 210c &rsaquo; Koha"
 
 #: koha-tmpl/intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_225a.tt:3
 #: koha-tmpl/intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_225a.tt:8
@@ -4520,9 +4520,9 @@ msgid "UNIMARC field 225a builder"
 msgstr "UNIMARC-felt 225a verktøy"
 
 #: koha-tmpl/intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_225a_bis.tt:3
-#, fuzzy, c-format
+#, c-format
 msgid "UNIMARC field 225a builder &rsaquo; Koha"
-msgstr "UNIMARC-felt 225a verktøy"
+msgstr "Verktøy for UNIMARC-felt 225a &rsaquo; Koha"
 
 #: koha-tmpl/intranet-tmpl/prog/en/modules/cataloguing/value_builder/unimarc_field_4XX.tt:11
 #, c-format

@@ -17,6 +17,9 @@
             broader/narrower/related terms.
         [% CASE 'LibrisSpellcheck' %]
             Use the LIBRIS spellcheck API.
+        [% CASE 'ElasticsearchSuggester' %]
+            Use the Elasticsearch indexes to generate suggestions. 
+            The plugin is only usable if Elasticsearch is the configured indexer.
         [% END %]
         </div>
     </div>

@@ -789,9 +789,33 @@ msgstr "admin.pref#ElasticsearchMARCFormat# ISO2709 (uitwisselingsformat)"
 msgid "admin.pref#ElasticsearchMARCFormat# Searchable array"
 msgstr "admin.pref#ElasticsearchMARCFormat# Doorzoekbare reeks"
 
+# OPAC > Privacy
+#, fuzzy
+msgid ""
+"admin.pref#GoogleOAuth2ClientID# Along with <a href=\"/cgi-bin/koha/admin/"
+"preferences.pl?op=search&searchfield=GoogleOAuth2ClientSecret"
+"\">GoogleOAuth2ClientSecret</a>, enables <a href=\"/cgi-bin/koha/admin/"
+"preferences.pl?op=search&searchfield=GoogleOpenIDConnect"
+"\">GoogleOpenIDConnect.</a>"
+msgstr ""
+"opac.pref#OPACPrivacy# dat lenen hun eigen privacy-instelling voor hun "
+"leesgeschiedenis kiezen. Dit vereist opacreadinghistory en AnonymousPatron"
+
 # Administration > Google OpenID Connect
 msgid "admin.pref#GoogleOAuth2ClientID# Google OAuth2 Client ID: "
 msgstr "admin.pref#GoogleOAuth2ClientID# Google OAuth2 Client ID: "
+
+# OPAC > Privacy
+#, fuzzy
+msgid ""
+"admin.pref#GoogleOAuth2ClientSecret# Along with <a href=\"/cgi-bin/koha/"
+"admin/preferences.pl?op=search&searchfield=GoogleOAuth2ClientID"
+"\">GoogleOAuth2ClientID</a>, enables <a href=\"/cgi-bin/koha/admin/"
+"preferences.pl?op=search&searchfield=GoogleOpenIDConnect"
+"\">GoogleOpenIDConnect.</a>"
+msgstr ""
+"opac.pref#OPACPrivacy# dat lenen hun eigen privacy-instelling voor hun "
+"leesgeschiedenis kiezen. Dit vereist opacreadinghistory en AnonymousPatron"
 
 # Administration > Google OpenID Connect
 msgid "admin.pref#GoogleOAuth2ClientSecret# Google OAuth2 Client Secret: "
@@ -802,7 +826,9 @@ msgid "admin.pref#GoogleOpenIDConnect# No"
 msgstr "admin.pref#GoogleOpenIDConnect# Nee"
 
 # Administration > Google OpenID Connect
-msgid "admin.pref#GoogleOpenIDConnect# Use Google OpenID Connect login: "
+#, fuzzy
+msgid ""
+"admin.pref#GoogleOpenIDConnect# Use Google OpenID Connect login in the OPAC: "
 msgstr "admin.pref#GoogleOpenIDConnect# Gebruik Google OpenID Connect login: "
 
 # Administration > Google OpenID Connect
@@ -815,7 +841,11 @@ msgid ""
 "admin.pref#GoogleOpenIDConnect# You will need to select OAuth2 when creating "
 "an app in the Google cloud console, and set the web origin to your_opac_url "
 "and the redirect url to your_opac_url/cgi-bin/koha/svc/auth/"
-"googleopenidconnect ."
+"googleopenidconnect. Requires <a href=\"/cgi-bin/koha/admin/preferences.pl?"
+"op=search&searchfield=GoogleOAuth2ClientID\">GoogleOAuth2ClientID</a> and <a "
+"href=\"/cgi-bin/koha/admin/preferences.pl?"
+"op=search&searchfield=GoogleOAuth2ClientSecret\">GoogleOAuth2ClientSecret</"
+"a> to be set."
 msgstr ""
 "admin.pref#GoogleOpenIDConnect# Selecteer OAuth2 bij het creëren van een app "
 "in de Google cloud console, en stel de web origin in op your_opac_url en de "
@@ -834,15 +864,22 @@ msgstr "admin.pref#GoogleOpenIDConnectAutoRegister# Niet toestaan dat"
 #, fuzzy
 msgid ""
 "admin.pref#GoogleOpenIDConnectAutoRegister# patrons logging in with Google "
-"Open ID to automatically register."
+"Open ID to automatically register. Requires <a href=\"/cgi-bin/koha/admin/"
+"preferences.pl?op=search&searchfield=GoogleOpenIDConnect"
+"\">GoogleOpenIDConnect</a>."
 msgstr ""
 "admin.pref#GoogleOpenIDConnectAutoRegister# gebruikers inloggen met Google "
 "Open ID om automatisch te registreren."
 
-# Administration > Google OpenID Connect
+# OPAC > Appearance
 #, fuzzy
-msgid "admin.pref#GoogleOpenIDConnectDefaultBranch# ."
-msgstr "admin.pref#GoogleOpenIDConnect# Nee"
+msgid ""
+"admin.pref#GoogleOpenIDConnectDefaultBranch# Requires <a href=\"/cgi-bin/"
+"koha/admin/preferences.pl?op=search&searchfield=GoogleOpenIDConnect"
+"\">GoogleOpenIDConnect</a>."
+msgstr ""
+"opac.pref#OpacMaintenanceNotice# Toon de volgende HTML als OpacMaintenance "
+"ingeschakeld is:"
 
 # Administration > Google OpenID Connect
 #, fuzzy
@@ -853,10 +890,15 @@ msgstr ""
 "admin.pref#GoogleOpenIDConnectDefaultBranch# Gebruik deze branch code bij "
 "het automatisch registeren van een Google Open ID lener."
 
-# Administration > Google OpenID Connect
+# OPAC > Appearance
 #, fuzzy
-msgid "admin.pref#GoogleOpenIDConnectDefaultCategory# ."
-msgstr "admin.pref#GoogleOpenIDConnect# Nee"
+msgid ""
+"admin.pref#GoogleOpenIDConnectDefaultCategory# Requires <a href=\"/cgi-bin/"
+"koha/admin/preferences.pl?op=search&searchfield=GoogleOpenIDConnect"
+"\">GoogleOpenIDConnect</a>."
+msgstr ""
+"opac.pref#OpacMaintenanceNotice# Toon de volgende HTML als OpacMaintenance "
+"ingeschakeld is:"
 
 # Administration > Google OpenID Connect
 #, fuzzy
@@ -867,12 +909,16 @@ msgstr ""
 "admin.pref#GoogleOpenIDConnectDefaultCategory# Gebruik deze categoriecode "
 "bij het automatisch registreren van een Google Open ID lener."
 
-# Administration > Google OpenID Connect
+# OPAC > Policy
 #, fuzzy
 msgid ""
-"admin.pref#GoogleOpenIDConnectDomain# . Leave blank for all Google domains."
+"admin.pref#GoogleOpenIDConnectDomain# Leave blank for all Google domains. "
+"Requires <a href=\"/cgi-bin/koha/admin/preferences.pl?"
+"op=search&searchfield=GoogleOpenIDConnect\">GoogleOpenIDConnect</a>."
 msgstr ""
-"admin.pref#GoogleOpenIDConnectDomain# Laat leeg voor alle Google domeinen"
+"opac.pref#OpacHiddenItemsExceptions# Lijst van lenercategorieën, gescheiden "
+"door |, die wel items kunnen zien die verborgen zijn door "
+"<code>OpacHiddenItems</code>"
 
 # Administration > Google OpenID Connect
 #, fuzzy
@@ -2702,6 +2748,23 @@ msgid ""
 msgstr ""
 "cataloguing.pref#BibtexExportAdditionalFields# Gebruik een regel per tag in "
 "het format BT_TAG: TAG$SUBFIELD ( bv. lccn: 010$a )"
+
+# Cataloging > Interface
+#, fuzzy
+msgid "cataloguing.pref#CreateAVFromCataloguing# Allow"
+msgstr "cataloguing.pref#EnableAdvancedCatalogingEditor# Activeer"
+
+# Cataloging > Interface
+#, fuzzy
+msgid "cataloguing.pref#CreateAVFromCataloguing# Don't allow"
+msgstr "cataloguing.pref#EnableAdvancedCatalogingEditor# Activeer niet"
+
+# Cataloging > Interface > CreateAVFromCataloguing
+msgid ""
+"cataloguing.pref#CreateAVFromCataloguing# authorized values to be created "
+"within the cataloguing module. Librarien will need the manage_auth_values "
+"subpermission."
+msgstr ""
 
 # Cataloging > Interface
 msgid "cataloguing.pref#DefaultClassificationSource# Use"
@@ -6113,7 +6176,8 @@ msgstr ""
 "opsommen van kosten voor noissuescharge."
 
 # Circulation > Holds Policy
-msgid "circulation.pref#ReservesControlBranch# Check the"
+#, fuzzy
+msgid "circulation.pref#ReservesControlBranch# Check the rule from the"
 msgstr "circulation.pref#ReservesControlBranch# Controleer de"
 
 # Circulation > Holds Policy
@@ -6179,7 +6243,10 @@ msgid "circulation.pref#RestrictionBlockRenewing# block"
 msgstr "circulation.pref#RestrictionBlockRenewing# niet toestaan"
 
 # Circulation > Checkout Policy
-msgid "circulation.pref#RestrictionBlockRenewing# renewing of items."
+#, fuzzy
+msgid ""
+"circulation.pref#RestrictionBlockRenewing# renewing of items from the staff "
+"interface."
 msgstr "circulation.pref#RestrictionBlockRenewing# van verlengingen."
 
 # Circulation > Checkout Policy
@@ -8811,14 +8878,9 @@ msgstr ""
 "de talen in de interface aan te passen."
 
 # I18N/L10N
-msgid ""
-"i18n_l10n.pref#TimeFormat# . <br/> <strong>NOTE:</strong> Do not change this "
-"preference on a production server with overdue items that are accruing "
-"fines. Doing so will result in duplicate fines!"
-msgstr ""
-"i18n_l10n.pref#TimeFormat# . <br/> <strong>LET OP:</strong> Wijzig deze "
-"instelling niet op een productieserver met te late items met oplopende "
-"boetes. Dit resulteert in dubbele boetes!"
+#, fuzzy
+msgid "i18n_l10n.pref#TimeFormat# ."
+msgstr "i18n_l10n.pref#dateformat# dd.mm.jjjj"
 
 # I18N/L10N
 msgid "i18n_l10n.pref#TimeFormat# 12 hour format ( e.g. \"02:18 PM\" )"
@@ -8880,14 +8942,9 @@ msgstr ""
 "als reeks losse hoofdletters met spaties ertussen."
 
 # I18N/L10N
-msgid ""
-"i18n_l10n.pref#dateformat# . <br/> <strong>NOTE:</strong> Do not change this "
-"preference on a production server with overdue items that are accruing "
-"fines. Doing so will result in duplicate fines!"
-msgstr ""
-"i18n_l10n.pref#dateformat# . <br/> <strong>LET OP:</strong> Wijzig deze "
-"instelling niet op een productieserver met te late items met oplopende "
-"boetes. Dit resulteert in dubbele boetes!"
+#, fuzzy
+msgid "i18n_l10n.pref#dateformat# ."
+msgstr "i18n_l10n.pref#dateformat# dd.mm.jjjj"
 
 # I18N/L10N
 msgid "i18n_l10n.pref#dateformat# Format dates like"
@@ -9180,6 +9237,23 @@ msgstr "logs.pref#IssueLog# Loggen"
 # Logging > Logging
 msgid "logs.pref#IssueLog# when items are checked out."
 msgstr "logs.pref#IssueLog# wanneer exemplaren uitgeleend worden."
+
+# Logging > Logging
+#, fuzzy
+msgid ""
+"logs.pref#NewsLog#  changes to news entries and other contents managed in "
+"the news tool."
+msgstr "logs.pref#AuthoritiesLog# van veranderingen aan thesaurusrecords"
+
+# Logging > Logging
+#, fuzzy
+msgid "logs.pref#NewsLog# Don't log"
+msgstr "logs.pref#FinesLog# Niet loggen"
+
+# Logging > Logging
+#, fuzzy
+msgid "logs.pref#NewsLog# Log"
+msgstr "logs.pref#FinesLog# Loggen"
 
 # Logging > Logging
 #, fuzzy
@@ -10290,11 +10364,15 @@ msgstr ""
 msgid ""
 "opac.pref#OPACXSLTDetailsDisplay# <br />Options:<ul><li><a href=\"#\" class="
 "\"set_syspref\" data-syspref=\"OPACXSLTDetailsDisplay\" data-value="
-"\"\">leave empty</a> for \"no xslt\"</li><li>enter \"<a href=\"#\" class="
+"\"\">leave empty</a> for \"no xslt\"</li><li>Enter \"<a href=\"#\" class="
 "\"set_syspref\" data-syspref=\"OPACXSLTDetailsDisplay\" data-value=\"default"
-"\">default</a>\" for the default one</li><li>put a path to define a xslt "
-"file</li><li>put an URL for an external specific stylesheet.</li></"
-"ul>{langcode} will be replaced with current interface language."
+"\">default</a>\" for the default stylesheet</li><li>Put a path to define an "
+"xslt file</li><li>Put a URL for an external specific stylesheet.</"
+"li><li>NOTE: The system preference <a href=\"/cgi-bin/koha/admin/preferences."
+"pl?op=search&searchfield=PassItemMarcToXSLT\">PassItemMarcToXSLT</a> must be "
+"enabled if your custom stylesheet utilizes data in the item fields</li></"
+"ul>If you have multiple stylesheets for different langues the placeholder "
+"{langcode} will be replaced with current interface language."
 msgstr ""
 "opac.pref#OPACXSLTDetailsDisplay# <br />Opties:<ul><li><a href=\"#\" class="
 "\"set_syspref\" data-syspref=\"OPACXSLTDetailsDisplay\" data-value=\"\">Laat "
@@ -10317,11 +10395,15 @@ msgstr ""
 msgid ""
 "opac.pref#OPACXSLTListsDisplay# <br />Options:<ul><li><a href=\"#\" class="
 "\"set_syspref\" data-syspref=\"OPACXSLTListsDisplay\" data-value=\"\">leave "
-"empty</a> for \"no xslt\"</li><li>enter \"<a href=\"#\" class=\"set_syspref"
+"empty</a> for \"no xslt\"</li><li>Enter \"<a href=\"#\" class=\"set_syspref"
 "\" data-syspref=\"OPACXSLTListsDisplay\" data-value=\"default\">default</a>"
-"\" for the default one</li><li> put a path to define a xslt file</li><li>put "
-"an URL for an external specific stylesheet.</li></ul>{langcode} will be "
-"replaced with current interface language."
+"\" for the default stylesheet</li><li>Put a path to define an xslt file</"
+"li><li>Put a URL for an external specific stylesheet.</li><li>NOTE: The "
+"system preference <a href=\"/cgi-bin/koha/admin/preferences.pl?"
+"op=search&searchfield=PassItemMarcToXSLT\">PassItemMarcToXSLT</a> must be "
+"enabled if your custom stylesheet utilizes data in the item fields</li></"
+"ul>If you have multiple stylesheets for different langues the placeholder "
+"{langcode} will be replaced with current interface language."
 msgstr ""
 "opac.pref#OPACXSLTListsDisplay# <br />Opties:<ul><li><a href=\"#\" class="
 "\"set_syspref\" data-syspref=\"OPACXSLTListsDisplay\" data-value=\"\">Laat "
@@ -10344,11 +10426,15 @@ msgstr ""
 msgid ""
 "opac.pref#OPACXSLTResultsDisplay# <br />Options:<ul><li><a href=\"#\" class="
 "\"set_syspref\" data-syspref=\"OPACXSLTResultsDisplay\" data-value="
-"\"\">leave empty</a> for \"no xslt\"</li><li>enter \"<a href=\"#\" class="
+"\"\">leave empty</a> for \"no xslt\"</li><li>Enter \"<a href=\"#\" class="
 "\"set_syspref\" data-syspref=\"OPACXSLTResultsDisplay\" data-value=\"default"
-"\">default</a>\" for the default one</li><li> put a path to define a xslt "
-"file</li><li>put an URL for an external specific stylesheet.</li></"
-"ul>{langcode} will be replaced with current interface language."
+"\">default</a>\" for the default stylesheet</li><li>Put a path to define an "
+"xslt file</li><li>Put a URL for an external specific stylesheet.</"
+"li><li>NOTE: The system preference <a href=\"/cgi-bin/koha/admin/preferences."
+"pl?op=search&searchfield=PassItemMarcToXSLT\">PassItemMarcToXSLT</a> must be "
+"enabled if your custom stylesheet utilizes data in the item fields</li></"
+"ul>If you have multiple stylesheets for different langues the placeholder "
+"{langcode} will be replaced with current interface language."
 msgstr ""
 "opac.pref#OPACXSLTResultsDisplay# <br />Opties:<ul><li><a href=\"#\" class="
 "\"set_syspref\" data-syspref=\"OPACXSLTResultsDisplay\" data-value=\"\">Laat "
@@ -12994,10 +13080,11 @@ msgstr ""
 msgid "patrons.pref#TrackLastPatronActivity# Don't"
 msgstr ""
 
-# Patrons > General
+# Patrons > General > TrackLastPatronActivity
 msgid ""
-"patrons.pref#TrackLastPatronActivity# Every time a patron will connect, the "
-"borrowers.lastseen will be updated with the current time."
+"patrons.pref#TrackLastPatronActivity# The first time each day that a patron "
+"logs into the OPAC, connects to Koha via SIP or ILS-DI, or checks an item "
+"out the borrowers.lastseen will update with the current date and time."
 msgstr ""
 
 # Patrons > General
@@ -13357,6 +13444,26 @@ msgstr "Показати до"
 msgid "searching.pref#FacetMaxCount# facets for each category."
 msgstr ""
 
+# Searching > Results Display
+#, fuzzy
+msgid "searching.pref#FacetOrder# Sort facets"
+msgstr "Показати до"
+
+# Cataloging > Record Structure
+#, fuzzy
+msgid "searching.pref#FacetOrder# alphabetically"
+msgstr "cataloguing.pref#autoBarcode# niet automatisch genereerd."
+
+# Searching > Results Display
+#, fuzzy
+msgid "searching.pref#FacetOrder# by usage count"
+msgstr "Показати до"
+
+# Searching > Results Display
+#, fuzzy
+msgid "searching.pref#FacetOrder# for each category."
+msgstr "Показати до"
+
 # Searching > Features
 msgid ""
 "searching.pref#IncludeSeeFromInSearches# <em>see from</em> (non-preferred "
@@ -13584,6 +13691,21 @@ msgid ""
 msgstr ""
 "searching.pref#OPACItemsResultsDisplay# de bibliotheek, locatie en het "
 "plaatsnummer van een exemplaar in de OPAC zoekresultaten."
+
+#, fuzzy
+msgid "searching.pref#PassItemMarcToXSLT# Do"
+msgstr "Zoekformulier leegmaken"
+
+# OPAC > Privacy
+#, fuzzy
+msgid "searching.pref#PassItemMarcToXSLT# Don't"
+msgstr "opac.pref#EnableOpacSearchHistory# Bewaar geen"
+
+# Searching > Results display > PassItemMarcToXSLT
+msgid ""
+"searching.pref#PassItemMarcToXSLT# make item MARC tags available to XSLT "
+"stylesheets. Default is \"Don't\", items are displayed using other methods."
+msgstr ""
 
 # Searching > Features
 msgid ""
@@ -14387,12 +14509,18 @@ msgid ""
 msgstr ""
 
 # OPAC > Appearance
+#, fuzzy
 msgid ""
 "staff_interface.pref#XSLTDetailsDisplay# <br />Options:<ul><li>Enter \"<a "
 "href=\"#\" class=\"set_syspref\" data-syspref=\"XSLTDetailsDisplay\" data-"
-"value=\"default\">default</a>\" for the default one</li><li>Put a path to "
-"define a xslt file</li><li>Put an URL for an external specific stylesheet.</"
-"li></ul>{langcode} will be replaced with current interface language"
+"value=\"default\">default</a>\" for the default stylesheet</li><li>Put a "
+"path to define an xslt file</li><li>Put a URL for an external specific "
+"stylesheet.</li><li>NOTE: The system preference <a href=\"/cgi-bin/koha/"
+"admin/preferences.pl?op=search&searchfield=PassItemMarcToXSLT"
+"\">PassItemMarcToXSLT</a> must be enabled if your custom stylesheet utilizes "
+"data in the item fields</li></ul>If you have multiple stylesheets for "
+"different langues the placeholder {langcode} will be replaced with current "
+"interface language."
 msgstr ""
 "staff_interface.pref#XSLTDetailsDisplay# <br />Opties:<ul><li>Voer \"<a href="
 "\"#\" class=\"set_syspref\" data-syspref=\"XSLTDetailsDisplay\" data-value="
@@ -14415,11 +14543,15 @@ msgstr ""
 msgid ""
 "staff_interface.pref#XSLTListsDisplay# <br />Options:<ul><li><a href=\"#\" "
 "class=\"set_syspref\" data-syspref=\"XSLTListsDisplay\" data-value="
-"\"\">Leave empty</a> for \"no xslt\"</li><li>enter \"<a href=\"#\" class="
+"\"\">Leave empty</a> for \"no xslt\"</li><li>Enter \"<a href=\"#\" class="
 "\"set_syspref\" data-syspref=\"XSLTListsDisplay\" data-value=\"default"
-"\">default</a>\" for the default one</li><li> put a path to define a xslt "
-"file</li><li>put an URL for an external specific stylesheet.</li></"
-"ul>{langcode} will be replaced with current interface language"
+"\">default</a>\" for the default stylesheet</li><li>Put a path to define an "
+"xslt file</li><li>Put a URL for an external specific stylesheet.</"
+"li><li>NOTE: The system preference <a href=\"/cgi-bin/koha/admin/preferences."
+"pl?op=search&searchfield=PassItemMarcToXSLT\">PassItemMarcToXSLT</a> must be "
+"enabled if your custom stylesheet utilizes data in the item fields</li></"
+"ul>If you have multiple stylesheets for different langues the placeholder "
+"{langcode} will be replaced with current interface language."
 msgstr ""
 "opac.pref#OPACXSLTListsDisplay# <br />Opties:<ul><li><a href=\"#\" class="
 "\"set_syspref\" data-syspref=\"OPACXSLTListsDisplay\" data-value=\"\">Laat "
@@ -14439,12 +14571,18 @@ msgstr ""
 "stylesheet op: "
 
 # OPAC > Appearance
+#, fuzzy
 msgid ""
 "staff_interface.pref#XSLTResultsDisplay# <br />Options:<ul><li>Enter \"<a "
 "href=\"#\" class=\"set_syspref\" data-syspref=\"XSLTResultsDisplay\" data-"
-"value=\"default\">default</a>\" for the default one</li><li>Put a path to "
-"define a xslt file</li><li>Put an URL for an external specific stylesheet.</"
-"li></ul>{langcode} will be replaced with current interface language"
+"value=\"default\">default</a>\" for the default stylesheet</li><li>Put a "
+"path to define an xslt file</li><li>Put a URL for an external specific "
+"stylesheet.</li><li>NOTE: The system preference <a href=\"/cgi-bin/koha/"
+"admin/preferences.pl?op=search&searchfield=PassItemMarcToXSLT"
+"\">PassItemMarcToXSLT</a> must be enabled if your custom stylesheet utilizes "
+"data in the item fields</li></ul>If you have multiple stylesheets for "
+"different langues the placeholder {langcode} will be replaced with current "
+"interface language."
 msgstr ""
 "staff_interface.pref#XSLTResultsDisplay# <br />Opties:<ul><li>Voer \"<a href="
 "\"#\" class=\"set_syspref\" data-syspref=\"XSLTResultsDisplay\" data-value="
@@ -15143,6 +15281,43 @@ msgid ""
 "reports web service."
 msgstr ""
 
+# Administration > Google OpenID Connect
+#, fuzzy
+#~ msgid "admin.pref#GoogleOpenIDConnectDefaultBranch# ."
+#~ msgstr "admin.pref#GoogleOpenIDConnect# Nee"
+
+# Administration > Google OpenID Connect
+#, fuzzy
+#~ msgid "admin.pref#GoogleOpenIDConnectDefaultCategory# ."
+#~ msgstr "admin.pref#GoogleOpenIDConnect# Nee"
+
+# Administration > Google OpenID Connect
+#, fuzzy
+#~ msgid ""
+#~ "admin.pref#GoogleOpenIDConnectDomain# . Leave blank for all Google "
+#~ "domains."
+#~ msgstr ""
+#~ "admin.pref#GoogleOpenIDConnectDomain# Laat leeg voor alle Google domeinen"
+
+# Circulation > Article Requests
+#, fuzzy
+#~ msgid "circulation.pref#ArticleRequestsOpacHostRedirection# Disable"
+#~ msgstr "circulation.pref#ArticleRequests# Toestaan"
+
+# Circulation > Article Requests
+#, fuzzy
+#~ msgid "circulation.pref#ArticleRequestsOpacHostRedirection# Enable"
+#~ msgstr "circulation.pref#ArticleRequests# Toestaan"
+
+# Circulation > Article Requests
+#, fuzzy
+#~ msgid ""
+#~ "circulation.pref#ArticleRequestsSupportedFormats# The following article "
+#~ "request formats are supported:"
+#~ msgstr ""
+#~ "circulation.pref#ArticleRequestsLinkControl# van de artikelaanvraag-link "
+#~ "bij zoekresultaten."
+
 # Circulation > Batch checkout
 #, fuzzy
 #~ msgid ""
@@ -15159,6 +15334,26 @@ msgstr ""
 #~ msgstr ""
 #~ "circulation.pref#OPACHoldsIfAvailableAtPickupExceptions# (lijst met "
 #~ "lenercategorieën gescheiden door een '|')"
+
+# I18N/L10N
+#~ msgid ""
+#~ "i18n_l10n.pref#TimeFormat# . <br/> <strong>NOTE:</strong> Do not change "
+#~ "this preference on a production server with overdue items that are "
+#~ "accruing fines. Doing so will result in duplicate fines!"
+#~ msgstr ""
+#~ "i18n_l10n.pref#TimeFormat# . <br/> <strong>LET OP:</strong> Wijzig deze "
+#~ "instelling niet op een productieserver met te late items met oplopende "
+#~ "boetes. Dit resulteert in dubbele boetes!"
+
+# I18N/L10N
+#~ msgid ""
+#~ "i18n_l10n.pref#dateformat# . <br/> <strong>NOTE:</strong> Do not change "
+#~ "this preference on a production server with overdue items that are "
+#~ "accruing fines. Doing so will result in duplicate fines!"
+#~ msgstr ""
+#~ "i18n_l10n.pref#dateformat# . <br/> <strong>LET OP:</strong> Wijzig deze "
+#~ "instelling niet op een productieserver met te late items met oplopende "
+#~ "boetes. Dit resulteert in dubbele boetes!"
 
 # I18N/L10N
 #~ msgid ""

@@ -7,8 +7,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Koha 21.05\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2021-05-11 18:11-0300\n"
-"PO-Revision-Date: 2021-05-25 19:25+0000\n"
+"POT-Creation-Date: 2021-10-20 05:00-0300\n"
+"PO-Revision-Date: 2021-09-16 14:26+0000\n"
 "Last-Translator: m23 <black23@gmail.com>\n"
 "Language-Team: none\n"
 "Language: cs\n"
@@ -17,7 +17,7 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=3; plural=(n==1) ? 0 : (n>=2 && n<=4) ? 1 : 2;\n"
 "X-Generator: Pootle 2.8\n"
-"X-POOTLE-MTIME: 1621970709.369904\n"
+"X-POOTLE-MTIME: 1631802361.647838\n"
 "X-Pootle-Path: /cs/21.05/cs-CZ-messages.po\n"
 "X-Pootle-Revision: 1\n"
 
@@ -30,9 +30,9 @@ msgstr "(vyhledávací pole {field_name} namapováno na {marc_field}.)"
 #, perl-brace-format
 msgid "({age} year)"
 msgid_plural "({age} years)"
-msgstr[0] ""
-msgstr[1] ""
-msgstr[2] ""
+msgstr[0] "({age} rok)"
+msgstr[1] "({age} roky)"
+msgstr[2] "({age} roků)"
 
 #: koha-tmpl/intranet-tmpl/prog/en/modules/admin/searchengine/elasticsearch/mappings.tt:48
 msgid ""
@@ -99,29 +99,29 @@ msgstr "Je třeba přeindexovat '{index}'."
 msgid "Invalid field weight '{weight}', must be a positive decimal number."
 msgstr "Chybná váha pole: '{weight}', váha musí být cele kladné číslo."
 
-#: koha-tmpl/intranet-tmpl/prog/en/modules/tools/batchMod-del.tt:129
-#: koha-tmpl/intranet-tmpl/prog/en/modules/tools/batchMod-del.tt:271
+#: koha-tmpl/intranet-tmpl/prog/en/modules/tools/batchMod-del.tt:136
+#: koha-tmpl/intranet-tmpl/prog/en/modules/tools/batchMod-del.tt:278
 msgid "Item does not belong to your library"
 msgstr "Jednotka nepatří do vaší knihovny"
 
-#: koha-tmpl/intranet-tmpl/prog/en/modules/tools/batchMod-del.tt:130
-#: koha-tmpl/intranet-tmpl/prog/en/modules/tools/batchMod-del.tt:272
+#: koha-tmpl/intranet-tmpl/prog/en/modules/tools/batchMod-del.tt:137
+#: koha-tmpl/intranet-tmpl/prog/en/modules/tools/batchMod-del.tt:279
 msgid "Item has a waiting hold"
 msgstr "Na jednotku je vytvořena čekající rezervace"
 
-#: koha-tmpl/intranet-tmpl/prog/en/modules/tools/batchMod-del.tt:131
-#: koha-tmpl/intranet-tmpl/prog/en/modules/tools/batchMod-del.tt:273
+#: koha-tmpl/intranet-tmpl/prog/en/modules/tools/batchMod-del.tt:138
+#: koha-tmpl/intranet-tmpl/prog/en/modules/tools/batchMod-del.tt:280
 msgid "Item has linked analytics"
 msgstr "K jednotce je připojený analytický popis"
 
-#: koha-tmpl/intranet-tmpl/prog/en/modules/tools/batchMod-del.tt:128
-#: koha-tmpl/intranet-tmpl/prog/en/modules/tools/batchMod-del.tt:270
+#: koha-tmpl/intranet-tmpl/prog/en/modules/tools/batchMod-del.tt:135
+#: koha-tmpl/intranet-tmpl/prog/en/modules/tools/batchMod-del.tt:277
 msgid "Item is checked out"
 msgstr "Jednotka je vypůjčená"
 
 # Poslední jednotka bibliografického záznamu s rezervací na záznam
-#: koha-tmpl/intranet-tmpl/prog/en/modules/tools/batchMod-del.tt:132
-#: koha-tmpl/intranet-tmpl/prog/en/modules/tools/batchMod-del.tt:274
+#: koha-tmpl/intranet-tmpl/prog/en/modules/tools/batchMod-del.tt:139
+#: koha-tmpl/intranet-tmpl/prog/en/modules/tools/batchMod-del.tt:281
 msgid "Last item for bibliographic record with biblio-level hold on it"
 msgstr "Poslední jednotka bibliografického záznamu s rezervací na titul"
 
@@ -153,17 +153,17 @@ msgctxt "verb"
 msgid "Order"
 msgstr "Objednávka"
 
-#: koha-tmpl/intranet-tmpl/prog/en/modules/catalogue/detail.tt:821
+#: koha-tmpl/intranet-tmpl/prog/en/modules/catalogue/detail.tt:825
 #, perl-brace-format
 msgctxt "pluralization"
 msgid "There is one archived suggestion."
 msgid_plural "There are {count} archived suggestions."
-msgstr[0] "K dispozici jeden archivovaný návrh."
+msgstr[0] "K dispozici je jeden archivovaný návrh."
 msgstr[1] "K dispozici jsou {count} archivované návrhy."
 msgstr[2] "K dispozici je {count} archivovaných návrhů."
 
-#: koha-tmpl/intranet-tmpl/prog/en/modules/tools/batchMod-del.tt:133
-#: koha-tmpl/intranet-tmpl/prog/en/modules/tools/batchMod-del.tt:275
+#: koha-tmpl/intranet-tmpl/prog/en/modules/tools/batchMod-del.tt:140
+#: koha-tmpl/intranet-tmpl/prog/en/modules/tools/batchMod-del.tt:282
 msgid "Unknown reason"
 msgstr "Neznámý důvod"
 
@@ -173,39 +173,39 @@ msgid ""
 "You attempted to delete all mappings for a required index, you must leave at "
 "least one mapping"
 msgstr ""
-"Pokusili jste se odstranit všechna mapování potřebná pro index, musíte "
-"ponechat alespoň jedno mapování"
+"Pokusili jste se odstranit všechna mapování potřebná pro vytvoření indexu, "
+"je nutné ponechat alespoň jedno mapování"
 
-#: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-main.tt:228
+#: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-main.tt:227
 msgid "checkout"
 msgid_plural "checkouts"
-msgstr[0] ""
-msgstr[1] ""
-msgstr[2] ""
+msgstr[0] "výpůjčka"
+msgstr[1] "výpůjčky"
+msgstr[2] "výpůjček"
 
-#: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-main.tt:244
+#: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-main.tt:243
 msgid "hold pending"
 msgid_plural "holds pending"
-msgstr[0] ""
-msgstr[1] ""
-msgstr[2] ""
+msgstr[0] "nevyřízená rezervace"
+msgstr[1] "nevyřízené rezervace"
+msgstr[2] "nevyřízených rezervací"
 
-#: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-main.tt:252
+#: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-main.tt:251
 msgid "hold waiting"
 msgid_plural "holds waiting"
-msgstr[0] ""
-msgstr[1] ""
-msgstr[2] ""
+msgstr[0] "čekající rezervace"
+msgstr[1] "čekající rezervace"
+msgstr[2] "čekajících rezervací"
 
-#: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-main.tt:269
-#: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-main.tt:276
+#: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-main.tt:268
+#: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-main.tt:275
 msgid "message"
 msgid_plural "messages"
-msgstr[0] ""
-msgstr[1] ""
-msgstr[2] ""
+msgstr[0] "zpráva"
+msgstr[1] "zprávy"
+msgstr[2] "zpráv"
 
-#: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-main.tt:236
+#: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-main.tt:235
 msgid "overdue"
 msgid_plural "overdues"
 msgstr[0] ""
@@ -229,9 +229,9 @@ msgstr[1] ""
 msgstr[2] ""
 
 #: koha-tmpl/intranet-tmpl/prog/en/modules/course_reserves/batch_rm_items.tt:60
-#, perl-brace-format
+#, fuzzy, perl-brace-format
 msgid "{title} ({barcode}) was removed from {count} course."
 msgid_plural "{title} ({barcode}) was removed from {count} courses."
-msgstr[0] ""
-msgstr[1] ""
-msgstr[2] ""
+msgstr[0] "{title} ({barcode}) byl odstraněn z {count} kurzu."
+msgstr[1] "{title} ({barcode}) byl odstraněn z {count} kurzů."
+msgstr[2] "{title} ({barcode}) byl odstraněn z {count} kurzů."

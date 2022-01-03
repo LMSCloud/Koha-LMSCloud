@@ -32,7 +32,7 @@ use Koha::Acquisition::Orders;
 use Koha::DateUtils qw( dt_from_string );
 use Koha::Libraries;
 use Koha::Patrons;
-use Koha::ApiKeys;
+use Koha::Library::Groups;
 
 use JSON;
 use Scalar::Util qw( isvstring );
@@ -390,7 +390,7 @@ subtest "to_api_mapping() tests" => sub {
 
 subtest "from_api_mapping() tests" => sub {
 
-    plan tests => 3;
+    plan tests => 5;
 
     $schema->storage->txn_begin;
 
@@ -449,6 +449,28 @@ subtest "from_api_mapping() tests" => sub {
         'Fresh mapping loaded'
     );
 
+    $city_class->unmock( 'to_api_mapping');
+    $city_class->mock( 'to_api_mapping', undef );
+
+    # Get a fresh object
+    $city = $builder->build_object({ class => 'Koha::Cities' });
+    is_deeply(
+        $city->from_api_mapping,
+        {},
+        'No to_api_mapping then empty hashref'
+    );
+
+    $city_class->unmock( 'to_api_mapping');
+    $city_class->mock( 'to_api_mapping', sub { return; } );
+
+    # Get a fresh object
+    $city = $builder->build_object({ class => 'Koha::Cities' });
+    is_deeply(
+        $city->from_api_mapping,
+        {},
+        'Empty to_api_mapping then empty hashref'
+    );
+
     $schema->storage->txn_rollback;
 };
 
@@ -498,81 +520,105 @@ subtest 'new_from_api() tests' => sub {
 
 subtest 'attributes_from_api() tests' => sub {
 
-    plan tests => 12;
+    plan tests => 2;
 
-    my $patron = Koha::Patron->new();
+    subtest 'date and date-time handling tests' => sub {
 
-    my $attrs = $patron->attributes_from_api(
-        {
-            updated_on => '2019-12-27T14:53:00',
-        }
-    );
+        plan tests => 12;
 
-    ok( exists $attrs->{updated_on},
-        'No translation takes place if no mapping' );
-    is(
-        ref( $attrs->{updated_on} ),
-        'DateTime',
-        'Given a string, a timestamp field is converted into a DateTime object'
-    );
+        my $patron = Koha::Patron->new();
 
-    $attrs = $patron->attributes_from_api(
-        {
-            last_seen  => '2019-12-27T14:53:00'
-        }
-    );
+        my $attrs = $patron->attributes_from_api(
+            {
+                updated_on     => '2019-12-27T14:53:00Z',
+                last_seen      => '2019-12-27T14:53:00Z',
+                date_of_birth  => '2019-12-27',
+            }
+        );
 
-    ok( exists $attrs->{lastseen},
-        'Translation takes place because of the defined mapping' );
-    is(
-        ref( $attrs->{lastseen} ),
-        'DateTime',
-        'Given a string, a datetime field is converted into a DateTime object'
-    );
+        ok( exists $attrs->{updated_on},
+            'No translation takes place if no mapping' );
+        is(
+            $attrs->{updated_on},
+            '2019-12-27 14:53:00',
+            'Given an rfc3339 formatted datetime string, a timestamp field is converted into an SQL formatted datetime string'
+        );
 
-    $attrs = $patron->attributes_from_api(
-        {
-            date_of_birth  => '2019-12-27'
-        }
-    );
+        ok( exists $attrs->{lastseen},
+            'Translation takes place because of the defined mapping' );
+        is(
+            $attrs->{lastseen},
+            '2019-12-27 14:53:00',
+            'Given an rfc3339 formatted datetime string, a datetime field is converted into an SQL formatted datetime string'
+        );
 
-    ok( exists $attrs->{dateofbirth},
-        'Translation takes place because of the defined mapping' );
-    is(
-        ref( $attrs->{dateofbirth} ),
-        'DateTime',
-        'Given a string, a date field is converted into a DateTime object'
-    );
+        ok( exists $attrs->{dateofbirth},
+            'Translation takes place because of the defined mapping' );
+        is(
+            $attrs->{dateofbirth},
+            '2019-12-27',
+            'Given an rfc3339 formatted date string, a date field is converted into an SQL formatted date string'
+        );
 
-    throws_ok
-        {
-            $attrs = $patron->attributes_from_api(
-                {
-                    date_of_birth => '20141205',
-                }
-            );
-        }
-        'Koha::Exceptions::BadParameter',
-        'Bad date throws an exception';
+        $attrs = $patron->attributes_from_api(
+            {
+                last_seen      => undef,
+                date_of_birth  => undef,
+            }
+        );
 
-    is(
-        $@->parameter,
-        'date_of_birth',
-        'Exception parameter is the API field name, not the DB one'
-    );
+        ok( exists $attrs->{lastseen},
+            'undef parameter is not skipped (Bug 29157)' );
+        is(
+            $attrs->{lastseen},
+            undef,
+            'Given undef, a datetime field is set to undef (Bug 29157)'
+        );
 
-    # Booleans
-    $attrs = $patron->attributes_from_api(
-        {
-            incorrect_address => Mojo::JSON->true,
-            patron_card_lost  => Mojo::JSON->false,
-        }
-    );
+        ok( exists $attrs->{dateofbirth},
+            'undef parameter is not skipped (Bug 29157)' );
+        is(
+            $attrs->{dateofbirth},
+            undef,
+            'Given undef, a date field is set to undef (Bug 29157)'
+        );
 
-    ok( exists $attrs->{gonenoaddress}, 'Attribute gets translated' );
-    is( $attrs->{gonenoaddress}, 1, 'Boolean correctly translated to integer (true => 1)' );
-    ok( exists $attrs->{lost}, 'Attribute gets translated' );
-    is( $attrs->{lost}, 0, 'Boolean correctly translated to integer (false => 0)' );
+        throws_ok
+            {
+                $attrs = $patron->attributes_from_api(
+                    {
+                        date_of_birth => '20141205',
+                    }
+                );
+            }
+            'Koha::Exceptions::BadParameter',
+            'Bad date throws an exception';
+
+        is(
+            $@->parameter,
+            'date_of_birth',
+            'Exception parameter is the API field name, not the DB one'
+        );
+    };
+
+    subtest 'booleans handling tests' => sub {
+
+        plan tests => 4;
+
+        my $patron = Koha::Patron->new;
+
+        my $attrs = $patron->attributes_from_api(
+            {
+                incorrect_address => Mojo::JSON->true,
+                patron_card_lost  => Mojo::JSON->false,
+            }
+        );
+
+        ok( exists $attrs->{gonenoaddress}, 'Attribute gets translated' );
+        is( $attrs->{gonenoaddress}, 1, 'Boolean correctly translated to integer (true => 1)' );
+        ok( exists $attrs->{lost}, 'Attribute gets translated' );
+        is( $attrs->{lost}, 0, 'Boolean correctly translated to integer (false => 0)' );
+    };
 };
 
 subtest "Test update method" => sub {
@@ -606,24 +652,29 @@ subtest 'store() tests' => sub {
 
     plan tests => 16;
 
-    # Using Koha::ApiKey to test Koha::Object>-store
+    # Using Koha::Library::Groups to test Koha::Object>-store
     # Simple object with foreign keys and unique key
 
     $schema->storage->txn_begin;
 
-    # Create a patron to make sure its ID doesn't exist on the DB
-    my $patron = $builder->build_object({ class => 'Koha::Patrons' });
-    my $patron_id = $patron->id;
-    $patron->delete;
+    # Create a library to make sure its ID doesn't exist on the DB
+    my $library = $builder->build_object({ class => 'Koha::Libraries' });
+    my $branchcode = $library->branchcode;
+    $library->delete;
 
-    my $api_key = Koha::ApiKey->new({ patron_id => $patron_id, secret => 'a secret', description => 'a description' });
+    my $library_group = Koha::Library::Group->new(
+        {
+            branchcode      => $library->branchcode,
+            title => 'a title',
+        }
+    );
 
     my $dbh = $schema->storage->dbh;
     {
         local *STDERR;
         open STDERR, '>', '/dev/null';
         throws_ok
-            { $api_key->store }
+            { $library_group->store }
             'Koha::Exceptions::Object::FKConstraint',
             'Exception is thrown correctly';
         is(
@@ -633,21 +684,21 @@ subtest 'store() tests' => sub {
         );
         is(
             $@->broken_fk,
-            'patron_id',
+            'branchcode',
             'Exception field is correct'
         );
 
-        $patron = $builder->build_object({ class => 'Koha::Patrons' });
-        $api_key = $builder->build_object({ class => 'Koha::ApiKeys' });
+        $library_group = $builder->build_object({ class => 'Koha::Library::Groups' });
 
-        my $new_api_key = Koha::ApiKey->new({
-            patron_id => $patron_id,
-            secret => $api_key->secret,
-            description => 'a description',
-        });
+        my $new_library_group = Koha::Library::Group->new(
+            {
+                branchcode      => $library_group->branchcode,
+                title        => $library_group->title,
+            }
+        );
 
         throws_ok
-            { $new_api_key->store }
+            { $new_library_group->store }
             'Koha::Exceptions::Object::DuplicateID',
             'Exception is thrown correctly';
 
@@ -659,18 +710,18 @@ subtest 'store() tests' => sub {
 
         like(
            $@->duplicate_id,
-           qr/(api_keys\.)?secret/,
+           qr/(library_groups\.)?title/,
            'Exception field is correct (note that MySQL 8 is displaying the tablename)'
         );
         close STDERR;
     }
 
     # Successful test
-    $api_key->set({ secret => 'Manuel' });
-    my $ret = $api_key->store;
-    is( ref($ret), 'Koha::ApiKey', 'store() returns the object on success' );
+    $library_group->set({ title => 'Manuel' });
+    my $ret = $library_group->store;
+    is( ref($ret), 'Koha::Library::Group', 'store() returns the object on success' );
 
-    my $library = $builder->build_object( { class => 'Koha::Libraries' } );
+    $library = $builder->build_object( { class => 'Koha::Libraries' } );
     my $patron_category = $builder->build_object(
         {
             class => 'Koha::Patron::Categories',
@@ -678,7 +729,7 @@ subtest 'store() tests' => sub {
         }
     );
 
-    $patron = eval {
+    my $patron = eval {
         Koha::Patron->new(
             {
                 categorycode    => $patron_category->categorycode,

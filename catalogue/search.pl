@@ -235,7 +235,6 @@ my @search_groups =
 @search_groups = sort { $a->title cmp $b->title } @search_groups;
 
 $template->param(
-    selected_branchcode => ( C4::Context->IsSuperLibrarian ? C4::Context->userenv : '' ),
     search_groups    => \@search_groups,
 );
 
@@ -559,7 +558,10 @@ eval {
 };
 
 if ($@ || $error) {
-    $template->param(query_error => $error.$@);
+    my $query_error = q{};
+    $query_error .= $error if $error;
+    $query_error .= $@ if $@;
+    $template->param(query_error => $query_error);
     output_html_with_http_headers $cgi, $cookie, $template->output;
     exit;
 }

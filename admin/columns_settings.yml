@@ -14,6 +14,8 @@ modules:
             -
               columnname: basket_group
             -
+              columnname: managing_library
+            -
               columnname: invoice_number
             -
               columnname: summary
@@ -144,6 +146,8 @@ modules:
               columnname: lastmodificationby
             -
               columnname: lastmodificationdate
+            -
+              columnname: last_updated_date
             -
               columnname: library
             -
@@ -682,6 +686,8 @@ modules:
         columns:
             -
               columnname: date
+            -
+              columnname: timestamp
             -
               columnname: credit_number
               is_hidden: 1
@@ -1525,6 +1531,18 @@ modules:
               columnname: info
             -
               columnname: interface
+    marc-modification-templates:
+      templatest:
+        columns:
+            -
+              columnname: id
+              is_hidden: 1
+            -
+              columnname: template
+            -
+              columnname: actions
+              cannot_be_toggled: 1
+              cannot_be_modified: 1
     notices:
       lettert:
         columns:

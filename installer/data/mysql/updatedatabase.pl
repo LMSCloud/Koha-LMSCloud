@@ -12332,7 +12332,7 @@ if ( CheckVersion($DBversion) ) {
              `id` int(11) NOT NULL AUTO_INCREMENT, 
              `name` varchar(255) NOT NULL COMMENT 'the name of the field as it will be stored in the search engine',
              `label` varchar(255) NOT NULL COMMENT 'the human readable name of the field, for display', 
-             `type` ENUM('', 'string', 'date', 'number', 'boolean', 'sum') NOT NULL COMMENT 'what type of data this holds, relevant when storing it in the search engine',
+             `type` ENUM('', 'string', 'date', 'number', 'boolean', 'sum','string_plus') NOT NULL COMMENT 'what type of data this holds, relevant when storing it in the search engine',
              PRIMARY KEY (`id`),
              UNIQUE KEY (`name`)
              ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci
@@ -13186,7 +13186,7 @@ if ( CheckVersion($DBversion) ) {
 $DBversion = '16.05.10.001';
 if( CheckVersion( $DBversion ) ) {
     $dbh->do(q{
-        ALTER TABLE search_field CHANGE COLUMN type type ENUM('', 'string', 'date', 'number', 'boolean', 'sum') NOT NULL
+        ALTER TABLE search_field CHANGE COLUMN type type ENUM('', 'string', 'date', 'number', 'boolean', 'sum','string_plus') NOT NULL
         COMMENT 'what type of data this holds, relevant when storing it in the search engine';
     });
 
@@ -14654,7 +14654,7 @@ if( CheckVersion( $DBversion ) ) {
 $DBversion = "16.12.00.011";
 if( CheckVersion( $DBversion ) ) {
     $dbh->do(q{
-        ALTER TABLE search_field CHANGE COLUMN type type ENUM('', 'string', 'date', 'number', 'boolean', 'sum') NOT NULL
+        ALTER TABLE search_field CHANGE COLUMN type type ENUM('', 'string', 'date', 'number', 'boolean', 'sum','string_plus') NOT NULL
         COMMENT 'what type of data this holds, relevant when storing it in the search engine';
     });
 
@@ -17363,7 +17363,7 @@ if( CheckVersion( $DBversion ) ) {
 
 $DBversion = '18.06.00.003';
 if( CheckVersion( $DBversion ) ) {
-    $dbh->do( "ALTER TABLE search_field CHANGE COLUMN type type ENUM('', 'string', 'date', 'number', 'boolean', 'sum', 'isbn', 'stdno') NOT NULL COMMENT 'what type of data this holds, relevant when storing it in the search engine'" );
+    $dbh->do( "ALTER TABLE search_field CHANGE COLUMN type type ENUM('', 'string', 'date', 'number', 'boolean', 'sum', 'isbn', 'stdno','string_plus') NOT NULL COMMENT 'what type of data this holds, relevant when storing it in the search engine'" );
     SetVersion( $DBversion );
     print "Upgrade to $DBversion done (Bug 20073 - Add new types for Elasticsearch fields)\n";
 }
@@ -19242,9 +19242,7 @@ if ( CheckVersion($DBversion) ) {
         SET
           interface = 'cron'
         WHERE
-          manager_id IS NULL
-        AND
-          branchcode IS NULL;
+          manager_id IS NULL;
     });
 
     $dbh->do(qq{
@@ -19586,6 +19584,12 @@ if ( CheckVersion($DBversion) ) {
         WHERE
           `accounttype` = 'Rep'
       }
+    );
+    
+    $dbh->do(
+        qq{
+          UPDATE authorised_values SET authorised_value = 'L' WHERE category = 'ACCOUNT_TYPE_MAPPING' AND authorised_value = 'Rep'
+        }
     );
 
     SetVersion($DBversion);
@@ -20303,6 +20307,12 @@ if ( CheckVersion($DBversion) ) {
         WHERE
           accounttype = 'L';
     });
+    
+    $dbh->do(
+        qq{
+          UPDATE authorised_values SET authorised_value = 'LOST' WHERE category = 'ACCOUNT_TYPE_MAPPING' AND authorised_value = 'L'
+        }
+    );
 
     $dbh->do(qq{
         UPDATE
@@ -20312,6 +20322,12 @@ if ( CheckVersion($DBversion) ) {
         WHERE
           accounttype = 'CR';
     });
+    
+    $dbh->do(
+        qq{
+          UPDATE authorised_values SET authorised_value = 'LOST_RETURN' WHERE category = 'ACCOUNT_TYPE_MAPPING' AND authorised_value = 'CR'
+        }
+    );
 
     SetVersion($DBversion);
     print "Upgrade to $DBversion done (Bug 22563: Fix accounttypes for 'L', 'LR' and 'CR')\n";
@@ -20371,6 +20387,12 @@ if ( CheckVersion($DBversion) ) {
         WHERE
           accounttype = 'Rent';
     });
+    
+    $dbh->do(
+        qq{
+          UPDATE authorised_values SET authorised_value = 'RENT' WHERE category = 'ACCOUNT_TYPE_MAPPING' AND authorised_value = 'Rent'
+        }
+    );
 
     SetVersion($DBversion);
     print "Upgrade to $DBversion done (Bug 11573: Fix accounttypes for 'Rent')\n";
@@ -20418,9 +20440,11 @@ if ( CheckVersion($DBversion) ) {
         INSERT INTO
           authorised_values (category,authorised_value,lib)
         VALUES
-          ('PAYMENT_TYPE','SIP00','Cash via SIP2'),
-          ('PAYMENT_TYPE','SIP01','VISA via SIP2'),
-          ('PAYMENT_TYPE','SIP02','Creditcard via SIP2')
+          ('PAYMENT_TYPE','SIP00','Barzahlung mit SIP2'),
+          ('PAYMENT_TYPE','SIP01','VISA mit SIP2'),
+          ('PAYMENT_TYPE','SIP02','Kreditkarte mit SIP2'),
+          ('PAYMENT_TYPE','ONLINE','Online-Bezahlung'),
+          ('PAYMENT_TYPE','SEPA','Lastschrift')
     });
 
     $dbh->do(qq{
@@ -20451,6 +20475,29 @@ if ( CheckVersion($DBversion) ) {
           payment_type = 'SIP02'
         WHERE
           accounttype = 'Pay02';
+    });
+    
+    $dbh->do(qq{
+        UPDATE
+          accountlines
+        SET
+          payment_type = 'ONLINE'
+        WHERE
+             (description like '%GiroSolution%' OR description like '%epay21%' OR description like '%ePayBL%' OR description like '%pmPayment%')
+          AND note like 'Online%'
+          AND payment_type is NULL
+          AND accounttype  = 'Pay'
+    });
+    
+    $dbh->do(qq{
+        UPDATE
+          accountlines
+        SET
+          payment_type = 'SEPA'
+        WHERE
+              description like '%Zahlung (SEPA Lastschrift)%'
+          AND payment_type is NULL
+          AND accounttype  = 'Pay'
     });
 
     my $sth = $dbh->prepare( q{SELECT * FROM accountlines WHERE accounttype REGEXP '^Pay[[:digit:]]{2}$' } );
@@ -20784,6 +20831,11 @@ if ( CheckVersion($DBversion) ) {
           accounttype = 'A';
     });
 
+    $dbh->do(
+        qq{
+          UPDATE authorised_values SET authorised_value = 'ACCOUNT' WHERE category = 'ACCOUNT_TYPE_MAPPING' AND authorised_value = 'A'
+        }
+    );
     SetVersion($DBversion);
     print "Upgrade to $DBversion done (Bug 11573: Fix accounttypes for 'A')\n";
 }
@@ -21089,25 +21141,25 @@ if ( CheckVersion($DBversion) ) {
               is_system
             )
             VALUES
-              ('ACCOUNT', 'Account creation fee', 0, NULL, 1),
-              ('ACCOUNT_RENEW', 'Account renewal fee', 0, NULL, 1),
-              ('RESERVE_EXPIRED', 'Hold waiting too long', 0, NULL, 1),
-              ('LOST', 'Lost item', 1, NULL, 1),
-              ('MANUAL', 'Manual fee', 1, NULL, 0),
-              ('NEW_CARD', 'New card fee', 1, NULL, 1),
-              ('OVERDUE', 'Overdue fine', 0, NULL, 1),
-              ('PROCESSING', 'Lost item processing fee', 0, NULL, 1),
-              ('RENT', 'Rental fee', 0, NULL, 1),
-              ('RENT_DAILY', 'Daily rental fee', 0, NULL, 1),
-              ('RENT_RENEW', 'Renewal of rental item', 0, NULL, 1),
-              ('RENT_DAILY_RENEW', 'Renewal of daily rental item', 0, NULL, 1),
-              ('RESERVE', 'Hold fee', 0, NULL, 1),
-              ('CLAIM_LEVEL1', 'Claim fee level 1', 0, NULL, 1),
-              ('CLAIM_LEVEL2', 'Claim fee level 2', 0, NULL, 1),
-              ('CLAIM_LEVEL3', 'Claim fee level 3', 0, NULL, 1),
-              ('CLAIM_LEVEL4', 'Claim fee level 4', 0, NULL, 1),
-              ('CLAIM_LEVEL5', 'Claim fee level 5', 0, NULL, 1),
-              ('NOTIFICATION', 'Notification fee', 0, NULL, 1)
+              ('ACCOUNT', 'Anmeldegebühr', 0, NULL, 1),
+              ('ACCOUNT_RENEW', 'Benutzungsgebühr, 0, NULL, 1),
+              ('RESERVE_EXPIRED', 'Nicht abgeholte Vormerkung', 0, NULL, 1),
+              ('LOST', 'Medienersatz', 1, NULL, 1),
+              ('MANUAL', 'Manuelle Gebühr', 1, NULL, 0),
+              ('NEW_CARD', 'Neuer Ausweis', 1, NULL, 1),
+              ('OVERDUE', 'Säumnisgebühr', 0, NULL, 1),
+              ('PROCESSING', 'Bearbeitungsgebühr Medienverlust', 0, NULL, 1),
+              ('RENT', 'Leihgebühr', 0, NULL, 1),
+              ('RENT_DAILY', 'Tägliche Leihgebühr', 0, NULL, 1),
+              ('RENT_RENEW', 'Leihgebühr durch Verlängerung', 0, NULL, 1),
+              ('RENT_DAILY_RENEW', 'Tägliche Leihgebühr durch Verlängerung', 0, NULL, 1),
+              ('RESERVE', 'Vormerkgebühr', 0, NULL, 1),
+              ('CLAIM_LEVEL1', 'Mahngebühr Stufe 1', 0, NULL, 1),
+              ('CLAIM_LEVEL2', 'Mahngebühr Stufe 2', 0, NULL, 1),
+              ('CLAIM_LEVEL3', 'Mahngebühr Stufe 3', 0, NULL, 1),
+              ('CLAIM_LEVEL4', 'Mahngebühr Stufe 4', 0, NULL, 1),
+              ('CLAIM_LEVEL5', 'Mahngebühr Stufe 5', 0, NULL, 1),
+              ('NOTIFICATION', 'Benachrichtigungsgebühr', 0, NULL, 1)
         }
     );
 
@@ -21117,11 +21169,21 @@ if ( CheckVersion($DBversion) ) {
           UPDATE accountlines SET accounttype = 'RESERVE' WHERE accounttype = 'Res'
         }
     );
+    $dbh->do(
+        qq{
+          UPDATE authorised_values SET authorised_value = 'RESERVE' WHERE category = 'ACCOUNT_TYPE_MAPPING' AND authorised_value = 'Res'
+        }
+    );
 
     # Update accountype 'PF' to 'PROCESSING'
     $dbh->do(
         qq{
           UPDATE accountlines SET accounttype = 'PROCESSING' WHERE accounttype = 'PF'
+        }
+    );
+    $dbh->do(
+        qq{
+          UPDATE authorised_values SET authorised_value = 'PROCESSING' WHERE category = 'ACCOUNT_TYPE_MAPPING' AND authorised_value = 'PF'
         }
     );
 
@@ -21131,11 +21193,21 @@ if ( CheckVersion($DBversion) ) {
           UPDATE accountlines SET accounttype = 'RESERVE_EXPIRED' WHERE accounttype = 'HE'
         }
     );
+    $dbh->do(
+        qq{
+          UPDATE authorised_values SET authorised_value = 'RESERVE_EXPIRED' WHERE category = 'ACCOUNT_TYPE_MAPPING' AND authorised_value = 'HE'
+        }
+    );
 
     # Update accountype 'N' to 'NEW_CARD'
     $dbh->do(
         qq{
           UPDATE accountlines SET accounttype = 'NEW_CARD' WHERE accounttype = 'N'
+        }
+    );
+    $dbh->do(
+        qq{
+          UPDATE authorised_values SET authorised_value = 'NEW_CARD' WHERE category = 'ACCOUNT_TYPE_MAPPING' AND authorised_value = 'N'
         }
     );
 
@@ -21145,11 +21217,21 @@ if ( CheckVersion($DBversion) ) {
           UPDATE accountlines SET accounttype = 'MANUAL' WHERE accounttype = 'M'
         }
     );
+    $dbh->do(
+        qq{
+          UPDATE authorised_values SET authorised_value = 'MANUAL' WHERE category = 'ACCOUNT_TYPE_MAPPING' AND authorised_value = 'M'
+        }
+    );
     
     # Update accountype 'CL1' to 'CLAIM_LEVEL1'
     $dbh->do(
         qq{
           UPDATE accountlines SET accounttype = 'CLAIM_LEVEL1' WHERE accounttype = 'CL1'
+        }
+    );
+    $dbh->do(
+        qq{
+          UPDATE authorised_values SET authorised_value = 'CLAIM_LEVEL1' WHERE category = 'ACCOUNT_TYPE_MAPPING' AND authorised_value = 'CL1'
         }
     );
     
@@ -21159,11 +21241,21 @@ if ( CheckVersion($DBversion) ) {
           UPDATE accountlines SET accounttype = 'CLAIM_LEVEL2' WHERE accounttype = 'CL2'
         }
     );
+    $dbh->do(
+        qq{
+          UPDATE authorised_values SET authorised_value = 'CLAIM_LEVEL2' WHERE category = 'ACCOUNT_TYPE_MAPPING' AND authorised_value = 'CL2'
+        }
+    );
     
     # Update accountype 'CL3' to 'CLAIM_LEVEL3'
     $dbh->do(
         qq{
           UPDATE accountlines SET accounttype = 'CLAIM_LEVEL3' WHERE accounttype = 'CL3'
+        }
+    );
+    $dbh->do(
+        qq{
+          UPDATE authorised_values SET authorised_value = 'CLAIM_LEVEL3' WHERE category = 'ACCOUNT_TYPE_MAPPING' AND authorised_value = 'CL3'
         }
     );
     
@@ -21173,6 +21265,11 @@ if ( CheckVersion($DBversion) ) {
           UPDATE accountlines SET accounttype = 'CLAIM_LEVEL4' WHERE accounttype = 'CL4'
         }
     );
+    $dbh->do(
+        qq{
+          UPDATE authorised_values SET authorised_value = 'CLAIM_LEVEL4' WHERE category = 'ACCOUNT_TYPE_MAPPING' AND authorised_value = 'CL4'
+        }
+    );
     
     # Update accountype 'CL4' to 'CLAIM_LEVEL5'
     $dbh->do(
@@ -21180,11 +21277,21 @@ if ( CheckVersion($DBversion) ) {
           UPDATE accountlines SET accounttype = 'CLAIM_LEVEL5' WHERE accounttype = 'CL5'
         }
     );
+    $dbh->do(
+        qq{
+          UPDATE authorised_values SET authorised_value = 'CLAIM_LEVEL5' WHERE category = 'ACCOUNT_TYPE_MAPPING' AND authorised_value = 'CL5'
+        }
+    );
     
     # Update accountype 'CL4' to 'CLAIM_LEVEL5'
     $dbh->do(
         qq{
-          UPDATE accountlines SET accounttype = 'NOTIFICATION' WHERE accounttype = 'NOTIFICATION'
+          UPDATE accountlines SET accounttype = 'NOTIFICATION' WHERE accounttype = 'NOTF'
+        }
+    );
+    $dbh->do(
+        qq{
+          UPDATE authorised_values SET authorised_value = 'NOTIFICATION' WHERE category = 'ACCOUNT_TYPE_MAPPING' AND authorised_value = 'NOTF'
         }
     );
 
@@ -21198,6 +21305,11 @@ if ( CheckVersion($DBversion) ) {
         WHERE
           accounttype = 'F';
     });
+    $dbh->do(
+        qq{
+          UPDATE authorised_values SET authorised_value = 'OVERDUE' WHERE category = 'ACCOUNT_TYPE_MAPPING' AND authorised_value = 'F'
+        }
+    );
 
     # Moving MANUAL_INV to account_debit_types
     $dbh->do(
@@ -21236,6 +21348,16 @@ if ( CheckVersion($DBversion) ) {
                 $row->{subcode}
             )
         );
+        $dbh->do(
+            qq{
+              UPDATE authorised_values SET authorised_value = ? WHERE category = 'ACCOUNT_TYPE_MAPPING' AND authorised_value = ?
+            },
+            {},
+            (
+                $row->{code},
+                $row->{subcode}
+            )
+        );
     }
 
     # Add any unexpected accounttype codes to debit_types as appropriate
@@ -21249,8 +21371,8 @@ if ( CheckVersion($DBversion) ) {
             is_system
           )
           SELECT
-            DISTINCT(accounttype),
-            "Unexpected type found during upgrade",
+            accounttype,
+            CONCAT("Gebührenart ",IFNULL(accounttype,'--')),
             1,
             NULL,
             0
@@ -21258,6 +21380,8 @@ if ( CheckVersion($DBversion) ) {
             accountlines
           WHERE
             amount >= 0
+          GROUP BY
+            accounttype
         }
     );
 
@@ -21361,11 +21485,12 @@ if ( CheckVersion($DBversion) ) {
               is_system
             )
             VALUES
-              ('PAYMENT', 'Payment', 0, 1),
-              ('WRITEOFF', 'Writeoff', 0, 1),
-              ('FORGIVEN', 'Forgiven', 1, 1),
-              ('CREDIT', 'Credit', 1, 1),
-              ('LOST_RETURN', 'Lost item fee refund', 0, 1)
+              ('PAYMENT',      'Gebühr bezahlt', 0, 1),
+              ('WRITEOFF',     'Gebührenerlass', 0, 1),
+              ('FORGIVEN',     'Gebührenerlass', 1, 1),
+              ('CREDIT',       'Gutschrift', 1, 1),
+              ('LOST_RETURN',  'Erstattung der Medienersatzgebühr', 0, 1),
+              ('CANCELLATION', 'Stornierte Gebühr', 0, 1)
         }
     );
 
@@ -21424,11 +21549,23 @@ if ( CheckVersion($DBversion) ) {
           UPDATE accountlines SET accounttype = 'PAYMENT' WHERE accounttype = 'Pay' OR accounttype = 'PAY'
         }
     );
+    $dbh->do(
+        qq{
+          UPDATE accountlines SET payment_type = 'CASH' WHERE accounttype = 'PAYMENT' AND payment_type IS NULL
+        }
+    );
 
     # Update accountype 'W' to 'WRITEOFF'
     $dbh->do(
         qq{
           UPDATE accountlines SET accounttype = 'WRITEOFF' WHERE accounttype = 'W' OR accounttype = 'WO'
+        }
+    );
+    
+    # Update accountype 'CAN' to 'CANCELLATION'
+    $dbh->do(
+        qq{
+          UPDATE accountlines SET accounttype = 'CANCELLATION' WHERE accounttype = 'CAN'
         }
     );
 
@@ -21442,14 +21579,16 @@ if ( CheckVersion($DBversion) ) {
             is_system
           )
           SELECT
-            DISTINCT(accounttype),
-            "Unexpected type found during upgrade",
+            accounttype,
+            CONCAT("Gutschriftenart ",IFNULL(accounttype,'--')),
             1,
             0
           FROM
             accountlines
           WHERE
             amount < 0
+          GROUP BY
+            accounttype
         }
     );
 
@@ -21671,7 +21810,7 @@ if ( CheckVersion($DBversion) ) {
               is_system
             )
             VALUES
-              ('PAYOUT', 'Payment from library to patron', 0, NULL, 1)
+              ('PAYOUT', 'Auszahlung an den Benutzer', 0, NULL, 1)
         }
     );
 
@@ -21712,7 +21851,7 @@ if ( CheckVersion($DBversion) ) {
         qq{
             INSERT IGNORE INTO account_credit_types (code, description, can_be_added_manually, is_system)
             VALUES
-              ('REFUND', 'A refund applied to a patrons fine', 0, 1)
+              ('REFUND', 'Rückerstattung', 0, 1)
         }
     );
 
@@ -21747,7 +21886,7 @@ if( CheckVersion( $DBversion ) ) {
 
     $dbh->do(q{
         INSERT IGNORE INTO account_credit_types ( code, description, can_be_added_manually, is_system )
-        VALUES ('PURCHASE', 'Purchase', 0, 1);
+        VALUES ('PURCHASE', 'Verkauf', 0, 1);
     });
 
     my $sth = $dbh->prepare(q{
@@ -21757,7 +21896,7 @@ if( CheckVersion( $DBversion ) ) {
     my $already_exists = $sth->fetchrow;
     if ( not $already_exists ) {
         $dbh->do(q{
-           INSERT INTO authorised_values (category,authorised_value,lib) VALUES ('PAYMENT_TYPE','CASH','Cash')
+           INSERT INTO authorised_values (category,authorised_value,lib) VALUES ('PAYMENT_TYPE','CASH','Barzahlung')
         });
     }
 
@@ -22148,7 +22287,7 @@ if( CheckVersion( $DBversion ) ) {
         INSERT IGNORE INTO
           account_credit_types ( code, description, can_be_added_manually, is_system )
         VALUES
-          ('LOST_FOUND', 'Lost item fee refund', 0, 1)
+          ('LOST_FOUND', 'Erstattung der Medienersatzgebühr', 0, 1)
     });
 
     # Migrate LOST_RETURN to LOST_FOUND
@@ -22396,7 +22535,7 @@ if ( CheckVersion($DBversion) ) {
         qq{
             INSERT IGNORE INTO account_credit_types (code, description, can_be_added_manually, is_system)
             VALUES
-              ('DISCOUNT', 'A discount applied to a patrons fine', 0, 1)
+              ('DISCOUNT', 'Erlass auf eine Gebühr', 0, 1)
         }
     );
 
@@ -24468,7 +24607,7 @@ if ( CheckVersion($DBversion) ) {
         qq{
             INSERT IGNORE INTO account_credit_types (code, description, can_be_added_manually, is_system)
             VALUES
-              ('OVERPAYMENT', 'Overpayment refund', 0, 1)
+              ('OVERPAYMENT', 'Rückerstattung einer Überzahlung', 0, 1)
         }
     );
 
@@ -24644,11 +24783,6 @@ if( CheckVersion( $DBversion ) ) {
 
 $DBversion = '20.06.00.064';
 if ( CheckVersion($DBversion) ) {
-
-    $dbh->do(q{
-        INSERT IGNORE INTO account_credit_types (code, description, can_be_added_manually, is_system)
-        VALUES ('CANCELLATION', 'Cancelled charge', 0, 1)
-    });
 
     $dbh->do(q{
         INSERT IGNORE INTO account_offset_types ( type ) VALUES ('CANCELLATION');
@@ -25010,6 +25144,11 @@ if( CheckVersion( $DBversion ) ) {
     });
     $dbh->do(q{
         UPDATE systempreferences
+        SET value="1"
+        WHERE type = "YesNo" AND value IN ("Yes","yes")
+    });
+    $dbh->do(q{
+        UPDATE systempreferences
         SET value="0"
         WHERE ( ( type = "YesNo" AND ( value NOT IN ( "1", "0" ) OR value IS NULL ) ) )
     });
@@ -25351,7 +25490,7 @@ if( CheckVersion( $DBversion ) ) {
               is_system
             )
             VALUES
-              ('VOID', 'Credit has been voided', 0, 0, NULL, 1)
+              ('VOID', 'Stornierte Transaktion', 0, 0, NULL, 1)
         }
     );
 
@@ -25600,25 +25739,29 @@ if( CheckVersion( $DBversion ) ) {
 
 $DBversion = '20.12.00.048';
 if( CheckVersion( $DBversion ) ) {
-    if ( column_exists( 'borrowers', 'relationship' ) ) {
-        $dbh->do(q{
-            ALTER TABLE borrowers DROP COLUMN relationship
-        });
-    }
 
-    if ( column_exists( 'deletedborrowers', 'relationship' ) ) {
-        $dbh->do(q{
-            ALTER TABLE deletedborrowers DROP COLUMN relationship
-        });
-    }
+    # This DB upgrade has been commented out because it removes
+    # actively used data, the relationship columns will be added back
 
-    if ( column_exists( 'borrower_modifications', 'relationship' ) ) {
-        $dbh->do(q{
-            ALTER TABLE borrower_modifications DROP COLUMN relationship
-        });
-    }
+    # if ( column_exists( 'borrowers', 'relationship' ) ) {
+    #     $dbh->do(q{
+    #         ALTER TABLE borrowers DROP COLUMN relationship
+    #     });
+    # }
 
-    NewVersion( $DBversion, 26995, "Drop column relationship from borrower tables");
+    # if ( column_exists( 'deletedborrowers', 'relationship' ) ) {
+    #     $dbh->do(q{
+    #         ALTER TABLE deletedborrowers DROP COLUMN relationship
+    #     });
+    # }
+
+    # if ( column_exists( 'borrower_modifications', 'relationship' ) ) {
+    #     $dbh->do(q{
+    #         ALTER TABLE borrower_modifications DROP COLUMN relationship
+    #     });
+    # }
+
+    NewVersion( $DBversion, 26995, "[SKIP] Drop column relationship from borrower tables [not executed]");
 }
 
 $DBversion = '20.12.00.049';
@@ -25649,6 +25792,293 @@ $DBversion = '21.05.00.000';
 if( CheckVersion( $DBversion ) ) {
     NewVersion( $DBversion, "", "Koha 21.05.00 release" );
 }
+
+$DBversion = '21.05.01.000';
+if ( CheckVersion($DBversion) ) {
+    $dbh->do('DELETE FROM sessions');
+    $dbh->do('ALTER TABLE sessions MODIFY a_session LONGBLOB NOT NULL');
+
+    NewVersion( $DBversion, '28489', 'Modify sessions.a_session from longtext to longblob' );
+}
+
+$DBversion = '21.05.01.001';
+if( CheckVersion( $DBversion ) ) {
+    if( !column_exists( 'borrower_modifications', 'relationship' ) ) {
+      $dbh->do(q{
+          ALTER TABLE borrower_modifications ADD COLUMN `relationship` varchar(100) COLLATE utf8mb4_unicode_ci DEFAULT NULL AFTER `borrowernotes`
+      });
+    }
+
+    if( !column_exists( 'borrowers', 'relationship' ) ) {
+      $dbh->do(q{
+          ALTER TABLE borrowers ADD COLUMN `relationship` varchar(100) COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT 'used for children to include the relationship to their guarantor' AFTER `borrowernotes`
+      });
+    }
+
+    if( !column_exists( 'deletedborrowers', 'relationship' ) ) {
+      $dbh->do(q{
+          ALTER TABLE deletedborrowers ADD COLUMN `relationship` varchar(100) COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT 'used for children to include the relationship to their guarantor' AFTER `borrowernotes`
+      });
+    }
+
+    NewVersion( $DBversion, 28490, "Bring back accidentally deleted relationship columns");
+}
+
+$DBversion = '21.05.01.002';
+if( CheckVersion( $DBversion ) ) {
+
+    # Add 'WrongTransfer' to branchtransfers cancellation_reason enum
+    $dbh->do(
+        q{
+            ALTER TABLE
+                `branchtransfers`
+            MODIFY COLUMN
+                `cancellation_reason` enum(
+                    'Manual',
+                    'StockrotationAdvance',
+                    'StockrotationRepatriation',
+                    'ReturnToHome',
+                    'ReturnToHolding',
+                    'RotatingCollection',
+                    'Reserve',
+                    'LostReserve',
+                    'CancelReserve',
+                    'ItemLost',
+                    'WrongTransfer'
+                )
+            AFTER `comments`
+          }
+    );
+
+    NewVersion( $DBversion, 24434, "Add 'WrongTransfer' to branchtransfers.cancellation_reason enum");
+}
+
+$DBversion = '21.05.01.003';
+if( CheckVersion( $DBversion ) ) {
+    NewVersion( $DBversion, "", "Koha 21.05.01 release" );
+}
+
+$DBversion = '21.05.01.004';
+if( CheckVersion( $DBversion ) ) {
+    $dbh->do( q{
+        INSERT IGNORE INTO systempreferences (variable, value, explanation, options, type)
+        VALUES ('NewsLog', '0', 'If enabled, log OPAC News changes', '', 'YesNo')
+    });
+
+    NewVersion( $DBversion, 26205, "Add new system preference NewsLog to log news changes");
+}
+
+$DBversion = '21.05.02.000';
+if( CheckVersion( $DBversion ) ) {
+    NewVersion( $DBversion, "", "Koha 21.05.02 release" );
+}
+
+$DBversion = '21.05.02.001';
+if( CheckVersion( $DBversion ) ) {
+    my @fields = qw(
+      branchname
+      branchaddress1
+      branchaddress2
+      branchaddress3
+      branchzip
+      branchcity
+      branchstate
+      branchcountry
+      branchphone
+      branchfax
+      branchemail
+      branchillemail
+      branchreplyto
+      branchreturnpath
+      branchurl
+      branchip
+      branchnotes
+      opac_info
+      marcorgcode
+    );
+    for my $f ( @fields ) {
+        $dbh->do(qq{
+            UPDATE branches
+            SET $f = NULL
+            WHERE $f = ""
+        });
+    }
+
+    NewVersion( $DBversion, 28567, "Set to NULL empty branches fields");
+}
+
+$DBversion = '21.05.02.002';
+if( CheckVersion( $DBversion ) ) {
+    if ( column_exists('message_queue', 'delivery_note') ) {
+        $dbh->do(q{
+            ALTER TABLE message_queue CHANGE COLUMN delivery_note failure_code MEDIUMTEXT
+        });
+    }
+
+    if( !column_exists( 'message_queue', 'failure_code' ) ) {
+        $dbh->do(q{
+            ALTER TABLE message_queue ADD failure_code mediumtext AFTER content_type
+        });
+    }
+
+    NewVersion( $DBversion, 28813, "Update delivery_note to failure_code in message_queue");
+}
+
+$DBversion = '21.05.02.003';
+if( CheckVersion( $DBversion ) ) {
+    $dbh->do(q{update systempreferences set value=1 where variable in ('AcquisitionLog', 'NewsLog', 'NoticesLog') and value='on'});
+    $dbh->do(q{update systempreferences set value=0 where variable in ('AcquisitionLog', 'NewsLog', 'NoticesLog') and value='off'});
+
+    NewVersion( $DBversion, 28872, "Update syspref values from on and off to 1 and 0");
+}
+
+$DBversion = '21.05.03.000';
+if( CheckVersion( $DBversion ) ) {
+    NewVersion( $DBversion, "", "Koha 21.05.03 release" );
+}
+
+$DBversion = '21.05.03.001';
+if( CheckVersion( $DBversion ) ) {
+        $dbh->do(q{
+            DELETE FROM circulation_rules
+            WHERE rule_name = 'rentaldiscount' AND rule_value=''
+        });
+    NewVersion( $DBversion, "28774", "Delete blank rental discounts" );
+}
+
+$DBversion = '21.05.03.002';
+if ( CheckVersion( $DBversion ) ) {
+
+    use Koha::AuthUtils qw(hash_password);
+
+    my $sth = $dbh->prepare(q{
+        SELECT client_id, secret
+        FROM api_keys
+    });
+    $sth->execute;
+    my $results = $sth->fetchall_arrayref({});
+
+    $sth = $dbh->prepare(q{
+        UPDATE api_keys
+        SET
+            secret = ?
+        WHERE
+            client_id = ?
+    });
+
+    foreach my $api_key (@$results) {
+        unless ( $api_key->{secret} =~ m/^\$2a\$08\$/ ) {
+            my $digest = Koha::AuthUtils::hash_password( $api_key->{secret} );
+            $sth->execute( $digest, $api_key->{client_id} );
+        }
+    }
+
+    NewVersion( $DBversion, 28772, "Store hashed API key secrets" );
+}
+
+$DBversion = '21.05.03.003';
+if ( CheckVersion( $DBversion ) ) {
+    $dbh->do( q{
+        INSERT IGNORE INTO systempreferences ( `variable`, `value`, `options`, `explanation`, `type` ) VALUES
+        ('PassItemMarcToXSLT','1',NULL,'If enabled, item fields in the MARC record will be made avaiable to XSLT sheets. Otherwise they will be removed.','YesNo');
+    });
+    # foreach my $pref ('XSLTDetailsDisplay','XSLTListsDisplay','XSLTResultsDisplay','OPACXSLTDetailsDisplay','OPACXSLTListsDisplay','OPACXSLTResultsDisplay'){
+        # if( C4::Context->preference($pref) ne 'default' ){
+            # print "NOTE: You have defined a custom stylesheet. If your custom stylesheets are utilizing item fields you must enable the system preference 'PassItemMarcToXSLT'\n";
+            # last;
+        # }
+    # }
+
+    NewVersion( $DBversion, 28373, "Add PassItemMarcToXSLT system preference");
+}
+
+$DBversion = '21.05.04.000';
+if( CheckVersion( $DBversion ) ) {
+    NewVersion( $DBversion, "", "Koha 21.05.04 release" );
+}
+
+$DBversion = '21.05.04.001';
+if( CheckVersion( $DBversion ) ) {
+    $dbh->do(q{
+        UPDATE systempreferences SET value = IF(value = 'yes',1,0)
+        WHERE variable = 'DefaultHoldExpirationdate';
+    });
+    NewVersion( $DBversion, "29073", "Make DefaultHoldExpirationdate use 1/0 values" );
+}
+
+$DBversion = '21.05.04.002';
+if( CheckVersion( $DBversion ) ) {
+    $dbh->do(q{
+        INSERT IGNORE INTO systempreferences
+        ( variable, value, options, explanation, type ) VALUES
+        ('FacetOrder','Alphabetical','Alphabetical|Usage','Specify the order of facets within each category','Choice')
+    });
+    NewVersion( $DBversion, 28826, "Add system preference FacetOrder");
+}
+
+$DBversion = '21.05.04.003';
+if( CheckVersion( $DBversion ) ) {
+    $dbh->do( q{
+        INSERT IGNORE INTO systempreferences (variable, value, options, explanation, type)
+        VALUES ('CreateAVFromCataloguing', '1', '', 'Ability to create authorized values from the cataloguing module', 'YesNo')
+    });
+    NewVersion( $DBversion, 29137, "Add system preference CreateAVFromCataloguing");
+}
+
+$DBversion = '21.05.04.004';
+if( CheckVersion( $DBversion ) ) {
+    $dbh->do(q{
+        UPDATE systempreferences
+        SET value="1"
+        WHERE type = "YesNo" AND value IN ("Yes","yes")
+    });
+    $dbh->do(q{
+        UPDATE systempreferences
+        SET value="0"
+        WHERE ( ( type = "YesNo" AND ( value NOT IN ( "1", "0" ) OR value IS NULL ) ) )
+    });
+    NewVersion( $DBversion, "29073", "Set systempreferences to 1/0 values where yes/no values are set");
+}
+
+$DBversion = '21.05.05.003';
+if( CheckVersion( $DBversion ) ) {
+    NewVersion( $DBversion, "", "Koha 21.05.05 release" );
+}
+
+$DBversion = '21.05.05.004';
+if( CheckVersion( $DBversion ) ) {
+    $dbh->do( q{
+        INSERT IGNORE INTO systempreferences (variable, value, options, explanation, type) VALUES
+        ('OPACSearchAutoComplete',1,NULL,'Enable the OPAC seach field auto completion. Only available with Elasticsearch as indexer.','YesNo'),
+        ('IntranetCatalogSearchAutoComplete',1,NULL,'Enable the Intranet cataloge seach field auto completion. Only available with Elasticsearch as indexer.','YesNo'),
+        ('ElasticsearchAdditionalAvailabilitySearch','',NULL,'Additional search condition for Elasticsearch to limit search result to titles with available items.','Free'),
+        ('ElasticsearchDefaultAutoCompleteIndexFields','title,author,subject,title-series,local-classification',NULL,'Default index fields used for Elasticsearch autocompletion','Free')
+    });
+    NewVersion( $DBversion, "", "Add parameter to activate search field auto completion in OPAC and Intranet and for additional parameters of availability Search with Elasticsearch.");
+}
+
+$DBversion = '21.05.05.005';
+if( CheckVersion( $DBversion ) ) {
+    
+    $dbh->do( "ALTER TABLE search_field CHANGE COLUMN type type ENUM('', 'string', 'date', 'number', 'boolean', 'sum', 'isbn', 'stdno','string_plus','availability','year') NOT NULL COMMENT 'what type of data this holds, relevant when storing it in the search engine'" );
+    $dbh->do( "ALTER TABLE search_field MODIFY `weight` tinyint unsigned DEFAULT NULL" );
+
+    NewVersion( $DBversion, "", "Add type string_plus for field type of table search_field to add trigram and reverse suggestion phrase indexes.");
+}
+
+$DBversion = '21.05.05.006';
+if( CheckVersion( $DBversion ) ) {
+    
+    my $num_categ = $dbh->selectrow_array("SELECT COUNT(*) FROM authorised_value_categories WHERE category_name = 'MANUAL_INV_SIP2_MAPPED'");
+    if ($num_categ > 0) {
+        $dbh->do( "INSERT INTO authorised_value_categories(category_name,is_system) VALUES ('DEBIT_TYPE_SIP2_MAPPED',0)" );
+        $dbh->do( "UPDATE authorised_values SET category = 'DEBIT_TYPE_SIP2_MAPPED' WHERE category = 'MANUAL_INV_SIP2_MAPPED'" );
+        $dbh->do( "DELETE FROM authorised_value_categories WHERE category_name = 'MANUAL_INV_SIP2_MAPPED'" );
+    }
+
+    NewVersion( $DBversion, "", "Rename authorised values category MANUAL_INV_SIP2_MAPPED to DEBIT_TYPE_SIP2_MAPPED.");
+}
+
 
 # SEE bug 13068
 # if there is anything in the atomicupdate, read and execute it.

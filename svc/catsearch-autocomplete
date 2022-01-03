@@ -1,0 +1,89 @@
+#!/usr/bin/perl
+
+# Copyright 2021 LMSCloud GmbH
+#
+# This file is part of Koha.
+#
+# Koha is free software; you can redistribute it and/or modify it
+# under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 3 of the License, or
+# (at your option) any later version.
+#
+# Koha is distributed in the hope that it will be useful, but
+# WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with Koha; if not, see <http://www.gnu.org/licenses>.
+
+=head1 NAME
+
+autocomplete: retrieve search suggestions
+
+=head1 SYNOPSIS
+
+=cut
+
+=head1 DESCRIPTION
+
+This script produces suggestions for the OPAC given a search string.
+
+It takes the following parameters:
+
+=over 8
+
+=item I<text>
+
+Required. Query string.
+
+=item I<field>
+
+The index field to use for autocompletion.
+
+=item I<count>
+
+Number of suggestions to display. Defaults to 20.
+
+=back
+
+=cut
+
+use Modern::Perl;
+use JSON qw( encode_json to_json);
+use C4::Auth qw(check_cookie_auth haspermission get_session);
+use C4::Context;
+use C4::Output;
+use CGI qw ( -utf8 );
+use Koha::SearchEngine::Elasticsearch::AutoComplete;
+
+our $cgi = CGI->new;
+binmode STDOUT, ':encoding(UTF-8)';
+
+my $text = $cgi->param('text');
+my $field = $cgi->param('field');
+my $count  = $cgi->param('count');
+
+my ( $auth_status, $sessionID ) = check_cookie_auth( $cgi->cookie('CGISESSID'), { catalogue => 1 } );
+if ( $auth_status ne "ok" ) {
+    exit 0;
+}
+
+my @resultlist;
+if ( C4::Context->preference("SearchEngine") eq 'Elasticsearch' ) {
+    my $complete =
+      Koha::SearchEngine::Elasticsearch::AutoComplete->new( { index => 'biblios' } );
+    @resultlist  = $complete->complete(
+        {
+            text => $text,
+            field => $field,
+            count => $count
+        }
+    );
+}
+
+print CGI::header(
+    -type    => 'application/json',
+    -charset => 'utf-8'
+);
+print to_json( { suggestions => \@resultlist } );

@@ -313,10 +313,43 @@ $(document).ready(function() {
         $(document).on("click", '#searchsubmit', function(e) {
             jQuery.removeCookie("form_serialized", { path: '/'});
             jQuery.removeCookie("form_serialized_limits", { path: '/'});
-            jQuery.removeCookie("num_paragraph", { path: '/'});
             jQuery.removeCookie("search_path_code", { path: '/'});
         });
     }
+    
+    [% IF ( Koha.Preference('SearchEngine') == 'Elasticsearch' && Koha.Preference('OPACSearchAutoComplete') ) %]
+    $( "#translControl1" ).autocomplete({
+        source: function(request, response) {
+            if ( request.term.match(/[:=]/) ) {
+                response([]);
+                return;
+            }
+            var index = '';
+            if ( $('#masthead_search') ) {
+                index = $( "#masthead_search" ).val().replace(/,.*$/,'');
+                switch (index) {
+                    case 'kw': index = ''; break;
+                    case 'nb':
+                    case 'ns': response([]); return; break;
+                }
+            }
+            $.ajax({
+                url: "/cgi-bin/koha/svc/catsearch-autocomplete",
+                dataType: "json",
+                data: {
+                    text : request.term,
+                    field : index,
+                    count : 20
+                },
+                success: function(data) {
+                    response( data.suggestions );
+                }
+            });
+        },
+        minLength: 3,
+        delay: 300
+    });
+    [% END %]
 });
 </script>
 [% PROCESS jsinclude %]

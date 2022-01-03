@@ -720,9 +720,35 @@ msgstr "ISO2709 (تبديل التنسيق)"
 msgid "admin.pref#ElasticsearchMARCFormat# Searchable array"
 msgstr "مصفوفة قابلة للبحث"
 
+# Patrons > Notices and notifications > PhoneNotification
+#, fuzzy
+msgid ""
+"admin.pref#GoogleOAuth2ClientID# Along with <a href=\"/cgi-bin/koha/admin/"
+"preferences.pl?op=search&searchfield=GoogleOAuth2ClientSecret"
+"\">GoogleOAuth2ClientSecret</a>, enables <a href=\"/cgi-bin/koha/admin/"
+"preferences.pl?op=search&searchfield=GoogleOpenIDConnect"
+"\">GoogleOpenIDConnect.</a>"
+msgstr ""
+"<br/><i class=\"fa fa-exclamation-triangle\"></i> إذا تم تفعيل "
+"<code>PhoneNotification</code>, <code>TalkingTechItivaPhoneNotification</"
+"code> يجب تعطيله."
+
 # Administration > Google OpenID Connect
 msgid "admin.pref#GoogleOAuth2ClientID# Google OAuth2 Client ID: "
 msgstr "معرف عميل OAuth2 من قوقل"
+
+# Patrons > Notices and notifications > PhoneNotification
+#, fuzzy
+msgid ""
+"admin.pref#GoogleOAuth2ClientSecret# Along with <a href=\"/cgi-bin/koha/"
+"admin/preferences.pl?op=search&searchfield=GoogleOAuth2ClientID"
+"\">GoogleOAuth2ClientID</a>, enables <a href=\"/cgi-bin/koha/admin/"
+"preferences.pl?op=search&searchfield=GoogleOpenIDConnect"
+"\">GoogleOpenIDConnect.</a>"
+msgstr ""
+"<br/><i class=\"fa fa-exclamation-triangle\"></i> إذا تم تفعيل "
+"<code>PhoneNotification</code>, <code>TalkingTechItivaPhoneNotification</"
+"code> يجب تعطيله."
 
 # Administration > Google OpenID Connect
 msgid "admin.pref#GoogleOAuth2ClientSecret# Google OAuth2 Client Secret: "
@@ -733,7 +759,9 @@ msgid "admin.pref#GoogleOpenIDConnect# No"
 msgstr "لا"
 
 # Administration > Google OpenID Connect
-msgid "admin.pref#GoogleOpenIDConnect# Use Google OpenID Connect login: "
+#, fuzzy
+msgid ""
+"admin.pref#GoogleOpenIDConnect# Use Google OpenID Connect login in the OPAC: "
 msgstr "استخدم بيانات الدخول الخاصة بـ Google OpenID"
 
 # Administration > Google OpenID Connect
@@ -741,11 +769,16 @@ msgid "admin.pref#GoogleOpenIDConnect# Yes"
 msgstr "نعم"
 
 # Administration > Google OpenID Connect
+#, fuzzy
 msgid ""
 "admin.pref#GoogleOpenIDConnect# You will need to select OAuth2 when creating "
 "an app in the Google cloud console, and set the web origin to your_opac_url "
 "and the redirect url to your_opac_url/cgi-bin/koha/svc/auth/"
-"googleopenidconnect ."
+"googleopenidconnect. Requires <a href=\"/cgi-bin/koha/admin/preferences.pl?"
+"op=search&searchfield=GoogleOAuth2ClientID\">GoogleOAuth2ClientID</a> and <a "
+"href=\"/cgi-bin/koha/admin/preferences.pl?"
+"op=search&searchfield=GoogleOAuth2ClientSecret\">GoogleOAuth2ClientSecret</"
+"a> to be set."
 msgstr ""
 "يجب عليك تحديد OAuth2 عند إنشاء تطبيق في جهاز سحابة جوجل، وضبط أصل الويب إلى "
 "your_opac_url وإعادة توجيه عنوان الurl إلى your_opac_url/cgi-bin/koha/svc/"
@@ -760,14 +793,21 @@ msgid "admin.pref#GoogleOpenIDConnectAutoRegister# Don't allow"
 msgstr "عدم السماح"
 
 # Administration > Google OpenID Connect
+#, fuzzy
 msgid ""
 "admin.pref#GoogleOpenIDConnectAutoRegister# patrons logging in with Google "
-"Open ID to automatically register."
+"Open ID to automatically register. Requires <a href=\"/cgi-bin/koha/admin/"
+"preferences.pl?op=search&searchfield=GoogleOpenIDConnect"
+"\">GoogleOpenIDConnect</a>."
 msgstr "للمستخدمين مسجلي الدخول بمعرف جوجل أوبن Google Open بالتسجيل تلقائياً."
 
-# Administration > Google OpenID Connect
-msgid "admin.pref#GoogleOpenIDConnectDefaultBranch# ."
-msgstr "."
+# Patrons > General
+#, fuzzy
+msgid ""
+"admin.pref#GoogleOpenIDConnectDefaultBranch# Requires <a href=\"/cgi-bin/"
+"koha/admin/preferences.pl?op=search&searchfield=GoogleOpenIDConnect"
+"\">GoogleOpenIDConnect</a>."
+msgstr "يتطلب تفعيل OPACPatronDetails."
 
 # Administration > Google OpenID Connect
 msgid ""
@@ -775,9 +815,13 @@ msgid ""
 "automatically registering a Google Open ID patron: "
 msgstr "استخدم رمز هذا الفرع عند تسجيل مستفيد بمعرف Google Open تلقائياً:"
 
-# Administration > Google OpenID Connect
-msgid "admin.pref#GoogleOpenIDConnectDefaultCategory# ."
-msgstr "."
+# Patrons > General
+#, fuzzy
+msgid ""
+"admin.pref#GoogleOpenIDConnectDefaultCategory# Requires <a href=\"/cgi-bin/"
+"koha/admin/preferences.pl?op=search&searchfield=GoogleOpenIDConnect"
+"\">GoogleOpenIDConnect</a>."
+msgstr "يتطلب تفعيل OPACPatronDetails."
 
 # Administration > Google OpenID Connect
 msgid ""
@@ -785,10 +829,13 @@ msgid ""
 "automatically registering a Google Open ID patron: "
 msgstr "اسنخدم رمز هذه الفئة عند تسجيل مستفيد بمعرف Google Open تلقائياً:"
 
-# Administration > Google OpenID Connect
+# OPAC > OpenURL
+#, fuzzy
 msgid ""
-"admin.pref#GoogleOpenIDConnectDomain# . Leave blank for all Google domains."
-msgstr ". اتركه فارغاً لكل نطاقات جوجل."
+"admin.pref#GoogleOpenIDConnectDomain# Leave blank for all Google domains. "
+"Requires <a href=\"/cgi-bin/koha/admin/preferences.pl?"
+"op=search&searchfield=GoogleOpenIDConnect\">GoogleOpenIDConnect</a>."
+msgstr "نص روابط OpenURL (أو عنوان الصورة إذا تم تعريف OpenURLImageLocation):"
 
 # Administration > Google OpenID Connect
 msgid ""
@@ -2497,6 +2544,23 @@ msgid ""
 "format BT_TAG: TAG$SUBFIELD ( e.g. lccn: 010$a )."
 msgstr ""
 "استخدم سطراً واحداً لكل وسم بتنسيق BT_TAG: TAG$SUBFIELD ( مثال: lccn: 010$a )."
+
+# Cataloging > Interface
+#, fuzzy
+msgid "cataloguing.pref#CreateAVFromCataloguing# Allow"
+msgstr "تفعيل"
+
+# Cataloging > Interface
+#, fuzzy
+msgid "cataloguing.pref#CreateAVFromCataloguing# Don't allow"
+msgstr "عدم تفعيل"
+
+# Cataloging > Interface > CreateAVFromCataloguing
+msgid ""
+"cataloguing.pref#CreateAVFromCataloguing# authorized values to be created "
+"within the cataloguing module. Librarien will need the manage_auth_values "
+"subpermission."
+msgstr ""
 
 # Cataloging > Interface
 msgid "cataloguing.pref#DefaultClassificationSource# Use"
@@ -5462,7 +5526,8 @@ msgstr ""
 "رسوم الإيجار عند حساب الرسوم للحد التي تم ضبطه في التفضيل noissuescharge."
 
 # Circulation > Holds policy
-msgid "circulation.pref#ReservesControlBranch# Check the"
+#, fuzzy
+msgid "circulation.pref#ReservesControlBranch# Check the rule from the"
 msgstr " التحقق من"
 
 # Circulation > Holds policy
@@ -5518,7 +5583,10 @@ msgid "circulation.pref#RestrictionBlockRenewing# block"
 msgstr "حظر"
 
 # Circulation > Checkout policy
-msgid "circulation.pref#RestrictionBlockRenewing# renewing of items."
+#, fuzzy
+msgid ""
+"circulation.pref#RestrictionBlockRenewing# renewing of items from the staff "
+"interface."
 msgstr "تجديد المواد"
 
 # Circulation > Checkout policy
@@ -7856,14 +7924,9 @@ msgid ""
 msgstr "يمكن فرز هذه القائمة لتعديل ترتيب اللغات في الواجهة."
 
 # I18N/L10N
-msgid ""
-"i18n_l10n.pref#TimeFormat# . <br/> <strong>NOTE:</strong> Do not change this "
-"preference on a production server with overdue items that are accruing "
-"fines. Doing so will result in duplicate fines!"
-msgstr ""
-"<br/> <strong>ملاحظة:</strong> لا تقم بتغيير هذا التفضيل على خادم الإنتاج "
-"للمواد المتأخرة التي لا تزال تحقق غرامات. القيام بذلك سيؤدي إلى مضاعفة "
-"الغرامات!"
+#, fuzzy
+msgid "i18n_l10n.pref#TimeFormat# ."
+msgstr ". "
 
 # I18N/L10N
 msgid "i18n_l10n.pref#TimeFormat# 12 hour format ( e.g. \"02:18 PM\" )"
@@ -7920,13 +7983,9 @@ msgstr ""
 "لقوائم الأحرف القابلة للتصفح. يجب أن تكون قائمة من أحرف كبيرة منفصلة بمسافة"
 
 # I18N/L10N
-msgid ""
-"i18n_l10n.pref#dateformat# . <br/> <strong>NOTE:</strong> Do not change this "
-"preference on a production server with overdue items that are accruing "
-"fines. Doing so will result in duplicate fines!"
-msgstr ""
-"<br/> <strong>ملاحظة:</strong> لا تقم بتغيير هذا التفضيل على خادم الإنتاج "
-"بالمواد المتأخرة التي تحقق غرامات. القيام بذلك سيؤدي إلى مضاعفة الغرامات!"
+#, fuzzy
+msgid "i18n_l10n.pref#dateformat# ."
+msgstr "يوم. شهر . سنة"
 
 # I18N/L10N
 msgid "i18n_l10n.pref#dateformat# Format dates like"
@@ -8194,6 +8253,23 @@ msgstr "تسجيل"
 # Logging > Logging
 msgid "logs.pref#IssueLog# when items are checked out."
 msgstr "عندما تكون المواد معارة."
+
+# Logging > Logging
+#, fuzzy
+msgid ""
+"logs.pref#NewsLog#  changes to news entries and other contents managed in "
+"the news tool."
+msgstr "التغييرات في تسجيلات الاستناد."
+
+# Logging > Logging
+#, fuzzy
+msgid "logs.pref#NewsLog# Don't log"
+msgstr "عدم تسجيل"
+
+# Logging > Logging
+#, fuzzy
+msgid "logs.pref#NewsLog# Log"
+msgstr "تسجيل"
 
 # Logging > Logging
 #, fuzzy
@@ -9195,14 +9271,19 @@ msgid ""
 msgstr "مقترحات الشراء من المستفيدين الآخرين في واجهة المستفيد (OPAC)."
 
 # OPAC > Appearance
+#, fuzzy
 msgid ""
 "opac.pref#OPACXSLTDetailsDisplay# <br />Options:<ul><li><a href=\"#\" class="
 "\"set_syspref\" data-syspref=\"OPACXSLTDetailsDisplay\" data-value="
-"\"\">leave empty</a> for \"no xslt\"</li><li>enter \"<a href=\"#\" class="
+"\"\">leave empty</a> for \"no xslt\"</li><li>Enter \"<a href=\"#\" class="
 "\"set_syspref\" data-syspref=\"OPACXSLTDetailsDisplay\" data-value=\"default"
-"\">default</a>\" for the default one</li><li>put a path to define a xslt "
-"file</li><li>put an URL for an external specific stylesheet.</li></"
-"ul>{langcode} will be replaced with current interface language."
+"\">default</a>\" for the default stylesheet</li><li>Put a path to define an "
+"xslt file</li><li>Put a URL for an external specific stylesheet.</"
+"li><li>NOTE: The system preference <a href=\"/cgi-bin/koha/admin/preferences."
+"pl?op=search&searchfield=PassItemMarcToXSLT\">PassItemMarcToXSLT</a> must be "
+"enabled if your custom stylesheet utilizes data in the item fields</li></"
+"ul>If you have multiple stylesheets for different langues the placeholder "
+"{langcode} will be replaced with current interface language."
 msgstr ""
 "<br />الخيارات:<ul><li><a href=\"#\" class=\"set_syspref\" data-syspref="
 "\"OPACXSLTDetailsDisplay\" data-value=\"\">اتركه فارغاً</a>للقيمة \"بدون xslt"
@@ -9218,14 +9299,19 @@ msgid ""
 msgstr "عرض تفاصيل أوباك بإستخدام أنماط XSLTعلى : "
 
 # OPAC > Appearance
+#, fuzzy
 msgid ""
 "opac.pref#OPACXSLTListsDisplay# <br />Options:<ul><li><a href=\"#\" class="
 "\"set_syspref\" data-syspref=\"OPACXSLTListsDisplay\" data-value=\"\">leave "
-"empty</a> for \"no xslt\"</li><li>enter \"<a href=\"#\" class=\"set_syspref"
+"empty</a> for \"no xslt\"</li><li>Enter \"<a href=\"#\" class=\"set_syspref"
 "\" data-syspref=\"OPACXSLTListsDisplay\" data-value=\"default\">default</a>"
-"\" for the default one</li><li> put a path to define a xslt file</li><li>put "
-"an URL for an external specific stylesheet.</li></ul>{langcode} will be "
-"replaced with current interface language."
+"\" for the default stylesheet</li><li>Put a path to define an xslt file</"
+"li><li>Put a URL for an external specific stylesheet.</li><li>NOTE: The "
+"system preference <a href=\"/cgi-bin/koha/admin/preferences.pl?"
+"op=search&searchfield=PassItemMarcToXSLT\">PassItemMarcToXSLT</a> must be "
+"enabled if your custom stylesheet utilizes data in the item fields</li></"
+"ul>If you have multiple stylesheets for different langues the placeholder "
+"{langcode} will be replaced with current interface language."
 msgstr ""
 "<br />الخيارات:<ul><li><a href=\"#\" class=\"set_syspref\" data-syspref="
 "\"OPACXSLTListsDisplay\" data-value=\"\">اتركه فارغاً</a> لـ \"no xslt\"</"
@@ -9241,14 +9327,19 @@ msgid ""
 msgstr "عرض القوائم في الأوباك باستخدام نمط XSLT  في:"
 
 # OPAC > Appearance
+#, fuzzy
 msgid ""
 "opac.pref#OPACXSLTResultsDisplay# <br />Options:<ul><li><a href=\"#\" class="
 "\"set_syspref\" data-syspref=\"OPACXSLTResultsDisplay\" data-value="
-"\"\">leave empty</a> for \"no xslt\"</li><li>enter \"<a href=\"#\" class="
+"\"\">leave empty</a> for \"no xslt\"</li><li>Enter \"<a href=\"#\" class="
 "\"set_syspref\" data-syspref=\"OPACXSLTResultsDisplay\" data-value=\"default"
-"\">default</a>\" for the default one</li><li> put a path to define a xslt "
-"file</li><li>put an URL for an external specific stylesheet.</li></"
-"ul>{langcode} will be replaced with current interface language."
+"\">default</a>\" for the default stylesheet</li><li>Put a path to define an "
+"xslt file</li><li>Put a URL for an external specific stylesheet.</"
+"li><li>NOTE: The system preference <a href=\"/cgi-bin/koha/admin/preferences."
+"pl?op=search&searchfield=PassItemMarcToXSLT\">PassItemMarcToXSLT</a> must be "
+"enabled if your custom stylesheet utilizes data in the item fields</li></"
+"ul>If you have multiple stylesheets for different langues the placeholder "
+"{langcode} will be replaced with current interface language."
 msgstr ""
 "<br />الخيارات:<ul><li><a href=\"#\" class=\"set_syspref\" data-syspref="
 "\"OPACXSLTResultsDisplay\" data-value=\"\"> اتركه فارغاً </a>لقيمة \"بدون xslt"
@@ -11693,9 +11784,11 @@ msgid "patrons.pref#TrackLastPatronActivity# Don't"
 msgstr "لا تفعل"
 
 # Patrons > General
+#, fuzzy
 msgid ""
-"patrons.pref#TrackLastPatronActivity# Every time a patron will connect, the "
-"borrowers.lastseen will be updated with the current time."
+"patrons.pref#TrackLastPatronActivity# The first time each day that a patron "
+"logs into the OPAC, connects to Koha via SIP or ILS-DI, or checks an item "
+"out the borrowers.lastseen will update with the current date and time."
 msgstr ""
 "في كل مرة سيقوم بها المستفيد بالاتصال، سيتم تحديث borrowers.lastseen بالوقت "
 "الحالي."
@@ -12031,6 +12124,26 @@ msgstr "عرض حتى"
 msgid "searching.pref#FacetMaxCount# facets for each category."
 msgstr "واجهات لكل فئة."
 
+# Searching > Results display
+#, fuzzy
+msgid "searching.pref#FacetOrder# Sort facets"
+msgstr "عرض الواجهات لـ"
+
+# Searching > Features
+#, fuzzy
+msgid "searching.pref#FacetOrder# alphabetically"
+msgstr "تلقائياً."
+
+# Searching > Results display
+#, fuzzy
+msgid "searching.pref#FacetOrder# by usage count"
+msgstr "عرض حتى"
+
+# Searching > Results display
+#, fuzzy
+msgid "searching.pref#FacetOrder# for each category."
+msgstr "واجهات لكل فئة."
+
 # Searching > Features
 msgid ""
 "searching.pref#IncludeSeeFromInSearches# <em>see from</em> (non-preferred "
@@ -12242,6 +12355,22 @@ msgid ""
 "searching.pref#OPACnumSearchResultsDropdown# results per page dropdown on "
 "OPAC search results."
 msgstr "قائمة نتيجة لكل صفحة المنسدلة من نتائج بحث الأوباك."
+
+# Searching > Search form
+#, fuzzy
+msgid "searching.pref#PassItemMarcToXSLT# Do"
+msgstr "نموذج البحث"
+
+# Searching > Features
+#, fuzzy
+msgid "searching.pref#PassItemMarcToXSLT# Don't"
+msgstr "عدم الاحتفاظ بـ"
+
+# Searching > Results display > PassItemMarcToXSLT
+msgid ""
+"searching.pref#PassItemMarcToXSLT# make item MARC tags available to XSLT "
+"stylesheets. Default is \"Don't\", items are displayed using other methods."
+msgstr ""
 
 # Searching > Features
 msgid ""
@@ -12969,12 +13098,18 @@ msgid ""
 msgstr "محرر WYSIWYG عند تحرير مفضلات نظام HTML معينة"
 
 # Staff interface > Appearance
+#, fuzzy
 msgid ""
 "staff_interface.pref#XSLTDetailsDisplay# <br />Options:<ul><li>Enter \"<a "
 "href=\"#\" class=\"set_syspref\" data-syspref=\"XSLTDetailsDisplay\" data-"
-"value=\"default\">default</a>\" for the default one</li><li>Put a path to "
-"define a xslt file</li><li>Put an URL for an external specific stylesheet.</"
-"li></ul>{langcode} will be replaced with current interface language"
+"value=\"default\">default</a>\" for the default stylesheet</li><li>Put a "
+"path to define an xslt file</li><li>Put a URL for an external specific "
+"stylesheet.</li><li>NOTE: The system preference <a href=\"/cgi-bin/koha/"
+"admin/preferences.pl?op=search&searchfield=PassItemMarcToXSLT"
+"\">PassItemMarcToXSLT</a> must be enabled if your custom stylesheet utilizes "
+"data in the item fields</li></ul>If you have multiple stylesheets for "
+"different langues the placeholder {langcode} will be replaced with current "
+"interface language."
 msgstr ""
 "<br />الخيارات:<ul><li>إدخال\"<a href=\"#\" class=\"set_syspref\" data-"
 "syspref=\"XSLTDetailsDisplay\" data-value=\"default\"> الافتراضي</a>\" "
@@ -12989,14 +13124,19 @@ msgid ""
 msgstr "عرض التفاصيل في واجهة الموظف باستخدام نمط XSLT في: "
 
 # Staff interface > Appearance
+#, fuzzy
 msgid ""
 "staff_interface.pref#XSLTListsDisplay# <br />Options:<ul><li><a href=\"#\" "
 "class=\"set_syspref\" data-syspref=\"XSLTListsDisplay\" data-value="
-"\"\">Leave empty</a> for \"no xslt\"</li><li>enter \"<a href=\"#\" class="
+"\"\">Leave empty</a> for \"no xslt\"</li><li>Enter \"<a href=\"#\" class="
 "\"set_syspref\" data-syspref=\"XSLTListsDisplay\" data-value=\"default"
-"\">default</a>\" for the default one</li><li> put a path to define a xslt "
-"file</li><li>put an URL for an external specific stylesheet.</li></"
-"ul>{langcode} will be replaced with current interface language"
+"\">default</a>\" for the default stylesheet</li><li>Put a path to define an "
+"xslt file</li><li>Put a URL for an external specific stylesheet.</"
+"li><li>NOTE: The system preference <a href=\"/cgi-bin/koha/admin/preferences."
+"pl?op=search&searchfield=PassItemMarcToXSLT\">PassItemMarcToXSLT</a> must be "
+"enabled if your custom stylesheet utilizes data in the item fields</li></"
+"ul>If you have multiple stylesheets for different langues the placeholder "
+"{langcode} will be replaced with current interface language."
 msgstr ""
 "<br/>خيارات:<ul><li><a href=\"#\" class=\"set_syspref\" data-syspref="
 "\"XSLTListsDisplay\" data-value=\"\">اتركها فارغة</a>لـ \"no xslt\"</"
@@ -13012,12 +13152,18 @@ msgid ""
 msgstr "عرض القوائم في واجهة الموظف باستخدام نمط XSLT في: "
 
 # Staff interface > Appearance
+#, fuzzy
 msgid ""
 "staff_interface.pref#XSLTResultsDisplay# <br />Options:<ul><li>Enter \"<a "
 "href=\"#\" class=\"set_syspref\" data-syspref=\"XSLTResultsDisplay\" data-"
-"value=\"default\">default</a>\" for the default one</li><li>Put a path to "
-"define a xslt file</li><li>Put an URL for an external specific stylesheet.</"
-"li></ul>{langcode} will be replaced with current interface language"
+"value=\"default\">default</a>\" for the default stylesheet</li><li>Put a "
+"path to define an xslt file</li><li>Put a URL for an external specific "
+"stylesheet.</li><li>NOTE: The system preference <a href=\"/cgi-bin/koha/"
+"admin/preferences.pl?op=search&searchfield=PassItemMarcToXSLT"
+"\">PassItemMarcToXSLT</a> must be enabled if your custom stylesheet utilizes "
+"data in the item fields</li></ul>If you have multiple stylesheets for "
+"different langues the placeholder {langcode} will be replaced with current "
+"interface language."
 msgstr ""
 "<br />الخيارات:<ul><li>إدخال<a href=\"#\" class=\"set_syspref\" data-syspref="
 "\"XSLTResultsDisplay\" data-value=\"default\"> الافتراضي</a>\" للإعداد "
@@ -13707,6 +13853,37 @@ msgid ""
 "reports web service."
 msgstr "صفوف التقارير قد طلبت عبر خدمة تقارير ويب."
 
+# Administration > Google OpenID Connect
+#~ msgid "admin.pref#GoogleOpenIDConnectDefaultBranch# ."
+#~ msgstr "."
+
+# Administration > Google OpenID Connect
+#~ msgid "admin.pref#GoogleOpenIDConnectDefaultCategory# ."
+#~ msgstr "."
+
+# Administration > Google OpenID Connect
+#~ msgid ""
+#~ "admin.pref#GoogleOpenIDConnectDomain# . Leave blank for all Google "
+#~ "domains."
+#~ msgstr ". اتركه فارغاً لكل نطاقات جوجل."
+
+# Circulation > Article requests
+#, fuzzy
+#~ msgid "circulation.pref#ArticleRequestsOpacHostRedirection# Disable"
+#~ msgstr "قم بتمكين"
+
+# Circulation > Article requests
+#, fuzzy
+#~ msgid "circulation.pref#ArticleRequestsOpacHostRedirection# Enable"
+#~ msgstr "قم بتمكين"
+
+# Circulation > Article requests
+#, fuzzy
+#~ msgid ""
+#~ "circulation.pref#ArticleRequestsSupportedFormats# The following article "
+#~ "request formats are supported:"
+#~ msgstr "روابط طلب المقال في نتائج البحث."
+
 # Circulation > Batch checkout
 #~ msgid ""
 #~ "circulation.pref#BatchCheckoutsValidCategories# (list of patron "
@@ -13718,6 +13895,25 @@ msgstr "صفوف التقارير قد طلبت عبر خدمة تقارير و�
 #~ "circulation.pref#OPACHoldsIfAvailableAtPickupExceptions# (list of patron "
 #~ "categories separated with a pipe '|')"
 #~ msgstr "(قائمة بفئات المستفيد المفصولة بعلامة العمود  '|')"
+
+# I18N/L10N
+#~ msgid ""
+#~ "i18n_l10n.pref#TimeFormat# . <br/> <strong>NOTE:</strong> Do not change "
+#~ "this preference on a production server with overdue items that are "
+#~ "accruing fines. Doing so will result in duplicate fines!"
+#~ msgstr ""
+#~ "<br/> <strong>ملاحظة:</strong> لا تقم بتغيير هذا التفضيل على خادم الإنتاج "
+#~ "للمواد المتأخرة التي لا تزال تحقق غرامات. القيام بذلك سيؤدي إلى مضاعفة "
+#~ "الغرامات!"
+
+# I18N/L10N
+#~ msgid ""
+#~ "i18n_l10n.pref#dateformat# . <br/> <strong>NOTE:</strong> Do not change "
+#~ "this preference on a production server with overdue items that are "
+#~ "accruing fines. Doing so will result in duplicate fines!"
+#~ msgstr ""
+#~ "<br/> <strong>ملاحظة:</strong> لا تقم بتغيير هذا التفضيل على خادم الإنتاج "
+#~ "بالمواد المتأخرة التي تحقق غرامات. القيام بذلك سيؤدي إلى مضاعفة الغرامات!"
 
 # I18N/L10N
 #~ msgid ""

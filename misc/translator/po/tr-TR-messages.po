@@ -7,8 +7,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Koha 21.05\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2021-05-11 21:17-0300\n"
-"PO-Revision-Date: 2021-05-27 08:47+0000\n"
+"POT-Creation-Date: 2021-10-20 10:29-0300\n"
+"PO-Revision-Date: 2021-06-11 11:03+0000\n"
 "Last-Translator: Onur Erdem <onurerdem@sdu.edu.tr>\n"
 "Language-Team: none\n"
 "Language: tr\n"
@@ -17,7 +17,7 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
 "X-Generator: Pootle 2.8\n"
-"X-POOTLE-MTIME: 1622105262.030543\n"
+"X-POOTLE-MTIME: 1623409383.043623\n"
 "X-Pootle-Path: /tr/21.05/tr-TR-messages.po\n"
 "X-Pootle-Revision: 1\n"
 
@@ -97,28 +97,28 @@ msgstr "'{index}' dizininin yeniden dizinlenmesi gerekiyor."
 msgid "Invalid field weight '{weight}', must be a positive decimal number."
 msgstr "Geçersiz alan ağırlığı '{weight}', pozitif bir ondalık sayı olmalıdır."
 
-#: koha-tmpl/intranet-tmpl/prog/en/modules/tools/batchMod-del.tt:129
-#: koha-tmpl/intranet-tmpl/prog/en/modules/tools/batchMod-del.tt:271
+#: koha-tmpl/intranet-tmpl/prog/en/modules/tools/batchMod-del.tt:136
+#: koha-tmpl/intranet-tmpl/prog/en/modules/tools/batchMod-del.tt:278
 msgid "Item does not belong to your library"
 msgstr "Bu materyal kütüphanenize ait değildir "
 
-#: koha-tmpl/intranet-tmpl/prog/en/modules/tools/batchMod-del.tt:130
-#: koha-tmpl/intranet-tmpl/prog/en/modules/tools/batchMod-del.tt:272
+#: koha-tmpl/intranet-tmpl/prog/en/modules/tools/batchMod-del.tt:137
+#: koha-tmpl/intranet-tmpl/prog/en/modules/tools/batchMod-del.tt:279
 msgid "Item has a waiting hold"
 msgstr "Materyal için bekleyen bir ayırtma var"
 
-#: koha-tmpl/intranet-tmpl/prog/en/modules/tools/batchMod-del.tt:131
-#: koha-tmpl/intranet-tmpl/prog/en/modules/tools/batchMod-del.tt:273
+#: koha-tmpl/intranet-tmpl/prog/en/modules/tools/batchMod-del.tt:138
+#: koha-tmpl/intranet-tmpl/prog/en/modules/tools/batchMod-del.tt:280
 msgid "Item has linked analytics"
 msgstr "Materyal analitiğe bağlı"
 
-#: koha-tmpl/intranet-tmpl/prog/en/modules/tools/batchMod-del.tt:128
-#: koha-tmpl/intranet-tmpl/prog/en/modules/tools/batchMod-del.tt:270
+#: koha-tmpl/intranet-tmpl/prog/en/modules/tools/batchMod-del.tt:135
+#: koha-tmpl/intranet-tmpl/prog/en/modules/tools/batchMod-del.tt:277
 msgid "Item is checked out"
 msgstr "Materyal ödünç verilmiş"
 
-#: koha-tmpl/intranet-tmpl/prog/en/modules/tools/batchMod-del.tt:132
-#: koha-tmpl/intranet-tmpl/prog/en/modules/tools/batchMod-del.tt:274
+#: koha-tmpl/intranet-tmpl/prog/en/modules/tools/batchMod-del.tt:139
+#: koha-tmpl/intranet-tmpl/prog/en/modules/tools/batchMod-del.tt:281
 msgid "Last item for bibliographic record with biblio-level hold on it"
 msgstr ""
 "Bibliyografik kayıt için üzerinde bibliyo-düzeyi ayırtma bulunan en son "
@@ -152,16 +152,16 @@ msgctxt "verb"
 msgid "Order"
 msgstr "Sipariş"
 
-#: koha-tmpl/intranet-tmpl/prog/en/modules/catalogue/detail.tt:821
-#, perl-brace-format
+#: koha-tmpl/intranet-tmpl/prog/en/modules/catalogue/detail.tt:825
+#, fuzzy, perl-brace-format
 msgctxt "pluralization"
 msgid "There is one archived suggestion."
 msgid_plural "There are {count} archived suggestions."
-msgstr[0] "Arşivlenmiş bir öneri var."
-msgstr[1] "Arşivlenmiş {count} öneriler var. "
+msgstr[0] "Arşivlenmiş öneri var."
+msgstr[1] "Arşivlenmiş öneriler var."
 
-#: koha-tmpl/intranet-tmpl/prog/en/modules/tools/batchMod-del.tt:133
-#: koha-tmpl/intranet-tmpl/prog/en/modules/tools/batchMod-del.tt:275
+#: koha-tmpl/intranet-tmpl/prog/en/modules/tools/batchMod-del.tt:140
+#: koha-tmpl/intranet-tmpl/prog/en/modules/tools/batchMod-del.tt:282
 msgid "Unknown reason"
 msgstr "Bilinmeyen neden"
 
@@ -173,32 +173,32 @@ msgstr ""
 "Gerekli bir dizin için tüm eşlemeleri silmeye çalıştınız, en az bir eşleme "
 "bırakmalısınız"
 
-#: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-main.tt:228
+#: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-main.tt:227
 msgid "checkout"
 msgid_plural "checkouts"
 msgstr[0] "checkout"
 msgstr[1] "checkouts"
 
-#: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-main.tt:244
+#: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-main.tt:243
 msgid "hold pending"
 msgid_plural "holds pending"
 msgstr[0] "hold pending"
 msgstr[1] "holds pending"
 
-#: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-main.tt:252
+#: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-main.tt:251
 msgid "hold waiting"
 msgid_plural "holds waiting"
 msgstr[0] "hold waiting"
 msgstr[1] "holds waiting"
 
-#: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-main.tt:269
-#: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-main.tt:276
+#: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-main.tt:268
+#: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-main.tt:275
 msgid "message"
 msgid_plural "messages"
 msgstr[0] "ileti"
 msgstr[1] "iletiler"
 
-#: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-main.tt:236
+#: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-main.tt:235
 msgid "overdue"
 msgid_plural "overdues"
 msgstr[0] "gecikmiş"

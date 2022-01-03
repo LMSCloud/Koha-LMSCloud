@@ -17,9 +17,9 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: Koha 21.05\n"
-"POT-Creation-Date: 2021-05-27 10:53-0300\n"
-"PO-Revision-Date: 2021-04-16 09:24+0000\n"
-"Last-Translator: Fridolin SOMERS <fridolin.somers@biblibre.com>\n"
+"POT-Creation-Date: 2021-09-15 06:51-0300\n"
+"PO-Revision-Date: 2021-07-02 14:40+0000\n"
+"Last-Translator: Aurélie B <aurelie.berut@enssib.fr>\n"
 "Language-Team: French (France) (http://www.transifex.com/projects/p/koha/"
 "language/fr_FR/)\n"
 "Language: fr\n"
@@ -28,7 +28,7 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n > 1);\n"
 "X-Generator: Pootle 2.8\n"
-"X-POOTLE-MTIME: 1618565094.891979\n"
+"X-POOTLE-MTIME: 1625236837.750482\n"
 "X-Pootle-Path: /fr/21.05/fr-FR-marc-NORMARC.po\n"
 "X-Pootle-Revision: 1\n"
 
@@ -984,9 +984,9 @@ msgid "Fantasikart"
 msgstr "Fantasikart"
 
 #: koha-tmpl/intranet-tmpl/prog/en/modules/cataloguing/value_builder/normarc_field_008.tt:2
-#, fuzzy, c-format
+#, c-format
 msgid "Feltbygger for 008 &rsaquo; Katalogisering &rsaquo; Koha"
-msgstr "Koha &rsaquo; Katalogisering &rsaquo; Feltbygger for 008"
+msgstr "Générateur de champs pour 008 &rsaquo; Catalogage &rsaquo; Koha"
 
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/NORMARCslim2intranetResults.xsl:553
 #: koha-tmpl/opac-tmpl/bootstrap/en/xslt/NORMARCslim2OPACResults.xsl:561

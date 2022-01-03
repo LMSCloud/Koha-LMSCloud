@@ -48,6 +48,13 @@ sub search {
 
     # Get the module_bit from a given permission code
     if ( $has_permission ) {
+        if ( defined $has_permission && !ref $has_permission && ref \$has_permission eq 'SCALAR' ) {
+            my $permission = {};
+            my @permissionParts = split(/\./,$has_permission);
+            $permission->{permission} = $permissionParts[0] if ( defined $permissionParts[0] && length($permissionParts[0]) );
+            $permission->{subpermission} = $permissionParts[1] if ( defined $permissionParts[1] && length($permissionParts[1]) );
+            $has_permission = $permission;
+        }
         ($has_permission->{module_bit}) = $dbh->selectrow_array(q|
             SELECT bit FROM userflags WHERE flag=?
         |, undef, $has_permission->{permission});
@@ -308,12 +315,8 @@ sub search {
 
 
         if ( $searchfieldstype eq 'standard' and C4::Context->preference('ExtendedPatronAttributes') and $searchmember ) {
-            my @matching_borrowernumbers = Koha::Patrons->filter_by_attribute_value($searchmember)->get_column('borrowernumber');
-
-            for my $borrowernumber ( @matching_borrowernumbers ) {
-                push @where_strs_or, "borrowers.borrowernumber = ?";
-                push @where_args, $borrowernumber;
-            }
+             push @where_strs_or, " borrowers.borrowernumber IN ( SELECT DISTINCT borrowernumber FROM borrower_attributes JOIN borrower_attribute_types USING (code) WHERE staff_searchable = 1 AND attribute LIKE ? ) ";
+             push @where_args, $term;
         }
 
         push @where_strs, '('. join (' OR ', @where_strs_or) . ')'

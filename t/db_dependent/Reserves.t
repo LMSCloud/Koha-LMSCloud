@@ -17,7 +17,7 @@
 
 use Modern::Perl;
 
-use Test::More tests => 67;
+use Test::More tests => 68;
 use Test::MockModule;
 use Test::Warn;
 
@@ -555,6 +555,9 @@ $cancancel = CanReserveBeCanceledFromOpac($canres->{reserve_id}, $requesters{$br
 is($cancancel, 0, 'Reserve in transfer status cant be canceled');
 
 $dbh->do('DELETE FROM reserves', undef, ($bibnum));
+is( CanReserveBeCanceledFromOpac($canres->{resserve_id}, $requesters{$branch_1}), undef,
+    'Cannot cancel a deleted hold' );
+
 AddReserve(
     {
         branchcode     => $branch_1,
@@ -1077,9 +1080,9 @@ subtest 'RevertWaitingStatus' => sub {
     );
 };
 
-subtest 'CheckReserves additional test' => sub {
+subtest 'CheckReserves additional tests' => sub {
 
-    plan tests => 3;
+    plan tests => 8;
 
     my $item = $builder->build_sample_item;
     my $reserve1 = $builder->build_object(
@@ -1152,6 +1155,68 @@ subtest 'CheckReserves additional test' => sub {
     is( $matched_reserve->{reserve_id},
         $reserve1->reserve_id, "We got the Transit reserve" );
     is( scalar @$possible_reserves, 2, 'We do get both reserves' );
+
+    my $patron_B = $builder->build_object({ class => "Koha::Patrons" });
+    my $item_A = $builder->build_sample_item;
+    my $item_B = $builder->build_sample_item({
+        homebranch => $patron_B->branchcode,
+        biblionumber => $item_A->biblionumber,
+        itype => $item_A->itype
+    });
+    Koha::CirculationRules->set_rules(
+        {
+            branchcode   => undef,
+            categorycode => undef,
+            itemtype     => $item_A->itype,
+            rules        => {
+                reservesallowed => 25,
+                holds_per_record => 1,
+            }
+        }
+    );
+    Koha::CirculationRules->set_rule({
+        branchcode => undef,
+        itemtype   => $item_A->itype,
+        rule_name  => 'holdallowed',
+        rule_value => 'from_home_library'
+    });
+    my $reserve_id = AddReserve(
+        {
+            branchcode     => $patron_B->branchcode,
+            borrowernumber => $patron_B->borrowernumber,
+            biblionumber   => $item_A->biblionumber,
+            priority       => 1,
+            itemnumber     => undef,
+        }
+    );
+
+    ok( $reserve_id, "We can place a record level hold because one item is owned by patron's home library");
+    t::lib::Mocks::mock_preference('ReservesControlBranch', 'ItemHomeLibrary');
+    ( $status, $matched_reserve, $possible_reserves ) = CheckReserves( $item_A->itemnumber );
+    is( $status, "", "We do not fill the hold with item A because it is not from the patron's homebranch");
+    Koha::CirculationRules->set_rule({
+        branchcode => $item_A->homebranch,
+        itemtype   => $item_A->itype,
+        rule_name  => 'holdallowed',
+        rule_value => 'from_any_library'
+    });
+    ( $status, $matched_reserve, $possible_reserves ) = CheckReserves( $item_A->itemnumber );
+    is( $status, "Reserved", "We fill the hold with item A because item's branch rule says allow any");
+
+
+    # Changing the control branch should change only the rule we get
+    t::lib::Mocks::mock_preference('ReservesControlBranch', 'PatronLibrary');
+    ( $status, $matched_reserve, $possible_reserves ) = CheckReserves( $item_A->itemnumber );
+    is( $status, "", "We do not fill the hold with item A because it is not from the patron's homebranch");
+    Koha::CirculationRules->set_rule({
+        branchcode   => $patron_B->branchcode,
+        itemtype   => $item_A->itype,
+        rule_name  => 'holdallowed',
+        rule_value => 'from_any_library'
+    });
+    ( $status, $matched_reserve, $possible_reserves ) = CheckReserves( $item_A->itemnumber );
+    is( $status, "Reserved", "We fill the hold with item A because patron's branch rule says allow any");
+
 };
 
 subtest 'AllowHoldOnPatronPossession test' => sub {
@@ -1251,11 +1316,15 @@ subtest 'ModReserveAffect logging' => sub {
     $hold = Koha::Holds->find($reserve_id);
     is( $hold->timestamp, $previous_timestamp, 'Make sure the previous timestamp has been used' );
 
+    # Avoid warnings
+    my $reserve_mock = Test::MockModule->new('C4::Reserves');
+    $reserve_mock->mock( '_koha_notify_reserve', undef );
+
     # Mark it waiting
     ModReserveAffect( $item->itemnumber, $patron->borrowernumber );
 
-    $hold = Koha::Holds->find($reserve_id);
-    is( $hold->found, 'W', 'Hold has been set waiting' );
+    $hold->discard_changes;
+    ok( $hold->is_waiting, 'Hold has been set waiting' );
     isnt( $hold->timestamp, $previous_timestamp, 'The timestamp has been modified' );
 
     my $log = Koha::ActionLogs->search({ module => 'HOLDS', action => 'MODIFY', object => $hold->reserve_id })->next;

@@ -14,6 +14,12 @@ OPAC:
                   homebranch: "home library"
             - . Please note that this feature is currently available for MARC21 and UNIMARC.
         -
+            - pref: OPACSearchAutoComplete
+              choices:
+                  0: Show
+                  1: "Don't show"
+            - suggestions for simple search terms in OPAC with the catalog search field (Elasticsearch only). 
+        -
             - Use the
             - pref: opacthemes
               choices: opac-templates
@@ -101,17 +107,22 @@ OPAC:
             - 'Display lists in the OPAC using XSLT stylesheet at: '
             - pref: OPACXSLTListsDisplay
               class: file
-            - '<br />Options:<ul><li><a href="#" class="set_syspref" data-syspref="OPACXSLTListsDisplay" data-value="">leave empty</a> for "no xslt"</li><li>enter "<a href="#" class="set_syspref" data-syspref="OPACXSLTListsDisplay" data-value="default">default</a>" for the default one</li><li> put a path to define a xslt file</li><li>put an URL for an external specific stylesheet.</li></ul>{langcode} will be replaced with current interface language.'
+            - '<br />Options:<ul><li><a href="#" class="set_syspref" data-syspref="OPACXSLTListsDisplay" data-value="">leave empty</a> for "no xslt"</li><li>Enter "<a href="#" class="set_syspref" data-syspref="OPACXSLTListsDisplay" data-value="default">default</a>" for the default stylesheet</li><li>Put a path to define an xslt file</li><li>Put a URL for an external specific stylesheet.</li><li>NOTE: The system preference <a href="/cgi-bin/koha/admin/preferences.pl?op=search&searchfield=PassItemMarcToXSLT">PassItemMarcToXSLT</a> must be enabled if your custom stylesheet utilizes data in the item fields</li></ul>If you have multiple stylesheets for different langues the placeholder {langcode} will be replaced with current interface language.'
         -
             - 'Display OPAC results using XSLT stylesheet at: '
             - pref: OPACXSLTResultsDisplay
               class: file
-            - '<br />Options:<ul><li><a href="#" class="set_syspref" data-syspref="OPACXSLTResultsDisplay" data-value="">leave empty</a> for "no xslt"</li><li>enter "<a href="#" class="set_syspref" data-syspref="OPACXSLTResultsDisplay" data-value="default">default</a>" for the default one</li><li> put a path to define a xslt file</li><li>put an URL for an external specific stylesheet.</li></ul>{langcode} will be replaced with current interface language.'
+            - '<br />Options:<ul><li><a href="#" class="set_syspref" data-syspref="OPACXSLTResultsDisplay" data-value="">leave empty</a> for "no xslt"</li><li>Enter "<a href="#" class="set_syspref" data-syspref="OPACXSLTResultsDisplay" data-value="default">default</a>" for the default stylesheet</li><li>Put a path to define an xslt file</li><li>Put a URL for an external specific stylesheet.</li><li>NOTE: The system preference <a href="/cgi-bin/koha/admin/preferences.pl?op=search&searchfield=PassItemMarcToXSLT">PassItemMarcToXSLT</a> must be enabled if your custom stylesheet utilizes data in the item fields</li></ul>If you have multiple stylesheets for different langues the placeholder {langcode} will be replaced with current interface language.'
         -
             - 'Display OPAC details using XSLT stylesheet at: '
             - pref: OPACXSLTDetailsDisplay
               class: file
-            - '<br />Options:<ul><li><a href="#" class="set_syspref" data-syspref="OPACXSLTDetailsDisplay" data-value="">leave empty</a> for "no xslt"</li><li>enter "<a href="#" class="set_syspref" data-syspref="OPACXSLTDetailsDisplay" data-value="default">default</a>" for the default one</li><li>put a path to define a xslt file</li><li>put an URL for an external specific stylesheet.</li></ul>{langcode} will be replaced with current interface language.'
+            - '<br />Options:<ul><li><a href="#" class="set_syspref" data-syspref="OPACXSLTDetailsDisplay" data-value="">leave empty</a> for "no xslt"</li><li>Enter "<a href="#" class="set_syspref" data-syspref="OPACXSLTDetailsDisplay" data-value="default">default</a>" for the default stylesheet</li><li>Put a path to define an xslt file</li><li>Put a URL for an external specific stylesheet.</li><li>NOTE: The system preference <a href="/cgi-bin/koha/admin/preferences.pl?op=search&searchfield=PassItemMarcToXSLT">PassItemMarcToXSLT</a> must be enabled if your custom stylesheet utilizes data in the item fields</li></ul>If you have multiple stylesheets for different langues the placeholder {langcode} will be replaced with current interface language.'
+        -
+            - 'Display volumes of a title in OPAC details view using XSLT stylesheet at: '
+            - pref: OPACXSLTVolumeDisplay
+              class: file
+            - '<br />Options:<ul><li><a href="#" class="set_syspref" data-syspref="OPACXSLTVolumeDisplay" data-value="">leave empty</a> for "no xslt"</li><li>Enter "<a href="#" class="set_syspref" data-syspref="OPACXSLTVolumeDisplay" data-value="default">default</a>" for the default stylesheet</li><li>Put a path to define an xslt file</li><li>Put a URL for an external specific stylesheet.</li><li>NOTE: The system preference <a href="/cgi-bin/koha/admin/preferences.pl?op=search&searchfield=PassItemMarcToXSLT">PassItemMarcToXSLT</a> must be enabled if your custom stylesheet utilizes data in the item fields</li></ul>If you have multiple stylesheets for different langues the placeholder {langcode} will be replaced with current interface language.'
         -
             - "Show itemtype icons in the OPAC: "
             - pref: OpacNoItemTypeImages
@@ -119,11 +130,6 @@ OPAC:
               choices:
                   1: "No"
                   0: "Yes"
-        -
-            - 'Display volumes of a title in OPAC details view using XSLT stylesheet at: '
-            - pref: OPACXSLTVolumeDisplay
-              class: file
-            - '<br />Options:<ul><li><a href="#" class="set_syspref" data-syspref="OPACXSLTResultsDisplay" data-value="">Leave empty</a> for "no xslt"</li><li>enter "<a href="#" class="set_syspref" data-syspref="OPACXSLTResultsDisplay" data-value="default">default</a>" for the default one</li><li> put a path to define a xslt file</li><li>put an URL for an external specific stylesheet.</li></ul>{langcode} will be replaced with current interface language'
         -
             - pref: DisplayOPACiconsXSLT
               choices:
@@ -264,8 +270,8 @@ OPAC:
             - pref: OPACMySummaryCallNumber
               default: 0
               choices:
-                  yes: Show
-                  no: "Don't show"
+                  1: Show
+                  0: "Don't show"
             - a column containing the call number of the items on the "my summary" tab.
         -
             - 'Add additional elements to the "More Searches" bar on the OPAC, with the following HTML (leave blank to disable):'
@@ -283,8 +289,8 @@ OPAC:
             - pref: OPACMySummaryLibrary
               default: 0
               choices:
-                  yes: Show
-                  no: "Don't show"
+                  1: Show
+                  0: "Don't show"
             - a column containing the issuing library branch of the checked out / overdue items on the "my summary" tab.
         -
             - "Note to display on the patron summary page. This note only appears if the patron is logged in:"
@@ -372,8 +378,8 @@ OPAC:
             - pref: OpacDetailVolumeDisplay
               default: 1
               choices:
-                  yes: Show
-                  no: "Don't show"
+                  1: Show
+                  0: "Don't show"
             - " linked titles in OPAC detailed view based on the linked records in fields 770$w, 772$w, 773$w, 774$w, 775$w, 776$w, 777$w, 780$w, 785$w, 787$w, 800$w, 810$w, 811$w, 830$w."
             - "."
         -
@@ -896,17 +902,19 @@ OPAC:
             - pref: PatronSelfRegistrationBorrowerMandatoryField
               type: modalselect
               source: borrowers
+              exclusions: sort1|sort2
         -
             - "The following <a href='http://schema.koha-community.org/__VERSION__/tables/borrowers.html' target='blank'>database columns</a> will not appear on the patron self-registration screen:"
             - pref: PatronSelfRegistrationBorrowerUnwantedField
               type: modalselect
               source: borrowers
-              exclusions: branchcode
+              exclusions: branchcode|sort1|sort2
         -
             - "The following <a href='http://schema.koha-community.org/__VERSION__/tables/borrowers.html' target='blank'>database columns</a> will not appear on the patron self-modification screen:"
             - pref: PatronSelfModificationBorrowerUnwantedField
               type: modalselect
               source: borrowers
+              exclusions: sort1|sort2
         -
             - "Display the following additional instructions for patrons who self register via the OPAC ( HTML is allowed ):"
             - pref: PatronSelfRegistrationAdditionalInstructions
@@ -984,14 +992,14 @@ OPAC:
             - pref: EnablePayPalOpacPayments
               default: 1
               choices:
-                  yes: Allow
-                  no: "Don't allow"
+                  1: Allow
+                  0: "Don't allow"
             - "patrons to make payments from the OPAC via PayPal in"
             - pref: PayPalSandboxMode
               default: 1
               choices:
-                  yes: "Sandbox"
-                  no: "Production"
+                  1: "Sandbox"
+                  0: "Production"
             - "mode."
         -
             - "The email address to receive PayPal payments is "
@@ -1015,8 +1023,8 @@ OPAC:
             - pref: GirosolutionCreditcardOpacPaymentsEnabled
               default: 0
               choices:
-                  yes: Allow
-                  no: "Don't allow"
+                  1: Allow
+                  0: "Don't allow"
             - "patrons to make credit card payments from the OPAC via GiroSolution."
         -
             - "The library's GiroSolution Project ID for credit card payments is "
@@ -1028,8 +1036,8 @@ OPAC:
             - pref: GirosolutionGiropayOpacPaymentsEnabled
               default: 0
               choices:
-                  yes: Allow
-                  no: "Don't allow"
+                  1: Allow
+                  0: "Don't allow"
             - "patrons to make GiroPay payments from the OPAC via GiroSolution."
         -
             - "The library's GiroSolution Project ID for GiroPay payments is "
@@ -1051,8 +1059,8 @@ OPAC:
             - pref: Epay21PaypageOpacPaymentsEnabled
               default: 0
               choices:
-                  yes: Allow
-                  no: "Don't allow"
+                  1: Allow
+                  0: "Don't allow"
             - "patrons to make paypage payments from the OPAC via epay21."
         -
             - "The URL for accessing epay21 paypage webservices is "
@@ -1087,8 +1095,8 @@ OPAC:
             - pref: PmpaymentPaypageOpacPaymentsEnabled
               default: 0
               choices:
-                  yes: Allow
-                  no: "Don't allow"
+                  1: Allow
+                  0: "Don't allow"
             - "patrons to make paypage payments from the OPAC via pmPayment."
         -
             - "The URL for accessing pmPayment paypage webservices is "
@@ -1119,8 +1127,8 @@ OPAC:
             - pref: EpayblPaypageOpacPaymentsEnabled
               default: 0
               choices:
-                  yes: Allow
-                  no: "Don't allow"
+                  1: Allow
+                  0: "Don't allow"
             - "patrons to make paypage payments from the OPAC via the ePayBL paypage."
         -
             - "The URL for accessing ePayBL webservices is "

@@ -16,8 +16,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Koha 21.05\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2021-05-14 07:31-0300\n"
-"PO-Revision-Date: 2020-11-27 13:14+0000\n"
+"POT-Creation-Date: 2021-10-20 05:19-0300\n"
+"PO-Revision-Date: 2021-09-13 20:59+0000\n"
 "Last-Translator: Caroline Cyr-La-Rose <caroline.cyr-la-rose@inlibro.com>\n"
 "Language-Team: French Canada <koha-translate@lists.koha-community.org>\n"
 "Language: fr_CA\n"
@@ -26,7 +26,7 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n > 1);\n"
 "X-Generator: Pootle 2.8\n"
-"X-POOTLE-MTIME: 1606482846.126552\n"
+"X-POOTLE-MTIME: 1631566773.200029\n"
 "X-Pootle-Path: /fr_CA/21.05/fr-CA-marc-MARC21.po\n"
 "X-Pootle-Revision: 1\n"
 
@@ -280,8 +280,8 @@ msgid "/cgi-bin/koha/catalogue/search.pl?q=Control-number:"
 msgstr "/cgi-bin/koha/catalogue/search.pl?q=Control-number:"
 
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:225
-#, c-format
-msgid "/cgi-bin/koha/catalogue/search.pl?q=Host-item:"
+#, fuzzy, c-format
+msgid "/cgi-bin/koha/catalogue/search.pl?q=Host-item:("
 msgstr "/cgi-bin/koha/catalogue/search.pl?q=Host-item:"
 
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slimUtils.xsl:295
@@ -395,8 +395,8 @@ msgid "/cgi-bin/koha/opac-search.pl?q=Control-number:"
 msgstr "/cgi-bin/koha/opac-search.pl?q=Control-number:"
 
 #: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:260
-#, c-format
-msgid "/cgi-bin/koha/opac-search.pl?q=Host-item:"
+#, fuzzy, c-format
+msgid "/cgi-bin/koha/opac-search.pl?q=Host-item:("
 msgstr "/cgi-bin/koha/opac-search.pl?q=Host-item:"
 
 #: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:339
@@ -2338,8 +2338,8 @@ msgid "Algonquian (Other)"
 msgstr "Algonquiennes, langues"
 
 #: koha-tmpl/intranet-tmpl/prog/en/modules/cataloguing/value_builder/marc21_linking_section.tt:29
-#, c-format
-msgid "All Item Types"
+#, fuzzy, c-format
+msgid "All item types"
 msgstr "Tous les types de document"
 
 # http://www.marc21.ca/M21/COD/LNG-C.html
@@ -2650,7 +2650,7 @@ msgstr "Awadhi"
 #: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:1131
 #, c-format
 msgid "Awards: "
-msgstr "Récompenses : "
+msgstr "Prix décernés : "
 
 # www.marc21.ca/M21/COD/LNG-C.html
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21Languages.xsl:43

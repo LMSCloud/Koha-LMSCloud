@@ -446,6 +446,7 @@ sub NewSuggestion {
                     suggestionid   => $full_suggestion->{suggestionid},
                     to_address     => $toaddress,
                     message_transport_type => 'email',
+                    branchcode     => $full_suggestion->{branchcode},
                 }
             ) or warn "can't enqueue letter $letter";
         }
@@ -508,7 +509,7 @@ sub ModSuggestion {
                     suggestionid   => $full_suggestion->{suggestionid},
                     LibraryName    => C4::Context->preference("LibraryName"),
                     message_transport_type => $transport,
-                    branchcode     => $full_suggestion->{branchcode}
+                    branchcode     => $full_suggestion->{branchcode},
                 }
             ) or warn "can't enqueue letter $letter";
         }

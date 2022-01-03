@@ -122,7 +122,7 @@ function setBrockhausCollectionName(facetData, i)  {
 }
 
 function showBrockhausResult(facetID) {
-    var pagination = getPagination(facetID, maxHitCountBrockhaus);
+    var pagination = getBrockhausPagination(facetID, maxHitCountBrockhaus);
     var content = '';
 
     for (var i=0; i<brockhausData.results[facetID].hitList.length;i++) {
@@ -146,7 +146,7 @@ function showBrockhausResult(facetID) {
     $('#numresults').html($('#encyclopedianumresults').html());
     $('#showCatalogHitList').attr("href", "javascript:showCatalogHitListBrockhaus()");
 }
-function getPagination(facetID, maxHitCount) {
+function getBrockhausPagination(facetID, maxHitCount) {
     var paginationText = '';
     if ( brockhausData.results[facetID].numFound <= maxHitCount ) {
         return paginationText;

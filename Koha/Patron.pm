@@ -204,6 +204,10 @@ sub store {
             $self->surname( uc($self->surname) )
                 if C4::Context->preference("uppercasesurnames");
 
+            $self->relationship(undef) # We do not want to store an empty string in this field
+              if defined $self->relationship
+                     and $self->relationship eq "";
+
             unless ( $self->in_storage ) {    #AddMember
 
                 # Generate a valid userid/login if needed
@@ -2098,7 +2102,7 @@ sub queue_notice {
     return unless exists $params->{message_name} xor $params->{message_transports}; # We only want one of these
 
     my $library = Koha::Libraries->find( $letter_params->{branchcode} );
-    my $admin_email_address = $library->inbound_email_address;
+    my $from_email_address = $library->from_email_address;
 
     my @message_transports;
     my $letter_code;
@@ -2133,7 +2137,7 @@ sub queue_notice {
         C4::Letters::EnqueueLetter({
             letter => $letter,
             borrowernumber => $self->borrowernumber,
-            from_address   => $admin_email_address,
+            from_address   => $from_email_address,
             message_transport_type => $mtt
         }) unless $test_mode;
         push @{$return{sent}}, $mtt;

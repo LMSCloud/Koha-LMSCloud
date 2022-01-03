@@ -9,17 +9,38 @@ index:
         filter:
           - icu_folding
         char_filter:
+          - german_specific_char_filter
           - punctuation
       analyzer_standard:
         tokenizer: icu_tokenizer
         filter:
           - icu_folding
+        char_filter:
+          - german_specific_char_filter
       analyzer_stdno:
         tokenizer: whitespace
         filter:
           - icu_folding
         char_filter:
           - punctuation
+      analyzer_availability:
+        tokenizer: keyword
+        char_filter:
+          - nondigits
+          - availability_false
+          - availability_true
+      trigram:
+        type: custom
+        tokenizer: standard
+        filter: 
+          - lowercase
+          - shingle
+      reverse:
+        type: custom
+        tokenizer: standard
+        filter: 
+          - lowercase
+          - reverse
     normalizer:
       icu_folding_normalizer:
         type: custom
@@ -30,6 +51,11 @@ index:
         char_filter: icu_normalizer
       facet_normalizer:
         char_filter: facet
+    filter:
+      shingle:
+        type: shingle
+        min_shingle_size: 2
+        max_shingle_size: 3
     char_filter:
       # The punctuation filter is used to remove any punctuation chars in fields that don't use icu_tokenizer.
       punctuation:
@@ -37,10 +63,77 @@ index:
         # The pattern contains all ASCII punctuation characters.
         pattern: '([\x00-\x1F,\x21-\x2F,\x3A-\x40,\x5B-\x60,\x7B-\x89,\x8B,\x8D,\x8F,\x90-\x99,\x9B,\x9D,\xA0-\xBF,\xD7,\xF7])'
         replacement: ''
+      # The punctuation filter is used to remove any punctuation chars in fields that don't use icu_tokenizer.
+      nondigits:
+        type: pattern_replace
+        # The pattern removes everything except digits.
+        pattern: '([^0-9]+)'
+        replacement: ''
+      # The availability_false filter is used to modify a numeric value >0 to an availabilty false value.
+      availability_false:
+        type: pattern_replace
+        # The pattern removes everything except digits.
+        pattern: '(^[0-9]*[1-9]+[0-9]*$)'
+        replacement: 'false'
+      # The availability_true filter is used to modify a numeric value of 0 to a availabilty true value.
+      availability_true:
+        type: pattern_replace
+        # The pattern removes everything except digits.
+        pattern: '(^0+$)'
+        replacement: 'true'
       facet:
         type: pattern_replace
         pattern: '\s*(?<!\p{Lu})[.\-,;]*\s*$'
         replacement: ''
+      german_specific_char_filter:
+        type: mapping
+        mappings:
+          - 'drei ??? => drei fragezeichen'
+          - 'drei !!! => drei ausrufezeichen'
+          - 'Drei ??? => drei fragezeichen'
+          - 'Drei !!! => drei ausrufezeichen'
+          - '??? => drei fragezeichen'
+          - '!!! => drei ausrufezeichen'
+          - '? => \\ fragezeichen '
+          - '! => \\ ausrufezeichen '
+          - '¿ => \\ fragezeichen '
+          - '¡ => \\ ausrufezeichen '
+          - '& => \\ und '
+          - '$ => \\ dollar '
+          - '¢ => \\ cent '
+          - '€ => \\ euro '
+          - '¥ => \\ yen '
+          - '£ => \\ pfund '
+          - 'Æ => ae'
+          - 'ӕ => ae'
+          - 'ä => ae'
+          - 'Ä => Ae'
+          - 'ā => aa'
+          - 'ï => ie'
+          - 'ī => ii'
+          - 'ü => ue'
+          - 'ū => uu'
+          - 'ëē => ee'
+          - 'Œ => Oe'
+          - 'œ => oe'
+          - 'ö => oe'
+          - 'ø => oe'
+          - 'ō => oo'
+          - 'ß => ss'
+    default:
+      tokenizer: icu_tokenizer
+      filter:
+        - icu_folding
+      char_filter:
+        - german_specific_char_filter
+    default_search:
+      tokenizer: icu_tokenizer
+      filter:
+        - icu_folding
+      char_filter:
+        - german_specific_char_filter
 index.mapping.total_fields.limit: 10000
 index.number_of_replicas: 1
 index.number_of_shards: 5
+index.max_result_window: 100000
+index.max_rescore_window: 100000

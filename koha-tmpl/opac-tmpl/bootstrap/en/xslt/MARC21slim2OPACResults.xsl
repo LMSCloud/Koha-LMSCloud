@@ -552,6 +552,15 @@
         <span class="byAuthor">by </span><span class="author">
         <!-- #13383 -->
         <xsl:for-each select="marc:datafield[(@tag=100 or @tag=700 or @tag=110 or @tag=710 or @tag=111 or @tag=711) and @ind1!='z']">
+            <a>
+            <xsl:choose>
+                <xsl:when test="marc:subfield[@code=9] and $UseAuthoritiesForTracings='1'">
+                    <xsl:attribute name="href">/cgi-bin/koha/opac-search.pl?q=an:"<xsl:value-of select="marc:subfield[@code=9]"/>"</xsl:attribute>
+                </xsl:when>
+                <xsl:otherwise>
+                    <xsl:attribute name="href">/cgi-bin/koha/opac-search.pl?q=au:"<xsl:value-of select="marc:subfield[@code='a']"/>"</xsl:attribute>
+                </xsl:otherwise>
+            </xsl:choose>
             <xsl:call-template name="chopPunctuation">
                 <xsl:with-param name="chopString">
                     <xsl:call-template name="subfieldSelect">
@@ -667,6 +676,7 @@
                     <xsl:text>]</xsl:text>
                 </span>
             </xsl:if>
+            </a>
             <xsl:choose>
                 <xsl:when test="position()=last()"><xsl:text>.</xsl:text></xsl:when><xsl:otherwise><span class="separator"><xsl:text> | </xsl:text></span></xsl:otherwise>
             </xsl:choose>
@@ -1125,7 +1135,7 @@
      </xsl:if>
      <!-- Browse keywords -->
      <xsl:if test="marc:datafield[substring(@tag, 1, 1) = '6' and not(@tag=653 or @tag=655 or @tag=689)]">
-         <xsl:for-each select="marc:datafield[substring(@tag, 1, 1) = '6'][not(@tag=653 or @tag=655 or @tag=689)]">
+         <xsl:for-each select="marc:datafield[substring(@tag, 1, 1) = '6' and marc:subfield[@code='a'] != ''][not(@tag=653 or @tag=655 or @tag=689)]">
          <xsl:text> | </xsl:text> 
          <a>
             <xsl:attribute name="href">/cgi-bin/koha/opac-search.pl?q=su<xsl:value-of select="$SubjectModifier"/>:<xsl:value-of select="$TracingQuotesLeft"/><xsl:value-of select="translate(marc:subfield[@code='a'],'();','')"/><xsl:value-of select="$TracingQuotesRight"/></xsl:attribute>

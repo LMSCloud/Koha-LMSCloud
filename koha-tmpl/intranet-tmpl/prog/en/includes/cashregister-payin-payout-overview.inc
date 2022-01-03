@@ -345,18 +345,21 @@
 
         $(document).ready( function() {
             
-            $("#inpaymentoverview,#outpaymentoverview").dataTable($.extend(true, {}, dataTablesDefaults, {
-                'bAutoWidth': true,
-                'aoColumnDefs': [
-                    { "bSortable": true, "bSearchable": false, 'aTargets': ["_all"] },
-                    { "aTargets": [ 2 ], "asSorting": [ "desc","asc" ], "sType": "natural"  },
-                    { "aTargets": [ 0,1 ], "asSorting": [ "asc","desc" ]  },
+            $("#inpaymentoverview,#outpaymentoverview").dataTable({
+                "bAutoWidth": false,
+                "autoWidth": false,
+                "bDestroy":true,
+                "columnDefs": [
+                    { "sortable": true, "searchable": false, 'targets': ["_all"] },
+                    { "targets": [ 2 ], "sorting": [ "desc","asc" ], "type": "natural"  },
+                    { "targets": [ 0,1 ], "sorting": [ "asc","desc" ]  },
                 ],
-                "aoColumns": [ { "sType": 'natural' }, null, null],
-                "iDisplayLength": 100,
+                "columns": [ { "width": '150px' }, { "type": 'natural' }, null ],
+                "iDisplayLength": 1000,
                 "iDisplayStart": 0,
                 "order": [[ 0, "asc" ]],
                 "bSort" : true,
+                "paging": false, // Dont want paging
                 "bPaginate": false,
                 "serverSide": false,
                 "bFilter": false,
@@ -364,12 +367,12 @@
                 "oLanguage": {
                     "sEmptyTable": _("No changes during the selected period.")
                 }
-            }));
+            });
 
             [%groupcol = '2' %][% sortdir = 'asc' %]
 
-            $("#finesbydate").dataTable($.extend(true, {}, dataTablesDefaults, {
-                'bAutoWidth': true,
+            $("#finesbydate").dataTable({
+                'bAutoWidth': false,
                 'aoColumnDefs': [
                     { "bSortable": true, "bSearchable": false, 'aTargets': ["_all"] },
                     { "aTargets": [ 1 ], "asSorting": [ "desc","asc" ], "sType": "natural"  },
@@ -420,7 +423,7 @@
                 "oLanguage": {
                     "sEmptyTable": _("No cash register outpayments during the selected period.")
                 }
-            }));
+            });
             // Order by the grouping
             $('#finesbydate tbody').on( 'click', 'tr.group', function () {
                 var currentOrder = table.order()[0];

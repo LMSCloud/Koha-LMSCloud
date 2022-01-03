@@ -74,9 +74,48 @@ my $checkCashRegisterOk = passCashRegisterCheck($branch,$loggedinuser);
 my $registerid = $input->param('registerid');
 
 if ( $action eq 'reverse' ) {
-  ReversePayment( scalar $input->param('accountlines_id') );
+    my $payment_id = scalar $input->param('accountlines_id');
+    my $payment    = Koha::Account::Lines->find( $payment_id );
+    my $voided     = $payment->void(
+        {
+            branch    => $library_id,
+            staff_id  => $logged_in_user->id,
+            interface => 'intranet',
+        }
+    );
+    
+    my $charge_id        = $voided->id;
+    my $charge           = Koha::Account::Lines->find($charge_id);
+    my $amount           = $voided->amount;
+    my $refund_type      = scalar $input->param('refund_type');
+    
+    $schema->txn_do(
+        sub {
+
+            my $refund = $charge->reduce(
+                {
+                    reduction_type => 'REFUND',
+                    branch         => $library_id,
+                    staff_id       => $logged_in_user->id,
+                    interface      => 'intranet',
+                    amount         => $amount
+                }
+            );
+            my $payout = $refund->payout(
+                {
+                    payout_type   => $refund_type,
+                    branch        => $library_id,
+                    staff_id      => $logged_in_user->id,
+                    cash_register => $registerid,
+                    interface     => 'intranet',
+                    amount        => $amount
+                }
+            );
+        }
+    );
 }
-elsif ( $action eq 'void' ) {
+
+if ( $action eq 'void' ) {
     my $payment_id = scalar $input->param('accountlines_id');
     my $payment    = Koha::Account::Lines->find( $payment_id );
     $payment->void(
@@ -130,7 +169,7 @@ if ( $action eq 'refund' ) {
     my $charge_id        = scalar $input->param('accountlines_id');
     my $charge           = Koha::Account::Lines->find($charge_id);
     my $amount           = scalar $input->param('amount');
-    my $refund_type = scalar $input->param('refund_type');
+    my $refund_type      = scalar $input->param('refund_type');
     $schema->txn_do(
         sub {
 

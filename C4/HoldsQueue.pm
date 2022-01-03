@@ -63,13 +63,11 @@ Returns Transport Cost Matrix as a hashref <to branch code> => <from branch code
 
 sub TransportCostMatrix {
     my ( $params ) = @_;
-    my $ignore_holds_queue_skip_closed = $params->{ignore_holds_queue_skip_closed};
 
     my $dbh   = C4::Context->dbh;
     my $transport_costs = $dbh->selectall_arrayref("SELECT * FROM transport_cost",{ Slice => {} });
 
     my $today = dt_from_string();
-    my $calendars;
     my %transport_cost_matrix;
     foreach (@$transport_costs) {
         my $from     = $_->{frombranch};
@@ -80,14 +78,8 @@ sub TransportCostMatrix {
             cost             => $cost,
             disable_transfer => $disabled
         };
-
-        if ( !$ignore_holds_queue_skip_closed && C4::Context->preference("HoldsQueueSkipClosed") ) {
-            $calendars->{$from} ||= Koha::Calendar->new( branchcode => $from );
-            $transport_cost_matrix{$to}{$from}{disable_transfer} ||=
-              $calendars->{$from}->is_holiday( $today );
-        }
-
     }
+
     return \%transport_cost_matrix;
 }
 
@@ -196,9 +188,8 @@ sub CreateQueue {
             undef $transport_cost_matrix;
         }
     }
-    unless ($transport_cost_matrix) {
-        $branches_to_use = load_branches_to_pull_from();
-    }
+
+    $branches_to_use = load_branches_to_pull_from($use_transport_cost_matrix);
 
     my $bibs_with_pending_requests = GetBibsWithPendingHoldRequests();
 
@@ -788,11 +779,15 @@ sub _trim {
 }
 
 sub load_branches_to_pull_from {
+    my $use_transport_cost_matrix = shift;
+
     my @branches_to_use;
 
-    my $static_branch_list = C4::Context->preference("StaticHoldsQueueWeight");
-    @branches_to_use = map { _trim($_) } split( /,/, $static_branch_list )
-      if $static_branch_list;
+    unless ( $use_transport_cost_matrix ) {
+        my $static_branch_list = C4::Context->preference("StaticHoldsQueueWeight");
+        @branches_to_use = map { _trim($_) } split( /,/, $static_branch_list )
+          if $static_branch_list;
+    }
 
     @branches_to_use =
       Koha::Database->new()->schema()->resultset('Branch')

@@ -64,6 +64,7 @@ use Koha::Plugins;
 use Koha::Ratings;
 use Koha::Reviews;
 use Koha::SearchEngine::Search;
+use Koha::SearchEngine::QueryBuilder;
 
 use Try::Tiny;
 
@@ -237,20 +238,33 @@ if ( $xslfile ) {
     my $searcher = Koha::SearchEngine::Search->new(
         { index => $Koha::SearchEngine::BIBLIOS_INDEX }
     );
+    my $builder = Koha::SearchEngine::QueryBuilder->new(
+        { index => $Koha::SearchEngine::BIBLIOS_INDEX }
+    );
+
     my $cleaned_title = $biblio->title;
     $cleaned_title =~ tr|/||;
+    $cleaned_title = $builder->clean_search_term($cleaned_title);
+
     my $query =
       ( C4::Context->preference('UseControlNumber') and $record->field('001') )
       ? 'rcn:'. $record->field('001')->data . ' AND (bib-level:a OR bib-level:b)'
-      : "Host-item:$cleaned_title";
-    my ( $err, $result, $count ) = $searcher->simple_search_compat( $query, 0, 0 );
-
-    warn "Warning from simple_search_compat: $err"
-        if $err;
+      : "Host-item:($cleaned_title)";
+    my ( $err, $result, $count );
+    eval {
+        ( $err, $result, $count ) =
+          $searcher->simple_search_compat( $query, 0, 0 );
+    };
+    if ($err || $@){
+        my $error = q{};
+        $error .= $err if $err;
+        $error .= $@ if $@;
+        warn "Warning from simple_search_compat: $error";
+    }
 
     my $variables = {
         anonymous_session   => ($borrowernumber) ? 0 : 1,
-        show_analytics_link => $count > 0 ? 1 : 0
+        show_analytics_link => defined $count && $count > 0 ? 1 : 0
     };
 
     my @plugin_responses = Koha::Plugins->call(
@@ -314,7 +328,7 @@ if ($session->param('busc')) {
     # Search given the current values from the busc param
     sub searchAgain
     {
-        my ($arrParamsBusc, $offset, $results_per_page) = @_;
+        my ($arrParamsBusc, $offset, $results_per_page, $patron) = @_;
 
         my $itemtypes = { map { $_->{itemtype} => $_ } @{ Koha::ItemTypes->search_with_localization->unblessed } };
         my @servers;
@@ -395,7 +409,7 @@ if ($session->param('busc')) {
         }
         $arrParamsBusc{'count'} = $count;
         $results_per_page = $count;
-        my $newresultsRef = searchAgain(\%arrParamsBusc, $offset, $results_per_page);
+        my $newresultsRef = searchAgain(\%arrParamsBusc, $offset, $results_per_page, $patron);
         $arrParamsBusc{'listBiblios'} = buildListBiblios($newresultsRef, $results_per_page);
         delete $arrParamsBusc{'previous'} if (exists($arrParamsBusc{'previous'}));
         delete $arrParamsBusc{'next'} if (exists($arrParamsBusc{'next'}));
@@ -506,7 +520,7 @@ if ($session->param('busc')) {
         $offsetSearch = 0 if (defined($offsetSearch) && $offsetSearch < 0);
     }
     if ($searchAgain) {
-        my $newresultsRef = searchAgain(\%arrParamsBusc, $offsetSearch, $results_per_page);
+        my $newresultsRef = searchAgain(\%arrParamsBusc, $offsetSearch, $results_per_page, $patron);
         my @newresults = @$newresultsRef;
         # build the new listBiblios
         my $listBiblios = buildListBiblios(\@newresults, $results_per_page);
@@ -560,6 +574,7 @@ if ($session->param('busc')) {
     for (my $j = 0; $j < @arrBiblios; $j++) {
         next unless ($arrBiblios[$j]);
         $dataBiblioPaging = Koha::Biblios->find( $arrBiblios[$j] ) if ($arrBiblios[$j] != $biblionumber);
+        next unless $dataBiblioPaging;
         push @listResults, {index => $j + 1 + $offset, biblionumber => $arrBiblios[$j], title => ($arrBiblios[$j] == $biblionumber)?'':$dataBiblioPaging->title, author => ($arrBiblios[$j] != $biblionumber && $dataBiblioPaging->author)?$dataBiblioPaging->author:'', url => ($arrBiblios[$j] == $biblionumber)?'':'opac-detail.pl?biblionumber=' . $arrBiblios[$j]};
     }
     $template->param('listResults' => \@listResults) if (@listResults);

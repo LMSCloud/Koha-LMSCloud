@@ -244,6 +244,9 @@ if ( $total_paid and $total_paid ne '0.00' ) {
     $total_paid = '0.00';    #TODO not right with pay_individual
 }
 
+# The following can produce wrong results if %$borrower contains 
+# paramters like lang.
+delete $borrower->{lang} if ( exists($borrower->{lang}) );
 $template->param(%$borrower);
 
 if ( $input->param('error_over') ) {

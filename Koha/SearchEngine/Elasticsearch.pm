@@ -24,6 +24,7 @@ use C4::Context;
 use Koha::Database;
 use Koha::Exceptions::Config;
 use Koha::Exceptions::Elasticsearch;
+use Koha::Filter::MARC::EmbedSeeFromHeadings;
 use Koha::SearchFields;
 use Koha::SearchMarcMaps;
 use Koha::Caches;
@@ -207,10 +208,16 @@ sub get_elasticsearch_mappings {
                     $es_type = 'boolean';
                 } elsif ($type eq 'number' || $type eq 'sum') {
                     $es_type = 'integer';
+                } elsif ($type eq 'availability') {
+                    $es_type = 'availability';
                 } elsif ($type eq 'isbn' || $type eq 'stdno') {
                     $es_type = 'stdno';
                 } elsif ($type eq 'year') {
                     $es_type = 'year';
+                } elsif ($type eq 'date') {
+                    $es_type = 'date';
+                } elsif ($type eq 'string_plus') {
+                    $es_type = 'string_plus';
                 }
 
                 if ($search) {
@@ -469,6 +476,13 @@ sub _process_mappings {
         if ($sort && $meta->{altscript}) {
             next;
         }
+        
+        if (exists($options->{indicator1})) {
+            next if ( $options->{indicator1} ne '*' && $meta->{field}->indicator(1) ne $options->{indicator1} );
+        }
+        if (exists($options->{indicator2})) {
+            next if ( $options->{indicator2} ne '*' && $meta->{field}->indicator(2) ne $options->{indicator2} );
+        }
 
         # Copy (scalar) data since can have multiple targets
         # with differing options for (possibly) mutating data
@@ -507,6 +521,26 @@ sub _process_mappings {
             # Nonfiling chars does not make sense for multiple values
             # Only apply on first element
             $values->[0] = substr $values->[0], $nonfiling_chars;
+        }
+        
+        # Remove text between MARC non-sorting characters \x{0098} and \x{009c} in sort values
+        # and remove the non-sorting characters in all other values.
+        # Remove common articles and special characters that are not needed for sorting.
+        if ( $sort ) {
+            for (my $i=0;$i<=$#$values;$i++) {
+                $values->[$i] =~ s/^\s*[\x{0098}¬]([^\x{009c}¬]*)[\x{009c}¬]\s*// if ($values->[$i]);
+                $values->[$i] =~ s/(\s*)[\x{0098}¬]([^\x{009c}¬]*)[\x{009c}¬](\s*)/($1 && $3 ? $3 : '')/ge if ($values->[$i]);
+                $values->[$i] =~ s/[(){}»«›‹›‹…"'`':,;<>\.¡¿?!¬#\x{00}-\x{1F}]+// if ($values->[$i]);
+                $values->[$i] =~ s/^[\s\-\+]+// if ($values->[$i]);
+                $values->[$i] =~ s/^\s*((Der|Die|Das|Den|Dem|Ein|Eine|Einen|Le|La|Les|Un|Une|De|Des|The|A|An|El|En|La|Los|Las|Un|Unos|Una|Unas)\s)+//;
+                $values->[$i] =~ s/^\s*(L'|D')//i;
+                $values->[$i] =~ s/^\s+// if ($values->[$i]);
+            }
+        }
+        else {
+            for (my $i=0;$i<=$#$values;$i++) {
+                $values->[$i] =~ s/[\x{0098}\x{009c}]+//g if ($values->[$i]);
+            }
         }
 
         $values = [ grep(!/^$/, @{$values}) ];
@@ -625,7 +659,17 @@ sub marc_records_to_documents {
                         foreach my $subfields_group (keys %{$subfields_join_mappings}) {
                             my $data_field = $field->clone; #copy field to preserve for alt scripts
                             $data_field->delete_subfield(match => qr/^$/); #remove empty subfields, otherwise they are printed as a space
-                            my $data = $data_field->as_string( $subfields_group ); #get values for subfields as a combined string, preserving record order
+                            # get values for subfields as a combined string, using the specified subfield order
+                            my @fieldvals;
+                            foreach my $subf(split(//,$subfields_group)) {
+                                foreach my $subv($data_field->subfield($subf)) {
+                                    $subv =~ s/(^\s+|\s+$)// if ($subv);
+                                    push @fieldvals, $subv if ($tag ne '952' && $subv);
+                                    push @fieldvals, $subv if ($tag eq '952' && defined($subv));
+                                }
+                            }
+                            my $data = join(" ",@fieldvals);
+                            # my $data = $data_field->as_string( $subfields_group ); #get values for subfields as a combined string, preserving record order
                             if ($data) {
                                 $self->_process_mappings($subfields_join_mappings->{$subfields_group}, $data, $record_document, {
                                         altscript => $altscript,
@@ -640,6 +684,54 @@ sub marc_records_to_documents {
                 }
             }
         }
+
+        if (C4::Context->preference('IncludeSeeFromInSearches') and $self->index eq 'biblios') {
+            foreach my $field (Koha::Filter::MARC::EmbedSeeFromHeadings->new->fields($record)) {
+                my $data_field_rules = $data_fields_rules->{$field->tag()};
+                if ($data_field_rules) {
+                    my $subfields_mappings = $data_field_rules->{subfields};
+                    my $wildcard_mappings = $subfields_mappings->{'*'};
+                    foreach my $subfield ($field->subfields()) {
+                        my ($code, $data) = @{$subfield};
+                        my @mappings;
+                        push @mappings, @{ $subfields_mappings->{$code} } if $subfields_mappings->{$code};
+                        push @mappings, @$wildcard_mappings if $wildcard_mappings;
+                        # Do not include "see from" into these kind of fields
+                        @mappings = grep { $_->[0] !~ /__(sort|facet|suggestion)$/ } @mappings;
+                        if (@mappings) {
+                            $self->_process_mappings(\@mappings, $data, $record_document, {
+                                    data_source => 'subfield',
+                                    code => $code,
+                                    field => $field
+                                }
+                            );
+                        }
+                    }
+
+                    my $subfields_join_mappings = $data_field_rules->{subfields_join};
+                    if ($subfields_join_mappings) {
+                        foreach my $subfields_group (keys %{$subfields_join_mappings}) {
+                            my $data_field = $field->clone;
+                            # remove empty subfields, otherwise they are printed as a space
+                            $data_field->delete_subfield(match => qr/^$/);
+                            my $data = $data_field->as_string( $subfields_group );
+                            if ($data) {
+                                my @mappings = @{ $subfields_join_mappings->{$subfields_group} };
+                                # Do not include "see from" into these kind of fields
+                                @mappings = grep { $_->[0] !~ /__(sort|facet|suggestion)$/ } @mappings;
+                                $self->_process_mappings(\@mappings, $data, $record_document, {
+                                        data_source => 'subfields_group',
+                                        codes => $subfields_group,
+                                        field => $field
+                                    }
+                                );
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
         foreach my $field (keys %{$rules->{defaults}}) {
             unless (defined $record_document->{$field}) {
                 $record_document->{$field} = $rules->{defaults}->{$field};
@@ -817,9 +909,9 @@ sub _array_to_marc {
     return $record;
 }
 
-=head2 _field_mappings($facet, $suggestible, $sort, $search, $target_name, $target_type, $range)
+=head2 _field_mappings($facet, $suggestible, $sort, $search, $target_name, $target_type, $range, $indicator1, $indicator2)
 
-    my @mappings = _field_mappings($facet, $suggestible, $sort, $search, $target_name, $target_type, $range)
+    my @mappings = _field_mappings($facet, $suggestible, $sort, $search, $target_name, $target_type, $range, $indicator1, $indicator2)
 
 Get mappings, an internal data structure later used by
 L<_process_mappings($mappings, $data, $record_document, $meta)> to process MARC target
@@ -872,12 +964,22 @@ so "0-2" means the first three characters of MARC data.
 If only "<START>" is provided only one character at position "<START>" will
 be extracted.
 
+=item C<$indicator1>
+
+An optional value of an indicator. To be indexed, the indicator of the MARC field 
+value need to be equally to the specified indicator 1.
+
+=item C<$indicator2>
+
+An optional value of an indicator. To be indexed, the indicator of the MARC field 
+value need to be equally to the specified indicator 2.
+
 =back
 
 =cut
 
 sub _field_mappings {
-    my ($_self, $facet, $suggestible, $sort, $search, $target_name, $target_type, $range) = @_;
+    my ($_self, $facet, $suggestible, $sort, $search, $target_name, $target_type, $range, $indicator1, $indicator2) = @_;
     my %mapping_defaults = ();
     my @mappings;
 
@@ -891,6 +993,13 @@ sub _field_mappings {
     my $default_options = {};
     if ($substr_args) {
         $default_options->{substr} = $substr_args;
+    }
+    
+    if ( $indicator1 ) {
+        $default_options->{indicator1} = $indicator1;
+    }
+    if ( $indicator2 ) {
+        $default_options->{indicator2} = $indicator2;
     }
 
     # TODO: Should probably have per type value callback/hook
@@ -911,6 +1020,14 @@ sub _field_mappings {
             my ($value) = @_;
             # Replace "u" with "0" for sorting
             return map { s/[u\s]/0/gr } ( $value =~ /[0-9u\s]{4}/g );
+        };
+    }
+    elsif ($target_type eq 'date') {
+        $default_options->{value_callbacks} //= [];
+        # Only accept dates containing a yyyy-MM-DD formatted date
+        push @{$default_options->{value_callbacks}}, sub {
+            my ($value) = @_;
+            return ( $value =~ /[12][0-9][0-9][0-9]-[01][0-9]-[0123][0-9]/g );
         };
     }
 
@@ -964,7 +1081,7 @@ which is terribly slow.
 sub _get_marc_mapping_rules {
     my ($self) = @_;
     my $marcflavour = lc C4::Context->preference('marcflavour');
-    my $field_spec_regexp = qr/^([0-9]{3})([()0-9a-zA-Z]+)?(?:_\/(\d+(?:-\d+)?))?$/;
+    my $field_spec_regexp = qr/^([0-9]{3})(\[[0-9a-zA-Z* ]{2}\])?([()0-9a-zA-Z]+)?(?:_\/(\d+(?:-\d+)?))?$/;
     my $leader_regexp = qr/^leader(?:_\/(\d+(?:-\d+)?))?$/;
     my $rules = {
         'leader' => [],
@@ -995,14 +1112,26 @@ sub _get_marc_mapping_rules {
         if ($marc_field =~ $field_spec_regexp) {
             my $field_tag = $1;
 
+            my ($indicator1,$indicator2);
+            
+            if (defined $2) {
+                my $indicators = $2;
+                if ( substr($indicators,1,1) ne '*' ) {
+                    $indicator1 = substr($indicators,1,1);
+                }
+                if ( substr($indicators,2,1) ne '*' ) {
+                    $indicator2 = substr($indicators,2,1);
+                }
+            }
+
             my @subfields;
             my @subfield_groups;
             # Parse and separate subfields form subfield groups
-            if (defined $2) {
+            if (defined $3) {
                 my $subfield_group = '';
                 my $open_group = 0;
 
-                foreach my $token (split //, $2) {
+                foreach my $token (split //, $3) {
                     if ($token eq "(") {
                         if ($open_group) {
                             Koha::Exceptions::Elasticsearch::MARCFieldExprParseError->throw(
@@ -1039,8 +1168,8 @@ sub _get_marc_mapping_rules {
                 push @subfields, '*';
             }
 
-            my $range = defined $3 ? $3 : undef;
-            my @mappings = $self->_field_mappings($facet, $suggestible, $sort, $search, $name, $type, $range);
+            my $range = defined $4 ? $4 : undef;
+            my @mappings = $self->_field_mappings($facet, $suggestible, $sort, $search, $name, $type, $range, $indicator1, $indicator2);
             if ($field_tag < 10) {
                 $rules->{control_fields}->{$field_tag} //= [];
                 push @{$rules->{control_fields}->{$field_tag}}, @mappings;
@@ -1304,7 +1433,7 @@ sub get_facetable_fields {
 
     # These should correspond to the ES field names, as opposed to the CCL
     # things that zebra uses.
-    my @search_field_names = qw( author itype location su-geo title-series subject ccode holdingbranch homebranch ln );
+    my @search_field_names = qw( author itype location su-geo title-series subject ccode holdingbranch homebranch ln subject-genre-form publyear);
     my @faceted_fields = Koha::SearchFields->search(
         { name => { -in => \@search_field_names }, facet_order => { '!=' => undef } }, { order_by => ['facet_order'] }
     );
@@ -1313,6 +1442,25 @@ sub get_facetable_fields {
     );
     # This could certainly be improved
     return ( @faceted_fields, @not_faceted_fields );
+}
+
+=head2 get_didyoumean_fields
+
+my @get_didyoumean_fields = Koha::SearchEngine::Elasticsearch->get_didyoumean_fields();
+
+Returns the list of ES field names indexed by type string_plus.
+
+=cut
+
+sub get_didyoumean_fields {
+    my ($self) = @_;
+
+    my @didyoumean_fields;
+    for my $field (  Koha::SearchFields->search( { type => 'string_plus' }, { order_by => ['name'] } ) ) {
+        push @didyoumean_fields, $field->name;
+    }
+    # This could certainly be improved
+    return ( @didyoumean_fields );
 }
 
 =head2 clear_search_fields_cache

@@ -586,7 +586,12 @@ sub getRecords {
     # This sorts the facets into alphabetical order
     if (@facets_loop) {
         foreach my $f (@facets_loop) {
-            $f->{facets} = [ sort { uc($a->{facet_label_value}) cmp uc($b->{facet_label_value}) } @{ $f->{facets} } ];
+            if( C4::Context->preference('FacetOrder') eq 'Alphabetical' ){
+                $f->{facets} =
+                    [ sort { uc($a->{facet_label_value}) cmp uc($b->{facet_label_value}) } @{ $f->{facets} } ] if ( $f->{type_link_value} ne 'publyear' );
+                $f->{facets} =
+                    [ reverse sort { uc($a->{facet_label_value}) cmp uc($b->{facet_label_value}) } @{ $f->{facets} } ] if ( $f->{type_link_value} eq 'publyear' );
+            }
         }
     }
 
@@ -1090,6 +1095,7 @@ sub getIndexes{
                     'popularity',
                     'pubdate',
                     'Publisher',
+                    'publyear',
                     'Provider',
                     'pv',
                     'Reading-grade-level',
@@ -1218,7 +1224,7 @@ sub buildQuery {
     my $weight_fields    = C4::Context->preference("QueryWeightFields")    || 0;
     my $fuzzy_enabled    = C4::Context->preference("QueryFuzzy")           || 0;
 
-    my $query        = $operands[0];
+    my $query        = $operands[0] // "";
     my $simple_query = $operands[0];
 
     # initialize the variables we're passing back
@@ -1375,7 +1381,7 @@ sub buildQuery {
 				}
 
                 # Detect Truncation
-                my $truncated_operand;
+                my $truncated_operand = q{};
                 my( $nontruncated, $righttruncated, $lefttruncated,
                     $rightlefttruncated, $regexpr
                 ) = _detect_truncation( $operand, $index );
@@ -1417,14 +1423,14 @@ sub buildQuery {
                 warn "TRUNCATED OPERAND: >$truncated_operand<" if $DEBUG;
 
                 # Handle Stemming
-                my $stemmed_operand;
+                my $stemmed_operand = q{};
                 $stemmed_operand = _build_stemmed_operand($operand, $lang)
 										if $stemming;
 
                 warn "STEMMED OPERAND: >$stemmed_operand<" if $DEBUG;
 
                 # Handle Field Weighting
-                my $weighted_operand;
+                my $weighted_operand = q{};
                 if ($weight_fields) {
                     $weighted_operand = _build_weighted_query( $operand, $stemmed_operand, $index );
                     $operand = $weighted_operand;
@@ -1531,11 +1537,13 @@ sub buildQuery {
     $query =~ s/(?<=(st-date-normalized)):/=/g;
 
     # Removing warnings for later substitutions
-    $query      //= q{};
-    $query_desc //= q{};
-    $query_cgi  //= q{};
-    $limit      //= q{};
-    $limit_desc //= q{};
+    $query        //= q{};
+    $query_desc   //= q{};
+    $query_cgi    //= q{};
+    $limit        //= q{};
+    $limit_desc   //= q{};
+    $limit_cgi    //= q{};
+    $simple_query //= q{};
     $limit =~ s/:/=/g;
     for ( $query, $query_desc, $limit, $limit_desc ) {
         s/  +/ /g;    # remove extra spaces
@@ -1672,12 +1680,12 @@ sub searchResults {
     }
 
     # handle which records to actually retrieve
-    my $times;
+    my $times; # Times is which record to process up to
     if ( $hits && $offset + $results_per_page <= $hits ) {
         $times = $offset + $results_per_page;
     }
     else {
-        $times = $hits;	 # FIXME: if $hits is undefined, why do we want to equal it?
+        $times = $hits; # If less hits than results_per_page+offset we go to the end
     }
 
     my $marcflavour = C4::Context->preference("marcflavour");
@@ -1726,13 +1734,13 @@ sub searchResults {
                : GetFrameworkCode($marcrecord->subfield($bibliotag,$bibliosubf));
 
         SetUTF8Flag($marcrecord);
-        my $oldbiblio = TransformMarcToKoha( $marcrecord, $fw );
+        my $oldbiblio = TransformMarcToKoha( $marcrecord, $fw, 'no_items' );
         $oldbiblio->{result_number} = $i + 1;
 
 		$oldbiblio->{normalized_upc}  = GetNormalizedUPC(       $marcrecord,$marcflavour);
 		$oldbiblio->{normalized_ean}  = GetNormalizedEAN(       $marcrecord,$marcflavour);
 		$oldbiblio->{normalized_oclc} = GetNormalizedOCLCNumber($marcrecord,$marcflavour);
-		$oldbiblio->{normalized_isbn} = GetNormalizedISBN(undef,$marcrecord,$marcflavour);
+        $oldbiblio->{normalized_isbn} = GetNormalizedISBN($oldbiblio->{isbn},$marcrecord,$marcflavour); # Use existing ISBN from record if we got one
 		$oldbiblio->{content_identifier_exists} = 1 if ($oldbiblio->{normalized_isbn} or $oldbiblio->{normalized_oclc} or $oldbiblio->{normalized_ean} or $oldbiblio->{normalized_upc});
 
         if ( C4::Context->preference("EKZCover") || C4::Context->preference("DivibibEnabled") ) {
@@ -1827,6 +1835,7 @@ sub searchResults {
 
         # Pull out the items fields
         my @fields = $marcrecord->field($itemtag);
+        $marcrecord->delete_fields( @fields ) unless C4::Context->preference('PassItemMarcToXSLT');
         my $marcflavor = C4::Context->preference("marcflavour");
 
         # adding linked items that belong to host records

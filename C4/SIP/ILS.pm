@@ -387,11 +387,10 @@ sub add_hold {
 
 	my $trans = C4::SIP::ILS::Transaction::Hold->new();
 
-    $patron = C4::SIP::ILS::Patron->new( $patron_id);
-    if (!$patron
-	|| (defined($patron_pwd) && !$patron->check_password($patron_pwd))) {
-		$trans->screen_msg("Invalid Patron.");
-		return $trans;
+    $patron = C4::SIP::ILS::Patron->new( $patron_id );
+    if ( !$patron ) {
+        $trans->screen_msg("Invalid patron barcode.");
+        return $trans;
     }
 
 	unless ($item = C4::SIP::ILS::Item->new($item_id || $title_id)) {
@@ -438,9 +437,6 @@ sub cancel_hold {
     if (!$patron) {
 		$trans->screen_msg("Invalid patron barcode.");
 		return $trans;
-    } elsif (defined($patron_pwd) && !$patron->check_password($patron_pwd)) {
-		$trans->screen_msg('Invalid patron password.');
-		return $trans;
     }
 
     unless ($item = C4::SIP::ILS::Item->new($item_id || $title_id)) {
@@ -456,13 +452,7 @@ sub cancel_hold {
 		return $trans;
 	}
     # Remove the hold from the patron's record first
-    $trans->ok($patron->drop_hold($item_id));	# different than the transaction drop!
-
-    unless ($trans->ok) {
-		# We didn't find it on the patron record
-		$trans->screen_msg("No such hold on patron record.");
-		return $trans;
-    }
+    $patron->drop_hold($item_id); # different than the transaction drop!
 
     # Now, remove it from the item record.  If it was on the patron
     # record but not on the item record, we'll treat that as success.
@@ -602,14 +592,11 @@ sub renew_all {
         siplog("LOG_DEBUG", "ILS::renew_all: Invalid patron id: '%s'", $patron_id);
     }
 
-    if (!defined($patron)) {
+    if (!$patron) {
 		$trans->screen_msg("Invalid patron barcode.");
 		return $trans;
     } elsif (!$patron->renew_ok) {
 		$trans->screen_msg("Renewals not allowed.");
-		return $trans;
-    } elsif (defined($patron_pwd) && !$patron->check_password($patron_pwd)) {
-		$trans->screen_msg("Invalid patron password.");
 		return $trans;
     }
 

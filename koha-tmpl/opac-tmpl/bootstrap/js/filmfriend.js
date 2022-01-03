@@ -133,7 +133,7 @@ function setFilmfriendCollectionName(facetData, i)  {
 }
 
 function showFilmfriendResult(facetID) {
-    var pagination = getPagination(facetID, maxHitCountFilmfriend);
+    var pagination = getFilmfriendPagination(facetID, maxHitCountFilmfriend);
     var content = '';
 
     for (var i=0; i<filmfriendData.results[facetID].hitList.length;i++) {
@@ -163,7 +163,7 @@ function showFilmfriendResult(facetID) {
     
     truncate_text("#encyclopediahits");
 }
-function getPagination(facetID, maxHitCount) {
+function getFilmfriendPagination(facetID, maxHitCount) {
     var paginationText = '';
     if ( filmfriendData.results[facetID].numFound <= maxHitCount ) {
         return paginationText;

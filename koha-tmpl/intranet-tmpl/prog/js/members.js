@@ -210,10 +210,10 @@ $(document).ready(function(){
         var addressfield = $(this).data("addressfield");
         var myRegEx=new RegExp(/(.*)\|(.*)\|(.*)\|(.*)/);
         var matches = selected_city.match( myRegEx );
-        $("#" + addressfield + "zipcode").val( matches[1] );
-        $("#" + addressfield + "city").val( matches[2] );
-        $("#" + addressfield + "state").val( matches[3] );
-        $("#" + addressfield + "country").val( matches[4] );
+        $(this).closest('fieldset').find("input[name='" + addressfield + "zipcode']").val( matches[1] );
+        $(this).closest('fieldset').find("input[name='" + addressfield + "city']").val( matches[2] );
+        $(this).closest('fieldset').find("input[name='" + addressfield + "state']").val( matches[3] );
+        $(this).closest('fieldset').find("input[name='" + addressfield + "country']").val( matches[4] );
     });
 
     dateformat = $("#dateofbirth").siblings(".hint").first().html();
