@@ -59,7 +59,7 @@ my $lastdate;
 my $count;
 my $lastmove = lastmove($itm);
 if ( not $lastmove ) {
-    $count = issuessince( $itm, 0 );
+    $count = issuessince( $itm, '0000-01-01 00:00:00');
 } else {
     $lastdate = $lastmove->{'datearrived'};
     $count = issuessince( $itm, $lastdate );
