@@ -243,7 +243,7 @@ sub manualinvoice {
     my $insert;
     my $accountno  = getnextacctno($borrowernumber);
     my $amountleft = $amount;
-    my $branchcode     = C4::Context->userenv->{'branch'};
+    my $branchcode = C4::Context->userenv ? C4::Context->userenv->{'branch'} : undef;
 
     my $accountline = Koha::Account::Line->new(
         {
