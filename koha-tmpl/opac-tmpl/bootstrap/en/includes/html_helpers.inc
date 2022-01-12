@@ -16,7 +16,7 @@
                     [% IF ( n.title && news.blocktitle ) %]
                         <h4 class="[% n.lang | html %]_header">[% n.title | html %]</h4>
                     [% END %]
-                    <div class="[% n.lang | html %]_body">[% n.content | $raw %]</div>
+                    <div class="[% n.lang | html %]_body">[% n.content | eval | $raw %]</div>
                 </div>
             [% END %]
         </div>
