@@ -46,9 +46,10 @@
                         <li><a id="DBSdownload_csv" >Comma separated text</a></li>
                         <li><a id="DBSdownload_tab" >Tab separated text</a></li>
                         <li><a id="DBSdownload_dbs_base_questionaire" >DBS base questionaire</a></li>
-                        <li><a id="DBSdownload_dbs_incl_patients_lib" > + patients' library</a></li>
-                        <li><a id="DBSdownload_dbs_incl_mobile_lib" > + mobile library</a></li>
-                        <li><a id="DBSdownload_dbs_incl_music_lib" > + music library</a></li>
+                        <li><a id="DBSdownload_dbs_incl_patients_lib" > + patients' libraries</a></li>
+                        <li><a id="DBSdownload_dbs_incl_mobile_lib" > + mobile libraries</a></li>
+                        <li><a id="DBSdownload_dbs_incl_music_lib" > + music libraries</a></li>
+                        <li><a id="DBSdownload_dbs_incl_school_lib" > + school libraries</a></li>
                     </ul>
                 </div>
             
@@ -154,6 +155,18 @@
                 </tr>
 
                 <tr>
+                    <td>7.2</td>
+                    <td>Haben Sie im Berichtsjahr zusätzliche Angebote wie z.B. Click and Collect, Bringdienste o.ä. angeboten?</td>
+                    <td>
+                        [% IF ( st.gen_extra_services_yn ) %]
+                            <input type="checkbox" id="st_gen_extra_services_yn" name="st_gen_extra_services_yn" value="1" checked="checked" />
+                        [% ELSE %]
+                            <input type="checkbox" id="st_gen_extra_services_yn" name="st_gen_extra_services_yn" value="1" />
+                        [% END %]
+                    </td>
+                </tr>
+
+                <tr>
                     <td>8</td>
                     <td>Wochenöffnungsstunden mit Bibliothekspersonal</td>
                     <td>
@@ -183,7 +196,7 @@
                     <td>9</td>
                     <td>Aktive Benutzer</td>
                     <td>
-                        <input type="number" id="st_pat_active" name="st_pat_active" min="0" size="12" maxlength="12" value="[% st.pat_active %]" /> <b style="font-size: 125%">*</b>
+                        <input type="number" id="st_pat_active" name="st_pat_active" min="0" size="12" maxlength="12" value="[% st.pat_active %]" /> <b style="font-size: 125%">*</b> (obsolet)
                     </td>
                 </tr>
 
@@ -191,7 +204,7 @@
                     <td>10.1</td>
                     <td>... darunter: Aktive Benutzer bis einschl. 12 Jahre</td>
                     <td>
-                        <input type="number" id="st_pat_active_to_12" name="st_pat_active_to_12" min="0" size="12" maxlength="12" value="[% st.pat_active_to_12 %]" /> <b style="font-size: 125%">*</b>
+                        <input type="number" id="st_pat_active_to_12" name="st_pat_active_to_12" min="0" size="12" maxlength="12" value="[% st.pat_active_to_12 %]" /> <b style="font-size: 125%">*</b> (obsolet)
                     </td>
                 </tr>
 
@@ -199,7 +212,15 @@
                     <td>10.2</td>
                     <td>... darunter: Aktive Benutzer ab einschl. 60 Jahre</td>
                     <td>
-                        <input type="number" id="st_pat_active_from_60" name="st_pat_active_from_60" min="0" size="12" maxlength="12" value="[% st.pat_active_from_60 %]" /> <b style="font-size: 125%">*</b>
+                        <input type="number" id="st_pat_active_from_60" name="st_pat_active_from_60" min="0" size="12" maxlength="12" value="[% st.pat_active_from_60 %]" /> <b style="font-size: 125%">*</b> (obsolet)
+                    </td>
+                </tr>
+
+                <tr>
+                    <td>10.3</td>
+                    <td>... darunter: Aktive Benutzer unter 18 Jahre</td>
+                    <td>
+                        <input type="number" id="st_pat_active_below_18" name="st_pat_active_below_18" min="0" size="12" maxlength="12" value="[% st.pat_active_below_18 %]" /> <b style="font-size: 125%">*</b> (obsolet)
                     </td>
                 </tr>
 
@@ -207,7 +228,7 @@
                     <td>11</td>
                     <td>Neuanmeldungen</td>
                     <td>
-                        <input type="number" id="st_pat_new_registrations" name="st_pat_new_registrations" min="0" size="12" maxlength="12" value="[% st.pat_new_registrations %]" /> <b style="font-size: 125%">*</b>
+                        <input type="number" id="st_pat_new_registrations" name="st_pat_new_registrations" min="0" size="12" maxlength="12" value="[% st.pat_new_registrations %]" /> <b style="font-size: 125%">*</b> (obsolet)
                     </td>
                 </tr>
 
@@ -335,7 +356,7 @@
 
                 <tr>
                     <td>34</td>
-                    <td>E-Medien im Bestand</td>
+                    <td>E-Medien im eigenen Bestand</td>
                     <td>
                         <input type="number" id="st_med_virtsupply_stock" name="st_med_virtsupply_stock" min="0" size="12" maxlength="12" value="[% st.med_virtsupply_stock %]" />
                     </td>
@@ -359,7 +380,7 @@
 
                 <tr>
                     <td>35</td>
-                    <td>E-Medien im Bestand - Entleihungen</td>
+                    <td>E-Medien - Entleihungen</td>
                     <td>
                         <input type="number" id="st_med_virtsupply_issues" name="st_med_virtsupply_issues" min="0" size="12" maxlength="12" value="[% st.med_virtsupply_issues %]" />
                     </td>
@@ -837,10 +858,34 @@
                 </tr>
 
                 <tr>
+                    <td>93</td>
+                    <td>Anzahl der Kooperationen</td>
+                    <td>
+                        <input type="number" id="st_srv_coops_tot" name="st_srv_coops_tot" min="0" size="12" maxlength="12" value="[% st.srv_coops_tot %]" />
+                    </td>
+                </tr>
+
+                <tr>
+                    <td>93.1</td>
+                    <td>... darunter: schriftlich vereinbarte Kooperationen</td>
+                    <td>
+                        <input type="number" id="st_srv_coops_stipulated" name="st_srv_coops_stipulated" min="0" size="12" maxlength="12" value="[% st.srv_coops_stipulated %]" />
+                    </td>
+                </tr>
+
+                <tr>
                     <td>94</td>
                     <td>Veranstaltungen, Führungen, Ausstellungen insgesamt</td>
                     <td>
                         <input type="number" id="st_srv_events_tot" name="st_srv_events_tot" min="0" size="12" maxlength="12" value="[% st.srv_events_tot %]" />
+                    </td>
+                </tr>
+
+                <tr>
+                    <td>94.2</td>
+                    <td>... darunter: Online-Veranstaltungen</td>
+                    <td>
+                        <input type="number" id="st_srv_evt_online" name="st_srv_evt_online" min="0" size="12" maxlength="12" value="[% st.srv_evt_online %]" />
                     </td>
                 </tr>
 
@@ -889,6 +934,14 @@
                     <td>Anzahl der Besuche bei Veranstaltungen, Führungen, Ausstellungen</td>
                     <td>
                         <input type="number" id="st_srv_events_tot_visits" name="st_srv_events_tot_visits" min="0" size="12" maxlength="12" value="[% st.srv_events_tot_visits %]" />
+                    </td>
+                </tr>
+
+                <tr>
+                    <td>99.2</td>
+                    <td>... davon: Besuche an Online-Veranstaltungen (nur Live-Veranstaltungen)</td>
+                    <td>
+                        <input type="number" id="st_srv_evt_onl_visits" name="st_srv_evt_onl_visits" min="0" size="12" maxlength="12" value="[% st.srv_evt_onl_visits %]" />
                     </td>
                 </tr>
 
@@ -1328,6 +1381,366 @@
             </tbody>
 
 
+            <thead>
+                <tr>
+                    <th  colspan="2">10. SCHULBIBLIOTHEKEN</th>
+                    <th></th>
+                </tr>
+            </thead>
+
+            <tbody>
+                <tr>
+                    <td>500</td>
+                    <td>Zahl der zugeordneten Schulen</td>
+                    <td>
+                        <input type="number" id="st_slb_schools_cnt" name="st_slb_schools_cnt" min="0" size="12" maxlength="12" value="[% st.slb_schools_cnt %]" />
+                    </td>
+                </tr>
+
+                <tr>
+                    <td>501</td>
+                    <td>... darunter: Primarstufe</td>
+                    <td>
+                        <input type="number" id="st_slb_scs_cnt_prim" name="st_slb_scs_cnt_prim" min="0" size="12" maxlength="12" value="[% st.slb_scs_cnt_prim %]" />
+                    </td>
+                </tr>
+
+                <tr>
+                    <td>502</td>
+                    <td>... darunter: Sekundarstufe I</td>
+                    <td>
+                        <input type="number" id="st_slb_scs_cnt_sec1" name="st_slb_scs_cnt_sec1" min="0" size="12" maxlength="12" value="[% st.slb_scs_cnt_sec1 %]" />
+                    </td>
+                </tr>
+
+                <tr>
+                    <td>503</td>
+                    <td>... darunter: Sekundarstufe II</td>
+                    <td>
+                        <input type="number" id="st_slb_scs_cnt_sec2" name="st_slb_scs_cnt_sec2" min="0" size="12" maxlength="12" value="[% st.slb_scs_cnt_sec2 %]" />
+                    </td>
+                </tr>
+
+                <tr>
+                    <td>504</td>
+                    <td>... darunter: Berufliche Schulen</td>
+                    <td>
+                        <input type="number" id="st_slb_scs_cnt_trade" name="st_slb_scs_cnt_trade" min="0" size="12" maxlength="12" value="[% st.slb_scs_cnt_trade %]" />
+                    </td>
+                </tr>
+
+                <tr>
+                    <td>505</td>
+                    <td>Anzahl der Schulangehörigen</td>
+                    <td>
+                        <input type="number" id="st_slb_members_cnt" name="st_slb_members_cnt" min="0" size="12" maxlength="12" value="[% st.slb_members_cnt %]" />
+                    </td>
+                </tr>
+
+                <tr>
+                    <td>506</td>
+                    <td>Gesamtzahl Schüler</td>
+                    <td>
+                        <input type="number" id="st_slb_pupils_cnt" name="st_slb_pupils_cnt" min="0" size="12" maxlength="12" value="[% st.slb_pupils_cnt %]" />
+                    </td>
+                </tr>
+
+                <tr>
+                    <td>507</td>
+                    <td>Gesamtzahl Lehrer</td>
+                    <td>
+                        <input type="number" id="st_slb_teachers_cnt" name="st_slb_teachers_cnt" min="0" size="12" maxlength="12" value="[% st.slb_teachers_cnt %]" />
+                    </td>
+                </tr>
+
+                <tr>
+                    <td>508</td>
+                    <td>Publikumsfläche gesamt (m²)</td>
+                    <td>
+                        <input type="number" id="st_slb_publicarea" name="st_slb_publicarea" min="0" size="12" maxlength="12" value="[% st.slb_publicarea %]" />
+                    </td>
+                </tr>
+
+                <tr>
+                    <td>509</td>
+                    <td>Jahresöffnungsstunden</td>
+                    <td>
+                        <input type="number" id="st_slb_openinghours_year" name="st_slb_openinghours_year" min="0" size="12" maxlength="12" value="[% st.slb_openinghours_year %]" />
+                    </td>
+                </tr>
+
+                <tr>
+                    <td>510</td>
+                    <td>Besuche im Berichtsjahr</td>
+                    <td>
+                        <input type="number" id="st_slb_visits_year" name="st_slb_visits_year" min="0" size="12" maxlength="12" value="[% st.slb_visits_year %]" />
+                    </td>
+                </tr>
+
+                <tr>
+                    <td>511</td>
+                    <td>Printmedien insgesamt - Bestand</td>
+                    <td>
+                        <input type="number" id="st_slb_print_stock_tot" name="st_slb_print_stock_tot" min="0" size="12" maxlength="12" value="[% st.slb_print_stock_tot %]" /> <b style="font-size: 125%">*</b>
+                    </td>
+                </tr>
+
+                <tr>
+                    <td>512</td>
+                    <td>... darunter: Lehrmittel</td>
+                    <td>
+                        <input type="number" id="st_slb_print_stock_educ" name="st_slb_print_stock_educ" min="0" size="12" maxlength="12" value="[% st.slb_print_stock_educ %]" />
+                    </td>
+                </tr>
+
+                <tr>
+                    <td>513</td>
+                    <td>Printmedien insgesamt - Entleihungen</td>
+                    <td>
+                        <input type="number" id="st_slb_print_issues_tot" name="st_slb_print_issues_tot" min="0" size="12" maxlength="12" value="[% st.slb_print_issues_tot %]" /> <b style="font-size: 125%">*</b>
+                    </td>
+                </tr>
+
+                <tr>
+                    <td>514</td>
+                    <td>Non-Prints und Sonstiges - Bestand</td>
+                    <td>
+                        <input type="number" id="st_slb_nonbook_stock_tot" name="st_slb_nonbook_stock_tot" min="0" size="12" maxlength="12" value="[% st.slb_nonbook_stock_tot %]" /> <b style="font-size: 125%">*</b>
+                    </td>
+                </tr>
+
+                <tr>
+                    <td>515</td>
+                    <td>Non-Prints und Sonstiges - Entleihungen</td>
+                    <td>
+                        <input type="number" id="st_slb_nonbook_issues_tot" name="st_slb_nonbook_issues_tot" min="0" size="12" maxlength="12" value="[% st.slb_nonbook_issues_tot %]" /> <b style="font-size: 125%">*</b>
+                    </td>
+                </tr>
+
+                <tr>
+                    <td>516</td>
+                    <td>Einsatz von Bibliothekssoftware?</td>
+                    <td>
+                        [% IF ( st.slb_lms_use_yn ) %]
+                            <input type="checkbox" id="st_slb_lms_use_yn" name="st_slb_lms_use_yn" value="1" checked="checked" />
+                        [% ELSE %]
+                            <input type="checkbox" id="st_slb_lms_use_yn" name="st_slb_lms_use_yn" value="1" />
+                        [% END %]
+                    </td>
+                </tr>
+
+                <tr>
+                    <td>517</td>
+                    <td>Zugang zu E-Medien?</td>
+                    <td>
+                        [% IF ( st.slb_emed_access_yn ) %]
+                            <input type="checkbox" id="st_slb_emed_access_yn" name="st_slb_emed_access_yn" value="1" checked="checked" />
+                        [% ELSE %]
+                            <input type="checkbox" id="st_slb_emed_access_yn" name="st_slb_emed_access_yn" value="1" />
+                        [% END %]
+                    </td>
+                </tr>
+
+                <tr>
+                    <td>518</td>
+                    <td>Anzahl Arbeitsplätze mit Internet</td>
+                    <td>
+                        <input type="number" id="st_slb_workplaces_onl" name="st_slb_workplaces_onl" min="0" size="12" maxlength="12" value="[% st.slb_workplaces_onl %]" />
+                    </td>
+                </tr>
+
+                <tr>
+                    <td>519</td>
+                    <td>Gesamtzahl der Beschäftigten in der Schulbibliothek (Personen)</td>
+                    <td>
+                        <input type="number" id="st_slb_staff_cnt" name="st_slb_staff_cnt" min="0" size="12" maxlength="12" value="[% st.slb_staff_cnt %]" />
+                    </td>
+                </tr>
+
+                <tr>
+                    <td>520</td>
+                    <td>... darunter: Beschäftigte mit bibliotheksfachlicher Ausbildung (VZÄ)</td>
+                    <td>
+                        <input type="text" id="st_slb_stf_lib_qualif_fte" name="st_slb_stf_lib_qualif_fte" value="[% st.slb_stf_lib_qualif_fte | $Price %]"  oninput="floatInput(document.DBS_edit.st_slb_stf_lib_qualif_fte,2)"  onchange="moneyFormat(document.DBS_edit.st_slb_stf_lib_qualif_fte)" />
+                    </td>
+                </tr>
+
+                <tr>
+                    <td>521</td>
+                    <td>... darunter: Beschäftigte mit pädagogischer Ausbildung (VZÄ)</td>
+                    <td>
+                        <input type="text" id="st_slb_stf_educ_qualif_fte" name="st_slb_stf_educ_qualif_fte" value="[% st.slb_stf_educ_qualif_fte | $Price %]"  oninput="floatInput(document.DBS_edit.st_slb_stf_educ_qualif_fte,2)"  onchange="moneyFormat(document.DBS_edit.st_slb_stf_educ_qualif_fte)" />
+                    </td>
+                </tr>
+
+                <tr>
+                    <td>522</td>
+                    <td>Ehrenamtliches Personal (Personen)</td>
+                    <td>
+                        <input type="number" id="st_slb_volunteer_cnt" name="st_slb_volunteer_cnt" min="0" size="12" maxlength="12" value="[% st.slb_volunteer_cnt %]" />
+                    </td>
+                </tr>
+
+                <tr>
+                    <td>523</td>
+                    <td>Insgesamt pro Woche verfügbare Arbeitsstunden im Durchschnitt, bezogen auf bezahltes und unbezahltes Personal</td>
+                    <td>
+                        <input type="number" id="st_slb_workhours_week" name="st_slb_workhours_week" min="0" size="12" maxlength="12" value="[% st.slb_workhours_week %]" />
+                    </td>
+                </tr>
+
+                <tr>
+                    <td>524</td>
+                    <td>Bibliothekspädagogische Angebote & Veranstaltungen insgesamt</td>
+                    <td>
+                        <input type="number" id="st_slb_libedu_events_tot" name="st_slb_libedu_events_tot" min="0" size="12" maxlength="12" value="[% st.slb_libedu_events_tot %]" />
+                    </td>
+                </tr>
+
+                <tr>
+                    <td>525</td>
+                    <td>... darunter: Veranstaltungen zur Bibliotheksnutzung</td>
+                    <td>
+                        <input type="number" id="st_slb_libedu_evt_libuse" name="st_slb_libedu_evt_libuse" min="0" size="12" maxlength="12" value="[% st.slb_libedu_evt_libuse %]" />
+                    </td>
+                </tr>
+
+                <tr>
+                    <td>526</td>
+                    <td>... darunter: Veranstaltungen zur Leseförderung und Medienkompetenz</td>
+                    <td>
+                        <input type="number" id="st_slb_libedu_evt_meduse" name="st_slb_libedu_evt_meduse" min="0" size="12" maxlength="12" value="[% st.slb_libedu_evt_meduse %]" />
+                    </td>
+                </tr>
+
+                <tr>
+                    <td>527</td>
+                    <td>Anzahl der Besuche bei bibliothekspädagogischen Angeboten & Veranstaltungen insgesamt</td>
+                    <td>
+                        <input type="number" id="st_slb_libedu_evt_visits" name="st_slb_libedu_evt_visits" min="0" size="12" maxlength="12" value="[% st.slb_libedu_evt_visits %]" />
+                    </td>
+                </tr>
+
+                <tr>
+                    <td>528</td>
+                    <td>Ausgaben für Erwerbung (inkl. Einband und Lizenzen)</td>
+                    <td>
+                        <input type="text" id="st_slb_expenses_tot" name="st_slb_expenses_tot" value="[% st.slb_expenses_tot | $Price %]"  oninput="floatInput(document.DBS_edit.st_slb_expenses_tot,2)"  onchange="moneyFormat(document.DBS_edit.st_slb_expenses_tot)" />
+                    </td>
+                </tr>
+
+                <tr>
+                    <td>529</td>
+                    <td>Anzahl der kombinierten ÖB- und Schulbibliotheken</td>
+                    <td>
+                        <input type="number" id="st_slb_combined_cnt" name="st_slb_combined_cnt" min="0" size="12" maxlength="12" value="[% st.slb_combined_cnt %]" />
+                    </td>
+                </tr>
+            </tbody>
+
+
+            <thead>
+                <tr>
+                    <th  colspan="2">11. SCHULBIBLIOTHEKARISCHE DIENSTLEISTUNGEN FÜR VERBUND-SCHULBIBLIOTHEKEN</th>
+                    <th></th>
+                </tr>
+            </thead>
+
+            <tbody>
+                <tr>
+                    <td>550</td>
+                    <td>Anzahl im Verbund organisierter Schulbibliotheken</td>
+                    <td>
+                        <input type="number" id="st_sls_assoc_lib_cnt" name="st_sls_assoc_lib_cnt" min="0" size="12" maxlength="12" value="[% st.sls_assoc_lib_cnt %]" />
+                    </td>
+                </tr>
+
+                <tr>
+                    <td>551</td>
+                    <td>Grundlegende Beratung</td>
+                    <td>
+                        [% IF ( st.sls_consulting_yn ) %]
+                            <input type="checkbox" id="st_sls_consulting_yn" name="st_sls_consulting_yn" value="1" checked="checked" />
+                        [% ELSE %]
+                            <input type="checkbox" id="st_sls_consulting_yn" name="st_sls_consulting_yn" value="1" />
+                        [% END %]
+                    </td>
+                </tr>
+
+                <tr>
+                    <td>552</td>
+                    <td>Personal für Öffnung und/oder Veranstaltungen</td>
+                    <td>
+                        [% IF ( st.sls_staff_operat_evt_yn ) %]
+                            <input type="checkbox" id="st_sls_staff_operat_evt_yn" name="st_sls_staff_operat_evt_yn" value="1" checked="checked" />
+                        [% ELSE %]
+                            <input type="checkbox" id="st_sls_staff_operat_evt_yn" name="st_sls_staff_operat_evt_yn" value="1" />
+                        [% END %]
+                    </td>
+                </tr>
+
+                <tr>
+                    <td>553</td>
+                    <td>Medienetat</td>
+                    <td>
+                        [% IF ( st.sls_media_budget_yn ) %]
+                            <input type="checkbox" id="st_sls_media_budget_yn" name="st_sls_media_budget_yn" value="1" checked="checked" />
+                        [% ELSE %]
+                            <input type="checkbox" id="st_sls_media_budget_yn" name="st_sls_media_budget_yn" value="1" />
+                        [% END %]
+                    </td>
+                </tr>
+
+                <tr>
+                    <td>554</td>
+                    <td>Hilfen beim Bestandsaufbau / Zentrale Medieneinarbeitung</td>
+                    <td>
+                        [% IF ( st.sls_stock_creat_yn ) %]
+                            <input type="checkbox" id="st_sls_stock_creat_yn" name="st_sls_stock_creat_yn" value="1" checked="checked" />
+                        [% ELSE %]
+                            <input type="checkbox" id="st_sls_stock_creat_yn" name="st_sls_stock_creat_yn" value="1" />
+                        [% END %]
+                    </td>
+                </tr>
+
+                <tr>
+                    <td>555</td>
+                    <td>EDV (z. B. Bereitstellung der Bibliothekssoftware / eines Online-Katalogs)</td>
+                    <td>
+                        [% IF ( st.sls_it_service_yn ) %]
+                            <input type="checkbox" id="st_sls_it_service_yn" name="st_sls_it_service_yn" value="1" checked="checked" />
+                        [% ELSE %]
+                            <input type="checkbox" id="st_sls_it_service_yn" name="st_sls_it_service_yn" value="1" />
+                        [% END %]
+                    </td>
+                </tr>
+
+                <tr>
+                    <td>556</td>
+                    <td>Bereitstellung von Klassensätzen</td>
+                    <td>
+                        [% IF ( st.sls_class_set_provis_yn ) %]
+                            <input type="checkbox" id="st_sls_class_set_provis_yn" name="st_sls_class_set_provis_yn" value="1" checked="checked" />
+                        [% ELSE %]
+                            <input type="checkbox" id="st_sls_class_set_provis_yn" name="st_sls_class_set_provis_yn" value="1" />
+                        [% END %]
+                    </td>
+                </tr>
+
+                <tr>
+                    <td>557</td>
+                    <td>Ausleihbares Angebot (Medienkisten, Bücher-Rucksäcke etc.)</td>
+                    <td>
+                        [% IF ( st.sls_med_collection_yn ) %]
+                            <input type="checkbox" id="st_sls_med_collection_yn" name="st_sls_med_collection_yn" value="1" checked="checked" />
+                        [% ELSE %]
+                            <input type="checkbox" id="st_sls_med_collection_yn" name="st_sls_med_collection_yn" value="1" />
+                        [% END %]
+                    </td>
+                </tr>
+            </tbody>
+
+
         </table>
         </form>
       </div>
@@ -1391,6 +1804,10 @@
                 exportTableToCSV.call(this, $('#dbs_values_table'), 'export_dbs_incl_music_lib.csv', 'dbs_incl_music_lib');
             });
 
+            $('#DBSdownload_dbs_incl_school_lib').click(function() {
+                exportTableToCSV.call(this, $('#dbs_values_table'), 'export_dbs_incl_school_lib.csv', 'dbs_incl_school_lib');
+            });
+
         });
 
         function getcolvalues(j, col) {
@@ -1426,7 +1843,11 @@
             rowDelim = '\r\n';
             if ( format == "tab" ) {
                 colDelim = '\t';
-            } else if ( format == "dbs_base_questionaire" || format == "dbs_incl_patients_lib" || format == "dbs_incl_mobile_lib" || format == "dbs_incl_music_lib" ) {
+            } else if ( format == "dbs_base_questionaire" || 
+                        format == "dbs_incl_patients_lib" || 
+                        format == "dbs_incl_mobile_lib" || 
+                        format == "dbs_incl_music_lib" || 
+                        format == "dbs_incl_school_lib" ) {
                 colDelim = ';';
             } else {
                 [% SET kohaColDelimiter = Koha.Preference('delimiter') %]
@@ -1458,7 +1879,11 @@
             }
 
 
-            if ( format == "dbs_base_questionaire" || format == "dbs_incl_patients_lib" || format == "dbs_incl_mobile_lib" || format == "dbs_incl_music_lib" ) {
+            if ( format == "dbs_base_questionaire" ||
+                 format == "dbs_incl_patients_lib" ||
+                 format == "dbs_incl_mobile_lib" ||
+                 format == "dbs_incl_music_lib" ||
+                 format == "dbs_incl_school_lib" ) {
                 var values = $rows.map(
                     function(i, row) {
                         var $row = $(row);
@@ -1467,15 +1892,51 @@
                         return $cols.map(getcolvalues).get()[2];
                     }
                 );
-                // default length (all fields) corresponds to dbs_incl_music_lib (136 fields (columns))
+
+                // until DBS 2020: default length (all fields) corresponds to dbs_incl_music_lib (136 fields (columns))
+                //     length dbs_base_questionaire: 96 fields (index 0 - 95)
+                //     length dbs_incl_patients_lib: 107 fields (index 0 - 106)
+                //     length dbs_incl_mobile_lib: 114 fields (index 0 - 113)
+                //     length dbs_incl_music_lib: 136 fields (index 0 - 135)
+                //  if ( format == "dbs_base_questionaire" ) {
+                //      values = values.slice(0,96);
+                //  } else if ( format == "dbs_incl_patients_lib" ) {
+                //      values = values.slice(0,107);
+                //  } else if ( format == "dbs_incl_mobile_lib" ) {
+                //      values = values.slice(0,114);
+                //  }
+                //  csv += '"' + values.get().join(tmpColDelim)
+                //          .split(tmpColDelim).join('"' + colDelim + '"') + '"' + rowDelim;
+                //
+
+                // since DBS 2021:
+                //     old fields, dropped for export: query 9, 10.1, 10.2, 11 (index: 13, 14, 15, 17)
+                //     added fields, dropped for export: query 10.3 (index: 16)
+                //     added fields (base questionaire): query 7.2, 93, 93.1, 94.2, 99.2 (index: 10, 85, 86, 88, 95 )
+                //     added fields (chapter 10, school libraries): query 500, 501, 502, ..., 529 (index: 142, 143, 144, ..., 171 )
+                //     added fields (chapter 11, services for associated school libraries): query 550, 551, 552, ..., 557 (index: 172, 173, 174, ..., 179 )
+                //     default length total (all fields): 180
+                //     length dbs_base_questionaire: 97 (index 0 - 101, but not exported: index 13-17)
+                //     length dbs_incl_patients_lib: 108 fields (index 0 - 112, but not exported: index 13-17)
+                //     length dbs_incl_mobile_lib: 115 fields (index 0 - 119, but not exported: index 13-17)
+                //     length dbs_incl_music_lib: 137 fields (index 0 - 141, but not exported: index 13-17)
+                //     length dbs_incl_school_lib: 175 fields (index 0 - 179, but not exported: index 13-17)
+
+                var valuesNew = (values.slice(0,13).get()).concat(values.slice(18,180).get());
                 if ( format == "dbs_base_questionaire" ) {
-                    values = values.slice(0,96);
+                    valuesNew = valuesNew.slice(0,97);    // index 0..96 corresponds to index 0..101 of var 'values', but excluding index 13-17 of var 'values')
                 } else if ( format == "dbs_incl_patients_lib" ) {
-                    values = values.slice(0,107);
+                    valuesNew = valuesNew.slice(0,108);    // index 0..107 corresponds to index 0..112 of var 'values', but excluding index 13-17 of var 'values')
                 } else if ( format == "dbs_incl_mobile_lib" ) {
-                    values = values.slice(0,114);
+                    valuesNew = valuesNew.slice(0,115);    // index 0-114 corresponds to index 0 - 119 of var 'values', but excluding index 13-17 of var 'values')
+                } else if ( format == "dbs_incl_music_lib" ) {
+                    valuesNew = valuesNew.slice(0,137);    // index 0-136 corresponds to index 0 - 141 of var 'values', but excluding index 13-17 of var 'values')
+                } else if ( format == "dbs_incl_school_lib" ) {
+                    // valuesNew needs not be sliced, because in this case valuesNew == valuesNew.slice(0,175) already
+                    //valuesNew = valuesNew.slice(0,175);    // index 0-174 corresponds to index 0 - 179 of var 'values', but excluding index 13-17 of var 'values')
                 }
-                csv += '"' + values.get().join(tmpColDelim)
+
+                csv += '"' + valuesNew.join(tmpColDelim)
                         .split(tmpColDelim).join('"' + colDelim + '"') + '"' + rowDelim;
 
                 // Data URI (we export using UTF-8 encoding; converting to the required charset ISO-8859-1 has to be done in Excel / LibreOfficeCalc / etc.)

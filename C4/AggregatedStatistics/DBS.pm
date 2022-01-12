@@ -48,13 +48,16 @@ $as_values->{'gen_publicarea'} = { 'id' => '', 'name' => 'gen_publicarea', 'valu
 $as_values->{'gen_publicarea_central'} = { 'id' => '', 'name' => 'gen_publicarea_central', 'value' => '', 'type' => 'float' };                                                                                  # DBS2018:6.1 (new since DBS 2018)
 $as_values->{'gen_openinghours_year'} = { 'id' => '', 'name' => 'gen_openinghours_year', 'value' => '', 'type' => 'float' };                                                                                    # DBS2017:7
 $as_values->{'gen_openinghours_year_open_library'} = { 'id' => '', 'name' => 'gen_openinghours_year_open_library', 'value' => '', 'type' => 'float' };                                                          # DBS2019:7.1 (new since DBS 2019)
+$as_values->{'gen_extra_services_yn'} = { 'id' => '', 'name' => 'gen_extra_services_yn', 'value' => '', 'type' => 'bool' };                                                                                     # DBS2021:7.2 (new since DBS 2021)
 $as_values->{'gen_openinghours_week'} = { 'id' => '', 'name' => 'gen_openinghours_week', 'value' => '', 'type' => 'float' };                                                                                    # DBS2017:8
 $as_values->{'gen_openinghours_week_open_library'} = { 'id' => '', 'name' => 'gen_openinghours_week_open_library', 'value' => '', 'type' => 'float' };                                                          # DBS2019:8.1 (new since DBS 2019)
+
 # patron information / 2. BENUTZER
-$as_values->{'pat_active'} = { 'id' => '', 'name' => 'pat_active', 'value' => '', 'type' => 'int', 'calc' => \&func_call_sql, 'param' => ['pat_active'] };                                                      # DBS2017:9
-$as_values->{'pat_active_to_12'} = { 'id' => '', 'name' => 'pat_active_to_12', 'value' => '', 'type' => 'int', 'calc' => \&func_call_sql, 'param' => ['pat_active_to_12'] };                                    # DBS2017:10.1
-$as_values->{'pat_active_from_60'} = { 'id' => '', 'name' => 'pat_active_from_60', 'value' => '', 'type' => 'int', 'calc' => \&func_call_sql, 'param' => ['pat_active_from_60'] };                              # DBS2017:10.2
-$as_values->{'pat_new_registrations'} = { 'id' => '', 'name' => 'pat_new_registrations', 'value' => '', 'type' => 'int', 'calc' => \&func_call_sql, 'param' => ['pat_new_registrations'] };                     # DBS2017:11
+$as_values->{'pat_active'} = { 'id' => '', 'name' => 'pat_active', 'value' => '', 'type' => 'int', 'calc' => \&func_call_sql, 'param' => ['pat_active'] };                                                      # DBS2017:9 (no export since DBS 2021)
+$as_values->{'pat_active_to_12'} = { 'id' => '', 'name' => 'pat_active_to_12', 'value' => '', 'type' => 'int', 'calc' => \&func_call_sql, 'param' => ['pat_active_to_12'] };                                    # DBS2017:10.1 (no export since DBS 2021)
+$as_values->{'pat_active_from_60'} = { 'id' => '', 'name' => 'pat_active_from_60', 'value' => '', 'type' => 'int', 'calc' => \&func_call_sql, 'param' => ['pat_active_from_60'] };                              # DBS2017:10.2 (no export since DBS 2021)
+$as_values->{'pat_active_below_18'} = { 'id' => '', 'name' => 'pat_active_below_18', 'value' => '', 'type' => 'int', 'calc' => \&func_call_sql, 'param' => ['pat_active_below_18'] };                           # DBS2021:10.3 (no export since DBS 2021)
+$as_values->{'pat_new_registrations'} = { 'id' => '', 'name' => 'pat_new_registrations', 'value' => '', 'type' => 'int', 'calc' => \&func_call_sql, 'param' => ['pat_new_registrations'] };                     # DBS2017:11 (no export since DBS 2021)
 $as_values->{'pat_visits'} = { 'id' => '', 'name' => 'pat_visits', 'value' => '', 'type' => 'int' };                                                                                                            # DBS2017:12
 $as_values->{'pat_visits_virt'} = { 'id' => '', 'name' => 'pat_visits_virt', 'value' => '', 'type' => 'int' };    # input deactivated                                                                           # DBS2017:12.1
 
@@ -146,13 +149,17 @@ $as_values->{'srv_virtualstock_yn'} = { 'id' => '', 'name' => 'srv_virtualstock_
 $as_values->{'srv_activeinfo_yn'} = { 'id' => '', 'name' => 'srv_activeinfo_yn', 'value' => '', 'type' => 'bool' };                                                                                             # DBS2017:90
 $as_values->{'srv_publicwlan_yn'} = { 'id' => '', 'name' => 'srv_publicwlan_yn', 'value' => '', 'type' => 'bool' };                                                                                             # DBS2017:91
 $as_values->{'srv_socialwork_yn'} = { 'id' => '', 'name' => 'srv_socialwork_yn', 'value' => '', 'type' => 'bool' };                                                                                             # DBS2017:92
+$as_values->{'srv_coops_tot'} = { 'id' => '', 'name' => 'srv_coops_tot', 'value' => '', 'type' => 'int' };                                                                                                      # DBS2021:93 (new since DBS 2021)
+$as_values->{'srv_coops_stipulated'} = { 'id' => '', 'name' => 'srv_coops_stipulated', 'value' => '', 'type' => 'int' };                                                                                        # DBS2021:93.1 (new since DBS 2021)
 $as_values->{'srv_events_tot'} = { 'id' => '', 'name' => 'srv_events_tot', 'value' => '', 'type' => 'int' };                                                                                                    # DBS2017:94
 $as_values->{'srv_events_tot_visits'} = { 'id' => '', 'name' => 'srv_events_tot_visits', 'value' => '', 'type' => 'int' };                                                                                      # DBS2018:94.1 DBS2019:99.1 (new since DBS 2018) (99.1 since DBS 2019)
+$as_values->{'srv_evt_online'} = { 'id' => '', 'name' => 'srv_evt_online', 'value' => '', 'type' => 'int' };                                                                                                    # DBS2021:94.2 (new since DBS 2021)
 $as_values->{'srv_evt_libintro'} = { 'id' => '', 'name' => 'srv_evt_libintro', 'value' => '', 'type' => 'int' };                                                                                                # DBS2017:95
 $as_values->{'srv_evt_juvenile'} = { 'id' => '', 'name' => 'srv_evt_juvenile', 'value' => '', 'type' => 'int' };                                                                                                # DBS2017:96
 $as_values->{'srv_evt_adult'} = { 'id' => '', 'name' => 'srv_evt_adult', 'value' => '', 'type' => 'int' };                                                                                                      # DBS2017:97
 $as_values->{'srv_evt_exhibition'} = { 'id' => '', 'name' => 'srv_evt_exhibition', 'value' => '', 'type' => 'int' };                                                                                            # DBS2017:98
 $as_values->{'srv_evt_other'} = { 'id' => '', 'name' => 'srv_evt_other', 'value' => '', 'type' => 'int' };                                                                                                      # DBS2017:99
+$as_values->{'srv_evt_onl_visits'} = { 'id' => '', 'name' => 'srv_evt_onl_visits', 'value' => '', 'type' => 'int' };                                                                                            # DBS2021:99.2 (new since DBS 2021)
 $as_values->{'srv_school_libs'} = { 'id' => '', 'name' => 'srv_school_libs', 'value' => '', 'type' => 'int' };                                                                                                  # DBS2017:100
 $as_values->{'srv_admin_libs'} = { 'id' => '', 'name' => 'srv_admin_libs', 'value' => '', 'type' => 'int' };                                                                                                    # DBS2017:101
 $as_values->{'srv_contracts'} = { 'id' => '', 'name' => 'srv_contracts', 'value' => '', 'type' => 'int' };                                                                                                      # DBS2017:102
@@ -160,7 +167,7 @@ $as_values->{'srv_rfidcheckio_yn'} = { 'id' => '', 'name' => 'srv_rfidcheckio_yn
 $as_values->{'srv_mobiledevices_yn'} = { 'id' => '', 'name' => 'srv_mobiledevices_yn', 'value' => '', 'type' => 'bool' };                                                                                       # DBS2017:104
 $as_values->{'srv_remarks'} = { 'id' => '', 'name' => 'srv_remarks', 'value' => '', 'type' => 'text' };                                                                                                         # DBS2017:199
 
-# patients' libraries / PATIENTENBIBLIOTHEKEN
+# patients' libraries / 7. PATIENTENBIBLIOTHEKEN
 $as_values->{'ptl_clinical_network_yn'} = { 'id' => '', 'name' => 'ptl_clinical_network_yn', 'value' => '', 'type' => 'bool' };                                                                                 # DBS2017:200
 $as_values->{'ptl_clinet_clinics'} = { 'id' => '', 'name' => 'ptl_clinet_clinics', 'value' => '', 'type' => 'int' };                                                                                            # DBS2017:201
 $as_values->{'ptl_clinet_patientslibs'} = { 'id' => '', 'name' => 'ptl_clinet_patientslibs', 'value' => '', 'type' => 'int' };                                                                                  # DBS2017:202
@@ -173,7 +180,7 @@ $as_values->{'ptl_mediaplayer_service_yn'} = { 'id' => '', 'name' => 'ptl_mediap
 $as_values->{'ptl_medical_lib_yn'} = { 'id' => '', 'name' => 'ptl_medical_lib_yn', 'value' => '', 'type' => 'bool' };                                                                                           # DBS2017:209
 $as_values->{'ptl_combined_lib_yn'} = { 'id' => '', 'name' => 'ptl_combined_lib_yn', 'value' => '', 'type' => 'bool' };                                                                                         # DBS2017:210
 
-# mobile libraries / FAHRBIBLIOTHEKEN
+# mobile libraries / 8. FAHRBIBLIOTHEKEN
 $as_values->{'mol_vehicles'} = { 'id' => '', 'name' => 'mol_vehicles', 'value' => '', 'type' => 'int', 'calc' => \&func_call_sql, 'param' => ['mol_vehicles'] };                                                # DBS2017:300
 $as_values->{'mol_multiple_communes_yn'} = { 'id' => '', 'name' => 'mol_multiple_communes_yn', 'value' => '', 'type' => 'bool' };                                                                               # DBS2017:301
 $as_values->{'mol_stop_stations'} = { 'id' => '', 'name' => 'mol_stop_stations', 'value' => '', 'type' => 'int', 'calc' => \&func_call_sql, 'param' => ['mol_stop_stations'] };                                 # DBS2017:302
@@ -182,7 +189,7 @@ $as_values->{'mol_openinghours_week'} = { 'id' => '', 'name' => 'mol_openinghour
 $as_values->{'mol_stock_media_units'} = { 'id' => '', 'name' => 'mol_stock_media_units', 'value' => '', 'type' => 'int', 'calc' => \&func_call_sql, 'param' => ['mol_stock_media_units'] };                     # DBS2017:305
 $as_values->{'mol_media_unit_issues'} = { 'id' => '', 'name' => 'mol_media_unit_issues', 'value' => '', 'type' => 'int', 'calc' => \&func_call_sql, 'param' => ['mol_media_unit_issues'] };                     # DBS2017:307
 
-# music libraries / MUSIKBIBLIOTHEKEN
+# music libraries / 9. MUSIKBIBLIOTHEKEN
 $as_values->{'mus_sheetmusic_stock'} = { 'id' => '', 'name' => 'mus_sheetmusic_stock', 'value' => '', 'type' => 'int', 'calc' => \&func_call_sql, 'param' => ['mus_sheetmusic_stock'] };                        # DBS2017:400
 $as_values->{'mus_sheetmusic_issues'} = { 'id' => '', 'name' => 'mus_sheetmusic_issues', 'value' => '', 'type' => 'int', 'calc' => \&func_call_sql, 'param' => ['mus_sheetmusic_issues'] };                     # DBS2017:401
 $as_values->{'mus_secondarylit_stock'} = { 'id' => '', 'name' => 'mus_secondarylit_stock', 'value' => '', 'type' => 'int', 'calc' => \&func_call_sql, 'param' => ['mus_secondarylit_stock'] };                  # DBS2017:402
@@ -206,9 +213,50 @@ $as_values->{'mus_issues_tot'} = { 'id' => '', 'name' => 'mus_issues_tot', 'valu
 $as_values->{'mus_audioplaybacks'} = { 'id' => '', 'name' => 'mus_audioplaybacks', 'value' => '', 'type' => 'int' };                                                                                            # DBS2017:420
 $as_values->{'mus_acq_expenses'} = { 'id' => '', 'name' => 'mus_acq_expenses', 'value' => '', 'type' => 'float' };                                                                                              # DBS2017:421
 
+# school libraries / 10. SCHULBIBLIOTHEKEN
+$as_values->{'slb_schools_cnt'} = { 'id' => '', 'name' => 'slb_schools_cnt', 'value' => '', 'type' => 'int' };                                                                                                  # DBS2021:500
+$as_values->{'slb_scs_cnt_prim'} = { 'id' => '', 'name' => 'slb_scs_cnt_prim', 'value' => '', 'type' => 'int' };                                                                                                # DBS2021:501
+$as_values->{'slb_scs_cnt_sec1'} = { 'id' => '', 'name' => 'slb_scs_cnt_sec1', 'value' => '', 'type' => 'int' };                                                                                                # DBS2021:502
+$as_values->{'slb_scs_cnt_sec2'} = { 'id' => '', 'name' => 'slb_scs_cnt_sec2', 'value' => '', 'type' => 'int' };                                                                                                # DBS2021:503
+$as_values->{'slb_scs_cnt_trade'} = { 'id' => '', 'name' => 'slb_scs_cnt_trade', 'value' => '', 'type' => 'int' };                                                                                              # DBS2021:504
+$as_values->{'slb_members_cnt'} = { 'id' => '', 'name' => 'slb_members_cnt', 'value' => '', 'type' => 'int' };                                                                                                  # DBS2021:505
+$as_values->{'slb_pupils_cnt'} = { 'id' => '', 'name' => 'slb_pupils_cnt', 'value' => '', 'type' => 'int' };                                                                                                    # DBS2021:506
+$as_values->{'slb_teachers_cnt'} = { 'id' => '', 'name' => 'slb_teachers_cnt', 'value' => '', 'type' => 'int' };                                                                                                # DBS2021:507
+$as_values->{'slb_publicarea'} = { 'id' => '', 'name' => 'slb_publicarea', 'value' => '', 'type' => 'int' };                                                                                                    # DBS2021:508
+$as_values->{'slb_openinghours_year'} = { 'id' => '', 'name' => 'slb_openinghours_year', 'value' => '', 'type' => 'int' };                                                                                      # DBS2021:509
+$as_values->{'slb_visits_year'} = { 'id' => '', 'name' => 'slb_visits_year', 'value' => '', 'type' => 'int' };                                                                                                  # DBS2021:510
+$as_values->{'slb_print_stock_tot'} = { 'id' => '', 'name' => 'slb_print_stock_tot', 'value' => '', 'type' => 'int', 'calc' => \&func_call_sql, 'param' => ['slb_print_stock_tot'] };                           # DBS2021:511
+$as_values->{'slb_print_stock_educ'} = { 'id' => '', 'name' => 'slb_print_stock_educ', 'value' => '', 'type' => 'int' };                                                                                        # DBS2021:512
+$as_values->{'slb_print_issues_tot'} = { 'id' => '', 'name' => 'slb_print_issues_tot', 'value' => '', 'type' => 'int', 'calc' => \&func_call_sql, 'param' => ['slb_print_issues_tot'] };                        # DBS2021:513
+$as_values->{'slb_nonbook_stock_tot'} = { 'id' => '', 'name' => 'slb_nonbook_stock_tot', 'value' => '', 'type' => 'int', 'calc' => \&func_call_sql, 'param' => ['slb_nonbook_stock_tot'] };                     # DBS2021:514
+$as_values->{'slb_nonbook_issues_tot'} = { 'id' => '', 'name' => 'slb_nonbook_issues_tot', 'value' => '', 'type' => 'int', 'calc' => \&func_call_sql, 'param' => ['slb_nonbook_issues_tot'] };                  # DBS2021:515
+$as_values->{'slb_lms_use_yn'} = { 'id' => '', 'name' => 'slb_lms_use_yn', 'value' => '', 'type' => 'bool' };                                                                                                   # DBS2021:516
+$as_values->{'slb_emed_access_yn'} = { 'id' => '', 'name' => 'slb_emed_access_yn', 'value' => '', 'type' => 'bool' };                                                                                           # DBS2021:517
+$as_values->{'slb_workplaces_onl'} = { 'id' => '', 'name' => 'slb_workplaces_onl', 'value' => '', 'type' => 'int' };                                                                                            # DBS2021:518
+$as_values->{'slb_staff_cnt'} = { 'id' => '', 'name' => 'slb_staff_cnt', 'value' => '', 'type' => 'int' };                                                                                                      # DBS2021:519
+$as_values->{'slb_stf_lib_qualif_fte'} = { 'id' => '', 'name' => 'slb_stf_lib_qualif_fte', 'value' => '', 'type' => 'float' };                                                                                  # DBS2021:520
+$as_values->{'slb_stf_educ_qualif_fte'} = { 'id' => '', 'name' => 'slb_stf_educ_qualif_fte', 'value' => '', 'type' => 'float' };                                                                                # DBS2021:521
+$as_values->{'slb_volunteer_cnt'} = { 'id' => '', 'name' => 'slb_volunteer_cnt', 'value' => '', 'type' => 'int' };                                                                                              # DBS2021:522
+$as_values->{'slb_workhours_week'} = { 'id' => '', 'name' => 'slb_workhours_week', 'value' => '', 'type' => 'int' };                                                                                            # DBS2021:523
+$as_values->{'slb_libedu_events_tot'} = { 'id' => '', 'name' => 'slb_libedu_events_tot', 'value' => '', 'type' => 'int' };                                                                                      # DBS2021:524
+$as_values->{'slb_libedu_evt_libuse'} = { 'id' => '', 'name' => 'slb_libedu_evt_libuse', 'value' => '', 'type' => 'int' };                                                                                      # DBS2021:525
+$as_values->{'slb_libedu_evt_meduse'} = { 'id' => '', 'name' => 'slb_libedu_evt_meduse', 'value' => '', 'type' => 'int' };                                                                                      # DBS2021:526
+$as_values->{'slb_libedu_evt_visits'} = { 'id' => '', 'name' => 'slb_libedu_evt_visits', 'value' => '', 'type' => 'int' };                                                                                      # DBS2021:527
+$as_values->{'slb_expenses_tot'} = { 'id' => '', 'name' => 'slb_expenses_tot', 'value' => '', 'type' => 'float' };                                                                                              # DBS2021:528
+$as_values->{'slb_combined_cnt'} = { 'id' => '', 'name' => 'slb_combined_cnt', 'value' => '', 'type' => 'int' };                                                                                                # DBS2021:529
+
+# services for associated school libraries / 11. SCHULBIBLIOTHEKARISCHE DIENSTLEISTUNGEN FÜR VERBUND-SCHULBIBLIOTHEKEN
+$as_values->{'sls_assoc_lib_cnt'} = { 'id' => '', 'name' => 'sls_assoc_lib_cnt', 'value' => '', 'type' => 'int' };                                                                                              # DBS2021:550
+$as_values->{'sls_consulting_yn'} = { 'id' => '', 'name' => 'sls_consulting_yn', 'value' => '', 'type' => 'bool' };                                                                                             # DBS2021:551
+$as_values->{'sls_staff_operat_evt_yn'} = { 'id' => '', 'name' => 'sls_staff_operat_evt_yn', 'value' => '', 'type' => 'bool' };                                                                                 # DBS2021:552
+$as_values->{'sls_media_budget_yn'} = { 'id' => '', 'name' => 'sls_media_budget_yn', 'value' => '', 'type' => 'bool' };                                                                                         # DBS2021:553
+$as_values->{'sls_stock_creat_yn'} = { 'id' => '', 'name' => 'sls_stock_creat_yn', 'value' => '', 'type' => 'bool' };                                                                                           # DBS2021:554
+$as_values->{'sls_it_service_yn'} = { 'id' => '', 'name' => 'sls_it_service_yn', 'value' => '', 'type' => 'bool' };                                                                                             # DBS2021:555
+$as_values->{'sls_class_set_provis_yn'} = { 'id' => '', 'name' => 'sls_class_set_provis_yn', 'value' => '', 'type' => 'bool' };                                                                                 # DBS2021:556
+$as_values->{'sls_med_collection_yn'} = { 'id' => '', 'name' => 'sls_med_collection_yn', 'value' => '', 'type' => 'bool' };                                                                                     # DBS2021:557
 
 my $dbs_sql_statements = {};    # hash for storing the sql statements for calculating DBS values based on standard Koha DB tables
-# DBS2017:9
+# DBS2017:9    # filtered out from csv export since DBS2021
 $dbs_sql_statements->{'pat_active'} = q{
     select count(*) as res from borrowers
     where dateexpiry >=  (@startdatum := ?)
@@ -220,7 +268,7 @@ $dbs_sql_statements->{'pat_active'} = q{
             (@branchgroupSelect0or1 COLLATE utf8mb4_unicode_ci != '1' and @branchcodeSelect0or1 COLLATE utf8mb4_unicode_ci != '1')
           )
 };
-# DBS2017:10.1
+# DBS2017:10.1    # filtered out from csv export since DBS2021
 $dbs_sql_statements->{'pat_active_to_12'} = q{
     select count(*) as res from borrowers
     where dateexpiry >=  (@startdatum := ?)
@@ -233,7 +281,7 @@ $dbs_sql_statements->{'pat_active_to_12'} = q{
           )
       and DATE_ADD(dateofbirth, INTERVAL 12 YEAR) > @startdatum
 };
-# DBS2017:10.2
+# DBS2017:10.2    # filtered out from csv export since DBS2021
 $dbs_sql_statements->{'pat_active_from_60'} = q{
     select count(*) as res from borrowers
     where dateexpiry >=  (@startdatum := ?)
@@ -246,7 +294,20 @@ $dbs_sql_statements->{'pat_active_from_60'} = q{
           )
       and DATE_ADD(dateofbirth, INTERVAL 60 YEAR) <= @enddatum
 };
-# DBS2017:11
+# DBS2021:10.3 special column for SB Ingolstadt    # filtered out from csv export since DBS2021
+$dbs_sql_statements->{'pat_active_below_18'} = q{
+    select count(*) as res from borrowers
+    where dateexpiry >=  (@startdatum := ?)
+      and dateenrolled <=  (@enddatum := ?)
+      and ( ((@branchgroupSelect0or1 := ?) COLLATE utf8mb4_unicode_ci = '1' and branchcode IN (select branchcode from library_groups where parent_id = (@branchgroupSel := ?) COLLATE utf8mb4_unicode_ci))
+            or
+            ((@branchcodeSelect0or1 := ?) COLLATE utf8mb4_unicode_ci = '1' and branchcode = (@branchcodeSel := ?) COLLATE utf8mb4_unicode_ci)
+            or
+            (@branchgroupSelect0or1 COLLATE utf8mb4_unicode_ci != '1' and @branchcodeSelect0or1 COLLATE utf8mb4_unicode_ci != '1')
+          )
+      and DATE_ADD(dateofbirth, INTERVAL 18 YEAR) > @startdatum
+};    # counting each patron who was younger than 18 years at least one day in the selected period
+# DBS2017:11    # filtered out from csv export since DBS2021
 $dbs_sql_statements->{'pat_new_registrations'} = q{
     select count(*) as res from borrowers
     where dateenrolled >= (@startdatum := ?) and dateenrolled <= (@enddatum := ?)
@@ -1692,6 +1753,142 @@ $dbs_sql_statements->{'mus_issues_tot'} = q{
             ((@branchcodeSelect0or1 := ?) COLLATE utf8mb4_unicode_ci = '1' and s.branchcode = (@branchcodeSel := ?) COLLATE utf8mb4_unicode_ci)
             or
             (@branchgroupSelect0or1 COLLATE utf8mb4_unicode_ci != '1' and @branchcodeSelect0or1 COLLATE utf8mb4_unicode_ci != '1')
+    ) as br
+    where sums.branch = br.branchcode OR ( (sums.branch IS NULL or sums.branch = 'OPACRenew' ) AND sums.homebranch = br.branchcode)
+};
+# DBS2021:511
+$dbs_sql_statements->{'slb_print_stock_tot'} = q{
+    select sum(cnt) as res from 
+    (   select count(*) as cnt from items 
+        where ( itemlost = 0 or date(itemlost_on) >= (@startdatum := ?) ) 
+          and ( withdrawn = 0 or date(withdrawn_on) >= @startdatum ) 
+          and dateaccessioned <= (@enddatum := ?) 
+          and coded_location_qualifier IN ( 'F_B_N', 'F_B_F', 'F_B_J', 'F_B_P', 'F_B_M', 'F_M_P' ) 
+          and ( ((@branchgroupSelect0or1 := ?) COLLATE utf8mb4_unicode_ci = '1' and homebranch IN (select branchcode from library_groups where parent_id = (@branchgroupSel := ?) COLLATE utf8mb4_unicode_ci))
+                or
+                ((@branchcodeSelect0or1 := ?) COLLATE utf8mb4_unicode_ci = '1' and homebranch = (@branchcodeSel := ?) COLLATE utf8mb4_unicode_ci)
+                or
+                (@branchgroupSelect0or1 COLLATE utf8mb4_unicode_ci != '1' and @branchcodeSelect0or1 COLLATE utf8mb4_unicode_ci != '1')
+              )
+          and ( homebranch IN (select branchcode from library_groups where parent_id = (select dbs_school_libs_group.id from library_groups dbs_school_libs_group where title = 'DBS-Schulbibliotheken' COLLATE utf8mb4_unicode_ci) COLLATE utf8mb4_unicode_ci)
+              ) 
+        union all
+        select count(*) as cnt from deleteditems 
+        where ( itemlost = 0 or date(itemlost_on) >= @startdatum ) 
+          and ( withdrawn = 0 or date(withdrawn_on) >= @startdatum ) 
+          and dateaccessioned <= @enddatum 
+          and coded_location_qualifier IN ( 'F_B_N', 'F_B_F', 'F_B_J', 'F_B_P', 'F_B_M', 'F_M_P' ) 
+          and date(timestamp) >= @startdatum
+          and ( (@branchgroupSelect0or1 COLLATE utf8mb4_unicode_ci = '1' and homebranch IN (select branchcode from library_groups where parent_id = @branchgroupSel COLLATE utf8mb4_unicode_ci))
+                or
+                (@branchcodeSelect0or1 COLLATE utf8mb4_unicode_ci = '1' and homebranch = @branchcodeSel COLLATE utf8mb4_unicode_ci)
+                or
+                (@branchgroupSelect0or1 COLLATE utf8mb4_unicode_ci != '1' and @branchcodeSelect0or1 COLLATE utf8mb4_unicode_ci != '1')
+              )
+          and ( homebranch IN (select branchcode from library_groups where parent_id = (select dbs_school_libs_group.id from library_groups dbs_school_libs_group where title = 'DBS-Schulbibliotheken' COLLATE utf8mb4_unicode_ci) COLLATE utf8mb4_unicode_ci)
+              ) 
+    ) x
+};
+# DBS2021:513
+$dbs_sql_statements->{'slb_print_issues_tot'} = q{
+    select IFNULL(sum(sums.cnt),0) as res
+    from
+    (   select s.branch, i.homebranch, count(*) as cnt 
+        from   statistics s
+               join items i on ( i.itemnumber = s.itemnumber and i.coded_location_qualifier IN ( 'F_B_N', 'F_B_F', 'F_B_J', 'F_B_P', 'F_B_M', 'F_M_P' ) )
+        where  ( date(s.datetime) >= (@startdatum := ? ) ) 
+           and ( date(s.datetime) <= (@enddatum := ? ) )
+           and s.type in ('issue', 'renew')
+        group by s.branch, i.homebranch
+        union all
+        select s.branch, i.homebranch, count(*) as cnt 
+        from  statistics s
+              join deleteditems i ON ( i.itemnumber = s.itemnumber and i.coded_location_qualifier IN ( 'F_B_N', 'F_B_F', 'F_B_J', 'F_B_P', 'F_B_M', 'F_M_P' ) )
+        where ( date(s.datetime) >= ( @startdatum ) ) 
+          and ( date(s.datetime) <= ( @enddatum ) )
+          and s.type in ('issue', 'renew')
+        group by s.branch, i.homebranch
+    )   as sums,
+    (   select s.branchcode 
+        from   branches s
+        where ( 
+                ((@branchgroupSelect0or1 := ?) COLLATE utf8mb4_unicode_ci = '1' and s.branchcode IN (select branchcode from library_groups where parent_id = (@branchgroupSel := ?) COLLATE utf8mb4_unicode_ci))
+                or
+                ((@branchcodeSelect0or1 := ?) COLLATE utf8mb4_unicode_ci = '1' and s.branchcode = (@branchcodeSel := ?) COLLATE utf8mb4_unicode_ci)
+                or
+                (@branchgroupSelect0or1 COLLATE utf8mb4_unicode_ci != '1' and @branchcodeSelect0or1 COLLATE utf8mb4_unicode_ci != '1')
+              ) 
+          and ( 
+                s.branchcode IN (select branchcode from library_groups where parent_id = (select dbs_school_libs_group.id from library_groups dbs_school_libs_group where title = 'DBS-Schulbibliotheken' COLLATE utf8mb4_unicode_ci) COLLATE utf8mb4_unicode_ci)
+              ) 
+    ) as br
+    where sums.branch = br.branchcode OR ( (sums.branch IS NULL or sums.branch = 'OPACRenew' ) AND sums.homebranch = br.branchcode)
+};
+# DBS2021:514
+$dbs_sql_statements->{'slb_nonbook_stock_tot'} = q{
+    select sum(cnt) as res from 
+    (   select count(*) as cnt from items 
+        where ( itemlost = 0 or date(itemlost_on) >= (@startdatum := ?) ) 
+          and ( withdrawn = 0 or date(withdrawn_on) >= @startdatum ) 
+          and dateaccessioned <= (@enddatum := ?) 
+          and coded_location_qualifier IN ( 'F_N_A', 'F_N_O', 'F_B_W', 'F_M_C', 'F_M_K', 'F_M_R', 'F_M_V', 'F_M_D', 'F_M_O', 'F_M_B' ) 
+          and ( ((@branchgroupSelect0or1 := ?) COLLATE utf8mb4_unicode_ci = '1' and homebranch IN (select branchcode from library_groups where parent_id = (@branchgroupSel := ?) COLLATE utf8mb4_unicode_ci))
+                or
+                ((@branchcodeSelect0or1 := ?) COLLATE utf8mb4_unicode_ci = '1' and homebranch = (@branchcodeSel := ?) COLLATE utf8mb4_unicode_ci)
+                or
+                (@branchgroupSelect0or1 COLLATE utf8mb4_unicode_ci != '1' and @branchcodeSelect0or1 COLLATE utf8mb4_unicode_ci != '1')
+              )
+          and ( homebranch IN (select branchcode from library_groups where parent_id = (select dbs_school_libs_group.id from library_groups dbs_school_libs_group where title = 'DBS-Schulbibliotheken' COLLATE utf8mb4_unicode_ci) COLLATE utf8mb4_unicode_ci)
+              ) 
+        union all
+        select count(*) as cnt from deleteditems 
+        where ( itemlost = 0 or date(itemlost_on) >= @startdatum ) 
+          and ( withdrawn = 0 or date(withdrawn_on) >= @startdatum ) 
+          and dateaccessioned <= @enddatum 
+          and coded_location_qualifier IN ( 'F_N_A', 'F_N_O', 'F_B_W', 'F_M_C', 'F_M_K', 'F_M_R', 'F_M_V', 'F_M_D', 'F_M_O', 'F_M_B' ) 
+          and date(timestamp) >= @startdatum
+          and ( (@branchgroupSelect0or1 COLLATE utf8mb4_unicode_ci = '1' and homebranch IN (select branchcode from library_groups where parent_id = @branchgroupSel COLLATE utf8mb4_unicode_ci))
+                or
+                (@branchcodeSelect0or1 COLLATE utf8mb4_unicode_ci = '1' and homebranch = @branchcodeSel COLLATE utf8mb4_unicode_ci)
+                or
+                (@branchgroupSelect0or1 COLLATE utf8mb4_unicode_ci != '1' and @branchcodeSelect0or1 COLLATE utf8mb4_unicode_ci != '1')
+              )
+          and ( homebranch IN (select branchcode from library_groups where parent_id = (select dbs_school_libs_group.id from library_groups dbs_school_libs_group where title = 'DBS-Schulbibliotheken' COLLATE utf8mb4_unicode_ci) COLLATE utf8mb4_unicode_ci)
+              ) 
+    ) x
+};
+# DBS2021:515
+$dbs_sql_statements->{'slb_nonbook_issues_tot'} = q{
+    select IFNULL(sum(sums.cnt),0) as res
+    from
+    (   select s.branch, i.homebranch, count(*) as cnt 
+        from   statistics s
+               join items i on ( i.itemnumber = s.itemnumber and i.coded_location_qualifier IN ( 'F_N_A', 'F_N_O', 'F_B_W', 'F_M_C', 'F_M_K', 'F_M_R', 'F_M_V', 'F_M_D', 'F_M_O', 'F_M_B' ) )
+        where  ( date(s.datetime) >= (@startdatum := ? ) ) 
+           and ( date(s.datetime) <= (@enddatum := ? ) )
+           and s.type in ('issue', 'renew')
+        group by s.branch, i.homebranch
+        union all
+        select s.branch, i.homebranch, count(*) as cnt 
+        from  statistics s
+              join deleteditems i ON ( i.itemnumber = s.itemnumber and i.coded_location_qualifier IN ( 'F_N_A', 'F_N_O', 'F_B_W', 'F_M_C', 'F_M_K', 'F_M_R', 'F_M_V', 'F_M_D', 'F_M_O', 'F_M_B' ) )
+        where ( date(s.datetime) >= ( @startdatum ) ) 
+          and ( date(s.datetime) <= ( @enddatum ) )
+          and s.type in ('issue', 'renew')
+        group by s.branch, i.homebranch
+    )   as sums,
+    (   select s.branchcode 
+        from   branches s
+        where ( 
+                ((@branchgroupSelect0or1 := ?) COLLATE utf8mb4_unicode_ci = '1' and s.branchcode IN (select branchcode from library_groups where parent_id = (@branchgroupSel := ?) COLLATE utf8mb4_unicode_ci))
+                or
+                ((@branchcodeSelect0or1 := ?) COLLATE utf8mb4_unicode_ci = '1' and s.branchcode = (@branchcodeSel := ?) COLLATE utf8mb4_unicode_ci)
+                or
+                (@branchgroupSelect0or1 COLLATE utf8mb4_unicode_ci != '1' and @branchcodeSelect0or1 COLLATE utf8mb4_unicode_ci != '1')
+              ) 
+          and ( 
+                s.branchcode IN (select branchcode from library_groups where parent_id = (select dbs_school_libs_group.id from library_groups dbs_school_libs_group where title = 'DBS-Schulbibliotheken' COLLATE utf8mb4_unicode_ci) COLLATE utf8mb4_unicode_ci)
+              ) 
     ) as br
     where sums.branch = br.branchcode OR ( (sums.branch IS NULL or sums.branch = 'OPACRenew' ) AND sums.homebranch = br.branchcode)
 };
