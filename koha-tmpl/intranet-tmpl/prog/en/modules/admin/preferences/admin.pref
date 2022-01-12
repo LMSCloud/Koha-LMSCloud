@@ -468,14 +468,6 @@ Administration:
               choices:
                 Zebra: Zebra
                 Elasticsearch: Elasticsearch
-    SIP Server:
-        -
-            - pref: SIPVendorDialect
-              default: ""
-              choices:
-                  ""          : "Don't activate"
-                  "EasyCheck" : "Use EasyCheck"
-            -  vendor specific protocol enhancements of the SIP2 server.
         -
             - "Elasticsearch MARC format: "
             - pref: ElasticsearchMARCFormat
@@ -485,3 +477,11 @@ Administration:
                 "ARRAY": "Searchable array"
             - <br>ISO2709 format is recommended as it is faster and takes less space, whereas array format makes the full MARC record searchable.
             - <br><strong>NOTE:</strong> Making the full record searchable may have a negative effect on relevance ranking of search results.
+    SIP Server:
+        -
+            - pref: SIPVendorDialect
+              default: ""
+              choices:
+                  ""          : "Don't activate"
+                  "EasyCheck" : "Use EasyCheck"
+            -  vendor specific protocol enhancements of the SIP2 server.
