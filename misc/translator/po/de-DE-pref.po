@@ -3,7 +3,7 @@ msgstr ""
 "Project-Id-Version: Koha 21.05\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2013-05-16 03:26+0200\n"
-"PO-Revision-Date: 2021-11-04 20:53+0100\n"
+"PO-Revision-Date: 2022-01-05 13:42+0100\n"
 "Last-Translator: Katrin Fischer <katrin.fischer@bsz-bw.de>\n"
 "Language-Team: \n"
 "Language: de\n"
@@ -1098,10 +1098,10 @@ msgid ""
 "a> system preferences have no effect if this system preference is set to \"No"
 "\" (don't share)."
 msgstr ""
-" <br><strong>HINWEIS:</strong> Dieser Wert hat keine Wirkung, wenn der "
-"Systemparameter  <a href=\"/cgi-bin/koha/admin/preferences.pl?"
-"op=search&searchfield=UsageStats\">UsageStats</a> auf \"Nein\" (Teile keine) "
-"gesetzt ist."
+" <br><strong>HINWEIS:</strong> Einstellungen anderer <a href=\"/cgi-bin/koha/"
+"admin/preferences.pl?op=search&searchfield=UsageStats\">UsageStats</a>-"
+"Parameter haben keine Auswirkung, wenn dieser Parameter auf \"Nein\" (Teile "
+"keine) gesetzt ist."
 
 # Administration > Share anonymous usage statistics
 msgid ""
@@ -7299,7 +7299,7 @@ msgstr "von neuestem nach ältestem."
 
 # Circulation > Interface
 msgid "circulation.pref#todaysIssuesDefaultSortOrder# latest to earliest"
-msgstr "von neuestem nach ältestem."
+msgstr "von ältestem nach neuestem."
 
 # Circulation > Checkout policy
 msgid "circulation.pref#useDaysMode# Ignore the calendar"
