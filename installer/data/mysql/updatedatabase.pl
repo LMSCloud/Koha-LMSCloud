@@ -19541,8 +19541,8 @@ if( CheckVersion( $DBversion ) ) {
     |);
     if( $OpacNavRight ){
         # If there is a value in the OpacNavRight preference, insert it into opac_news
-        $dbh->do("INSERT INTO opac_news (branchcode, lang, title, content ) VALUES (NULL, ?, '', ?)", undef, "OpacNavRight_de-DE", $OpacNavRight);
-        $dbh->do("INSERT INTO opac_news (branchcode, lang, title, content ) VALUES (NULL, ?, '', ?)", undef, "OpacNavRight_en", $OpacNavRight);
+        $dbh->do("INSERT INTO opac_news (branchcode, lang, title, content ) VALUES (NULL, ?, 'Rechte Spalte der OPAC-Startseite', ?)", undef, "OpacNavRight_de-DE", $OpacNavRight);
+        $dbh->do("INSERT INTO opac_news (branchcode, lang, title, content ) VALUES (NULL, ?, 'Right column of the OPAC start page', ?)", undef, "OpacNavRight_en", $OpacNavRight);
     }
     # Remove the OpacNavRight system preference
     $dbh->do("DELETE FROM systempreferences WHERE variable='OpacNavRight'");
@@ -19552,8 +19552,8 @@ if( CheckVersion( $DBversion ) ) {
     |);
     if( $OpacMainPageLeftPanel ){
         # If there is a value in the OpacMainPageLeftPanel preference, insert it into opac_news
-        $dbh->do("INSERT INTO opac_news (branchcode, lang, title, content ) VALUES (NULL, ?, '', ?)", undef, "OpacMainPageLeftPanel_de-DE", $OpacMainPageLeftPanel);
-        $dbh->do("INSERT INTO opac_news (branchcode, lang, title, content ) VALUES (NULL, ?, '', ?)", undef, "OpacMainPageLeftPanel_en", $OpacMainPageLeftPanel);
+        $dbh->do("INSERT INTO opac_news (branchcode, lang, title, content ) VALUES (NULL, ?, 'Linke Spalte der OPAC-Startseite', ?)", undef, "OpacMainPageLeftPanel_de-DE", $OpacMainPageLeftPanel);
+        $dbh->do("INSERT INTO opac_news (branchcode, lang, title, content ) VALUES (NULL, ?, 'Left column of the OPAC start page', ?)", undef, "OpacMainPageLeftPanel_en", $OpacMainPageLeftPanel);
     }
     # Remove the OpacMainPageLeftPanel system preference
     $dbh->do("DELETE FROM systempreferences WHERE variable='OpacMainPageLeftPanel'");
@@ -22469,7 +22469,7 @@ if( CheckVersion( $DBversion ) ) {
     if( $opacheader ){
         foreach my $lang ( @langs ) {
             # If there is a value in the opacheader preference, insert it into opac_news
-            $dbh->do("INSERT INTO opac_news (branchcode, lang, title, content ) VALUES (NULL, ?, '', ?)", undef, "opacheader_$lang", $opacheader);
+            $dbh->do("INSERT INTO opac_news (branchcode, lang, title, content ) VALUES (NULL, ?, 'Kopf der OPAC-Seiten', ?)", undef, "opacheader_$lang", $opacheader);
             push @detail, "Inserted opacheader contents into $lang news item...";
         }
     }
@@ -23483,7 +23483,7 @@ if( CheckVersion( $DBversion ) ) {
     if( $opacmainuserblock ){
         foreach my $lang ( @langs ) {
             # If there is a value in the OpacMainUserBlock preference, insert it into opac_news
-            $dbh->do("INSERT INTO opac_news (branchcode, lang, title, content ) VALUES (NULL, ?, '', ?)", undef, "OpacMainUserBlock_$lang", $opacmainuserblock);
+            $dbh->do("INSERT INTO opac_news (branchcode, lang, title, content ) VALUES (NULL, ?, 'Mittlere Spalte der OPAC-Startseite', ?)", undef, "OpacMainUserBlock_$lang", $opacmainuserblock);
             push @detail, "Inserting OpacMainUserBlock contents into $lang news item...";
         }
     }
