@@ -8,15 +8,17 @@ use Getopt::Long;
 # Koha modules
 use C4::Context;
 use Koha::SearchEngine::Elasticsearch;
+use Text::Diff qw(diff);
 
 BEGIN{ $| = 1; }
 
-binmode(STERR, ":utf8");
+binmode(STDERR, ":utf8");
 binmode(STDOUT, ":utf8");
 
 updateSimpleVariables();
 updateMoreSearchesContent();
 updateEntryPages();
+updateVariablesInNewsTexts();
 updateSidebarLinks();
 updateOPACUserJS();
 rebuildElasticSearchIndex();
@@ -264,30 +266,57 @@ sub updateEntryPages {
     $sth->execute;
     while ( my ($value,$variable) = $sth->fetchrow ) {
         my $origvalue = $value;
-        
-        $value =~ s/(<div[^>]*class\s*=\s*")(([^"]*)(span([1-9][0-2]?))([^"]*))("[^>]*>)/"$1".updateClass($2,$4,"col-lg-$5 entry-page-col")."$7"/eg;
-        $value =~ s/(<div[^>]*class\s*=\s*")(([^"]*)(row-fluid)([^"]*))("[^>]*>)/"$1".updateClass($2,$4,"row entry-page-row")."$6"/eg;
-
-        # replace comments
-        $value =~ s/span([1-9][0-2]?)/col-lg-$1/g;
-    
-        # replace breadcrumb
-        if ( $value !~ /<nav aria-label="breadcrumb">/ ) {
-            $value =~ s/\n\s*(<ul\s+class\s*=\s*"\s*breadcrumb\s*">.*<\/ul>)/"\n" . replaceBreadcrumb($1)/es;
-        }
-
-        # replace rss feed image
-        $value =~ s!<img src="[^"]*feed-icon-16x16.png">!<i class="fa fa-rss" aria-hidden="true"></i>!sg;
-        
-        $value =~ s!(<a\s+href\s*=\s*\'opac-search\.pl\?q=)([^\']+)(\')!"$1".updateQuery($2)."$3"!seg;
-        $value =~ s!(<a\s+href\s*=\s*\"opac-search\.pl\?q=)([^\"]+)(\")!"$1".updateQuery($2)."$3"!seg;
-
+        my $imageAltAdded = 0;
+        ($value,$imageAltAdded) = replaceEntryPageContent($value);
     
         if ( $origvalue ne $value ) {
             $dbh->do("UPDATE systempreferences SET value=? WHERE variable=?", undef, $value, $variable);
-            print "Updated value of variable $variable\n";
+            print "Updated value of variable $variable.", ($imageAltAdded ? " $imageAltAdded image alt attributes added." : ""), "\n";
         }
     }
+}
+
+sub updateVariablesInNewsTexts {
+    my $dbh = C4::Context->dbh;
+    my $sth = $dbh->prepare("SELECT branchcode, lang, content FROM opac_news WHERE title like 'OpacNavRight%' OR title like 'OpacMainPageLeftPanel%' OR title like 'OpacMainUserBlock%'");
+    $sth->execute;
+    while ( my ($branchcode,$lang,$content) = $sth->fetchrow ) {
+        my $origvalue = $content;
+        my $imageAltAdded = 0;
+        ($content,$imageAltAdded) = replaceEntryPageContent($content);
+    
+        if ( $origvalue ne $content ) {
+            $dbh->do("UPDATE opac_news SET content=? WHERE lang=? and branchcode=?", undef, $content, $lang, $branchcode);
+            print "Updated opac_news $lang.", ($imageAltAdded ? " $imageAltAdded image alt attributes added." : ""), "\n";
+        }
+    }
+}
+
+sub replaceEntryPageContent {
+    my $value = shift;
+    
+    $value =~ s/(<div[^>]*class\s*=\s*")(([^"]*)(span([1-9][0-2]?))([^"]*))("[^>]*>)/"$1".updateClass($2,$4,"col-lg-$5 entry-page-col")."$7"/eg;
+    $value =~ s/(<div[^>]*class\s*=\s*")(([^"]*)(row-fluid)([^"]*))("[^>]*>)/"$1".updateClass($2,$4,"row entry-page-row")."$6"/eg;
+
+    # replace spans
+    $value =~ s/span([1-9][0-2]?)/col-lg-$1/g;
+
+    # replace breadcrumb
+    if ( $value !~ /<nav aria-label="breadcrumb">/ ) {
+        $value =~ s/\n\s*(<ul\s+class\s*=\s*"\s*breadcrumb\s*">.*<\/ul>)/"\n" . replaceBreadcrumb($1)/es;
+    }
+
+    # replace rss feed image
+    $value =~ s!<img src="[^"]*feed-icon-16x16.png">!<i class="fa fa-rss" aria-hidden="true"></i>!sg;
+    
+    $value =~ s!(<a\s+href\s*=\s*\'opac-search\.pl\?q=)([^\']+)(\')!"$1".updateQuery($2)."$3"!seg;
+    $value =~ s!(<a\s+href\s*=\s*\"opac-search\.pl\?q=)([^\"]+)(\")!"$1".updateQuery($2)."$3"!seg;
+
+    my $documentTree = getDocumentTree($value);
+    my $changes = getElementsByName($documentTree, "img", \&addImageAltAttributeFromLegend);
+    $value = getDocumentFromTree($documentTree);
+    
+    return ($value,$changes);
 }
 
 sub replaceBreadcrumb {
@@ -386,4 +415,204 @@ sub updateOPACUserJS {
 sub rebuildElasticSearchIndex {
     # Loading Elasticsearch index configuration
     system "/usr/share/koha/bin/search_tools/rebuild_elasticsearch.pl --reset --biblios --verbose --commit 5000 --processes 4";
+}
+
+
+sub getElementAttributeValues {
+    my $value = shift;
+    
+    my $origvalue = $value;
+    my $singlequotes = 0;
+    if ( $value =~ s/^"([^"]*)"$/$1/ ) {
+        $singlequotes = 0;
+    }
+    elsif ( $value =~ s/^'([^']*)'$/$1/ ) {
+        $singlequotes = 1;
+    }
+    
+    my $ret = { origvalue => $origvalue, value => $value, singlequotes => $singlequotes };
+    foreach my $val(split(/\s+/,$value)) {
+        $ret->{values}->{$val} = 1 if ($val);
+    }
+    
+    return $ret;
+}
+
+sub addElementToDocumentTree {
+    my ($elementTree,$isEnd,$tagname,$attrtext,$follows,$fullcontent) = @_;
+    
+    my $attributes = {};
+    my $retElem = $elementTree;
+    
+    my $attrnum = 0;
+    while ( $attrtext =~ s/^\s*([\w\-_]+)\s*=\s*("[^"]*"|'[^']*')\s*// ) {
+        $attributes->{$1} = getElementAttributeValues($2); 
+        $attributes->{$1}->{attrnumber} = ++$attrnum;
+    }
+    if ( $follows =~ /^(\s*)\/>/ ) {
+        my $newElement = { name => $tagname, type => 'elem', tree => [], parent => $elementTree, attributes => $attributes, attrcount => $attrnum, ended => 1, attradd => $attrtext, endfound => 0, spaceend => $1 };
+        push @{$elementTree->{tree}}, $newElement;
+        $follows =~ s/^\s*[\/>]+//;
+        if ( $follows ) {
+            push @{$elementTree->{tree}}, { type => 'text', content => $follows };
+        }
+    }
+    elsif (! $isEnd ) {
+        my $newElement = { name => $tagname, type => 'elem', tree => [], parent => $elementTree, attributes => $attributes, attrcount => $attrnum, ended => 0, attradd => $attrtext, endfound => 0, spaceend => '' };
+        push @{$elementTree->{tree}}, $newElement;
+        $follows =~ s/^[>]//;
+        if ( $follows ) {
+            push @{$newElement->{tree}}, { type => 'text', content => $follows };
+        }
+        $retElem = $newElement;
+    }
+    else {
+        my $checkElem = $elementTree;
+        while ( $checkElem && $checkElem->{name} ) {
+            if ( $checkElem->{name} eq $tagname ) {
+                $checkElem->{endfound} = 1;
+                $retElem = $checkElem;
+                if ( $retElem->{parent}) {
+                    $retElem = $retElem->{parent};
+                }
+                last;
+            } else {
+                $checkElem = $checkElem->{parent};
+            }
+        }
+        $follows =~ s/^[>]//;
+        if ( defined($follows) ) {
+            push @{$retElem->{tree}}, { type => 'text', content => $follows };
+        }
+    }
+    return $retElem;
+}
+
+sub getDocumentTree {
+    my ($text) = @_;
+    
+    my $elementTree = { parent => undef, type => 'root', tree => [] };
+    my $root = $elementTree;
+    while ( $text =~ s/(<(\/?)(\w+)((\s*[\w\-_]+\s*=\s*("[^"]*"|'[^']*'))*)([^<]+))// ) {
+        push @{$elementTree->{tree}}, { type => 'text', content => $` } if ( $` );
+        $text = $';
+        $elementTree = addElementToDocumentTree($elementTree,$2,$3,$4,$7,$1);
+    }
+    push @{$elementTree->{tree}}, { type => 'text', content => $text } if ( $text );
+    return $root;
+}
+
+sub getElementsByName {
+    my ($subtree,$name,$function,$returnFirst) = @_;
+    
+    my $ret = 0;
+    
+    if ( exists($subtree->{type}) && $subtree->{type} =~ /^(root|elem)$/ ) {
+        if ( exists($subtree->{name}) && $subtree->{name} =~ /$name/i ) {
+            if ( $returnFirst ) {
+                return $subtree;
+            }
+            elsif ( $function ) {
+                $ret += $function->($subtree);
+            }
+        }
+        elsif ( exists($subtree->{tree}) && scalar(@{$subtree->{tree}}) > 0 ) {
+            foreach my $subentry (@{$subtree->{tree}}) {
+                my $elem = getElementsByName($subentry,$name,$function,$returnFirst);
+                if ( $elem && $returnFirst ) {
+                    return $elem;
+                }
+                else {
+                    $ret += $elem;
+                }
+            }
+        }
+    }
+    
+    return $ret;
+}
+
+sub getElementByName {
+    my ($subtree,$name) = @_;
+    return getElementsByName($subtree,$name,undef,1);
+}
+
+sub addImageAltAttributeFromLegend {
+    my ($imageElement) = @_;
+
+    if ( exists($imageElement->{name}) && $imageElement->{name} =~ /img/i ) {
+        if (! exists($imageElement->{attributes}->{alt}) ) {
+            # print "img has no alt attribute\n";
+            
+            my $parent = $imageElement->{parent};
+            my $legend = '';
+            while ( $parent ) {
+                if (    exists($parent->{type}) && $parent->{type} =~ /^(elem)$/ 
+                     && exists($parent->{name}) && $parent->{name} =~ /^(div)$/i
+                     && exists($parent->{attributes}) && exists($parent->{attributes}->{class}->{values}->{'ui-tabs-panel'})
+                   ) 
+                {
+                    my $legend = getElementByName($parent,'legend');
+                    if ($legend) {
+                        if ( exists($legend->{tree}) && scalar(@{$legend->{tree}}) > 0 ) {
+                            my $txt = $legend->{tree}->[0]->{content};
+                            $txt =~ s/(^\s+|\s+$)//g if ($txt);
+                            $txt =~ s/["']//g if ($txt);
+                            if ( $txt ) {
+                                $imageElement->{attributes}->{alt}->{values} = $txt;
+                                $imageElement->{attributes}->{alt}->{value} = $txt;
+                                $imageElement->{attrcount} += 1;
+                                $imageElement->{attributes}->{alt}->{attrnumber} = $imageElement->{attrcount};
+                                return 1;
+                            }
+                        }
+                    }
+                }
+                $parent = $parent->{parent};
+            }
+        }
+    }
+    return 0;
+}
+
+sub getDocumentFromTree {
+    my ($subtree,$level,$txtarr) = @_;
+    
+    my $ret = 0;
+    if (! $level ) {
+        $level = 1;
+        $txtarr = [];
+    }
+    
+    if ( exists($subtree->{type}) && $subtree->{type} =~ /^(root|elem)$/ && exists($subtree->{name})) {
+        my $txt = '<' . $subtree->{name};
+        if ( $subtree->{attrcount} ) {
+            foreach my $attr( sort { $subtree->{attributes}->{$a}->{attrnumber} <=> $subtree->{attributes}->{$b}->{attrnumber} } keys %{$subtree->{attributes}} ) {
+                my $attrquote = '"';
+                $attrquote = "'" if ( $subtree->{attributes}->{$attr}->{value} =~ /"/ || $subtree->{attributes}->{$attr}->{singlequotes} );
+                $txt .= " $attr=$attrquote" . $subtree->{attributes}->{$attr}->{value} . "$attrquote";
+            }
+        }
+        if ( $subtree->{attradd} ) {
+            $txt .= $subtree->{attradd};
+        }
+        $txt .= $subtree->{spaceend} . "/" if ( $subtree->{ended} );
+        $txt .= ">";
+        push @$txtarr, $txt;
+    }
+    if ( exists($subtree->{tree}) && scalar(@{$subtree->{tree}}) > 0 ) {
+        for (my $i=0;$i<scalar(@{$subtree->{tree}});$i++) {
+            getDocumentFromTree($subtree->{tree}->[$i],$level+1,$txtarr);
+        }
+    }
+    if ( exists($subtree->{type}) && $subtree->{type} =~ /^(root|elem)$/ && exists($subtree->{name}) && $subtree->{endfound} && !$subtree->{ended} ) {
+        push @$txtarr, '</' . $subtree->{name} . '>';
+    }
+    if ( exists($subtree->{type}) && $subtree->{type} =~ /^(text)$/ ) {
+        push @$txtarr, $subtree->{content};
+    }
+    
+    if ( $level == 1 ) {
+        return join('',@$txtarr);
+    }
 }
