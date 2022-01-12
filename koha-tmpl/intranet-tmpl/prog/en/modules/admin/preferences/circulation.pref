@@ -567,13 +567,6 @@ Circulation:
                   member: all family card members separate.
             - Can be for each member seperate or collected for the family card owner.
         -
-            - If a patron owes more than the value of OPACFineNoRenewals,
-            - pref: OPACFineNoRenewalsBlockAutoRenew
-              choices:
-                  1: Block
-                  0: Allow
-            - his/her auto renewals.
-        -
             - pref: IssuingBranchBecomesHomeBranch
               choices:
                   1: Reset
