@@ -118,7 +118,7 @@
     <ul class="nav nav-pills">
         <li role="presentation" class="active"><a>Pay</a></li>
         <li role="presentation"><a href="/cgi-bin/koha/members/paycollect.pl?writeoff_individual=1&borrowernumber=[% patron.borrowernumber | uri %]&debit_type_code=[% debit_type_code | uri %]&amount=[% amount | uri %]&amountoutstanding=[% amountoutstanding | uri %]&description=[% individual_description | uri %]&itemnumber=[% itemnumber | uri %]&accountlines_id=[% accountlines_id | uri %]&payment_note=[% payment_note | uri %]">Write off</a></li>
-        <li role="presentation"><a href="/cgi-bin/koha/members/paycollect.pl?cancel_individual=1&borrowernumber=[% patron.borrowernumber | uri %]&debit_type_code=[% debit_type_code | uri %]&amount=[% amount | uri %]&amountoutstanding=[% amountoutstanding | uri %]&description=[% individual_description | uri %]&itemnumber=[% itemnumber | uri %]&accountlines_id=[% accountlines_id | uri %]&payment_note=[% payment_note | uri %]">Cancel</a></li>
+        <li role="presentation"><a href="/cgi-bin/koha/members/paycollect.pl?cancel_individual=1&borrowernumber=[% patron.borrowernumber | uri %]&debit_type_code=[% debit_type_code | uri %]&amount=[% amount | uri %]&amountoutstanding=[% amountoutstanding | uri %]&description=[% individual_description | uri %]&itemnumber=[% itemnumber | uri %]&accountlines_id=[% accountlines_id | uri %]&payment_note=[% payment_note | uri %]">Cancel fee</a></li>
     </ul>
 
     <form name="payindivfine" id="payindivfine" method="post" action="/cgi-bin/koha/members/paycollect.pl">
@@ -133,7 +133,8 @@
     <input type="hidden" name="accountlines_id" id="accountlines_id" value="[% accountlines_id | html %]" />
     <input type="hidden" name="title" id="title" value="[% title | html %]" />
     <input type="hidden" name="change_given" id="change_given" />
-    <input type="hidden" name="collected" id="collected" value="[% amountoutstanding %]" />
+    <input type="hidden" name="collected" id="collected" value="[% total | html %]" />
+    <input type="hidden" name="total" id="total" value="[% amountoutstanding %]" />
     <input type="hidden" name="paid" id="paid" value="[% amountoutstanding %]" />
 
 <fieldset class="rows">
@@ -154,7 +155,7 @@
             <td>
                 [% individual_description | html %]
             </td>
-            [% line.debit_type_code = debit_type_code %]
+            [% line.debit_type_code = debit_type_code;  line.debit_type = debit_type %]
             <td>[% PROCESS account_type_description account=line %]</td>
             <td class="debit">[% amount | $Price %]</td>
             <td class="debit">[% amountoutstanding | $Price %]</td>
@@ -163,9 +164,9 @@
 
 <ol>
     <li>
-        <label for="handedout">Collect from patron: </label>
+        <label for="collected">Collect from patron: </label>
         <!-- default to paying all (default amount handed out == amountoutstanding) -->
-        <input type="text" name="handedout" id="handedout" value="[% amountoutstanding | $Price %]"  onchange="moneyFormat(document.payindivfine.handedout,'pay')" />
+        <input name="given" id="given" value="[% amountoutstanding | $Price %]"  step="0.01" lang="[% lang %]" type="text" onchange="moneyFormat(document.payindivfine.given,'pay')" required />
     </li>
     <li>
         <label for="returnAmount">Return to patron: </label>
@@ -197,7 +198,7 @@
     <ul class="nav nav-pills">
         <li role="presentation"><a href="/cgi-bin/koha/members/paycollect.pl?pay_individual=1&borrowernumber=[% patron.borrowernumber | uri %]&debit_type_code=[% debit_type_code | uri %]&amount=[% amount | uri %]&amountoutstanding=[% amountoutstanding | uri %]&description=[% individual_description | uri %]&itemnumber=[% itemnumber | uri %]&accountlines_id=[% accountlines_id | uri %]&payment_note=[% payment_note | uri %]">Pay</a></li>
         <li role="presentation" class="active"><a>Write off</a></li>
-        <li role="presentation"><a href="/cgi-bin/koha/members/paycollect.pl?cancel_individual=1&borrowernumber=[% patron.borrowernumber | uri %]&debit_type_code=[% debit_type_code | uri %]&amount=[% amount | uri %]&amountoutstanding=[% amountoutstanding | uri %]&description=[% individual_description | uri %]&itemnumber=[% itemnumber | uri %]&accountlines_id=[% accountlines_id | uri %]&payment_note=[% payment_note | uri %]">Cancel</a></li>
+        <li role="presentation"><a href="/cgi-bin/koha/members/paycollect.pl?cancel_individual=1&borrowernumber=[% patron.borrowernumber | uri %]&debit_type_code=[% debit_type_code | uri %]&amount=[% amount | uri %]&amountoutstanding=[% amountoutstanding | uri %]&description=[% individual_description | uri %]&itemnumber=[% itemnumber | uri %]&accountlines_id=[% accountlines_id | uri %]&payment_note=[% payment_note | uri %]">Cancel fee</a></li>
     </ul>
 
     <form name="woindivfine" id="woindivfine" action="/cgi-bin/koha/members/pay.pl" method="post" >
@@ -205,7 +206,7 @@
     <fieldset class="rows">
     <legend>Write off an individual fine</legend>
     <input type="hidden" name="borrowernumber" id="borrowernumber" value="[% patron.borrowernumber | html %]" />
-    <input type="hidden" name="pay_individual" id="pay_individual" value="[% pay_individual | html %]" />
+    <input type="hidden" name="writeoff_individual" id="writeoff_individual" value="[% writeoff_individual | html %]" />
     <input type="hidden" name="itemnumber" id="itemnumber" value="[% itemnumber | html %]" />
     <input type="hidden" name="description" id="description" value="[% individual_description | html %]" />
     <input type="hidden" name="debit_type_code" id="debit_type_code" value="[% debit_type_code | html %]" />
@@ -216,8 +217,7 @@
     <input type="hidden" name="amountoutstanding" id="amountoutstanding" value="[% amountoutstanding | html %]" />
     <input type="hidden" name="confirm_writeoff" id="confirm_writeoff" value="1" />
     <input type="hidden" name="change_given" id="change_given" />
-    <!-- next line from LMSCloud 18.05 -->
-    <input type="hidden" name="amountwrittenoff" id="amountwrittenoff" value="[% amountoutstanding %]" />
+    <input type="hidden" name="paid" id="paid" value="[% amountoutstanding  | html %]" />
 
     <table>
     <thead><tr>
@@ -229,7 +229,7 @@
     <tfoot><tr><td colspan="3">Total amount outstanding:</td><td>[% amountoutstanding | $Price %]</td></tr></tfoot>
     <tbody><tr>
             <td>[% individual_description | html %]</td>
-            [% line.debit_type_code = debit_type_code %]
+            [% line.debit_type_code = debit_type_code;  line.debit_type = debit_type %]
             <td>[% PROCESS account_type_description account=line %]</td>
             <td class="debit">[% amount | $Price %]</td>
             <td class="debit">[% amountoutstanding | $Price %]</td>
@@ -240,7 +240,7 @@
                 <li>
                     <label for="amountwrittenoff">Writeoff amount: </label>
                     <!-- default to writing off all -->
-                    <input name="amountwrittenoff" id="amountwrittenoff" value="[% amountoutstanding | $Price on_editing => 1 | html %]" type="text" />
+                    <input name="amountwrittenoff" id="amountwrittenoff" value="[% amountoutstanding | $Price on_editing => 1 | html %]" type="text" onchange="moneyFormat(document.woindivfine.amountwrittenoff,'writeoff')" required />
                 </li>
             </ol>
         </fieldset>
@@ -249,11 +249,11 @@
             <a class="cancel" href="/cgi-bin/koha/members/pay.pl?borrowernumber=[% patron.borrowernumber %]">Cancel</a>
         </div>
     </form>
-[% ELSIF ( cancelfee_individual ) %]
+[% ELSIF ( cancel_individual ) %]
     <ul class="nav nav-pills">
         <li role="presentation"><a href="/cgi-bin/koha/members/paycollect.pl?pay_individual=1&borrowernumber=[% patron.borrowernumber | uri %]&debit_type_code=[% debit_type_code | uri %]&amount=[% amount | uri %]&amountoutstanding=[% amountoutstanding | uri %]&description=[% individual_description | uri %]&itemnumber=[% itemnumber | uri %]&accountlines_id=[% accountlines_id | uri %]&payment_note=[% payment_note | uri %]">Pay</a></li>
         <li role="presentation"><a href="/cgi-bin/koha/members/paycollect.pl?writeoff_individual=1&borrowernumber=[% patron.borrowernumber | uri %]&debit_type_code=[% debit_type_code | uri %]&amount=[% amount | uri %]&amountoutstanding=[% amountoutstanding | uri %]&description=[% individual_description | uri %]&itemnumber=[% itemnumber | uri %]&accountlines_id=[% accountlines_id | uri %]&payment_note=[% payment_note | uri %]">Write off</a></li>
-        <li role="presentation" class="active"><a>Cancel</a></li>
+        <li role="presentation" class="active"><a>Cancel fee</a></li>
     </ul>
     
     <form name="cancelindivfine" id="cancelindivfine" action="/cgi-bin/koha/members/pay.pl" method="post" >
@@ -261,7 +261,7 @@
     <fieldset class="rows">
     <legend>Cancel an individual fine</legend>
     <input type="hidden" name="borrowernumber" id="borrowernumber" value="[% patron.borrowernumber %]" />
-    <input type="hidden" name="pay_individual" id="pay_individual" value="[% pay_individual %]" />
+    <input type="hidden" name="cancel_individual" id="cancel_individual" value="[% cancel_individual %]" />
     <input type="hidden" name="itemnumber" id="itemnumber" value="[% itemnumber %]" />
     <input type="hidden" name="description" id="description" value="[% individual_description %]" />
     <input type="hidden" name="debit_type_code" id="debit_type_code" value="[% debit_type_code | html %]" />
@@ -271,6 +271,7 @@
     <input type="hidden" name="title" id="title" value="[% title_desc | html %]" />
     <input type="hidden" name="payment_note" id="payment_note" value="[% payment_note %]" />
     <input type="hidden" name="amountoutstanding" id="amountoutstanding" value="[% amountoutstanding %]" />
+    <input type="hidden" name="paid" id="paid" value="[% amountoutstanding %]" />
     <input type="hidden" name="confirm_cancelfee" id="confirm_cancelfee" value="1" />
     
     <table>
@@ -283,7 +284,8 @@
     <tfoot><td colspan="3">Total amount to be cancelled:</td><td>[% amountoutstanding | $Price %]</td></tfoot>
     <tbody><tr>
             <td>[% individual_description %] [% title_desc %]</td>
-            <td>[% accounttypename %]</td>
+            [% line.debit_type_code = debit_type_code;  line.debit_type = debit_type %]
+            <td>[% PROCESS account_type_description account=line %]</td>
             <td class="debit">[% amount | $Price %]</td>
             <td class="debit">[% amountoutstanding | $Price %]</td>
         </tr></tbody>
@@ -309,7 +311,7 @@
             [% ELSIF type == 'CANCEL' %]
                 <li role="presentation"><a href="/cgi-bin/koha/members/paycollect.pl?borrowernumber=[% patron.borrowernumber | uri %]&type=PAYMENT&amt=[% amt | uri %]&selected=[% selected_accts | uri %]&notes=[% selected_accts_notes | uri %]">Pay</a></li>
                 <li role="presentation"><a href="/cgi-bin/koha/members/paycollect.pl?borrowernumber=[% patron.borrowernumber | uri %]&type=WRITEOFF&amt=[% amt | uri %]&selected=[% selected_accts | uri %]&notes=[% selected_accts_notes | uri %]">Write off</a></li>
-                <li role="presentation" class="active"><a>Cancel</a></li>
+                <li role="presentation" class="active"><a>Cancel fee</a></li>
             [% ELSE %]
                 <li role="presentation" class="active"><a>Pay</a></li>
                 <li role="presentation"><a href="/cgi-bin/koha/members/paycollect.pl?borrowernumber=[% patron.borrowernumber | uri %]&type=WRITEOFF&amt=[% amt | uri %]&selected=[% selected_accts | uri %]&notes=[% selected_accts_notes | uri %]">Write off</a></li>
@@ -326,7 +328,8 @@
     <input type="hidden" name="type" value="[% type | html %]" />
     <input type="hidden" name="change_given" id="change_given" />
     <input type="hidden" name="paid" id="paid" value="[% total %]" />
-    <!-- end LMSCLoud -->
+    <input type="hidden" name="total" id="total" value="[% total %]" />
+    <input type="hidden" name="collected" id="collected" value="[% total %]" />
 
     <fieldset class="rows">
     [% IF ( selected_accts ) %]
@@ -354,13 +357,13 @@
         [% ELSIF type == 'CANCEL' %]
         <li>
             <label for="paid">Cancel amount: </label>
-            <input type="text" name="cancelAmount" id="writeOffAmount" value="[% total | $Price %]"  onchange="moneyFormat(document.payfine.cancelAmount,'cancel')" />
+            <input type="text" name="cancelAmount" id="writeOffAmount" value="[% total | $Price %]" readonly="readonly" />
         </li>
         [% ELSE %]
         <li>
-            <label for="handedout">Collect from patron: </label>
+            <label for="collected">Collect from patron: </label>
             <!-- default to paying all (default amount handed out == total) -->
-            <input type="text" name="handedout" id="handedout" value="[% total | $Price %]"  onchange="moneyFormat(document.payfine.handedout,'pay')" />
+            <input type="text" name="given" id="given" value="[% total | $Price %]"  onchange="moneyFormat(document.payfine.given,'pay')" />
         </li>
         <li>
             <label for="returnAmount">Return to patron: </label>
@@ -368,32 +371,9 @@
             <input disabled type="text" name="returnAmount" id="returnAmount" value="[% 0.00 | $Price %]" />
         </li>
         [% END %]
-<!-- end LMSCLoud -->
-<!-- community/21.05.x version starts --><!--
-        <li>
-            [% IF type == 'WRITEOFF' %]
-                <label for="paid">Writeoff amount: </label>
-            [% ELSE %]
-                <label for="paid">Amount being paid: </label>
-            [% END %]
-            <input name="paid" id="paid" type="text" step="0.01" min="0" value="[% total | $Price on_editing => 1 %]"/>
-        </li>
-    [% IF type != 'WRITEOFF' %]
-        <li>
-            <label for="collected">Amount tendered: </label>
-            <input name="collected" id="collected" type="text" step="0.01" min="0" value="[% total | $Price on_editing => 1 %]"/>
-        </li>
-        <li>
-            <label>Change to give: </label>
-            <span id="change">0.00</span>
-        </li>
-    [% END %]
---><!-- end community/21.05.x -->
 
-    [% IF (type != 'WRITEOFF' && type != 'CANCEL') %]
+    [% IF (type != 'WRITEOFF' && type != 'CANCEL') && Koha.Preference('UseCashRegisters') %]
     [% INCLUDE 'transaction_types.inc' type="payment" %]
-
-    [% IF Koha.Preference('UseCashRegisters') %]
     <li>
         <label for="cash_register">Cash register: </label>
         <select name="cash_register" id="cash_register">
@@ -402,12 +382,12 @@
         </select>
     </li>
     [% END %]
-    [% END %]
-
+    [% IF type != 'CANCEL' %]
     <li>
         <label for="selected_accts_notes">Note: </label>
         <textarea name="selected_accts_notes" id="selected_accts_notes">[% selected_accts_notes | html %]</textarea>
     </li>
+    [% END %]
     </ol>
     </fieldset>
     <div class="action">
@@ -429,6 +409,22 @@
         </div> <!-- /.col-sm-2.col-sm-pull-10 -->
      </div> <!-- /.row -->
 
+<!-- Modal -->
+<div id="alert-modal" class="modal">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <button aria-label="Close" class="closebtn" data-dismiss="modal" type="button"><span aria-hidden="true">&times;</span></button>
+        <h4 id="alert-modal-title" class="modal-title"></h4>
+      </div>
+      <div id="alert-modal-body" class="modal-body"></div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 [% MACRO jsinclude BLOCK %]
     [% INCLUDE 'str/members-menu.inc' %]
     [% Asset.js("js/members-menu.js") | $raw %]
@@ -438,12 +434,14 @@
             
             // Same structure of IF/ELSIF/ELSE/END as below for better readability.
             [% IF ( pay_individual ) %]
-                updateReturnAmount($("#handedout"));
+                updateReturnAmount($("#collected"));
                 recalculatePaidAmount($("#payindivfine"));
-            [% ELSIF ( writeoff_individual || cancelfee_individual ) %]
-                // The form woindivfine/cancelindivfine does not contain fields 'handedout' or 'paid', so no special event listener required in this case.
+                $('#payment_type').val('CASH');
+            [% ELSIF ( writeoff_individual || cancel_individual ) %]
+                // The form woindivfine/cancelindivfine does not contain fields 'collected' or 'paid', so no special event listener required in this case.
+                moneyFormat(document.woindivfine.amountwrittenoff,'writeoff');
             [% ELSE %]
-                updateReturnAmount($("#handedout"));
+                updateReturnAmount($("#collected"));
                 recalculatePaidAmount($("#payfine"));
             [% END %]
         
@@ -453,8 +451,8 @@
 
             var forms = $('#payindivfine, #payfine');
 
-            $('#payindivfine, #payfine, #woindivfine, #cancelindivfine').preventDoubleFormSubmit();
-
+            $('#payindivfine, #payfine, #woindivfine').preventDoubleFormSubmit();
+            
             /*
             $( "#payindivfine, #payfine" ).validate({
                 rules: {
@@ -478,81 +476,97 @@
                 }
             });
             */
-        });
-
-        prevent_default = 1;
-        $('#woindivfine').on('submit', function(e){
-            if ( prevent_default ) {
+        
+            $('#woindivfine').on('submit', function(e){
                 e.preventDefault();
-
+                
+                moneyFormat(document.woindivfine.amountwrittenoff,'writeoff');
+                
                 let amount_outstanding = parseFloat( $('#amountoutstanding').attr('value') );
-                let amount_writeoff = parseFloat( $('#amountwrittenoff').attr('value') );
-                if ( amount_writeoff > amount_outstanding ) {
-                    alert(_("You are attemping to writeoff more than the value of the fee."));
-                    $('#woindivfine').beenSubmitted = false;
-                } else {
+                let amount_writeoff = parseFloat( $('#paid').attr('value') );
+                if ( amount_writeoff == 0.0 ) {
+                    alertModal(  _("Warning"),
+                                        _("The amount to writeoff must be greater than 0.00."));
+                    event.target.beenSubmitted = false;
+                    $("body, form input[type='submit'], form button[type='submit'], form a").removeClass('waiting');
+                    return false;
+                }
+                else if ( amount_writeoff > amount_outstanding ) {
+                    alertModal(  _("Warning"),
+                                        _("You are attemping to writeoff more than the value of the fee."));
+                    event.target.beenSubmitted = false;
+                    $("body, form input[type='submit'], form button[type='submit'], form a").removeClass('waiting');
+                    return false;
+                }
+                else {
                     prevent_default = 0;
                     $('#woindivfine').preventDoubleFormSubmit();
+                    $('#woindivfine').off('submit'); 
                     $('#woindivfine').submit();
                 }
-            }
+            });
+        
         });
+
+        function alertModal(title, body) {
+            // Display error message to the user in a modal
+            $('#alert-modal-title').html(title);
+            $('#alert-modal-body').html(body);
+            $('#alert-modal').modal('show');
+        }
 
         // The Koha user can enter the amount of money handed out by the borrower in the form field 'paid'.
         // On any input event in form field 'paid', the disabled form field 'returnAmount' will be recalculated
         // for displaying the amount to be returned to the borrower.
         // This approach necessitates a manipulation of the value in form field 'paid' in case 'paid' > 'collected'
         // when confirming the payment. (See comment for function recalculatePaidAmount)
-        function updateReturnAmount(handedoutObj) {
-
-            handedoutObj.on("input",
+        function updateReturnAmount(collectedObj) {
+            collectedObj.on("input",
                 function(event) {
-
                     // Not accepting more than 1 decimal separator ("." or ",") and 2 ciphers after the integer part of the input in money amount field.
-                    var len = $("#handedout").val().length;
-                    var decSepPos = $("#handedout").val().indexOf(".");
-                    var decSepPos2 = $("#handedout").val().indexOf(",");
+                    var len = $("#given").val().length;
+                    var decSepPos = $("#given").val().indexOf(".");
+                    var decSepPos2 = $("#given").val().indexOf(",");
                     if ( decSepPos2 >= 0 && (decSepPos2 < decSepPos || decSepPos < 0) ) {  
                         decSepPos = decSepPos2;
                     }
                     if ( decSepPos >= 0 && len > decSepPos + 1 + 2 ) {
-                        $("#handedout").val($("#handedout").val().substr(0, decSepPos + 1 + 2));
+                        $("#given").val($("#given").val().substr(0, decSepPos + 1 + 2));
                     }
-
                     updReturnAmount();
                 }
             );
-
         }
 
         // When confirming the payment, the value of form field 'paid' will remain unchanged only if 'paid' <= 'collected'
         // otherwise it has to be limited to the value of 'collected'.
         // There are no credit notes created.
         function recalculatePaidAmount(payformObj) {
-
             payformObj.on("submit",
                 function(event) {
-
-                    var handedOutNew = parseFloat($("#handedout").val().replace(",","."));
-                    if ( isNaN(handedOutNew) ) {
-                        handedOutNew = 0.0;
+                    var collectedNew = parseFloat($("#given").val().replace(",","."));
+                    
+                    if ( isNaN(collectedNew) ) {
+                        collectedNew = 0.0;
                     }
-                    $("#paid").val(parseFloat(handedOutNew));
+                    $("#paid").val(parseFloat(collectedNew));
 
-                    if ( parseFloat($("#paid").val()) > parseFloat($("#collected").val())) {
-                        $("#paid").val($("#collected").val());
+                    if ( parseFloat($("#paid").val()) > parseFloat($("#total").val())) {
+                        $("#paid").val($("#total").val());
 
                         // displaying the new values for a short instant in the GUI 
                         $("#change_given").val("0.00");
                         $("#returnAmount").val(parseFloat("0.00").format_price());
-                        $("#handedout").val(parseFloat((Math.round($("#paid").val()*100.0)/100.0).toFixed(2)).format_price());
+                        $("#given").val(parseFloat((Math.round($("#paid").val()*100.0)/100.0).toFixed(2)).format_price());
                     }
+                    $("#collected").val($("#paid").val());
                 }
             );
 
         }
         
         function moneyFormat(textObj,type) {
+
             var newValue = textObj.value.replace(",",".");
             var decAmount = "";
             var dolAmount = "";
@@ -607,11 +621,11 @@
 
         function updReturnAmount() {
 
-            var handedOutNew = parseFloat($("#handedout").val().replace(",","."));
-            if ( isNaN(handedOutNew) ) {
-                handedOutNew = 0.0;
+            var givenNew = parseFloat($("#given").val().replace(",","."));
+            if ( isNaN(givenNew) ) {
+                givenNew = 0.0;
             }
-            var returnAmountNew = handedOutNew - $("#collected").val();
+            var returnAmountNew = givenNew - $("#total").val();
 
             if ( returnAmountNew < 0.0 ) {
                 returnAmountNew = 0.0;

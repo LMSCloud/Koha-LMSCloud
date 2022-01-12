@@ -33,6 +33,7 @@ use Koha::Patrons;
 use Koha::Patron::Categories;
 use Koha::AuthorisedValues;
 use Koha::Account;
+use Koha::Account::DebitTypes;
 use Koha::Token;
 use Koha::DateUtils;
 
@@ -44,7 +45,7 @@ my $cancel_individual   = $input->param('cancel_individual');
 my $change_given        = $input->param('change_given');
 my $type                = scalar $input->param('type') || 'PAYMENT';
 
-my $updatecharges_permissions = ($writeoff_individual || $type eq 'WRITEOFF') ? 'writeoff' : $cancel_individual ? 'cancel_fee': 'remaining_permissions';
+my $updatecharges_permissions = ($writeoff_individual || $type eq 'WRITEOFF') ? 'writeoff' : ($cancel_individual || $type eq 'CANCEL') ? 'cancel_fee': 'remaining_permissions';
 my ( $template, $loggedinuser, $cookie ) = get_template_and_user(
     {   template_name   => 'members/paycollect.tt',
         query           => $input,
@@ -85,25 +86,26 @@ if ( $pay_individual || $writeoff_individual || $cancel_individual) {
     } elsif ($writeoff_individual) {
         $template->param( writeoff_individual => 1 );
     } elsif ($cancel_individual) {
-        $template->param( cancelfee_individual => 1 );
+        $template->param( cancel_individual => 1 );
     }
     my $debit_type_code   = $input->param('debit_type_code');
     $accountlines_id      = $input->param('accountlines_id');
     my $amount            = $input->param('amount');
     my $amountoutstanding = $input->param('amountoutstanding');
-    my $itemnumber  = $input->param('itemnumber');
-    my $description  = $input->param('description');
-    my $title        = $input->param('title');
+    my $itemnumber        = $input->param('itemnumber');
+    my $description       = $input->param('description');
+    my $title             = $input->param('title');
     $total_due = $amountoutstanding;
     $template->param(
         debit_type_code    => $debit_type_code,
+        debit_type         => Koha::Account::DebitTypes->find($debit_type_code),
         accountlines_id    => $accountlines_id,
-        amount            => $amount,
-        amountoutstanding => $amountoutstanding,
-        title_desc        => $title,
-        itemnumber        => $itemnumber,
+        amount             => $amount,
+        amountoutstanding  => $amountoutstanding,
+        title_desc         => $title,
+        itemnumber         => $itemnumber,
         individual_description => $description,
-        payment_note    => $payment_note,
+        payment_note       => $payment_note,
     );
 } elsif ($selected_lines) {
     $total_due = $input->param('amt');
@@ -154,6 +156,19 @@ if ( $total_paid and $total_paid ne '0.00' ) {
             error_under => 1,
             total_paid => $total_paid
         );
+    } elsif ( $cancel_individual || $type eq 'CANCEL' ) {
+        my $userenv = C4::Context->userenv;
+        my $manager_id = $userenv ? $userenv->{number} : undef;
+        if ($cancel_individual) {
+            my $line = Koha::Account::Lines->find($accountlines_id);
+            $line->cancel( { staff_id => $manager_id, branch => $library_id } );
+        } else {
+            foreach my $line(@selected_accountlines) {
+                $line->cancel( { staff_id => $manager_id, branch => $library_id } );
+            }
+        }
+        my $url = "/cgi-bin/koha/members/pay.pl?borrowernumber=$borrowernumber";
+            print $input->redirect($url);
     } else {
         output_and_exit( $input, $cookie, $template,  'wrong_csrf_token' )
             unless Koha::Token->new->check_csrf( {
@@ -163,10 +178,15 @@ if ( $total_paid and $total_paid ne '0.00' ) {
 
         my $url;
         my $pay_result;
-        if ($pay_individual) {
+        if ($pay_individual || $writeoff_individual) {
             my $line = Koha::Account::Lines->find($accountlines_id);
+            $type = 'PAYMENT';
+            if ( $writeoff_individual ) {
+                $type = 'WRITEOFF';
+            }
             $pay_result = $account->pay(
                 {
+                    type         => $type,
                     lines        => [$line],
                     amount       => $total_paid,
                     library_id   => $library_id,
