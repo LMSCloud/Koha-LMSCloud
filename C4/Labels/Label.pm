@@ -185,13 +185,13 @@ sub _get_barcode_data {
         my $err = '';
         $f =~ s/^\s?//;
         
-        if ( $f =~ /^'(.*)'.*/ ) {
+        if ( $f =~ /^('([^']*)')/ ) {
             # single quotes indicate a static text string.
-            $datastring .= $1;
+            $datastring .= $2;
             $f = $';
             next FIELD_LIST;
         }
-        elsif ( $f =~ /^($match_kohatable)(\.(split)\('([^']+)'(,([0-9]+))?\)\[([0-9]+)\])?.*/ ) {
+        elsif ( $f =~ /^($match_kohatable)(\.(split)\('([^']+)'(,([0-9]+))?\)\[([0-9]+)\])?/ ) {
             my ($field,$split,$splittext,$splitlimit,$splitindex) = ($1,$3,$4,$6,$7);
             $f = $';
             if ($item->{$field}) {
@@ -215,7 +215,7 @@ sub _get_barcode_data {
             }
             next FIELD_LIST;
         }
-        elsif ( $f =~ /^([0-9a-z]{3})(\(..\))?(\w)(\.(split)\('([^']+)'(,([0-9]+))?\)\[([0-9]+)\])?(\.pre\('([^']+)'\))?(\.post\('([^']+)'\))?(\W?).*?/ ) {
+        elsif ( $f =~ /^([0-9a-z]{3})(\(..\))?(\w)(\.(split)\('([^']+)'(,([0-9]+))?\)\[([0-9]+)\])?(\.pre\('([^']+)'\))?(\.post\('([^']+)'\))?(\W?)/ ) {
             my ($field,$ind,$subf,$split,$splittext,$splitlimit,$splitindex,$pretext,$posttext,$ws) = ($1,$2,$3,$5,$6,$8,$9,$11,$13,$14);
             $f = $';
 
