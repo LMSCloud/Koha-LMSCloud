@@ -326,11 +326,14 @@ $(document).ready(function() {
             }
             var index = '';
             if ( $('#masthead_search') ) {
-                index = $( "#masthead_search" ).val().replace(/,.*$/,'');
-                switch (index) {
-                    case 'kw': index = ''; break;
-                    case 'nb':
-                    case 'ns': response([]); return; break;
+                index = $( "#masthead_search" ).val();
+                if ( index ) {
+                    index = index.replace(/,.*$/,'');
+                    switch (index) {
+                        case 'kw': index = ''; break;
+                        case 'nb':
+                        case 'ns': response([]); return; break;
+                    }
                 }
             }
             $.ajax({
