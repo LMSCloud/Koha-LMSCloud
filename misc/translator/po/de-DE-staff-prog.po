@@ -2,7 +2,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Koha 21.05\n"
 "POT-Creation-Date: 2022-01-12 15:50+0100\n"
-"PO-Revision-Date: 2022-01-12 16:06+0100\n"
+"PO-Revision-Date: 2022-01-18 09:23+0100\n"
 "Last-Translator: Katrin Fischer <katrin.fischer@bsz-bw.de>\n"
 "Language-Team: \n"
 "Language: de\n"
@@ -23102,7 +23102,7 @@ msgstr "Reklamationen"
 #: koha-tmpl/intranet-tmpl/prog/en/modules/members/moremember.tt:795
 #, c-format
 msgid "Claim(s) %s "
-msgstr "%s Reklamation(en)"
+msgstr "Reklamation(en) %s"
 
 #: koha-tmpl/intranet-tmpl/prog/en/modules/serials/claims.tt:168
 #: koha-tmpl/intranet-tmpl/prog/en/modules/serials/serials-edit.tt:206
@@ -31080,7 +31080,7 @@ msgstr "Genau am"
 #: koha-tmpl/intranet-tmpl/prog/en/modules/members/maninvoice.tt:82
 #, c-format
 msgid "Example: 5.00"
-msgstr "Beispiel: 5.00"
+msgstr "Beispiel: 5,00"
 
 #: koha-tmpl/intranet-tmpl/prog/en/modules/tools/csv-profiles.tt:255
 #, c-format
