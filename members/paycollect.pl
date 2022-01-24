@@ -45,7 +45,7 @@ my $cancel_individual   = $input->param('cancel_individual');
 my $change_given        = $input->param('change_given');
 my $type                = scalar $input->param('type') || 'PAYMENT';
 
-my $updatecharges_permissions = ($writeoff_individual || $type eq 'WRITEOFF') ? 'writeoff' : ($cancel_individual || $type eq 'CANCEL') ? 'cancel_fee': 'remaining_permissions';
+my $updatecharges_permissions = ($writeoff_individual || $type eq 'WRITEOFF') ? 'writeoff' : ($cancel_individual || $type eq 'CANCELLATION') ? 'cancel_fee': 'remaining_permissions';
 my ( $template, $loggedinuser, $cookie ) = get_template_and_user(
     {   template_name   => 'members/paycollect.tt',
         query           => $input,
@@ -151,24 +151,11 @@ if ( $total_paid and $total_paid ne '0.00' ) {
             error_over => 1,
             total_due => $total_due
         );
-    } elsif ( $total_collected < $total_paid && !( $writeoff_individual || $type eq 'WRITEOFF' ) ) {
+    } elsif ( $total_collected < $total_paid && !( $writeoff_individual || $type eq 'WRITEOFF' ) && !( $cancel_individual || $type eq 'CANCELLATION' ) ) {
         $template->param(
             error_under => 1,
             total_paid => $total_paid
         );
-    } elsif ( $cancel_individual || $type eq 'CANCEL' ) {
-        my $userenv = C4::Context->userenv;
-        my $manager_id = $userenv ? $userenv->{number} : undef;
-        if ($cancel_individual) {
-            my $line = Koha::Account::Lines->find($accountlines_id);
-            $line->cancel( { staff_id => $manager_id, branch => $library_id } );
-        } else {
-            foreach my $line(@selected_accountlines) {
-                $line->cancel( { staff_id => $manager_id, branch => $library_id } );
-            }
-        }
-        my $url = "/cgi-bin/koha/members/pay.pl?borrowernumber=$borrowernumber";
-            print $input->redirect($url);
     } else {
         output_and_exit( $input, $cookie, $template,  'wrong_csrf_token' )
             unless Koha::Token->new->check_csrf( {
@@ -178,11 +165,14 @@ if ( $total_paid and $total_paid ne '0.00' ) {
 
         my $url;
         my $pay_result;
-        if ($pay_individual || $writeoff_individual) {
+        if ($pay_individual || $writeoff_individual || $cancel_individual) {
             my $line = Koha::Account::Lines->find($accountlines_id);
             $type = 'PAYMENT';
             if ( $writeoff_individual ) {
                 $type = 'WRITEOFF';
+            }
+            if ( $writeoff_individual ) {
+                $type = 'CANCELLATION';
             }
             $pay_result = $account->pay(
                 {

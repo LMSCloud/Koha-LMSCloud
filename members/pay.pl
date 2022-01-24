@@ -96,7 +96,7 @@ elsif ( $input->param('writeoff_selected') ) {
     payselected({ params => \@names, type => 'WRITEOFF' });
 }
 elsif ( $input->param('cancel_selected') ) {
-    payselected({ params => \@names, type => 'CANCEL' });
+    payselected({ params => \@names, type => 'CANCELLATION' });
 }
 elsif ( $input->param('woall') ) {
     writeoff_all(@names);
@@ -121,7 +121,7 @@ elsif ( $input->param('confirm_writeoff') || $input->param('confirm_cancelfee') 
               . "&debit_type_code=" . $accountline->debit_type_code
               . "&accountlines_id=" . $accountlines_id
               . "&change_given=" . $change_given
-              . ( scalar $input->param('confirm_writeoff') ? "&writeoff_individual=1" : "&writeoff_individual=1" )
+              . ( scalar $input->param('confirm_writeoff') ? "&writeoff_individual=1" : "&cancel_individual=1" )
               . "&error_over=1" );
 
     } else {
@@ -129,7 +129,7 @@ elsif ( $input->param('confirm_writeoff') || $input->param('confirm_cancelfee') 
             {
                 amount     => $amount,
                 lines      => [ Koha::Account::Lines->find($accountlines_id) ],
-                type       => 'WRITEOFF',
+                type       => (scalar $input->param('confirm_writeoff') ? 'WRITEOFF' : 'CANCELLATION'),
                 note       => $payment_note,
                 interface  => C4::Context->interface,
                 item_id    => $item_id,
@@ -247,7 +247,7 @@ sub writeoff_or_cancel_all {
     my @wo_lines = grep { /^accountlines_id\d+$/ } @params;
     
     my $borrowernumber = $input->param('borrowernumber');
-    my $actiontype = $input->param('woall') ? 'WRITEOFF' : 'CANCEL';
+    my $actiontype = $input->param('woall') ? 'WRITEOFF' : 'CANCELLATION';
     
     for (@wo_lines) {
         if (/(\d+)/) {

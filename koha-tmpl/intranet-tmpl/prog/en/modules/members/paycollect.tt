@@ -24,7 +24,7 @@
 <title>
     [% IF type == 'WRITEOFF' %]
         Write off an amount for [% patron.firstname | html %] [% patron.surname | html %]
-    [% ELSIF type == 'CANCEL' %]
+    [% ELSIF type == 'CANCELLATION' %]
         Cancel an amount for [% patron.firstname | html %] [% patron.surname | html %]
     [% ELSE %]
         Collect fine payment for [% patron.firstname | html %] [% patron.surname | html %]
@@ -60,7 +60,7 @@
                     [% IF ( selected_accts ) %]
                         [% IF type == 'WRITEOFF' %]
                             Write off an amount toward selected fines
-                        [% ELSIF type == 'CANCEL' %]
+                        [% ELSIF type == 'CANCELLATION' %]
                             Cancel an amount toward selected fines
                         [% ELSE %]
                             Pay an amount toward selected fines
@@ -215,6 +215,7 @@
     <input type="hidden" name="title" id="title" value="[% title | html %]" />
     <input type="hidden" name="payment_note" id="payment_note" value="[% payment_note | html %]" />
     <input type="hidden" name="amountoutstanding" id="amountoutstanding" value="[% amountoutstanding | html %]" />
+    <input type="hidden" name="amountwrittenoff" id="amountwrittenoff" value="[% amountoutstanding %]" />
     <input type="hidden" name="confirm_writeoff" id="confirm_writeoff" value="1" />
     <input type="hidden" name="change_given" id="change_given" />
     <input type="hidden" name="paid" id="paid" value="[% amountoutstanding  | html %]" />
@@ -238,9 +239,9 @@
 
             <ol>
                 <li>
-                    <label for="amountwrittenoff">Writeoff amount: </label>
+                    <label for="towriteoff">Writeoff amount: </label>
                     <!-- default to writing off all -->
-                    <input name="amountwrittenoff" id="amountwrittenoff" value="[% amountoutstanding | $Price on_editing => 1 | html %]" type="text" onchange="moneyFormat(document.woindivfine.amountwrittenoff,'writeoff')" required />
+                    <input name="towriteoff" id="towriteoff" value="[% amountoutstanding | $Price on_editing => 1 | html %]" type="text" onchange="moneyFormat(document.woindivfine.towriteoff,'writeoff')" required />
                 </li>
             </ol>
         </fieldset>
@@ -298,7 +299,7 @@
     </form>
 
 [% ELSE %]
-    [% IF Koha.Preference('UseCashRegisters') && ( registers.size == 0 ) && ( type != 'WRITEOFF' ) && ( type != 'CANCEL' )%]
+    [% IF Koha.Preference('UseCashRegisters') && ( registers.size == 0 ) && ( type != 'WRITEOFF' ) && ( type != 'CANCELLATION' )%]
         [% PROCESS 'cash_register_required' %]
     [% ELSE %]
 
@@ -307,15 +308,15 @@
             [% IF type == 'WRITEOFF' %]
                 <li role="presentation"><a href="/cgi-bin/koha/members/paycollect.pl?borrowernumber=[% patron.borrowernumber | uri %]&type=PAYMENT&amt=[% amt | uri %]&selected=[% selected_accts | uri %]&notes=[% selected_accts_notes | uri %]">Pay</a></li>
                 <li role="presentation" class="active"><a>Write off</a></li>
-                <li role="presentation"><a href="/cgi-bin/koha/members/paycollect.pl?borrowernumber=[% patron.borrowernumber | uri %]&type=CANCEL&amt=[% amt | uri %]&selected=[% selected_accts | uri %]&notes=[% selected_accts_notes | uri %]">Cancel</a></li>
-            [% ELSIF type == 'CANCEL' %]
+                <li role="presentation"><a href="/cgi-bin/koha/members/paycollect.pl?borrowernumber=[% patron.borrowernumber | uri %]&type=CANCELLATION&amt=[% amt | uri %]&selected=[% selected_accts | uri %]&notes=[% selected_accts_notes | uri %]">Cancel</a></li>
+            [% ELSIF type == 'CANCELLATION' %]
                 <li role="presentation"><a href="/cgi-bin/koha/members/paycollect.pl?borrowernumber=[% patron.borrowernumber | uri %]&type=PAYMENT&amt=[% amt | uri %]&selected=[% selected_accts | uri %]&notes=[% selected_accts_notes | uri %]">Pay</a></li>
                 <li role="presentation"><a href="/cgi-bin/koha/members/paycollect.pl?borrowernumber=[% patron.borrowernumber | uri %]&type=WRITEOFF&amt=[% amt | uri %]&selected=[% selected_accts | uri %]&notes=[% selected_accts_notes | uri %]">Write off</a></li>
                 <li role="presentation" class="active"><a>Cancel fee</a></li>
             [% ELSE %]
                 <li role="presentation" class="active"><a>Pay</a></li>
                 <li role="presentation"><a href="/cgi-bin/koha/members/paycollect.pl?borrowernumber=[% patron.borrowernumber | uri %]&type=WRITEOFF&amt=[% amt | uri %]&selected=[% selected_accts | uri %]&notes=[% selected_accts_notes | uri %]">Write off</a></li>
-                <li role="presentation"><a href="/cgi-bin/koha/members/paycollect.pl?borrowernumber=[% patron.borrowernumber | uri %]&type=CANCEL&amt=[% amt | uri %]&selected=[% selected_accts | uri %]&notes=[% selected_accts_notes | uri %]">Cancel</a></li>
+                <li role="presentation"><a href="/cgi-bin/koha/members/paycollect.pl?borrowernumber=[% patron.borrowernumber | uri %]&type=CANCELLATION&amt=[% amt | uri %]&selected=[% selected_accts | uri %]&notes=[% selected_accts_notes | uri %]">Cancel</a></li>
             [% END %]
         </ul>
     [% END %]
@@ -335,7 +336,7 @@
     [% IF ( selected_accts ) %]
         [% IF type == 'WRITEOFF' %]
             <legend>Write off an amount toward selected fines</legend>
-        [% ELSIF type == 'CANCEL' %]
+        [% ELSIF type == 'CANCELLATION' %]
             <legend>Cancel an amount toward selected fines</legend>
         [% ELSE %]
             <legend>Pay an amount toward selected fines</legend>
@@ -354,7 +355,7 @@
             <label for="paid">Writeoff amount: </label>
             <input type="text" name="writeOffAmount" id="writeOffAmount" value="[% total | $Price %]"  onchange="moneyFormat(document.payfine.writeOffAmount,'writeoff')" />
         </li>
-        [% ELSIF type == 'CANCEL' %]
+        [% ELSIF type == 'CANCELLATION' %]
         <li>
             <label for="paid">Cancel amount: </label>
             <input type="text" name="cancelAmount" id="writeOffAmount" value="[% total | $Price %]" readonly="readonly" />
@@ -372,7 +373,7 @@
         </li>
         [% END %]
 
-    [% IF (type != 'WRITEOFF' && type != 'CANCEL') && Koha.Preference('UseCashRegisters') %]
+    [% IF (type != 'WRITEOFF' && type != 'CANCELLATION') && Koha.Preference('UseCashRegisters') %]
     [% INCLUDE 'transaction_types.inc' type="payment" %]
     <li>
         <label for="cash_register">Cash register: </label>
@@ -382,7 +383,7 @@
         </select>
     </li>
     [% END %]
-    [% IF type != 'CANCEL' %]
+    [% IF type != 'CANCELLATION' %]
     <li>
         <label for="selected_accts_notes">Note: </label>
         <textarea name="selected_accts_notes" id="selected_accts_notes">[% selected_accts_notes | html %]</textarea>
@@ -439,7 +440,7 @@
                 $('#payment_type').val('CASH');
             [% ELSIF ( writeoff_individual || cancel_individual ) %]
                 // The form woindivfine/cancelindivfine does not contain fields 'collected' or 'paid', so no special event listener required in this case.
-                moneyFormat(document.woindivfine.amountwrittenoff,'writeoff');
+                moneyFormat(document.woindivfine.towriteoff,'writeoff');
             [% ELSE %]
                 updateReturnAmount($("#collected"));
                 recalculatePaidAmount($("#payfine"));
@@ -617,6 +618,8 @@
                 updReturnAmount(textObj);
             else if ( type == 'cancel' || type == 'writeoff' ) 
                 $("#paid").val(parseFloat(dolAmount + "." + decAmount).toFixed(2))
+            if ( type == 'writeoff' ) 
+                $("#amountwrittenoff").val(parseFloat(dolAmount + "." + decAmount).toFixed(2))
         }
 
         function updReturnAmount() {
