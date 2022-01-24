@@ -10,8 +10,18 @@ use C4::Context;
 use Koha::SearchEngine::Elasticsearch;
 use Text::Diff qw(diff);
 
+# additional for epayment migration
+use Archive::Extract;
+use Mojo::UserAgent;
+use File::Copy;
+use File::Temp;
+use Capture::Tiny;
+use Koha::Plugins;
+
+
 BEGIN{ $| = 1; }
 
+binmode(STDIN, ":utf8");
 binmode(STDERR, ":utf8");
 binmode(STDOUT, ":utf8");
 
@@ -22,6 +32,11 @@ updateVariablesInNewsTexts();
 updateSidebarLinks();
 updateOPACUserJS();
 rebuildElasticSearchIndex();
+
+&migrate_epayment_to_2105('LMSC');
+&migrate_epayment_to_2105('KohaPayPal');
+
+
 
 sub updateSimpleVariables {
     my $dbh = C4::Context->dbh;
@@ -616,3 +631,598 @@ sub getDocumentFromTree {
         return join('',@$txtarr);
     }
 }
+
+
+
+
+# Called individually for each Koha instance of the current host:
+# - Check if epayment methods of LMSCloud origin are activated.
+#   If this is the case then
+#   - fetch the Koha plugin E-Payments-DE from orgaknecht.lmscloud.net
+#   - install the Koha plugin E-Payments-DE for the current Koha instance
+#   - migrate configuration values of all LMSCloud epayment methods from old systempreferences to new entries in koha_plugin_com_lmscloud_epaymentsde_preferences and to plugin_data.enable_opac_payments
+#   - delete the old epayment systempreferences, with exception of 'PaymentsMinimumPatronAge'
+#   - do not delete the systempreference 'ActivateCashRegisterTransactionsOnly', because it is not only relevant for epayment.
+#   - do not delete the systempreferences 'PaymentsOnlineCashRegisterName' and 'PaymentsOnlineCashRegisterManagerCardnumber' if the standard Koha PayPal e-payment is activated.
+#
+# - Check if epayment methods of the standard Koha Paypal e-payment is activated.
+#   If this is the case then
+#   - fetch the adapted Koha plugin pay_via_paypal_lmsc from orgaknecht.lmscloud.net
+#   - install the Koha plugin pay_via_paypal_lmsc for the current Koha instance
+#   - migrate configuration values of the standard Koha PayPal e-payment method from old systempreferences to new entries in koha_plugin_com_theke_payviapaypal_pay_via_paypal and to plugin_data.enable_opac_payments, plugin_data.PayPalSandboxMode, plugin_data.useBaseURL,
+#   - one could delete the old standard Koha PayPal e-payment systempreferences, with exception of 'PaymentsMinimumPatronAge', 'PaymentsOnlineCashRegisterName' and 'PaymentsOnlineCashRegisterManagerCardnumber'
+#     (but because this will be done by the standard Koha updateDatabase.pl we skip it here)
+#   - do not delete the systempreference 'ActivateCashRegisterTransactionsOnly', because it is not only relevant for epayment.
+
+sub migrate_epayment_to_2105 {
+    my ( $migType ) = @_;    # 'LMSC': migrate the LMSC e-payment solutions (GiroSolution, Epay21, PmPayment, EPayBL)   'KohaPayPal': migrate the standard Koha e-payment solution for PayPal
+
+    sub trace {
+        my ( $logline ) = @_;
+        my $debug = $ENV{'DEBUG_MIGRATE_EPAYMENT'};
+
+        print $logline if $debug;
+    }
+
+    sub read_systempreferences {
+        my ( $dbh, $selVariable ) = @_;
+        my $retValue = '';
+	    &trace("migrate_epayment_to_2105::read_systempreferences() START selVariable:$selVariable:\n");
+
+        my $sqlStatement = q{
+            SELECT value
+            FROM systempreferences
+            WHERE  variable = ?;
+        };
+        &trace("migrate_epayment_to_2105::read_systempreferences() sqlStatement:$sqlStatement:\n");
+        my $sth = $dbh->prepare($sqlStatement);
+        $sth->execute($selVariable);
+
+        if ( my ($value ) = $sth->fetchrow ) {
+            $retValue = $value;
+        }
+
+        &trace("migrate_epayment_to_2105::read_systempreferences() END; selVariable:$selVariable: retValue:$retValue:\n");
+
+        return $retValue;
+    }
+
+
+    sub delete_systempreferences {
+        my ( $dbh, $selVariable ) = @_;
+        my $retValue = '';
+	    &trace("migrate_epayment_to_2105::delete_systempreferences() START selVariable:$selVariable:\n");
+
+        my $sqlStatement = q{
+            DELETE
+            FROM systempreferences
+            WHERE  variable = ?;
+        };
+        &trace("migrate_epayment_to_2105::delete_systempreferences() sqlStatement:$sqlStatement:\n");
+        my $sth = $dbh->prepare($sqlStatement);
+        $retValue = $sth->execute($selVariable);
+
+        &trace("migrate_epayment_to_2105::delete_systempreferences() END; selVariable:$selVariable: retValue:$retValue:\n");
+
+        return $retValue;
+    }
+
+
+    sub update_epaymentsde_preferences {
+        my ( $dbh, $payment_type, $library_id, $name, $value ) = @_;
+	    &trace("migrate_epayment_to_2105::update_epaymentsde_preferences() START payment_type:$payment_type: library_id:$library_id: name:$name: value:$value:\n");
+
+        my $sqlStatement = q{
+            UPDATE koha_plugin_com_lmscloud_epaymentsde_preferences
+               SET value = ?
+             WHERE payment_type = ?
+               AND library_id = ?
+               AND name = ?;
+        };
+        &trace("migrate_epayment_to_2105::update_epaymentsde_preferences() sqlStatement:$sqlStatement:\n");
+        my $sth = $dbh->prepare($sqlStatement);
+        my $res = $sth->execute( $value, $payment_type, $library_id, $name );
+
+        &trace("migrate_epayment_to_2105::update_epaymentsde_preferences() END; res:$res:\n");
+
+        return $res;
+    }
+
+
+    sub update_payviapaypal_pay_via_paypal {
+        my ( $dbh, $library_id, $active, $user, $pwd, $signature, $charge_description, $threshold ) = @_;
+	    &trace("migrate_epayment_to_2105::update_payviapaypal_pay_via_paypal() START library_id:" . (defined($library_id)?$library_id:'undef') . ": active:$active: user:$user: pwd:$pwd: signature:$signature: signature:$signature: charge_description:$charge_description: threshold:" . (defined($threshold)?$threshold:'undef') . ":\n");
+
+        my $sqlStatement = '';
+        my $sth;
+        my $res = 'undefined';
+        if ( defined($library_id) ) {
+            $sqlStatement = q{
+                DELETE FROM koha_plugin_com_theke_payviapaypal_pay_via_paypal WHERE library_id = ?;
+            };
+            $sth = $dbh->prepare($sqlStatement);
+            $res = $sth->execute( $library_id );
+        } else {
+            $sqlStatement = q{
+                DELETE FROM koha_plugin_com_theke_payviapaypal_pay_via_paypal WHERE library_id IS NULL;
+            };
+            $sth = $dbh->prepare($sqlStatement);
+            $res = $sth->execute(  );
+        }
+        &trace("migrate_epayment_to_2105::update_payviapaypal_pay_via_paypal() 1. sqlStatement:$sqlStatement: res:$res:\n");
+
+        $sqlStatement = q{
+            INSERT IGNORE INTO koha_plugin_com_theke_payviapaypal_pay_via_paypal (library_id, active, user, pwd, signature, charge_description, threshold)  VALUES ( ?, ?, ?, ?, ?, ?, ?);
+        };
+        $sth = $dbh->prepare($sqlStatement);
+        $res = $sth->execute( $library_id, $active, $user, $pwd, $signature, $charge_description, $threshold );
+        &trace("migrate_epayment_to_2105::update_payviapaypal_pay_via_paypal() 2. sqlStatement:$sqlStatement: res:$res:\n");
+
+        if ( defined($library_id) ) {
+            $sqlStatement = q{
+                UPDATE koha_plugin_com_theke_payviapaypal_pay_via_paypal
+                   SET active = ?,
+                       user = ?,
+                       pwd = ?,
+                       signature = ?,
+                       charge_description = ?,
+                       threshold = ?
+                 WHERE library_id = ?;
+            };
+            $sth = $dbh->prepare($sqlStatement);
+            $res = $sth->execute( $active, $user, $pwd, $signature, $charge_description, $threshold, $library_id );
+        } else {
+            $sqlStatement = q{
+                UPDATE koha_plugin_com_theke_payviapaypal_pay_via_paypal
+                   SET active = ?,
+                       user = ?,
+                       pwd = ?,
+                       signature = ?,
+                       charge_description = ?,
+                       threshold = ?
+                 WHERE library_id IS NULL;
+            };
+            $sth = $dbh->prepare($sqlStatement);
+            $res = $sth->execute( $active, $user, $pwd, $signature, $charge_description, $threshold );
+        }
+        &trace("migrate_epayment_to_2105::update_payviapaypal_pay_via_paypal() 3. sqlStatement:$sqlStatement: res:$res:\n");
+
+        &trace("migrate_epayment_to_2105::update_payviapaypal_pay_via_paypal() END; res:$res:\n");
+
+        return $res;
+    }
+
+
+    sub update_plugin_data {
+        my ( $dbh, $plugin_class, $plugin_key, $plugin_value ) = @_;
+	    &trace("migrate_epayment_to_2105::update_plugin_data() START plugin_class:$plugin_class: plugin_key:$plugin_key: plugin_value:$plugin_value:\n");
+
+        my $sqlStatement = q{
+            INSERT IGNORE INTO plugin_data (plugin_class, plugin_key, plugin_value)  VALUES ( ?, ?, ? );
+        };
+        my $sth = $dbh->prepare($sqlStatement);
+        my $res = $sth->execute( $plugin_class, $plugin_key, $plugin_value );
+        &trace("migrate_epayment_to_2105::update_plugin_data() 1. sqlStatement:$sqlStatement: res:$res:\n");
+
+        $sqlStatement = q{
+            UPDATE plugin_data
+               SET plugin_value = ?
+             WHERE plugin_class = ?
+               AND plugin_key = ?;
+        };
+        &trace("migrate_epayment_to_2105::update_plugin_data() 2. sqlStatement:$sqlStatement:\n");
+        $sth = $dbh->prepare($sqlStatement);
+        $res = $sth->execute( $plugin_value, $plugin_class, $plugin_key );
+
+        &trace("migrate_epayment_to_2105::update_plugin_data() END; res:$res:\n");
+
+        return $res;
+    }
+
+
+    sub install_koha_plugin {
+        my ( $uploadfilename ) = @_;    # name of the KPZ file
+        my $uploaddirname = 'https://configuration.lmscloud.net/pluginstore';
+        #my $uploadlocation = '';
+        my $uploadlocation = $uploaddirname . '/' . $uploadfilename;
+        my $plugins_enabled = C4::Context->config("enable_plugins");
+        my $plugins_dir = C4::Context->config("pluginsdir");
+        $plugins_dir = ref($plugins_dir) eq 'ARRAY' ? $plugins_dir->[0] : $plugins_dir;
+        my ( $tempfile, $tfh );
+        my %errors;
+        my $res = 'undefinedResult';
+
+        &trace("migrate_epayment_to_2105::install_koha_plugin() START; uploadfilename:$uploadfilename: uploadlocation:$uploadlocation: plugins_enabled:$plugins_enabled:\n");
+
+        if ( ! $plugins_enabled ) {
+            # set <enable_plugins>1</enable_plugins> in /etc/koha/sites/<instancename>/koha-conf.xml
+            my $kohaConfFileName = $ENV{'KOHA_CONF'};
+            `sed -i.bak -e 's|<enable_plugins>.*</enable_plugins>|<enable_plugins>1</enable_plugins>|g' $kohaConfFileName`;
+            &trace("migrate_epayment_to_2105::install_koha_plugin() updated '$kohaConfFileName'\n");
+        }
+
+        my $dirname = File::Temp::tempdir( CLEANUP => 1 );
+        &trace("migrate_epayment_to_2105::install_koha_plugin() dirname:$dirname:\n");
+
+        my $filesuffix;
+        $filesuffix = $1 if $uploadfilename =~ m/(\..+)$/i;
+        ( $tfh, $tempfile ) = File::Temp::tempfile( SUFFIX => $filesuffix, UNLINK => 1 );
+
+        &trace("migrate_epayment_to_2105::install_koha_plugin() tempfile:$tempfile:\n");
+
+        $errors{'NOTKPZ'} = 1 if ( $uploadfilename !~ /\.kpz$/i );
+        $errors{'NOWRITETEMP'}    = 1 unless ( -w $dirname );
+        $errors{'NOWRITEPLUGINS'} = 1 unless ( -w $plugins_dir );
+
+        if ( $uploadlocation ) {
+            my $ua = Mojo::UserAgent->new(max_redirects => 5);
+            my $tx = $ua->get($uploadlocation);
+            $tx->result->content->asset->move_to($tempfile);
+        } else {
+            $errors{'EMPTYUPLOAD'} = 1;
+        }
+
+        if ( ! %errors ) {
+            my $ae = Archive::Extract->new( archive => $tempfile, type => 'zip' );
+            if ( $ae->extract( to => $plugins_dir ) ) {
+                &setUserAndGroup( $plugins_dir );
+
+                &trace("migrate_epayment_to_2105::install_koha_plugin() now calling Koha::Plugins->new()->InstallPlugins()\n");
+                $res = Koha::Plugins->new()->InstallPlugins();    # returns total count of plugins currently installed on this hosts
+            } else {
+                $errors{'UZIPFAIL'} = $uploadfilename;
+            }
+        }
+
+        if ( %errors ) {
+            foreach my $key ( keys %errors ) {
+                &trace("migrate_epayment_to_2105::install_koha_plugin() errors{$key}:" . $errors{$key} . ":\n");
+            }
+        }
+
+        &trace("migrate_epayment_to_2105::install_koha_plugin() returns res:$res:\n");
+    }
+
+    # recursively set user and group to <koha-Instanz-Name>-koha
+    sub setUserAndGroup {
+        my ( $dirName ) = @_;
+        my $kohaUserName = substr(C4::Context->config('database'),5) . '-koha';    # e.g. koha_wallenheim -> wallenheim-koha
+
+        &trace("migrate_epayment_to_2105::setUserAndGroup() START; dirName:$dirName: kohaUserName:$kohaUserName:\n");
+
+        #`chown -R $kohaUserName:$kohaUserName $dirName`;
+        my ($stdoutRes, $stderrRes) = Capture::Tiny::capture {
+            system ( "chown -R $kohaUserName:$kohaUserName $dirName" );
+        };
+
+        &trace("migrate_epayment_to_2105::setUserAndGroup() tried to chown -R $kohaUserName:$kohaUserName $dirName; stdoutRes:$stdoutRes: stderrRes:$stderrRes:\n");
+        if ( $stderrRes ) {
+            print "migrate_epayment_to_2105::setUserAndGroup() tried to chown -R $kohaUserName:$kohaUserName $dirName; stdoutRes:$stdoutRes: stderrRes:$stderrRes:\n";
+        }
+    }
+
+# end of migrate_epayment_to_2105 subs
+#################################################################################
+
+    my $dbh = C4::Context->dbh;
+    $|=1; # flushes output
+    local $dbh->{RaiseError} = 1;
+
+    if ( $migType eq 'LMSC' ) {
+        my $lmscPrefCount = 0;
+        my $lmscPrefRead = 0;
+        my $lmscPrefUpdated = 0;
+        my $lmscPrefToDelete = 0;
+        my $lmscPrefDeleted = 0;
+        my $res = 'noop';
+
+        # systempreferences for the LMSC e-payments (GiroSolution, Epay21, PmPayment, EPayBL)
+        my $prefLmsc = {};
+        $prefLmsc->{migrate} = 0;    # assumption: no epayment type activated, nothing to migrate
+
+        $prefLmsc->{pmt}->{epay21}->{pmv}->{Paypage}->{switchName} = 'Epay21PaypageOpacPaymentsEnabled';
+        $prefLmsc->{pmt}->{epay21}->{pmv}->{Paypage}->{variable}->{Epay21PaypageOpacPaymentsEnabled}->{newName} = 'Epay21PaypageOpacPaymentsEnabled';
+        $prefLmsc->{pmt}->{epay21}->{pmv}->{Paypage}->{variable}->{Epay21MandantDesc}->{newName} = 'Epay21PaypageMandantDesc';
+        $prefLmsc->{pmt}->{epay21}->{pmv}->{Paypage}->{variable}->{Epay21OrderDesc}->{newName} = 'Epay21PaypageOrderDesc';
+        $prefLmsc->{pmt}->{epay21}->{variable}->{Epay21AccountingSystemInfo}->{newName} = 'Epay21AccountingSystemInfo';
+        $prefLmsc->{pmt}->{epay21}->{variable}->{Epay21App}->{newName} = 'Epay21App';
+        $prefLmsc->{pmt}->{epay21}->{variable}->{Epay21BasicAuthPw}->{newName} = 'Epay21BasicAuthPw';
+        $prefLmsc->{pmt}->{epay21}->{variable}->{Epay21BasicAuthUser}->{newName} = 'Epay21BasicAuthUser';
+        $prefLmsc->{pmt}->{epay21}->{variable}->{Epay21Mandant}->{newName} = 'Epay21Mandant';
+        $prefLmsc->{pmt}->{epay21}->{variable}->{Epay21PaypageWebservicesURL}->{newName} = 'Epay21WebservicesURL';
+
+        $prefLmsc->{pmt}->{epaybl}->{pmv}->{Paypage}->{switchName} = 'EpayblPaypageOpacPaymentsEnabled';
+        $prefLmsc->{pmt}->{epaybl}->{pmv}->{Paypage}->{variable}->{EpayblPaypageOpacPaymentsEnabled}->{newName} = 'EPayBLPaypageOpacPaymentsEnabled';
+        $prefLmsc->{pmt}->{epaybl}->{pmv}->{Paypage}->{variable}->{EpayblPaypagePaypageURL}->{newName} = 'EPayBLPaypageURL';
+        $prefLmsc->{pmt}->{epaybl}->{variable}->{EpayblAccountingEntryText}->{newName} = 'EPayBLAccountingEntryText';
+        $prefLmsc->{pmt}->{epaybl}->{variable}->{EpayblDunningProcedureLabel}->{newName} = 'EPayBLDunningProcedureLabel';
+        $prefLmsc->{pmt}->{epaybl}->{variable}->{EpayblMandatorNumber}->{newName} = 'EPayBLMandatorNumber';
+        $prefLmsc->{pmt}->{epaybl}->{variable}->{EpayblOperatorNumber}->{newName} = 'EPayBLOperatorNumber';
+        $prefLmsc->{pmt}->{epaybl}->{variable}->{EpayblPaypageWebservicesURL}->{newName} = 'EPayBLWebservicesURL';
+        $prefLmsc->{pmt}->{epaybl}->{variable}->{EpayblSaltHmacSha256}->{newName} = 'EPayBLSaltHmacSha256';
+
+        $prefLmsc->{pmt}->{girosolution}->{pmv}->{Creditcard}->{switchName} = 'GirosolutionCreditcardOpacPaymentsEnabled';
+        $prefLmsc->{pmt}->{girosolution}->{pmv}->{Creditcard}->{variable}->{GirosolutionCreditcardOpacPaymentsEnabled}->{newName} = 'GiroSolutionCreditcardOpacPaymentsEnabled';
+        $prefLmsc->{pmt}->{girosolution}->{pmv}->{Creditcard}->{variable}->{GirosolutionCreditcardProjectId}->{newName} = 'GiroSolutionCreditcardProjectId';
+        $prefLmsc->{pmt}->{girosolution}->{pmv}->{Creditcard}->{variable}->{GirosolutionCreditcardProjectPwd}->{newName} = 'GiroSolutionCreditcardProjectPwd';
+        $prefLmsc->{pmt}->{girosolution}->{pmv}->{Giropay}->{switchName} = 'GirosolutionGiropayOpacPaymentsEnabled';
+        $prefLmsc->{pmt}->{girosolution}->{pmv}->{Giropay}->{variable}->{GirosolutionGiropayOpacPaymentsEnabled}->{newName} = 'GiroSolutionGiropayOpacPaymentsEnabled';
+        $prefLmsc->{pmt}->{girosolution}->{pmv}->{Giropay}->{variable}->{GirosolutionGiropayProjectId}->{newName} = 'GiroSolutionGiropayProjectId';
+        $prefLmsc->{pmt}->{girosolution}->{pmv}->{Giropay}->{variable}->{GirosolutionGiropayProjectPwd}->{newName} = 'GiroSolutionGiropayProjectPwd';
+        $prefLmsc->{pmt}->{girosolution}->{pmv}->{Paypage}->{switchName} = 'GirosolutionPaypageOpacPaymentsEnabled';
+        $prefLmsc->{pmt}->{girosolution}->{pmv}->{Paypage}->{variable}->{GirosolutionPaypageOpacPaymentsEnabled}->{newName} = 'GiroSolutionPaypageOpacPaymentsEnabled';
+        $prefLmsc->{pmt}->{girosolution}->{pmv}->{Paypage}->{variable}->{GirosolutionPaypageOrderDesc}->{newName} = 'GiroSolutionPaypageOrderDesc';
+        $prefLmsc->{pmt}->{girosolution}->{pmv}->{Paypage}->{variable}->{GirosolutionPaypageOrganizationName}->{newName} = 'GiroSolutionPaypageOrganizationName';
+        $prefLmsc->{pmt}->{girosolution}->{pmv}->{Paypage}->{variable}->{GirosolutionPaypagePaytypesTestmode}->{newName} = 'GiroSolutionPaypagePaytypesTestmode';
+        $prefLmsc->{pmt}->{girosolution}->{pmv}->{Paypage}->{variable}->{GirosolutionPaypageProjectId}->{newName} = 'GiroSolutionPaypageProjectId';
+        $prefLmsc->{pmt}->{girosolution}->{pmv}->{Paypage}->{variable}->{GirosolutionPaypageProjectPwd}->{newName} = 'GiroSolutionPaypageProjectPwd';
+        $prefLmsc->{pmt}->{girosolution}->{variable}->{GirosolutionMerchantId}->{newName} = 'GiroSolutionMerchantId';
+        $prefLmsc->{pmt}->{girosolution}->{variable}->{GirosolutionRemittanceInfo}->{newName} = 'GiroSolutionRemittanceInfo';
+
+        $prefLmsc->{pmt}->{pmpayment}->{pmv}->{Paypage}->{switchName} = 'PmpaymentPaypageOpacPaymentsEnabled';
+        $prefLmsc->{pmt}->{pmpayment}->{pmv}->{Paypage}->{variable}->{PmpaymentPaypageOpacPaymentsEnabled}->{newName} = 'PmPaymentPaypageOpacPaymentsEnabled';
+        $prefLmsc->{pmt}->{pmpayment}->{variable}->{PmpaymentAccountingRecord}->{newName} = 'PmPaymentAccountingRecord';
+        $prefLmsc->{pmt}->{pmpayment}->{variable}->{PmpaymentAgs}->{newName} = 'PmPaymentAgs';
+        $prefLmsc->{pmt}->{pmpayment}->{variable}->{PmpaymentPaypageWebservicesURL}->{newName} = 'PmPaymentWebservicesURL';
+        $prefLmsc->{pmt}->{pmpayment}->{variable}->{PmpaymentProcedure}->{newName} = 'PmPaymentProcedure';
+        $prefLmsc->{pmt}->{pmpayment}->{variable}->{PmpaymentRemittanceInfo}->{newName} = 'PmPaymentRemittanceInfo';
+        $prefLmsc->{pmt}->{pmpayment}->{variable}->{PmpaymentSaltHmacSha256}->{newName} = 'PmPaymentSaltHmacSha256';
+
+
+        $prefLmsc->{epaymentbase}->{variable}->{ActivateCashRegisterTransactionsOnly}->{newName} = 'EpaymentBaseActivateCashRegisterTransactionsOnly';
+        $prefLmsc->{epaymentbase}->{variable}->{PaymentsOnlineCashRegisterManagerCardnumber}->{newName} = 'EpaymentBaseOnlineCashRegisterManagerCardnumber';
+        $prefLmsc->{epaymentbase}->{variable}->{PaymentsOnlineCashRegisterName}->{newName} = 'EpaymentBaseOnlineCashRegisterName';
+
+        $prefLmsc->{paypal}->{switchName} = 'EnablePayPalOpacPayments';
+
+
+        # check if at least 1 LMSC epayment of 18.05 is enabled
+        foreach my $pmnttype (sort keys %{$prefLmsc->{pmt}} ) {
+            foreach my $pmntvariant (sort keys %{$prefLmsc->{pmt}->{$pmnttype}->{pmv}} ) {
+                my $value = &read_systempreferences($dbh, $prefLmsc->{pmt}->{$pmnttype}->{pmv}->{$pmntvariant}->{switchName});
+                $prefLmsc->{pmt}->{$pmnttype}->{pmv}->{$pmntvariant}->{switchValue} = $value;
+                if ( $value ) {
+                    $prefLmsc->{migrate} = 1;
+                    # last;
+                }
+            }
+        }
+
+        # check if the standard Koha PayPal epayment of 18.05 is enabled.
+        # In this case do not delete systempreferences 'PaymentsOnlineCashRegisterName' and 'PaymentsOnlineCashRegisterManagerCardnumber'.
+        {
+            my $value = &read_systempreferences($dbh, $prefLmsc->{paypal}->{switchName});
+            $prefLmsc->{paypal}->{switchValue} = $value;
+        }
+
+        # read complete LMSC epayment configuration of 18.05
+        foreach my $pmnttype (sort keys %{$prefLmsc->{pmt}} ) {
+            &trace("migrate_epayment_to_2105 loop A1 pmnttype:$pmnttype:\n");
+            foreach my $pmntvariant (sort keys %{$prefLmsc->{pmt}->{$pmnttype}->{pmv}} ) {
+                &trace("migrate_epayment_to_2105 loop A2 pmnttype:$pmnttype: pmntvariant:$pmntvariant:\n");
+                foreach my $variable (sort keys %{$prefLmsc->{pmt}->{$pmnttype}->{pmv}->{$pmntvariant}->{variable}} ) {
+                    &trace("migrate_epayment_to_2105 loop A3 pmnttype:$pmnttype: pmntvariant:$pmntvariant: variable:$variable:\n");
+                    $lmscPrefCount += 1;
+                    my $value = &read_systempreferences($dbh, $variable);
+                    if ( ! $value && $variable =~ /OpacPaymentsEnabled$/ ) {
+                        $value = '0';
+                    }
+                    $prefLmsc->{pmt}->{$pmnttype}->{pmv}->{$pmntvariant}->{variable}->{$variable}->{value} = $value;
+                    &trace("migrate_epayment_to_2105 loop A3 prefLmsc->{pmt}->{$pmnttype}->{pmv}->{$pmntvariant}->{variable}->{$variable}->{value}:$prefLmsc->{pmt}->{$pmnttype}->{pmv}->{$pmntvariant}->{variable}->{$variable}->{value}:\n");
+                    if ( defined($value) ) {
+                        $lmscPrefRead += 1;
+                    }
+                }
+            }
+            foreach my $variable (sort keys %{$prefLmsc->{pmt}->{$pmnttype}->{variable}} ) {
+                &trace("migrate_epayment_to_2105 loop B2 pmnttype:$pmnttype: variable:$variable:\n");
+                $lmscPrefCount += 1;
+                my $value = &read_systempreferences($dbh, $variable);
+                $prefLmsc->{pmt}->{$pmnttype}->{variable}->{$variable}->{value} = $value;
+                &trace("migrate_epayment_to_2105 loop B2 prefLmsc->{pmt}->{$pmnttype}->{variable}->{$variable}->{value}:$prefLmsc->{pmt}->{$pmnttype}->{variable}->{$variable}->{value}:\n");
+                if ( defined($value) ) {
+                    $lmscPrefRead += 1;
+                }
+            }
+        }
+        foreach my $variable (sort keys %{$prefLmsc->{epaymentbase}->{variable}} ) {
+            &trace("migrate_epayment_to_2105 loop C1 variable:$variable:\n");
+            $lmscPrefCount += 1;
+            my $value = &read_systempreferences($dbh, $variable);
+            $prefLmsc->{epaymentbase}->{variable}->{$variable}->{value} = $value;
+            &trace("migrate_epayment_to_2105 loop C1 prefLmsc->{epaymentbase}->{variable}->{$variable}->{value}:$prefLmsc->{epaymentbase}->{variable}->{$variable}->{value}:\n");
+            if ( defined($value) ) {
+                $lmscPrefRead += 1;
+            }
+        }
+        #&trace("migrate_epayment_to_2105 prefLmsc:" . Dumper($prefLmsc) . ":\n");
+
+
+
+        # only if at least 1 LMSC epayment of 18.05 is enabled, we migrate the (complete) LMSC epayment configuration
+        if ( $prefLmsc->{migrate} ) {
+            # install the plugin E-Payments-DE
+            &install_koha_plugin( 'koha-plugin-e-payments-de-v1.0.0.kpz' );
+
+            # store LMSC epayment configuration in 21.05
+            foreach my $pmnttype (sort keys %{$prefLmsc->{pmt}} ) {
+                &trace("migrate_epayment_to_2105 loop G1 pmnttype:$pmnttype:\n");
+                foreach my $pmntvariant (sort keys %{$prefLmsc->{pmt}->{$pmnttype}->{pmv}} ) {
+                    &trace("migrate_epayment_to_2105 loop G2 pmnttype:$pmnttype: pmntvariant:$pmntvariant:\n");
+                    foreach my $variable (sort keys %{$prefLmsc->{pmt}->{$pmnttype}->{pmv}->{$pmntvariant}->{variable}} ) {
+                        my $name = $prefLmsc->{pmt}->{$pmnttype}->{pmv}->{$pmntvariant}->{variable}->{$variable}->{newName};
+                        my $value = $prefLmsc->{pmt}->{$pmnttype}->{pmv}->{$pmntvariant}->{variable}->{$variable}->{value};
+                        &trace("migrate_epayment_to_2105 loop G3 pmnttype:$pmnttype: pmntvariant:$pmntvariant: variable:$variable: name:$name: value:$value:\n");
+                        my $res = &update_epaymentsde_preferences( $dbh, $pmnttype, 'default', $name, $value );
+                        if ( $res eq '1' ) {
+                            $lmscPrefUpdated += 1;
+                        }
+                    }
+                }
+                foreach my $variable (sort keys %{$prefLmsc->{pmt}->{$pmnttype}->{variable}} ) {
+                    my $name = $prefLmsc->{pmt}->{$pmnttype}->{variable}->{$variable}->{newName};
+                    my $value = $prefLmsc->{pmt}->{$pmnttype}->{variable}->{$variable}->{value};
+                    &trace("migrate_epayment_to_2105 loop G2 pmnttype:$pmnttype: variable:$variable: name:$name: value:$value:\n");
+                    my $res = &update_epaymentsde_preferences( $dbh, $pmnttype, 'default', $name, $value );
+                    if ( $res eq '1' ) {
+                        $lmscPrefUpdated += 1;
+                    }
+                }
+            }
+            foreach my $variable (sort keys %{$prefLmsc->{epaymentbase}->{variable}} ) {
+                &trace("migrate_epayment_to_2105 loop H1 variable:$variable:\n");
+                my $name = $prefLmsc->{epaymentbase}->{variable}->{$variable}->{newName};
+                my $value = $prefLmsc->{epaymentbase}->{variable}->{$variable}->{value};
+                &trace("migrate_epayment_to_2105 loop H1 prefLmsc->{epaymentbase}->{variable}->{$variable}:$variable: name:$name: value:$value:\n");
+                my $res = &update_epaymentsde_preferences( $dbh, 'epaymentbase', 'default', $name, $value );
+                if ( $res eq '1' ) {
+                    $lmscPrefUpdated += 1;
+                }
+            }
+            $res = update_plugin_data( $dbh, 'Koha::Plugin::Com::LMSCloud::EPaymentsDE', 'enable_opac_payments', '1' );
+        }
+
+        # In any case we delete the 18.05 system preferences for e-payment, obsolete in 21.05 (exception: ActivateCashRegisterTransactionsOnly, PaymentsMinimumPatronAge)
+        foreach my $pmnttype (sort keys %{$prefLmsc->{pmt}} ) {
+            &trace("migrate_epayment_to_2105 loop J1 pmnttype:$pmnttype:\n");
+            foreach my $pmntvariant (sort keys %{$prefLmsc->{pmt}->{$pmnttype}->{pmv}} ) {
+                &trace("migrate_epayment_to_2105 loop J2 pmnttype:$pmnttype: pmntvariant:$pmntvariant:\n");
+                foreach my $variable (sort keys %{$prefLmsc->{pmt}->{$pmnttype}->{pmv}->{$pmntvariant}->{variable}} ) {
+                    &trace("migrate_epayment_to_2105 loop J3 pmnttype:$pmnttype: pmntvariant:$pmntvariant: variable:$variable:\n");
+                    $lmscPrefToDelete += 1;
+                    my $delRes = &delete_systempreferences($dbh, $variable);
+                    &trace("migrate_epayment_to_2105 loop J3 prefLmsc->{pmt}->{$pmnttype}->{pmv}->{$pmntvariant}->{variable}->{$variable} deleted:$delRes:\n");
+                    if ( defined($delRes) && $delRes == 1 ) {
+                        $lmscPrefDeleted += 1;
+                    }
+                }
+            }
+            foreach my $variable (sort keys %{$prefLmsc->{pmt}->{$pmnttype}->{variable}} ) {
+                &trace("migrate_epayment_to_2105 loop B2 pmnttype:$pmnttype: variable:$variable:\n");
+                $lmscPrefToDelete += 1;
+                my $delRes = &delete_systempreferences($dbh, $variable);
+                &trace("migrate_epayment_to_2105 loop B2 prefLmsc->{pmt}->{$pmnttype}->{variable}->{$variable} deleted:$delRes:\n");
+                if ( defined($delRes) && $delRes == 1 ) {
+                        $lmscPrefDeleted += 1;
+                    }
+            }
+        }
+        foreach my $variable (sort keys %{$prefLmsc->{epaymentbase}->{variable}} ) {
+            &trace("migrate_epayment_to_2105 loop C1 variable:$variable:\n");
+            if ( $variable eq 'ActivateCashRegisterTransactionsOnly' ) {
+                next;
+            }
+            if ( $variable eq 'PaymentsMinimumPatronAge' ) {
+                next;
+            }
+            if ( $prefLmsc->{paypal}->{switchValue} ) {
+                # PayPal requires also in 21.05 the systempreferences 'PaymentsOnlineCashRegisterName' and 'PaymentsOnlineCashRegisterManagerCardnumber'
+                if ( $variable eq 'PaymentsOnlineCashRegisterName' ) {
+                    next;
+                }
+                if ( $variable eq 'PaymentsOnlineCashRegisterManagerCardnumber' ) {
+                    next;
+                }
+            }
+            $lmscPrefToDelete += 1;
+            my $delRes = &delete_systempreferences($dbh, $variable);
+            &trace("migrate_epayment_to_2105 loop C1 prefLmsc->{epaymentbase}->{variable}->{$variable} deleted:$delRes:\n");
+            if ( defined($delRes) && $delRes == 1 ) {
+                $lmscPrefDeleted += 1;
+            }
+        }
+
+
+        &trace("migrate_epayment_to_2105 End lmscPrefCount:$lmscPrefCount: lmscPrefRead:$lmscPrefRead: lmscPrefUpdated:$lmscPrefUpdated: lmscPrefToDelete:$lmscPrefToDelete: lmscPrefDeleted:$lmscPrefDeleted: res:$res:\n");
+
+    }
+
+
+    if ( $migType eq 'KohaPayPal' ) {
+        my $paypalPrefCount = 0;
+        my $paypalPrefRead = 0;
+        my $paypalPrefUpdated = 0;
+        my $paypalPrefToDelete = 0;
+        my $paypalPrefDeleted = 0;
+        my $res = 'noop';
+
+        # systempreferences for the LMSC e-payments (GiroSolution, Epay21, PmPayment, EPayBL)
+        my $prefPaypal = {};
+        $prefPaypal->{migrate} = 0;    # assumption: no PayPal activated, nothing to migrate
+
+        $prefPaypal->{paypal}->{switchName} = 'EnablePayPalOpacPayments';
+        $prefPaypal->{paypal}->{variable}->{EnablePayPalOpacPayments}->{newName} = 'NoDirectEquivalentButIAmHereForDeletionOfMeIn1805Systempreferences';
+        $prefPaypal->{paypal}->{variable}->{PayPalChargeDescription}->{newName} = 'charge_description';
+        $prefPaypal->{paypal}->{variable}->{PayPalPwd}->{newName} = 'pwd';
+        $prefPaypal->{paypal}->{variable}->{PayPalSandboxMode}->{newName} = 'plugin_data.plugin_key';    # to be stored in plugin_data.plugin_key where plugin_class = 'Koha::Plugin::Com::Theke::PayViaPayPal'
+        $prefPaypal->{paypal}->{variable}->{PayPalSignature}->{newName} = 'signature';
+        $prefPaypal->{paypal}->{variable}->{PayPalUser}->{newName} = 'user';
+
+        # check if the standard Koha PayPal epayment of 18.05 is enabled.
+        {
+            my $value = &read_systempreferences($dbh, $prefPaypal->{paypal}->{switchName});
+            $prefPaypal->{paypal}->{switchValue} = $value;
+            if ( $value ) {
+                $prefPaypal->{migrate} = 1;
+            }
+        }
+
+
+        # read complete PayPal epayment configuration of 18.05
+        foreach my $variable (sort keys %{$prefPaypal->{paypal}->{variable}} ) {
+            &trace("migrate_epayment_to_2105 loop PPA1 variable:$variable:\n");
+            $paypalPrefCount += 1;
+            my $value = &read_systempreferences($dbh, $variable);
+            $prefPaypal->{paypal}->{variable}->{$variable}->{value} = $value;
+            &trace("migrate_epayment_to_2105 loop PPA1 prefPaypal->{paypal}->{variable}->{$variable}->{value}:$prefPaypal->{paypal}->{variable}->{$variable}->{value}:\n");
+            if ( defined($value) ) {
+                $paypalPrefRead += 1;
+            }
+        }
+        #&trace("migrate_epayment_to_2105 prefPaypal:" . Dumper($prefPaypal) . ":\n");
+
+        # only if PayPal epayment of 18.05 is enabled, we migrate the PayPal specific epayment configuration for the pay_via_paypal plugin.
+        # But we continue to use systempreferences 'ActivateCashRegisterTransactionsOnly', 'PaymentsMinimumPatronAge', 'PaymentsOnlineCashRegisterName' and 'PaymentsOnlineCashRegisterManagerCardnumber' also in the pay_via_paypal plugin.
+        if ( $prefPaypal->{migrate} ) {
+            # install the plugin Pay-Via-PayPal, supplied by Theke Solutions and sligthly modified by LMSCloud
+            &install_koha_plugin( 'koha-plugin-pay-via-paypal-v2.3.7_lmsc.kpz' );
+
+            # store PayPal epayment configuration in 21.05 plugin DB table koha_plugin_com_theke_payviapaypal_pay_via_paypal
+            {
+                my $library_id = undef;
+                my $active = 1;
+                my $user = $prefPaypal->{paypal}->{variable}->{PayPalUser}->{value};
+                my $pwd = $prefPaypal->{paypal}->{variable}->{PayPalPwd}->{value};
+                my $signature = $prefPaypal->{paypal}->{variable}->{PayPalSignature}->{value};
+                my $charge_description = $prefPaypal->{paypal}->{variable}->{PayPalChargeDescription}->{value};
+                my $threshold = undef;
+
+                my $res = &update_payviapaypal_pay_via_paypal( $dbh, $library_id, $active, $user, $pwd, $signature, $charge_description, $threshold );
+
+                if ( $res eq '1' ) {
+                    $paypalPrefUpdated += 1;
+                }
+            }
+            $res = update_plugin_data( $dbh, 'Koha::Plugin::Com::Theke::PayViaPayPal', 'useBaseURL', '1' );
+            $res += update_plugin_data( $dbh, 'Koha::Plugin::Com::Theke::PayViaPayPal', 'PayPalSandboxMode', $prefPaypal->{paypal}->{variable}->{PayPalSandboxMode}->{value} );
+        }
+
+        # In any case we delete the 18.05 system preferences for PayPal epayment, obsolete in 21.05.
+        # No, this will be done by the standard Koha updateDatabase.pl, so we skip it here.
+#        foreach my $variable (sort keys %{$prefPaypal->{paypal}->{variable}} ) {
+#            &trace("migrate_epayment_to_2105 loop PPB1 variable:$variable:\n");
+#            $paypalPrefToDelete += 1;
+#            my $delRes = &delete_systempreferences($dbh, $variable);
+#            &trace("migrate_epayment_to_2105 loop PPB1 prefPaypal->{paypal}->{variable}->{$variable} deleted:$delRes:\n");
+#            if ( defined($delRes) && $delRes == 1 ) {
+#                    $paypalPrefDeleted += 1;
+#                }
+#        }
+
+        &trace("migrate_epayment_to_2105 End paypalPrefCount:$paypalPrefCount: paypalPrefRead:$paypalPrefRead: paypalPrefUpdated:$paypalPrefUpdated: paypalPrefToDelete:$paypalPrefToDelete: paypalPrefDeleted:$paypalPrefDeleted: res:$res:\n");
+        print "migrate_epayment_to_2105 End paypalPrefCount:$paypalPrefCount: paypalPrefRead:$paypalPrefRead: paypalPrefUpdated:$paypalPrefUpdated: paypalPrefToDelete:$paypalPrefToDelete: paypalPrefDeleted:$paypalPrefDeleted: res:$res:\n";
+
+    }
+
+}
+

@@ -186,7 +186,7 @@
 
             <thead>
                 <tr>
-                    <th  colspan="2">2. BENUTZER</th>
+                    <th  colspan="2">2. BESUCHE</th>
                     <th></th>
                 </tr>
             </thead>
@@ -252,7 +252,7 @@
 
             <thead>
                 <tr>
-                    <th colspan="2">3. MEDIENANGEBOTE UND -NUTZUNG</th>
+                    <th colspan="2">3. MEDIENANGEBOT, MEDIENNUTZUNG</th>
                     <th></th>
                 </tr>
             </thead>
@@ -471,7 +471,7 @@
 
             <thead>
                 <tr>
-                    <th colspan="2">4. FINANZEN</th>
+                    <th colspan="2">4. AUSGABEN, FINANZEN</th>
                     <th></th>
                 </tr>
             </thead>
@@ -621,7 +621,7 @@
 
             <thead>
                 <tr>
-                    <th colspan="2">5. PERSONALKAPAZITÄT</th>
+                    <th colspan="2">5. PERSONAL</th>
                     <th></th>
                 </tr>
             </thead>
@@ -719,7 +719,7 @@
 
             <thead>
                 <tr>
-                    <th  colspan="2">6. SERVICES / DIENSTLEISTUNGEN</th>
+                    <th  colspan="2">6. SERVICE, DIENSTLEISTUNGEN</th>
                     <th></th>
                 </tr>
             </thead>
@@ -891,7 +891,7 @@
 
                 <tr>
                     <td>95</td>
-                    <td>... davon: Einführungen in die Bibliotheksbenutzung</td>
+                    <td>... davon: Einführungen in die Bibliotheksnutzung</td>
                     <td>
                         <input type="number" id="st_srv_evt_libintro" name="st_srv_evt_libintro" min="0" size="12" maxlength="12" value="[% st.srv_evt_libintro %]" />
                     </td>
@@ -1197,7 +1197,7 @@
 
             <thead>
                 <tr>
-                    <th  colspan="2">9. MUSIKBIBLIOTHEKEN</th>
+                    <th  colspan="2">9. MUSIKBIBLIOTHEKEN / MUSIKABTEILUNGEN</th>
                     <th></th>
                 </tr>
             </thead>
