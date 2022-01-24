@@ -27,14 +27,6 @@
     [% PROCESS 'display-address-style' %]
 [% END %]
 
-[% BLOCK display_holdpatron_address %]
-    [% IF Koha.Preference( 'AddressFormat' ) %]
-        [% INCLUDE "member-display-address-style-${ Koha.Preference( 'AddressFormat' ) }.inc" %]
-    [% ELSE %]
-        [% INCLUDE 'member-display-address-style-us.inc' %]
-    [% END %]
-[% END %]
-
 [% INCLUDE 'doc-head-open.inc' %]
 <title>Check in [% title | html %] &rsaquo; Circulation &rsaquo; Koha</title>
 [% INCLUDE 'doc-head-close.inc' %]
