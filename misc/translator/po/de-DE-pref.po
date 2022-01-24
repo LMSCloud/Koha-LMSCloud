@@ -3,7 +3,7 @@ msgstr ""
 "Project-Id-Version: Koha 21.05\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2013-05-16 03:26+0200\n"
-"PO-Revision-Date: 2022-01-12 16:26+0100\n"
+"PO-Revision-Date: 2022-01-24 11:49+0100\n"
 "Last-Translator: Katrin Fischer <katrin.fischer@bsz-bw.de>\n"
 "Language-Team: \n"
 "Language: de\n"
@@ -2896,8 +2896,8 @@ msgid ""
 "cataloguing.pref#MarcFieldForCreatorId# Store record's last modifier "
 "borrowernumber in MARC subfield"
 msgstr ""
-"Speichere den letzten Bearbeiter eines Titelsatzes in folgendem MARC-"
-"Unterfeld"
+"Speichere die Benutzernummer des letzten Bearbeiters eines Titelsatzes in "
+"folgendem MARC-Unterfeld"
 
 # Cataloging > Record structure
 msgid ""
@@ -5545,11 +5545,11 @@ msgstr ""
 
 # Circulation > Checkout policy
 msgid "circulation.pref#OPACFineNoRenewalsBlockAutoRenew# allow"
-msgstr "Erlaube"
+msgstr "erlaube"
 
 # Circulation > Checkout policy
 msgid "circulation.pref#OPACFineNoRenewalsBlockAutoRenew# block"
-msgstr "Verhindere"
+msgstr "verhindere"
 
 # Circulation > Checkout policy
 msgid "circulation.pref#OPACFineNoRenewalsBlockAutoRenew# their auto-renewals."
