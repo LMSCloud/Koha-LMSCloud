@@ -126,12 +126,12 @@
     [% ELSE %]
         <p>Manager: [% loggedinusername %], Date: [% datetimenow %]</p>
     [% END %]
-[% END %]    
+[% END %] 
+   
 [% IF (finesstats.type == 'finesoverview') %]
-
     <h3 style="margin-top:30px">Fines overviews</h3>
-    
-    [% IF (finesstats.data.account.mapped) %]
+    [% IF (finesstats.data.account.unmapped || finesstats.data.account.mapped) %]
+        [% IF (finesstats.data.account.mapped) %]
         <h4 style="margin-top:20px">Paid fines by account</h4>
         <table id="mappedaccountoverview">
             <thead>
@@ -152,7 +152,8 @@
                 [% END %]
             </tbody>
         </table>
-    
+        [% END %]
+
         [% IF (finesstats.data.account.unmapped) %]
         <h4 style="margin-top:20px">Unmapped paid fines (to above accounts)</h4>
         <table id="unmappedaccountoverview">
@@ -177,8 +178,11 @@
             </tbody>
         </table>
         [% END %]
+    [% ELSE %]
+        <p>No fines during the selected period.</p>
     [% END %]
     
+    [% IF ( finesstats.data.paidtype.keys.sort.size > 0 ) %]
     <h4 style="margin-top:20px">Paid fines overview by fine type</h4>
     <table id="finestypeoverview">
         <thead>
@@ -257,7 +261,9 @@
             [% END %]
         </tfoot>
     </table>
+    [% END %]
     
+    [% IF ( finesstats.data.paid.keys.sort.size > 0 ) %]
     <h4 style="margin-top:20px">Paid fines overview by fine type and item type</h4>
     <table id="finesoverview">
         <thead>
@@ -345,6 +351,7 @@
             [% END %]
         </tfoot>
     </table>
+    [% END %]
     
     [% IF (finesstats.data.cashregister) %]
     <h3 style="margin-top:30px">Cash register overview</h3>

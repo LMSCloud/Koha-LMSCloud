@@ -4,35 +4,44 @@
 [% USE ItemTypes %]
 [% SET footerjs = 1 %]
 [% INCLUDE 'doc-head-open.inc' %]
-<title>Koha &rsaquo; Reports &rsaquo; Fines overview</title>
+<title>Fines overview &rsaquo; Reports &rsaquo; Koha</title>
 [% INCLUDE 'doc-head-close.inc' %]
 [% Asset.css("css/datatables.css") %]
 </head>
 
-<body id="rep_bor_issues_top" class="rep">
+<body id="circ_managecashregister" class="rep">
 [% INCLUDE 'header.inc' %]
 [% INCLUDE 'cat-search.inc' %]
 
-<div id="breadcrumbs">
-         <a href="/cgi-bin/koha/mainpage.pl">Home</a>
-&rsaquo; <a href="/cgi-bin/koha/circ/circulation-home.pl">Reports</a>
-&rsaquo; <a class="cashregisterlink" href="/cgi-bin/koha/reports/fines_overviews.pl">Fines overviews</a>
-</div>
+<nav id="breadcrumbs" aria-label="Breadcrumb" class="breadcrumb">
+    <ol>
+        <li>
+            <a href="/cgi-bin/koha/mainpage.pl">Home</a>
+        </li>
+        <li>
+            <a href="/cgi-bin/koha/reports/reports-home.pl">Reports</a>
+        </li>
+        <li>
+            <a href="/cgi-bin/koha/reports/fines_overviews.pl">Fines overviews</a>
+        </li>
+    </ol>
+</nav>
 
-<div id="doc3" class="yui-t2">
-   
- <div id="bd">
-  <div id="yui-main">
-	<div class="yui-b">
+<div class="main container-fluid">
+    <div class="row">
+        <div class="col-sm-10 col-sm-push-2">
+            <main>
 
-[% PROCESS 'cashregister-fines-overview.inc' used_perl_script="reports/fines_overviews.pl" %]
+                [% PROCESS 'cashregister-fines-overview.inc' used_perl_script="reports/fines_overviews.pl" %]
 
-</div>
-</div>
-<div class="yui-b">
-[% INCLUDE 'reports-menu.inc' %]
-</div>
-</div>
+            </main>
+        </div> <!-- /.col-sm-10.col-sm-push-2 -->
+        <div class="col-sm-2 col-sm-pull-10">
+            <aside>
+                [% INCLUDE 'reports-menu.inc' %]
+            </aside>
+        </div> <!-- /.col-sm-2.col-sm-pull-10 -->
+     </div> <!-- /.row -->
 
 [% MACRO jsinclude BLOCK %]
     [% INCLUDE 'calendar.inc' %]
