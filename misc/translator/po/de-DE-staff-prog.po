@@ -1,8 +1,8 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: Koha 21.05\n"
-"POT-Creation-Date: 2022-01-24 14:14+0100\n"
-"PO-Revision-Date: 2022-01-24 14:17+0100\n"
+"POT-Creation-Date: 2022-01-25 13:36+0100\n"
+"PO-Revision-Date: 2022-01-25 13:42+0100\n"
 "Last-Translator: Katrin Fischer <katrin.fischer@bsz-bw.de>\n"
 "Language-Team: \n"
 "Language: de\n"
@@ -4379,7 +4379,7 @@ msgstr "%s %sReklamationen%s "
 #. %11$s:  CASE
 #. %12$s:  seltype
 #. %13$s: - END -
-#: koha-tmpl/intranet-tmpl/prog/en/includes/cashregister-fines-overview.inc:442
+#: koha-tmpl/intranet-tmpl/prog/en/includes/cashregister-fines-overview.inc:449
 #, c-format
 msgid ""
 "%s %sDetailed paid fines by type %sDetailed paid fines by manager %sDetailed "
@@ -9895,7 +9895,7 @@ msgstr ""
 #. %1$s:  IF (finesstats.type == 'paidfinesbyday' || finesstats.type == 'paidfinesbymanager' || finesstats.type == 'paidfinesbytype' || finesstats.type == 'finesbyday' || finesstats.type == 'finesbymanager' || finesstats.type == 'finesbytype' )
 #. %2$s:  ELSE
 #. %3$s:  END
-#: koha-tmpl/intranet-tmpl/prog/en/includes/cashregister-fines-overview.inc:466
+#: koha-tmpl/intranet-tmpl/prog/en/includes/cashregister-fines-overview.inc:473
 #, c-format
 msgid "%sFine type%sPayment type%s "
 msgstr "%sGebührenart%sZahlungsart%s "
@@ -10118,7 +10118,7 @@ msgstr "%sBearbeite %sNeuer %s Systemparameter"
 #. %3$s:  ELSE
 #. %4$s:  statisticstype
 #. %5$s:  END
-#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics.tt:112
+#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics.tt:150
 #, c-format
 msgid ""
 "%sModify aggregated statistics for %s%sAdd aggregated statistics for %s%s"
@@ -10834,7 +10834,7 @@ msgstr "&lt;&lt; Zurück"
 
 #. For the first occurrence,
 #. SCRIPT
-#: koha-tmpl/intranet-tmpl/prog/en/includes/cashregister-fines-overview.inc:505
+#: koha-tmpl/intranet-tmpl/prog/en/includes/cashregister-fines-overview.inc:512
 #: koha-tmpl/intranet-tmpl/prog/en/includes/cashregister-payin-payout-overview.inc:301
 msgid "&lt;No value&gt;"
 msgstr "&lt;Ohne Wert&gt;"
@@ -10986,35 +10986,6 @@ msgstr "&quot;STARTDATE:January 1, 2010&quot;,&quot;TRACK:Day&quot;"
 msgid "&rsaquo; Add orders from MARC file"
 msgstr "&rsaquo; Bestellposten aus einer MARC-Datei "
 
-#. %1$s:  END
-#. %2$s:  ELSE
-#. %3$s:  IF ( add_validate or copy_validate)
-#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics.tt:15
-#, c-format
-msgid "&rsaquo; Add statistics%s%s%s "
-msgstr "&rsaquo; Auswertung hinzufügen%s%s%s "
-
-#. %1$s:  ELSE
-#. %2$s:  IF ( delete_confirm )
-#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics.tt:15
-#, c-format
-msgid "&rsaquo; Aggregated statistics added%s%s "
-msgstr "&rsaquo; Auswertung hinzugefügt%s%s "
-
-#. %1$s:  ELSE
-#. %2$s:  END
-#. %3$s:  END
-#. %4$s:  END
-#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics.tt:15
-#, c-format
-msgid "&rsaquo; Confirm deletion%sAggregated statistics%s%s%s"
-msgstr "&rsaquo; Löschen bestätigen%sSpezielle Auswertungen%s%s%s"
-
-#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:18
-#, c-format
-msgid "&rsaquo; DBS"
-msgstr "&rsaquo; DBS"
-
 #: koha-tmpl/intranet-tmpl/prog/en/includes/mana/mana-report-search-result.inc:21
 #, c-format
 msgid "&rsaquo; Mana Knowledge Base report search results "
@@ -11024,12 +10995,6 @@ msgstr "&rsaquo; Mana KB Ergebnisse für Reports"
 #, c-format
 msgid "&rsaquo; Merge patron records"
 msgstr "&rsaquo; Benutzerdatensätze verschmelzen"
-
-#. %1$s:  ELSE
-#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics.tt:15
-#, c-format
-msgid "&rsaquo; Modify statistics%s "
-msgstr "&rsaquo; Auswertung ändern%s "
 
 #: koha-tmpl/intranet-tmpl/prog/en/modules/admin/transfer_limits.tt:22
 #, c-format
@@ -11534,11 +11499,11 @@ msgstr "(Niemals)"
 msgid "(no library)"
 msgstr "(keine Bibliothek)"
 
-#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:199
-#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:207
 #: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:215
 #: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:223
 #: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:231
+#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:239
+#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:247
 #, c-format
 msgid "(obsolet) "
 msgstr "(obsolet) "
@@ -11689,22 +11654,22 @@ msgstr "). Fällig am %s"
 msgid "** Vendor's listings already include tax."
 msgstr "** MWSt ist bereits in den Preisen des Lieferanten enthalten."
 
-#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:50
+#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:66
 #, c-format
 msgid "+ mobile libraries"
 msgstr "+ Fahrbibliothek"
 
-#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:51
+#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:67
 #, c-format
 msgid "+ music libraries"
 msgstr "+ Musikbibliothek"
 
-#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:49
+#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:65
 #, c-format
 msgid "+ patients' libraries"
 msgstr "+ Patientenbibliothek"
 
-#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:52
+#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:68
 #, c-format
 msgid "+ school libraries"
 msgstr "+ Schulbibliothek"
@@ -12001,77 +11966,77 @@ msgstr ".%sIhr Administrator muss mindestens eine Bibliothek definieren.%s"
 msgid ".%sAn administrator must define at least one patron category.%s"
 msgstr "%sIhr Administrator muss mindestens eine Benutzergruppe definieren.%s"
 
-#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:826
+#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:842
 #, c-format
 msgid "... Aktive Informationsdienste"
 msgstr "... Aktive Informationsdienste"
 
-#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:802
+#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:818
 #, c-format
 msgid "... Auskunftsdienst per E-Mail"
 msgstr "... Auskunftsdienst per E-Mail"
 
-#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:790
+#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:806
 #, c-format
 msgid "... Socialweb / Web 2.0 Angebote"
 msgstr "... Socialweb / Web 2.0 Angebote"
 
-#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:814
+#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:830
 #, c-format
 msgid "... Virtuelle Bestände"
 msgstr "... Virtuelle Bestände"
 
-#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:838
+#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:854
 #, c-format
 msgid "... W-LAN Angebot"
 msgstr "... W-LAN Angebot"
 
-#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:1028
+#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:1044
 #, c-format
 msgid "... Zahl der Krankenhäuser im Verbund"
 msgstr "... Zahl der Krankenhäuser im Verbund"
 
-#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:1036
+#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:1052
 #, c-format
 msgid "... Zahl der Patientenbibliotheken im Verbund"
 msgstr "... Zahl der Patientenbibliotheken im Verbund"
 
-#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:213
+#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:229
 #, c-format
 msgid "... darunter: Aktive Benutzer ab einschl. 60 Jahre"
 msgstr "... darunter: Aktive Benutzer ab einschl. 60 Jahre"
 
-#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:205
+#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:221
 #, c-format
 msgid "... darunter: Aktive Benutzer bis einschl. 12 Jahre"
 msgstr "... darunter: Aktive Benutzer bis einschl. 12 Jahre"
 
-#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:221
+#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:237
 #, c-format
 msgid "... darunter: Aktive Benutzer unter 18 Jahre"
 msgstr "... darunter: Aktive Benutzer unter 18 Jahre"
 
-#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:498
+#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:514
 #, c-format
 msgid "... darunter: Ausgaben für virtuelle Medien (Lizenzen)"
 msgstr "... darunter: Ausgaben für virtuelle Medien (Lizenzen)"
 
-#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:1426
+#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:1442
 #, c-format
 msgid "... darunter: Berufliche Schulen"
 msgstr "... darunter: Berufliche Schulen"
 
-#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:1562
+#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:1578
 #, c-format
 msgid "... darunter: Beschäftigte mit bibliotheksfachlicher Ausbildung (VZÄ)"
 msgstr "... darunter: Beschäftigte mit bibliotheksfachlicher Ausbildung (VZÄ)"
 
-#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:1570
+#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:1586
 #, c-format
 msgid "... darunter: Beschäftigte mit pädagogischer Ausbildung (VZÄ)"
 msgstr "... darunter: Beschäftigte mit pädagogischer Ausbildung (VZÄ)"
 
-#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:738
+#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:754
 #, c-format
 msgid ""
 "... darunter: Computerarbeitsplätze einschließlich OPACs und "
@@ -12080,169 +12045,169 @@ msgstr ""
 "... darunter: Computerarbeitsplätze einschließlich OPACs und "
 "Internetterminals"
 
-#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:111
+#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:127
 #, c-format
 msgid "... darunter: Fahrbibliotheken"
 msgstr "... darunter: Fahrbibliotheken"
 
-#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:746
+#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:762
 #, c-format
 msgid "... darunter: Internetterminals"
 msgstr "... darunter: Internetterminals"
 
-#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:327
+#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:343
 #, c-format
 msgid "... darunter: Kinder- und Jugendliteratur - Bestand"
 msgstr "... darunter: Kinder- und Jugendliteratur - Bestand"
 
-#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:335
+#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:351
 #, c-format
 msgid "... darunter: Kinder- und Jugendliteratur - Entleihungen"
 msgstr "... darunter: Kinder- und Jugendliteratur - Entleihungen"
 
-#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:1490
+#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:1506
 #, c-format
 msgid "... darunter: Lehrmittel"
 msgstr "... darunter: Lehrmittel"
 
-#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:886
+#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:902
 #, c-format
 msgid "... darunter: Online-Veranstaltungen"
 msgstr "... darunter: Online-Veranstaltungen"
 
-#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:1402
+#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:1418
 #, c-format
 msgid "... darunter: Primarstufe"
 msgstr "... darunter: Primarstufe"
 
-#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:135
+#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:151
 #, c-format
 msgid "... darunter: Publikumsfläche der Hauptstelle (m²)"
 msgstr "... darunter: Publikumsfläche der Hauptstelle (m²)"
 
-#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:1410
+#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:1426
 #, c-format
 msgid "... darunter: Sekundarstufe I"
 msgstr "... darunter: Sekundarstufe I"
 
-#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:1418
+#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:1434
 #, c-format
 msgid "... darunter: Sekundarstufe II"
 msgstr "... darunter: Sekundarstufe II"
 
-#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:1602
+#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:1618
 #, c-format
 msgid "... darunter: Veranstaltungen zur Bibliotheksnutzung"
 msgstr "... darunter: Veranstaltungen zur Bibliotheksnutzung"
 
-#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:1610
+#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:1626
 #, c-format
 msgid "... darunter: Veranstaltungen zur Leseförderung und Medienkompetenz"
 msgstr "... darunter: Veranstaltungen zur Leseförderung und Medienkompetenz"
 
-#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:103
+#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:119
 #, c-format
 msgid "... darunter: Zweigstellen"
 msgstr "... darunter: Zweigstellen"
 
-#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:870
+#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:886
 #, c-format
 msgid "... darunter: schriftlich vereinbarte Kooperationen"
 msgstr "... darunter: schriftlich vereinbarte Kooperationen"
 
-#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:490
+#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:506
 #, c-format
 msgid "... davon: Ausgaben für Erwerbung (inkl. Einband und Lizenzen)"
 msgstr "... davon: Ausgaben für Erwerbung (inkl. Einband und Lizenzen)"
 
-#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:506
+#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:522
 #, c-format
 msgid "... davon: Ausgaben für Personal"
 msgstr "... davon: Ausgaben für Personal"
 
-#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:918
+#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:934
 #, c-format
 msgid "... davon: Ausstellungen"
 msgstr "... davon: Ausstellungen"
 
-#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:942
+#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:958
 #, c-format
 msgid "... davon: Besuche an Online-Veranstaltungen (nur Live-Veranstaltungen)"
 msgstr ""
 "... davon: Besuche an Online-Veranstaltungen (nur Live-Veranstaltungen)"
 
-#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:586
+#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:602
 #, c-format
 msgid "... davon: Bistum/Landeskirche"
 msgstr "... davon: Bistum/Landeskirche"
 
-#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:562
+#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:578
 #, c-format
 msgid "... davon: Bund"
 msgstr "... davon: Bund"
 
-#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:894
+#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:910
 #, c-format
 msgid "... davon: Einführungen in die Bibliotheksnutzung"
 msgstr "... davon: Einführungen in die Bibliotheksnutzung"
 
-#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:554
+#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:570
 #, c-format
 msgid "... davon: Europäische Union"
 msgstr "... davon: Europäische Union"
 
-#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:664
+#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:680
 #, c-format
 msgid "... davon: Fachangestellte/Bibliotheksassist. (VZÄ)"
 msgstr "... davon: Fachangestellte/Bibliotheksassist. (VZÄ)"
 
-#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:656
+#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:672
 #, c-format
 msgid "... davon: Fachbibliothekare (VZÄ)"
 msgstr "... davon: Fachbibliothekare (VZÄ)"
 
-#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:570
+#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:586
 #, c-format
 msgid "... davon: Land"
 msgstr "... davon: Land"
 
-#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:578
+#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:594
 #, c-format
 msgid "... davon: Landkreis"
 msgstr "... davon: Landkreis"
 
-#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:672
+#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:688
 #, c-format
 msgid "... davon: Mitarb. aus Förderprogrammen (VZÄ)"
 msgstr "... davon: Mitarb. aus Förderprogrammen (VZÄ)"
 
-#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:594
-#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:926
+#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:610
+#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:942
 #, c-format
 msgid "... davon: Sonstige"
 msgstr "... davon: Sonstige"
 
-#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:910
+#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:926
 #, c-format
 msgid "... davon: für Erwachsene"
 msgstr "... davon: für Erwachsene"
 
-#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:902
+#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:918
 #, c-format
 msgid "... davon: für Kinder und Jugendliche"
 msgstr "... davon: für Kinder und Jugendliche"
 
-#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:514
+#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:530
 #, c-format
 msgid "... davon: sonstige laufende Ausgaben (inklusive Portalkosten)"
 msgstr "... davon: sonstige laufende Ausgaben (inklusive Portalkosten)"
 
-#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:680
+#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:696
 #, c-format
 msgid "... davon: sonstiges Personal (VZÄ)"
 msgstr "... davon: sonstiges Personal (VZÄ)"
 
-#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:778
+#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:794
 #, c-format
 msgid "... interaktive Funktionen"
 msgstr "... interaktive Funktionen"
@@ -12252,15 +12217,15 @@ msgstr "... interaktive Funktionen"
 msgid "... or..."
 msgstr "... oder..."
 
-#: koha-tmpl/intranet-tmpl/prog/en/includes/cashregister-fines-overview.inc:226
-#: koha-tmpl/intranet-tmpl/prog/en/includes/cashregister-fines-overview.inc:314
+#: koha-tmpl/intranet-tmpl/prog/en/includes/cashregister-fines-overview.inc:230
+#: koha-tmpl/intranet-tmpl/prog/en/includes/cashregister-fines-overview.inc:320
 #: koha-tmpl/intranet-tmpl/prog/en/includes/cashregister-payin-payout-overview.inc:168
 #, c-format
 msgid "... paid by card "
 msgstr "... davon mit Karte oder am Automaten bezahlt"
 
-#: koha-tmpl/intranet-tmpl/prog/en/includes/cashregister-fines-overview.inc:233
-#: koha-tmpl/intranet-tmpl/prog/en/includes/cashregister-fines-overview.inc:321
+#: koha-tmpl/intranet-tmpl/prog/en/includes/cashregister-fines-overview.inc:237
+#: koha-tmpl/intranet-tmpl/prog/en/includes/cashregister-fines-overview.inc:327
 #: koha-tmpl/intranet-tmpl/prog/en/includes/cashregister-payin-payout-overview.inc:175
 #, c-format
 msgid "... paid cash "
@@ -12308,7 +12273,7 @@ msgstr "000 "
 msgid "0; url=/cgi-bin/koha/installer/onboarding.pl?step=3"
 msgstr "0; url=/cgi-bin/koha/installer/onboarding.pl?step=3"
 
-#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:71
+#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:87
 #, c-format
 msgid "1. ALLGEMEINE ANGABEN"
 msgstr "1. ALLGEMEINE ANGABEN"
@@ -12323,39 +12288,39 @@ msgstr "1/2"
 msgid "10 characters maximum"
 msgstr "Mindestens 10 Zeichen"
 
-#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:1386
+#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:1402
 #, c-format
 msgid "10. SCHULBIBLIOTHEKEN"
 msgstr "10. SCHULBIBLIOTHEKEN"
 
-#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:204
+#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:220
 #, c-format
 msgid "10.1"
 msgstr "10.1"
 
-#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:212
+#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:228
 #, c-format
 msgid "10.2"
 msgstr "10.2"
 
-#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:220
+#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:236
 #, c-format
 msgid "10.3"
 msgstr "10.3"
 
-#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:1644
+#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:1660
 #, c-format
 msgid ""
 "11. SCHULBIBLIOTHEKARISCHE DIENSTLEISTUNGEN FÜR VERBUND-SCHULBIBLIOTHEKEN"
 msgstr ""
 "11. SCHULBIBLIOTHEKARISCHE DIENSTLEISTUNGEN FÜR VERBUND-SCHULBIBLIOTHEKEN"
 
-#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:244
+#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:260
 #, c-format
 msgid "12.1"
 msgstr "12.1"
 
-#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:278
+#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:294
 #, c-format
 msgid "14.1"
 msgstr "14.1"
@@ -12370,7 +12335,7 @@ msgstr "1."
 msgid "1st overdue fine"
 msgstr "1. Mahnung"
 
-#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:189
+#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:205
 #, c-format
 msgid "2. BESUCHE"
 msgstr "2. BESUCHE"
@@ -12380,27 +12345,27 @@ msgstr "2. BESUCHE"
 msgid "2nd overdue fine"
 msgstr "2. Mahnung"
 
-#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:255
+#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:271
 #, c-format
 msgid "3. MEDIENANGEBOT, MEDIENNUTZUNG"
 msgstr "3. MEDIENANGEBOT, MEDIENNUTZUNG"
 
-#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:366
+#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:382
 #, c-format
 msgid "34.1"
 msgstr "34.1"
 
-#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:374
+#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:390
 #, c-format
 msgid "34.2"
 msgstr "34.2"
 
-#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:406
+#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:422
 #, c-format
 msgid "38.1"
 msgstr "38.1"
 
-#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:414
+#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:430
 #, c-format
 msgid "38.2"
 msgstr "38.2"
@@ -12410,12 +12375,12 @@ msgstr "38.2"
 msgid "3rd overdue fine"
 msgstr "3. Mahnung"
 
-#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:474
+#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:490
 #, c-format
 msgid "4. AUSGABEN, FINANZEN"
 msgstr "4. AUSGABEN, FINANZEN"
 
-#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:443
+#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:459
 #, c-format
 msgid "41.1"
 msgstr "41.1"
@@ -12432,12 +12397,12 @@ msgstr "4. Mahnung"
 msgid "5"
 msgstr "5"
 
-#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:624
+#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:640
 #, c-format
 msgid "5. PERSONAL"
 msgstr "5. PERSONAL"
 
-#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:497
+#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:513
 #, c-format
 msgid "50.1"
 msgstr "50.1"
@@ -12447,62 +12412,62 @@ msgstr "50.1"
 msgid "5th overdue fine"
 msgstr "5. Mahnung"
 
-#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:722
+#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:738
 #, c-format
 msgid "6. SERVICE, DIENSTLEISTUNGEN"
 msgstr "6. SERVICE, DIENSTLEISTUNGEN"
 
-#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:134
+#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:150
 #, c-format
 msgid "6.1"
 msgstr "6.1"
 
-#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:1008
+#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:1024
 #, c-format
 msgid "7. PATIENTENBIBLIOTHEKEN"
 msgstr "7. PATIENTENBIBLIOTHEKEN"
 
-#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:150
+#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:166
 #, c-format
 msgid "7.1"
 msgstr "7.1"
 
-#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:158
+#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:174
 #, c-format
 msgid "7.2"
 msgstr "7.2"
 
-#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:1130
+#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:1146
 #, c-format
 msgid "8. FAHRBIBLIOTHEKEN"
 msgstr "8. FAHRBIBLIOTHEKEN"
 
-#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:178
+#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:194
 #, c-format
 msgid "8.1"
 msgstr "8.1"
 
-#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:1200
+#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:1216
 #, c-format
 msgid "9. MUSIKBIBLIOTHEKEN / MUSIKABTEILUNGEN"
 msgstr "9. MUSIKBIBLIOTHEKEN / MUSIKABTEILUNGEN"
 
-#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:869
+#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:885
 #, c-format
 msgid "93.1"
 msgstr "93.1"
 
-#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:885
+#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:901
 #, c-format
 msgid "94.2"
 msgstr "94.2"
 
-#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:933
+#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:949
 #, c-format
 msgid "99.1"
 msgstr "99.1"
 
-#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:941
+#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:957
 #, c-format
 msgid "99.2"
 msgstr "99.2"
@@ -12803,7 +12768,7 @@ msgstr "Über Koha"
 msgid "About Koha &rsaquo; Koha"
 msgstr "Über Koha &rsaquo; Koha"
 
-#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:1368
+#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:1384
 #, c-format
 msgid "Abspielungen von Tonträgern"
 msgstr "Abspielungen von Tonträgern"
@@ -13004,7 +12969,7 @@ msgstr "Konto wurde gesperrt"
 msgid "Account has expired"
 msgstr "Konto ist abgelaufen"
 
-#: koha-tmpl/intranet-tmpl/prog/en/includes/cashregister-fines-overview.inc:385
+#: koha-tmpl/intranet-tmpl/prog/en/includes/cashregister-fines-overview.inc:392
 #: koha-tmpl/intranet-tmpl/prog/en/includes/cashregister-payin-payout-overview.inc:204
 #, c-format
 msgid "Account management fees"
@@ -13305,7 +13270,7 @@ msgstr "Vorgang: %s "
 #: koha-tmpl/intranet-tmpl/prog/en/modules/pos/register.tt:186
 #: koha-tmpl/intranet-tmpl/prog/en/modules/pos/register.tt:252
 #: koha-tmpl/intranet-tmpl/prog/en/modules/pos/registers.tt:81
-#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics.tt:50
+#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics.tt:89
 #: koha-tmpl/intranet-tmpl/prog/en/modules/reports/guided_reports_start.tt:286
 #: koha-tmpl/intranet-tmpl/prog/en/modules/serials/checkexpiration.tt:107
 #: koha-tmpl/intranet-tmpl/prog/en/modules/serials/serials-search.tt:87
@@ -13331,7 +13296,6 @@ msgid "Actions"
 msgstr "Aktionen"
 
 #: koha-tmpl/intranet-tmpl/prog/en/modules/acqui/invoices.tt:95
-#: koha-tmpl/intranet-tmpl/prog/en/modules/authorities/searchresultlist.tt:72
 #: koha-tmpl/intranet-tmpl/prog/en/modules/admin/aqbudgetperiods.tt:8
 #: koha-tmpl/intranet-tmpl/prog/en/modules/admin/aqbudgets.tt:215
 #: koha-tmpl/intranet-tmpl/prog/en/modules/admin/auth_tag_structure.tt:319
@@ -13342,6 +13306,7 @@ msgstr "Aktionen"
 #: koha-tmpl/intranet-tmpl/prog/en/modules/admin/marctagstructure.tt:293
 #: koha-tmpl/intranet-tmpl/prog/en/modules/admin/oai_sets.tt:133
 #: koha-tmpl/intranet-tmpl/prog/en/modules/admin/z3950servers.tt:220
+#: koha-tmpl/intranet-tmpl/prog/en/modules/authorities/searchresultlist.tt:72
 #: koha-tmpl/intranet-tmpl/prog/en/modules/cataloguing/addbooks.tt:162
 #: koha-tmpl/intranet-tmpl/prog/en/modules/cataloguing/addbooks.tt:221
 #: koha-tmpl/intranet-tmpl/prog/en/modules/cataloguing/additem.tt:104
@@ -14158,6 +14123,11 @@ msgstr "Neue Station für "
 msgid "Add staged files to basket"
 msgstr "Zwischengespeicherte Datei zu Bestellung hinzufügen"
 
+#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics.tt:32
+#, c-format
+msgid "Add statistics "
+msgstr "Auswertung hinzufügen"
+
 #: koha-tmpl/intranet-tmpl/prog/en/modules/admin/aqbudgets.tt:225
 #, c-format
 msgid "Add sub fund"
@@ -14818,16 +14788,26 @@ msgstr "Altersbeschränkung %s. %s Trotzdem ausleihen? %s "
 msgid "Ages allowed are %s-%s. "
 msgstr "Erlaubter Altersbereich ist %s-%s."
 
-#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics.tt:15
-#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics.tt:23
-#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:18
+#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics.tt:24
+#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics.tt:62
+#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:27
 #: koha-tmpl/intranet-tmpl/prog/en/modules/reports/reports-home.tt:69
 #: koha-tmpl/intranet-tmpl/prog/en/includes/reports-menu.inc:20
 #, c-format
 msgid "Aggregated statistics"
 msgstr "Spezielle Auswertungen"
 
-#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:197
+#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics.tt:47
+#, c-format
+msgid "Aggregated statistics "
+msgstr "Spezielle Auswertungen "
+
+#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics.tt:38
+#, c-format
+msgid "Aggregated statistics added "
+msgstr "Spezielle Auswertung hinzugefügt"
+
+#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:213
 #, c-format
 msgid "Aktive Benutzer"
 msgstr "Aktive Benutzer"
@@ -15604,8 +15584,8 @@ msgstr "American Numismatic Society, USA"
 #: koha-tmpl/intranet-tmpl/prog/en/modules/tools/overduerules.tt:243
 #: koha-tmpl/intranet-tmpl/prog/en/includes/cashregister-fines-overview.inc:30
 #: koha-tmpl/intranet-tmpl/prog/en/includes/cashregister-fines-overview.inc:58
-#: koha-tmpl/intranet-tmpl/prog/en/includes/cashregister-fines-overview.inc:465
 #: koha-tmpl/intranet-tmpl/prog/en/includes/cashregister-fines-overview.inc:472
+#: koha-tmpl/intranet-tmpl/prog/en/includes/cashregister-fines-overview.inc:479
 #: koha-tmpl/intranet-tmpl/prog/en/includes/cashregister-payin-payout-overview.inc:31
 #: koha-tmpl/intranet-tmpl/prog/en/includes/cashregister-payin-payout-overview.inc:59
 #: koha-tmpl/intranet-tmpl/prog/en/includes/cashregister-payin-payout-overview.inc:259
@@ -15681,7 +15661,7 @@ msgstr ""
 "diesem liegen)."
 
 #. SCRIPT
-#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics.tt:222
+#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics.tt:263
 msgid ""
 "An aggregated statistics of type '%s' with the same new name '%s' already "
 "exists. Please choose a name that is not used already."
@@ -15942,7 +15922,7 @@ msgstr "Anker"
 msgid "Animals and Nature"
 msgstr "Tiere und Natur"
 
-#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:998
+#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:1014
 #, c-format
 msgid "Anmerkungen"
 msgstr "Anmerkungen"
@@ -16112,17 +16092,17 @@ msgstr "Freitext (alle): "
 msgid "Anyone seeing this list"
 msgstr "Jeder der diese Liste anzeigen kann"
 
-#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:1546
+#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:1562
 #, c-format
 msgid "Anzahl Arbeitsplätze mit Internet"
 msgstr "Anzahl Arbeitsplätze mit Internet"
 
-#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:934
+#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:950
 #, c-format
 msgid "Anzahl der Besuche bei Veranstaltungen, Führungen, Ausstellungen"
 msgstr "Anzahl der Besuche bei Veranstaltungen, Führungen, Ausstellungen"
 
-#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:1618
+#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:1634
 #, c-format
 msgid ""
 "Anzahl der Besuche bei bibliothekspädagogischen Angeboten & Veranstaltungen "
@@ -16131,37 +16111,37 @@ msgstr ""
 "Anzahl der Besuche bei bibliothekspädagogischen Angeboten & Veranstaltungen "
 "insgesamt"
 
-#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:1044
+#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:1060
 #, c-format
 msgid "Anzahl der Betten des Krankenhauses"
 msgstr "Anzahl der Betten des Krankenhauses"
 
-#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:862
+#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:878
 #, c-format
 msgid "Anzahl der Kooperationen"
 msgstr "Anzahl der Kooperationen"
 
-#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:1434
+#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:1450
 #, c-format
 msgid "Anzahl der Schulangehörigen"
 msgstr "Anzahl der Schulangehörigen"
 
-#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:1052
+#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:1068
 #, c-format
 msgid "Anzahl der ambulant behandelten Patienten"
 msgstr "Anzahl der ambulant behandelten Patienten"
 
-#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:1634
+#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:1650
 #, c-format
 msgid "Anzahl der kombinierten ÖB- und Schulbibliotheken"
 msgstr "Anzahl der kombinierten ÖB- und Schulbibliotheken"
 
-#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:1072
+#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:1088
 #, c-format
 msgid "Anzahl der wöchentlichen Wagenausleihstunden"
 msgstr "Anzahl der wöchentlichen Wagenausleihstunden"
 
-#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:1652
+#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:1668
 #, c-format
 msgid "Anzahl im Verbund organisierter Schulbibliotheken"
 msgstr "Anzahl im Verbund organisierter Schulbibliotheken"
@@ -16812,7 +16792,7 @@ msgstr ""
 "ersetzen möchten? Dies kann nicht rückgängig gemacht werden."
 
 #. SCRIPT
-#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:1756
+#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:1770
 msgid "Are you sure you want to reset all entries of statistics %s?"
 msgstr ""
 "Sind Sie sicher, dass Sie alle Werte der Auswertung %s zurücksetzen möchten?"
@@ -17095,32 +17075,32 @@ msgstr "AudioAlerts"
 msgid "August"
 msgstr "August"
 
-#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:538
+#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:554
 #, c-format
 msgid "Ausgaben des Trägers für die Bibliothek"
 msgstr "Ausgaben des Trägers für die Bibliothek"
 
-#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:1376
+#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:1392
 #, c-format
 msgid "Ausgaben für Erwerbung"
 msgstr "Ausgaben für Erwerbung"
 
-#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:1626
+#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:1642
 #, c-format
 msgid "Ausgaben für Erwerbung (inkl. Einband und Lizenzen)"
 msgstr "Ausgaben für Erwerbung (inkl. Einband und Lizenzen)"
 
-#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:1732
+#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:1748
 #, c-format
 msgid "Ausleihbares Angebot (Medienkisten, Bücher-Rucksäcke etc.)"
 msgstr "Ausleihbares Angebot (Medienkisten, Bücher-Rucksäcke etc.)"
 
-#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:1092
+#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:1108
 #, c-format
 msgid "Ausleihe von Abspielgeräten (Hardware)"
 msgstr "Ausleihe von Abspielgeräten (Hardware)"
 
-#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:704
+#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:720
 #, c-format
 msgid "Auszubildende (Personen)"
 msgstr "Auszubildende (Personen)"
@@ -17343,11 +17323,11 @@ msgid "Authorised values category: "
 msgstr "Kategorie für normierte Werte: "
 
 #: koha-tmpl/intranet-tmpl/prog/en/modules/intranet-main.tt:86
+#: koha-tmpl/intranet-tmpl/prog/en/modules/admin/columns_settings.tt:217
 #: koha-tmpl/intranet-tmpl/prog/en/modules/authorities/authorities.tt:194
 #: koha-tmpl/intranet-tmpl/prog/en/modules/authorities/detail.tt:26
 #: koha-tmpl/intranet-tmpl/prog/en/modules/authorities/merge.tt:25
 #: koha-tmpl/intranet-tmpl/prog/en/modules/authorities/searchresultlist.tt:19
-#: koha-tmpl/intranet-tmpl/prog/en/modules/admin/columns_settings.tt:217
 #: koha-tmpl/intranet-tmpl/prog/en/modules/admin/searchengine/elasticsearch/mappings.tt:124
 #: koha-tmpl/intranet-tmpl/prog/en/includes/header.inc:42
 #: koha-tmpl/intranet-tmpl/prog/en/includes/prefs-menu.inc:34
@@ -17377,11 +17357,9 @@ msgstr "Normdatentabellen"
 msgid "Authorities: "
 msgstr "Normdaten: "
 
-#. For the first occurrence,
-#. SCRIPT
-#: koha-tmpl/intranet-tmpl/prog/en/modules/authorities/searchresultlist-auth.tt:116
 #: koha-tmpl/intranet-tmpl/prog/en/modules/admin/z3950servers.tt:163
 #: koha-tmpl/intranet-tmpl/prog/en/modules/admin/z3950servers.tt:214
+#: koha-tmpl/intranet-tmpl/prog/en/modules/authorities/searchresultlist-auth.tt:116
 #: koha-tmpl/intranet-tmpl/prog/en/modules/catalogue/search-history.tt:40
 #: koha-tmpl/intranet-tmpl/prog/en/modules/tools/stage-marc-import.tt:157
 #, c-format
@@ -17705,7 +17683,7 @@ msgstr "Verfügbarkeit"
 msgid "Available"
 msgstr "Verfügbar"
 
-#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics.tt:40
+#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics.tt:79
 #, c-format
 msgid "Available aggregated statistics"
 msgstr "Vorhandene Auswertungen"
@@ -17789,7 +17767,7 @@ msgstr "Durchschnittliche Leihdauer "
 msgid "Average loan time &rsaquo; Reports &rsaquo; Koha"
 msgstr "Durchschnittliche Leihdauer &rsaquo; Reports &rsaquo; Koha"
 
-#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:1352
+#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:1368
 #, c-format
 msgid "BESTAND insgesamt (Summe 400,...,416)"
 msgstr "BESTAND insgesamt (Summe 400,...,416)"
@@ -18687,47 +18665,47 @@ msgstr "Beginnt mit: "
 msgid "Behavior"
 msgstr "Verhalten"
 
-#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:730
+#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:746
 #, c-format
 msgid "Benutzerarbeitsplätze insgesamt"
 msgstr "Benutzerarbeitsplätze insgesamt"
 
-#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:1720
+#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:1736
 #, c-format
 msgid "Bereitstellung von Klassensätzen"
 msgstr "Bereitstellung von Klassensätzen"
 
-#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:72
+#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:88
 #, c-format
 msgid "Berichtszeitraum: "
 msgstr "Berichtszeitraum: "
 
-#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:1182
+#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:1198
 #, c-format
 msgid "Bestand in Medieneinh. insges."
 msgstr "Bestand in Medieneinh. insges."
 
-#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:464
+#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:480
 #, c-format
 msgid "Bestellungen im gebenden (aktiven) Leihverkehr"
 msgstr "Bestand in Medieneinh. insges."
 
-#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:456
+#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:472
 #, c-format
 msgid "Bestellungen im nehmenden (passiven) Leihverkehr"
 msgstr "Bestellungen im nehmenden (passiven) Leihverkehr"
 
-#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:237
+#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:253
 #, c-format
 msgid "Besuche"
 msgstr "Besuche"
 
-#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:1474
+#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:1490
 #, c-format
 msgid "Besuche im Berichtsjahr"
 msgstr "Besuche im Berichtsjahr"
 
-#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:958
+#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:974
 #, c-format
 msgid "Betreuung von Verwaltungsbibliotheken"
 msgstr "Betreuung von Verwaltungsbibliotheken"
@@ -18904,17 +18882,17 @@ msgstr ""
 "Biblioteca Provincial Fr. Mamerto Esquiú (Provincia Franciscana de la "
 "Asunción), Argentinien"
 
-#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:375
+#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:391
 #, c-format
 msgid "Bibliotheken im Verbund"
 msgstr "Bibliotheken im Verbund"
 
-#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:754
+#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:770
 #, c-format
 msgid "Bibliothekshomepage"
 msgstr "Bibliothekshomepage"
 
-#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:1594
+#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:1610
 #, c-format
 msgid "Bibliothekspädagogische Angebote & Veranstaltungen insgesamt"
 msgstr "Bibliothekspädagogische Angebote & Veranstaltungen insgesamt"
@@ -19128,7 +19106,7 @@ msgstr "Benutzer '%s' wurde hinzugefügt."
 msgid "Borrower '%s' already in list."
 msgstr "Benutzer '%s' ist bereits auf der Liste."
 
-#: koha-tmpl/intranet-tmpl/prog/en/includes/cashregister-fines-overview.inc:393
+#: koha-tmpl/intranet-tmpl/prog/en/includes/cashregister-fines-overview.inc:400
 #: koha-tmpl/intranet-tmpl/prog/en/includes/cashregister-payin-payout-overview.inc:211
 #, c-format
 msgid "Borrower category"
@@ -19217,11 +19195,6 @@ msgstr "Einschränkung auf Bibliotheken"
 #: koha-tmpl/intranet-tmpl/prog/en/modules/acqui/supplier.tt:100
 #: koha-tmpl/intranet-tmpl/prog/en/modules/acqui/uncertainprice.tt:15
 #: koha-tmpl/intranet-tmpl/prog/en/modules/acqui/z3950_search.tt:20
-#: koha-tmpl/intranet-tmpl/prog/en/modules/authorities/authorities-home.tt:11
-#: koha-tmpl/intranet-tmpl/prog/en/modules/authorities/authorities.tt:188
-#: koha-tmpl/intranet-tmpl/prog/en/modules/authorities/detail.tt:20
-#: koha-tmpl/intranet-tmpl/prog/en/modules/authorities/merge.tt:19
-#: koha-tmpl/intranet-tmpl/prog/en/modules/authorities/searchresultlist.tt:13
 #: koha-tmpl/intranet-tmpl/prog/en/modules/admin/additional-fields.tt:20
 #: koha-tmpl/intranet-tmpl/prog/en/modules/admin/admin-home.tt:11
 #: koha-tmpl/intranet-tmpl/prog/en/modules/admin/adveditorshortcuts.tt:14
@@ -19274,6 +19247,11 @@ msgstr "Einschränkung auf Bibliotheken"
 #: koha-tmpl/intranet-tmpl/prog/en/modules/admin/transport-cost-matrix.tt:19
 #: koha-tmpl/intranet-tmpl/prog/en/modules/admin/usage_statistics.tt:17
 #: koha-tmpl/intranet-tmpl/prog/en/modules/admin/z3950servers.tt:30
+#: koha-tmpl/intranet-tmpl/prog/en/modules/authorities/authorities-home.tt:11
+#: koha-tmpl/intranet-tmpl/prog/en/modules/authorities/authorities.tt:188
+#: koha-tmpl/intranet-tmpl/prog/en/modules/authorities/detail.tt:20
+#: koha-tmpl/intranet-tmpl/prog/en/modules/authorities/merge.tt:19
+#: koha-tmpl/intranet-tmpl/prog/en/modules/authorities/searchresultlist.tt:13
 #: koha-tmpl/intranet-tmpl/prog/en/modules/catalogue/ISBDdetail.tt:20
 #: koha-tmpl/intranet-tmpl/prog/en/modules/catalogue/MARCdetail.tt:21
 #: koha-tmpl/intranet-tmpl/prog/en/modules/catalogue/advsearch.tt:32
@@ -19381,6 +19359,8 @@ msgstr "Einschränkung auf Bibliotheken"
 #: koha-tmpl/intranet-tmpl/prog/en/modules/pos/register.tt:19
 #: koha-tmpl/intranet-tmpl/prog/en/modules/pos/registers.tt:16
 #: koha-tmpl/intranet-tmpl/prog/en/modules/reports/acquisitions_stats.tt:11
+#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics.tt:15
+#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:18
 #: koha-tmpl/intranet-tmpl/prog/en/modules/reports/bor_issues_top.tt:14
 #: koha-tmpl/intranet-tmpl/prog/en/modules/reports/borrowers_out.tt:11
 #: koha-tmpl/intranet-tmpl/prog/en/modules/reports/borrowers_stats.tt:18
@@ -19389,6 +19369,7 @@ msgstr "Einschränkung auf Bibliotheken"
 #: koha-tmpl/intranet-tmpl/prog/en/modules/reports/catalogue_out.tt:13
 #: koha-tmpl/intranet-tmpl/prog/en/modules/reports/catalogue_stats.tt:12
 #: koha-tmpl/intranet-tmpl/prog/en/modules/reports/dictionary.tt:23
+#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/fines_overviews.tt:16
 #: koha-tmpl/intranet-tmpl/prog/en/modules/reports/guided_reports_start.tt:60
 #: koha-tmpl/intranet-tmpl/prog/en/modules/reports/issues_avg_stats.tt:12
 #: koha-tmpl/intranet-tmpl/prog/en/modules/reports/issues_stats.tt:15
@@ -19704,12 +19685,12 @@ msgstr "ByWater Solutions, USA"
 msgid "Bytes"
 msgstr "Bytes"
 
-#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:1224
+#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:1240
 #, c-format
 msgid "Bücher (Sekundärlit. Musik) - Bestand"
 msgstr "Bücher (Sekundärlit. Musik) - Bestand"
 
-#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:1232
+#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:1248
 #, c-format
 msgid "Bücher (Sekundärlit. Musik) - Entleihungen"
 msgstr "Bücher (Sekundärlit. Musik) - Entleihungen"
@@ -19838,7 +19819,7 @@ msgstr "CODE"
 #: koha-tmpl/intranet-tmpl/prog/en/modules/tools/export.tt:158
 #: koha-tmpl/intranet-tmpl/prog/en/modules/tools/export.tt:160
 #: koha-tmpl/intranet-tmpl/prog/en/modules/tools/scheduler.tt:65
-#: koha-tmpl/intranet-tmpl/prog/en/includes/cashregister-fines-overview.inc:505
+#: koha-tmpl/intranet-tmpl/prog/en/includes/cashregister-fines-overview.inc:512
 #: koha-tmpl/intranet-tmpl/prog/en/includes/checkouts-table.inc:68
 #: koha-tmpl/intranet-tmpl/prog/en/includes/columns_settings.inc:4
 #, c-format
@@ -20228,12 +20209,6 @@ msgstr ""
 #: koha-tmpl/intranet-tmpl/prog/en/modules/acqui/supplier.tt:156
 #: koha-tmpl/intranet-tmpl/prog/en/modules/acqui/transferorder.tt:123
 #: koha-tmpl/intranet-tmpl/prog/en/modules/acqui/z3950_search.tt:122
-#: koha-tmpl/intranet-tmpl/prog/en/modules/authorities/authorities.tt:260
-#: koha-tmpl/intranet-tmpl/prog/en/modules/authorities/authorities.tt:262
-#: koha-tmpl/intranet-tmpl/prog/en/modules/authorities/authorities.tt:267
-#: koha-tmpl/intranet-tmpl/prog/en/modules/authorities/authorities.tt:269
-#: koha-tmpl/intranet-tmpl/prog/en/modules/basket/downloadcart.tt:28
-#: koha-tmpl/intranet-tmpl/prog/en/modules/basket/sendbasketform.tt:34
 #: koha-tmpl/intranet-tmpl/prog/en/modules/admin/additional-fields.tt:202
 #: koha-tmpl/intranet-tmpl/prog/en/modules/admin/aqbudgetperiods.tt:237
 #: koha-tmpl/intranet-tmpl/prog/en/modules/admin/aqbudgetperiods.tt:312
@@ -20292,6 +20267,12 @@ msgstr ""
 #: koha-tmpl/intranet-tmpl/prog/en/modules/admin/transport-cost-matrix.tt:99
 #: koha-tmpl/intranet-tmpl/prog/en/modules/admin/usage_statistics.tt:249
 #: koha-tmpl/intranet-tmpl/prog/en/modules/admin/z3950servers.tt:187
+#: koha-tmpl/intranet-tmpl/prog/en/modules/authorities/authorities.tt:260
+#: koha-tmpl/intranet-tmpl/prog/en/modules/authorities/authorities.tt:262
+#: koha-tmpl/intranet-tmpl/prog/en/modules/authorities/authorities.tt:267
+#: koha-tmpl/intranet-tmpl/prog/en/modules/authorities/authorities.tt:269
+#: koha-tmpl/intranet-tmpl/prog/en/modules/basket/downloadcart.tt:28
+#: koha-tmpl/intranet-tmpl/prog/en/modules/basket/sendbasketform.tt:34
 #: koha-tmpl/intranet-tmpl/prog/en/modules/cataloguing/addbiblio.tt:868
 #: koha-tmpl/intranet-tmpl/prog/en/modules/cataloguing/addbiblio.tt:872
 #: koha-tmpl/intranet-tmpl/prog/en/modules/cataloguing/addbiblio.tt:876
@@ -20358,7 +20339,7 @@ msgstr ""
 #: koha-tmpl/intranet-tmpl/prog/en/modules/pos/register.tt:317
 #: koha-tmpl/intranet-tmpl/prog/en/modules/pos/registers.tt:165
 #: koha-tmpl/intranet-tmpl/prog/en/modules/pos/registers.tt:188
-#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics.tt:169
+#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics.tt:209
 #: koha-tmpl/intranet-tmpl/prog/en/modules/reports/guided_reports_start.tt:1164
 #: koha-tmpl/intranet-tmpl/prog/en/modules/reports/guided_reports_start.tt:1272
 #: koha-tmpl/intranet-tmpl/prog/en/modules/reports/guided_reports_start.tt:1372
@@ -21249,7 +21230,7 @@ msgid "Cash register opened on:"
 msgstr "Kasse geöffnet am:"
 
 #: koha-tmpl/intranet-tmpl/prog/en/modules/circ/managecashregister.tt:109
-#: koha-tmpl/intranet-tmpl/prog/en/includes/cashregister-fines-overview.inc:350
+#: koha-tmpl/intranet-tmpl/prog/en/includes/cashregister-fines-overview.inc:357
 #, c-format
 msgid "Cash register overview"
 msgstr "Kassenübersicht"
@@ -21305,7 +21286,7 @@ msgid "Cash register: "
 msgstr "Kasse: "
 
 #. %1$s:  cashreg
-#: koha-tmpl/intranet-tmpl/prog/en/includes/cashregister-fines-overview.inc:353
+#: koha-tmpl/intranet-tmpl/prog/en/includes/cashregister-fines-overview.inc:360
 #, c-format
 msgid "Cash register: %s"
 msgstr "Kasse: %s"
@@ -23252,10 +23233,10 @@ msgstr "Löschen"
 #: koha-tmpl/intranet-tmpl/prog/en/modules/acqui/addorderiso2709.tt:53
 #: koha-tmpl/intranet-tmpl/prog/en/modules/acqui/duplicate_orders.tt:145
 #: koha-tmpl/intranet-tmpl/prog/en/modules/acqui/z3950_search.tt:104
-#: koha-tmpl/intranet-tmpl/prog/en/modules/basket/basket.tt:6
 #: koha-tmpl/intranet-tmpl/prog/en/modules/admin/branch_transfer_limits.tt:49
 #: koha-tmpl/intranet-tmpl/prog/en/modules/admin/branch_transfer_limits.tt:66
 #: koha-tmpl/intranet-tmpl/prog/en/modules/admin/preferences.tt:227
+#: koha-tmpl/intranet-tmpl/prog/en/modules/basket/basket.tt:6
 #: koha-tmpl/intranet-tmpl/prog/en/modules/catalogue/detail.tt:304
 #: koha-tmpl/intranet-tmpl/prog/en/modules/catalogue/results.tt:84
 #: koha-tmpl/intranet-tmpl/prog/en/modules/cataloguing/z3950_auth_search.tt:54
@@ -23507,9 +23488,9 @@ msgstr "Client-ID: "
 msgid "Clipboard"
 msgstr "Zwischenablage"
 
-#. IMG
-#: koha-tmpl/intranet-tmpl/prog/en/modules/authorities/authorities.tt:469
+#. INPUT type=submit
 #: koha-tmpl/intranet-tmpl/prog/en/modules/admin/smart-rules.tt:96
+#: koha-tmpl/intranet-tmpl/prog/en/modules/authorities/authorities.tt:469
 #: koha-tmpl/intranet-tmpl/prog/en/modules/cataloguing/addbiblio.tt:1115
 #: koha-tmpl/intranet-tmpl/prog/en/modules/cataloguing/additem.tt:231
 #: koha-tmpl/intranet-tmpl/prog/en/modules/serials/serials-edit.tt:270
@@ -23574,13 +23555,13 @@ msgstr "Klonen der Ausleihregeln fehlgeschlagen!"
 #: koha-tmpl/intranet-tmpl/prog/en/modules/acqui/lateorders.tt:269
 #: koha-tmpl/intranet-tmpl/prog/en/modules/acqui/parcel.tt:313
 #: koha-tmpl/intranet-tmpl/prog/en/modules/acqui/z3950_search.tt:212
-#: koha-tmpl/intranet-tmpl/prog/en/modules/authorities/searchresultlist-auth.tt:97
-#: koha-tmpl/intranet-tmpl/prog/en/modules/authorities/searchresultlist-auth.tt:104
 #: koha-tmpl/intranet-tmpl/prog/en/modules/admin/aqbudgetperiods.tt:28
 #: koha-tmpl/intranet-tmpl/prog/en/modules/admin/biblio_framework.tt:230
 #: koha-tmpl/intranet-tmpl/prog/en/modules/admin/biblio_framework.tt:300
 #: koha-tmpl/intranet-tmpl/prog/en/modules/admin/preferences.tt:220
 #: koha-tmpl/intranet-tmpl/prog/en/modules/admin/smtp_servers.tt:277
+#: koha-tmpl/intranet-tmpl/prog/en/modules/authorities/searchresultlist-auth.tt:97
+#: koha-tmpl/intranet-tmpl/prog/en/modules/authorities/searchresultlist-auth.tt:104
 #: koha-tmpl/intranet-tmpl/prog/en/modules/catalogue/detail.tt:1006
 #: koha-tmpl/intranet-tmpl/prog/en/modules/cataloguing/addbooks.tt:253
 #: koha-tmpl/intranet-tmpl/prog/en/modules/cataloguing/editor.tt:300
@@ -24106,7 +24087,7 @@ msgstr "Erhalten von %s"
 msgid "Comma (,)"
 msgstr "Komma (,)"
 
-#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:46
+#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:62
 #, c-format
 msgid "Comma separated text"
 msgstr "kommagetrennter Text"
@@ -24409,6 +24390,7 @@ msgid "Confirm deletion"
 msgstr "Löschung bestätigen"
 
 #: koha-tmpl/intranet-tmpl/prog/en/modules/admin/auth_tag_structure.tt:122
+#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics.tt:43
 #: koha-tmpl/intranet-tmpl/prog/en/modules/tools/letter.tt:77
 #, c-format
 msgid "Confirm deletion "
@@ -24985,12 +24967,12 @@ msgid "Copies:"
 msgstr "Exemplare:"
 
 #: koha-tmpl/intranet-tmpl/prog/en/modules/admin/z3950servers.tt:225
-#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics.tt:69
+#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics.tt:108
 #: koha-tmpl/intranet-tmpl/prog/en/modules/tools/holidays.tt:241
 #: koha-tmpl/intranet-tmpl/prog/en/modules/tools/holidays.tt:279
 #: koha-tmpl/intranet-tmpl/prog/en/modules/tools/letter.tt:230
 #: koha-tmpl/intranet-tmpl/prog/en/modules/tools/marc_modification_templates.tt:220
-#: koha-tmpl/intranet-tmpl/prog/en/includes/cashregister-fines-overview.inc:505
+#: koha-tmpl/intranet-tmpl/prog/en/includes/cashregister-fines-overview.inc:512
 #: koha-tmpl/intranet-tmpl/prog/en/includes/columns_settings.inc:4
 #: koha-tmpl/intranet-tmpl/prog/en/includes/str/tinymce_i18n.inc:2
 #, c-format
@@ -25263,12 +25245,12 @@ msgstr ""
 #: koha-tmpl/intranet-tmpl/prog/en/modules/catalogue/results.tt:396
 #: koha-tmpl/intranet-tmpl/prog/en/modules/reports/itemtypes.tt:57
 #: koha-tmpl/intranet-tmpl/prog/en/includes/cashregister-fines-overview.inc:140
-#: koha-tmpl/intranet-tmpl/prog/en/includes/cashregister-fines-overview.inc:163
-#: koha-tmpl/intranet-tmpl/prog/en/includes/cashregister-fines-overview.inc:188
-#: koha-tmpl/intranet-tmpl/prog/en/includes/cashregister-fines-overview.inc:268
-#: koha-tmpl/intranet-tmpl/prog/en/includes/cashregister-fines-overview.inc:360
-#: koha-tmpl/intranet-tmpl/prog/en/includes/cashregister-fines-overview.inc:394
-#: koha-tmpl/intranet-tmpl/prog/en/includes/cashregister-fines-overview.inc:421
+#: koha-tmpl/intranet-tmpl/prog/en/includes/cashregister-fines-overview.inc:164
+#: koha-tmpl/intranet-tmpl/prog/en/includes/cashregister-fines-overview.inc:192
+#: koha-tmpl/intranet-tmpl/prog/en/includes/cashregister-fines-overview.inc:274
+#: koha-tmpl/intranet-tmpl/prog/en/includes/cashregister-fines-overview.inc:367
+#: koha-tmpl/intranet-tmpl/prog/en/includes/cashregister-fines-overview.inc:401
+#: koha-tmpl/intranet-tmpl/prog/en/includes/cashregister-fines-overview.inc:428
 #: koha-tmpl/intranet-tmpl/prog/en/includes/cashregister-payin-payout-overview.inc:93
 #: koha-tmpl/intranet-tmpl/prog/en/includes/cashregister-payin-payout-overview.inc:112
 #: koha-tmpl/intranet-tmpl/prog/en/includes/cashregister-payin-payout-overview.inc:212
@@ -26162,12 +26144,17 @@ msgstr "Lösung für 'DBMS auto increment' - Problem"
 msgid "DBS"
 msgstr "DBS"
 
-#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:48
+#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:29
+#, c-format
+msgid "DBS "
+msgstr "DBS"
+
+#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:64
 #, c-format
 msgid "DBS base questionaire"
 msgstr "DBS Grundfragebogen"
 
-#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:79
+#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:95
 #, c-format
 msgid "DBS-ID der Bibliothek"
 msgstr "DBS-ID der Bibliothek"
@@ -26675,7 +26662,7 @@ msgstr "Daten können nicht leer sein"
 #: koha-tmpl/intranet-tmpl/prog/en/modules/reports/cat_issues_top.tt:165
 #: koha-tmpl/intranet-tmpl/prog/en/modules/reports/issues_avg_stats.tt:115
 #: koha-tmpl/intranet-tmpl/prog/en/modules/reports/issues_avg_stats.tt:136
-#: koha-tmpl/intranet-tmpl/prog/en/includes/cashregister-fines-overview.inc:464
+#: koha-tmpl/intranet-tmpl/prog/en/includes/cashregister-fines-overview.inc:471
 #: koha-tmpl/intranet-tmpl/prog/en/includes/cashregister-payin-payout-overview.inc:258
 #, c-format
 msgid "Day"
@@ -27246,8 +27233,6 @@ msgstr ""
 #: koha-tmpl/intranet-tmpl/prog/en/modules/acqui/invoice.tt:253
 #: koha-tmpl/intranet-tmpl/prog/en/modules/acqui/invoices.tt:111
 #: koha-tmpl/intranet-tmpl/prog/en/modules/acqui/supplier.tt:410
-#: koha-tmpl/intranet-tmpl/prog/en/modules/authorities/authorities.tt:472
-#: koha-tmpl/intranet-tmpl/prog/en/modules/authorities/searchresultlist.tt:78
 #: koha-tmpl/intranet-tmpl/prog/en/modules/admin/additional-fields.tt:149
 #: koha-tmpl/intranet-tmpl/prog/en/modules/admin/aqbudgetperiods.tt:17
 #: koha-tmpl/intranet-tmpl/prog/en/modules/admin/aqbudgetperiods.tt:21
@@ -27290,6 +27275,8 @@ msgstr ""
 #: koha-tmpl/intranet-tmpl/prog/en/modules/admin/smtp_servers.tt:297
 #: koha-tmpl/intranet-tmpl/prog/en/modules/admin/systempreferences.tt:450
 #: koha-tmpl/intranet-tmpl/prog/en/modules/admin/z3950servers.tt:226
+#: koha-tmpl/intranet-tmpl/prog/en/modules/authorities/authorities.tt:472
+#: koha-tmpl/intranet-tmpl/prog/en/modules/authorities/searchresultlist.tt:78
 #: koha-tmpl/intranet-tmpl/prog/en/modules/catalogue/search-history.tt:53
 #: koha-tmpl/intranet-tmpl/prog/en/modules/catalogue/search-history.tt:94
 #: koha-tmpl/intranet-tmpl/prog/en/modules/catalogue/search-history.tt:137
@@ -27312,7 +27299,7 @@ msgstr ""
 #: koha-tmpl/intranet-tmpl/prog/en/modules/patroncards/image-manage.tt:97
 #: koha-tmpl/intranet-tmpl/prog/en/modules/patroncards/image-manage.tt:108
 #: koha-tmpl/intranet-tmpl/prog/en/modules/patroncards/manage.tt:94
-#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics.tt:82
+#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics.tt:121
 #: koha-tmpl/intranet-tmpl/prog/en/modules/reports/dictionary.tt:146
 #: koha-tmpl/intranet-tmpl/prog/en/modules/reports/guided_reports_start.tt:389
 #: koha-tmpl/intranet-tmpl/prog/en/modules/reports/guided_reports_start.tt:1392
@@ -27397,7 +27384,7 @@ msgstr "Stapellöschung von Datensätzen (Titel oder Normdaten)"
 msgid "Delete a batch of items"
 msgstr "Exemplare stapelweise löschen"
 
-#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics.tt:177
+#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics.tt:218
 #, c-format
 msgid "Delete aggregated statistics?"
 msgstr "Soll die Auswertung gelöscht werden?"
@@ -28073,8 +28060,8 @@ msgstr "Abt."
 #: koha-tmpl/intranet-tmpl/prog/en/modules/pos/pay.tt:68
 #: koha-tmpl/intranet-tmpl/prog/en/modules/pos/register.tt:94
 #: koha-tmpl/intranet-tmpl/prog/en/modules/pos/register.tt:183
-#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics.tt:47
-#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics.tt:182
+#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics.tt:86
+#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics.tt:223
 #: koha-tmpl/intranet-tmpl/prog/en/modules/reports/dictionary.tt:132
 #: koha-tmpl/intranet-tmpl/prog/en/modules/rotating_collections/rotatingCollections.tt:44
 #: koha-tmpl/intranet-tmpl/prog/en/modules/serials/subscription-frequencies.tt:139
@@ -28087,8 +28074,8 @@ msgstr "Abt."
 #: koha-tmpl/intranet-tmpl/prog/en/modules/tools/marc_modification_templates.tt:122
 #: koha-tmpl/intranet-tmpl/prog/en/modules/tools/runBatchJob.tt:81
 #: koha-tmpl/intranet-tmpl/prog/en/modules/tools/stockrotation.tt:107
-#: koha-tmpl/intranet-tmpl/prog/en/includes/cashregister-fines-overview.inc:162
-#: koha-tmpl/intranet-tmpl/prog/en/includes/cashregister-fines-overview.inc:470
+#: koha-tmpl/intranet-tmpl/prog/en/includes/cashregister-fines-overview.inc:163
+#: koha-tmpl/intranet-tmpl/prog/en/includes/cashregister-fines-overview.inc:477
 #: koha-tmpl/intranet-tmpl/prog/en/includes/cashregister-payin-payout-overview.inc:264
 #: koha-tmpl/intranet-tmpl/prog/en/includes/clubs-table.inc:6
 #: koha-tmpl/intranet-tmpl/prog/en/includes/str/tinymce_i18n.inc:2
@@ -28146,7 +28133,7 @@ msgstr "Gebührenbeschreibung"
 #: koha-tmpl/intranet-tmpl/prog/en/modules/clubs/templates-add-modify.tt:217
 #: koha-tmpl/intranet-tmpl/prog/en/modules/clubs/templates-add-modify.tt:244
 #: koha-tmpl/intranet-tmpl/prog/en/modules/members/files.tt:86
-#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics.tt:146
+#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics.tt:184
 #: koha-tmpl/intranet-tmpl/prog/en/modules/reports/dictionary.tt:299
 #: koha-tmpl/intranet-tmpl/prog/en/modules/serials/subscription-numberpatterns.tt:86
 #: koha-tmpl/intranet-tmpl/prog/en/modules/tools/holidays.tt:79
@@ -28309,8 +28296,8 @@ msgstr "Detaillierte Meldungen: "
 
 #: koha-tmpl/intranet-tmpl/prog/en/modules/acqui/edifactmsgs.tt:47
 #: koha-tmpl/intranet-tmpl/prog/en/modules/acqui/invoices.tt:99
-#: koha-tmpl/intranet-tmpl/prog/en/modules/basket/basket.tt:118
 #: koha-tmpl/intranet-tmpl/prog/en/modules/admin/aqbudgetperiods.tt:423
+#: koha-tmpl/intranet-tmpl/prog/en/modules/basket/basket.tt:118
 #: koha-tmpl/intranet-tmpl/prog/en/modules/members/accountline-details.tt:181
 #: koha-tmpl/intranet-tmpl/prog/en/modules/members/boraccount.tt:112
 #: koha-tmpl/intranet-tmpl/prog/en/includes/circ-menu.inc:147
@@ -28527,7 +28514,7 @@ msgstr "Meinten Sie? "
 msgid "Did you mean? &rsaquo; Administration &rsaquo; Koha"
 msgstr "Meinten Sie? &rsaquo; Administration &rsaquo; Koha"
 
-#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:415
+#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:431
 #, c-format
 msgid "Die Authentifizierung wird über Single-Sign-On vorgenommen"
 msgstr "Die Authentifizierung wird über Single-Sign-On vorgenommen"
@@ -28975,7 +28962,7 @@ msgid "Download"
 msgstr "Download"
 
 #: koha-tmpl/intranet-tmpl/prog/en/modules/basket/basket.tt:51
-#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:44
+#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:60
 #: koha-tmpl/intranet-tmpl/prog/en/includes/reports-toolbar.inc:95
 #, c-format
 msgid "Download "
@@ -29350,17 +29337,17 @@ msgstr "Dauer (in Tagen)"
 msgid "Duration:"
 msgstr "Dauer:"
 
-#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:383
+#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:399
 #, c-format
 msgid "E-Medien - Entleihungen"
 msgstr "E-Medien - Entleihungen"
 
-#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:367
+#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:383
 #, c-format
 msgid "E-Medien im Verbund"
 msgstr "E-Medien im Verbund"
 
-#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:359
+#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:375
 #, c-format
 msgid "E-Medien im eigenen Bestand"
 msgstr "E-Medien im eigenen Bestand"
@@ -29428,7 +29415,7 @@ msgstr "EDIFACT-Nachrichten"
 msgid "EDIFACT messages &rsaquo; Acquisitions &rsaquo; Koha"
 msgstr "EDIFACT-Benachrichtigungen &rsaquo; Erwerbung &rsaquo; Koha"
 
-#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:1708
+#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:1724
 #, c-format
 msgid ""
 "EDV (z. B. Bereitstellung der Bibliothekssoftware / eines Online-Katalogs)"
@@ -29445,7 +29432,7 @@ msgstr "EMN (Ecole des Mines de Nantes)"
 msgid "ENABLED"
 msgstr "AKTIVIERT"
 
-#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:1360
+#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:1376
 #, c-format
 msgid "ENTLEIHUNGEN insgesamt (Summe 401,...,417)"
 msgstr "ENTLEIHUNGEN insgesamt (Summe 401,...,417)"
@@ -29508,7 +29495,6 @@ msgstr "Frühestes Vormerkungsdatum"
 #: koha-tmpl/intranet-tmpl/prog/en/modules/acqui/basketgroup.tt:362
 #: koha-tmpl/intranet-tmpl/prog/en/modules/acqui/orderreceive.tt:248
 #: koha-tmpl/intranet-tmpl/prog/en/modules/acqui/supplier.tt:409
-#: koha-tmpl/intranet-tmpl/prog/en/modules/authorities/searchresultlist.tt:75
 #: koha-tmpl/intranet-tmpl/prog/en/modules/admin/additional-fields.tt:148
 #: koha-tmpl/intranet-tmpl/prog/en/modules/admin/aqbudgetperiods.tt:13
 #: koha-tmpl/intranet-tmpl/prog/en/modules/admin/aqbudgets.tt:219
@@ -29543,6 +29529,7 @@ msgstr "Frühestes Vormerkungsdatum"
 #: koha-tmpl/intranet-tmpl/prog/en/modules/admin/smtp_servers.tt:297
 #: koha-tmpl/intranet-tmpl/prog/en/modules/admin/systempreferences.tt:450
 #: koha-tmpl/intranet-tmpl/prog/en/modules/admin/z3950servers.tt:224
+#: koha-tmpl/intranet-tmpl/prog/en/modules/authorities/searchresultlist.tt:75
 #: koha-tmpl/intranet-tmpl/prog/en/modules/catalogue/detail.tt:588
 #: koha-tmpl/intranet-tmpl/prog/en/modules/catalogue/detail.tt:594
 #: koha-tmpl/intranet-tmpl/prog/en/modules/cataloguing/additem.tt:112
@@ -29560,7 +29547,7 @@ msgstr "Frühestes Vormerkungsdatum"
 #: koha-tmpl/intranet-tmpl/prog/en/modules/members/moremember.tt:608
 #: koha-tmpl/intranet-tmpl/prog/en/modules/members/moremember.tt:651
 #: koha-tmpl/intranet-tmpl/prog/en/modules/patroncards/manage.tt:92
-#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics.tt:92
+#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics.tt:131
 #: koha-tmpl/intranet-tmpl/prog/en/modules/reports/guided_reports_start.tt:381
 #: koha-tmpl/intranet-tmpl/prog/en/modules/reports/guided_reports_start.tt:1392
 #: koha-tmpl/intranet-tmpl/prog/en/modules/rotating_collections/rotatingCollections.tt:62
@@ -30128,28 +30115,28 @@ msgstr "Editor "
 msgid "Editor &rsaquo; Cataloging &rsaquo; Koha"
 msgstr "Editor &rsaquo; Katalogisierung &rsaquo; Koha"
 
-#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:688
-#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:1578
+#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:704
+#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:1594
 #, c-format
 msgid "Ehrenamtliches Personal (Personen)"
 msgstr "Ehrenamtliches Personal (Personen)"
 
-#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:602
+#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:618
 #, c-format
 msgid "Eigene Einnahmen"
 msgstr "Eigene Einnahmen"
 
-#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:522
+#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:538
 #, c-format
 msgid "Einmalige Investitionen"
 msgstr "Einmalige Investitionen"
 
-#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:1522
+#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:1538
 #, c-format
 msgid "Einsatz von Bibliothekssoftware?"
 msgstr "Einsatz von Bibliothekssoftware?"
 
-#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:87
+#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:103
 #, c-format
 msgid "Einwohnerzahl des Bibliotheksortes"
 msgstr "Einwohnerzahl des Bibliotheksortes"
@@ -30738,7 +30725,7 @@ msgstr "Entität"
 msgid "Entity %s (code %s) for lang %s has correctly been updated with '%s'"
 msgstr "Entität %s (code %s) für Sprache %s wurde korrekt geändert zu '%s'"
 
-#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:1190
+#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:1206
 #, c-format
 msgid "Entleihungen in Medieneinheiten insgesamt"
 msgstr "Entleihungen in Medieneinheiten insgesamt"
@@ -31105,7 +31092,7 @@ msgstr "Maximale Anzahl Vormerkungen je Datensatz überschritten"
 
 #. For the first occurrence,
 #. SCRIPT
-#: koha-tmpl/intranet-tmpl/prog/en/includes/cashregister-fines-overview.inc:505
+#: koha-tmpl/intranet-tmpl/prog/en/includes/cashregister-fines-overview.inc:512
 #: koha-tmpl/intranet-tmpl/prog/en/includes/columns_settings.inc:4
 msgid "Excel"
 msgstr "Excel"
@@ -31301,7 +31288,7 @@ msgstr "Erklärung: "
 #: koha-tmpl/intranet-tmpl/prog/en/modules/reports/reserves_stats.tt:286
 #: koha-tmpl/intranet-tmpl/prog/en/modules/reports/serials_stats.tt:119
 #: koha-tmpl/intranet-tmpl/prog/en/modules/tools/viewlog.tt:287
-#: koha-tmpl/intranet-tmpl/prog/en/includes/cashregister-fines-overview.inc:505
+#: koha-tmpl/intranet-tmpl/prog/en/includes/cashregister-fines-overview.inc:512
 #: koha-tmpl/intranet-tmpl/prog/en/includes/cat-toolbar.inc:229
 #: koha-tmpl/intranet-tmpl/prog/en/includes/checkouts-table.inc:84
 #: koha-tmpl/intranet-tmpl/prog/en/includes/columns_settings.inc:4
@@ -31435,7 +31422,7 @@ msgstr "Etiketten exportieren"
 
 #. For the first occurrence,
 #. SCRIPT
-#: koha-tmpl/intranet-tmpl/prog/en/includes/cashregister-fines-overview.inc:505
+#: koha-tmpl/intranet-tmpl/prog/en/includes/cashregister-fines-overview.inc:512
 #: koha-tmpl/intranet-tmpl/prog/en/includes/columns_settings.inc:4
 msgid "Export or print"
 msgstr "Exportieren oder drucken"
@@ -31546,7 +31533,7 @@ msgstr "Facettenreihenfolge"
 msgid "Facetable"
 msgstr "Facettierbar"
 
-#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:1166
+#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:1182
 #, c-format
 msgid "Fahrplanturnus in Tagen"
 msgstr "Fahrplanturnus in Tagen"
@@ -32345,8 +32332,8 @@ msgstr "Intervall für Gebühren"
 msgid "Fine grace period"
 msgstr "Gnadenfrist für Gebühr"
 
-#: koha-tmpl/intranet-tmpl/prog/en/includes/cashregister-fines-overview.inc:187
-#: koha-tmpl/intranet-tmpl/prog/en/includes/cashregister-fines-overview.inc:266
+#: koha-tmpl/intranet-tmpl/prog/en/includes/cashregister-fines-overview.inc:191
+#: koha-tmpl/intranet-tmpl/prog/en/includes/cashregister-fines-overview.inc:272
 #, c-format
 msgid "Fine type"
 msgstr "Gebührenart"
@@ -32384,6 +32371,11 @@ msgstr "Gebührenauswertungen"
 msgid "Fines overview "
 msgstr "Gebührenübersicht"
 
+#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/fines_overviews.tt:7
+#, c-format
+msgid "Fines overview &rsaquo; Reports &rsaquo; Koha"
+msgstr "Gebührenauswertungen &rsaquo; Reports &rsaquo; Koha"
+
 #. %1$s:  resolveReportBranchName(reportbranch)
 #. %2$s:  journalfrom
 #. %3$s:  IF (journalfrom != journalto)
@@ -32397,7 +32389,7 @@ msgstr "Gebührenauswertung: %s (%s%s - %s%s)"
 #: koha-tmpl/intranet-tmpl/prog/en/modules/circ/managecashregister.tt:74
 #: koha-tmpl/intranet-tmpl/prog/en/modules/circ/managecashregister.tt:98
 #: koha-tmpl/intranet-tmpl/prog/en/modules/circ/managecashregister.tt:111
-#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/fines_overviews.tt:19
+#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/fines_overviews.tt:25
 #: koha-tmpl/intranet-tmpl/prog/en/includes/cashregister-fines-overview.inc:132
 #: koha-tmpl/intranet-tmpl/prog/en/includes/cashregister-payin-payout-overview.inc:84
 #, c-format
@@ -32797,7 +32789,7 @@ msgstr "Formatierung"
 msgid "Formatting:"
 msgstr "Formatierung:"
 
-#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:712
+#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:728
 #, c-format
 msgid "Fortbildungsstunden der Mitarbeiter"
 msgstr "Fortbildungsstunden der Mitarbeiter"
@@ -32847,7 +32839,7 @@ msgstr "Français (Französisch) "
 msgid "Free"
 msgstr "Frei"
 
-#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:546
+#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:562
 #, c-format
 msgid "Fremdmittel insgesamt"
 msgstr "Fremdmittel insgesamt"
@@ -32935,8 +32927,8 @@ msgstr "Freitag"
 msgid "Fridays"
 msgstr "Freitags"
 
-#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics.tt:48
-#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics.tt:183
+#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics.tt:87
+#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics.tt:224
 #: koha-tmpl/intranet-tmpl/prog/en/modules/reports/borrowers_stats.tt:181
 #: koha-tmpl/intranet-tmpl/prog/en/modules/reports/catalogue_stats.tt:114
 #: koha-tmpl/intranet-tmpl/prog/en/modules/reports/catalogue_stats.tt:152
@@ -33088,7 +33080,7 @@ msgstr "Von Lieferant: "
 #: koha-tmpl/intranet-tmpl/prog/en/modules/acqui/parcels.tt:206
 #: koha-tmpl/intranet-tmpl/prog/en/modules/circ/overdue.tt:156
 #: koha-tmpl/intranet-tmpl/prog/en/modules/labels/label-edit-range.tt:41
-#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics.tt:151
+#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics.tt:189
 #: koha-tmpl/intranet-tmpl/prog/en/modules/serials/claims.tt:95
 #, c-format
 msgid "From:"
@@ -33257,7 +33249,7 @@ msgstr "Konten"
 msgid "Funds for '%s' "
 msgstr "Konten für '%s'"
 
-#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:1146
+#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:1162
 #, c-format
 msgid "Für mehrere Gemeinden tätig"
 msgstr "Für mehrere Gemeinden tätig"
@@ -33442,22 +33434,22 @@ msgstr "Interessenkreise"
 msgid "Geolocation: "
 msgstr "Geolokalisierung: "
 
-#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:530
+#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:546
 #, c-format
 msgid "Gesamtausgaben"
 msgstr "Gesamtausgaben"
 
-#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:1450
+#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:1466
 #, c-format
 msgid "Gesamtzahl Lehrer"
 msgstr "Gesamtzahl Lehrer"
 
-#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:1442
+#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:1458
 #, c-format
 msgid "Gesamtzahl Schüler"
 msgstr "Gesamtzahl Schüler"
 
-#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:1554
+#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:1570
 #, c-format
 msgid "Gesamtzahl der Beschäftigten in der Schulbibliothek (Personen)"
 msgstr "Gesamtzahl der Beschäftigten in der Schulbibliothek (Personen)"
@@ -33660,7 +33652,7 @@ msgstr "Gruppe: "
 msgid "Groups of libraries: "
 msgstr "Bibliotheksgruppen: "
 
-#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:1660
+#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:1676
 #, c-format
 msgid "Grundlegende Beratung"
 msgstr "Grundlegende Beratung"
@@ -33757,7 +33749,7 @@ msgstr "HTML"
 msgid "HTML message:"
 msgstr "HTML-Benachrichtigung:"
 
-#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:159
+#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:175
 #, c-format
 msgid ""
 "Haben Sie im Berichtsjahr zusätzliche Angebote wie z.B. Click and Collect, "
@@ -34113,7 +34105,7 @@ msgstr "Higher Education Libraries of Massachusetts, USA"
 msgid "Highlight"
 msgstr "Markieren"
 
-#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:1696
+#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:1712
 #, c-format
 msgid "Hilfen beim Bestandsaufbau / Zentrale Medieneinarbeitung"
 msgstr "Hilfen beim Bestandsaufbau / Zentrale Medieneinarbeitung"
@@ -34634,11 +34626,6 @@ msgstr "Jährlich wiederholter Schließzeitraum"
 #: koha-tmpl/intranet-tmpl/prog/en/modules/acqui/supplier.tt:103
 #: koha-tmpl/intranet-tmpl/prog/en/modules/acqui/uncertainprice.tt:18
 #: koha-tmpl/intranet-tmpl/prog/en/modules/acqui/z3950_search.tt:23
-#: koha-tmpl/intranet-tmpl/prog/en/modules/authorities/authorities-home.tt:14
-#: koha-tmpl/intranet-tmpl/prog/en/modules/authorities/authorities.tt:191
-#: koha-tmpl/intranet-tmpl/prog/en/modules/authorities/detail.tt:23
-#: koha-tmpl/intranet-tmpl/prog/en/modules/authorities/merge.tt:22
-#: koha-tmpl/intranet-tmpl/prog/en/modules/authorities/searchresultlist.tt:16
 #: koha-tmpl/intranet-tmpl/prog/en/modules/admin/additional-fields.tt:23
 #: koha-tmpl/intranet-tmpl/prog/en/modules/admin/admin-home.tt:14
 #: koha-tmpl/intranet-tmpl/prog/en/modules/admin/adveditorshortcuts.tt:17
@@ -34692,6 +34679,11 @@ msgstr "Jährlich wiederholter Schließzeitraum"
 #: koha-tmpl/intranet-tmpl/prog/en/modules/admin/transport-cost-matrix.tt:22
 #: koha-tmpl/intranet-tmpl/prog/en/modules/admin/usage_statistics.tt:20
 #: koha-tmpl/intranet-tmpl/prog/en/modules/admin/z3950servers.tt:33
+#: koha-tmpl/intranet-tmpl/prog/en/modules/authorities/authorities-home.tt:14
+#: koha-tmpl/intranet-tmpl/prog/en/modules/authorities/authorities.tt:191
+#: koha-tmpl/intranet-tmpl/prog/en/modules/authorities/detail.tt:23
+#: koha-tmpl/intranet-tmpl/prog/en/modules/authorities/merge.tt:22
+#: koha-tmpl/intranet-tmpl/prog/en/modules/authorities/searchresultlist.tt:16
 #: koha-tmpl/intranet-tmpl/prog/en/modules/catalogue/ISBDdetail.tt:23
 #: koha-tmpl/intranet-tmpl/prog/en/modules/catalogue/MARCdetail.tt:24
 #: koha-tmpl/intranet-tmpl/prog/en/modules/catalogue/advsearch.tt:35
@@ -34801,8 +34793,8 @@ msgstr "Jährlich wiederholter Schließzeitraum"
 #: koha-tmpl/intranet-tmpl/prog/en/modules/pos/register.tt:22
 #: koha-tmpl/intranet-tmpl/prog/en/modules/pos/registers.tt:19
 #: koha-tmpl/intranet-tmpl/prog/en/modules/reports/acquisitions_stats.tt:14
-#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics.tt:15
-#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:18
+#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics.tt:18
+#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:21
 #: koha-tmpl/intranet-tmpl/prog/en/modules/reports/bor_issues_top.tt:17
 #: koha-tmpl/intranet-tmpl/prog/en/modules/reports/borrowers_out.tt:14
 #: koha-tmpl/intranet-tmpl/prog/en/modules/reports/borrowers_stats.tt:21
@@ -34811,7 +34803,7 @@ msgstr "Jährlich wiederholter Schließzeitraum"
 #: koha-tmpl/intranet-tmpl/prog/en/modules/reports/catalogue_out.tt:16
 #: koha-tmpl/intranet-tmpl/prog/en/modules/reports/catalogue_stats.tt:15
 #: koha-tmpl/intranet-tmpl/prog/en/modules/reports/dictionary.tt:26
-#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/fines_overviews.tt:17
+#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/fines_overviews.tt:19
 #: koha-tmpl/intranet-tmpl/prog/en/modules/reports/guided_reports_start.tt:63
 #: koha-tmpl/intranet-tmpl/prog/en/modules/reports/issues_avg_stats.tt:15
 #: koha-tmpl/intranet-tmpl/prog/en/modules/reports/issues_stats.tt:18
@@ -36777,7 +36769,7 @@ msgstr "Medien einfügen\\/bearbeiten"
 msgid "Insert\\/edit video"
 msgstr "Video einfügen\\/bearbeiten"
 
-#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:1586
+#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:1602
 #, c-format
 msgid ""
 "Insgesamt pro Woche verfügbare Arbeitsstunden im Durchschnitt, bezogen auf "
@@ -36905,7 +36897,7 @@ msgstr "Interner Fehler (Suche)"
 msgid "Internationalization and localization"
 msgstr "Internationalisierung und lokale Anpassung"
 
-#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:766
+#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:782
 #, c-format
 msgid "Internet-Angebot: WEB-OPAC / Internet-Katalog"
 msgstr "Internet-Angebot: WEB-OPAC / Internet-Katalog"
@@ -37822,11 +37814,11 @@ msgstr "Exemplarfelder können aktuell nicht gespeichert werden"
 #: koha-tmpl/intranet-tmpl/prog/en/modules/acqui/neworderempty.tt:301
 #: koha-tmpl/intranet-tmpl/prog/en/modules/acqui/orderreceive.tt:196
 #: koha-tmpl/intranet-tmpl/prog/en/modules/acqui/orderreceive.tt:239
-#: koha-tmpl/intranet-tmpl/prog/en/modules/basket/basket.tt:252
 #: koha-tmpl/intranet-tmpl/prog/en/modules/admin/itemtypes.tt:413
 #: koha-tmpl/intranet-tmpl/prog/en/modules/admin/smart-rules.tt:110
 #: koha-tmpl/intranet-tmpl/prog/en/modules/admin/smart-rules.tt:487
 #: koha-tmpl/intranet-tmpl/prog/en/modules/admin/smart-rules.tt:919
+#: koha-tmpl/intranet-tmpl/prog/en/modules/basket/basket.tt:252
 #: koha-tmpl/intranet-tmpl/prog/en/modules/catalogue/detail.tt:323
 #: koha-tmpl/intranet-tmpl/prog/en/modules/catalogue/itemsearch.tt:23
 #: koha-tmpl/intranet-tmpl/prog/en/modules/circ/article-requests.tt:124
@@ -37866,7 +37858,7 @@ msgstr "Exemplarfelder können aktuell nicht gespeichert werden"
 #: koha-tmpl/intranet-tmpl/prog/en/modules/tools/batch_extend_due_dates.tt:185
 #: koha-tmpl/intranet-tmpl/prog/en/modules/tools/overduerules.tt:226
 #: koha-tmpl/intranet-tmpl/prog/en/modules/virtualshelves/shelves.tt:225
-#: koha-tmpl/intranet-tmpl/prog/en/includes/cashregister-fines-overview.inc:267
+#: koha-tmpl/intranet-tmpl/prog/en/includes/cashregister-fines-overview.inc:273
 #: koha-tmpl/intranet-tmpl/prog/en/includes/checkouts-table.inc:19
 #: koha-tmpl/intranet-tmpl/prog/en/includes/relatives-issues-table.inc:11
 #, c-format
@@ -38209,17 +38201,17 @@ msgstr "JSON URL"
 msgid "JSZip"
 msgstr "JSZip"
 
-#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:1466
+#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:1482
 #, c-format
 msgid "Jahresöffnungsstunden"
 msgstr "Jahresöffnungsstunden"
 
-#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:151
+#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:167
 #, c-format
 msgid "Jahresöffnungsstunden für Open Library (servicefreie Zeit)"
 msgstr "Jahresöffnungsstunden für Open Library (servicefreie Zeit)"
 
-#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:143
+#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:159
 #, c-format
 msgid "Jahresöffnungsstunden mit Bibliothekspersonal"
 msgstr "Jahresöffnungsstunden mit Bibliothekspersonal"
@@ -38324,7 +38316,7 @@ msgstr "Blocksatz"
 msgid "Juvenile"
 msgstr "Jugendliche"
 
-#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:610
+#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:626
 #, c-format
 msgid "Jährliche Benutzungsgebühren"
 msgstr "Jährliche Benutzungsgebühren"
@@ -38502,11 +38494,6 @@ msgstr ""
 "Koha &rsaquo; Reports &rsaquo; Spezielle Auswertungen%s%s &rsaquo; "
 "Auswertung bearbeiten%s &rsaquo; Neue Auswertung hinzufügen%s%s%s &rsaquo; "
 "Auswertung hinzugefügt%s%s &rsaquo; Löschen bestätigen%s"
-
-#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/fines_overviews.tt:7
-#, c-format
-msgid "Koha &rsaquo; Reports &rsaquo; Fines overview"
-msgstr "Koha &rsaquo; Reports &rsaquo; Gebührenauswertungen"
 
 #: koha-tmpl/intranet-tmpl/prog/en/modules/tools/runBatchJob.tt:7
 #, c-format
@@ -38692,7 +38679,7 @@ msgstr "KohaAloha, Neuseeland"
 msgid "Kohala"
 msgstr "Kohala"
 
-#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:1116
+#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:1132
 #, c-format
 msgid "Kombinierte Fach- und Patientenbibliothek vorhanden"
 msgstr "Kombinierte Fach- und Patientenbibliothek vorhanden"
@@ -38899,7 +38886,7 @@ msgstr "Sprachen"
 msgid "Lao Anousak Anthony Souphavanh"
 msgstr "Lao Anousak Anthony Souphavanh"
 
-#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:1080
+#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:1096
 #, c-format
 msgid "Laptop-Einsatz auf Stationen (z.B. EDV-Ausleihe)"
 msgstr "Laptop-Einsatz auf Stationen (z.B. EDV-Ausleihe)"
@@ -39118,17 +39105,17 @@ msgstr ""
 msgid "Latina (Latin)"
 msgstr "Latina (Latein)"
 
-#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:482
+#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:498
 #, c-format
 msgid "Laufende Ausgaben insgesamt"
 msgstr "Laufende Ausgaben insgesamt"
 
-#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:428
+#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:444
 #, c-format
 msgid "Laufende Zeitungs- und Zeitschriftenabos in Printform"
 msgstr "Laufende Zeitungs- und Zeitschriftenabos in Printform"
 
-#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:436
+#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:452
 #, c-format
 msgid "Laufende Zeitungs- und Zeitschriftenabos in elektronischer Form"
 msgstr "Laufende Zeitungs- und Zeitschriftenabos in elektronischer Form"
@@ -39524,7 +39511,7 @@ msgstr "Bibliotheksdetails "
 #. %2$s:  ELSE
 #. %3$s:  selectedgroupname
 #. %4$s:  END
-#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:28
+#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:44
 #, c-format
 msgid "Library group:%s All library groups%s %s%s"
 msgstr "Gruppe:%s  Alle Gruppen%s %s%s"
@@ -39707,7 +39694,7 @@ msgstr "Bibliothek: %s &rArr; %s"
 #. %2$s:  ELSE
 #. %3$s:  selectedbranchname
 #. %4$s:  END
-#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:29
+#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:45
 #, c-format
 msgid "Library:%s All libraries%s %s%s"
 msgstr "Bibliothek:%s Alle Bibliotheken%s %s%s"
@@ -40050,7 +40037,7 @@ msgstr "Listen "
 msgid "Lists that include this title: "
 msgstr "Listen, auf denen dieser Titel steht: "
 
-#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:399
+#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:415
 #, c-format
 msgid "Lizenzierte virtuelle Plattformen, Dienste und Datenbanken"
 msgstr "Lizenzierte virtuelle Plattformen, Dienste und Datenbanken"
@@ -40890,7 +40877,7 @@ msgstr "Makros"
 msgid "Macros..."
 msgstr "Makros..."
 
-#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:303
+#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:319
 #, c-format
 msgid ""
 "Magazinbestand - Printmedien und Non-Print-Medien in physischen Einheiten"
@@ -41700,7 +41687,7 @@ msgstr ""
 msgid "Management date from:"
 msgstr "Bearbeitungsdatum von:"
 
-#: koha-tmpl/intranet-tmpl/prog/en/includes/cashregister-fines-overview.inc:471
+#: koha-tmpl/intranet-tmpl/prog/en/includes/cashregister-fines-overview.inc:478
 #, c-format
 msgid "Manager"
 msgstr "Mitarbeiter"
@@ -42109,7 +42096,7 @@ msgstr "Medienposter (Bild-URL)"
 msgid "Media..."
 msgstr "Medien..."
 
-#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:295
+#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:311
 #, c-format
 msgid ""
 "Medien in Freihandaufstellung bzw. im 'direkten Zugriff' insges. - "
@@ -42118,22 +42105,22 @@ msgstr ""
 "Medien in Freihandaufstellung bzw. im 'direkten Zugriff' insges. - "
 "Entleihungen"
 
-#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:287
+#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:303
 #, c-format
 msgid "Medien in Freihandaufstellung insges. - Bestand"
 msgstr "Medien in Freihandaufstellung insges. - Bestand"
 
-#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:271
+#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:287
 #, c-format
 msgid "Medien insgesamt - Entleihungen"
 msgstr "Medien insgesamt - Entleihungen"
 
-#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:263
+#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:279
 #, c-format
 msgid "Medien insgesamt - physischer Bestand"
 msgstr "Medien insgesamt - physischer Bestand"
 
-#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:1684
+#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:1700
 #, c-format
 msgid "Medienetat"
 msgstr "Medienetat"
@@ -42158,7 +42145,7 @@ msgstr "Mittelgrau"
 msgid "Medium Purple"
 msgstr "Mittellila"
 
-#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:1104
+#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:1120
 #, c-format
 msgid "Medizinische Fachbibliothek vorhanden"
 msgstr "Medizinische Fachbibliothek vorhanden"
@@ -42828,6 +42815,11 @@ msgstr "Ausgewählte Datensätze bearbeiten"
 msgid "Modify splitting rule"
 msgstr "Umbruchregel bearbeiten"
 
+#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics.tt:28
+#, c-format
+msgid "Modify statistics "
+msgstr "Auswertung ändern"
+
 #: koha-tmpl/intranet-tmpl/prog/en/modules/serials/subscription-add.tt:46
 #, c-format
 msgid "Modify subscription "
@@ -43127,52 +43119,52 @@ msgstr "Zugang mehrerer Hefte"
 msgid "Musical recording"
 msgstr "Musikaufnahme"
 
-#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:1240
+#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:1256
 #, c-format
 msgid "Musik-CDs - Bestand"
 msgstr "Musik-CDs - Bestand"
 
-#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:1248
+#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:1264
 #, c-format
 msgid "Musik-CDs - Entleihungen"
 msgstr "Musik-CDs - Entleihungen"
 
-#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:1304
+#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:1320
 #, c-format
 msgid "Musik-DVDs - Bestand"
 msgstr "Musik-DVDs - Bestand"
 
-#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:1312
+#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:1328
 #, c-format
 msgid "Musik-DVDs - Entleihungen"
 msgstr "Musik-DVDs - Entleihungen"
 
-#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:1256
+#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:1272
 #, c-format
 msgid "Musik-Kassetten - Bestand"
 msgstr "Musik-Kassetten - Bestand"
 
-#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:1264
+#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:1280
 #, c-format
 msgid "Musik-Kassetten - Entleihungen"
 msgstr "Musik-Kassetten - Entleihungen"
 
-#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:1288
+#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:1304
 #, c-format
 msgid "Musik-Videos (VHS) - Bestand"
 msgstr "Musik-Videos (VHS) - Bestand"
 
-#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:1296
+#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:1312
 #, c-format
 msgid "Musik-Videos (VHS) - Entleihungen"
 msgstr "Musik-Videos (VHS) - Entleihungen"
 
-#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:1320
+#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:1336
 #, c-format
 msgid "Musik-Zeitschriften - Bestand"
 msgstr "Musik-Zeitschriften - Bestand"
 
-#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:1328
+#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:1344
 #, c-format
 msgid "Musik-Zeitschriften - Entleihungen"
 msgstr "Musik-Zeitschriften - Entleihungen"
@@ -43289,8 +43281,8 @@ msgstr "NT"
 #: koha-tmpl/intranet-tmpl/prog/en/modules/patroncards/image-manage.tt:95
 #: koha-tmpl/intranet-tmpl/prog/en/modules/plugins/plugins-home.tt:77
 #: koha-tmpl/intranet-tmpl/prog/en/modules/plugins/plugins-home.tt:116
-#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics.tt:46
-#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics.tt:181
+#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics.tt:85
+#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics.tt:222
 #: koha-tmpl/intranet-tmpl/prog/en/modules/reports/dictionary.tt:131
 #: koha-tmpl/intranet-tmpl/prog/en/modules/reports/guided_reports_start.tt:2198
 #: koha-tmpl/intranet-tmpl/prog/en/modules/reports/guided_reports_start.tt:2225
@@ -43389,7 +43381,7 @@ msgstr "Neue Definition benennen "
 #: koha-tmpl/intranet-tmpl/prog/en/modules/clubs/templates-add-modify.tt:239
 #: koha-tmpl/intranet-tmpl/prog/en/modules/members/merge-patrons.tt:205
 #: koha-tmpl/intranet-tmpl/prog/en/modules/patron_lists/add-modify.tt:67
-#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics.tt:137
+#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics.tt:175
 #: koha-tmpl/intranet-tmpl/prog/en/modules/reports/dictionary.tt:296
 #: koha-tmpl/intranet-tmpl/prog/en/modules/serials/subscription-numberpatterns.tt:82
 #: koha-tmpl/intranet-tmpl/prog/en/modules/tools/letter.tt:400
@@ -43487,7 +43479,7 @@ msgstr ""
 "Benötigen Sie Hilfe? Für Hilfe mit der Vergabe von Berechtigungen lesen Sie "
 "bitte im %s Handbuch im entsprechenden Kapitel nach."
 
-#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:229
+#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:245
 #, c-format
 msgid "Neuanmeldungen"
 msgstr "Neuanmeldungen"
@@ -44099,7 +44091,7 @@ msgid "New splitting rule"
 msgstr "Neue Umbruchregel"
 
 #. %1$s:  selected_statisticstype_value
-#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics.tt:36
+#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics.tt:75
 #, c-format
 msgid "New statistics for %s"
 msgstr "Neue Auswertung für %s"
@@ -44591,7 +44583,7 @@ msgstr "Keine Änderung"
 
 #. For the first occurrence,
 #. SCRIPT
-#: koha-tmpl/intranet-tmpl/prog/en/includes/cashregister-fines-overview.inc:505
+#: koha-tmpl/intranet-tmpl/prog/en/includes/cashregister-fines-overview.inc:512
 #: koha-tmpl/intranet-tmpl/prog/en/includes/cashregister-payin-payout-overview.inc:301
 msgid "No changes during the selected period."
 msgstr "Keine Zahlvorgänge im ausgewählten Zeitraum."
@@ -44705,8 +44697,9 @@ msgstr "Keine E-Mail-Adresse gespeichert."
 msgid "No files found."
 msgstr "Keine Dateien gefunden."
 
-#. SCRIPT
-#: koha-tmpl/intranet-tmpl/prog/en/includes/cashregister-fines-overview.inc:505
+#: koha-tmpl/intranet-tmpl/prog/en/includes/cashregister-fines-overview.inc:182
+#: koha-tmpl/intranet-tmpl/prog/en/includes/cashregister-fines-overview.inc:512
+#, c-format
 msgid "No fines during the selected period."
 msgstr "Keine Gebühren im ausgewählten Zeitraum."
 
@@ -45005,7 +44998,7 @@ msgstr "Keine offenen Gebühren"
 
 #. For the first occurrence,
 #. SCRIPT
-#: koha-tmpl/intranet-tmpl/prog/en/includes/cashregister-fines-overview.inc:505
+#: koha-tmpl/intranet-tmpl/prog/en/includes/cashregister-fines-overview.inc:512
 #: koha-tmpl/intranet-tmpl/prog/en/includes/cashregister-payin-payout-overview.inc:99
 #, c-format
 msgid "No paid fines during the selected period."
@@ -45335,7 +45328,7 @@ msgstr "Nein, nicht löschen"
 #: koha-tmpl/intranet-tmpl/prog/en/modules/admin/systempreferences.tt:309
 #: koha-tmpl/intranet-tmpl/prog/en/modules/ill/ill-requests.tt:496
 #: koha-tmpl/intranet-tmpl/prog/en/modules/members/deletemem.tt:79
-#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics.tt:204
+#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics.tt:245
 #: koha-tmpl/intranet-tmpl/prog/en/modules/serials/serials-collection.tt:67
 #: koha-tmpl/intranet-tmpl/prog/en/modules/serials/subscription-frequencies.tt:130
 #: koha-tmpl/intranet-tmpl/prog/en/modules/serials/subscription-numberpatterns.tt:280
@@ -45430,14 +45423,14 @@ msgstr "Vormerkung ohne Priorität"
 msgid "Non priority hold:"
 msgstr "Vormerkung ohne Priorität:"
 
-#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:343
-#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:1506
+#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:359
+#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:1522
 #, c-format
 msgid "Non-Prints und Sonstiges - Bestand"
 msgstr "Non-Prints und Sonstiges - Bestand"
 
-#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:351
-#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:1514
+#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:367
+#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:1530
 #, c-format
 msgid "Non-Prints und Sonstiges - Entleihungen"
 msgstr "Non-Prints und Sonstiges - Entleihungen"
@@ -45933,12 +45926,12 @@ msgstr ""
 msgid "Note: one of the two following fields must be equal to 1"
 msgstr "Hinweis: eines der beiden folgenden Felder muss 1 sein"
 
-#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:1208
+#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:1224
 #, c-format
 msgid "Noten - Bestand"
 msgstr "Noten - Bestand"
 
-#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:1216
+#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:1232
 #, c-format
 msgid "Noten - Entleihungen"
 msgstr "Noten - Entleihungen"
@@ -45946,8 +45939,8 @@ msgstr "Noten - Entleihungen"
 #: koha-tmpl/intranet-tmpl/prog/en/modules/acqui/neworderempty.tt:303
 #: koha-tmpl/intranet-tmpl/prog/en/modules/acqui/orderreceive.tt:198
 #: koha-tmpl/intranet-tmpl/prog/en/modules/acqui/orderreceive.tt:241
-#: koha-tmpl/intranet-tmpl/prog/en/modules/basket/basket.tt:153
 #: koha-tmpl/intranet-tmpl/prog/en/modules/admin/branches.tt:349
+#: koha-tmpl/intranet-tmpl/prog/en/modules/basket/basket.tt:153
 #: koha-tmpl/intranet-tmpl/prog/en/modules/catalogue/results.tt:378
 #: koha-tmpl/intranet-tmpl/prog/en/modules/catalogue/results.tt:379
 #: koha-tmpl/intranet-tmpl/prog/en/modules/circ/view_holdsqueue.tt:86
@@ -46466,12 +46459,12 @@ msgstr "Nummerierungsmuster "
 msgid "Numbering patterns &rsaquo; Serials &rsaquo; Koha"
 msgstr "Nummerierungsmuster &rsaquo; Zeitschriften &rsaquo; Koha"
 
-#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:444
+#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:460
 #, c-format
 msgid "Nutzen Sie Austausch-,Blockbestände?"
 msgstr "Nutzen Sie Austausch-,Blockbestände?"
 
-#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:407
+#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:423
 #, c-format
 msgid "Nutzung lizenzierter virtueller Plattformen (Anzahl der Logins)"
 msgstr "Nutzung lizenzierter virtueller Plattformen (Anzahl der Logins)"
@@ -48061,13 +48054,13 @@ msgstr "Seiten"
 msgid "Pages:"
 msgstr "Seiten:"
 
-#: koha-tmpl/intranet-tmpl/prog/en/includes/cashregister-fines-overview.inc:388
+#: koha-tmpl/intranet-tmpl/prog/en/includes/cashregister-fines-overview.inc:395
 #: koha-tmpl/intranet-tmpl/prog/en/includes/cashregister-payin-payout-overview.inc:206
 #, c-format
 msgid "Paid account management fee by borrower category"
 msgstr "Übersicht der eingenommener Benutzungsgebühren nach Benutzerkategorie"
 
-#: koha-tmpl/intranet-tmpl/prog/en/includes/cashregister-fines-overview.inc:415
+#: koha-tmpl/intranet-tmpl/prog/en/includes/cashregister-fines-overview.inc:422
 #, c-format
 msgid "Paid account management fee by borrower town"
 msgstr ""
@@ -48080,12 +48073,12 @@ msgstr ""
 msgid "Paid fines by account"
 msgstr "Übersicht beglichener Gebühren nach Kontozuordnung"
 
-#: koha-tmpl/intranet-tmpl/prog/en/includes/cashregister-fines-overview.inc:182
+#: koha-tmpl/intranet-tmpl/prog/en/includes/cashregister-fines-overview.inc:186
 #, c-format
 msgid "Paid fines overview by fine type"
 msgstr "Übersicht beglichener Gebühren nach Gebührenart"
 
-#: koha-tmpl/intranet-tmpl/prog/en/includes/cashregister-fines-overview.inc:261
+#: koha-tmpl/intranet-tmpl/prog/en/includes/cashregister-fines-overview.inc:267
 #, c-format
 msgid "Paid fines overview by fine type and item type"
 msgstr "Übersicht beglichener Gebühren nach Gebührenart und Medientyp"
@@ -48125,7 +48118,7 @@ msgstr "Systemparameter gelöscht "
 msgid "Parameter label: "
 msgstr "Beschreibung: "
 
-#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics.tt:79
+#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics.tt:118
 #: koha-tmpl/intranet-tmpl/prog/en/modules/tools/inventory.tt:85
 #, c-format
 msgid "Parameters"
@@ -49229,7 +49222,7 @@ msgstr "Heimatbibliothek des Benutzers: (%s / %s) "
 msgid "Patron's record has guaranteed accounts attached."
 msgstr "Der Benutzer bürgt für andere Benutzer."
 
-#: koha-tmpl/intranet-tmpl/prog/en/includes/cashregister-fines-overview.inc:469
+#: koha-tmpl/intranet-tmpl/prog/en/includes/cashregister-fines-overview.inc:476
 #: koha-tmpl/intranet-tmpl/prog/en/includes/cashregister-payin-payout-overview.inc:263
 #, c-format
 msgid "Patron/Barcode"
@@ -49507,8 +49500,8 @@ msgid "Pay selected"
 msgstr "Ausgewählte bezahlen"
 
 #: koha-tmpl/intranet-tmpl/prog/en/includes/accounts.inc:70
-#: koha-tmpl/intranet-tmpl/prog/en/includes/cashregister-fines-overview.inc:196
-#: koha-tmpl/intranet-tmpl/prog/en/includes/cashregister-fines-overview.inc:278
+#: koha-tmpl/intranet-tmpl/prog/en/includes/cashregister-fines-overview.inc:200
+#: koha-tmpl/intranet-tmpl/prog/en/includes/cashregister-fines-overview.inc:284
 #: koha-tmpl/intranet-tmpl/prog/en/includes/cashregister-payin-payout-overview.inc:120
 #: koha-tmpl/intranet-tmpl/prog/en/includes/cashregister-payin-payout-overview.inc:129
 #, c-format
@@ -49530,11 +49523,11 @@ msgstr "Zahlungsgrund: "
 msgid "Payment received: "
 msgstr "Eingezahlt: "
 
-#: koha-tmpl/intranet-tmpl/prog/en/includes/cashregister-fines-overview.inc:186
-#: koha-tmpl/intranet-tmpl/prog/en/includes/cashregister-fines-overview.inc:265
-#: koha-tmpl/intranet-tmpl/prog/en/includes/cashregister-fines-overview.inc:357
-#: koha-tmpl/intranet-tmpl/prog/en/includes/cashregister-fines-overview.inc:392
-#: koha-tmpl/intranet-tmpl/prog/en/includes/cashregister-fines-overview.inc:419
+#: koha-tmpl/intranet-tmpl/prog/en/includes/cashregister-fines-overview.inc:190
+#: koha-tmpl/intranet-tmpl/prog/en/includes/cashregister-fines-overview.inc:271
+#: koha-tmpl/intranet-tmpl/prog/en/includes/cashregister-fines-overview.inc:364
+#: koha-tmpl/intranet-tmpl/prog/en/includes/cashregister-fines-overview.inc:399
+#: koha-tmpl/intranet-tmpl/prog/en/includes/cashregister-fines-overview.inc:426
 #: koha-tmpl/intranet-tmpl/prog/en/includes/cashregister-payin-payout-overview.inc:91
 #: koha-tmpl/intranet-tmpl/prog/en/includes/cashregister-payin-payout-overview.inc:110
 #: koha-tmpl/intranet-tmpl/prog/en/includes/cashregister-payin-payout-overview.inc:210
@@ -49801,17 +49794,17 @@ msgstr "Berechtigungen (Code)"
 msgid "Permitted Staff"
 msgstr "Zugelassene Mitarbeiter"
 
-#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:1672
+#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:1688
 #, c-format
 msgid "Personal für Öffnung und/oder Veranstaltungen"
 msgstr "Personal für Öffnung und/oder Veranstaltungen"
 
-#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:648
+#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:664
 #, c-format
 msgid "Personalkapazität aller Beschäftigten (VZÄ)"
 msgstr "Personalkapazität aller Beschäftigten (VZÄ)"
 
-#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:696
+#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:712
 #, c-format
 msgid "Personalkapazität des ehrenamtl. Personals (VZÄ)"
 msgstr "Personalkapazität des ehrenamtl. Personals (VZÄ)"
@@ -49863,7 +49856,7 @@ msgstr "Physische Details:"
 msgid "Physical form designators"
 msgstr "Physisches Format"
 
-#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:279
+#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:295
 #, c-format
 msgid "Physische Medien insgesamt - Entleihungen"
 msgstr "Physische Medien insgesamt - Entleihungen"
@@ -50523,7 +50516,7 @@ msgstr ""
 "Bitte teilen Sie Ihr Muster mit allen Bibliotheken, wenn Sie fertig sind"
 
 #. SCRIPT
-#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics.tt:222
+#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics.tt:263
 msgid "Please fill in all required fields."
 msgstr "Bitte alle Pflichtfelder ausfüllen."
 
@@ -51410,7 +51403,7 @@ msgstr "Primärer Zeitschriftenkontakt:"
 #: koha-tmpl/intranet-tmpl/prog/en/modules/members/boraccount.tt:108
 #: koha-tmpl/intranet-tmpl/prog/en/modules/members/boraccount.tt:110
 #: koha-tmpl/intranet-tmpl/prog/en/modules/serials/routing-preview-slip.tt:39
-#: koha-tmpl/intranet-tmpl/prog/en/includes/cashregister-fines-overview.inc:505
+#: koha-tmpl/intranet-tmpl/prog/en/includes/cashregister-fines-overview.inc:512
 #: koha-tmpl/intranet-tmpl/prog/en/includes/cat-toolbar.inc:165
 #: koha-tmpl/intranet-tmpl/prog/en/includes/columns_settings.inc:4
 #: koha-tmpl/intranet-tmpl/prog/en/includes/modals/cashup_summary.inc:29
@@ -51624,14 +51617,14 @@ msgstr "Druckerprofil"
 msgid "Printer profiles"
 msgstr "Druckerprofile"
 
-#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:311
-#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:1482
+#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:327
+#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:1498
 #, c-format
 msgid "Printmedien insgesamt - Bestand"
 msgstr "Printmedien insgesamt - Bestand"
 
-#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:319
-#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:1498
+#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:335
+#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:1514
 #, c-format
 msgid "Printmedien insgesamt - Entleihungen"
 msgstr "Printmedien insgesamt - Entleihungen"
@@ -52056,8 +52049,8 @@ msgstr "Erscheinungsjahr: neuestes bis ältestes"
 msgid "Publication/Copyright date: oldest to newest"
 msgstr "Erscheinungsjahr: ältestes bis neuestes"
 
-#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:127
-#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:1458
+#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:143
+#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:1474
 #, c-format
 msgid "Publikumsfläche gesamt (m²)"
 msgstr "Publikumsfläche gesamt (m²)"
@@ -52446,7 +52439,7 @@ msgstr "RFID-Service Information"
 msgid "RFID-Tools"
 msgstr "RFID-Werkzeuge"
 
-#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:974
+#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:990
 #, c-format
 msgid "RFID-Verbuchung"
 msgstr "RFID-Verbuchung"
@@ -52542,7 +52535,7 @@ msgstr "RFID-Lesegerät Hersteller"
 #: koha-tmpl/intranet-tmpl/prog/en/modules/tools/batchMod-del.tt:267
 #: koha-tmpl/intranet-tmpl/prog/en/includes/cashregister-fines-overview.inc:31
 #: koha-tmpl/intranet-tmpl/prog/en/includes/cashregister-fines-overview.inc:59
-#: koha-tmpl/intranet-tmpl/prog/en/includes/cashregister-fines-overview.inc:358
+#: koha-tmpl/intranet-tmpl/prog/en/includes/cashregister-fines-overview.inc:365
 #: koha-tmpl/intranet-tmpl/prog/en/includes/cashregister-payin-payout-overview.inc:32
 #: koha-tmpl/intranet-tmpl/prog/en/includes/cashregister-payin-payout-overview.inc:60
 #, c-format
@@ -52594,7 +52587,7 @@ msgstr "Begründungen, warum ein Exemplar nicht entliehen werden kann"
 msgid "Reasons why an order might have been cancelled"
 msgstr "Begründungen für die Stornierung einer Bestellung"
 
-#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:35
+#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:51
 #, c-format
 msgid "Recalculate"
 msgstr "Neuberechnen"
@@ -53273,13 +53266,13 @@ msgstr "Entferntes Bild:"
 #. SCRIPT
 #: koha-tmpl/intranet-tmpl/prog/en/modules/acqui/duplicate_orders.tt:317
 #: koha-tmpl/intranet-tmpl/prog/en/modules/acqui/histsearch.tt:153
-#: koha-tmpl/intranet-tmpl/prog/en/modules/basket/basket.tt:8
 #: koha-tmpl/intranet-tmpl/prog/en/modules/admin/aqbudgets.tt:326
 #: koha-tmpl/intranet-tmpl/prog/en/modules/admin/aqbudgets.tt:494
 #: koha-tmpl/intranet-tmpl/prog/en/modules/admin/koha2marclinks.tt:59
 #: koha-tmpl/intranet-tmpl/prog/en/modules/admin/library_groups.tt:260
 #: koha-tmpl/intranet-tmpl/prog/en/modules/admin/oai_sets.tt:87
 #: koha-tmpl/intranet-tmpl/prog/en/modules/admin/oai_sets.tt:163
+#: koha-tmpl/intranet-tmpl/prog/en/modules/basket/basket.tt:8
 #: koha-tmpl/intranet-tmpl/prog/en/modules/course_reserves/course-details.tt:272
 #: koha-tmpl/intranet-tmpl/prog/en/modules/course_reserves/course.tt:173
 #: koha-tmpl/intranet-tmpl/prog/en/modules/members/memberentrygen.tt:503
@@ -53852,7 +53845,7 @@ msgstr "Reportname: "
 
 #. %1$s:  startdate | $KohaDates
 #. %2$s:  enddate | $KohaDates
-#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:27
+#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:43
 #, c-format
 msgid "Report period: %s - %s"
 msgstr "Berichtszeitraum: %s - %s"
@@ -53889,8 +53882,8 @@ msgstr "Hinweis am %s"
 #: koha-tmpl/intranet-tmpl/prog/en/modules/intranet-main.tt:126
 #: koha-tmpl/intranet-tmpl/prog/en/modules/admin/columns_settings.tt:277
 #: koha-tmpl/intranet-tmpl/prog/en/modules/reports/acquisitions_stats.tt:17
-#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics.tt:15
-#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:18
+#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics.tt:21
+#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:24
 #: koha-tmpl/intranet-tmpl/prog/en/modules/reports/bor_issues_top.tt:20
 #: koha-tmpl/intranet-tmpl/prog/en/modules/reports/borrowers_out.tt:17
 #: koha-tmpl/intranet-tmpl/prog/en/modules/reports/borrowers_stats.tt:24
@@ -53899,7 +53892,7 @@ msgstr "Hinweis am %s"
 #: koha-tmpl/intranet-tmpl/prog/en/modules/reports/catalogue_out.tt:19
 #: koha-tmpl/intranet-tmpl/prog/en/modules/reports/catalogue_stats.tt:18
 #: koha-tmpl/intranet-tmpl/prog/en/modules/reports/dictionary.tt:29
-#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/fines_overviews.tt:18
+#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/fines_overviews.tt:22
 #: koha-tmpl/intranet-tmpl/prog/en/modules/reports/guided_reports_start.tt:66
 #: koha-tmpl/intranet-tmpl/prog/en/modules/reports/issues_avg_stats.tt:18
 #: koha-tmpl/intranet-tmpl/prog/en/modules/reports/issues_stats.tt:21
@@ -54064,7 +54057,6 @@ msgstr "Require.js JS module system"
 #: koha-tmpl/intranet-tmpl/prog/en/modules/acqui/neworderempty.tt:391
 #: koha-tmpl/intranet-tmpl/prog/en/modules/acqui/neworderempty.tt:756
 #: koha-tmpl/intranet-tmpl/prog/en/modules/acqui/supplier.tt:163
-#: koha-tmpl/intranet-tmpl/prog/en/modules/authorities/authorities.tt:453
 #: koha-tmpl/intranet-tmpl/prog/en/modules/admin/additional-fields.tt:170
 #: koha-tmpl/intranet-tmpl/prog/en/modules/admin/aqbudgetperiods.tt:193
 #: koha-tmpl/intranet-tmpl/prog/en/modules/admin/aqbudgetperiods.tt:200
@@ -54133,6 +54125,7 @@ msgstr "Require.js JS module system"
 #: koha-tmpl/intranet-tmpl/prog/en/modules/admin/z3950servers.tt:101
 #: koha-tmpl/intranet-tmpl/prog/en/modules/admin/z3950servers.tt:106
 #: koha-tmpl/intranet-tmpl/prog/en/modules/admin/z3950servers.tt:108
+#: koha-tmpl/intranet-tmpl/prog/en/modules/authorities/authorities.tt:453
 #: koha-tmpl/intranet-tmpl/prog/en/modules/cataloguing/addbiblio.tt:1089
 #: koha-tmpl/intranet-tmpl/prog/en/modules/cataloguing/additem.tt:234
 #: koha-tmpl/intranet-tmpl/prog/en/modules/clubs/clubs-add-modify.tt:66
@@ -54140,9 +54133,9 @@ msgstr "Require.js JS module system"
 #: koha-tmpl/intranet-tmpl/prog/en/modules/course_reserves/course.tt:60
 #: koha-tmpl/intranet-tmpl/prog/en/modules/course_reserves/course.tt:66
 #: koha-tmpl/intranet-tmpl/prog/en/modules/course_reserves/course.tt:77
+#: koha-tmpl/intranet-tmpl/prog/en/modules/ill/ill-requests.tt:792
 #: koha-tmpl/intranet-tmpl/prog/en/modules/installer/step1.tt:63
 #: koha-tmpl/intranet-tmpl/prog/en/modules/installer/step1.tt:75
-#: koha-tmpl/intranet-tmpl/prog/en/modules/ill/ill-requests.tt:792
 #: koha-tmpl/intranet-tmpl/prog/en/modules/members/boraccount.tt:231
 #: koha-tmpl/intranet-tmpl/prog/en/modules/members/boraccount.tt:288
 #: koha-tmpl/intranet-tmpl/prog/en/modules/members/boraccount.tt:340
@@ -54184,6 +54177,7 @@ msgstr "Require.js JS module system"
 #: koha-tmpl/intranet-tmpl/prog/en/modules/members/memberentrygen.tt:1154
 #: koha-tmpl/intranet-tmpl/prog/en/modules/members/memberentrygen.tt:1211
 #: koha-tmpl/intranet-tmpl/prog/en/modules/members/memberentrygen.tt:1420
+#: koha-tmpl/intranet-tmpl/prog/en/modules/offline_circ/process_koc.tt:68
 #: koha-tmpl/intranet-tmpl/prog/en/modules/onboarding/onboardingstep1.tt:24
 #: koha-tmpl/intranet-tmpl/prog/en/modules/onboarding/onboardingstep1.tt:29
 #: koha-tmpl/intranet-tmpl/prog/en/modules/onboarding/onboardingstep2.tt:36
@@ -54206,14 +54200,13 @@ msgstr "Require.js JS module system"
 #: koha-tmpl/intranet-tmpl/prog/en/modules/onboarding/onboardingstep5.tt:99
 #: koha-tmpl/intranet-tmpl/prog/en/modules/onboarding/onboardingstep5.tt:104
 #: koha-tmpl/intranet-tmpl/prog/en/modules/onboarding/onboardingstep5.tt:110
-#: koha-tmpl/intranet-tmpl/prog/en/modules/offline_circ/process_koc.tt:68
 #: koha-tmpl/intranet-tmpl/prog/en/modules/pos/pay.tt:130
 #: koha-tmpl/intranet-tmpl/prog/en/modules/pos/pay.tt:146
 #: koha-tmpl/intranet-tmpl/prog/en/modules/pos/register.tt:307
-#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics.tt:143
-#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics.tt:148
-#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics.tt:154
-#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics.tt:160
+#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics.tt:181
+#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics.tt:186
+#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics.tt:192
+#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics.tt:198
 #: koha-tmpl/intranet-tmpl/prog/en/modules/reports/guided_reports_start.tt:779
 #: koha-tmpl/intranet-tmpl/prog/en/modules/reports/guided_reports_start.tt:1111
 #: koha-tmpl/intranet-tmpl/prog/en/modules/reports/guided_reports_start.tt:1157
@@ -54391,7 +54384,7 @@ msgstr "Filter zurücksetzen"
 msgid "Reset mappings"
 msgstr "Mappings zurücksetzen"
 
-#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:38
+#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:54
 #, c-format
 msgid "Reset values"
 msgstr "Werte zurücksetzen"
@@ -54836,8 +54829,8 @@ msgstr "Einnahmen und Ausgaben"
 msgid "Revenues and expenditures overview: %s (%s%s - %s%s)"
 msgstr "Übersicht der Einnahmen und Ausgaben: %s (%s%s - %s%s)"
 
-#: koha-tmpl/intranet-tmpl/prog/en/includes/cashregister-fines-overview.inc:207
-#: koha-tmpl/intranet-tmpl/prog/en/includes/cashregister-fines-overview.inc:293
+#: koha-tmpl/intranet-tmpl/prog/en/includes/cashregister-fines-overview.inc:211
+#: koha-tmpl/intranet-tmpl/prog/en/includes/cashregister-fines-overview.inc:299
 #: koha-tmpl/intranet-tmpl/prog/en/includes/cashregister-payin-payout-overview.inc:140
 #: koha-tmpl/intranet-tmpl/prog/en/includes/cashregister-payin-payout-overview.inc:149
 #, c-format
@@ -55441,8 +55434,6 @@ msgstr "Samstags"
 #: koha-tmpl/intranet-tmpl/prog/en/modules/acqui/supplier.tt:151
 #: koha-tmpl/intranet-tmpl/prog/en/modules/acqui/supplier.tt:309
 #: koha-tmpl/intranet-tmpl/prog/en/modules/acqui/uncertainprice.tt:153
-#: koha-tmpl/intranet-tmpl/prog/en/modules/authorities/authorities.tt:250
-#: koha-tmpl/intranet-tmpl/prog/en/modules/basket/downloadcart.tt:28
 #: koha-tmpl/intranet-tmpl/prog/en/modules/admin/additional-fields.tt:201
 #: koha-tmpl/intranet-tmpl/prog/en/modules/admin/aqbudgetperiods.tt:236
 #: koha-tmpl/intranet-tmpl/prog/en/modules/admin/aqbudgetperiods.tt:310
@@ -55476,6 +55467,8 @@ msgstr "Samstags"
 #: koha-tmpl/intranet-tmpl/prog/en/modules/admin/systempreferences.tt:446
 #: koha-tmpl/intranet-tmpl/prog/en/modules/admin/transport-cost-matrix.tt:99
 #: koha-tmpl/intranet-tmpl/prog/en/modules/admin/z3950servers.tt:187
+#: koha-tmpl/intranet-tmpl/prog/en/modules/authorities/authorities.tt:250
+#: koha-tmpl/intranet-tmpl/prog/en/modules/basket/downloadcart.tt:28
 #: koha-tmpl/intranet-tmpl/prog/en/modules/cataloguing/addbiblio.tt:795
 #: koha-tmpl/intranet-tmpl/prog/en/modules/cataloguing/addbiblio.tt:799
 #: koha-tmpl/intranet-tmpl/prog/en/modules/cataloguing/addbiblio.tt:812
@@ -55499,7 +55492,7 @@ msgstr "Samstags"
 #: koha-tmpl/intranet-tmpl/prog/en/modules/patroncards/edit-layout.tt:473
 #: koha-tmpl/intranet-tmpl/prog/en/modules/patroncards/edit-profile.tt:110
 #: koha-tmpl/intranet-tmpl/prog/en/modules/patroncards/edit-template.tt:162
-#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:41
+#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:57
 #: koha-tmpl/intranet-tmpl/prog/en/modules/reports/dictionary.tt:324
 #: koha-tmpl/intranet-tmpl/prog/en/modules/serials/routing.tt:114
 #: koha-tmpl/intranet-tmpl/prog/en/modules/serials/serials-edit.tt:452
@@ -55771,12 +55764,12 @@ msgstr "Registersuche:"
 msgid "Scan indexes:"
 msgstr "Indexe durchsuchen:"
 
-#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:1272
+#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:1288
 #, c-format
 msgid "Schallplatten (Vinyl) - Bestand"
 msgstr "Schallplatten (Vinyl) - Bestand"
 
-#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:1280
+#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:1296
 #, c-format
 msgid "Schallplatten (Vinyl) - Entleihungen"
 msgstr "Schallplatten (Vinyl) - Entleihungen"
@@ -55808,7 +55801,7 @@ msgstr "Zeitplaner für auszuführende Aufgaben verwenden "
 msgid "School"
 msgstr "Schule"
 
-#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:950
+#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:966
 #, c-format
 msgid "Schulbibliothekarische Dienstleistungen"
 msgstr "Schulbibliothekarische Dienstleistungen"
@@ -56886,7 +56879,7 @@ msgstr "Liste auswählen"
 msgid "Select a list of records"
 msgstr "Eine Liste von Datensätzen auswählen"
 
-#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics.tt:25
+#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics.tt:64
 #, c-format
 msgid "Select a statistics type: "
 msgstr "Art der Auswertung:"
@@ -56916,11 +56909,11 @@ msgstr "Zeit wählen"
 #: koha-tmpl/intranet-tmpl/prog/en/modules/acqui/addorderiso2709.tt:51
 #: koha-tmpl/intranet-tmpl/prog/en/modules/acqui/duplicate_orders.tt:144
 #: koha-tmpl/intranet-tmpl/prog/en/modules/acqui/z3950_search.tt:104
-#: koha-tmpl/intranet-tmpl/prog/en/modules/basket/basket.tt:6
 #: koha-tmpl/intranet-tmpl/prog/en/modules/admin/branch_transfer_limits.tt:47
 #: koha-tmpl/intranet-tmpl/prog/en/modules/admin/branch_transfer_limits.tt:66
 #: koha-tmpl/intranet-tmpl/prog/en/modules/admin/preferences.tt:225
 #: koha-tmpl/intranet-tmpl/prog/en/modules/admin/preferences.tt:259
+#: koha-tmpl/intranet-tmpl/prog/en/modules/basket/basket.tt:6
 #: koha-tmpl/intranet-tmpl/prog/en/modules/catalogue/detail.tt:303
 #: koha-tmpl/intranet-tmpl/prog/en/modules/catalogue/results.tt:82
 #: koha-tmpl/intranet-tmpl/prog/en/modules/cataloguing/z3950_auth_search.tt:54
@@ -58798,17 +58791,17 @@ msgstr ""
 "Etwas ist schief gelaufen. Es kein kein neues Nummerierungsmuster angelegt "
 "werden."
 
-#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:1336
+#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:1352
 #, c-format
 msgid "Sonstige - Bestand"
 msgstr "Sonstige - Bestand"
 
-#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:1344
+#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:1360
 #, c-format
 msgid "Sonstige - Entleihungen"
 msgstr "Sonstige - Entleihungen"
 
-#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:966
+#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:982
 #, c-format
 msgid "Sonstige vertraglich geregelte Dienstleistungen"
 msgstr "Sonstige vertraglich geregelte Dienstleistungen"
@@ -58990,7 +58983,7 @@ msgstr "South Taranaki District Council, Neuseeland"
 msgid "South-East Kansas Library System (SEKLS), USA"
 msgstr "South-East Kansas Library System (SEKLS), USA"
 
-#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:850
+#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:866
 #, c-format
 msgid "Soziale Bibliotheksarbeit"
 msgstr "Soziale Bibliotheksarbeit"
@@ -59369,7 +59362,7 @@ msgstr "Standardnummer"
 msgid "Standard number:"
 msgstr "Standardnummer:"
 
-#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics.tt:128
+#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics.tt:166
 #, c-format
 msgid "Standard parameters"
 msgstr "Standardparameter"
@@ -59590,7 +59583,7 @@ msgstr "Statistik für %s"
 msgid "Statistics for %s "
 msgstr "Statistiken für %s "
 
-#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics.tt:132
+#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics.tt:170
 #, c-format
 msgid "Statistics type:"
 msgstr "Art der Auswertung:"
@@ -59697,12 +59690,12 @@ msgstr "Status %s( %s%s %s %sVerloren%s %sBeschädigt%s %sAusgeschieden%s )%s"
 msgid "Std. Number"
 msgstr "Standardnr."
 
-#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:986
+#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:1002
 #, c-format
 msgid "Stellen Sie mobile Endgeräte zur Verfügung?"
 msgstr "Stellen Sie mobile Endgeräte zur Verfügung?"
 
-#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:632
+#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:648
 #, c-format
 msgid "Stellen laut Stellenplan"
 msgstr "Stellen laut Stellenplan"
@@ -60092,7 +60085,7 @@ msgstr "Schlagwörter:"
 #: koha-tmpl/intranet-tmpl/prog/en/modules/onboarding/onboardingstep5.tt:145
 #: koha-tmpl/intranet-tmpl/prog/en/modules/patron_lists/list.tt:109
 #: koha-tmpl/intranet-tmpl/prog/en/modules/reports/acquisitions_stats.tt:321
-#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics.tt:169
+#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics.tt:208
 #: koha-tmpl/intranet-tmpl/prog/en/modules/reports/bor_issues_top.tt:202
 #: koha-tmpl/intranet-tmpl/prog/en/modules/reports/borrowers_out.tt:127
 #: koha-tmpl/intranet-tmpl/prog/en/modules/reports/borrowers_stats.tt:310
@@ -60566,12 +60559,12 @@ msgstr "Anschaffungsvorschläge suchen:"
 #: koha-tmpl/intranet-tmpl/prog/en/modules/admin/searchengine/elasticsearch/mappings.tt:204
 #: koha-tmpl/intranet-tmpl/prog/en/modules/admin/searchengine/elasticsearch/mappings.tt:206
 #: koha-tmpl/intranet-tmpl/prog/en/includes/cashregister-fines-overview.inc:141
-#: koha-tmpl/intranet-tmpl/prog/en/includes/cashregister-fines-overview.inc:164
-#: koha-tmpl/intranet-tmpl/prog/en/includes/cashregister-fines-overview.inc:189
-#: koha-tmpl/intranet-tmpl/prog/en/includes/cashregister-fines-overview.inc:269
-#: koha-tmpl/intranet-tmpl/prog/en/includes/cashregister-fines-overview.inc:361
-#: koha-tmpl/intranet-tmpl/prog/en/includes/cashregister-fines-overview.inc:395
-#: koha-tmpl/intranet-tmpl/prog/en/includes/cashregister-fines-overview.inc:422
+#: koha-tmpl/intranet-tmpl/prog/en/includes/cashregister-fines-overview.inc:165
+#: koha-tmpl/intranet-tmpl/prog/en/includes/cashregister-fines-overview.inc:193
+#: koha-tmpl/intranet-tmpl/prog/en/includes/cashregister-fines-overview.inc:275
+#: koha-tmpl/intranet-tmpl/prog/en/includes/cashregister-fines-overview.inc:368
+#: koha-tmpl/intranet-tmpl/prog/en/includes/cashregister-fines-overview.inc:402
+#: koha-tmpl/intranet-tmpl/prog/en/includes/cashregister-fines-overview.inc:429
 #: koha-tmpl/intranet-tmpl/prog/en/includes/cashregister-payin-payout-overview.inc:94
 #: koha-tmpl/intranet-tmpl/prog/en/includes/cashregister-payin-payout-overview.inc:113
 #: koha-tmpl/intranet-tmpl/prog/en/includes/cashregister-payin-payout-overview.inc:213
@@ -60586,9 +60579,9 @@ msgstr "Summe"
 #: koha-tmpl/intranet-tmpl/prog/en/modules/acqui/parcel.tt:123
 #: koha-tmpl/intranet-tmpl/prog/en/modules/acqui/parcel.tt:157
 #: koha-tmpl/intranet-tmpl/prog/en/modules/acqui/transferorder.tt:70
+#: koha-tmpl/intranet-tmpl/prog/en/modules/admin/authtypes.tt:174
 #: koha-tmpl/intranet-tmpl/prog/en/modules/authorities/searchresultlist-auth.tt:45
 #: koha-tmpl/intranet-tmpl/prog/en/modules/authorities/searchresultlist.tt:47
-#: koha-tmpl/intranet-tmpl/prog/en/modules/admin/authtypes.tt:174
 #: koha-tmpl/intranet-tmpl/prog/en/modules/labels/label-edit-batch.tt:147
 #: koha-tmpl/intranet-tmpl/prog/en/modules/members/purchase-suggestions.tt:49
 #: koha-tmpl/intranet-tmpl/prog/en/modules/pos/register.tt:73
@@ -60977,7 +60970,7 @@ msgstr "GESAMT"
 msgid "TOTAL (all results)"
 msgstr "GESAMT (alle Ergebnisse)"
 
-#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:47
+#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:63
 #: koha-tmpl/intranet-tmpl/prog/en/includes/reports-toolbar.inc:98
 #, c-format
 msgid "Tab separated text"
@@ -61263,7 +61256,7 @@ msgstr "MWSt-Rate: "
 msgid "Technical reports"
 msgstr "Technische Berichte"
 
-#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:1016
+#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:1032
 #, c-format
 msgid "Teil eines Klinikverbundes"
 msgstr "Teil eines Klinikverbundes"
@@ -62006,7 +61999,7 @@ msgstr "Das Feld itemnum MUSS gemapped sein "
 msgid "The fields 'surname', 'branchcode', and 'categorycode' are "
 msgstr "Die Felder 'surname', 'branchcode' und 'categorycode' sind "
 
-#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:31
+#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:47
 #, c-format
 msgid "The fields marked with "
 msgstr "Statistikwerte, markiert mit  "
@@ -62154,7 +62147,7 @@ msgstr ""
 "Die folgende Übersicht listet Kassenauszahlungen (ohne Rückzahlungen an "
 "Leser) für die ausgewählte Zweigstelle im gewählten Zeitraum auf. "
 
-#: koha-tmpl/intranet-tmpl/prog/en/includes/cashregister-fines-overview.inc:457
+#: koha-tmpl/intranet-tmpl/prog/en/includes/cashregister-fines-overview.inc:464
 #, c-format
 msgid ""
 "The following payment overview lists detailed payments of the selected "
@@ -62900,7 +62893,7 @@ msgstr "Es wurden keine Gutschriftenarten definiert. "
 msgid "There are no account debit types defined. "
 msgstr "Es wurden keine Gebührenarten definiert. "
 
-#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics.tt:102
+#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics.tt:141
 #, c-format
 msgid "There are no aggregated statistics of this type."
 msgstr "Bisher wurden keine Statistiken dieses Typs erstellt."
@@ -63283,7 +63276,7 @@ msgstr ""
 msgid "There were %s barcodes that were too long."
 msgstr "Es gab %s Barcodes die zu lang sind."
 
-#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics.tt:104
+#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics.tt:143
 #, c-format
 msgid "There were no aggregated statistics created."
 msgstr "Bisher wurden keine Statistiken erzeugt."
@@ -64470,8 +64463,8 @@ msgstr "Titel"
 msgid "Titles tagged with the term "
 msgstr "Titel, getaggt mit Begriff "
 
-#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics.tt:49
-#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics.tt:184
+#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics.tt:88
+#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics.tt:225
 #: koha-tmpl/intranet-tmpl/prog/en/modules/reports/borrowers_stats.tt:182
 #: koha-tmpl/intranet-tmpl/prog/en/modules/reports/catalogue_stats.tt:114
 #: koha-tmpl/intranet-tmpl/prog/en/modules/reports/catalogue_stats.tt:152
@@ -64693,7 +64686,7 @@ msgstr ""
 #: koha-tmpl/intranet-tmpl/prog/en/modules/acqui/parcels.tt:207
 #: koha-tmpl/intranet-tmpl/prog/en/modules/circ/overdue.tt:160
 #: koha-tmpl/intranet-tmpl/prog/en/modules/labels/label-edit-range.tt:45
-#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics.tt:157
+#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics.tt:195
 #: koha-tmpl/intranet-tmpl/prog/en/modules/reports/cat_issues_top.tt:99
 #: koha-tmpl/intranet-tmpl/prog/en/modules/serials/claims.tt:97
 #: koha-tmpl/intranet-tmpl/prog/en/modules/suggestion/suggestion.tt:1122
@@ -64986,8 +64979,8 @@ msgstr "Gesamt"
 #: koha-tmpl/intranet-tmpl/prog/en/includes/cashregister-fines-macros.inc:74
 #: koha-tmpl/intranet-tmpl/prog/en/includes/cashregister-fines-overview.inc:45
 #: koha-tmpl/intranet-tmpl/prog/en/includes/cashregister-fines-overview.inc:73
-#: koha-tmpl/intranet-tmpl/prog/en/includes/cashregister-fines-overview.inc:251
-#: koha-tmpl/intranet-tmpl/prog/en/includes/cashregister-fines-overview.inc:339
+#: koha-tmpl/intranet-tmpl/prog/en/includes/cashregister-fines-overview.inc:255
+#: koha-tmpl/intranet-tmpl/prog/en/includes/cashregister-fines-overview.inc:345
 #: koha-tmpl/intranet-tmpl/prog/en/includes/cashregister-payin-payout-overview.inc:46
 #: koha-tmpl/intranet-tmpl/prog/en/includes/cashregister-payin-payout-overview.inc:74
 #: koha-tmpl/intranet-tmpl/prog/en/includes/cashregister-payin-payout-overview.inc:193
@@ -65131,8 +65124,8 @@ msgstr "Gebühren insgesamt:"
 msgid "Total due: %s"
 msgstr "Gebühren insgesamt: %s"
 
-#: koha-tmpl/intranet-tmpl/prog/en/includes/cashregister-fines-overview.inc:219
-#: koha-tmpl/intranet-tmpl/prog/en/includes/cashregister-fines-overview.inc:307
+#: koha-tmpl/intranet-tmpl/prog/en/includes/cashregister-fines-overview.inc:223
+#: koha-tmpl/intranet-tmpl/prog/en/includes/cashregister-fines-overview.inc:313
 #: koha-tmpl/intranet-tmpl/prog/en/includes/cashregister-payin-payout-overview.inc:161
 #, c-format
 msgid "Total fines paid "
@@ -65218,8 +65211,8 @@ msgstr "Zahlbar gesamt:"
 msgid "Total renewals"
 msgstr "Total Verlängerungen"
 
-#: koha-tmpl/intranet-tmpl/prog/en/includes/cashregister-fines-overview.inc:242
-#: koha-tmpl/intranet-tmpl/prog/en/includes/cashregister-fines-overview.inc:330
+#: koha-tmpl/intranet-tmpl/prog/en/includes/cashregister-fines-overview.inc:246
+#: koha-tmpl/intranet-tmpl/prog/en/includes/cashregister-fines-overview.inc:336
 #: koha-tmpl/intranet-tmpl/prog/en/includes/cashregister-payin-payout-overview.inc:184
 #, c-format
 msgid "Total reversed "
@@ -65279,7 +65272,7 @@ msgstr "Summe: %s "
 msgid "Totals:"
 msgstr "Gesamt:"
 
-#: koha-tmpl/intranet-tmpl/prog/en/includes/cashregister-fines-overview.inc:420
+#: koha-tmpl/intranet-tmpl/prog/en/includes/cashregister-fines-overview.inc:427
 #, c-format
 msgid "Town"
 msgstr "Ort"
@@ -65626,7 +65619,7 @@ msgstr "Türkis"
 #: koha-tmpl/intranet-tmpl/prog/en/modules/virtualshelves/shelves.tt:405
 #: koha-tmpl/intranet-tmpl/prog/en/modules/admin/searchengine/elasticsearch/mappings.tt:135
 #: koha-tmpl/intranet-tmpl/prog/en/includes/borrower_debarments.inc:9
-#: koha-tmpl/intranet-tmpl/prog/en/includes/cashregister-fines-overview.inc:359
+#: koha-tmpl/intranet-tmpl/prog/en/includes/cashregister-fines-overview.inc:366
 #: koha-tmpl/intranet-tmpl/prog/en/includes/ill-list-table.inc:17
 #: koha-tmpl/intranet-tmpl/prog/en/includes/mana/mana-report-search-result.inc:39
 #: koha-tmpl/intranet-tmpl/prog/en/includes/modals/cashup_summary.inc:17
@@ -66117,12 +66110,12 @@ msgstr "Unbekanntes Feld"
 msgid "Unlimited"
 msgstr "Unbegrenzt"
 
-#: koha-tmpl/intranet-tmpl/prog/en/includes/cashregister-fines-overview.inc:161
+#: koha-tmpl/intranet-tmpl/prog/en/includes/cashregister-fines-overview.inc:162
 #, c-format
 msgid "Unmapped fine type"
 msgstr "Nicht zugeordnete Gebührenart"
 
-#: koha-tmpl/intranet-tmpl/prog/en/includes/cashregister-fines-overview.inc:157
+#: koha-tmpl/intranet-tmpl/prog/en/includes/cashregister-fines-overview.inc:158
 #, c-format
 msgid "Unmapped paid fines (to above accounts)"
 msgstr "Nicht zugeordnete Gebühren (zu Konten)"
@@ -67455,7 +67448,7 @@ msgstr "Lieferant: "
 msgid "Vendor: %s"
 msgstr "Lieferant: %s"
 
-#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:878
+#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:894
 #, c-format
 msgid "Veranstaltungen, Führungen, Ausstellungen insgesamt"
 msgstr "Veranstaltungen, Führungen, Ausstellungen insgesamt"
@@ -67751,7 +67744,7 @@ msgstr "Ville de Victoriaville, Kanada"
 msgid "Virginia Tech, USA"
 msgstr "Virginia Tech, USA"
 
-#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:245
+#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:261
 #, c-format
 msgid "Virtuelle Besuche (visits) - Eingabe gesperrt"
 msgstr "Virtuelle Besuche (visits) - Eingabe gesperrt"
@@ -67817,7 +67810,7 @@ msgstr "Band:"
 msgid "WARNING:"
 msgstr "WARNUNG:"
 
-#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:1060
+#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:1076
 #, c-format
 msgid "Wagenausleihe"
 msgstr "Wagenausleihe"
@@ -68419,12 +68412,12 @@ msgstr "Ausgeschieden Status"
 msgid "Withdrawn status:"
 msgstr "Ausgeschieden Status:"
 
-#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:179
+#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:195
 #, c-format
 msgid "Wochenöffnungsstunden für Open Library (servicefreie Zeit)"
 msgstr "Wochenöffnungsstunden für Open Library (servicefreie Zeit)"
 
-#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:171
+#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:187
 #, c-format
 msgid "Wochenöffnungsstunden mit Bibliothekspersonal"
 msgstr "Wochenöffnungsstunden mit Bibliothekspersonal"
@@ -68754,7 +68747,7 @@ msgstr "Ja, schließen (Y)"
 #: koha-tmpl/intranet-tmpl/prog/en/modules/admin/systempreferences.tt:308
 #: koha-tmpl/intranet-tmpl/prog/en/modules/ill/ill-requests.tt:494
 #: koha-tmpl/intranet-tmpl/prog/en/modules/members/deletemem.tt:75
-#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics.tt:199
+#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics.tt:240
 #: koha-tmpl/intranet-tmpl/prog/en/modules/serials/serials-collection.tt:63
 #: koha-tmpl/intranet-tmpl/prog/en/modules/serials/subscription-frequencies.tt:127
 #: koha-tmpl/intranet-tmpl/prog/en/modules/serials/subscription-numberpatterns.tt:277
@@ -70043,32 +70036,32 @@ msgstr "Postleitzahl:"
 msgid "ZIP/Postal code: "
 msgstr "Postleitzahl: "
 
-#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:640
+#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:656
 #, c-format
 msgid "Zahl der Beschäftigten (Personen)"
 msgstr "Zahl der Beschäftigten (Personen)"
 
-#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:95
+#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:111
 #, c-format
 msgid "Zahl der Bibliotheken (Einrichtungen)"
 msgstr "Zahl der Bibliotheken (Einrichtungen)"
 
-#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:1138
+#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:1154
 #, c-format
 msgid "Zahl der Fahrzeuge"
 msgstr "Zahl der Fahrzeuge"
 
-#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:1158
+#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:1174
 #, c-format
 msgid "Zahl der Haltepunkte"
 msgstr "Zahl der Haltepunkte"
 
-#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:119
+#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:135
 #, c-format
 msgid "Zahl der externen Dienstleistungsstellen"
 msgstr "Zahl der externen Dienstleistungsstellen"
 
-#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:1394
+#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:1410
 #, c-format
 msgid "Zahl der zugeordneten Schulen"
 msgstr "Zahl der zugeordneten Schulen"
@@ -70104,12 +70097,12 @@ msgstr "Vergrößern"
 msgid "Zoom out"
 msgstr "Verkleinern"
 
-#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:391
+#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:407
 #, c-format
 msgid "Zugang an Medieneinheiten"
 msgstr "Zugang an Medieneinheiten"
 
-#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:1534
+#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:1550
 #, c-format
 msgid "Zugang zu E-Medien?"
 msgstr "Zugang zu E-Medien?"
@@ -73232,7 +73225,7 @@ msgstr "mit Benutzertyp:"
 msgid "width=device-width, initial-scale=1"
 msgstr "width=device-width, initial-scale=1"
 
-#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:31
+#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:47
 #, c-format
 msgid ""
 "will be overwritten by values selected from Koha when clicking on button "
@@ -73465,7 +73458,7 @@ msgstr "| Knoten: "
 msgid "| Status: %s "
 msgstr "| Status: %s "
 
-#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:1174
+#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_DBS.tt:1190
 #, c-format
 msgid "Öffnungsstunden pro Woche"
 msgstr "Öffnungsstunden pro Woche"
@@ -73572,9 +73565,6 @@ msgstr ""
 #~ msgstr ""
 #~ "%s &rsaquo; %sBearbeite%sNeue%s Theke%s &rsaquo; Löschen der Theke "
 #~ "bestätigen %s "
-
-#~ msgid "%s &rsaquo; Confirm deletion %s %s %s"
-#~ msgstr "%s &rsaquo; Löschen bestätigen %s %s %s"
 
 #~ msgid ""
 #~ "%s &rsaquo; Data deleted %s %s%s Framework %sDefault framework %s %s %s "
@@ -73888,6 +73878,10 @@ msgstr ""
 #~ msgid "&rsaquo; Add patrons"
 #~ msgstr "&rsaquo; Benutzer hinzufügen"
 
+#, fuzzy
+#~ msgid "&rsaquo; Add statistics "
+#~ msgstr "&rsaquo; Auswertung hinzufügen%s%s%s "
+
 #~ msgid "&rsaquo; Add suggestion %s %s "
 #~ msgstr "&rsaquo; Vorschlag hinzufügen %s %s "
 
@@ -73896,6 +73890,10 @@ msgstr ""
 
 #~ msgid "&rsaquo; Advanced search"
 #~ msgstr "&rsaquo; Erweiterte Suche"
+
+#, fuzzy
+#~ msgid "&rsaquo; Aggregated statistics added "
+#~ msgstr "&rsaquo; Auswertung hinzugefügt%s%s "
 
 #~ msgid "&rsaquo; Alert subscribers for "
 #~ msgstr "&rsaquo; Benachrichtige Abonnenten für "
@@ -73966,6 +73964,10 @@ msgstr ""
 #~ msgid "&rsaquo; Club enrollments"
 #~ msgstr "&rsaquo; Club-Anmeldungen"
 
+#, fuzzy
+#~ msgid "&rsaquo; Confirm deletion "
+#~ msgstr "%s &rsaquo; Löschen bestätigen %s %s %s"
+
 #~ msgid "&rsaquo; Confirm deletion of EAN %s &rsaquo; Library EANs %s "
 #~ msgstr ""
 #~ "&rsaquo; Löschen der EAN bestätigen EAN %s &rsaquo; Bibliotheks-EANs %s "
@@ -73982,6 +73984,9 @@ msgstr ""
 #~ msgid "&rsaquo; Confirm deletion of tag '%s' %s &rsaquo; "
 #~ msgstr "&rsaquo; Bestätige Löschen von Feld '%s' %s &rsaquo; "
 
+#~ msgid "&rsaquo; Confirm deletion%sAggregated statistics%s%s%s"
+#~ msgstr "&rsaquo; Löschen bestätigen%sSpezielle Auswertungen%s%s%s"
+
 #~ msgid "&rsaquo; Confirm holds "
 #~ msgstr "&rsaquo; Vormerkungen bestätigen"
 
@@ -73990,6 +73995,9 @@ msgstr ""
 
 #~ msgid "&rsaquo; Create stage %s &rsaquo; Manage items %s "
 #~ msgstr "&rsaquo; Station erstellen %s &rsaquo; Exemplare verwalten %s "
+
+#~ msgid "&rsaquo; DBS"
+#~ msgstr "&rsaquo; DBS"
 
 #~ msgid "&rsaquo; Data deleted %s "
 #~ msgstr "&rsaquo; Daten gelöscht %s "
@@ -75155,6 +75163,9 @@ msgstr ""
 #~ "Koha &rsaquo; Reports &rsaquo; Circulation statistics %s&rsaquo; Results%s"
 #~ msgstr ""
 #~ "Koha &rsaquo; Reports &rsaquo; Ausleihstatistiken %s&rsaquo; Ergebnisse%s"
+
+#~ msgid "Koha &rsaquo; Reports &rsaquo; Fines overview"
+#~ msgstr "Koha &rsaquo; Reports &rsaquo; Gebührenauswertungen"
 
 #~ msgid "Koha &rsaquo; Reports &rsaquo; Items with no checkouts"
 #~ msgstr "Koha &rsaquo; Reports &rsaquo; Medien ohne Ausleihen"
