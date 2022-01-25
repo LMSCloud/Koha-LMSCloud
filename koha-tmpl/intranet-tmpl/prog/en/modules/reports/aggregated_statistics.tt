@@ -20,25 +20,28 @@
         <li>
             <a href="/cgi-bin/koha/reports/reports-home.pl">Reports</a>
         </li>
+        <li>
+            <a href="/cgi-bin/koha/reports/aggregated_statistics.pl">Aggregated statistics</a>
+        </li>
         [% IF ( add_form or copy_form) %]
             [% IF ( modify ) %]
                 <li>
-                    <a href="/cgi-bin/koha/reports/aggregated_statistics.pl">Aggregated statistics</a> &rsaquo; Modify statistics
+                    Modify statistics
                 </li>
             [% ELSE %] 
                 <li>
-                    <a href="/cgi-bin/koha/reports/aggregated_statistics.pl">Aggregated statistics</a> &rsaquo; Add statistics
+                    Add statistics
                 </li>
             [% END %]
         [% ELSE %]
             [% IF ( add_validate or copy_validate) %] 
                 <li>
-                    <a href="/cgi-bin/reports/reports/aggregated_statistics.pl">Aggregated statistics</a> &rsaquo; Aggregated statistics added
+                    Aggregated statistics added
                 <li>
             [% ELSE %]
                 [% IF ( delete_confirm ) %] 
                     <li>
-                        <a href="/cgi-bin/koha/reports/aggregated_statistics.pl">Aggregated statistics</a> &rsaquo; Confirm deletion
+                        Confirm deletion
                     </li>
                 [% ELSE %]
                     <li>
