@@ -12,213 +12,251 @@
 [% INCLUDE 'header.inc' %]
 [% INCLUDE 'cat-search.inc' %]
 
-<div id="breadcrumbs"><a href="/cgi-bin/koha/mainpage.pl">Home</a> &rsaquo; <a href="/cgi-bin/koha/reports/reports-home.pl">Reports</a> &rsaquo; [% IF ( add_form or copy_form) %][% IF ( modify ) %]<a href="/cgi-bin/koha/reports/aggregated_statistics.pl">Aggregated statistics</a> &rsaquo; Modify statistics[% ELSE %] <a href="/cgi-bin/koha/reports/aggregated_statistics.pl">Aggregated statistics</a> &rsaquo; Add statistics[% END %][% ELSE %][% IF ( add_validate or copy_validate) %] <a href="/cgi-bin/reports/reports/aggregated_statistics.pl">Aggregated statistics</a> &rsaquo; Aggregated statistics added[% ELSE %][% IF ( delete_confirm ) %] <a href="/cgi-bin/koha/reports/aggregated_statistics.pl">Aggregated statistics</a> &rsaquo; Confirm deletion[% ELSE %]Aggregated statistics[% END %][% END %][% END %]</div>
-
-[% IF add_form or copy_form %]<div id="doc" class="yui-t7">[% ELSE %]<div id="doc3" class="yui-t2">[% END %]
-<div id="bd">
-  <div id="yui-main">
-	<div class="yui-b">
-
-[% IF ( no_op_set ) %]
-      <h1>Aggregated statistics</h1>
-      <form id="selectstatisticstype" method="get" action="/cgi-bin/koha/reports/aggregated_statistics.pl">
-        <p>
-          Select a statistics type:
-            <select name="statisticstype" id="astype" style="width:20em;">
-            [% FOREACH statisticstypeloo IN statisticstypeloop %]
-                [% IF ( statisticstypeloo.selected ) %][% selected_statisticstype_value = statisticstypeloo.type %]<option value="[% statisticstypeloo.type %]" selected="selected">[% statisticstypeloo.designation %]</option>[% ELSE %]<option value="[% statisticstypeloo.type %]">[% statisticstypeloo.designation %]</option>[% END %]
+<nav id="breadcrumbs" aria-label="Breadcrumb" class="breadcrumb">
+    <ol>
+        <li>
+            <a href="/cgi-bin/koha/mainpage.pl">Home</a>
+        </li>
+        <li>
+            <a href="/cgi-bin/koha/reports/reports-home.pl">Reports</a>
+        </li>
+        [% IF ( add_form or copy_form) %]
+            [% IF ( modify ) %]
+                <li>
+                    <a href="/cgi-bin/koha/reports/aggregated_statistics.pl">Aggregated statistics</a> &rsaquo; Modify statistics
+                </li>
+            [% ELSE %] 
+                <li>
+                    <a href="/cgi-bin/koha/reports/aggregated_statistics.pl">Aggregated statistics</a> &rsaquo; Add statistics
+                </li>
             [% END %]
-            </select>
-        </p>
-        <div id="toolbar" class="btn-toolbar">
-          <input type="hidden" id="op" name="op" value="add_form" >
-          <input type="hidden" name="statisticstype" value="[% selected_statisticstype_value %]" />
-          <button type="submit" class="btn btn-default btn-xs" id="newaggregatedstatistics"><i class="fa fa-plus"></i> New statistics for [% selected_statisticstype_value %]</button>
-        </div>
-      </form>
-
-      <h4>Available aggregated statistics</h4>
-
-      [% IF hits %]
-        <table id="hitstable">
-            <thead>
-              <tr>
-                <th>Name</th>
-                <th>Description</th>
-                <th class="title-string" >From</th>
-                <th class="title-string" >To</th>
-                <th class="nosort">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              [% FOREACH hit IN hits %]
-                <tr>
-                  <td>[% hit.name %]</td>
-                  <td>[% hit.description %]</td>
-                  <td><span title="[% hit.startdate %]">[% hit.startdate | $KohaDates %]</span></td>
-                  <td><span title="[% hit.enddate %]">[% hit.enddate | $KohaDates %]</span></td>
-
-                  <td class="actions">
-                      <form method="post" action="/cgi-bin/koha/reports/aggregated_statistics.pl">
-                        <input type="hidden" name="op" value="copy_form" />
-                        <input type="hidden" name="statisticstype" value="[% hit.type %]" />
-                        <input type="hidden" name="name" value="[% hit.name %]" />
-                        <input type="hidden" name="description" value="[% hit.description %]" />
-                        <input type="hidden" name="startdate" value="[% hit.startdate %]" />
-                        <input type="hidden" name="enddate" value="[% hit.enddate %]" />
-                        <button class="btn btn-default btn-xs"><i class="fa fa-clone"></i> Copy</button>
-                      </form>
-
-                      <form method="post" action="/cgi-bin/koha/reports/aggregated_statistics.pl">
-                        <input type="hidden" name="op" value="add_form" />
-                        <input type="hidden" name="statisticstype" value="[% selected_statisticstype_value %]" />
-                        <input type="hidden" name="name" value="[% hit.name %]" />
-                        <input type="hidden" name="description" value="[% hit.description %]" />
-                        <input type="hidden" name="startdate" value="[% hit.startdate %]" />
-                        <input type="hidden" name="enddate" value="[% hit.enddate %]" />
-                        <button class="btn btn-default btn-xs"><i class="fa fa-gears"></i> Parameters</button>
-                      </form>
-
-                      <a class="btn btn-default btn-xs" href="/cgi-bin/koha/reports/aggregated_statistics.pl?op=delete_confirm&amp;statisticstype=[% hit.type %]&amp;name=[% hit.name %]"><i class="fa fa-trash"></i> Delete</a>
-
-                      <form method="post" action="/cgi-bin/koha/reports/aggregated_statistics.pl">
-                        <input type="hidden" name="op" value="eval_form" />
-                        <input type="hidden" name="id" value="[% hit.id %]" />
-                        <input type="hidden" name="statisticstype" value="[% selected_statisticstype_value %]" />
-                        <input type="hidden" name="name" value="[% hit.name %]" />
-                        <input type="hidden" name="description" value="[% hit.description %]" />
-                        <input type="hidden" name="startdate" value="[% hit.startdate %]" />
-                        <input type="hidden" name="enddate" value="[% hit.enddate %]" />
-                        <button class="btn btn-default btn-xs"><i class="fa fa-pencil"></i> Edit</button>
-                      </form>
-                  </td>
-                </tr>
-              [% END %]
-            </tbody>
-        </table>
-      [% ELSE %]
-        <div class="dialog message">
-          [% IF ( statisticstype ) %]
-            <p>There are no aggregated statistics of this type.</p>
-          [% ELSE %]
-            <p>There were no aggregated statistics created.</p>
-          [% END %]
-        </div>
-      [% END %]
-[% END %]
-
-	
-[% IF add_form or copy_form %]
-      <h1>[% IF ( modify ) %]Modify aggregated statistics for [% statisticstype %][% ELSE %]Add aggregated statistics for [% statisticstype %][% END %]</h1>
-      <form id="add_aggregated_statistics" name="Aform" method="post" enctype="multipart/form-data" class="validate">
-        [% IF add_form %]
-          <input type="hidden" name="op" id="op" value="add_validate" />
         [% ELSE %]
-          <input type="hidden" name="op" id="op" value="copy_validate" />
+            [% IF ( add_validate or copy_validate) %] 
+                <li>
+                    <a href="/cgi-bin/reports/reports/aggregated_statistics.pl">Aggregated statistics</a> &rsaquo; Aggregated statistics added
+                <li>
+            [% ELSE %]
+                [% IF ( delete_confirm ) %] 
+                    <li>
+                        <a href="/cgi-bin/koha/reports/aggregated_statistics.pl">Aggregated statistics</a> &rsaquo; Confirm deletion
+                    </li>
+                [% ELSE %]
+                    <li>
+                        Aggregated statistics
+                    <li>
+                [% END %]
+            [% END %]
         [% END %]
-
-		<input type="hidden" name="checked" value="0" />
-		[% IF ( modify ) %]
-		  <input type="hidden" name="add" value="0" />
-		[% ELSE %]
-		  <input type="hidden" name="add" value="1" />
-		[% END %]
-
-		<fieldset class="rows">
-          <legend>Standard parameters</legend>
-          <input type="hidden" name="id" value="[% id %]" />
-          <ol>
-            <li>
-                <span class="label">Statistics type:</span>
-                <input type="hidden" id="astype" name="statisticstype" value="[% statisticstype %]" />
-                [% statisticstypedesignation %]
-            </li>
-            <li>
-              <label for="name" class="required">Name:</label>
-              [% IF adding OR copying %]
-                <input type="text" id="name" name="name" size="30" maxlength="250" value="" required="required"/>
-              [% ELSE %]
-                <input type="text" id="name" name="name" size="30" maxlength="250" value="[% name %]" required="required"/>
-              [% END %]
-              <span class="required">Required</span>
-            </li>
-            <li>
-              <label for="description" class="required">Description:</label>
-              <input type="text" id="description" name="description" size="70" maxlength="255" value="[% description %]" required="required" />
-              <span class="required">Required</span>
-            </li>
-            <li>
-              <label for="startdate" class="required">From:</label>
-              <input type="text"  class="datepicker" id="startdate" name="startdate" size="10" maxlength="10" value="[% startdate | $KohaDates %]" required="required" />
-                    <span class="hint">[% INCLUDE 'date-format.inc' %]</span>
-              <span class="required">Required</span>
-            </li>
-            <li>
-              <label for="enddate" class="required">To:</label>
-              <input type="text" class="datepicker" id="enddate" name="enddate" size="10" maxlength="10" value="[% enddate | $KohaDates %]" required="required" />
-                    <span class="hint">[% INCLUDE 'date-format.inc' %]</span>
-              <span class="required">Required</span>
-            </li>
-          </ol>
-        </fieldset>
-
-[% IF ( statisticstype == 'DBS' ) %]
-[% PROCESS 'aggregated-statistics-parameters-DBS.inc' %]
-[% END %]
-
-        <fieldset class="action"><input type="submit" id="submit_form" value="Submit" class="button" /> <a class="cancel" href="/cgi-bin/koha/reports/aggregated_statistics.pl?statisticstype=[% statisticstype %]">Cancel</a></fieldset>
-        <input type="hidden" name="searchfield" value="[% searchfield %]" />
-      </form>
-[% END %]
+    </ol>
+</nav>
 
 
-[% IF ( delete_confirm ) %]
-      <div class="dialog alert">
-        <h3>Delete aggregated statistics?</h3>
-        <table>
-            <thead>
-              <tr>
-                <th>Name</th>
-                <th>Description</th>
-                <th>From</th>
-                <th>To</th>
-              </tr>
-            </thead>
-            <tr>
-                <td>[% hit.name %]</td>
-                <td>[% hit.description %]</td>
-                <td>[% hit.startdate %]</td>
-                <td>[% hit.enddate %]</td>
-            </tr>
-        </table>
+<div class="main container-fluid">
+    <div class="row">
+        <div class="col-sm-10 col-sm-push-2">
+            <main>
+                [% IF ( no_op_set ) %]
+                    <h1>Aggregated statistics</h1>
+                    <form id="selectstatisticstype" method="get" action="/cgi-bin/koha/reports/aggregated_statistics.pl">
+                        <p>
+                            Select a statistics type:
+                            <select name="statisticstype" id="astype" style="width:20em;">
+                            [% FOREACH statisticstypeloo IN statisticstypeloop %]
+                                [% IF ( statisticstypeloo.selected ) %][% selected_statisticstype_value = statisticstypeloo.type %]<option value="[% statisticstypeloo.type %]" selected="selected">[% statisticstypeloo.designation %]</option>[% ELSE %]<option value="[% statisticstypeloo.type %]">[% statisticstypeloo.designation %]</option>[% END %]
+                            [% END %]
+                            </select>
+                        </p>
+                        <div id="toolbar" class="btn-toolbar">
+                            <input type="hidden" id="op" name="op" value="add_form" >
+                            <input type="hidden" name="statisticstype" value="[% selected_statisticstype_value %]" />
+                            <button type="submit" class="btn btn-default btn-xs" id="newaggregatedstatistics"><i class="fa fa-plus"></i> New statistics for [% selected_statisticstype_value %]</button>
+                        </div>
+                    </form>
 
-        <form action="[% action %]" method="post">
-            <input type="hidden" name="op" value="delete_confirmed">
-            <input type="hidden" name="statisticstype" value="[% hit.type %]" />
-            <input type="hidden" name="name" value="[% hit.name %]" />
-            <button type="submit" class="approve"><i class="fa fa-check"></i> Yes, delete</button>
-        </form>
+                    <h2>Available aggregated statistics</h4>
 
-        <form action="[% action %]" method="post">
-            <input type="hidden" name="statisticstype" value="[% hit.type %]" />
-            <button type="submit" class="deny"><i class="fa fa-times"></i> No, do not delete</button>
-        </form>
-      </div>
-[% END %]
+                    [% IF hits %]
+                        <table id="hitstable">
+                            <thead>
+                                <tr>
+                                    <th>Name</th>
+                                    <th>Description</th>
+                                    <th class="title-string" >From</th>
+                                    <th class="title-string" >To</th>
+                                    <th class="nosort">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                            [% FOREACH hit IN hits %]
+                                <tr>
+                                    <td>[% hit.name %]</td>
+                                    <td>[% hit.description %]</td>
+                                    <td><span title="[% hit.startdate %]">[% hit.startdate | $KohaDates %]</span></td>
+                                    <td><span title="[% hit.enddate %]">[% hit.enddate | $KohaDates %]</span></td>
 
+                                    <td class="actions">
+                                        <form method="post" action="/cgi-bin/koha/reports/aggregated_statistics.pl">
+                                            <input type="hidden" name="op" value="copy_form" />
+                                            <input type="hidden" name="statisticstype" value="[% hit.type %]" />
+                                            <input type="hidden" name="name" value="[% hit.name %]" />
+                                            <input type="hidden" name="description" value="[% hit.description %]" />
+                                            <input type="hidden" name="startdate" value="[% hit.startdate %]" />
+                                            <input type="hidden" name="enddate" value="[% hit.enddate %]" />
+                                            <button class="btn btn-default btn-xs"><i class="fa fa-clone"></i> Copy</button>
+                                        </form>
+
+                                        <form method="post" action="/cgi-bin/koha/reports/aggregated_statistics.pl">
+                                            <input type="hidden" name="op" value="add_form" />
+                                            <input type="hidden" name="statisticstype" value="[% selected_statisticstype_value %]" />
+                                            <input type="hidden" name="name" value="[% hit.name %]" />
+                                            <input type="hidden" name="description" value="[% hit.description %]" />
+                                            <input type="hidden" name="startdate" value="[% hit.startdate %]" />
+                                            <input type="hidden" name="enddate" value="[% hit.enddate %]" />
+                                            <button class="btn btn-default btn-xs"><i class="fa fa-gears"></i> Parameters</button>
+                                        </form>
+
+                                        <a class="btn btn-default btn-xs" href="/cgi-bin/koha/reports/aggregated_statistics.pl?op=delete_confirm&amp;statisticstype=[% hit.type %]&amp;name=[% hit.name %]"><i class="fa fa-trash"></i> Delete</a>
+
+                                        <form method="post" action="/cgi-bin/koha/reports/aggregated_statistics.pl">
+                                            <input type="hidden" name="op" value="eval_form" />
+                                            <input type="hidden" name="id" value="[% hit.id %]" />
+                                            <input type="hidden" name="statisticstype" value="[% selected_statisticstype_value %]" />
+                                            <input type="hidden" name="name" value="[% hit.name %]" />
+                                            <input type="hidden" name="description" value="[% hit.description %]" />
+                                            <input type="hidden" name="startdate" value="[% hit.startdate %]" />
+                                            <input type="hidden" name="enddate" value="[% hit.enddate %]" />
+                                            <button class="btn btn-default btn-xs"><i class="fa fa-pencil"></i> Edit</button>
+                                        </form>
+                                    </td>
+                                </tr>
+                            [% END %]
+                            </tbody>
+                        </table>
+                    [% ELSE %]
+                        <div class="dialog message">
+                            [% IF ( statisticstype ) %]
+                                <p>There are no aggregated statistics of this type.</p>
+                            [% ELSE %]
+                                <p>There were no aggregated statistics created.</p>
+                            [% END %]
+                        </div>
+                    [% END %]
+                [% END %]
+
+                [% IF add_form or copy_form %]
+                    <h1>[% IF ( modify ) %]Modify aggregated statistics for [% statisticstype %][% ELSE %]Add aggregated statistics for [% statisticstype %][% END %]</h1>
+                    <form id="add_aggregated_statistics" name="Aform" method="post" enctype="multipart/form-data" class="validate">
+                        [% IF add_form %]
+                            <input type="hidden" name="op" id="op" value="add_validate" />
+                        [% ELSE %]
+                            <input type="hidden" name="op" id="op" value="copy_validate" />
+                        [% END %]
+
+                        <input type="hidden" name="checked" value="0" />
+                        [% IF ( modify ) %]
+                            <input type="hidden" name="add" value="0" />
+                        [% ELSE %]
+                            <input type="hidden" name="add" value="1" />
+                        [% END %]
+
+                        <fieldset class="rows">
+                            <legend>Standard parameters</legend>
+                            <input type="hidden" name="id" value="[% id %]" />
+                            <ol>
+                                <li>
+                                    <span class="label">Statistics type:</span>
+                                    <input type="hidden" id="astype" name="statisticstype" value="[% statisticstype %]" />
+                                    [% statisticstypedesignation %]
+                                </li>
+                                <li>
+                                    <label for="name" class="required">Name:</label>
+                                    [% IF adding OR copying %]
+                                        <input type="text" id="name" name="name" size="30" maxlength="250" value="" required="required"/>
+                                    [% ELSE %]
+                                        <input type="text" id="name" name="name" size="30" maxlength="250" value="[% name %]" required="required"/>
+                                    [% END %]
+                                    <span class="required">Required</span>
+                                </li>
+                                <li>
+                                    <label for="description" class="required">Description:</label>
+                                    <input type="text" id="description" name="description" size="70" maxlength="255" value="[% description %]" required="required" />
+                                    <span class="required">Required</span>
+                                </li>
+                                <li>
+                                    <label for="startdate" class="required">From:</label>
+                                    <input type="text"  class="datepicker" id="startdate" name="startdate" size="10" maxlength="10" value="[% startdate | $KohaDates %]" required="required" />
+                                        <span class="hint">[% INCLUDE 'date-format.inc' %]</span>
+                                    <span class="required">Required</span>
+                                </li>
+                                <li>
+                                    <label for="enddate" class="required">To:</label>
+                                    <input type="text" class="datepicker" id="enddate" name="enddate" size="10" maxlength="10" value="[% enddate | $KohaDates %]" required="required" />
+                                        <span class="hint">[% INCLUDE 'date-format.inc' %]</span>
+                                    <span class="required">Required</span>
+                                </li>
+                            </ol>
+                        </fieldset>
+
+                        [% IF ( statisticstype == 'DBS' ) %]
+                        [% PROCESS 'aggregated-statistics-parameters-DBS.inc' %]
+                        [% END %]
+
+                        <fieldset class="action">
+                            <input type="submit" id="submit_form" value="Submit" class="button" /> 
+                            <a class="cancel" href="/cgi-bin/koha/reports/aggregated_statistics.pl?statisticstype=[% statisticstype %]">Cancel</a>
+                        </fieldset>
+                        <input type="hidden" name="searchfield" value="[% searchfield %]" />
+                    </form>
+                [% END %]
+
+
+                [% IF ( delete_confirm ) %]
+                    <div class="dialog alert">
+                        <h3>Delete aggregated statistics?</h3>
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Name</th>
+                                    <th>Description</th>
+                                    <th>From</th>
+                                    <th>To</th>
+                                </tr>
+                            </thead>
+                            <tr>
+                                <td>[% hit.name %]</td>
+                                <td>[% hit.description %]</td>
+                                <td>[% hit.startdate %]</td>
+                                <td>[% hit.enddate %]</td>
+                            </tr>
+                        </table>
+
+                        <form action="[% action %]" method="post">
+                            <input type="hidden" name="op" value="delete_confirmed">
+                            <input type="hidden" name="statisticstype" value="[% hit.type %]" />
+                            <input type="hidden" name="name" value="[% hit.name %]" />
+                            <button type="submit" class="approve"><i class="fa fa-check"></i> Yes, delete</button>
+                        </form>
+
+                        <form action="[% action %]" method="post">
+                            <input type="hidden" name="statisticstype" value="[% hit.type %]" />
+                            <button type="submit" class="deny"><i class="fa fa-times"></i> No, do not delete</button>
+                        </form>
+                    </div>
+                [% END %]
+            </main>
+        </div>
+        
+        <div class="col-sm-2 col-sm-pull-10">
+            <aside>
+                [% INCLUDE 'reports-menu.inc' %]
+            </aside>
+        </div> <!-- /.col-sm-2.col-sm-pull-10 -->
     </div>
-  </div>
-[% UNLESS add_form or copy_form %]
-    <div class="yui-b noprint">
-        [% INCLUDE 'reports-menu.inc' %]
-    </div>
-[% END %]
-</div>
 
 [% MACRO jsinclude BLOCK %]
     [% INCLUDE 'datatables.inc' %]
     [% INCLUDE 'calendar.inc' %]
-    [% Asset.js("lib/tiny_mce/tiny_mce.js") %]
+    [% Asset.js("lib/tiny_mce/tinymce.min.js") %]
     <script type="text/javascript">
         $(document).ready(function() {
 
