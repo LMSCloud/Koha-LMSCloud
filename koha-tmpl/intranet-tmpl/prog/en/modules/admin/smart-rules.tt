@@ -1123,7 +1123,7 @@
                         }
                         $(current_column).find("input[type='text']").val(input_value);
                         $(current_column).find("select").val(select_value);
-                    } else if ( i == 15 ) {
+                    } else if ( i == 16 ) {
                         // specific processing for cap_fine_to_replacement_price
                         var cap_fine_to_replacement_price = $(this).find("input[type='checkbox']");
                         $('#cap_fine_to_replacement_price').prop('checked', cap_fine_to_replacement_price.is(':checked') );
@@ -1140,6 +1140,11 @@
                                 $(this).attr('selected', 'selected');
                             }
                         });
+                        [% IF Koha.Preference('UnseenRenewals') %]
+                        const checkIntegerCols = [4,5,6,27,28,29];
+                        [% ELSE %]
+                        const checkIntegerCols = [4,5,6,26,27,28];
+                        [% END %]
                         if ( i == 0 || i == 1 ) {
                             // Disable the 2 first columns, we cannot update them.
                             var val = $(current_column).find("select option:selected").val();
@@ -1150,7 +1155,7 @@
                             // Remove potential previous input added
                             $(current_column).find("input").remove();
                             $(current_column).append("<input type='hidden' name='"+name+"' value='"+val+"' />");
-                        } else if ( i == 5 || i == 6 || i == 26 || i == 27 || i == 28 ) {
+                        } else if ( checkIntegerCols.includes(i) ) {
                             // If the value is not an integer for
                             //     - "Current checkouts allowed"
                             //     - "Current on-site checkouts allowed"

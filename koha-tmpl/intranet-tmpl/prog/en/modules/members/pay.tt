@@ -166,15 +166,15 @@
 <fieldset class="action">
 [% IF (checkCashRegisterFailed) %] 
     <input type="submit" id="paycollect" name="paycollect"  value="Pay amount" class="submit" disabled="disabled" />
-    <input type="submit" id="payselected" name="payselected"  value="Pay selected" class="submit" disabled="disabled" />
+    <input type="submit" id="payselected" name="payselected"  value="Pay selected" class="submit" disabled="disabled" />&nbsp;&nbsp;
 [% ELSE %]
     <input type="submit" id="paycollect" name="paycollect"  value="Pay amount" class="submit" />
-    <input type="submit" id="payselected" name="payselected"  value="Pay selected" class="submit" />
+    <input type="submit" id="payselected" name="payselected"  value="Pay selected" class="submit" />&nbsp;&nbsp;
 [% END %] 
 [% IF CAN_user_updatecharges_writeoff %]<input type="submit" name="woall"  id="woall" value="Write off all" class="submit" />
-<input type="submit" id="writeoff-selected" name="writeoff_selected"  value="Write off selected" class="submit" />[% END %]
+<input type="submit" id="writeoff-selected" name="writeoff_selected"  value="Write off selected" class="submit" />&nbsp;&nbsp;[% END %]
 [% IF CAN_user_updatecharges_cancel_fee %]<input type="submit" name="cancelall"  id="cancelall" value="Cancel all" class="submit" />
-<input type="submit" id="cancel-selected" name="cancel_selected"  value="Cancel selected" class="submit" />[% END %]
+<input type="submit" id="cancel-selected" name="cancel_selected"  value="Cancel selected" class="submit" />&nbsp;&nbsp;[% END %]
 <a class="cancel" href="/cgi-bin/koha/members/boraccount.pl?borrowernumber=[% patron.borrowernumber | html %]">Cancel</a>
 </fieldset>
 </form>

@@ -70,8 +70,8 @@ Staff interface:
         -
             - pref: IntranetCatalogSearchAutoComplete
               choices:
-                  0: Show
-                  1: "Don't show"
+                  1: Show
+                  0: "Don't show"
             - suggestions for simple search terms with the staff interface cataloge search (Elasticsearch only). 
         -
             - 'Display lists in the staff interface using XSLT stylesheet at: '

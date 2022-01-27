@@ -21,7 +21,6 @@ package C4::Accounts;
 use Modern::Perl;
 use C4::Context;
 use C4::Stats;
-use C4::CashRegisterManagement;
 use C4::Members;
 use C4::Log qw(logaction);
 use Koha::Account;

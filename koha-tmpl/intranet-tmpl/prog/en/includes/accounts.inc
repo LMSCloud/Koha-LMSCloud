@@ -13,9 +13,15 @@
     [%- SWITCH debit_type.code -%]
         [%- CASE 'ACCOUNT'          -%]Account creation fee
         [%- CASE 'ACCOUNT_RENEW'    -%]Account renewal fee
+        [%- CASE 'CLAIM_LEVEL1'     -%]Overdue fine (level 1)
+        [%- CASE 'CLAIM_LEVEL2'     -%]Overdue fine (level 2)
+        [%- CASE 'CLAIM_LEVEL3'     -%]Overdue fine (level 3)
+        [%- CASE 'CLAIM_LEVEL4'     -%]Overdue fine (level 4)
+        [%- CASE 'CLAIM_LEVEL5'     -%]Overdue fine (level 5)
         [%- CASE 'LOST'             -%]Lost item
         [%- CASE 'MANUAL'           -%]Manual fee
         [%- CASE 'NEW_CARD'         -%]New card
+        [%- CASE 'NOTIFICATION'     -%]Notice fee
         [%- CASE 'OVERDUE'          -%]Fine
         [%- CASE 'PROCESSING'       -%]Lost item processing fee
         [%- CASE 'RENT'             -%]Rental fee
@@ -25,6 +31,7 @@
         [%- CASE 'RESERVE'          -%]Hold fee
         [%- CASE 'RESERVE_EXPIRED'  -%]Hold waiting too long
         [%- CASE 'Payout'           -%]Payout
+        [%- CASE 'PAYOUT'           -%]Payout
         [%- CASE                    -%][% debit_type.description | html %]
     [%- END -%]
 [%- END -%]

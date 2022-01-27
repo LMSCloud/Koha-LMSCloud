@@ -738,7 +738,7 @@ sub GetBasketsInfosByBookseller {
           COUNT(DISTINCT aqorders.biblionumber) AS total_biblios,
           SUM(
             IF(aqorders.datereceived IS NULL
-              AND (aqorders.datecancellationprinted IS NULL OR aqorders.datecancellationprinted='0000-00-00')
+              AND (aqorders.datecancellationprinted IS NULL OR aqorders.datecancellationprinted<'0000-01-01')
             , aqorders.quantity
             , 0)
           ) AS expected_items,

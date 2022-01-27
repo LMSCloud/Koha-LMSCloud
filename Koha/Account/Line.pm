@@ -22,6 +22,7 @@ use Data::Dumper;
 
 use C4::Log qw(logaction);
 use C4::Overdues qw(GetFine);
+use C4::CashRegisterManagement;
 
 use Koha::Account::CreditType;
 use Koha::Account::DebitType;
@@ -762,6 +763,17 @@ sub payout {
         && defined( $params->{payout_type} )
         && ( $params->{payout_type} eq 'CASH' )
         && !defined( $params->{cash_register} ) );
+        
+    my $cash_register_mngmt = undef;
+    # Check whether cash registers are activated and mandatory for payment actions.
+    # If thats the case than we need to check whether the manager has opened a cash
+    # register to use for payments.
+    if ( !$params->{noCashReg} && C4::Context->preference("ActivateCashRegisterTransactionsOnly") ) {
+        $cash_register_mngmt = C4::CashRegisterManagement->new($params->{branch}, $params->{staff_id});
+        
+        # if there is no open cash register of the manager we return without a doing the payment
+        Koha::Exceptions::Account::RegisterRequired->throw() if (! $cash_register_mngmt->managerHasOpenCashRegister($params->{branch}, $params->{staff_id}) );
+    }
 
     my $payout;
     $self->_result->result_source->schema->txn_do(
@@ -793,6 +805,12 @@ sub payout {
 
             $self->apply( { debits => [$payout], offset_type => 'PAYOUT' } );
             $self->status('PAID')->store;
+            
+            # If it is not SIP it is a cash payment and if cash registers are activated as too,
+            # the cash payment need to registered for the opened cash register as cash receipt
+            if ( $cash_register_mngmt ) {    
+                $cash_register_mngmt->registerReversePayment($params->{branch}, $params->{staff_id}, $amount, $self->id);
+            }
         }
     );
 

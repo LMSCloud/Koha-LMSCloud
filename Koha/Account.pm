@@ -148,6 +148,7 @@ sub pay {
                     letter                 => $letter,
                     borrowernumber         => $self->{patron_id},
                     message_transport_type => 'email',
+                    branchcode             => $library_id
                 }
             ) or warn "can't enqueue letter $letter";
         }
@@ -331,6 +332,7 @@ $credit_type can be any of:
   - 'PAYMENT'
   - 'WRITEOFF'
   - 'FORGIVEN'
+  - 'CANCELLATION'
 
 =cut
 
@@ -357,7 +359,18 @@ sub payin_amount {
     my $amount = $params->{amount};
     unless ( $amount > 0 ) {
         Koha::Exceptions::Account::AmountNotPositive->throw(
-            error => 'Payin amount passed is not positive' );
+            error => 'Payin amount passed ($amount) is not positive' );
+    }
+    
+    my $cash_register_mngmt = undef;
+    # Check whether cash registers are activated and mandatory for payment actions.
+    # If thats the case than we need to check whether the manager has opened a cash
+    # register to use for payments.
+    if ( !$params->{noCashReg} && $params->{payment_type} eq 'CASH' && C4::Context->preference("ActivateCashRegisterTransactionsOnly") && $params->{type} eq 'PAYMENT' ) {
+        $cash_register_mngmt = C4::CashRegisterManagement->new($params->{library_id}, $params->{user_id});
+        
+        # if there is no open cash register of the manager we return without a doing the payment
+        Koha::Exceptions::Account::RegisterRequired->throw() if (! $cash_register_mngmt->managerHasOpenCashRegister($params->{library_id}, $params->{user_id}) );
     }
 
     my $credit;
@@ -388,6 +401,12 @@ sub payin_amount {
                         offset_type => $Koha::Account::offset_type->{$params->{type}}
                     }
                 );
+            }
+            
+            # If it is not SIP it is a cash payment and if cash registers are activated as too,
+            # the cash payment need to registered for the opened cash register as cash receipt
+            if ( !$params->{noCashReg} && C4::Context->preference("ActivateCashRegisterTransactionsOnly") && $params->{type} eq 'PAYMENT' ) {    
+                $cash_register_mngmt->registerPayment($params->{library_id}, $params->{user_id}, $params->{amount}, $credit->id());
             }
         }
     );
@@ -458,17 +477,6 @@ sub add_debit {
         Koha::Exceptions::Account::AmountNotPositive->throw(
             error => 'Debit amount passed is not positive' );
     }
-    
-    my $cash_register_mngmt = undef;
-    # Check whether cash registers are activated and mandatory for payment actions.
-    # If thats the case than we need to check whether the manager has opened a cash
-    # register to use for payments.
-    if ( !$params->{noCashReg} && $params->{payment_type} eq 'CASH' && C4::Context->preference("ActivateCashRegisterTransactionsOnly") && $params->{type} eq 'PAYMENT' ) {
-        $cash_register_mngmt = C4::CashRegisterManagement->new($params->{library_id}, $params->{user_id});
-        
-        # if there is no open cash register of the manager we return without a doing the payment
-        Koha::Exceptions::Account::RegisterRequired->throw() if (! $cash_register_mngmt->managerHasOpenCashRegister($params->{library_id}, $params->{user_id}) );
-    }
 
     my $description      = $params->{description} // q{};
     my $note             = $params->{note} // q{};
@@ -521,12 +529,6 @@ sub add_debit {
                         amount   => $amount
                     }
                 )->store();
-                
-                # If it is not SIP it is a cash payment and if cash registers are activated as too,
-                # the cash payment need to registered for the opened cash register as cash receipt
-                if ( !$params->{noCashReg} && $params->{payment_type} eq 'CASH' && C4::Context->preference("ActivateCashRegisterTransactionsOnly") && $params->{type} eq 'PAYMENT' ) {    
-                    $cash_register_mngmt->registerPayment($library_id, $user_id, $amount, $line->id());
-                }
 
                 if ( C4::Context->preference("FinesLog") ) {
                     logaction(
@@ -814,9 +816,15 @@ our $offset_type = {
     'RENT_DAILY'       => 'Rental Fee',
     'RENT_RENEW'       => 'Rental Fee',
     'RENT_DAILY_RENEW' => 'Rental Fee',
-    'OVERDUE'          => 'OVERDUE',
+    'OVERDUE'          => 'Overdue Fee',
     'RESERVE_EXPIRED'  => 'Hold Expired',
-    'PAYOUT'           => 'PAYOUT',
+    'PAYOUT'           => 'Payout',
+    'CLAIM_LEVEL1'     => 'Overdue Fee',
+    'CLAIM_LEVEL2'     => 'Overdue Fee',
+    'CLAIM_LEVEL3'     => 'Overdue Fee',
+    'CLAIM_LEVEL4'     => 'Overdue Fee',
+    'CLAIM_LEVEL5'     => 'Overdue Fee',
+    'CANCELLATION'     => 'Cancel Fee'
 };
 
 =head1 AUTHORS

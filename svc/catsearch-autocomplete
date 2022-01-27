@@ -72,14 +72,20 @@ if ( $auth_status ne "ok" ) {
 my @resultlist;
 if ( C4::Context->preference("SearchEngine") eq 'Elasticsearch' ) {
     my $complete =
-      Koha::SearchEngine::Elasticsearch::AutoComplete->new( { index => 'biblios' } );
-    @resultlist  = $complete->complete(
+        Koha::SearchEngine::Elasticsearch::AutoComplete->new( { index => 'biblios' } );
+    my @result  = $complete->complete(
         {
             text => $text,
             field => $field,
             count => $count
         }
     );
+    foreach my $option (@result) {
+        my $label = $option;
+        $option =~ s/ [\-+;|] / /g;
+        $option =~ s/["'*()~]//g;
+        push @resultlist, { label => $label, value => $option };
+    }
 }
 
 print CGI::header(

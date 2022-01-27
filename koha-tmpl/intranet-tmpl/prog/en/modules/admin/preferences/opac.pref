@@ -16,8 +16,8 @@ OPAC:
         -
             - pref: OPACSearchAutoComplete
               choices:
-                  0: Show
-                  1: "Don't show"
+                  1: Show
+                  0: "Don't show"
             - suggestions for simple search terms in OPAC with the catalog search field (Elasticsearch only). 
         -
             - Use the

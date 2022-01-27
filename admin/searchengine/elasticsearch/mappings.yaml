@@ -2740,6 +2740,26 @@ biblios:
         sort: ~
         suggestible: ''
       - facet: 1
+        marc_field: 041a
+        marc_type: marc21
+        sort: ~
+        suggestible: ''
+      - facet: 1
+        marc_field: 041d
+        marc_type: marc21
+        sort: ~
+        suggestible: ''
+      - facet: 1
+        marc_field: 041e
+        marc_type: marc21
+        sort: ~
+        suggestible: ''
+      - facet: 1
+        marc_field: 041j
+        marc_type: marc21
+        sort: ~
+        suggestible: ''
+      - facet: 1
         marc_field: 101a
         marc_type: unimarc
         sort: ~

@@ -66,15 +66,24 @@ my $count  = $cgi->param('count');
 
 my ( $user, $cookie, $sessionID, $flags ) = checkauth( $cgi, 1, {}, 'opac' );
 
-my $complete =
-  Koha::SearchEngine::Elasticsearch::AutoComplete->new( { index => 'biblios' } );
-my @resultlist  = $complete->complete(
-    {
-        text => $text,
-        field => $field,
-        count => $count
+my @resultlist;
+if ( C4::Context->preference("SearchEngine") eq 'Elasticsearch' ) {
+    my $complete =
+        Koha::SearchEngine::Elasticsearch::AutoComplete->new( { index => 'biblios' } );
+    my @result  = $complete->complete(
+        {
+            text => $text,
+            field => $field,
+            count => $count
+        }
+    );
+    foreach my $option (@result) {
+        my $label = $option;
+        $option =~ s/ [\-+;|] / /g;
+        $option =~ s/["'*()~]//g;
+        push @resultlist, { label => $label, value => $option };
     }
-);
+}
 
 print CGI::header(
     -type    => 'application/json',

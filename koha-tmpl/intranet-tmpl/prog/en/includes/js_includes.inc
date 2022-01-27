@@ -139,9 +139,12 @@
                 }
                 var index = '';
                 if ( $('#idx') ) {
-                    index = $( "#idx" ).val().replace(/,.*$/,'');
-                    if ( index == 'kw' ) {
-                        index = '';
+                    index = $( "#idx" ).val();
+                    if ( index ) {
+                        index = index.replace(/,.*$/,'');
+                        if ( index == 'kw' ) {
+                            index = '';
+                        }
                     }
                 }
                 $.ajax({

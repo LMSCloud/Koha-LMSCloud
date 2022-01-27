@@ -23,6 +23,8 @@ use C4::Biblio qw( GetMarcFromKohaField );
 use C4::Koha qw( GetAuthorisedValues );
 
 use Koha::Caches;
+use Koha::Logger;
+use Koha::Config;
 
 use Net::Z3950::SimpleServer;
 
@@ -103,6 +105,7 @@ sub new {
     if ( $self->{config_dir} ) {
         unshift @{ $self->{yaz_options} }, '-f', $self->{config_dir} . 'config.xml';
         unshift @{ $self->{yaz_options} }, '-w', $self->{config_dir};
+        $self->{configfile} = $self->{config_dir} . 'config.xml';
     }
 
     # Set num to prefetch if not passed
@@ -114,6 +117,11 @@ sub new {
         FETCH => sub { $self->fetch_handler(@_) },
         CLOSE => sub { $self->close_handler(@_) },
     );
+    
+    $self->{logger} = Koha::Logger->get({ interface => 'z3950' });
+    if ( $self->{debug} ) {
+        $self->{logger}->debug_to_screen();
+    }
 
     return bless( $self, $class );
 }
@@ -148,6 +156,68 @@ Callback that is called when a new connection is initialized
 sub init_handler {
     # Called when the client first connects.
     my ( $self, $args ) = @_;
+    
+    if ( exists($self->{configfile}) ) {
+        my $config = Koha::Config->read_from_file($self->{configfile});
+        
+        # Check whether validsers are defined in a permissions section of the
+        # the configuration file.
+        # If the file does not contain a substructure:
+        #       <permission>
+        #           <validusers>
+        #               <user username="xxx" password="yyy">
+        #           </validusers>
+        #       </permission>
+        # users are not checked at all.
+        if ( $config && exists($config->{permissions}->{validusers}->{user}) ) {
+            
+            # check whether user/password data is provided
+            if ( exists($args->{USER}) ) {
+                my $user = $args->{USER};
+                my $pass = $args->{PASS};
+                
+                my $msg = "Z3950 user: user($user)\n";
+                $self->{logger}->debug("[$args->{PEER_NAME}] $msg");
+                my $checkuser = $config->{permissions}->{validusers}->{user};
+                my $invalid = 'invaliduser';
+                my $reftype = ref($checkuser);
+                if ( $reftype && $reftype eq 'HASH' ) {
+                    $checkuser = [ $checkuser ];
+                }
+                $reftype = ref($checkuser);
+                if ( $reftype && $reftype eq 'ARRAY' ) {
+                    foreach my $checkuser( @$checkuser ) {
+                        if ( exists($checkuser->{username}) && exists($checkuser->{password}) ) {
+                            if ( $checkuser->{username} eq $user ) {
+                                $invalid = 'invalidpassword';
+                                if ( $checkuser->{password} eq $pass ) {
+                                    $invalid = ''
+                                }
+                            }
+                        }
+                    }
+                }
+                if ( $invalid eq 'invaliduser' ) {
+                    $msg = "Bad Userid";
+                    ( $args->{ERR_CODE}, $args->{ERR_STR} ) = ( 1010, $msg );
+                    $self->{logger}->error("    returning authentication error 1011: $msg");
+                    return;
+                }
+                elsif ( $invalid eq 'invalidpassword' ) {
+                    $msg = "Bad Userid and/or Password";
+                    ( $args->{ERR_CODE}, $args->{ERR_STR} ) = ( 1011, $msg );
+                    $self->{logger}->error("    returning authentication error 1011: $msg");
+                    return;
+                }
+            }
+            else {
+                my $msg = "Bad Userid";
+                ( $args->{ERR_CODE}, $args->{ERR_STR} ) = ( 1010, $msg );
+                $self->{logger}->error("    returning authentication error 1011: $msg");
+                return;
+            }
+        }
+    }
 
     # This holds all of the per-connection state.
     my $session;

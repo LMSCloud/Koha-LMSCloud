@@ -7,14 +7,16 @@
 </head>
 
 <body id="circ_managecashregister" class="circ">
-    <div id="doc3" class="yui-t1">
-        <div id="bd">
-            <div id="yui-main">
+    <div class="main container-fluid">
+        <div class="row">
+            <div class="col-sm-12">
+                <main>
                 [% IF ( manageaction == 'payinoutoverview' ) %]
                 [% PROCESS 'cashregister-payin-payout-overview.inc' %]
                 [% ELSE %]
                 [% PROCESS 'cashregister-fines-overview.inc' %]
                 [% END %]
+                </main>
             </div>
         </div>
     </div>

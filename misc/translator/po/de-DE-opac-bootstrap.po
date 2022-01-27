@@ -1,8 +1,8 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: Koha 21.05\n"
-"POT-Creation-Date: 2021-11-04 20:16+0100\n"
-"PO-Revision-Date: 2021-10-15 10:57+0200\n"
+"POT-Creation-Date: 2022-01-24 14:14+0100\n"
+"PO-Revision-Date: 2022-01-12 16:30+0100\n"
 "Last-Translator: Katrin Fischer <katrin.fischer@bsz-bw.de>\n"
 "Language-Team: \n"
 "Language: de\n"
@@ -86,56 +86,68 @@ msgstr "%s %s %s %s%s/%s/images/favicon.ico %s "
 #. %3$s: - SWITCH debit_type_code -
 #. %4$s: - CASE 'ACCOUNT'          -
 #. %5$s: - CASE 'ACCOUNT_RENEW'    -
-#. %6$s: - CASE 'LOST'             -
-#. %7$s: - CASE 'MANUAL'           -
-#. %8$s: - CASE 'NEW_CARD'         -
-#. %9$s: - CASE 'OVERDUE'          -
-#. %10$s: - CASE 'PROCESSING'       -
-#. %11$s: - CASE 'RENT'             -
-#. %12$s: - CASE 'RENT_DAILY'       -
-#. %13$s: - CASE 'RENT_RENEW'       -
-#. %14$s: - CASE 'RENT_DAILY_RENEW' -
-#. %15$s: - CASE 'RESERVE'          -
-#. %16$s: - CASE 'RESERVE_EXPIRED'  -
-#. %17$s: - CASE 'Payout'           -
-#. %18$s: - CASE                    -
-#. %19$s:  debit_type.description | html 
-#. %20$s: - END -
-#. %21$s: - END -
-#. %22$s: - BLOCK credit_type_description -
-#. %23$s: - SWITCH credit_type_code -
-#. %24$s: - CASE 'PAYMENT'      -
-#. %25$s: - CASE 'WRITEOFF'     -
-#. %26$s: - CASE 'FORGIVEN'     -
-#. %27$s: - CASE 'CREDIT'       -
-#. %28$s: - CASE 'LOST_FOUND'   -
-#. %29$s: - CASE 'OVERPAYMENT'  -
-#. %30$s: - CASE 'REFUND'       -
-#. %31$s: - CASE 'CANCELLATION' -
-#. %32$s: - CASE                -
-#. %33$s:  credit_type.description | html 
-#. %34$s: - END -
-#. %35$s: - END -
-#. %36$s: - BLOCK account_status_description -
-#. %37$s: - SWITCH account.status -
-#. %38$s: - CASE 'UNRETURNED' -
+#. %6$s: - CASE 'CLAIM_LEVEL1'     -
+#. %7$s: - CASE 'CLAIM_LEVEL2'     -
+#. %8$s: - CASE 'CLAIM_LEVEL3'     -
+#. %9$s: - CASE 'CLAIM_LEVEL4'     -
+#. %10$s: - CASE 'CLAIM_LEVEL5'     -
+#. %11$s: - CASE 'LOST'             -
+#. %12$s: - CASE 'MANUAL'           -
+#. %13$s: - CASE 'NEW_CARD'         -
+#. %14$s: - CASE 'NOTIFICATION'     -
+#. %15$s: - CASE 'OVERDUE'          -
+#. %16$s: - CASE 'PROCESSING'       -
+#. %17$s: - CASE 'RENT'             -
+#. %18$s: - CASE 'RENT_DAILY'       -
+#. %19$s: - CASE 'RENT_RENEW'       -
+#. %20$s: - CASE 'RENT_DAILY_RENEW' -
+#. %21$s: - CASE 'RESERVE'          -
+#. %22$s: - CASE 'RESERVE_EXPIRED'  -
+#. %23$s: - CASE 'Payout'           -
+#. %24$s: - CASE 'PAYOUT'           -
+#. %25$s: - CASE                    -
+#. %26$s:  debit_type.description | html 
+#. %27$s: - END -
+#. %28$s: - END -
+#. %29$s: - BLOCK credit_type_description -
+#. %30$s: - SWITCH credit_type_code -
+#. %31$s: - CASE 'PAYMENT'      -
+#. %32$s: - CASE 'WRITEOFF'     -
+#. %33$s: - CASE 'FORGIVEN'     -
+#. %34$s: - CASE 'CREDIT'       -
+#. %35$s: - CASE 'LOST_FOUND'   -
+#. %36$s: - CASE 'OVERPAYMENT'  -
+#. %37$s: - CASE 'REFUND'       -
+#. %38$s: - CASE 'CANCELLATION' -
+#. %39$s: - CASE                -
+#. %40$s:  credit_type.description | html 
+#. %41$s: - END -
+#. %42$s: - END -
+#. %43$s: - BLOCK account_status_description -
+#. %44$s: - SWITCH account.status -
+#. %45$s: - CASE 'UNRETURNED' -
 #: koha-tmpl/opac-tmpl/bootstrap/en/includes/accounts.inc:9
 #, c-format
 msgid ""
-"%s %s %s %sAccount creation fee %sAccount renewal fee %sLost item %sManual "
-"fee %sNew card %sFine %sLost item processing fee %sRental fee %sDaily rental "
-"fee %sRenewal of rental item %sRenewal of daily rental item %sHold fee "
-"%sHold waiting too long %sPayout %s%s %s %s %s %s %sPayment %sWriteoff "
-"%sForgiven %sCredit %sLost item fee refund %sOverpayment refund %sRefund "
-"%sCancelled charge %s%s %s %s %s %s %s"
+"%s %s %s %sAccount creation fee %sAccount renewal fee %sOverdue fine (level "
+"1) %sOverdue fine (level 2) %sOverdue fine (level 3) %sOverdue fine (level "
+"4) %sOverdue fine (level 5) %sLost item %sManual fee %sNew card %sNotice fee "
+"%sFine %sLost item processing fee %sRental fee %sDaily rental fee %sRenewal "
+"of rental item %sRenewal of daily rental item %sHold fee %sHold waiting too "
+"long %sPayout %sPayout %s%s %s %s %s %s %sPayment %sWriteoff %sForgiven "
+"%sCredit %sLost item fee refund %sOverpayment refund %sRefund %sCancelled "
+"charge %s%s %s %s %s %s %s"
 msgstr ""
-"%s %s %s %sAnmeldegebühr %sBenutzungsgebühr %sMedienersatz %sManuelle Gebühr "
-"%sNeuer Ausweis %sMahngebühr %sBearbeitungsgebühr Medienverlust %sLeihgebühr "
-"%sTägliche Leihgebühr %sLeihgebühr durch Verlängerung %sTägliche Leihgebühr "
-"durch Verlängerung %sVormerkgebühr %sNicht abgeholte Vormerkung %s "
-"Auszahlung %s%s %s %s %s %s %sZahlung %sGebührenerlass %sGebührenerlass "
-"%sGutschrift %sErstattung der Medienersatzgebühr %sRückerstattung einer "
-"Überzahlung %sRückerstattung %sStornierte Gebühr %s%s %s %s %s %s %s"
+"%s %s %s %sAnmeldegebühr %sBenutzungsgebühr %sMahngebühr (Stufe 1) "
+"%sMahngebühr (Stufe 2)%sMahngebühr (Stufe 3) %sMahngebühr (Stufe 4) "
+"%sMahngebühr (Stufe 5) %sMedienersatz %sManuelle Gebühr %sNeuer Ausweis %s "
+"Benachrichtigungsgebühr %sSäumnisgebühr %sBearbeitungsgebühr Medienverlust "
+"%sLeihgebühr %sTägliche Leihgebühr %sLeihgebühr durch Verlängerung "
+"%sTägliche Leihgebühr durch Verlängerung %sVormerkgebühr %sNicht abgeholte "
+"Vormerkung %s Auszahlung %s Auszahlung %s%s %s %s %s %s %sZahlung "
+"%sGebührenerlass %sGebührenerlass %sGutschrift %sErstattung der "
+"Medienersatzgebühr %sRückerstattung einer Überzahlung %sRückerstattung "
+"%sStornierte Gebühr %s%s %s %s %s %s %s"
 
 #. %1$s:  IF ( opacRenewCardConfirmationText ) 
 #. %2$s:  opacRenewCardConfirmationText 
@@ -2620,7 +2632,7 @@ msgstr "(%s Titel)"
 msgid "(%s total)"
 msgstr "(%s gesamt)"
 
-#: koha-tmpl/opac-tmpl/bootstrap/en/includes/accounts.inc:48
+#: koha-tmpl/opac-tmpl/bootstrap/en/includes/accounts.inc:55
 #, c-format
 msgid "(Accruing)"
 msgstr "(auflaufend)"
@@ -2639,7 +2651,7 @@ msgstr ""
 "(Barcode wurde in der Datenbank nicht gefunden, bitte kontaktieren Sie das "
 "Bibliothekspersonal)"
 
-#: koha-tmpl/opac-tmpl/bootstrap/en/includes/accounts.inc:55
+#: koha-tmpl/opac-tmpl/bootstrap/en/includes/accounts.inc:62
 #, c-format
 msgid "(Cancelled)"
 msgstr "(Storniert)"
@@ -2649,7 +2661,7 @@ msgstr "(Storniert)"
 msgid "(Checked out)"
 msgstr "(Ausgeliehen)"
 
-#: koha-tmpl/opac-tmpl/bootstrap/en/includes/accounts.inc:52
+#: koha-tmpl/opac-tmpl/bootstrap/en/includes/accounts.inc:59
 #, c-format
 msgid "(Forgiven)"
 msgstr "(Erlass)"
@@ -2668,7 +2680,7 @@ msgstr ""
 "(Das Exemplar ist ausgeschieden und eine Rückgabe deshalb nicht möglich, "
 "bitte kontaktieren Sie das Bibliothekspersonal)"
 
-#: koha-tmpl/opac-tmpl/bootstrap/en/includes/accounts.inc:54
+#: koha-tmpl/opac-tmpl/bootstrap/en/includes/accounts.inc:61
 #, c-format
 msgid "(Lost)"
 msgstr "(Verloren)"
@@ -2736,12 +2748,12 @@ msgstr ""
 "(Hinweis: Es kann eine Verzögerung bei der Korrektur Ihres Benutzerkontos "
 "geben, wenn Sie dies online melden.)"
 
-#: koha-tmpl/opac-tmpl/bootstrap/en/includes/accounts.inc:51
+#: koha-tmpl/opac-tmpl/bootstrap/en/includes/accounts.inc:58
 #, c-format
 msgid "(Refunded)"
 msgstr "(Rückerstattet)"
 
-#: koha-tmpl/opac-tmpl/bootstrap/en/includes/accounts.inc:50
+#: koha-tmpl/opac-tmpl/bootstrap/en/includes/accounts.inc:57
 #, c-format
 msgid "(Replaced)"
 msgstr "(Ersetzt)"
@@ -2772,7 +2784,7 @@ msgstr "(Ersetzt)"
 msgid "(Required)"
 msgstr "(Erforderlich)"
 
-#: koha-tmpl/opac-tmpl/bootstrap/en/includes/accounts.inc:49
+#: koha-tmpl/opac-tmpl/bootstrap/en/includes/accounts.inc:56
 #, c-format
 msgid "(Returned)"
 msgstr "(Zurückgegeben)"
@@ -2831,7 +2843,7 @@ msgstr "(Verwenden Sie statt dessen den OPAC)"
 msgid "(Use SRU instead)"
 msgstr "(Verwenden Sie SRU)"
 
-#: koha-tmpl/opac-tmpl/bootstrap/en/includes/accounts.inc:53
+#: koha-tmpl/opac-tmpl/bootstrap/en/includes/accounts.inc:60
 #, c-format
 msgid "(Voided)"
 msgstr "(Ungültig)"
@@ -4315,7 +4327,7 @@ msgstr "CancelRecall "
 msgid "Cancellation date"
 msgstr "Stornierungsdatum"
 
-#: koha-tmpl/opac-tmpl/bootstrap/en/includes/accounts.inc:69
+#: koha-tmpl/opac-tmpl/bootstrap/en/includes/accounts.inc:76
 #, c-format
 msgid "Cancelled charge"
 msgstr "Stornierte Gebühr"
@@ -5021,6 +5033,12 @@ msgid "Courses &rsaquo; %s%s%sKoha online%s catalog"
 msgstr "Kurse &rsaquo; %s%s%sKoha %s - Katalog"
 
 #. IMG
+#: koha-tmpl/opac-tmpl/bootstrap/en/includes/shelfbrowser.inc:46
+#: koha-tmpl/opac-tmpl/bootstrap/en/includes/shelfbrowser.inc:48
+msgid "Cover"
+msgstr "Buchcover"
+
+#. IMG
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-detail.tt:73
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-detail.tt:82
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-detail.tt:119
@@ -5031,7 +5049,7 @@ msgstr "Kurse &rsaquo; %s%s%sKoha %s - Katalog"
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-shelves.tt:478
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-showreviews.tt:164
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-user.tt:331
-#: koha-tmpl/opac-tmpl/bootstrap/en/includes/shelfbrowser.inc:83
+#: koha-tmpl/opac-tmpl/bootstrap/en/includes/shelfbrowser.inc:85
 #, c-format
 msgid "Cover image"
 msgstr "Buchcover"
@@ -5076,7 +5094,7 @@ msgstr ""
 "Erzeugt für einen Benutzer eine Exemplarvormerkung auf einen vorhandenen "
 "Titelsatz in Koha."
 
-#: koha-tmpl/opac-tmpl/bootstrap/en/includes/accounts.inc:62
+#: koha-tmpl/opac-tmpl/bootstrap/en/includes/accounts.inc:69
 #, c-format
 msgid "Credit applied"
 msgstr "Guthaben angerechnet"
@@ -7720,7 +7738,7 @@ msgstr ""
 msgid "LookupPatron"
 msgstr "LookupPatron"
 
-#: koha-tmpl/opac-tmpl/bootstrap/en/includes/accounts.inc:66
+#: koha-tmpl/opac-tmpl/bootstrap/en/includes/accounts.inc:73
 #, c-format
 msgid "Lost item returned"
 msgstr "Verlorenes Exemplar zurückgegeben"
@@ -7816,12 +7834,12 @@ msgstr "Bearbeitet von"
 msgid "Managed by:"
 msgstr "Bearbeitet von:"
 
-#: koha-tmpl/opac-tmpl/bootstrap/en/includes/accounts.inc:64
+#: koha-tmpl/opac-tmpl/bootstrap/en/includes/accounts.inc:71
 #, c-format
 msgid "Manual credit"
 msgstr "Manuelle Gutschrift"
 
-#: koha-tmpl/opac-tmpl/bootstrap/en/includes/accounts.inc:65
+#: koha-tmpl/opac-tmpl/bootstrap/en/includes/accounts.inc:72
 #, c-format
 msgid "Manual invoice"
 msgstr "Manuelle Gebühr"
@@ -8150,7 +8168,7 @@ msgstr "Weiter"
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-authoritiessearchresultlist.tt:28
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-detail.tt:936
 #: koha-tmpl/opac-tmpl/bootstrap/en/includes/page-numbers.inc:29
-#: koha-tmpl/opac-tmpl/bootstrap/en/includes/shelfbrowser.inc:95
+#: koha-tmpl/opac-tmpl/bootstrap/en/includes/shelfbrowser.inc:97
 #, c-format
 msgid "Next "
 msgstr "Weiter "
@@ -8248,9 +8266,9 @@ msgstr "Keine Ausleihen"
 #: koha-tmpl/opac-tmpl/bootstrap/en/includes/opac-bottom.inc:276
 #: koha-tmpl/opac-tmpl/bootstrap/en/includes/opac-bottom.inc:285
 #: koha-tmpl/opac-tmpl/bootstrap/en/includes/shelfbrowser.inc:40
-#: koha-tmpl/opac-tmpl/bootstrap/en/includes/shelfbrowser.inc:55
-#: koha-tmpl/opac-tmpl/bootstrap/en/includes/shelfbrowser.inc:64
-#: koha-tmpl/opac-tmpl/bootstrap/en/includes/shelfbrowser.inc:76
+#: koha-tmpl/opac-tmpl/bootstrap/en/includes/shelfbrowser.inc:57
+#: koha-tmpl/opac-tmpl/bootstrap/en/includes/shelfbrowser.inc:66
+#: koha-tmpl/opac-tmpl/bootstrap/en/includes/shelfbrowser.inc:78
 #, c-format
 msgid "No cover image available"
 msgstr "Kein Coverbild verfügbar"
@@ -9030,7 +9048,7 @@ msgstr "Kommentar vom %s"
 msgid "Pay selected fines and charges"
 msgstr "Gebühren und Entgelte bezahlen "
 
-#: koha-tmpl/opac-tmpl/bootstrap/en/includes/accounts.inc:63
+#: koha-tmpl/opac-tmpl/bootstrap/en/includes/accounts.inc:70
 #, c-format
 msgid "Payment"
 msgstr "Zahlung"
@@ -10769,7 +10787,7 @@ msgstr "Bereich:"
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-user.tt:322
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-user.tt:596
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-user.tt:904
-#: koha-tmpl/opac-tmpl/bootstrap/en/includes/shelfbrowser.inc:74
+#: koha-tmpl/opac-tmpl/bootstrap/en/includes/shelfbrowser.inc:76
 msgid "See Baker & Taylor"
 msgstr "Siehe Baker &amp; Taylor"
 
@@ -12990,7 +13008,7 @@ msgstr "Bestellten Titel anzeigen"
 msgid "View your search history"
 msgstr "Suchhistorie anzeigen"
 
-#: koha-tmpl/opac-tmpl/bootstrap/en/includes/accounts.inc:68
+#: koha-tmpl/opac-tmpl/bootstrap/en/includes/accounts.inc:75
 #, c-format
 msgid "Void payment"
 msgstr "Zahlung ungültig"
@@ -13121,7 +13139,7 @@ msgstr "Wo"
 msgid "Would you like to print a receipt?"
 msgstr "Möchten Sie eine Quittung drucken?"
 
-#: koha-tmpl/opac-tmpl/bootstrap/en/includes/accounts.inc:67
+#: koha-tmpl/opac-tmpl/bootstrap/en/includes/accounts.inc:74
 #, c-format
 msgid "Writeoff"
 msgstr "Erlass"

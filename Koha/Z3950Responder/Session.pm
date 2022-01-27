@@ -171,7 +171,7 @@ sub fetch_handler {
         }
     }
 
-    if ( $form_oid eq $self->MARCXML_OID && $composition eq 'marcxml' ) {
+    if ( $form_oid eq $self->MARCXML_OID && ($composition eq 'marcxml' || $composition eq 'marc') ) {
         $args->{RECORD} = $record->as_xml_record();
     } elsif ( ( $form_oid eq $self->USMARC_OID || $form_oid eq $self->UNIMARC_OID ) && ( !$composition || $composition eq 'F' ) ) {
         $args->{RECORD} = $record->as_usmarc();
