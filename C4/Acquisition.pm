@@ -221,29 +221,6 @@ sub NewBasket {
     return $basket;
 }
 
-### JOIN-TODO ### Function CloseBasket has been removed. Check and remove the function here too.
-#------------------------------------------------------------#
-
-=head3 CloseBasket
-
-  &CloseBasket($basketno);
-  
-close a basket (becomes unmodifiable, except for receives)
-
-=cut
-
-sub CloseBasket {
-    my ($basketno) = @_;
-    my $dbh        = C4::Context->dbh;
-    $dbh->do('UPDATE aqbasket SET closedate=now() WHERE basketno=?', {}, $basketno );
-
-    $dbh->do(
-q{UPDATE aqorders SET orderstatus = 'ordered' WHERE basketno = ? AND orderstatus NOT IN ( 'complete', 'cancelled')},
-        {}, $basketno
-    );
-    return;
-}
-
 =head3 ReopenBasket
 
   &ReopenBasket($basketno);
