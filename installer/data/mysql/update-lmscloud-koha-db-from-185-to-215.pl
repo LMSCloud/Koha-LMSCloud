@@ -3,10 +3,12 @@
 use Modern::Perl;
 use utf8;
 
+use Carp;
 use DBI;
 use Getopt::Long;
 # Koha modules
 use C4::Context;
+use Koha::Config;
 use Koha::SearchEngine::Elasticsearch;
 use Text::Diff qw(diff);
 
@@ -25,6 +27,9 @@ binmode(STDIN, ":utf8");
 binmode(STDERR, ":utf8");
 binmode(STDOUT, ":utf8");
 
+my $instance = getInstanceName();
+
+updateKohaConfig($instance);
 updateSimpleVariables();
 updateMoreSearchesContent();
 updateEntryPages();
@@ -37,6 +42,157 @@ rebuildElasticSearchIndex();
 &migrate_epayment_to_2105('KohaPayPal');
 
 
+
+############################################################################
+#
+#
+# Functions for processing
+#
+#
+############################################################################
+
+sub getInstanceName {
+    my $conf_fname = Koha::Config->guess_koha_conf;
+    my $config = Koha::Config->read_from_file($conf_fname);
+    if ( $conf_fname =~ m|^/etc/koha/sites/([^/]+)/| ) {
+        return $1;
+    }
+    croak("Cannot determine the Koha instance name. Aborting processing.");
+}
+
+sub updateKohaConfig {
+    my $instance = shift;
+    my $conf_fname = Koha::Config->guess_koha_conf;
+    my $config = Koha::Config->read_from_file($conf_fname);
+    
+    my $changed = 0;
+    if ( exists( $config->{listen}->{publicserver}->{content} ) ) {
+        if ( $config->{listen}->{publicserver}->{content} =~ /^\s*tcp:([^:]+):([0-9]+)\s*$/i ) {
+            my $host = $1;
+            my $port = $2;
+            my $listenConfig = $config->{listen}->{publicserver}->{content};
+            
+            print "Configuring Z3950Responder from Zebra config: host ($host), port ($port)\n";
+            
+            my $configtext;
+            {
+                local( $/ ); # undefine the record seperator
+                open(my $rh,'<:encoding(UTF-8)', $conf_fname) or croak "Error opening $conf_fname: $!";
+                $configtext = <$rh>;
+                close $rh;
+            }
+            
+            $configtext =~ s/(\r?\n)(<listen\s+id="publicserver"[^>]*>.+?(?=\<\/listen>)<\/listen>)(\r?\n)/$1<!--$1$2$3-->$3/is;
+            $changed = 1;
+            
+            if ( exists( $config->{server}->{publicserver} ) ) {
+                $configtext =~ s/(\r?\n)(<server\s+id="publicserver"[^>]*>.+?(?=\<\/server>)<\/server>)(\r?\n)/$1<!--$1$2$3-->$3/is;
+            }
+            if ( exists( $config->{serverinfo}->{publicserver} ) ) {
+                $configtext =~ s/(\r?\n)(<serverinfo\s+id="publicserver"[^>]*>.+?(?=\<\/serverinfo>)<\/serverinfo>)(\r?\n)/$1<!--$1$2$3-->$3/is;
+            }
+            
+            my $needpermissions = 1;
+            my $permissionadd = '';
+            if ( exists( $config->{server}->{publicserver}->{config} ) ) {
+                my $publicserverconfig = $config->{server}->{publicserver}->{config};
+                my $serverconfigtext;
+                {
+                    local( $/ ); # undefine the record seperator
+                    open(my $rh,'<:encoding(UTF-8)', $publicserverconfig) or carp "Error opening $publicserverconfig: $!";
+                    $serverconfigtext = <$rh>;
+                    close $rh;
+                }
+                my @permusers;
+                if ( $serverconfigtext ) {
+                    my $passwords = '';
+                    if ( $serverconfigtext =~ /^passwd\s*:\s*(.+)$/m ) {
+                        my $passwdfile = $1;
+                        local( $/ ); # undefine the record seperator
+                        open(my $rh,'<:encoding(UTF-8)', $passwdfile) or carp "Error opening $passwdfile: $!";
+                        $passwords = <$rh>;
+                        close $rh;
+                    }
+                    while ( $serverconfigtext =~ /^perm.([^: ]+)\s*:\s*([a-z]+)/mg ) {
+                        my $permuser = $1;
+                        my $permvalue = $2;
+                        my $permpass = '';
+                        
+                        if ( $passwords =~ /^$permuser\s*:\s*(.+)$/m ) {
+                            $permpass = $1;
+                        }
+                        if ( $permuser =~ /^anonymous$/ && $permvalue =~ /a/ && $permvalue =~ /r/ ) {
+                            $needpermissions = 0;
+                        }
+                        push @permusers, {username => $permuser, password => $permpass} if ($permuser !~ /^anonymous$/);
+                    }
+                }
+                
+                $permissionadd = "  <permissions>\n    <validusers>\n";
+                foreach my $permuser(@permusers) {
+                    $permissionadd .= '      <user username="'. xmlEncode($permuser->{username}) .'" password="' . xmlEncode($permuser->{password}) .'"/>' ."\n";
+                }
+                $permissionadd .= "    </validusers>\n  </permissions>\n";
+            }
+            
+            # now activate the new config
+            system("koha-z3950-responder --enable $instance");
+            
+            # update config
+            my $responderConfig = "/etc/koha/sites/$instance/z3950/config.xml";
+            if ( -f $responderConfig ) {
+                my $responderConfigText;
+                {
+                    local( $/ ); # undefine the record seperator
+                    open(my $rh,'<:encoding(UTF-8)', $responderConfig) or carp "Error opening $responderConfig: $!";
+                    $responderConfigText = <$rh>;
+                    close $rh;
+                }
+                if ( $responderConfigText ) {
+                    $responderConfigText =~ s/(<listen\s+id="public"[^>]*>).+?(?=\<\/listen>)(<\/listen>)/$1$listenConfig$2/is;
+                    if ( $needpermissions && $permissionadd && $responderConfigText !~ /<permissions>/ ) {
+                        $responderConfigText =~ s/(<\/server>\s*\r?\n)/$1$permissionadd/is;
+                    }
+                    {
+                        my $backupfile = "$responderConfig.backup-".getLoggingTime();
+                        copy($responderConfig,$backupfile);
+                        print "Backup Z3950Responder config $responderConfig as $backupfile\n";
+                        open(my $fh,'>:encoding(UTF-8)', $responderConfig) or carp "Error opening $responderConfig: $!";
+                        print $fh $responderConfigText;
+                        close $fh;
+                        print "Updated Z3950Responder config $responderConfig\n";
+                    }
+                }
+            }
+        }
+    }
+    if ( $changed ) {
+        my $backupfile = "$conf_fname.backup-".getLoggingTime();
+        copy($conf_fname,"$conf_fname.backup-".getLoggingTime());
+        print "Backup Koha instance configuration file  $conf_fname as $backupfile\n";
+        open(my $fh,'>:encoding(UTF-8)', $conf_fname) or carp "Error opening $conf_fname: $!";
+        print $fh $configtext;
+        close $fh;
+        print "Updated Koha instance configuration file $responderConfig.\n";
+    }
+}
+
+sub getLoggingTime {
+    my ($sec,$min,$hour,$mday,$mon,$year,$wday,$yday,$isdst)=localtime(time);
+    my $timestamp = sprintf ( "%04d-%02d-%02d-%02d-%02d-%02d",
+                                   $year+1900,$mon+1,$mday,$hour,$min,$sec);
+    return $timestamp;
+}
+
+sub xmlEncode {
+    my $data = shift;
+    $data =~ s/&/&amp;/sg;
+    $data =~ s/</&lt;/sg;
+    $data =~ s/>/&gt;/sg;
+    $data =~ s/"/&quot;/sg;
+    $data =~ s/'/&apos;/sg;
+    return $data;
+}
 
 sub updateSimpleVariables {
     my $dbh = C4::Context->dbh;
