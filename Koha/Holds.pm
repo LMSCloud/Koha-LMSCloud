@@ -140,17 +140,20 @@ sub get_items_that_can_fill {
         }
     )->get_column('itemtype');
 
-    return Koha::Items->search(
-        {
+    @hold_not_allowed_itypes = grep { defined() and length() } @hold_not_allowed_itypes;
+
+    my $searchconditions = 
+       {
             biblionumber => { in => \@biblionumbers },
             itemlost     => 0,
             withdrawn    => 0,
             notforloan   => 0,
             onloan       => undef,
-            itemnumber   => { -not_in => [ @branchtransfers, @waiting_holds ] },
-            itype        => { -not_in => \@hold_not_allowed_itypes },
-        }
-    );
+            itemnumber   => { -not_in => [ @branchtransfers, @waiting_holds ] }
+       };
+    $searchconditions->{itype} = { -not_in => \@hold_not_allowed_itypes } if (scalar(@hold_not_allowed_itypes)>0);
+
+    return Koha::Items->search($searchconditions);
 }
 
 =head3 type
