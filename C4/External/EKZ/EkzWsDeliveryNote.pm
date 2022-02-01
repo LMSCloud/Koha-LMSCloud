@@ -1,6 +1,6 @@
 package C4::External::EKZ::EkzWsDeliveryNote;
 
-# Copyright 2017-2021 (C) LMSCLoud GmbH
+# Copyright 2017-2022 (C) LMSCLoud GmbH
 #
 # This file is part of Koha.
 #
@@ -26,14 +26,21 @@ use CGI::Carp;
 use DateTime::Format::MySQL;
 use Exporter;
 
-use C4::Items qw(AddItem);
-use C4::Biblio qw( GetFrameworkCode GetMarcFromKohaField );
-use Koha::AcquisitionImport::AcquisitionImports;
-use Koha::AcquisitionImport::AcquisitionImportObjects;
+use C4::Acquisition qw( NewBasket GetBasket GetBaskets ModBasket ReopenBasket GetBasketgroupsGeneric NewBasketgroup CloseBasketgroup ReOpenBasketgroup GetOrderFromItemnumber ModOrderDeliveryNote );
+use C4::Biblio qw( GetFrameworkCode GetMarcFromKohaField GetMarcBiblio );
+use C4::Context;
+use C4::Items qw( ModItemFromMarc );    # additionally GetMarcItem is required here, but it is not exported by C4::Items, so we have to use it inofficially
 use C4::External::EKZ::lib::EkzWebServices;
 use C4::External::EKZ::lib::EkzKohaRecords;
+use Koha::AcquisitionImport::AcquisitionImports;
+use Koha::AcquisitionImport::AcquisitionImportObjects;
+use Koha::Acquisition::Baskets;
 use Koha::Acquisition::Order;
-use C4::Acquisition;
+use Koha::Database;
+use Koha::Item;
+use Koha::Items;
+use Koha::Logger;
+use Koha::Patrons;
 
 our @ISA = qw(Exporter);
 our @EXPORT = qw( readLSFromEkzWsLieferscheinList readLSFromEkzWsLieferscheinDetail genKohaRecords );
@@ -106,8 +113,8 @@ sub genKohaRecords {
     my $lieferscheinNummer = '';
     my $lieferscheinDatum = '';
     my $logger = Koha::Logger->get({ interface => 'C4::External::EKZ::EkzWsDeliveryNote' });
-    my $dbh = C4::Context->dbh;
-    $dbh->{AutoCommit} = 0;
+    my $schema = Koha::Database->new->schema;
+    $schema->storage->txn_begin;
 
     # variables for email log
     my $emaillog;
@@ -153,6 +160,7 @@ sub genKohaRecords {
     my $acquisitionError = 0;
     my $basketno = -1;
     my $basketgroupid = undef;
+    my $authorisedby = undef;
     my $createdTitleRecords = {};
 
     $lieferscheinNummer = $lieferscheinRecord->{'nummer'};
@@ -755,13 +763,13 @@ sub genKohaRecords {
                         my $selbaskets = C4::Acquisition::GetBaskets( { 'basketname' => "\'$basketname\'" } );
                         if ( @{$selbaskets} > 0 ) {
                             $basketno = $selbaskets->[0]->{'basketno'};
-                            $logger->trace("genKohaRecords() method4: found aqbasket with basketno:$basketno:");
+                            $authorisedby = $selbaskets->[0]->{'authorisedby'};
+                            $logger->info("genKohaRecords() method4: found aqbasket with basketname:$basketname: having basketno:" . $basketno . ":");
                         } else {
-                            my $authorisedby = undef;
-                            my $sth = $dbh->prepare("select borrowernumber from borrowers where surname = 'LCService'");
-                            $sth->execute();
-                            if ( my $hit = $sth->fetchrow_hashref ) {
-                                $authorisedby = $hit->{borrowernumber};
+                            my $patron = Koha::Patrons->find( { surname => 'LCService' } );
+                            if ( $patron ) {
+                                $authorisedby = $patron->borrowernumber();
+                                $logger->info("genKohaRecords() method4: found patron with surname = 'LCService' authorisedby:" . $authorisedby . ":");
                             }
                             my $branchcode = $ekzKohaRecord->branchcodeFallback('', $homebranch);
                             $basketno = C4::Acquisition::NewBasket($ekzAqbooksellersId, $authorisedby, $basketname, 'created by ekz LieferscheinDetail', '', undef, $branchcode, $branchcode, 0, 'ordering');    # XXXWH fixed text ok?
@@ -816,6 +824,7 @@ sub genKohaRecords {
                         $orderinfo->{unitprice_tax_excluded} = 0.0;
                         $orderinfo->{unitprice_tax_included} = 0.0;
                         # quantityreceived is set to 0 by DBS
+                        $orderinfo->{created_by} = $authorisedby;
                         $orderinfo->{order_internalnote} = '';
                         $orderinfo->{order_vendornote} = sprintf("Bestellung:\nVerkaufspreis: %.2f %s (Exemplare: %d)\n", $priceInfo->{verkaufsPreis}, $priceInfo->{waehrung}, $priceInfo->{exemplareBestellt});
                         if ( $priceInfo->{nachlass} != 0.0 ) {
@@ -834,10 +843,10 @@ sub genKohaRecords {
                         # timestamp is set to now by DBS
                         $orderinfo->{budget_id} = $budgetid;
                         $orderinfo->{'uncertainprice'} = 0;
-                        # claims_count is set to 0 by DBS
                         $orderinfo->{subscriptionid} = undef;
                         $orderinfo->{orderstatus} = 'ordered';
                         $orderinfo->{rrp} = $priceInfo->{replacementcost_tax_included};    #  corresponds to input field 'Replacement cost' in UI (not discounted, per item)
+                        $orderinfo->{replacementprice} = $priceInfo->{replacementcost_tax_included};
                         $orderinfo->{rrp_tax_excluded} = $priceInfo->{replacementcost_tax_excluded};
                         $orderinfo->{rrp_tax_included} = $priceInfo->{replacementcost_tax_included};
                         $orderinfo->{ecost} = $priceInfo->{gesamtpreis_tax_included};     #  corresponds to input field 'Budgeted cost' in UI (discounted, per item)
@@ -871,12 +880,15 @@ sub genKohaRecords {
                             $item_hash->{replacementprice} = $priceInfo->{replacementcost_tax_included};    # without regard to $auftragsPosition->{'nachlass'}
                         }
                         $item_hash->{notforloan} = 0;    # item delivered -> can be loaned
-                        
-                        my ( $biblionumberItem, $biblioitemnumberItem, $itemnumber ) = C4::Items::AddItem($item_hash, $biblionumber);
+
+                        $item_hash->{biblionumber} = $biblionumber;
+                        $item_hash->{biblioitemnumber} = $biblionumber;
+                        my $kohaItem = Koha::Item->new( $item_hash )->store;
+                        my $itemnumber = $kohaItem->itemnumber;
 
                         if ( defined $itemnumber && $itemnumber > 0 ) {
 
-                            # update items set <fields like specified in ekzWebServicesSetItemSubfieldsWhenReceived> where itemnumber = <itemnumberfrom above C4::Items::AddItem call>
+                            # update items set <fields like specified in ekzWebServicesSetItemSubfieldsWhenReceived> where itemnumber = <itemnumber from above Koha::Item->new() call>
                             my $itemHitRs = undef;
                             my $res = undef;
                             $itemHitRs = Koha::Items->new()->_resultset()->find( { itemnumber => $itemnumber } );
@@ -887,8 +899,8 @@ sub genKohaRecords {
                                 if ( defined($ekzWebServicesSetItemSubfieldsWhenReceived) && length($ekzWebServicesSetItemSubfieldsWhenReceived) > 0 ) {
                                     my @affects = split q{\|}, $ekzWebServicesSetItemSubfieldsWhenReceived;
                                     if ( @affects ) {
-                                        my $frameworkcode = GetFrameworkCode($biblionumber);
-                                        my ( $itemfield ) = GetMarcFromKohaField( 'items.itemnumber', $frameworkcode );
+                                        my $frameworkcode = C4::Biblio::GetFrameworkCode($biblionumber);
+                                        my ( $itemfield ) = C4::Biblio::GetMarcFromKohaField( 'items.itemnumber', $frameworkcode );
                                         my $item = C4::Items::GetMarcItem( $biblionumber, $itemnumber );
                                         for my $affect ( @affects ) {
                                             my ( $sf, $v ) = split('=', $affect, 2);
@@ -1007,8 +1019,12 @@ sub genKohaRecords {
             $logger->trace("genKohaRecords() Dumper aqbasket:" . Dumper($aqbasket) . ":");
             if ( $aqbasket ) {
                 # close the basket
-                $logger->trace("genKohaRecords() is calling CloseBasket basketno:" . $aqbasket->{basketno} . ":");
-                &C4::Acquisition::CloseBasket($aqbasket->{basketno});
+                $logger->debug("genKohaRecords() is calling Koha::Acquisition::Baskets->find(basketno:" . $aqbasket->{basketno} . ")");
+                my $kohabasket = Koha::Acquisition::Baskets->find($aqbasket->{basketno});
+                if ( $kohabasket ) {
+                    $logger->debug("genKohaRecords() is calling Koha::Acquisition::Baskets->find(basketno:" . $aqbasket->{basketno} . ")->close");
+                    $kohabasket->close;
+                }
 
                 # search/create basket group with aqbasketgroups.name = ekz order number and aqbasketgroups.booksellerid = and update aqbasket accordingly
                 my $params = {
@@ -1055,11 +1071,10 @@ sub genKohaRecords {
     }
 
 
-    #$dbh->rollback;    # roll it back for TEST XXXWH
+    #$schema->storage->txn_rollback;    # crude rollback for TEST only XXXWH
 
     # commit the complete delivery note (only as a single transaction)
-    $dbh->commit();
-    $dbh->{AutoCommit} = 1;
+    $schema->storage->txn_commit;
 
     return 1;
 }
@@ -1194,8 +1209,8 @@ sub processItemHit
             if ( defined($ekzWebServicesSetItemSubfieldsWhenReceived) && length($ekzWebServicesSetItemSubfieldsWhenReceived) > 0 ) {
                 my @affects = split q{\|}, $ekzWebServicesSetItemSubfieldsWhenReceived;
                 if ( @affects ) {
-                    my $frameworkcode = GetFrameworkCode($biblionumber);
-                    my ( $itemfield ) = GetMarcFromKohaField( 'items.itemnumber', $frameworkcode );
+                    my $frameworkcode = C4::Biblio::GetFrameworkCode($biblionumber);
+                    my ( $itemfield ) = C4::Biblio::GetMarcFromKohaField( 'items.itemnumber', $frameworkcode );
                     my $item = C4::Items::GetMarcItem( $biblionumber, $itemnumber );
                     for my $affect ( @affects ) {
                         my ( $sf, $v ) = split('=', $affect, 2);
@@ -1412,8 +1427,12 @@ sub processItemOrder
         $ordernumber_ret = &C4::Acquisition::ModOrderDeliveryNote($params);
             
         # close basket
-        &C4::Acquisition::CloseBasket($aqbasket_delivery->{basketno});
-        $logger->trace("processItemOrder() after CloseBasket");
+        $logger->debug("processItemOrder() is calling Koha::Acquisition::Baskets->find(basketno:" . $aqbasket_delivery->{basketno} . ")");
+        my $kohabasket = Koha::Acquisition::Baskets->find($aqbasket_delivery->{basketno});
+        if ( $kohabasket ) {
+            $logger->debug("processItemOrder() is calling Koha::Acquisition::Baskets->find(basketno:" . $aqbasket_delivery->{basketno} . ")->close");
+            $kohabasket->close;
+        }
 
         # search/create basket group with name derived from Delivery note and same bookseller and update aqbasket_delivery accordingly
         $params = {

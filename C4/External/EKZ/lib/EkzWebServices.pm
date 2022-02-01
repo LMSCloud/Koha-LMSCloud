@@ -1,6 +1,6 @@
 package C4::External::EKZ::lib::EkzWebServices;
 
-# Copyright 2017-2021 (C) LMSCLoud GmbH
+# Copyright 2017-2022 (C) LMSCLoud GmbH
 #
 # This file is part of Koha.
 #
@@ -28,11 +28,12 @@ use LWP::UserAgent;
 use XML::Writer;
 use XML::LibXML;
 use MIME::Base64;
+use MARC::Record;
+use MARC::File::XML ( BinaryEncoding => 'utf8', RecordFormat => 'MARC21' );
 
 use C4::Context;
 use C4::External::EKZ::lib::EkzWsConfig;
-use MARC::Record;
-use MARC::File::XML ( BinaryEncoding => 'utf8', RecordFormat => 'MARC21' );
+use Koha::Logger;
 
 
 

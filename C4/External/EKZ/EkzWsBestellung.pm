@@ -1,6 +1,6 @@
 package C4::External::EKZ::EkzWsBestellung;
 
-# Copyright 2020 (C) LMSCLoud GmbH
+# Copyright 2020-2022 (C) LMSCLoud GmbH
 #
 # This file is part of Koha.
 #
@@ -25,13 +25,13 @@ use Data::Dumper;
 use CGI::Carp;
 use Exporter;
 
-use C4::Items qw(GetItemnumbersForBiblio GetItem);
-use C4::Biblio qw( GetFrameworkCode GetMarcFromKohaField );
-use Koha::AcquisitionImport::AcquisitionImports;
-use Koha::AcquisitionImport::AcquisitionImportObjects;
+use C4::Biblio qw( GetMarcBiblio );
+use C4::Context;
 use C4::External::EKZ::lib::EkzWebServices;
 use C4::External::EKZ::lib::EkzKohaRecords;
-use C4::Acquisition;
+use Koha::AcquisitionImport::AcquisitionImports;
+use Koha::AcquisitionImport::AcquisitionImportObjects;
+use Koha::Logger;
 
 our @ISA = qw(Exporter);
 our @EXPORT = qw( BestelleBeiEkz BestelleBeiEkz_Test );

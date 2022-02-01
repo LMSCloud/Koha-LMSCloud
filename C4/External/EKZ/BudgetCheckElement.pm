@@ -1,6 +1,6 @@
 package C4::External::EKZ::BudgetCheckElement;
 
-# Copyright 2017-2020 (C) LMSCLoud GmbH
+# Copyright 2017-2022 (C) LMSCLoud GmbH
 #
 # This file is part of Koha.
 #
@@ -24,9 +24,13 @@ use utf8;
 use Data::Dumper;
 use CGI::Carp;
 use Time::HiRes qw(gettimeofday);
+use SOAP::Lite;
 
 use C4::External::EKZ::EkzAuthentication;
-use C4::Budgets;
+use C4::External::EKZ::lib::EkzWsConfig;
+use C4::External::EKZ::lib::EkzKohaRecords;
+use C4::Budgets qw( GetBudget GetBudgetOrdered GetBudgetSpent );
+use Koha::Logger;
 
 
 sub new {
@@ -165,7 +169,7 @@ foreach my $tag  (keys %{$soapEnvelopeBody->{'ns2:BudgetCheckElement'}}) {
                                  #           512: budget encumbrance exceeded
                                  #          1024: budget expenditure exceeded
     foreach my $haushaltsstelle (sort { $a cmp $b } keys %{$self->{budgetEkz}} ) {
-        $self->{logger}->debug("process() haushaltsstelle:$haushaltsstelle: checkResult:" . $self->{budgetEkz}->{$haushaltsstelle}->{checkResult} . ":");
+        $self->{logger}->debug("process() haushaltsstelle:$haushaltsstelle): checkResult:" . (defined($self->{budgetEkz}->{$haushaltsstelle}->{checkResult})?$self->{budgetEkz}->{$haushaltsstelle}->{checkResult}:'undef') . ":");
         if ( $self->{budgetEkz}->{$haushaltsstelle}->{checkResult} & 1 ) {
             foreach my $ekzArtikelNr (@{$self->{budgetEkz}->{$haushaltsstelle}->{ekzArtikelNr}->{1}}) {
                 if ( length($errorMessage->{1}) == 0 ) {
@@ -186,7 +190,7 @@ foreach my $tag  (keys %{$soapEnvelopeBody->{'ns2:BudgetCheckElement'}}) {
             $errorMessageType |= 2;
         } else {
             foreach my $kostenstelle (sort { $a cmp $b } keys %{$self->{budgetEkz}->{$haushaltsstelle}} ) {
-                $self->{logger}->debug("process() haushaltsstelle:$haushaltsstelle: kostenstelle:$kostenstelle: checkResult:" . $self->{budgetEkz}->{$haushaltsstelle}->{$kostenstelle}->{checkResult} . ":");
+                $self->{logger}->debug("process() haushaltsstelle:$haushaltsstelle: kostenstelle:$kostenstelle: checkResult:" . (defined($self->{budgetEkz}->{$haushaltsstelle}->{checkResult})?$self->{budgetEkz}->{$haushaltsstelle}->{checkResult}:'undef') . ":");
                 if ( $self->{budgetEkz}->{$haushaltsstelle}->{$kostenstelle}->{checkResult} & 16 ) {
                     foreach my $ekzArtikelNr (@{$self->{budgetEkz}->{$haushaltsstelle}->{$kostenstelle}->{ekzArtikelNr}->{16}}) {
                         if ( length($errorMessage->{16}) == 0 ) {
@@ -367,8 +371,8 @@ sub handleBudgetCheck {
                         $self->{budgetKoha}->{$budgetId}->{budget_encumb} = $budget->{budget_encumb};    # quote, e.g. 90.0 represents 90% (of budget_amount)
                         $self->{budgetKoha}->{$budgetId}->{budg_encumbrance} = $budget->{budget_amount} * $budget->{budget_encumb} / 100.0;
                         $self->{budgetKoha}->{$budgetId}->{budget_expend} = $budget->{budget_expend};    # means, e.g. 9000.0 represents 9000.00 EUR
-                        $self->{budgetKoha}->{$budgetId}->{budg_ordered} = GetBudgetOrdered($budgetId);
-                        $self->{budgetKoha}->{$budgetId}->{budg_spent} = GetBudgetSpent($budgetId);
+                        $self->{budgetKoha}->{$budgetId}->{budg_ordered} = C4::Budgets::GetBudgetOrdered($budgetId);
+                        $self->{budgetKoha}->{$budgetId}->{budg_spent} = C4::Budgets::GetBudgetSpent($budgetId);
                         $self->{logger}->debug("handleBudgetCheck() created self->{budgetKoha}->{$budgetId} with budget_amount:" . scalar $self->{budgetKoha}->{$budgetId}->{budget_amount} . ": budg_spent:" . scalar $self->{budgetKoha}->{$budgetId}->{budg_spent} . ": budg_ordered:" . scalar $self->{budgetKoha}->{$budgetId}->{budg_ordered} . ":");
                     }
                     if ( defined($self->{budgetKoha}->{$budgetId}->{budget_amount} ) ) {
