@@ -114,8 +114,8 @@ $( document ).ready(function() {
     $(".pay-online").removeClass("hidden");
 
     $("#amount-to-pay-label").hide();
-
-    $(".checkbox-pay, input[name='payment_method']").change( function() {
+    
+    function setAmountChange() {
         // Disable the pay button if no fees are selected
         //$("#submit-pay").prop("disabled", ! $(".checkbox-pay:checked").length );
 
@@ -157,6 +157,11 @@ $( document ).ready(function() {
         p.then(function() {
             $("#submit-pay").prop("disabled", ! $(".checkbox-pay:checked").length || ! $('input[name="payment_method"]:checked:not(:disabled)').length);
         })
+    };
+
+    $(".checkbox-pay, input[name='payment_method']").change( function() {
+        setAmountChange();
+        return false;
     });
     
     $("#CheckOpenFees").on("click", function() {

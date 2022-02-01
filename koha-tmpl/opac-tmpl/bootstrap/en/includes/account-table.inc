@@ -1,6 +1,11 @@
 [% PROCESS 'accounts.inc' %]
 <form method="post" action="opac-account-pay.pl" class="form-horizontal">
     [% IF ( ACCOUNT_LINES ) %]
+
+        [% IF ENABLE_OPAC_PAYMENTS %]
+            <p>Select any or all open fees for online payment. <a href="#" id="CheckOpenFees"> Select all</a> | <a href="#" id="UncheckOpenFees">Clear all</a></p>
+        [% END %]
+
         <table class="table table-bordered table-striped" id="finestable">
             <caption class="sr-only">Your charges</caption>
             <thead>
