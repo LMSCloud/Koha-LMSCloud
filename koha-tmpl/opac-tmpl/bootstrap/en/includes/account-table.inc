@@ -20,7 +20,7 @@
                     [% IF ACCOUNT_LINE.amountoutstanding > 0 || ACCOUNT_LINE.amountoutstanding < 0 %]<tr class="outstanding">[% ELSE %]<tr>[% END%]
                         [% IF ENABLE_OPAC_PAYMENTS %]
                             <td>
-                                [% IF ACCOUNT_LINE.amountoutstanding > 0 %]
+                                [% IF ACCOUNT_LINE.amountoutstanding > 0 && paymentsMinimumPatronAgeReached %]
                                     [% SET DISPLAY_PAYMENT_BLOCK = 1 %]
                                     <input class="checkbox-pay pay-online hidden" name="accountline" type="checkbox" id="checkbox-pay-[% ACCOUNT_LINE.accountlines_id | html %]" value="[% ACCOUNT_LINE.accountlines_id | html %]">
                                     <input type="hidden" id="amount-[% ACCOUNT_LINE.accountlines_id | html %]" value="[% ACCOUNT_LINE.amountoutstanding | html %]" />
@@ -141,15 +141,125 @@
         <fieldset class="pay-online hidden">
             <legend>Pay selected fines and charges</legend>
             <span class="help-block"><h2>Payment method</h2></span>
+            <input type="hidden" id="paymentTypeVariantKoha" name="paymentTypeVariantKoha" value="not_set" />
 
             [% FOREACH p IN plugins %]
-                <div class="control-group">
-                    <label class="radio">
-                        <input type="radio" data-threshold="[% p.opac_online_payment_threshold | html %]" name="payment_method" id="payment_method-[% p.class | html %]" value="[% p.class | html %]" checked="checked" />
-                        [% p.get_metadata.name | html %]
-                    </label>
-                    <small class="help-block text-muted"></small>
-                </div>
+
+                [% IF p.get_metadata.paymentTypeVariants %]    <!-- addition by LMSCloud -->
+
+                    [% FOREACH ptVariant IN p.opac_payment_variants_per_type(logged_in_user.branchcode, p.get_metadata.paymentTypes, p.get_metadata.paymentTypeVariants) %]
+
+                        [% IF ptVariant == 'GiroSolutionCreditcard' %]
+                            <div class="control-group">
+                                <label class="radio">
+                                    <input type="radio" name="payment_method" id="payment_method-[% p.class | html %]" value="[% p.class | html %]" checked="checked" onclick="paymentTypeVariantKoha.value = '[% ptVariant %]';" />
+                                    <div style="display: inline-block;">
+                                        <strong style="margin:5px;" > credit card payment via GiroSolution </strong><br>
+                                        [% FOREACH ptVariantIcon IN p.opac_online_payment_get_icons(logged_in_user.branchcode, ptVariant) %]
+                                            <img style="max-width:64px; width:auto; max-height:26px; height:auto; margin:5px;" src="https://static.lmscloud.net/images/epayment/[% ptVariantIcon %]">
+                                        [% END %]
+                                    </div>
+                                    <br><a title="GiroSolution - A member of the Sparkassen group" target="_blank" href="https://www.girosolution.de/">More information about GiroSolution</a>
+                                </label>
+                            </div>
+                        [% END %]
+
+                        [% IF ptVariant == 'GiroSolutionGiropay' %]
+                            <div class="control-group">
+                                <label class="radio">
+                                    <input type="radio" name="payment_method" id="payment_method-[% p.class | html %]" value="[% p.class | html %]" checked="checked" onclick="paymentTypeVariantKoha.value = '[% ptVariant %]';" />
+                                    <div style="display: inline-block;">
+                                    [% FOREACH ptVariantIcon IN p.opac_online_payment_get_icons(logged_in_user.branchcode, ptVariant) %]
+                                        <img style="margin:5px;" src="https://static.lmscloud.net/images/epayment/[% ptVariantIcon %]">
+                                    [% END %]
+                                    </div>
+                                    <br><a href="https://www.giropay.de" target="_blank" title="GIROPAY – SECURE ONLINE PAYMENT">More information about Giropay</a>
+                                </label>
+                            </div>
+                        [% END %]
+
+                        [% IF ptVariant == 'GiroSolutionPaypage' %]
+                            <div class="control-group">
+                                <label class="radio">
+                                    <input type="radio" name="payment_method" id="payment_method-[% p.class | html %]" value="[% p.class | html %]" checked="checked" onclick="paymentTypeVariantKoha.value = '[% ptVariant %]';" />
+                                    <div style="display: inline-block;">
+                                        <strong style="margin:5px;" > online payment via S-Public Services </strong><br>
+                                        [% FOREACH ptVariantIcon IN p.opac_online_payment_get_icons(logged_in_user.branchcode, ptVariant) %]
+                                            <img style="max-width:64px; width:auto; max-height:26px; height:auto; margin:5px;" src="https://static.lmscloud.net/images/epayment/[% ptVariantIcon %]">
+                                        [% END %]
+                                    </div>
+                                    <br><a title="S-Public Services - digital payment and administration solutions" target="_blank" href="https://s-publicservices.de/">More information about S-Public Services</a>
+                                </label>
+                            </div>
+                        [% END %]
+
+                        [% IF ptVariant == 'Epay21Paypage' %]
+                            <div class="control-group">
+                                <label class="radio">
+                                    <input type="radio" name="payment_method" id="payment_method-[% p.class | html %]" value="[% p.class | html %]" checked="checked" onclick="paymentTypeVariantKoha.value = '[% ptVariant %]';" />
+                                    <div style="display: inline-block;">
+                                        <strong style="margin:5px;" > online payment via ekom21/epay21 </strong><br>
+                                        [% FOREACH ptVariantIcon IN p.opac_online_payment_get_icons(logged_in_user.branchcode, ptVariant) %]
+                                            <img style="max-width:64px; width:auto; max-height:26px; height:auto; margin:5px;" src="https://static.lmscloud.net/images/epayment/[% ptVariantIcon %]">
+                                        [% END %]
+                                    </div>
+                                    <br><a href="https://www.ekom21.de/loesungen/epay21/" target="_blank" title="epay21 – payment in any situation">More information about Epay21</a>
+                                </label>
+                            </div>
+                        [% END %]
+
+                        [% IF ptVariant == 'PmPaymentPaypage' %]
+                            <div class="control-group">
+                                <label class="radio">
+                                    <input type="radio" name="payment_method" id="payment_method-[% p.class | html %]" value="[% p.class | html %]" checked="checked" onclick="paymentTypeVariantKoha.value = '[% ptVariant %]';" />
+                                    <div style="display: inline-block;">
+                                        <strong style="margin:5px;" > online payment via pmPayment </strong><br>
+                                        [% FOREACH ptVariantIcon IN p.opac_online_payment_get_icons(logged_in_user.branchcode, ptVariant) %]
+                                            <img style="max-width:64px; width:auto; max-height:26px; height:auto; margin:5px;" src="https://static.lmscloud.net/images/epayment/[% ptVariantIcon %]">
+                                        [% END %]
+                                    </div>
+                                    <br><a href="https://www.govconnect.de/Produkte/E-Government/pmPayment/" target="_blank" title="Online Payment with pmPayment">More information about pmPayment</a>
+                                </label>
+                            </div>
+                        [% END %]
+
+                        [% IF ptVariant == 'EPayBLPaypage' %]
+                            <div class="control-group">
+                                <label class="radio">
+                                    <input type="radio" name="payment_method" id="payment_method-[% p.class | html %]" value="[% p.class | html %]" checked="checked" onclick="paymentTypeVariantKoha.value = '[% ptVariant %]';" />
+                                    <div style="display: inline-block;">
+                                        <strong style="margin:5px;" > online payment via ePayBL </strong><br>
+                                        [% FOREACH ptVariantIcon IN p.opac_online_payment_get_icons(logged_in_user.branchcode, ptVariant) %]
+                                            <img style="max-width:64px; width:auto; max-height:26px; height:auto; margin:5px;" src="https://static.lmscloud.net/images/epayment/[% ptVariantIcon %]">
+                                        [% END %]
+                                    </div>
+                                    <br><a href="https://www.epaybl.de/" target="_blank" title="E-Payment Bund-Länder">More information about ePayBL</a>
+                                </label>
+                            </div>
+                        [% END %]
+
+                        <script type= "text/javascript">
+                        paymentTypeVariantKoha.value = '[% ptVariant %]';
+                        </script>
+
+                    [% END %]
+                    <br/>
+
+                [% ELSE %]    <!-- standard Koha -->
+                    <div class="control-group">
+                        <label class="radio">
+                            <input type="radio" name="payment_method" id="payment_method-[% p.class | html %]" value="[% p.class | html %]" checked="checked" />
+                            [% p.get_metadata.name | html %]
+                        </label>
+                        <small class="help-block text-muted"></small>
+                    </div>
+
+                    <script type= "text/javascript">
+                    paymentTypeVariantKoha.value = 'deleted';
+                    </script>
+
+                [% END %]
+
             [% END %]
 
             <div class="control-group">
