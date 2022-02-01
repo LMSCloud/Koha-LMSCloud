@@ -265,9 +265,6 @@
                                                 [% IF ( OPACMySummaryHTML ) %]
                                                     <th class="nosort">Links</th>
                                                 [% END %]
-                                                [% IF ( OPACFinesTab ) %]
-                                                    <th>Fines</th>
-                                                [% END %]
                                                 [% IF ( Koha.Preference('AllowCheckoutNotes') ) %]
                                                     <th id="checkout-notes" class="nosort" title="Use this to report any problems with your currently checked out items">Report a problem</th>
                                                 [% END %]
