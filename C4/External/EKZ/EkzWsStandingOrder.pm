@@ -1,6 +1,6 @@
 package C4::External::EKZ::EkzWsStandingOrder;
 
-# Copyright 2017-2021 (C) LMSCLoud GmbH
+# Copyright 2017-2022 (C) LMSCLoud GmbH
 #
 # This file is part of Koha.
 #
@@ -25,13 +25,19 @@ use Data::Dumper;
 use CGI::Carp;
 use Exporter;
 
-use C4::Items qw(AddItem);
+use C4::Context;
+use C4::Acquisition qw( NewBasket GetBasket GetBaskets ModBasket GetBasketgroupsGeneric NewBasketgroup );
 use C4::Biblio qw( GetFrameworkCode GetMarcFromKohaField );
+use C4::Items qw( ModItemFromMarc );    # additionally GetMarcItem is required here, but it is not exported by C4::Items, so we have to use it inofficially
 use C4::External::EKZ::lib::EkzWebServices;
 use C4::External::EKZ::lib::EkzKohaRecords;
 use Koha::AcquisitionImport::AcquisitionImports;
 use Koha::AcquisitionImport::AcquisitionImportObjects;
-use C4::Acquisition;
+use Koha::Acquisition::Order;
+use Koha::Database;
+use Koha::Item;
+use Koha::Logger;
+use Koha::Patrons;
 
 our @ISA = qw(Exporter);
 our @EXPORT = qw( getCurrentYear readStoFromEkzWsStoList addReferenznummerToObjectItemNumber genKohaRecords );
@@ -96,7 +102,6 @@ sub addReferenznummerToObjectItemNumber {
     my $logger = Koha::Logger->get({ interface => 'C4::External::EKZ::EkzWsStandingOrder' });
 
     my $ekzBestellNr = '';
-    my $dbh = C4::Context->dbh;
     my $titles = {};
 
     $logger->info("addReferenznummerToObjectItemNumber() START ekzCustomerNumber:" . (defined($ekzCustomerNumber) ? $ekzCustomerNumber : 'undef') .
@@ -256,10 +261,10 @@ sub genKohaRecords {
 
     my $ekzBestellNr = '';
     my $lastRunDateIsSet = 0;
-    my $dbh = C4::Context->dbh;
     my $acquisitionError = 0;
     my $basketno = -1;
     my $basketgroupid = undef;
+    my $authorisedby = undef;
 
     # variables for email log
     my @logresult = ();
@@ -337,8 +342,8 @@ sub genKohaRecords {
     if ( $insOrUpd ) {
 
         # Insert/update record in table acquisition_import representing the standing order request.
-        $dbh = C4::Context->dbh;
-        $dbh->{AutoCommit} = 0;
+        my $schema = Koha::Database->new->schema;
+        $schema->storage->txn_begin;
 
         $ekzBestellNr = 'sto.' . $ekzCustomerNumber . '.ID' . $stoWithNewState->{'stoID'};    # StoList response contains no order number, so we create this dummy order number
 
@@ -389,17 +394,17 @@ sub genKohaRecords {
                 my $selbaskets = C4::Acquisition::GetBaskets( { 'basketname' => "\'$basketname\'" } );
                 if ( @{$selbaskets} > 0 ) {
                     $basketno = $selbaskets->[0]->{'basketno'};
-                    $logger->info("genKohaRecords() found aqbasket with basketno:" . $basketno . ":");
+                    $authorisedby = $selbaskets->[0]->{'authorisedby'};
+                    $logger->info("genKohaRecords() found aqbasket with basketname:$basketname: having basketno:" . $basketno . ":");
                 } else {
-                    my $authorisedby = undef;
-                    my $sth = $dbh->prepare("select borrowernumber from borrowers where surname = 'LCService'");
-                    $sth->execute();
-                    if ( my $hit = $sth->fetchrow_hashref ) {
-                        $authorisedby = $hit->{borrowernumber};
+                    my $patron = Koha::Patrons->find( { surname => 'LCService' } );
+                    if ( $patron ) {
+                        $authorisedby = $patron->borrowernumber();
+                        $logger->info("genKohaRecords() found patron with surname = 'LCService' authorisedby:" . $authorisedby . ":");
                     }
                     my $branchcode = $ekzKohaRecord->branchcodeFallback('', $homebranch);
                     $basketno = C4::Acquisition::NewBasket($ekzAqbooksellersId, $authorisedby, $basketname, 'created by ekz StoList', '', undef, $branchcode, $branchcode, 0, 'ordering');    # XXXWH fixed text ok?
-                    $logger->info("genKohaRecords() created new basket having basketno:" . $basketno . ":");
+                    $logger->info("genKohaRecords() created new aqbasket with basketname:$basketname: having basketno:" . $basketno . ":");
                     if ( $basketno ) {
                         my $basketinfo = {};
                         $basketinfo->{'basketno'} = $basketno;
@@ -809,16 +814,17 @@ SEQUENCEOFKOSTENSTELLE: for ( my $i = 0; $i < $sequenceOfKostenstelle; $i += 1 )
                         $orderinfo->{unitprice_tax_excluded} = 0.0;
                         $orderinfo->{unitprice_tax_included} = 0.0;
                         # quantityreceived is set to 0 by DBS
+                        $orderinfo->{created_by} = $authorisedby;
                         $orderinfo->{order_internalnote} = '';
                         $orderinfo->{order_vendornote} = '';
                         $orderinfo->{basketno} = $basketno;
                         # timestamp is set to now by DBS
                         $orderinfo->{budget_id} = $budgetid;
                         $orderinfo->{'uncertainprice'} = 0;
-                        # claims_count is set to 0 by DBS
                         $orderinfo->{subscriptionid} = undef;
                         $orderinfo->{orderstatus} = 'ordered';
                         $orderinfo->{rrp} = $replacementcost_tax_included;    #  corresponds to input field 'Replacement cost' in UI (not discounted, per item)
+                        $orderinfo->{replacementprice} = $replacementcost_tax_included;
                         $orderinfo->{rrp_tax_excluded} = $replacementcost_tax_excluded;
                         $orderinfo->{rrp_tax_included} = $replacementcost_tax_included;
                         $orderinfo->{ecost} = $budgetedcost_tax_included;     #  corresponds to input field 'Budgeted cost' in UI (discounted, per item)
@@ -856,8 +862,12 @@ SEQUENCEOFKOSTENSTELLE: for ( my $i = 0; $i < $sequenceOfKostenstelle; $i += 1 )
                     $item_hash->{booksellerid} = 'ekz';
                     $item_hash->{price} = $gesamtpreis;
                     $item_hash->{replacementprice} = $replacementcost_tax_included;
-                    
-                    my ( $biblionumberItem, $biblioitemnumberItem, $itemnumber ) = C4::Items::AddItem($item_hash, $biblionumber);
+
+                    $item_hash->{biblionumber} = $biblionumber;
+                    $item_hash->{biblioitemnumber} = $biblionumber;
+                    my $kohaItem = Koha::Item->new( $item_hash )->store;
+                    my $itemnumber = $kohaItem->itemnumber;
+
                     my $tmp_cn = defined($titleHits->{'records'}->[0]->field("001")) ? $titleHits->{'records'}->[0]->field("001")->data() : $biblionumber;
                     my $tmp_cna = defined($titleHits->{'records'}->[0]->field("003")) ? $titleHits->{'records'}->[0]->field("003")->data() : "undef";
                     my $importId = '(ControlNumber)' . $tmp_cn . '(ControlNrId)' . $tmp_cna;    # if cna = 'DE-Rt5' then this cn is the ekz article number
@@ -875,8 +885,8 @@ SEQUENCEOFKOSTENSTELLE: for ( my $i = 0; $i < $sequenceOfKostenstelle; $i += 1 )
                         if ( defined($ekzWebServicesSetItemSubfieldsWhenOrdered) && length($ekzWebServicesSetItemSubfieldsWhenOrdered) > 0 ) {
                             my @affects = split q{\|}, $ekzWebServicesSetItemSubfieldsWhenOrdered;
                             if ( @affects ) {
-                                my $frameworkcode = GetFrameworkCode($biblionumber);
-                                my ( $itemfield ) = GetMarcFromKohaField( 'items.itemnumber', $frameworkcode );
+                                my $frameworkcode = C4::Biblio::GetFrameworkCode($biblionumber);
+                                my ( $itemfield ) = C4::Biblio::GetMarcFromKohaField( 'items.itemnumber', $frameworkcode );
                                 my $item = C4::Items::GetMarcItem( $biblionumber, $itemnumber );
                                 for my $affect ( @affects ) {
                                     my ( $sf, $v ) = split('=', $affect, 2);
@@ -1005,11 +1015,10 @@ SEQUENCEOFKOSTENSTELLE: for ( my $i = 0; $i < $sequenceOfKostenstelle; $i += 1 )
         $logger->debug("genKohaRecords() Dumper(\\\@logresult):" . Dumper(\@logresult) . ":");
 
 
-        #$dbh->rollback;    # roll it back for TEST XXXWH
+        #$schema->storage->txn_rollback;    # crude rollback for TEST only XXXWH
 
         # commit the complete standing order update (only as a single transaction)
-        $dbh->commit();
-        $dbh->{AutoCommit} = 1;
+        $schema->storage->txn_commit;    # in case of a thrown exception this statement is not executed, so the transaction would be rolled back automatically
 
         $logger->info("genKohaRecords() cntTitlesHandled:$cntTitlesHandled: cntItemsHandled:$cntItemsHandled:");
         if ( scalar(@logresult) > 0 && ($cntTitlesHandled > 0 || $cntItemsHandled > 0) ) {

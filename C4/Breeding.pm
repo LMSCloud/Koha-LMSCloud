@@ -295,18 +295,7 @@ sub _build_query {
 sub _handle_one_result {
     my ( $zoomrec, $servhref, $seq, $bib, $xslh )= @_;
 
-    my $raw= $zoomrec->raw();
-    my $marcrecord;
-    if( $servhref->{servertype} eq 'sru' ) {
-        $marcrecord= MARC::Record->new_from_xml( $raw, 'UTF-8',
-            $servhref->{syntax} );
-        $marcrecord->encoding('UTF-8');
-    } else {
-        ($marcrecord) = MarcToUTF8Record($raw, C4::Context->preference('marcflavour'), $servhref->{encoding} // "iso-5426" ); #ignores charset return values
-    }
-    SetUTF8Flag($marcrecord);
-    my $error;
-    ( $marcrecord, $error ) = _do_xslt_proc($marcrecord, $servhref, $xslh);
+    my ( $marcrecord, $error ) = _handle_one_result_marcrecord($zoomrec, $servhref, $xslh);
 
     my $batch_id = GetZ3950BatchId($servhref->{servername});
     my $breedingid = AddBiblioToBatch($batch_id, $seq, $marcrecord, 'UTF-8', 0);
@@ -333,6 +322,7 @@ sub _handle_one_result_marcrecord {
     if( $servhref->{servertype} eq 'sru' ) {
         $marcrecord= MARC::Record->new_from_xml( $raw, 'UTF-8',
             $servhref->{syntax} );
+        $marcrecord->encoding('UTF-8');
     } else {
         ($marcrecord) = MarcToUTF8Record($raw, C4::Context->preference('marcflavour'), $servhref->{encoding} // "iso-5426" ); #ignores charset return values
     }
@@ -725,7 +715,7 @@ sub Z3950SearchGeneral {
                     _translate_query( $server, $squery )));
         $s++;
     }
-    my $xslh = Koha::XSLT_Handler->new;
+    my $xslh = Koha::XSLT::Base->new;
 
     #$$result->{'count'} = 0;     # We do not do this here; the caller has to decide on initializing or expanding the result hash.
     #$$result->{'records'} = [];  # We do not do this here; the caller has to decide on initializing or expanding the result hash.

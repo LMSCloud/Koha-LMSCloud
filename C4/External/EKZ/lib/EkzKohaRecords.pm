@@ -1,6 +1,6 @@
 package C4::External::EKZ::lib::EkzKohaRecords;
 
-# Copyright 2017-2021 (C) LMSCLoud GmbH
+# Copyright 2017-2022 (C) LMSCLoud GmbH
 #
 # This file is part of Koha.
 #
@@ -27,22 +27,25 @@ use Data::Dumper;
 use HTML::Entities;
 use Mail::Sendmail;
 use Capture::Tiny 'capture_stdout';
-
-use Koha::Email;
+use Try::Tiny;
 use MARC::Field;
 use MARC::Record;
 use MARC::File::XML ( BinaryEncoding => 'utf8', RecordFormat => 'MARC21' );
-use C4::Koha;
+
+use C4::Context;
+use C4::Biblio qw( AddBiblio GetMarcBiblio );
 use C4::Breeding qw(Z3950SearchGeneral);
 use C4::External::EKZ::EkzAuthentication;
 use C4::External::EKZ::lib::LMSPoolSRU;
 use C4::External::EKZ::lib::EkzWsConfig;
 use C4::External::EKZ::lib::EkzWebServices;
-use C4::Context;
-use C4::Biblio;
+#use C4::Letters qw( _wrap_html );    # C4::Letters::_wrap_html is required here, but it is not exported by C4::Letters, so we have to use it inofficially
+use C4::Search qw( SimpleSearch );
+use Koha::Biblios;
+use Koha::Database;
+use Koha::Email;
 use Koha::Libraries;
-
-use Koha::Schema::Result::Aqbudgetperiod;
+use Koha::Logger;
 
 
 
@@ -355,8 +358,9 @@ sub readTitleInLocalDB {
         if ( $marcrecord ) {
             # Onleihe e-media have to be filtered out
             my $biblionumber = $marcrecord->subfield("999","c");
-            my $items = &C4::Items::GetItemsByBiblioitemnumber( $biblionumber );
-            foreach my $item (@$items) {
+            my $biblio = Koha::Biblios->find( $biblionumber );
+            my @items = $biblio->items->as_list;
+            foreach my $item (@items) {
                 if ( $self->isOnleiheItem($item) ) {
                     next HITS;
                 }
@@ -411,15 +415,20 @@ sub isOnleiheItem {
     my ($item) = @_;
     my $ret = 0;
 
-    $self->{'logger'}->debug("isOnleiheItem() item->{itype}:" . $item->{itype} . ":");
+    $self->{'logger'}->debug("isOnleiheItem() item->itype():" . $item->itype() . ":");
+    my $itemtype = $item->itype();
+    if ( ! $itemtype ) {
+        $itemtype = $item->effective_itemtype();
+    }
 
-    if ( $item->{itype} eq 'eaudio' ||
-         $item->{itype} eq 'ebook' ||
-         $item->{itype} eq 'emusic' ||
-         $item->{itype} eq 'epaper' ||
-         $item->{itype} eq 'evideo' ) {
+    if ( $itemtype eq 'eaudio' ||
+         $itemtype eq 'ebook' ||
+         $itemtype eq 'emusic' ||
+         $itemtype eq 'epaper' ||
+         $itemtype eq 'evideo' ) {
         $ret = 1;
     }
+    $self->{'logger'}->debug("isOnleiheItem() item->itype():" . $item->itype() . ": itemtype:$itemtype: returns ret:$ret:");
     return $ret;
 }
 
@@ -1710,28 +1719,48 @@ sub sendMessage {
     my $self = shift;
     my ( $ekzCustomerNumber, $message, $subject ) = @_;
 
+    my $success = '';
+    my $error = '';
     my $ekzAdminEmailAddress = $self->{'ekzWsConfig'}->getEkzProcessingNoticesEmailAddress($ekzCustomerNumber);
     my $adminEmailAddress = C4::Context->preference("KohaAdminEmailAddress");
     if( !( defined $ekzAdminEmailAddress && length($ekzAdminEmailAddress) > 0 ) ) {
         $ekzAdminEmailAddress = $adminEmailAddress;
     }
     my $replyTo = C4::Context->preference("ReplytoDefault");
-    
-    my $email = Koha::Email->new();
 
-    my %sendmailParams = $email->create_message_headers(
-        {
-            to          => $ekzAdminEmailAddress,
-            from        => $adminEmailAddress,
-            replyto     => $replyTo,
-            sender      => $adminEmailAddress,
-            subject     => encode("MIME-Q", $subject),
-            message     => $message,
-            contenttype => 'text/html; charset="UTF-8"'
+    my $branch = $self->{'ekzWsConfig'}->getEkzWebServicesDefaultBranch($ekzCustomerNumber);
+    my $library = Koha::Libraries->find( $branch );
+    my $emailParams = 
+    {
+        to          => $ekzAdminEmailAddress,
+        from        => $adminEmailAddress,
+        replyto     => $replyTo,
+        sender      => $adminEmailAddress,
+        subject     => $subject,    # encode("MIME-Q", $subject) is obsolete here since modifications of Koha::Email in version 21.05
+        contenttype => 'text/html; charset="UTF-8"'
+    };
+    $self->{'logger'}->debug("sendMessage() ekzCustomerNumber:$ekzCustomerNumber: branch:$branch: emailParams:" . Dumper($emailParams) . ":");
+
+    my $email = Koha::Email->create( $emailParams );
+    $email->html_body( C4::Letters::_wrap_html( $message, "" . $subject, 1 ) );
+
+    $success = try {
+        $email->send_or_die({ transport => $library->smtp_server->transport });
+    }
+    catch {
+        my $exception = $_;
+        $self->{'logger'}->error("sendMessage() ekzCustomerNumber:$ekzCustomerNumber: branch:$branch: emailParams:" . Dumper($emailParams) . ": exception:" . Dumper($exception) . ":");
+        if ( defined($exception) ) {
+            # We expect ref(exception) eq 'Email::Sender::Failure'
+            $error = $exception->message;
+            carp "$exception";
+        } else {
+            $error = "Mail not sent! Maybe the library's SMTP-server configuration is incorrect.";
+            carp "$error";
         }
-    );
-    $self->{'logger'}->debug("sendMessage() ekzCustomerNumber:$ekzCustomerNumber: sendmailParams:" . Dumper(%sendmailParams) . ":");
-    sendmail( %sendmailParams );
+    };
+    
+    $self->{'logger'}->debug("sendMessage() ekzCustomerNumber:$ekzCustomerNumber: branch:$branch: emailParams:" . Dumper($emailParams) . ": success:$success: error:$error:");
 }
 
 sub h {

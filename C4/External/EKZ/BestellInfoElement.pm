@@ -1,6 +1,6 @@
 package C4::External::EKZ::BestellInfoElement;
 
-# Copyright 2017-2021 (C) LMSCLoud GmbH
+# Copyright 2017-2022 (C) LMSCLoud GmbH
 #
 # This file is part of Koha.
 #
@@ -29,15 +29,20 @@ use Try::Tiny;
 use Koha::Exceptions::Object;
 use C4::Context;
 use C4::Koha;
-use C4::Items qw(AddItem);
+use C4::Items qw( ModItemFromMarc );    # additionally GetMarcItem is required here, but it is not exported by C4::Items, so we have to use it inofficially
 use C4::Biblio qw( GetFrameworkCode GetMarcFromKohaField );
-use C4::Acquisition;
+use C4::Acquisition qw( NewBasket GetBasket GetBaskets ModBasket GetBasketgroupsGeneric NewBasketgroup CloseBasketgroup );
 use C4::External::EKZ::EkzAuthentication;
 use C4::External::EKZ::lib::EkzKohaRecords;
 use Koha::AcquisitionImport::AcquisitionImports;
 use Koha::AcquisitionImport::AcquisitionImportObjects;
 use Koha::Acquisition::Order;
-
+use Koha::Acquisition::Orders;
+use Koha::Acquisition::Baskets;
+use Koha::Database;
+use Koha::Item;
+use Koha::Items;
+use Koha::Logger;
 
 
 
@@ -131,8 +136,9 @@ sub init {
 
 sub process {
     my ($self, $soapBodyContent, $request) = @_;    # $request->{'soap:Envelope'}->{'soap:Body'} contains our deserialized BestellinfoElement of the HTTP request
-    my $dbh = C4::Context->dbh;
-    $dbh->{AutoCommit} = 0;
+    my $schema = Koha::Database->new->schema;
+    $schema->storage->txn_begin;
+
     my $exceptionThrown;
 
     my $soapEnvelopeHeader = $request->{'soap:Envelope'}->{'soap:Header'};
@@ -192,6 +198,7 @@ foreach my $tag  (keys %{$soapEnvelopeBody->{'ns2:BestellInfoElement'}}) {
     my $acquisitionError = 0;
     my $basketno = -1;
     my $basketgroupid = undef;
+    my $authorisedby = undef;
     
 
     try {
@@ -228,7 +235,6 @@ foreach my $tag  (keys %{$soapEnvelopeBody->{'ns2:BestellInfoElement'}}) {
                     rec_type => "message",
                     processingstate => "requested"
                 };
-                my $acquisitionImportIdBestellInfo;
                 my $acquisitionImportBestellInfo = Koha::AcquisitionImport::AcquisitionImports->new();
                 my $hits_rs = $acquisitionImportBestellInfo->_resultset()->search( $selParam );
                 my $hit = $hits_rs->first();
@@ -371,13 +377,13 @@ foreach my $tag  (keys %{$soapEnvelopeBody->{'ns2:BestellInfoElement'}}) {
                     my $selbaskets = C4::Acquisition::GetBaskets( { 'basketname' => "\'$basketname\'" } );
                     if ( @{$selbaskets} > 0 ) {
                         $basketno = $selbaskets->[0]->{'basketno'};
+                        $authorisedby = $selbaskets->[0]->{'authorisedby'};
                         $self->{logger}->debug("process() found aqbasket with basketno:$basketno:");
                     } else {
-                        my $authorisedby = undef;
-                        my $sth = $dbh->prepare("select borrowernumber from borrowers where surname = 'LCService'");
-                        $sth->execute();
-                        if ( my $hit = $sth->fetchrow_hashref ) {
-                            $authorisedby = $hit->{borrowernumber};
+                        my $patron = Koha::Patrons->find( { surname => 'LCService' } );
+                        if ( $patron ) {
+                            $authorisedby = $patron->borrowernumber();
+                            $self->{logger}->info("genKohaRecords() found patron with surname = 'LCService' authorisedby:" . $authorisedby . ":");
                         }
                         my $branchcode = $self->{ekzKohaRecordClass}->branchcodeFallback('', $self->{homebranch});
                         $basketno = C4::Acquisition::NewBasket($self->{ekzAqbooksellersId}, $authorisedby, $basketname, 'created by ekz BestellInfo', '', undef, $branchcode, $branchcode, 0, 'ordering');    # XXXWH
@@ -439,8 +445,8 @@ foreach my $tag  (keys %{$soapEnvelopeBody->{'ns2:BestellInfoElement'}}) {
                              $exemplarArrayRef = $titel->{'exemplar'};  # ref to deserialized array containing the hash references
                         }
                     }
-                    $self->{logger}->debug("process() HTTP request exemplarArray:" . Dumper($exemplarArrayRef) . ": AnzElem:" . 0+@$exemplarArrayRef . ":");
-                    my @idPaarListeTmp = $self->handleTitelBestellInfo($acquisitionImportIdBestellInfo, $reqEkzBestellNr, $reqEkzBestellDatum, $reqLmsBestellCode, $reqParamTitelInfo, $exemplarArrayRef, $reqWaehrung, $basketno); ## add or update title data and item data
+                    $self->{logger}->debug("process() HTTP request exemplarArray:" . Dumper($exemplarArrayRef) . ": AnzElem:" . scalar @{$exemplarArrayRef} . ":");
+                    my @idPaarListeTmp = $self->handleTitelBestellInfo($acquisitionImportIdBestellInfo, $reqEkzBestellNr, $reqEkzBestellDatum, $reqLmsBestellCode, $reqParamTitelInfo, $exemplarArrayRef, $reqWaehrung, $basketno, $authorisedby); ## add or update title data and item data
                     
                     $self->{logger}->debug("process() Anzahl idPaarListeTmp:" . scalar @idPaarListeTmp . ": idPaarListeTmp:" . Dumper(@idPaarListeTmp) . ":");
                     push @idPaarListe, @idPaarListeTmp;
@@ -453,8 +459,12 @@ foreach my $tag  (keys %{$soapEnvelopeBody->{'ns2:BestellInfoElement'}}) {
                     $self->{logger}->debug("process() Dumper aqbasket:" . Dumper($aqbasket) . ":");
                     if ( $aqbasket ) {
                         # close the basket
-                        $self->{logger}->debug("process() is calling CloseBasket basketno:" . $aqbasket->{basketno} . ":");
-                        &C4::Acquisition::CloseBasket($aqbasket->{basketno});
+                        $self->{logger}->debug("process() is calling Koha::Acquisition::Baskets->find(basketno:" . $aqbasket->{basketno} . ")");
+                        my $kohabasket = Koha::Acquisition::Baskets->find($aqbasket->{basketno});
+                        if ( $kohabasket ) {
+                            $self->{logger}->debug("process() is calling Koha::Acquisition::Baskets->find(basketno:" . $aqbasket->{basketno} . ")->close");
+                            $kohabasket->close;
+                        }
 
                         # search/create basket group with aqbasketgroups.name = ekz order number and aqbasketgroups.booksellerid = and update aqbasket accordingly
                         my $params = {
@@ -517,7 +527,7 @@ foreach my $tag  (keys %{$soapEnvelopeBody->{'ns2:BestellInfoElement'}}) {
 
     $self->{logger}->info("process() Anzahl idPaarListe:" . scalar @idPaarListe . ": idPaarListe:" . Dumper(@idPaarListe) . ":");
 
-    #$dbh->rollback;    # crude rollback for TEST only XXXWH
+    #$schema->storage->txn_rollback;    # crude rollback for TEST only XXXWH
     #@idPaarListe = (); # crude rollback for TEST only XXXWH
 
     $respStatusCode = 'ERROR';
@@ -586,12 +596,11 @@ foreach my $tag  (keys %{$soapEnvelopeBody->{'ns2:BestellInfoElement'}}) {
 
     if ( $exceptionThrown ) {
         $self->{logger}->error("process() roll back based on thrown exception");
-        $dbh->rollback;    # roll back the complete BestellInfo, based on thrown exception
+        $schema->storage->txn_rollback;    # roll back the complete BestellInfo, based on thrown exception
     } else {
         $self->{logger}->info("process() commit");
         # commit the complete BestellInfo (only as a single transaction)
-        $dbh->commit();
-        $dbh->{AutoCommit} = 1;
+        $schema->storage->txn_commit;
     }
     
     if ( scalar @{$self->{emaillog}->{logresult}} > 0 ) {    # RG 31.03.2020: send e-mail also if reqLmsBestellCode
@@ -612,7 +621,7 @@ foreach my $tag  (keys %{$soapEnvelopeBody->{'ns2:BestellInfoElement'}}) {
 }
 
 sub handleTitelBestellInfo {
-    my ( $self, $acquisitionImportIdBestellInfo, $reqEkzBestellNr, $reqEkzBestellDatum, $reqLmsBestellCode, $reqParamTitelInfo, $exemplare, $reqWaehrung, $basketno ) = @_;
+    my ( $self, $acquisitionImportIdBestellInfo, $reqEkzBestellNr, $reqEkzBestellDatum, $reqLmsBestellCode, $reqParamTitelInfo, $exemplare, $reqWaehrung, $basketno, $authorisedby ) = @_;
 
     my $query = "cn:\"-1\"";                    # control number search, definition for no hit
     my $error = undef;
@@ -1001,6 +1010,7 @@ sub handleTitelBestellInfo {
                 $orderinfo->{unitprice_tax_excluded} = 0.0;
                 $orderinfo->{unitprice_tax_included} = 0.0;
                 # quantityreceived is set to 0 by DBS
+                $orderinfo->{created_by} = $authorisedby;
                 $orderinfo->{order_internalnote} = '';
                 $orderinfo->{order_vendornote} = sprintf("Bestellung:\nGesamtpreis: %.2f %s (Exemplare: %d)\n", $gesamtpreis, $reqWaehrung, $quantity);
                 if ( $rabattbetrag != 0.0 ) {
@@ -1018,10 +1028,10 @@ sub handleTitelBestellInfo {
                 # timestamp is set to now by DBS
                 $orderinfo->{budget_id} = $budgetid;
                 $orderinfo->{'uncertainprice'} = 0;
-                # claims_count is set to 0 by DBS
                 $orderinfo->{subscriptionid} = undef;
                 $orderinfo->{orderstatus} = 'ordered';
                 $orderinfo->{rrp} = $replacementcost_tax_included;    #  corresponds to input field 'Replacement cost' in UI (not discounted, per item)
+                $orderinfo->{replacementprice} = $replacementcost_tax_included;
                 $orderinfo->{rrp_tax_excluded} = $replacementcost_tax_excluded;
                 $orderinfo->{rrp_tax_included} = $replacementcost_tax_included;
                 $orderinfo->{ecost} = $budgetedcost_tax_included;     #  corresponds to input field 'Budgeted cost' in UI (discounted, per item)
@@ -1182,12 +1192,15 @@ sub handleTitelBestellInfo {
                         $itemnumber = $itemImportObjectHit->get_column('koha_object_id');
 
                         # step 3.3:  update items record
-# XXXWHXXXWH # string for accumulating error messages for this order
-                        $self->{logger}->debug("handleTitelBestellInfo() ModItem itemnumber:" . $itemnumber . ": gesamtpreis:" . $gesamtpreis . ":");
-                        my $item_hash;
-                        $item_hash->{price} = $gesamtpreis;
-                        $item_hash->{replacementprice} = $replacementcost_tax_included;
-                        C4::Items::ModItem($item_hash, $biblionumber, $itemnumber);
+                        my $item = Koha::Items->find($itemnumber);
+                        if ( $item ) {
+                            $item->price( $gesamtpreis );
+                            $item->replacementprice( $replacementcost_tax_included );
+                            $self->{logger}->debug("handleTitelBestellInfo() item->store() itemnumber:" . $itemnumber . ": gesamtpreis:" . $gesamtpreis . ": replacementcost_tax_included:" . $replacementcost_tax_included . ":");
+                            $item->store();
+                        } else {
+                            $self->{logger}->error("handleTitelBestellInfo() item not found for update of price and replacementprice! itemnumber:" . $itemnumber . ": gesamtpreis:" . $gesamtpreis . ": replacementcost_tax_included:" . $replacementcost_tax_included . ":");
+                        }
 
                         # add to response
                         my %idPaar = ();
@@ -1229,9 +1242,12 @@ sub handleTitelBestellInfo {
                     if ( $self->{ccode} ) {
                         $item_hash->{ccode} = $self->{ccode};    # DKSH only; got from <auftragsnummer> via authorised_value_category CCODE
                     }
-                    
+
                     # step 3.2: finally add the next items record
-                    my ( $biblionumberItem, $biblioitemnumberItem, $itemnumber ) = C4::Items::AddItem($item_hash, $biblionumber);
+                    $item_hash->{biblionumber} = $biblionumber;
+                    $item_hash->{biblioitemnumber} = $biblionumber;
+                    my $kohaItem = Koha::Item->new( $item_hash )->store;
+                    my $itemnumber = $kohaItem->itemnumber;
 
                     # collect title controlnumbers for HTML URL to Koha records of handled titles
                     my $tmp_cn = defined($titleHits->{'records'}->[0]->field("001")) ? $titleHits->{'records'}->[0]->field("001")->data() : $biblionumber;
@@ -1247,8 +1263,8 @@ sub handleTitelBestellInfo {
                         if ( defined($self->{ekzWebServicesSetItemSubfieldsWhenOrdered}) && length($self->{ekzWebServicesSetItemSubfieldsWhenOrdered}) > 0 ) {
                             my @affects = split q{\|}, $self->{ekzWebServicesSetItemSubfieldsWhenOrdered};
                             if ( @affects ) {
-                                my $frameworkcode = GetFrameworkCode($biblionumber);
-                                my ( $itemfield ) = GetMarcFromKohaField( 'items.itemnumber', $frameworkcode );
+                                my $frameworkcode = C4::Biblio::GetFrameworkCode($biblionumber);
+                                my ( $itemfield ) = C4::Biblio::GetMarcFromKohaField( 'items.itemnumber', $frameworkcode );
                                 my $item = C4::Items::GetMarcItem( $biblionumber, $itemnumber );
                                 for my $affect ( @affects ) {
                                     my ( $sf, $v ) = split('=', $affect, 2);

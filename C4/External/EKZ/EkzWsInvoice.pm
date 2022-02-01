@@ -1,6 +1,6 @@
 package C4::External::EKZ::EkzWsInvoice;
 
-# Copyright 2020-2021 (C) LMSCLoud GmbH
+# Copyright 2020-2022 (C) LMSCLoud GmbH
 #
 # This file is part of Koha.
 #
@@ -26,15 +26,27 @@ use CGI::Carp;
 use DateTime::Format::MySQL;
 use Exporter;
 
-use Koha::DateUtils qw( output_pref dt_from_string );
-use C4::Items qw(AddItem);
-use C4::Biblio qw( GetFrameworkCode GetMarcFromKohaField );
-use Koha::AcquisitionImport::AcquisitionImports;
-use Koha::AcquisitionImport::AcquisitionImportObjects;
+use C4::Acquisition qw( NewBasket GetBasket GetBaskets ModBasket ReopenBasket 
+                        GetBasketgroupsGeneric NewBasketgroup CloseBasketgroup ReOpenBasketgroup 
+                        GetOrder GetOrderFromItemnumber ModOrderDeliveryNote ModReceiveOrder 
+                        GetInvoice GetInvoices AddInvoice CloseInvoice ReopenInvoice );
+# use C4::Acquisition qw( populate_order_with_prices );    # additionally populate_order_with_prices is required here, but it is not exported by C4::Acquisition, so we have to use it inofficially
+use C4::Biblio qw( GetFrameworkCode GetMarcFromKohaField GetMarcBiblio );
+use C4::Context;
+use C4::Items qw( ModItemFromMarc );    # additionally GetMarcItem is required here, but it is not exported by C4::Items, so we have to use it inofficially
 use C4::External::EKZ::lib::EkzWebServices;
 use C4::External::EKZ::lib::EkzKohaRecords;
+use Koha::DateUtils qw( output_pref dt_from_string );
+use Koha::AcquisitionImport::AcquisitionImports;
+use Koha::AcquisitionImport::AcquisitionImportObjects;
+use Koha::Acquisition::Baskets;
+use Koha::Acquisition::Booksellers;
 use Koha::Acquisition::Order;
-use C4::Acquisition;
+use Koha::Database;
+use Koha::Item;
+use Koha::Items;
+use Koha::Logger;
+use Koha::Patrons;
 
 binmode( STDIN, ":utf8" );
 binmode( STDOUT, ":utf8" );
@@ -115,8 +127,8 @@ sub genKohaRecords {
     my $rechnungDatum = '';
     my $mehrpreisRechnung = '';
     my $logger = Koha::Logger->get({ interface => 'C4::External::EKZ::EkzWsInvoice' });
-    my $dbh = C4::Context->dbh;
-    $dbh->{AutoCommit} = 0;
+    my $schema = Koha::Database->new->schema;
+    $schema->storage->txn_begin;
 
     # variables for email log
     my $emaillog;
@@ -167,6 +179,7 @@ sub genKohaRecords {
     my $acquisitionError = 0;
     my $basketno = -1;
     my $basketgroupid = undef;
+    my $authorisedby = undef;
     my $acquisitionImportIdRechnung;
     my $createdTitleRecords = {};
 
@@ -797,13 +810,13 @@ sub genKohaRecords {
                         my $selbaskets = C4::Acquisition::GetBaskets( { 'basketname' => "\'$basketname\'" } );
                         if ( @{$selbaskets} > 0 ) {
                             $basketno = $selbaskets->[0]->{'basketno'};
-                            $logger->trace("genKohaRecords() method4: found aqbasket with basketno:$basketno:");
+                            $authorisedby = $selbaskets->[0]->{'authorisedby'};
+                            $logger->info("genKohaRecords() method4: found aqbasket with basketname:$basketname: having basketno:" . $basketno . ":");
                         } else {
-                            my $authorisedby = undef;
-                            my $sth = $dbh->prepare("select borrowernumber from borrowers where surname = 'LCService'");
-                            $sth->execute();
-                            if ( my $hit = $sth->fetchrow_hashref ) {
-                                $authorisedby = $hit->{borrowernumber};
+                            my $patron = Koha::Patrons->find( { surname => 'LCService' } );
+                            if ( $patron ) {
+                                $authorisedby = $patron->borrowernumber();
+                                $logger->info("genKohaRecords() method4: found patron with surname = 'LCService' authorisedby:" . $authorisedby . ":");
                             }
                             my $branchcode = $ekzKohaRecord->branchcodeFallback('', $homebranch);
                             $basketno = C4::Acquisition::NewBasket($ekzAqbooksellersId, $authorisedby, $basketname, 'created by ekz RechnungDetail', '', undef, $branchcode, $branchcode, 0, 'ordering');    # XXXWH fixed text ok?
@@ -862,6 +875,7 @@ sub genKohaRecords {
                         $orderinfo->{unitprice_tax_excluded} = 0.0;
                         $orderinfo->{unitprice_tax_included} = 0.0;
                         # quantityreceived is set to 0 by DBS
+                        $orderinfo->{created_by} = $authorisedby;
                         $orderinfo->{order_internalnote} = '';
                         $orderinfo->{order_vendornote} = sprintf("Bestellung:\nVerkaufspreis: %.2f %s (Exemplare: %d)\n", $priceInfo->{verkaufsPreis}, $priceInfo->{waehrung}, $priceInfo->{exemplareBestellt});
                         if ( $priceInfo->{nachlass} != 0.0 ) {
@@ -880,10 +894,10 @@ sub genKohaRecords {
                         # timestamp is set to now by DBS
                         $orderinfo->{budget_id} = $budgetid;
                         $orderinfo->{'uncertainprice'} = 0;
-                        # claims_count is set to 0 by DBS
                         $orderinfo->{subscriptionid} = undef;
                         $orderinfo->{orderstatus} = 'ordered';    # This orderstatus is transient; it will immediately be updated by the following call of processItemInvoice().
                         $orderinfo->{rrp} = $priceInfo->{replacementcost_tax_included};    #  corresponds to input field 'Replacement cost' in UI (not discounted, per item)
+                        $orderinfo->{replacementprice} = $priceInfo->{replacementcost_tax_included};
                         $orderinfo->{rrp_tax_excluded} = $priceInfo->{replacementcost_tax_excluded};
                         $orderinfo->{rrp_tax_included} = $priceInfo->{replacementcost_tax_included};
                         $orderinfo->{ecost} = $priceInfo->{gesamtpreis_tax_included};     #  corresponds to input field 'Budgeted cost' in UI (discounted, per item); discounted
@@ -922,12 +936,15 @@ sub genKohaRecords {
                             $item_hash->{replacementprice} = $priceInfo->{replacementcost_tax_included};    # without regard to $auftragsPosition->{'nachlass'}
                         }
                         $item_hash->{notforloan} = 0;    # default initialization: 'item is invoiced' implicitly means 'item is delivered' -> can be loaned (may be overwritten via syspref ekzWebServicesSetItemSubfieldsWhenInvoiced)
-                        
-                        my ( $biblionumberItem, $biblioitemnumberItem, $itemnumber ) = C4::Items::AddItem($item_hash, $biblionumber);
+
+                        $item_hash->{biblionumber} = $biblionumber;
+                        $item_hash->{biblioitemnumber} = $biblionumber;
+                        my $kohaItem = Koha::Item->new( $item_hash )->store;
+                        my $itemnumber = $kohaItem->itemnumber;
 
                         if ( defined $itemnumber && $itemnumber > 0 ) {
 
-                            # update items set <fields like specified in ekzWebServicesSetItemSubfieldsWhenInvoiced> where itemnumber = <itemnumber from above C4::Items::AddItem call>
+                            # update items set <fields like specified in ekzWebServicesSetItemSubfieldsWhenInvoiced> where itemnumber = <itemnumber from above Koha::Item->new() call>
                             my $itemHitRs = undef;
                             my $res = undef;
                             $itemHitRs = Koha::Items->new()->_resultset()->find( { itemnumber => $itemnumber } );
@@ -938,8 +955,8 @@ sub genKohaRecords {
                                 if ( defined($ekzWebServicesSetItemSubfieldsWhenInvoiced) && length($ekzWebServicesSetItemSubfieldsWhenInvoiced) > 0 ) {
                                     my @affects = split q{\|}, $ekzWebServicesSetItemSubfieldsWhenInvoiced;
                                     if ( @affects ) {
-                                        my $frameworkcode = GetFrameworkCode($biblionumber);
-                                        my ( $itemfield ) = GetMarcFromKohaField( 'items.itemnumber', $frameworkcode );
+                                        my $frameworkcode = C4::Biblio::GetFrameworkCode($biblionumber);
+                                        my ( $itemfield ) = C4::Biblio::GetMarcFromKohaField( 'items.itemnumber', $frameworkcode );
                                         my $item = C4::Items::GetMarcItem( $biblionumber, $itemnumber );
                                         for my $affect ( @affects ) {
                                             my ( $sf, $v ) = split('=', $affect, 2);
@@ -1060,11 +1077,11 @@ $logger->debug("genKohaRecords() method4: after processItemInvoice() itemnumber:
             # close the aqinvoices (if all went well, then $invoiceids contains exactly 1 invoiceid)
             foreach my $invoiceid ( sort(keys %{$invoiceids}) ) {
                 if ( $invoiceid ) {
-                    $logger->debug("genKohaRecords() is calling GetInvoice($invoiceid)");
-                    my $invoice = GetInvoice($invoiceid);
+                    $logger->debug("genKohaRecords() is calling C4::Acquisition::GetInvoice($invoiceid)");
+                    my $invoice = C4::Acquisition::GetInvoice($invoiceid);
                     if ( $invoice && ! $invoice->{closedate} ) {
-                        $logger->debug("genKohaRecords() is calling CloseInvoice($invoiceid)");
-                        CloseInvoice($invoiceid);
+                        $logger->debug("genKohaRecords() is calling C4::Acquisition::CloseInvoice($invoiceid)");
+                        C4::Acquisition::CloseInvoice($invoiceid);
                     }
                 }
             }
@@ -1087,8 +1104,12 @@ $logger->debug("genKohaRecords() method4: after processItemInvoice() itemnumber:
             $logger->trace("genKohaRecords() Dumper aqbasket:" . Dumper($aqbasket) . ":");
             if ( $aqbasket ) {
                 # close the basket
-                $logger->trace("genKohaRecords() is calling CloseBasket basketno:" . $aqbasket->{basketno} . ":");
-                &C4::Acquisition::CloseBasket($aqbasket->{basketno});
+                $logger->debug("genKohaRecords() is calling Koha::Acquisition::Baskets->find(basketno:" . $aqbasket->{basketno} . ")");
+                my $kohabasket = Koha::Acquisition::Baskets->find($aqbasket->{basketno});
+                if ( $kohabasket ) {
+                    $logger->debug("genKohaRecords() is calling Koha::Acquisition::Baskets->find(basketno:" . $aqbasket->{basketno} . ")->close");
+                    $kohabasket->close;
+                }
 
                 # search/create basket group with aqbasketgroups.name = ekz order number and aqbasketgroups.booksellerid = and update aqbasket accordingly
                 my $params = {
@@ -1135,11 +1156,11 @@ $logger->debug("genKohaRecords() method4: after processItemInvoice() itemnumber:
     }
 
 
-    # auskommentiert für Produktivbetrieb: $dbh->rollback;    # roll it back for TEST XXXWH
+    # deactivated for production:
+    #$schema->storage->txn_rollback;    # crude rollback for TEST only XXXWH
 
     # commit the complete invoice (only as a single transaction)
-    $dbh->commit();
-    $dbh->{AutoCommit} = 1;
+    $schema->storage->txn_commit;
 
     return 1;
 }
@@ -1307,8 +1328,8 @@ sub processItemHit
             if ( defined($ekzWebServicesSetItemSubfieldsWhenInvoiced) && length($ekzWebServicesSetItemSubfieldsWhenInvoiced) > 0 ) {
                 my @affects = split q{\|}, $ekzWebServicesSetItemSubfieldsWhenInvoiced;
                 if ( @affects ) {
-                    my $frameworkcode = GetFrameworkCode($biblionumber);
-                    my ( $itemfield ) = GetMarcFromKohaField( 'items.itemnumber', $frameworkcode );
+                    my $frameworkcode = C4::Biblio::GetFrameworkCode($biblionumber);
+                    my ( $itemfield ) = C4::Biblio::GetMarcFromKohaField( 'items.itemnumber', $frameworkcode );
                     my $item = C4::Items::GetMarcItem( $biblionumber, $itemnumber );
                     for my $affect ( @affects ) {
                         my ( $sf, $v ) = split('=', $affect, 2);
@@ -1332,15 +1353,16 @@ sub processItemHit
                 my $priceInfo = priceInfoFromMessage($rechnungRecord, $auftragsPosition, $logger);
 
                 # update item prices
-                C4::Items::ModItem(
-                    {
-                        price                => $priceInfo->{gesamtpreis_tax_included},
-                        replacementprice     => $priceInfo->{replacementcost_tax_included},
-                        replacementpricedate => dt_from_string(),
-                    },
-                    $biblionumber,
-                    $itemnumber
-                );
+                my $item = Koha::Items->find($itemnumber);
+                if ( $item ) {
+                    $item->price( $priceInfo->{gesamtpreis_tax_included} );
+                    $item->replacementprice( $priceInfo->{replacementcost_tax_included} );
+                    $item->replacementpricedate( dt_from_string() );
+                    $logger->debug("processItemHit() item->store() itemnumber:" . $itemnumber . ": gesamtpreis:" . $priceInfo->{gesamtpreis_tax_included} . ": replacementcost_tax_included:" . $priceInfo->{replacementcost_tax_included} . ":");
+                    $item->store();
+                } else {
+                    $logger->error("processItemHit() item not found for update of price and replacementprice! itemnumber:" . $itemnumber . ": gesamtpreis:" . $priceInfo->{gesamtpreis_tax_included} . ": replacementcost_tax_included:" . $priceInfo->{replacementcost_tax_included} . ":");
+                }
             }
         }
     }
@@ -1563,8 +1585,12 @@ sub processItemInvoice
         $basketno_ret = $orderRecord->{basketno};
     
         # close basket searched or created for the invoice handling of the order
-        &C4::Acquisition::CloseBasket($aqbasket_of_invoice->{basketno});
-            $logger->debug("processItemInvoice() after CloseBasket");
+        $logger->debug("processItemInvoice() is calling Koha::Acquisition::Baskets->find(basketno:" . $aqbasket_of_invoice->{basketno} . ")");
+        my $kohabasket = Koha::Acquisition::Baskets->find($aqbasket_of_invoice->{basketno});
+        if ( $kohabasket ) {
+            $logger->debug("processItemInvoice() is calling Koha::Acquisition::Baskets->find(basketno:" . $aqbasket_of_invoice->{basketno} . ")->close");
+            $kohabasket->close;
+        }
 
         # search/create basket group with name derived from invoice and same bookseller and update aqbasket_of_invoice accordingly
         $params = {
@@ -1616,8 +1642,8 @@ sub processItemInvoice
     # 4. step: search aqinvoices record of this aqbookseller with invoicenumber = $rechnungNummer
     my $invoice;
     my $invoices = [];
-    $logger->debug("processItemInvoice() is calling GetInvoices(invoicenumber_equal:$rechnungNummer, supplierid:" . $aqbasket_of_order->{booksellerid} . ", billingdatefrom:$rechnungDatum, billingdateto:$rechnungDatum)");
-    @{$invoices} = GetInvoices(
+    $logger->debug("processItemInvoice() is calling C4::Acquisition::GetInvoices(invoicenumber_equal:$rechnungNummer, supplierid:" . $aqbasket_of_order->{booksellerid} . ", billingdatefrom:$rechnungDatum, billingdateto:$rechnungDatum)");
+    @{$invoices} = C4::Acquisition::GetInvoices(
         invoicenumber_equal => $rechnungNummer,
         supplierid          => $aqbasket_of_order->{booksellerid},
         #billingdatefrom     => $shipmentdatefrom ? output_pref( { str => $rechnungDatum, dateformat => 'iso' } ) : undef,    # rechnungDatum has to be sent, no reformatting required
@@ -1629,8 +1655,8 @@ sub processItemInvoice
 
     # 5. step: read aqinvoices record or create the aqinvoices record if not existing
     if ( scalar @{$invoices} == 0 ) {
-        $logger->debug("processItemInvoice() is calling AddInvoice(invoicenumber:$rechnungNummer: booksellerid:" . $aqbasket_of_order->{booksellerid} . ": billingdate:" . $rechnungDatum . ": shipmentdate:" . dt_from_string . ":");
-        my $invoiceid = AddInvoice(
+        $logger->debug("processItemInvoice() is calling C4::Acquisition::AddInvoice(invoicenumber:$rechnungNummer: booksellerid:" . $aqbasket_of_order->{booksellerid} . ": billingdate:" . $rechnungDatum . ": shipmentdate:" . dt_from_string . ":");
+        my $invoiceid = C4::Acquisition::AddInvoice(
             invoicenumber => $rechnungNummer,
             booksellerid => $aqbasket_of_order->{booksellerid},
             billingdate => $rechnungDatum,
@@ -1639,20 +1665,20 @@ sub processItemInvoice
             # not needed until now: shipmentcost_budgetid => ...,
         );
         if( ! defined $invoiceid ) {
-            $logger->error("processItemInvoice() could NOT create invoice via AddInvoice(invoicenumber:$rechnungNummer: booksellerid:" . $aqbasket_of_order->{booksellerid} . ": billingdate:" . $rechnungDatum . ": shipmentdate:" . dt_from_string . ":");
+            $logger->error("processItemInvoice() could NOT create invoice via C4::Acquisition::AddInvoice(invoicenumber:$rechnungNummer: booksellerid:" . $aqbasket_of_order->{booksellerid} . ": billingdate:" . $rechnungDatum . ": shipmentdate:" . dt_from_string . ":");
             # XXXWH signal this error in emaillog
             return ($ordernumber_ret, $basketno_ret, $invoiceid_ret);
         }
-        $invoice = GetInvoice($invoiceid);
+        $invoice = C4::Acquisition::GetInvoice($invoiceid);
     } else {
-        $invoice = GetInvoice($invoices->[0]->{invoiceid});
+        $invoice = C4::Acquisition::GetInvoice($invoices->[0]->{invoiceid});
     }
     $logger->trace("processItemInvoice() found or created invoice:" . Dumper($invoice) . ":");
     $invoiceid_ret = $invoice->{invoiceid};
 
     # 6. step: reopen aqinvoice if closed (this should not happen in reality)
     if ( $invoice->{closedate} ) {
-        ReopenInvoice($invoiceid_ret);
+        C4::Acquisition::ReopenInvoice($invoiceid_ret);
     }
 
     # 7. step: update and possibly split the aqorders record
@@ -1660,7 +1686,7 @@ sub processItemInvoice
     # Get price info from auftragPosition of sent message, for updating/creating aqorders.
     my $priceInfo = priceInfoFromMessage($rechnungRecord, $auftragsPosition, $logger);
 
-    my $order = GetOrder($ordernumber_ret);    # contains more fields then $orderRecord; needed for populate_order_with_prices and ModReceiveOrder()
+    my $order = C4::Acquisition::GetOrder($ordernumber_ret);    # contains more fields then $orderRecord; needed for populate_order_with_prices and ModReceiveOrder()
 
     ### XXXWH $order->{quantityreceived} += 1; nein, das läuft über ModReceiveOrder
     $order->{listprice} = $priceInfo->{verkaufsPreis};    # in supplier's currency, not discounted, per item (input field 'Vendor price' in UI)
@@ -1726,20 +1752,20 @@ sub processItemInvoice
     $logger->trace("processItemInvoice() ModReceiveOrder done, datereceived:$datereceived: new_ordernumber:$new_ordernumber: (new) order:" . Dumper($order) . ":");
 
     # update item
-    C4::Items::ModItem(
-        {
-            booksellerid         => 'ekz',    # same value as in BestellInfo, probably better than the correct but 'random' $aqbasket_of_order->{booksellerid} as done by staff interface
-            dateaccessioned      => $datereceived,
-            datelastseen         => $datereceived,
-            # price                => $unitprice, oder besser:
-            price                => $priceInfo->{gesamtpreis_tax_included},
-            # replacementprice     => $order->{rrp}, oder besser:
-            replacementprice     => $priceInfo->{replacementcost_tax_included},
-            replacementpricedate => $datereceived,
-        },
-        $orderRecord->{biblionumber},
-        $itemnumber
-    );
+    my $item = Koha::Items->find($itemnumber);
+    if ( $item ) {
+        $item->booksellerid( 'ekz' );    # same value as in BestellInfo, probably better than the correct but 'random' $aqbasket_of_order->{booksellerid} as done by staff interface
+        $item->dateaccessioned( $datereceived );
+        $item->datelastseen( $datereceived );
+        #$item->price( $unitprice );    oder besser:
+        $item->price( $priceInfo->{gesamtpreis_tax_included} );
+        $item->replacementprice( $priceInfo->{replacementcost_tax_included} );
+        $item->replacementpricedate( dt_from_string() );
+        $logger->debug("processItemInvoice() item->store() itemnumber:" . $itemnumber . ": gesamtpreis:" . $priceInfo->{gesamtpreis_tax_included} . ": replacementcost_tax_included:" . $priceInfo->{replacementcost_tax_included} . ":");
+        $item->store();
+    } else {
+        $logger->error("processItemInvoice() item not found for update of price and replacementprice! itemnumber:" . $itemnumber . ": gesamtpreis:" . $priceInfo->{gesamtpreis_tax_included} . ": replacementcost_tax_included:" . $priceInfo->{replacementcost_tax_included} . ":");
+    }
 
 
 

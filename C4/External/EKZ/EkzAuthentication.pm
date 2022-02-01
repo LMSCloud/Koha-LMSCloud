@@ -1,6 +1,6 @@
 package C4::External::EKZ::EkzAuthentication;
 
-# Copyright 2017-2020 (C) LMSCLoud GmbH
+# Copyright 2017-2022 (C) LMSCLoud GmbH
 #
 # This file is part of Koha.
 #
@@ -26,11 +26,13 @@ our @ISA = qw(Exporter);
 our @EXPORT = qw(authenticate);
 use Digest::MD5 qw(md5_base64);
 
-use Koha::AuthUtils qw(hash_password);
 use C4::Context;
+use Koha::AuthUtils qw( hash_password );
+use Koha::Logger;
+use Koha::Patrons;
 
 
-sub authenticate{
+sub authenticate {
     my ($userid, $pw) = @_;
     my $authenticated = 0;
     my $dbh = C4::Context->dbh;
@@ -55,7 +57,7 @@ sub checkpw {
         my $hash;
         my ($stored_hash) = $sth->fetchrow;
         if ( substr($stored_hash,0,2) eq '$2') {
-            $hash = hash_password($pw, $stored_hash);
+            $hash = Koha::AuthUtils::hash_password($pw, $stored_hash);
         } else {
             $hash = md5_base64($pw);
         }

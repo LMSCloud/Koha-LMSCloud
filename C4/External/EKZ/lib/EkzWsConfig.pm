@@ -1,6 +1,6 @@
 package C4::External::EKZ::lib::EkzWsConfig;
 
-# Copyright 2020 (C) LMSCLoud GmbH
+# Copyright 2020-2022 (C) LMSCLoud GmbH
 #
 # This file is part of Koha.
 #
@@ -25,6 +25,7 @@ use Carp;
 use Data::Dumper;
 
 use C4::Context;
+use Koha::Logger;
 
 sub new {
 	my $class = shift;

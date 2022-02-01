@@ -1,6 +1,6 @@
 package C4::External::EKZ::DublettenCheckElement;
 
-# Copyright 2017-2020 (C) LMSCLoud GmbH
+# Copyright 2017-2022 (C) LMSCLoud GmbH
 #
 # This file is part of Koha.
 #
@@ -25,13 +25,10 @@ use Data::Dumper;
 use CGI::Carp;
 use Time::HiRes qw(gettimeofday);
 
-use MARC::Record;
-use MARC::File::XML ( BinaryEncoding => 'utf8', RecordFormat => 'MARC21' );    # required for MARC::File::XML->decode(...)
-use C4::Auth;
-use C4::Context;
-use C4::Koha;
 use C4::External::EKZ::EkzAuthentication;
 use C4::External::EKZ::lib::EkzKohaRecords;
+use Koha::Items;
+use Koha::Logger;
 
 
 sub new {
@@ -285,12 +282,11 @@ sub searchDubletten {
             
             $self->{logger}->debug("searchDubletten() reqParamTitelInfo->{'ekzArtikelNr'}:" . $reqParamTitelInfo->{'ekzArtikelNr'} . ": duplicate candidate biblionumber:" . $biblionumber . ":");
             # read items of this biblio number
-            my @itemnumbers = @{ C4::Items::GetItemnumbersForBiblio( $biblionumber ) };
-            for my $itemnumber ( @itemnumbers )
-            {
+            my $items = Koha::Items->search({ biblionumber => $biblionumber });
+            while ( my $item = $items->next ) {
                 
                 my %exemplar = ();
-                my $itemrecord = C4::Items::GetItem( $itemnumber, 0, 0);
+                my $itemrecord = $item->unblessed();
 
                 $exemplar{'zweigstelle'} = defined $itemrecord->{'homebranch'} ? $itemrecord->{'homebranch'} : "";
 
