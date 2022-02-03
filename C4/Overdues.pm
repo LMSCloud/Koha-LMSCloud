@@ -35,6 +35,7 @@ use C4::Debug;
 use Koha::DateUtils;
 use Koha::Account::Lines;
 use Koha::Account::Offsets;
+use Koha::Checkouts;
 use Koha::Libraries;
 
 use vars qw(@ISA @EXPORT);
@@ -532,7 +533,7 @@ sub UpdateFine {
     my $overdues = Koha::Account::Lines->search(
         {
             borrowernumber    => $borrowernumber,
-            debit_type_code   => 'OVERDUE'
+            debit_type_code   => [ 'OVERDUE','CLAIM_LEVEL_1','CLAIM_LEVEL_2','CLAIM_LEVEL_3','CLAIM_LEVEL_4','CLAIM_LEVEL_5' ],
         }
     );
 
@@ -544,7 +545,7 @@ sub UpdateFine {
     # - accumulate fines for other items
     # so we can update $itemnum fine taking in account fine caps
     while (my $overdue = $overdues->next) {
-        if ( defined $overdue->issue_id && $overdue->issue_id == $issue_id && $overdue->status eq 'UNRETURNED' ) {
+        if ( defined $overdue->issue_id && $overdue->issue_id == $issue_id && $overdue->debit_type_code eq 'OVERDUE' && $overdue->status eq 'UNRETURNED' ) {
             if ($accountline) {
                 $debug and warn "Not a unique accountlines record for issue_id $issue_id";
                 #FIXME Should we still count this one in total_amount ??
@@ -590,6 +591,10 @@ sub UpdateFine {
             $sth4->execute($itemnum);
             my $title = $sth4->fetchrow;
             my $desc = "$title $due";
+            
+            my $issue = Koha::Checkouts->find( $issue_id );
+            my $branchcode = undef;
+            $branchcode  = $issue->branchcode() if ($issue);
 
             my $account = Koha::Account->new({ patron_id => $borrowernumber });
             $accountline = $account->add_debit(
@@ -599,7 +604,7 @@ sub UpdateFine {
                     note        => undef,
                     user_id     => undef,
                     interface   => C4::Context->interface,
-                    library_id  => undef, #FIXME: Should we grab the checkout or circ-control branch here perhaps?
+                    library_id  => $branchcode,
                     type        => 'OVERDUE',
                     item_id     => $itemnum,
                     issue_id    => $issue_id,

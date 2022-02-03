@@ -24,11 +24,8 @@ use Locale::Currency::Format;
 
 use Koha::NoticeFeeRule;
 use Koha::NoticeFeeRules;
-use Koha::Account::Line;
-use Koha::Account::Lines;
-use Koha::Account::Offset;
+use Koha::Account;
 use Koha::DateUtils;
-use C4::Accounts;
 use C4::Log; # logaction
 
 
@@ -268,71 +265,31 @@ sub AddNoticeFee {
         carp("No borrower number passed in!");
         return;
     }
-    
-    my $dbh = C4::Context->dbh;
-    # Check whether there the amount of ioutstanding fines is higher than MaxFines
-    # Fine types that we check are 
-    #   "F"   is Fine (manually assigned)
-    #   "FU"  is Overdue Fines
-    #   "Res" is Reservation Fee
-    #   "M"   is Sundry
-    #   "CL"1..5 are claim fees
-    #   "NOT" is Notice fee
-    my $sth = $dbh->prepare(
-        "SELECT SUM(amountoutstanding) as amountoutstanding FROM accountlines " .
-        "WHERE borrowernumber=? AND " .
-        "accounttype IN ('F','M','Res','CL1','CL2','CL3','CL4','CL5','FU','NOTF')"
-    );
-    $sth->execute( $borrowernumber );
-    my $total_amount = 0.00;
 
-    # Set total amount
-    while (my $rec = $sth->fetchrow_hashref) {
-        $total_amount += $rec->{'amountoutstanding'} if ( $rec->{'amountoutstanding'} );
-    }
-
-    if (my $maxfine = C4::Context->preference('MaxFine')) {
-        if ($total_amount + $amount > $maxfine) {
-            my $new_amount = $maxfine - $total_amount;
-            return if $new_amount <= 0.00;
-            warn "Reducing notice fee for borrower $borrowernumber from $amount to $new_amount - MaxFine reached";
-            $amount = $new_amount;
-        }
-    }
 
     if ( $amount ) { # Don't add new fines with an amount of 0.00
 
-        my $nextaccntno = C4::Accounts::getnextacctno($borrowernumber);
-
         my $description = $self->GetNoticeFeeDescription($params);
 
-        my $accountline = Koha::Account::Line->new(
+        my $account = Koha::Account->new({ patron_id => $borrowernumber });
+        my $accountline = $account->add_debit(
             {
-                borrowernumber    => $borrowernumber,
-                itemnumber        => undef,
-                date              => dt_from_string(),
-                amount            => $amount,
-                description       => $description,
-                accounttype       => 'NOTF',
-                amountoutstanding => $amount,
-                lastincrement     => $amount,
-                accountno         => $nextaccntno,
-                issue_id          => undef,
-                branchcode        => $branchcode
-            } )->store();
-            
-        Koha::Account::Offset->new(
-            {
-                debit_id => $accountline->id,
-                type     => 'Notice Fee',
-                amount   => $amount,
+                amount      => $amount,
+                description => $description,
+                note        => undef,
+                user_id     => undef,
+                interface   => C4::Context->interface,
+                type        => 'NOTIFICATION',
+                item_id     => undef,
+                issue_id    => undef,
+                library_id  => $branchcode
             }
-        )->store();
+        );
 
         # logging action
         &logaction(
         "FINES",
-            'NOTF',
+            'NOTIFICATION',
             $borrowernumber,
             "letter_date=".$letter_date." description=".$description." amount=".$amount
         ) if C4::Context->preference("FinesLog");

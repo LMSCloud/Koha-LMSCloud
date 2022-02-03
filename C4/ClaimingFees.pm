@@ -65,7 +65,7 @@ C4::ClaimingFees - Koha module to charge claiming fees
              due            => $item->{date_due},
              claimlevel     => 2,
              due_since_days => 20, # 20 days
-             brnachcode     => $branchcode
+             branchcode     => $branchcode
          });
       }
   }
@@ -238,26 +238,22 @@ sub AddClaimFee {
         return;
     }
     
-    my $dbh = C4::Context->dbh;
-    # Check whether there the amount of ioutstanding fines is higher than MaxFines
-    # Fine types that we check are 
-    #   "F"   is Fine (manually assigned)
-    #   "FU"  is Overdue Fines
-    #   "Res" is Reservation Fee
-    #   "M"   is Sundry
-    #   "CL"1..5 are claim fees
-    #   "NOT" is Notice fee
-    my $sth = $dbh->prepare(
-        "SELECT SUM(amountoutstanding) as amountoutstanding FROM accountlines " .
-        "WHERE borrowernumber=? AND " .
-        "accounttype IN ('F','M','Res','CL1','CL2','CL3','CL4','CL5','FU','NOTF')"
+    my $overdues = Koha::Account::Lines->search(
+        {
+            borrowernumber    => $borrowernumber,
+            debit_type_code   => [ 'OVERDUE','CLAIM_LEVEL_1','CLAIM_LEVEL_2','CLAIM_LEVEL_3','CLAIM_LEVEL_4','CLAIM_LEVEL_5' ],
+            amountoutstanding => { '<>' => 0 }
+        }
     );
-    $sth->execute( $borrowernumber );
+    
+    my $accountline;
     my $total_amount = 0.00;
-
-    # Set total amount
-    while (my $rec = $sth->fetchrow_hashref) {
-        $total_amount += $rec->{'amountoutstanding'} if ( $rec->{'amountoutstanding'} );
+    # Cycle through the fines and
+    # - find line that relates to the requested $itemnum
+    # - accumulate fines for other items
+    # so we can update $itemnum fine taking in account fine caps
+    while (my $overdue = $overdues->next) {
+        $total_amount += $overdue->amountoutstanding;
     }
 
     if (my $maxfine = C4::Context->preference('MaxFine')) {
@@ -273,35 +269,25 @@ sub AddClaimFee {
         
         my $desc = $self->GetClaimingFeeDescription($params);
 
-        my $nextaccntno = C4::Accounts::getnextacctno($borrowernumber);
-        
-        my $accountline = Koha::Account::Line->new(
+        my $account = Koha::Account->new({ patron_id => $borrowernumber });
+        my $accountline = $account->add_debit(
             {
-                borrowernumber    => $borrowernumber,
-                itemnumber        => $itemnum,
-                date              => dt_from_string(),
-                amount            => $amount,
-                description       => $desc,
-                accounttype       => 'CL'.$level,
-                amountoutstanding => $amount,
-                lastincrement     => $amount,
-                accountno         => $nextaccntno,
-                issue_id          => $issue_id,
-                branchcode        => $branchcode
-            } )->store();
-            
-        Koha::Account::Offset->new(
-            {
-                debit_id => $accountline->id,
-                type     => 'Overdue Fee',
-                amount   => $amount,
+                amount      => $amount,
+                description => $desc,
+                note        => undef,
+                user_id     => undef,
+                interface   => C4::Context->interface,
+                library_id  => $branchcode,
+                type        => 'CLAIM_LEVEL'.$level,
+                item_id     => $itemnum,
+                issue_id    => $issue_id,
             }
-        )->store();
+        );
 
         # logging action
         &logaction(
         "FINES",
-            'CL'.$level,
+            'CLAIM_LEVEL'.$level,
             $borrowernumber,
             "due=".$due."  amount=".$amount." itemnumber=".$itemnum
         ) if C4::Context->preference("FinesLog");
