@@ -1,208 +1,210 @@
+[% USE raw %]
+[% USE Asset %]
 [% USE Koha %]
 [% INCLUDE 'doc-head-open.inc' %]
-<title>[% IF ( LibraryNameTitle ) %][% LibraryNameTitle %][% ELSE %]Koha [% END %] - Catalog &rsaquo; Browse our catalog</title>
+<title>Browse our catalog &rsaquo; [% IF ( LibraryNameTitle ) %][% LibraryNameTitle %][% ELSE %]Koha [% END %] - Catalog</title>
 [% INCLUDE 'doc-head-close.inc' %]
 [% BLOCK cssinclude %][% END %]
 </head>
 [% INCLUDE 'bodytag.inc' bodyid='opac-browser' %]
 [% INCLUDE 'masthead.inc' %]
 
- <div class="main">
- <ul class="breadcrumb">
- <li><a href="/cgi-bin/koha/opac-main.pl">Start</a> <span class="divider">&rsaquo;</span></li>
- <li><a href="#">Browse our catalog</a></li>
- </ul>
- <div class="container-fluid">
- <div class="row-fluid">
+<div class="main">
 
- <h1>Browse our catalog</h1>
- 
- <h3 style="margin-top: 0px; margin-bottom:0px"><a href="opac-browser-asb.pl?prefixed=[% PREFIXED %]">Complete collection</a></h3>
- [% FOREACH HIERACHY_ENTRY IN HIERARCHY_LOOP %]
- <div class="taxonomy-hierachy-entry">
- [% IF ( HIERACHY_ENTRY.level != MYENTRY.level ) %]
- <h3 class="taxononmy-hierarchy-header"><a href="opac-browser-asb.pl?level=[% HIERACHY_ENTRY.level %]&amp;filter=[% HIERACHY_ENTRY.browse_classification |uri %]&amp;prefixed=[% PREFIXED %]">&#10149; [% HIERACHY_ENTRY.description | html %]</a></h3>
- [% ELSE %]
- <h3 class="taxononmy-hierarchy-header"><a href="opac-browser-asb.pl?level=[% HIERACHY_ENTRY.level %]&amp;filter=[% HIERACHY_ENTRY.browse_classification |uri %]&amp;prefixed=[% PREFIXED %]">&#10149; [% HIERACHY_ENTRY.description | html %]</a></h3>
- [% END %]
- [% END %]
- 
- [% IF ( LEVEL == 1 ) %]
- <div class="container-fluid" style="padding-left:0px">
- [% ELSE %]
- <div class="container-fluid" style="padding-left:25px">
- [% END %]
- [% IF ( LEVEL > 1  and MYENTRY ) %]
- <div class="row-fluid">
- 	<div class="span12"></div>
- </div>
- <div class="row-fluid">
- 	<div class="span12"><a href='opac-search.pl?q=sys.phrase:[% MYENTRY.classification.replace(' ','\ ') |uri %]*'><i class="fa fa-list-ul"></i>&nbsp;&nbsp;All titles</a>
-        <span style="font-size:0.75em"><i> <a href='opac-search.pl?q=sys.phrase:[% MYENTRY.classification.replace(' ','\ ') |uri %]*'>([% MYENTRY.number %] titles)</a></i></span>
-    </div>
- </div>
- <div class="row-fluid">
- 	<div class="span12">&nbsp;</div>
- </div>
- [% ELSE %]
- <div class="row-fluid">
- 	<div class="span12"></div>
- </div>
- [% END %]
+    <nav aria-label="breadcrumb">
+        <ul class="breadcrumb">
+            <li class="breadcrumb-item">
+                <a href="/cgi-bin/koha/opac-main.pl">Home</a>
+            </li>
+            <li class="breadcrumb-item active" aria-current="page">
+                <a href="#">Browse our catalog</a>
+            </li>
+        </ul>
+    </nav>
 
- [% IF ( LEVEL == 1 && CHILD_COUNT > 0 ) %]
- <div class="row-fluid">
-	<div class="span12"><strong>Media for kids and teenager</strong></div>
- </div>
- [% FOREACH ENTRY IN CHILD_LOOP %]
- <div class="row-fluid">
- 	<div class="span12">
- 		[% IF ( ENTRY.endnode ) %] 
-			[% IF ( ENTRY.classification.substr((ENTRY.classification.length - 1), 1) == " " ) %] 
-                <a href='opac-search.pl?q=sys.phrase:[% ENTRY.classification.replace(' ','\ ') |uri %]'><i class="fa fa-list-ul"></i>&nbsp;&nbsp;[% ENTRY.description |html %]</a>
-			[% ELSE %]
-                <a href='opac-search.pl?q=sys.phrase:[% ENTRY.classification.replace(' ','\ ') |uri %]*'><i class="fa fa-list-ul"></i>&nbsp;&nbsp;[% ENTRY.description |html %]</a>
-			[% END %]
- 		[% ELSE %]
-            <a href="opac-browser-asb.pl?level=[% ENTRY.level %]&amp;filter=[% ENTRY.browse_classification |uri %]&amp;prefixed=[% PREFIXED %]"><i class="fa fa-folder-o"></i>&nbsp;&nbsp;[% ENTRY.description |html %]</a>
- 		[% END %]
- 		[% IF ( ENTRY.classification.substr((ENTRY.classification.length - 1), 1) == " " ) %] 
-            <span style="font-size:0.75em"><i> <a href='opac-search.pl?q=sys.phrase:[% ENTRY.classification.replace(' ','\ ') |uri %]'>([% ENTRY.number %] titles)</a></i></span> 
-        [% ELSE %]
-            <span style="font-size:0.75em"><i> <a href='opac-search.pl?q=sys.phrase:[% ENTRY.classification.replace(' ','\ ') |uri %]*'>([% ENTRY.number %] titles)</a></i></span> 
-        [% END %]
- 	</div>
- </div>
- [% END %]
- <div class="row-fluid">
- 	<div class="span12">&nbsp;</div>
- </div>
- [% END %]
+    <h1>Browse our catalog</h1>
  
- [% IF ( LEVEL == 1 &&  CHILD_COLLECTION_COUNT > 0 ) %]
- <div class="row-fluid">
-	<div class="span12"><strong>Special collections for kids and teenager</strong></div>
- </div>
- [% FOREACH ENTRY IN CHILD_COLLECTION_LOOP %]
- <div class="row-fluid">
- 	<div class="span12">
- 		[% IF ( ENTRY.endnode ) %] 
-			[% IF ( ENTRY.classification.substr((ENTRY.classification.length - 1), 1) == " " ) %] 
-                <a href='opac-search.pl?q=sys.phrase:[% ENTRY.classification.replace(' ','\ ') |uri %]'><i class="fa fa-list-ul"></i>&nbsp;&nbsp;[% ENTRY.description |html %]</a>
-			[% ELSE %]
-                <a href='opac-search.pl?q=sys.phrase:[% ENTRY.classification.replace(' ','\ ') |uri %]*'><i class="fa fa-list-ul"></i>&nbsp;&nbsp;[% ENTRY.description |html %]</a>
-			[% END %]
- 		[% ELSE %]
-            <a href="opac-browser-asb.pl?level=[% ENTRY.level %]&amp;filter=[% ENTRY.browse_classification |uri %]&amp;prefixed=[% PREFIXED %]"><i class="fa fa-folder-o"></i>&nbsp;&nbsp;[% ENTRY.description |html %]</a>
- 		[% END %]
- 		[% IF ( ENTRY.classification.substr((ENTRY.classification.length - 1), 1) == " " ) %] 
-            <span style="font-size:0.75em"><i> <a href='opac-search.pl?q=sys.phrase:[% ENTRY.classification.replace(' ','\ ') |uri %]'>([% ENTRY.number %] titles)</a></i></span> 
-        [% ELSE %]
-            <span style="font-size:0.75em"><i> <a href='opac-search.pl?q=sys.phrase:[% ENTRY.classification.replace(' ','\ ') |uri %]*'>([% ENTRY.number %] titles)</a></i></span> 
-        [% END %]
- 	</div>
- </div>
- [% END %]
- <div class="row-fluid">
- 	<div class="span12">&nbsp;</div>
- </div>
- [% END %]
- 
- [% IF ( LEVEL == 1  &&  MEDIA_COUNT > 0 ) %]
- <div class="row-fluid">
-	<div class="span12"><strong>Music / Movies / Games</strong></div>
- </div>
- [% FOREACH MEDIA_ENTRY IN MEDIA_LOOP %]
- <div class="row-fluid">
- 	<div class="span12">
- 		[% IF ( MEDIA_ENTRY.endnode ) %]
-			[% IF ( MEDIA_ENTRY.classification.substr((MEDIA_ENTRY.classification.length - 1), 1) == " " ) %] 
-                <a href='opac-search.pl?q=sys.phrase:[% MEDIA_ENTRY.classification.replace(' ','\ ') |uri %]'><i class="fa fa-list-ul"></i>&nbsp;&nbsp;[% MEDIA_ENTRY.description |html %]</a>
+    <h2 style="margin-top: 0px; margin-bottom:0px"><a href="opac-browser-asb.pl?prefixed=[% PREFIXED %]">Complete collection</a></h3>
+    [% FOREACH HIERACHY_ENTRY IN HIERARCHY_LOOP %]
+        <div class="taxonomy-hierachy-entry">
+            [% IF ( HIERACHY_ENTRY.level != MYENTRY.level ) %]
+            <h3 class="taxononmy-hierarchy-header"><a href="opac-browser-asb.pl?level=[% HIERACHY_ENTRY.level %]&amp;filter=[% HIERACHY_ENTRY.browse_classification |uri %]&amp;prefixed=[% PREFIXED %]">&#10149; [% HIERACHY_ENTRY.description | html %]</a></h3>
             [% ELSE %]
-                <a href='opac-search.pl?q=sys.phrase:[% MEDIA_ENTRY.classification.replace(' ','\ ') |uri %]*'><i class="fa fa-list-ul"></i>&nbsp;&nbsp;[% MEDIA_ENTRY.description |html %]</a>
-			[% END %]
- 		[% ELSE %]
-            <a href="opac-browser-asb.pl?level=[% MEDIA_ENTRY.level %]&amp;filter=[% MEDIA_ENTRY.browse_classification |uri %]&amp;prefixed=[% PREFIXED %]"><i class="fa fa-folder-o"></i>&nbsp;&nbsp;[% MEDIA_ENTRY.description | html %]</a>
- 		[% END %]
-        [% IF ( MEDIA_ENTRY.classification.substr((MEDIA_ENTRY.classification.length - 1), 1) == " " ) %] 
-            <span style="font-size:0.75em"><i> <a href='opac-search.pl?q=sys.phrase:[% MEDIA_ENTRY.classification.replace(' ','\ ') |uri %]'>([% MEDIA_ENTRY.number %] titles)</a></i></span> 
-        [% ELSE %]
-            <span style="font-size:0.75em"><i> <a href='opac-search.pl?q=sys.phrase:[% MEDIA_ENTRY.classification.replace(' ','\ ') |uri %]*'>([% MEDIA_ENTRY.number %] titles)</a></i></span> 
-        [% END %]
- 	</div>
- </div>
- [% END %]
- <div class="row-fluid">
- 	<div class="span12">&nbsp;</div>
- </div>
- [% END %]
- 
- [% IF ( LOOP_COUNT > 0 ) %]
- <div class="row-fluid">
- <div class="span12"><strong>Media for adults</strong></div>
- </div>
- [% FOREACH LEVEL_FOLDER IN LEVEL_LOOP %]
- <div class="row-fluid">
- 	<div class="span12">
-		[% IF ( LEVEL_FOLDER.endnode ) %] 
-			[% IF ( LEVEL_FOLDER.classification.substr((LEVEL_FOLDER.classification.length - 1), 1) == " " ) %] 
-                <a href='opac-search.pl?q=sys.phrase:[% LEVEL_FOLDER.classification.replace(' ','\ ') |uri %]'><i class="fa fa-list-ul"></i>&nbsp;&nbsp;[% LEVEL_FOLDER.description |html %]</a>
-			[% ELSE %]
-                <a href='opac-search.pl?q=sys.phrase:[% LEVEL_FOLDER.classification.replace(' ','\ ') |uri %]*'><i class="fa fa-list-ul"></i>&nbsp;&nbsp;[% LEVEL_FOLDER.description |html %]</a>
-			[% END %]
- 		[% ELSE %]
-            <a href="opac-browser-asb.pl?level=[% LEVEL_FOLDER.level %]&amp;filter=[% LEVEL_FOLDER.browse_classification |uri %]&amp;prefixed=[% PREFIXED %]"><i class="fa fa-folder-o"></i>&nbsp;&nbsp;[% LEVEL_FOLDER.description |html %]</a>
- 		[% END %]
- 		[% IF ( LEVEL_FOLDER.classification.substr((LEVEL_FOLDER.classification.length - 1), 1) == " " ) %] 
-            <span style="font-size:0.75em"><i> <a href='opac-search.pl?q=sys.phrase:[% LEVEL_FOLDER.classification.replace(' ','\ ') |uri %]'>([% LEVEL_FOLDER.number %] titles)</a></i></span>
- 		[% ELSE %]
-            <span style="font-size:0.75em"><i> <a href='opac-search.pl?q=sys.phrase:[% LEVEL_FOLDER.classification.replace(' ','\ ') |uri %]*'>([% LEVEL_FOLDER.number %] titles)</a></i></span>
-		[% END %]
- 	</div>
- </div>
- [% END %]
- <div class="row-fluid">
- 	<div class="span12">&nbsp;</div>
- </div>
- [% END %]
- </div>
- [% FOREACH HIERACHY_ENTRY IN HIERARCHY_LOOP %]
- </div>
- [% END %]
- 
- [% IF ( LEVEL == 1 &&  ADULT_COLLECTION_COUNT > 0 ) %]
- <div class="row-fluid">
-	<div class="span12"><strong>Special collections for adults</strong></div>
- </div>
- [% FOREACH ENTRY IN ADULT_COLLECTION_LOOP %]
- <div class="row-fluid">
- 	<div class="span12">
- 		[% IF ( ENTRY.endnode ) %] 
-			[% IF ( ENTRY.classification.substr((ENTRY.classification.length - 1), 1) == " " ) %] 
-                <a href='opac-search.pl?q=sys.phrase:[% ENTRY.classification.replace(' ','\ ') |uri %]'><i class="fa fa-list-ul"></i>&nbsp;&nbsp;[% ENTRY.description |html %]</a>
-			[% ELSE %]
-                <a href='opac-search.pl?q=sys.phrase:[% ENTRY.classification.replace(' ','\ ') |uri %]*'><i class="fa fa-list-ul"></i>&nbsp;&nbsp;[% ENTRY.description |html %]</a>
-			[% END %]
- 		[% ELSE %]
- 		<a href="opac-browser-asb.pl?level=[% ENTRY.level %]&amp;filter=[% ENTRY.browse_classification |uri %]&amp;prefixed=[% PREFIXED %]"><i class="fa fa-folder-o"></i>&nbsp;&nbsp;[% ENTRY.description |html %]</a>
- 		[% END %]
- 		[% IF ( ENTRY.classification.substr((ENTRY.classification.length - 1), 1) == " " ) %] 
-            <span style="font-size:0.75em"><i> <a href='opac-search.pl?q=sys.phrase:[% ENTRY.classification.replace(' ','\ ') |uri %]'>([% ENTRY.number %] titles)</a></i></span> 
-        [% ELSE %]
-            <span style="font-size:0.75em"><i> <a href='opac-search.pl?q=sys.phrase:[% ENTRY.classification.replace(' ','\ ') |uri %]*'>([% ENTRY.number %] titles)</a></i></span> 
-        [% END %]
- 	</div>
- </div>
- [% END %]
- <div class="row-fluid">
- 	<div class="span12">&nbsp;</div>
- </div>
- [% END %]
- 
- </div> <!-- / .span12 -->
- </div> <!-- / .row-fluid -->
- </div> <!-- / .container-fluid -->
- </div> <!-- / .main -->
+            <h3 class="taxononmy-hierarchy-header"><a href="opac-browser-asb.pl?level=[% HIERACHY_ENTRY.level %]&amp;filter=[% HIERACHY_ENTRY.browse_classification |uri %]&amp;prefixed=[% PREFIXED %]">&#10149; [% HIERACHY_ENTRY.description | html %]</a></h3>
+            [% END %]
+    [% END %]
+     
+            [% IF ( LEVEL == 1 ) %]
+            <div class="container-fluid" style="padding-left:0px">
+            [% ELSE %]
+            <div class="container-fluid" style="padding-left:25px">
+            [% END %]
+            [% IF ( LEVEL > 1  and MYENTRY ) %]
+                <div class="row entry-page-row">
+                    <div class="col-lg-12 entry-page-col">&nbsp;</div>
+                </div>
+                <div class="row entry-page-row">
+                    <div class="col-lg-12 entry-page-col"><a href='opac-search.pl?q=sys.phrase:[% MYENTRY.classification.replace(' ','\ ') |uri %]*'><i class="fa fa-list-ul"></i>&nbsp;&nbsp;All titles</a>
+                    <span style="font-size:0.75em"><i> <a href='opac-search.pl?q=sys.phrase:[% MYENTRY.classification.replace(' ','\ ') |uri %]*'>([% MYENTRY.number %] titles)</a></i></span>
+                </div>
+            </div>
+            <div class="row entry-page-row">
+                <div class="col-lg-12 entry-page-col">&nbsp;</div>
+            </div>
+            [% ELSE %]
+            <div class="row entry-page-row">
+                <div class="col-lg-12 entry-page-col">&nbsp;</div>
+            </div>
+            [% END %]
+
+            [% IF ( LEVEL == 1 && CHILD_COUNT > 0 ) %]
+                <div class="row entry-page-row">
+                    <div class="col-lg-12 entry-page-col"><strong>Media for kids and teenager</strong></div>
+                </div>
+                [% FOREACH ENTRY IN CHILD_LOOP %]
+                    <div class="row entry-page-row">
+                        <div class="col-lg-12 entry-page-col">
+                            [% IF ( ENTRY.endnode ) %] 
+                                [% IF ( ENTRY.classification.substr((ENTRY.classification.length - 1), 1) == " " ) %] 
+                                    <a href='opac-search.pl?q=sys.phrase:[% ENTRY.classification.replace(' ','\ ') |uri %]'><i class="fa fa-list-ul"></i>&nbsp;&nbsp;[% ENTRY.description |html %]</a>
+                                [% ELSE %]
+                                    <a href='opac-search.pl?q=sys.phrase:[% ENTRY.classification.replace(' ','\ ') |uri %]*'><i class="fa fa-list-ul"></i>&nbsp;&nbsp;[% ENTRY.description |html %]</a>
+                                [% END %]
+                            [% ELSE %]
+                                <a href="opac-browser-asb.pl?level=[% ENTRY.level %]&amp;filter=[% ENTRY.browse_classification |uri %]&amp;prefixed=[% PREFIXED %]"><i class="fa fa-folder-o"></i>&nbsp;&nbsp;[% ENTRY.description |html %]</a>
+                            [% END %]
+                            [% IF ( ENTRY.classification.substr((ENTRY.classification.length - 1), 1) == " " ) %] 
+                                <span style="font-size:0.75em"><i> <a href='opac-search.pl?q=sys.phrase:[% ENTRY.classification.replace(' ','\ ') |uri %]'>([% ENTRY.number %] titles)</a></i></span> 
+                            [% ELSE %]
+                                <span style="font-size:0.75em"><i> <a href='opac-search.pl?q=sys.phrase:[% ENTRY.classification.replace(' ','\ ') |uri %]*'>([% ENTRY.number %] titles)</a></i></span> 
+                            [% END %]
+                        </div>
+                    </div>
+                [% END %]
+                 <div class="row entry-page-row">
+                    <div class="col-lg-12 entry-page-col">&nbsp;</div>
+                 </div>
+            [% END %]
+     
+            [% IF ( LEVEL == 1 &&  CHILD_COLLECTION_COUNT > 0 ) %]
+                <div class="row entry-page-row">
+                    <div class="col-lg-12 entry-page-col"><strong>Special collections for kids and teenager</strong></div>
+                </div>
+                [% FOREACH ENTRY IN CHILD_COLLECTION_LOOP %]
+                    <div class="row entry-page-row">
+                        <div class="col-lg-12 entry-page-col">
+                            [% IF ( ENTRY.endnode ) %] 
+                                [% IF ( ENTRY.classification.substr((ENTRY.classification.length - 1), 1) == " " ) %] 
+                                    <a href='opac-search.pl?q=sys.phrase:[% ENTRY.classification.replace(' ','\ ') |uri %]'><i class="fa fa-list-ul"></i>&nbsp;&nbsp;[% ENTRY.description |html %]</a>
+                                [% ELSE %]
+                                    <a href='opac-search.pl?q=sys.phrase:[% ENTRY.classification.replace(' ','\ ') |uri %]*'><i class="fa fa-list-ul"></i>&nbsp;&nbsp;[% ENTRY.description |html %]</a>
+                                [% END %]
+                            [% ELSE %]
+                                <a href="opac-browser-asb.pl?level=[% ENTRY.level %]&amp;filter=[% ENTRY.browse_classification |uri %]&amp;prefixed=[% PREFIXED %]"><i class="fa fa-folder-o"></i>&nbsp;&nbsp;[% ENTRY.description |html %]</a>
+                            [% END %]
+                            [% IF ( ENTRY.classification.substr((ENTRY.classification.length - 1), 1) == " " ) %] 
+                                <span style="font-size:0.75em"><i> <a href='opac-search.pl?q=sys.phrase:[% ENTRY.classification.replace(' ','\ ') |uri %]'>([% ENTRY.number %] titles)</a></i></span> 
+                            [% ELSE %]
+                                <span style="font-size:0.75em"><i> <a href='opac-search.pl?q=sys.phrase:[% ENTRY.classification.replace(' ','\ ') |uri %]*'>([% ENTRY.number %] titles)</a></i></span> 
+                            [% END %]
+                        </div>
+                    </div>
+                [% END %]
+                <div class="row entry-page-row">
+                    <div class="col-lg-12 entry-page-col">&nbsp;</div>
+                </div>
+            [% END %]
+     
+            [% IF ( LEVEL == 1  &&  MEDIA_COUNT > 0 ) %]
+                <div class="row entry-page-row">
+                    <div class="col-lg-12 entry-page-col"><strong>Music / Movies / Games</strong></div>
+                </div>
+                [% FOREACH MEDIA_ENTRY IN MEDIA_LOOP %]
+                    <div class="row entry-page-row">
+                        <div class="col-lg-12 entry-page-col">
+                            [% IF ( MEDIA_ENTRY.endnode ) %]
+                                [% IF ( MEDIA_ENTRY.classification.substr((MEDIA_ENTRY.classification.length - 1), 1) == " " ) %] 
+                                    <a href='opac-search.pl?q=sys.phrase:[% MEDIA_ENTRY.classification.replace(' ','\ ') |uri %]'><i class="fa fa-list-ul"></i>&nbsp;&nbsp;[% MEDIA_ENTRY.description |html %]</a>
+                                [% ELSE %]
+                                    <a href='opac-search.pl?q=sys.phrase:[% MEDIA_ENTRY.classification.replace(' ','\ ') |uri %]*'><i class="fa fa-list-ul"></i>&nbsp;&nbsp;[% MEDIA_ENTRY.description |html %]</a>
+                                [% END %]
+                            [% ELSE %]
+                                    <a href="opac-browser-asb.pl?level=[% MEDIA_ENTRY.level %]&amp;filter=[% MEDIA_ENTRY.browse_classification |uri %]&amp;prefixed=[% PREFIXED %]"><i class="fa fa-folder-o"></i>&nbsp;&nbsp;[% MEDIA_ENTRY.description | html %]</a>
+                            [% END %]
+                            [% IF ( MEDIA_ENTRY.classification.substr((MEDIA_ENTRY.classification.length - 1), 1) == " " ) %] 
+                                <span style="font-size:0.75em"><i> <a href='opac-search.pl?q=sys.phrase:[% MEDIA_ENTRY.classification.replace(' ','\ ') |uri %]'>([% MEDIA_ENTRY.number %] titles)</a></i></span> 
+                            [% ELSE %]
+                                <span style="font-size:0.75em"><i> <a href='opac-search.pl?q=sys.phrase:[% MEDIA_ENTRY.classification.replace(' ','\ ') |uri %]*'>([% MEDIA_ENTRY.number %] titles)</a></i></span> 
+                            [% END %]
+                        </div>
+                    </div>
+                [% END %]
+                <div class="row entry-page-row">
+                    <div class="col-lg-12 entry-page-col">&nbsp;</div>
+                </div>
+            [% END %]
+     
+            [% IF ( LOOP_COUNT > 0 ) %]
+                <div class="row entry-page-row">
+                    <div class="col-lg-12 entry-page-col"><strong>Media for adults</strong></div>
+                </div>
+                [% FOREACH LEVEL_FOLDER IN LEVEL_LOOP %]
+                    <div class="row entry-page-row">
+                        <div class="col-lg-12 entry-page-col">
+                            [% IF ( LEVEL_FOLDER.endnode ) %] 
+                                [% IF ( LEVEL_FOLDER.classification.substr((LEVEL_FOLDER.classification.length - 1), 1) == " " ) %] 
+                                    <a href='opac-search.pl?q=sys.phrase:[% LEVEL_FOLDER.classification.replace(' ','\ ') |uri %]'><i class="fa fa-list-ul"></i>&nbsp;&nbsp;[% LEVEL_FOLDER.description |html %]</a>
+                                [% ELSE %]
+                                    <a href='opac-search.pl?q=sys.phrase:[% LEVEL_FOLDER.classification.replace(' ','\ ') |uri %]*'><i class="fa fa-list-ul"></i>&nbsp;&nbsp;[% LEVEL_FOLDER.description |html %]</a>
+                                [% END %]
+                            [% ELSE %]
+                                <a href="opac-browser-asb.pl?level=[% LEVEL_FOLDER.level %]&amp;filter=[% LEVEL_FOLDER.browse_classification |uri %]&amp;prefixed=[% PREFIXED %]"><i class="fa fa-folder-o"></i>&nbsp;&nbsp;[% LEVEL_FOLDER.description |html %]</a>
+                            [% END %]
+                            [% IF ( LEVEL_FOLDER.classification.substr((LEVEL_FOLDER.classification.length - 1), 1) == " " ) %] 
+                                <span style="font-size:0.75em"><i> <a href='opac-search.pl?q=sys.phrase:[% LEVEL_FOLDER.classification.replace(' ','\ ') |uri %]'>([% LEVEL_FOLDER.number %] titles)</a></i></span>
+                            [% ELSE %]
+                                <span style="font-size:0.75em"><i> <a href='opac-search.pl?q=sys.phrase:[% LEVEL_FOLDER.classification.replace(' ','\ ') |uri %]*'>([% LEVEL_FOLDER.number %] titles)</a></i></span>
+                            [% END %]
+                        </div>
+                    </div>
+                [% END %]
+                <div class="row entry-page-row">
+                    <div class="col-lg-12 entry-page-col">&nbsp;</div>
+                </div>
+            [% END %]
+
+            [% IF ( LEVEL == 1 &&  ADULT_COLLECTION_COUNT > 0 ) %]
+                <div class="row entry-page-row">
+                    <div class="col-lg-12 entry-page-col"><strong>Special collections for adults</strong></div>
+                </div>
+                [% FOREACH ENTRY IN ADULT_COLLECTION_LOOP %]
+                    <div class="row entry-page-row">
+                        <div class="col-lg-12 entry-page-col">
+                            [% IF ( ENTRY.endnode ) %] 
+                                [% IF ( ENTRY.classification.substr((ENTRY.classification.length - 1), 1) == " " ) %] 
+                                    <a href='opac-search.pl?q=sys.phrase:[% ENTRY.classification.replace(' ','\ ') |uri %]'><i class="fa fa-list-ul"></i>&nbsp;&nbsp;[% ENTRY.description |html %]</a>
+                                [% ELSE %]
+                                    <a href='opac-search.pl?q=sys.phrase:[% ENTRY.classification.replace(' ','\ ') |uri %]*'><i class="fa fa-list-ul"></i>&nbsp;&nbsp;[% ENTRY.description |html %]</a>
+                                [% END %]
+                            [% ELSE %]
+                                <a href="opac-browser-asb.pl?level=[% ENTRY.level %]&amp;filter=[% ENTRY.browse_classification |uri %]&amp;prefixed=[% PREFIXED %]"><i class="fa fa-folder-o"></i>&nbsp;&nbsp;[% ENTRY.description |html %]</a>
+                            [% END %]
+                            [% IF ( ENTRY.classification.substr((ENTRY.classification.length - 1), 1) == " " ) %] 
+                                <span style="font-size:0.75em"><i> <a href='opac-search.pl?q=sys.phrase:[% ENTRY.classification.replace(' ','\ ') |uri %]'>([% ENTRY.number %] titles)</a></i></span> 
+                            [% ELSE %]
+                                <span style="font-size:0.75em"><i> <a href='opac-search.pl?q=sys.phrase:[% ENTRY.classification.replace(' ','\ ') |uri %]*'>([% ENTRY.number %] titles)</a></i></span> 
+                            [% END %]
+                        </div>
+                    </div>
+                [% END %]
+                <div class="row entry-page-row">
+                    <div class="col-lg-12 entry-page-col">&nbsp;</div>
+                </div>
+            [% END %]
+    [% FOREACH HIERACHY_ENTRY IN HIERARCHY_LOOP %]
+        </div>
+    [% END %]
+</div> <!-- / .main -->
 
 [% INCLUDE 'opac-bottom.inc' %]
 [% BLOCK jsinclude %][% END %]

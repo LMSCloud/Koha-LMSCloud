@@ -279,7 +279,7 @@ sub createSearchString {
     
     if ( $class->{prefix} && $class->{prefix} eq 'JUGMUS' ) {
         if ( $class->{level} && $class->{level} == 1 ) {
-            $search .= 'su:"Jugend Musiziert" and su,rtrn:Grad';
+            $search .= 'su:"Jugend Musiziert" and su:"Grad*"';
         }
         elsif ( $class->{level} && $class->{level} =~ /^(3|4)$/ && $class->{classval} ) {
             $search .= 'su:"Jugend Musiziert ' . $class->{classval} . '"';
@@ -290,22 +290,22 @@ sub createSearchString {
     if ( $class->{prefix} && $class->{prefix} eq 'NOTEN' && $class->{classification} ) {
         my $sval = $class->{classification};
         $sval =~ s/^(NOTEN \/ [A-Y])([^O]?)/$1.'O'.($2 ? $2 : '')/e;
-        $search .= 'sys,phr,ext,rtrn:"' . $class->{classification} . '"';
-        $search .= ' or sys,phr,ext,rtrn:"' . $sval . '"' if ( $sval ne $class->{classification});
+        $search .= 'sys.phrase:"' . $class->{classification} . '*"';
+        $search .= ' or sys.phrase:"' . $sval . '*"' if ( $sval ne $class->{classification});
         return $search;
     }
     if ( $class->{prefix} && $class->{prefix} eq 'MUSIK' && $class->{classification} ) {
-        $search .= 'sys,phr,ext,rtrn:"' . $class->{classification} . '"';
+        $search .= 'sys.phrase:"' . $class->{classification} . '*"';
         return $search;
     }
     
     if ( $class->{classification} =~ /,[0-9]$/ ) {
-        $search .= 'sys,phr,ext,rtrn:"' . $class->{classification} . '"';
+        $search .= 'sys.phrase:"' . $class->{classification} . '*"';
         return $search;
     }
     if ( $class->{prefix} ) {
         $search .= ' and ' if ( $search ne '' );
-        $search .= 'sysp,phr,ext,rtrn:"' . $class->{prefix} . '"';
+        $search .= 'sys.phrase:"' . $class->{prefix} . '*"';
     }
     
     if ( $class->{classval} ) {
@@ -315,11 +315,11 @@ sub createSearchString {
     
     if ( $class->{startrange} && $class->{endrange} ) {
         $search .= ' and ' if ( $search ne '' );
-        $search .= 'sysn,st-numeric,ge:"' . $class->{startrange} . '" and sysn,st-numeric,le:"' . $class->{endrange}. '"';
+        $search .= 'sysn:(>=' . $class->{startrange} . ') and sysn:(<=' . $class->{endrange}. ')';
     }
     elsif ( $class->{startrange} ) {
         $search .= ' and ' if ( $search ne '' );
-        $search .= 'sysn,st-numeric:"' . $class->{startrange}. '"';
+        $search .= 'sysn:(' . $class->{startrange}. ')';
     }
     if ( $class->{exclude} ) {
         $search .= $class->{exclude};
