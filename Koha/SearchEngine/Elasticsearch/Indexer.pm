@@ -118,7 +118,6 @@ sub update_index {
             my $elasticsearch = $self->get_elasticsearch();
             $response = $elasticsearch->bulk(
                 index => $self->index_name,
-                # type => 'data', # is just hard coded in Indexer.pm?
                 body => \@body
             );
             if ($response->{errors}) {
@@ -346,7 +345,6 @@ sub delete_index {
     my @body = map { { delete => { _id => "$_" } } } @{$biblionums};
     my $result = $elasticsearch->bulk(
         index => $self->index_name,
-        type => 'data',
         body => \@body,
     );
     if ($result->{errors}) {
