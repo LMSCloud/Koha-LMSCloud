@@ -584,7 +584,8 @@ OPAC:
         -
             - "Text the patron has to confirm in order to renew his library card in the OPAC. (Displayed only if enrollment fee is charged. Will override the default text.)"
             - pref: OpacRenewCardConfirmationText
-              type: htmlarea
+              type: textarea
+              syntax: text/html
               class: code
         -
             - Specify the number of monthes 
@@ -1086,7 +1087,8 @@ OPAC:
         -
             - "Additional information transferred to the library's financial accounting system:"
             - pref: Epay21AccountingSystemInfo
-              type: htmlarea
+              type: textarea
+              syntax: text/html
               class: code
             - "(Permitted characters: a-z A-Z 0-9 ':?,-(+.)/)"
 
@@ -1113,7 +1115,8 @@ OPAC:
         -
             - "Additional information transferred to the library's financial accounting system:"
             - pref: PmpaymentAccountingRecord
-              type: htmlarea
+              type: textarea
+              syntax: text/html
               class: code
             - "(Permitted characters: a-z A-Z 0-9 ':?,-(+.)/)"
         -
