@@ -21235,7 +21235,7 @@ if ( CheckVersion($DBversion) ) {
         }
     );
     
-    # Update accountype 'CL1' to 'CLAIM_LEVEL2'
+    # Update accountype 'CL2' to 'CLAIM_LEVEL2'
     $dbh->do(
         qq{
           UPDATE accountlines SET accounttype = 'CLAIM_LEVEL2' WHERE accounttype = 'CL2'
@@ -21271,7 +21271,7 @@ if ( CheckVersion($DBversion) ) {
         }
     );
     
-    # Update accountype 'CL4' to 'CLAIM_LEVEL5'
+    # Update accountype 'CL5' to 'CLAIM_LEVEL5'
     $dbh->do(
         qq{
           UPDATE accountlines SET accounttype = 'CLAIM_LEVEL5' WHERE accounttype = 'CL5'
@@ -21283,7 +21283,7 @@ if ( CheckVersion($DBversion) ) {
         }
     );
     
-    # Update accountype 'CL4' to 'CLAIM_LEVEL5'
+    # Update accountype 'NOTF' to 'NOTIFICATION'
     $dbh->do(
         qq{
           UPDATE accountlines SET accounttype = 'NOTIFICATION' WHERE accounttype = 'NOTF'
