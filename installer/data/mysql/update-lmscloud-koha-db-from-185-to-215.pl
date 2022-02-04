@@ -19,6 +19,7 @@ use File::Copy;
 use File::Temp;
 use Capture::Tiny;
 use Koha::Plugins;
+use Text::Diff qw(diff);
 
 
 BEGIN{ $| = 1; }
@@ -30,9 +31,11 @@ binmode(STDOUT, ":utf8");
 my $instance = getInstanceName();
 
 updateKohaConfig($instance);
+updateHiddenColumnsSettings();
 updateSimpleVariables();
 updateMoreSearchesContent();
 updateEntryPages();
+updateOverwrittenOPACBrowserTemplates($instance);
 updateVariablesInNewsTexts();
 updateSidebarLinks();
 updateOPACUserJS();
@@ -66,6 +69,7 @@ sub updateKohaConfig {
     my $config = Koha::Config->read_from_file($conf_fname);
     
     my $changed = 0;
+    my $configtext;
     if ( exists( $config->{listen}->{publicserver}->{content} ) ) {
         if ( $config->{listen}->{publicserver}->{content} =~ /^\s*tcp:([^:]+):([0-9]+)\s*$/i ) {
             my $host = $1;
@@ -74,7 +78,6 @@ sub updateKohaConfig {
             
             print "Configuring Z3950Responder from Zebra config: host ($host), port ($port)\n";
             
-            my $configtext;
             {
                 local( $/ ); # undefine the record seperator
                 open(my $rh,'<:encoding(UTF-8)', $conf_fname) or croak "Error opening $conf_fname: $!";
@@ -173,7 +176,7 @@ sub updateKohaConfig {
         open(my $fh,'>:encoding(UTF-8)', $conf_fname) or carp "Error opening $conf_fname: $!";
         print $fh $configtext;
         close $fh;
-        print "Updated Koha instance configuration file $responderConfig.\n";
+        print "Updated Koha instance configuration file $conf_fname.\n";
     }
 }
 
@@ -194,8 +197,141 @@ sub xmlEncode {
     return $data;
 }
 
+sub updateHiddenColumnsSettings {
+    my $dbh = C4::Context->dbh;
+    my $sth = $dbh->prepare("UPDATE columns_settings SET is_hidden = 1 WHERE module = ? AND page = ? AND tablename = ? AND columnname = ?");
+    
+    $sth->execute('acqui','basket','orders','actual_cost_tax_excluded');
+    $sth->execute('acqui','basket','orders','actual_cost_tax_included');
+    $sth->execute('acqui','basket','orders','recommended_retail_price_tax_excluded');
+    $sth->execute('acqui','basket','orders','recommended_retail_price_tax_included');
+    $sth->execute('acqui','basket','orders','replacement_price');
+    $sth->execute('acqui','basket','orders','supplier_report');
+    $sth->execute('acqui','basket','orders','total_tax_included');
+    
+    $sth->execute('acqui','lateorders','late_orders','budget');
+    
+    $sth->execute('acqui','lateorders','suggestions','lastmodificationdate');
+    $sth->execute('acqui','lateorders','suggestions','library_fund');
+    $sth->execute('acqui','lateorders','suggestions','managed_on');
+    
+    $sth->execute('catalogue','detail','acquisitiondetails-table','subscription');
+    $sth->execute('catalogue','detail','acquisitiondetails-table','subscription_callnumber'); 
+    
+    $sth->execute('catalogue','detail','holdings_table','holdings_copynumber');
+    $sth->execute('catalogue','detail','holdings_table','holdings_course_reserves');
+    $sth->execute('catalogue','detail','holdings_table','holdings_dateaccessioned');
+    $sth->execute('catalogue','detail','holdings_table','holdings_lastseen');
+    $sth->execute('catalogue','detail','holdings_table','holdings_uri');
+    $sth->execute('catalogue','detail','holdings_table','holdings_usedin');
+    $sth->execute('catalogue','detail','holdings_table','holdings_usedin_col');
+    
+    $sth->execute('catalogue','detail','otherholdings_table','otherholdings_copynumber');
+    $sth->execute('catalogue','detail','otherholdings_table','otherholdings_course_reserves');
+    $sth->execute('catalogue','detail','otherholdings_table','otherholdings_dateaccessioned');
+    $sth->execute('catalogue','detail','otherholdings_table','otherholdings_lastseen');
+    $sth->execute('catalogue','detail','otherholdings_table','otherholdings_uri');
+    $sth->execute('catalogue','detail','otherholdings_table','otherholdings_usedin');
+    $sth->execute('catalogue','detail','otherholdings_table','otherholdings_usedin_col');
+    
+    $sth->execute('cataloguing','additem','itemst','booksellerid');
+    $sth->execute('cataloguing','additem','itemst','cn_source');
+    $sth->execute('cataloguing','additem','itemst','coded_location_qualifier');
+    $sth->execute('cataloguing','additem','itemst','copynumber');
+    $sth->execute('cataloguing','additem','itemst','datelastborrowed');
+    $sth->execute('cataloguing','additem','itemst','datelastseen');
+    $sth->execute('cataloguing','additem','itemst','onloan');
+    $sth->execute('cataloguing','additem','itemst','price');
+    $sth->execute('cataloguing','additem','itemst','replacementpricedate');
+    $sth->execute('cataloguing','additem','itemst','restricted');
+    $sth->execute('cataloguing','additem','itemst','stack');
+    $sth->execute('cataloguing','additem','itemst','stocknumber');
+    $sth->execute('cataloguing','additem','itemst','timestamp'); 
+    $sth->execute('cataloguing','additem','itemst','uri');
+    $sth->execute('cataloguing','additem','itemst','withdrawn');
+    $sth->execute('cataloguing','additem','itemst','damaged');
+    
+    $sth->execute('cataloguing','z3950_search','resultst','lccn');
+    
+    $sth->execute('circ','circulation','issues-table','checkin');
+    $sth->execute('circ','circulation','issues-table','checkout_on_unformatted');
+    $sth->execute('circ','circulation','issues-table','collection');
+    $sth->execute('circ','circulation','issues-table','copynumber');
+    $sth->execute('circ','circulation','issues-table','due_date_unformatted');
+    $sth->execute('circ','circulation','issues-table','record_type');
+    $sth->execute('circ','circulation','issues-table','sort_order');
+    $sth->execute('circ','circulation','issues-table','todays_or_previous_checkouts');
+    
+    $sth->execute('circ','circulation','table_borrowers','phone');
+    
+    $sth->execute('circ','holds_awaiting_pickup','holdso','copy_number');
+    $sth->execute('circ','holds_awaiting_pickup','holdso','date_hold_placed');
+
+    $sth->execute('circ','holds_awaiting_pickup','holdst','copy_number');
+    $sth->execute('circ','holds_awaiting_pickup','holdst','date_hold_placed');
+    
+    $sth->execute('circ','overdues','circ-overdues','item_type');
+    $sth->execute('circ','overdues','circ-overdues','patron_category');
+    $sth->execute('circ','overdues','circ-overdues','patron_library');
+    $sth->execute('circ','overdues','circ-overdues','price');
+    
+    $sth->execute('circ','returns','checkedintable','ccode');
+    $sth->execute('circ','returns','checkedintable','dateaccessioned');
+    $sth->execute('circ','returns','checkedintable','itype');
+    $sth->execute('circ','returns','checkedintable','location');
+    
+    $sth->execute('circ','view_holdsqueue','holds-table','copynumber');
+    
+    $sth->execute('members','fines','account-fines','checked_out_from');
+    $sth->execute('members','fines','account-fines','date_due');
+    $sth->execute('members','fines','account-fines','home_library');
+    $sth->execute('members','fines','account-fines','issuedate');
+    $sth->execute('members','fines','account-fines','returndate');
+    $sth->execute('members','fines','account-fines','timestamp');
+    
+    $sth->execute('members','holdshistory','holdshistory-table','cancellationdate');
+    $sth->execute('members','holdshistory','holdshistory-table','waitingdate');
+    
+    $sth->execute('members','moremember','issues-table','checkin');
+    $sth->execute('members','moremember','issues-table','checkout_on_unformatted');
+    $sth->execute('members','moremember','issues-table','collection');
+    $sth->execute('members','moremember','issues-table','copynumber');
+    $sth->execute('members','moremember','issues-table','due_date_unformatted');
+    $sth->execute('members','moremember','issues-table','sort_order');
+    $sth->execute('members','moremember','issues-table','todays_or_previous_checkouts');
+    
+    $sth->execute('members','pay','pay-fines-table','checked_out_from');
+    $sth->execute('members','pay','pay-fines-table','date_due');
+    $sth->execute('members','pay','pay-fines-table','issuedate');
+    $sth->execute('members','pay','pay-fines-table','returndate');
+    
+    $sth->execute('opac','biblio-detail','holdingst','item_copy');
+    $sth->execute('opac','biblio-detail','holdingst','item_coursereserves');
+    $sth->execute('opac','biblio-detail','holdingst','item_holds');
+    $sth->execute('opac','biblio-detail','holdingst','item_shelving_location');
+    $sth->execute('opac','biblio-detail','holdingst','item_url');
+    
+    $sth->execute('opac','biblio-detail','subscriptionst','serial_publisheddate');
+    
+    $sth->execute('reports','lostitems','lostitems-table','datelastseen');
+    $sth->execute('reports','lostitems','lostitems-table','price');
+    
+    $sth->execute('reports','saved-sql','table_reports','cache_expiry');
+    $sth->execute('reports','saved-sql','table_reports','creation_date');
+    $sth->execute('reports','saved-sql','table_reports','json_url');
+    $sth->execute('reports','saved-sql','table_reports','last_run');
+    $sth->execute('reports','saved-sql','table_reports','public');
+    $sth->execute('reports','saved-sql','table_reports','saved_results');
+    $sth->execute('reports','saved-sql','table_reports','type');
+    
+    $sth->finish();
+    
+    print "Default column settings of hidden UI table columns updated.\n";
+}
+
 sub updateSimpleVariables {
     my $dbh = C4::Context->dbh;
+    $dbh->do("UPDATE systempreferences SET value='1' WHERE variable IN ('AcquisitionLog','AuthFailureLog','AuthoritiesLog','AuthSuccessLog','BorrowersLog','CataloguingLog','ClaimsLog','CronjobLog','DivibibLog','FinesLog','HoldsLog','IllLog','IssueLog','NewsLog','NoticesLog','RenewalLog','ReportsLog','ReturnLog','SubscriptionLog')");
     $dbh->do("UPDATE systempreferences SET value='0' WHERE variable='Mana' and value='2'");
     $dbh->do("UPDATE systempreferences SET value='0' WHERE variable='UsageStats' and value='2'");
     $dbh->do("UPDATE systempreferences SET value='Elasticsearch' WHERE variable='SearchEngine'");
@@ -355,13 +491,13 @@ sub replaceModifierList {
     my %modifier;
     
     # print "Index ($index), modifier ($modifierlist), search ($searchstring) $quotionMark\n";
-    foreach my $mod( grep { $_ =~ s/(^\s+|\s+$)//; $_ ne '' } split(/,/,$modifierlist) ) {
+    foreach my $mod( grep { $_ =~ s/(^\s+|\s+$)//; $_ ne '' } split(/(,|%2C)/,$modifierlist) ) {
         $modifier{$mod}=1;
     }
     
     $index = 'ocn' if ( $index eq 'lcn' && $searchstring =~ /^\s*(sfb|kab|ssd|asb)/ );
     
-    if ( ((defined $modifier{ltrn} && defined $modifier{rtrn}) || defined $modifier{lrtrn} ) && (defined $modifier{phr} || defined $modifier{'first-in-subfield'})  && defined $modifier{ext} ) {
+    if ( ((defined $modifier{ltrn} && defined $modifier{rtrn}) || defined $modifier{lrtrn} ) && (defined $modifier{phr} || defined $modifier{'first-in-subfield'}) && defined $modifier{ext} ) {
         $searchstring = replaceWhitespaceInPhraseSearchKeepingTTSyntax($searchstring);
         $searchstring = '*' . $searchstring . '*';
         $index .= '.phrase';
@@ -443,6 +579,36 @@ sub updateEntryPages {
         if ( $origvalue ne $value ) {
             $dbh->do("UPDATE systempreferences SET value=? WHERE variable=?", undef, $value, $variable);
             print "Updated value of variable $variable.", ($imageAltAdded ? " $imageAltAdded image alt attributes added." : ""), "\n";
+        }
+    }
+}
+
+sub updateOverwrittenOPACBrowserTemplates {
+    my $instance = shift;
+    
+    my $directory = "/var/lib/koha/$instance/opac-tmpl-custom/bootstrap_upd/*/modules/opac-browser*.tt";
+    my @files = glob $directory;
+    
+    foreach my $filename(@files) {
+        my $content;
+        {
+            local( $/ ); # undefine the record seperator
+            open(my $rh,'<:encoding(UTF-8)', $filename) or carp "Error opening $filename $!";
+            $content = <$rh>;
+            close $rh;
+        }
+        if ( $content ) {
+            my ($changedcontent,$imageAltAdded) = replaceEntryPageContent($content);
+            if ( $changedcontent && $changedcontent ne $content ) {
+                # my $difftext = diff \$content, \$changedcontent, { STYLE => "Unified" };
+                # print "Updated local template $filename\n";
+                # print $difftext;
+                
+                local( $/ ); # undefine the record seperator
+                open(my $wh,'>:encoding(UTF-8)', $filename) or carp "Error writing $filename $!";
+                print $wh $changedcontent;
+                close $wh;
+            }
         }
     }
 }
@@ -639,9 +805,11 @@ sub addElementToDocumentTree {
     }
     else {
         my $checkElem = $elementTree;
+        my $found = 0;
         while ( $checkElem && $checkElem->{name} ) {
             if ( $checkElem->{name} eq $tagname ) {
                 $checkElem->{endfound} = 1;
+                $found = 1;
                 $retElem = $checkElem;
                 if ( $retElem->{parent}) {
                     $retElem = $retElem->{parent};
@@ -651,9 +819,13 @@ sub addElementToDocumentTree {
                 $checkElem = $checkElem->{parent};
             }
         }
-        $follows =~ s/^[>]//;
-        if ( defined($follows) ) {
-            push @{$retElem->{tree}}, { type => 'text', content => $follows };
+        if ( $found==0 && $tagname =~ /^head$/i ) {
+            push @{$retElem->{tree}}, { type => 'text', content => $fullcontent };
+        } else {
+            $follows =~ s/^[>]//;
+            if ( defined($follows) ) {
+                push @{$retElem->{tree}}, { type => 'text', content => $follows };
+            }
         }
     }
     return $retElem;
