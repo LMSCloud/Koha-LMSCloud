@@ -73,6 +73,14 @@ if ( C4::Context->preference('AllowPatronToSetFinesVisibilityForGuarantor')
     $template->param( relatives => \@relatives );
 }
 
+my $paymentsMinimumPatronAge = C4::Context->preference('PaymentsMinimumPatronAge');    #  minimum age in years for payment permission in OPAC
+if ( !defined $paymentsMinimumPatronAge ) {
+    $paymentsMinimumPatronAge = 0;
+}
+my $dt = DateTime->now;
+$dt->subtract( years => $paymentsMinimumPatronAge+0 );
+my $paymentsMinimumPatronAgeReached = DateTime->compare(dt_from_string($patron->dateofbirth()),$dt) <= 0 ? 1 : 0;
+
 
 $template->param(
     ACCOUNT_LINES       => $accountlines,
@@ -83,6 +91,7 @@ $template->param(
     message_value       => scalar $query->param('message_value') || q{},
     payment             => scalar $query->param('payment') || q{},
     payment_error       => scalar $query->param('payment-error') || q{},
+    paymentsMinimumPatronAgeReached => $paymentsMinimumPatronAgeReached
 );
 
 if ( C4::Context->config("enable_plugins") ) {
