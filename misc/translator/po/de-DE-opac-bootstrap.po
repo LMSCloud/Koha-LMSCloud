@@ -1,8 +1,8 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: Koha 21.05\n"
-"POT-Creation-Date: 2022-02-04 13:10+0100\n"
-"PO-Revision-Date: 2022-02-04 13:13+0100\n"
+"POT-Creation-Date: 2022-02-04 13:16+0100\n"
+"PO-Revision-Date: 2022-02-04 13:36+0100\n"
 "Last-Translator: Katrin Fischer <katrin.fischer@bsz-bw.de>\n"
 "Language-Team: \n"
 "Language: de\n"
@@ -510,7 +510,7 @@ msgstr "%s%s%s%sLink zur Ressource%s "
 
 #. %1$s:  r.patron.firstname | html
 #. %2$s:  r.patron.surname | html
-#: koha-tmpl/opac-tmpl/bootstrap/en/includes/account-table.inc:89
+#: koha-tmpl/opac-tmpl/bootstrap/en/includes/account-table.inc:94
 #, c-format
 msgid "%s %s's fines and charges"
 msgstr "Gebühren und Entgelte von %s %s"
@@ -2956,7 +2956,7 @@ msgstr ".%sSie haben ausstehende Gebühren.%s %s "
 msgid "...or..."
 msgstr "... oder ..."
 
-#: koha-tmpl/opac-tmpl/bootstrap/en/includes/account-table.inc:159
+#: koha-tmpl/opac-tmpl/bootstrap/en/includes/account-table.inc:274
 #, c-format
 msgid "0.00"
 msgstr "0.00"
@@ -3397,18 +3397,18 @@ msgstr "Immer verfügbar"
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-user.tt:684
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-user.tt:699
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-user.tt:715
-#: koha-tmpl/opac-tmpl/bootstrap/en/includes/account-table.inc:13
+#: koha-tmpl/opac-tmpl/bootstrap/en/includes/account-table.inc:18
 #, c-format
 msgid "Amount"
 msgstr "Betrag"
 
-#: koha-tmpl/opac-tmpl/bootstrap/en/includes/account-table.inc:14
-#: koha-tmpl/opac-tmpl/bootstrap/en/includes/account-table.inc:99
+#: koha-tmpl/opac-tmpl/bootstrap/en/includes/account-table.inc:19
+#: koha-tmpl/opac-tmpl/bootstrap/en/includes/account-table.inc:104
 #, c-format
 msgid "Amount outstanding"
 msgstr "Offener Betrag"
 
-#: koha-tmpl/opac-tmpl/bootstrap/en/includes/account-table.inc:158
+#: koha-tmpl/opac-tmpl/bootstrap/en/includes/account-table.inc:273
 #, c-format
 msgid "Amount to pay: "
 msgstr "Zu bezahlender Betrag:"
@@ -4599,6 +4599,7 @@ msgstr "Löschen"
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-search-history.tt:249
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-shelves.tt:339
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-suggestions.tt:483
+#: koha-tmpl/opac-tmpl/bootstrap/en/includes/account-table.inc:6
 #, c-format
 msgid "Clear all"
 msgstr "Auswahl aufheben"
@@ -5070,8 +5071,8 @@ msgstr "Neue Bestellung erstellen "
 msgid "Create new list "
 msgstr "Neue Liste"
 
-#: koha-tmpl/opac-tmpl/bootstrap/en/includes/account-table.inc:9
-#: koha-tmpl/opac-tmpl/bootstrap/en/includes/account-table.inc:95
+#: koha-tmpl/opac-tmpl/bootstrap/en/includes/account-table.inc:14
+#: koha-tmpl/opac-tmpl/bootstrap/en/includes/account-table.inc:100
 #, c-format
 msgid "Created"
 msgstr "Angelegt"
@@ -5335,8 +5336,8 @@ msgstr "Abt."
 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/clubs/clubs-tab.tt:12
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/clubs/clubs-tab.tt:47
-#: koha-tmpl/opac-tmpl/bootstrap/en/includes/account-table.inc:12
-#: koha-tmpl/opac-tmpl/bootstrap/en/includes/account-table.inc:97
+#: koha-tmpl/opac-tmpl/bootstrap/en/includes/account-table.inc:17
+#: koha-tmpl/opac-tmpl/bootstrap/en/includes/account-table.inc:102
 #, c-format
 msgid "Description"
 msgstr "Beschreibung"
@@ -5563,6 +5564,11 @@ msgstr "Fällig"
 #, c-format
 msgid "Due %s"
 msgstr "Fällig am %s"
+
+#. A
+#: koha-tmpl/opac-tmpl/bootstrap/en/includes/account-table.inc:241
+msgid "E-Payment Bund-Länder"
+msgstr "E-Payment Bund-Länder"
 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-reserve.tt:111
 #, c-format
@@ -5996,7 +6002,7 @@ msgstr "Filmographie"
 msgid "Filter paid transactions"
 msgstr "Bezahlte Transaktionen filtern"
 
-#: koha-tmpl/opac-tmpl/bootstrap/en/includes/account-table.inc:98
+#: koha-tmpl/opac-tmpl/bootstrap/en/includes/account-table.inc:103
 #, c-format
 msgid "Fine amount"
 msgstr "Mahngebühr"
@@ -6206,6 +6212,11 @@ msgstr "EU-DSGVO-Zustimmung"
 msgid "GDPR consents"
 msgstr "EU-DSGVO-Zustimmungen"
 
+#. A
+#: koha-tmpl/opac-tmpl/bootstrap/en/includes/account-table.inc:181
+msgid "GIROPAY – SECURE ONLINE PAYMENT"
+msgstr "GIROPAY - SECURE ONLINE PAYMENT"
+
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-browser-kab.tt:196
 #, c-format
 msgid "Games"
@@ -6268,6 +6279,11 @@ msgstr "GetRecords"
 #, c-format
 msgid "GetServices"
 msgstr "GetServices"
+
+#. A
+#: koha-tmpl/opac-tmpl/bootstrap/en/includes/account-table.inc:167
+msgid "GiroSolution - A member of the Sparkassen group"
+msgstr "GiroSolution - Ein Mitglied der Sparkassen-Gruppe"
 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/ilsdi.tt:399
 #, c-format
@@ -7816,7 +7832,7 @@ msgstr "Machen Sie einen "
 msgid "Make an "
 msgstr "Machen Sie eine "
 
-#: koha-tmpl/opac-tmpl/bootstrap/en/includes/account-table.inc:157
+#: koha-tmpl/opac-tmpl/bootstrap/en/includes/account-table.inc:272
 #, c-format
 msgid "Make payment"
 msgstr "Bezahlen"
@@ -7982,6 +7998,36 @@ msgstr "Montag"
 #, c-format
 msgid "More details"
 msgstr "Weitere Details"
+
+#: koha-tmpl/opac-tmpl/bootstrap/en/includes/account-table.inc:211
+#, c-format
+msgid "More information about Epay21"
+msgstr "Mehr Informationen zu Epay21"
+
+#: koha-tmpl/opac-tmpl/bootstrap/en/includes/account-table.inc:167
+#, c-format
+msgid "More information about GiroSolution"
+msgstr "Mehr Informationen zu GiroSolution"
+
+#: koha-tmpl/opac-tmpl/bootstrap/en/includes/account-table.inc:181
+#, c-format
+msgid "More information about Giropay"
+msgstr "Mehr Informationen zu Giropay"
+
+#: koha-tmpl/opac-tmpl/bootstrap/en/includes/account-table.inc:196
+#, c-format
+msgid "More information about S-Public Services"
+msgstr "Mehr Informationen zu S-Public Services"
+
+#: koha-tmpl/opac-tmpl/bootstrap/en/includes/account-table.inc:241
+#, c-format
+msgid "More information about ePayBL"
+msgstr "Mehr Informationen zu ePayBL"
+
+#: koha-tmpl/opac-tmpl/bootstrap/en/includes/account-table.inc:226
+#, c-format
+msgid "More information about pmPayment"
+msgstr "Mehr Informationen zu pmPayment"
 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-advsearch.tt:514
 #, c-format
@@ -8768,6 +8814,11 @@ msgstr ""
 msgid "Onleihen (%s)"
 msgstr "Onleihen (%s)"
 
+#. A
+#: koha-tmpl/opac-tmpl/bootstrap/en/includes/account-table.inc:226
+msgid "Online Payment with pmPayment"
+msgstr "Online Bezahlen mit pmPayment"
+
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-auth-detail.tt:122
 #, c-format
 msgid "Online resources:"
@@ -9045,7 +9096,7 @@ msgstr "Patentdokument"
 msgid "Patron comment on %s"
 msgstr "Kommentar vom %s"
 
-#: koha-tmpl/opac-tmpl/bootstrap/en/includes/account-table.inc:142
+#: koha-tmpl/opac-tmpl/bootstrap/en/includes/account-table.inc:147
 #, c-format
 msgid "Pay selected fines and charges"
 msgstr "Gebühren und Entgelte bezahlen "
@@ -9060,7 +9111,7 @@ msgstr "Zahlung"
 msgid "Payment applied:"
 msgstr "Ausgeführte Zahlung:"
 
-#: koha-tmpl/opac-tmpl/bootstrap/en/includes/account-table.inc:143
+#: koha-tmpl/opac-tmpl/bootstrap/en/includes/account-table.inc:148
 #, c-format
 msgid "Payment method"
 msgstr "Zahlungsmethode"
@@ -10499,6 +10550,11 @@ msgstr "Rezensionen von Syndetics"
 msgid "Routing lists"
 msgstr "Umlauflisten"
 
+#. A
+#: koha-tmpl/opac-tmpl/bootstrap/en/includes/account-table.inc:196
+msgid "S-Public Services - digital payment and administration solutions"
+msgstr "S-Public Services - Digitale Bezahl-und Administrationslösungen"
+
 #. SCRIPT
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-illrequests.tt:286
 msgid "SLNP-passive"
@@ -10834,9 +10890,16 @@ msgstr "Bestimmtes Exemplar auswählen:"
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-search-history.tt:248
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-shelves.tt:336
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-suggestions.tt:483
+#: koha-tmpl/opac-tmpl/bootstrap/en/includes/account-table.inc:6
 #, c-format
 msgid "Select all"
 msgstr "Alle auswählen"
+
+#: koha-tmpl/opac-tmpl/bootstrap/en/includes/account-table.inc:6
+#, c-format
+msgid "Select any or all open fees for online payment. "
+msgstr ""
+"Zur Online-Bezahlung bitte alle oder einzelne offene Gebühren auswählen."
 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-detail.tt:1049
 #, c-format
@@ -12658,13 +12721,13 @@ msgstr "Oberste Ebene"
 msgid "Topics"
 msgstr "Themen"
 
-#: koha-tmpl/opac-tmpl/bootstrap/en/includes/account-table.inc:53
-#: koha-tmpl/opac-tmpl/bootstrap/en/includes/account-table.inc:133
+#: koha-tmpl/opac-tmpl/bootstrap/en/includes/account-table.inc:58
+#: koha-tmpl/opac-tmpl/bootstrap/en/includes/account-table.inc:138
 #, c-format
 msgid "Total due"
 msgstr "Gebühren insgesamt"
 
-#: koha-tmpl/opac-tmpl/bootstrap/en/includes/account-table.inc:75
+#: koha-tmpl/opac-tmpl/bootstrap/en/includes/account-table.inc:80
 #, c-format
 msgid "Total due if credit(s) applied:"
 msgstr "Gesamtbetrag mit eingerechnetem Guthaben:"
@@ -12697,7 +12760,7 @@ msgstr "Dienstag"
 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-readingrecord.tt:90
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-shelves.tt:748
-#: koha-tmpl/opac-tmpl/bootstrap/en/includes/account-table.inc:11
+#: koha-tmpl/opac-tmpl/bootstrap/en/includes/account-table.inc:16
 #: koha-tmpl/opac-tmpl/bootstrap/en/includes/opac-bottom.inc:154
 #, c-format
 msgid "Type"
@@ -12827,8 +12890,8 @@ msgstr "Aktualisieren"
 msgid "Update auto-renewal preference"
 msgstr "Option für automatische Verlängerungen ändern"
 
-#: koha-tmpl/opac-tmpl/bootstrap/en/includes/account-table.inc:10
-#: koha-tmpl/opac-tmpl/bootstrap/en/includes/account-table.inc:96
+#: koha-tmpl/opac-tmpl/bootstrap/en/includes/account-table.inc:15
+#: koha-tmpl/opac-tmpl/bootstrap/en/includes/account-table.inc:101
 #, c-format
 msgid "Updated"
 msgstr "Aktualisiert"
@@ -13456,7 +13519,7 @@ msgstr "Sie haben diesen Titel bereits vorgemerkt."
 msgid "You have no article requests currently."
 msgstr "Sie haben im Moment keine Vormerkungen."
 
-#: koha-tmpl/opac-tmpl/bootstrap/en/includes/account-table.inc:85
+#: koha-tmpl/opac-tmpl/bootstrap/en/includes/account-table.inc:90
 #, c-format
 msgid "You have no fines or charges"
 msgstr "Sie haben keine Gebühren"
@@ -13761,7 +13824,7 @@ msgid "Your catalog search history is empty."
 msgstr "Ihre Suchhistorie (Katalogdaten) ist leer."
 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-account.tt:30
-#: koha-tmpl/opac-tmpl/bootstrap/en/includes/account-table.inc:5
+#: koha-tmpl/opac-tmpl/bootstrap/en/includes/account-table.inc:10
 #, c-format
 msgid "Your charges"
 msgstr "Gebühren und Entgelte"
@@ -14347,6 +14410,11 @@ msgstr "enthält"
 msgid "continue creating your request"
 msgstr "Mit der Bestellung fortfahren"
 
+#: koha-tmpl/opac-tmpl/bootstrap/en/includes/account-table.inc:162
+#, c-format
+msgid "credit card payment via GiroSolution "
+msgstr "Kreditkartenzahlung über GiroSolution"
+
 #. SPAN
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-basket.tt:91
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-basket.tt:279
@@ -14401,6 +14469,11 @@ msgstr "email"
 #, c-format
 msgid "email address"
 msgstr "E-Mail-Adresse"
+
+#. A
+#: koha-tmpl/opac-tmpl/bootstrap/en/includes/account-table.inc:211
+msgid "epay21 – payment in any situation"
+msgstr "epay21 – Zahlen in jeder Lag"
 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/ilsdi.tt:743
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/ilsdi.tt:777
@@ -14594,6 +14667,26 @@ msgstr "negcap "
 #, c-format
 msgid "not"
 msgstr "nicht"
+
+#: koha-tmpl/opac-tmpl/bootstrap/en/includes/account-table.inc:191
+#, c-format
+msgid "online payment via S-Public Services "
+msgstr "Online-Zahlung mit S-Public Services "
+
+#: koha-tmpl/opac-tmpl/bootstrap/en/includes/account-table.inc:236
+#, c-format
+msgid "online payment via ePayBL "
+msgstr "Online-Zahlung mit ePayBL"
+
+#: koha-tmpl/opac-tmpl/bootstrap/en/includes/account-table.inc:206
+#, c-format
+msgid "online payment via ekom21/epay21 "
+msgstr "Zahlungen mit ekom21/epay21"
+
+#: koha-tmpl/opac-tmpl/bootstrap/en/includes/account-table.inc:221
+#, c-format
+msgid "online payment via pmPayment "
+msgstr "Online-Zahlung mit pmPayment"
 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-advsearch.tt:46
 #, c-format
