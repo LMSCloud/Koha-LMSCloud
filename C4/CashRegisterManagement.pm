@@ -21,7 +21,6 @@ use Modern::Perl;
 use Carp;
 
 use C4::Context;
-use C4::Koha qw(GetAuthorisedValues);
 
 use Koha::CashRegister::CashRegisterDefinition;
 use Koha::CashRegister::CashRegisterDefinitions;
@@ -39,6 +38,7 @@ use DateTime::Format::MySQL;
 use Storable qw(dclone);
 use Koha::ItemTypes;
 use Koha::Libraries;
+use Koha::AuthorisedValues;
 
 use constant false => 0;
 use constant true  => 1;
@@ -1436,11 +1436,11 @@ sub getCashRegisterPaymentAndDepositOverview {
     my ($date_from,$date_to) = $self->getValidFromToPeriod($from, $to);
 
     my $authValuesAll = {};
-    my $authValues = C4::Koha::GetAuthorisedValues("CASHREG_PAYOUT",0);
+    my $authValues = $self->getAuthorisedValuesAsList("CASHREG_PAYOUT");
     foreach my $val( @$authValues ) { $authValuesAll->{'PAYOUT'}->{$val->{authorised_value}} = $val->{lib} };
-    $authValues = C4::Koha::GetAuthorisedValues("CASHREG_DEPOSIT",0);
+    $authValues = $self->getAuthorisedValuesAsList("CASHREG_DEPOSIT");
     foreach my $val( @$authValues ) { $authValuesAll->{'DEPOSIT'}->{$val->{authorised_value}} = $val->{lib} };
-    $authValues = C4::Koha::GetAuthorisedValues("CASHREG_ADJUST",0);
+    $authValues = $self->getAuthorisedValuesAsList("CASHREG_ADJUST");
     foreach my $val( @$authValues ) { $authValuesAll->{'ADJUSTMENT'}->{$val->{authorised_value}} = $val->{lib} };
     
     my $query = q{
@@ -1559,15 +1559,15 @@ sub getFinesOverview {
     my $cashdateselect = "c.booking_time BETWEEN '$fmtfrom' AND '$fmtto'";
     
     my $authValuesAll;
-    my $authValues = C4::Koha::GetAuthorisedValues("CASHREG_PAYOUT",0);
+    my $authValues = $self->getAuthorisedValuesAsList("CASHREG_PAYOUT");
     foreach my $val( @$authValues ) { $authValuesAll->{'PAYOUT'}->{$val->{authorised_value}} = $val->{lib} };
-    $authValues = C4::Koha::GetAuthorisedValues("CASHREG_DEPOSIT",0);
+    $authValues = $self->getAuthorisedValuesAsList("CASHREG_DEPOSIT");
     foreach my $val( @$authValues ) { $authValuesAll->{'DEPOSIT'}->{$val->{authorised_value}} = $val->{lib} };
-    $authValues = C4::Koha::GetAuthorisedValues("CASHREG_ADJUST",0);
+    $authValues = $self->getAuthorisedValuesAsList("CASHREG_ADJUST");
     foreach my $val( @$authValues ) { $authValuesAll->{'ADJUSTMENT'}->{$val->{authorised_value}} = $val->{lib} };
-    $authValues = C4::Koha::GetAuthorisedValues("ACCOUNT_TYPE_MAPPING",0);
+    $authValues = $self->getAuthorisedValuesAsList("ACCOUNT_TYPE_MAPPING");
     foreach my $val( @$authValues ) { $authValuesAll->{'ACCOUNT_TYPE'}->{$val->{authorised_value}} = $val->{lib} };
-    $authValues = C4::Koha::GetAuthorisedValues("PAYMENT_TYPE",0);
+    $authValues = $self->getAuthorisedValuesAsList("PAYMENT_TYPE");
     foreach my $val( @$authValues ) { $authValuesAll->{'PAYMENT_TYPE'}->{$val->{authorised_value}} = $val->{lib} };
     
     
@@ -1861,6 +1861,7 @@ sub getFinesOverview {
         while (my $row = $sth->fetchrow_hashref) {
             my $amount = $row->{amount};
             my $debit_type = $row->{'debit_type_code'};
+            my $debit_type_code = $row->{'debit_type_code'};
             $debit_type = $debit_types{$debit_type} if ( exists($debit_types{$debit_type}) );
             
             # Add values to summary calculation grouped by account type and item type
@@ -1901,9 +1902,9 @@ sub getFinesOverview {
             # defined with normalized value type ACCOUNT_TYPE_MAPPING
             my $mapped = 'unmapped';
             my $account = $debit_type;
-            if ( exists($authValuesAll->{'ACCOUNT_TYPE'}->{$debit_type}) ) {
+            if ( exists($authValuesAll->{'ACCOUNT_TYPE'}->{$debit_type_code}) ) {
                 $mapped = 'mapped';
-                $account = $authValuesAll->{'ACCOUNT_TYPE'}->{$debit_type};
+                $account = $authValuesAll->{'ACCOUNT_TYPE'}->{$debit_type_code};
             }
             if (! exists($result->{data}->{account}->{$mapped}->{$account}) ) {
                 $result->{data}->{account}->{$mapped}->{$account} = {
@@ -2110,6 +2111,7 @@ sub getFinesOverview {
         while (my $row = $sth->fetchrow_hashref) {
             my $amount = $row->{amount};
             my $debit_type = $row->{'debit_type_code'};
+            my $debit_type_code = $row->{'debit_type_code'};
             $debit_type = $debit_types{$debit_type} if ( exists($debit_types{$debit_type}) );
                         
             # Add values to summary calculation grouped by account type and item type
@@ -2152,9 +2154,9 @@ sub getFinesOverview {
             # defined with normalized value type ACCOUNT_TYPE_MAPPING
             my $mapped = 'unmapped';
             my $account = $row->{$debit_type};
-            if ( exists($authValuesAll->{'ACCOUNT_TYPE'}->{$debit_type}) ) {
+            if ( exists($authValuesAll->{'ACCOUNT_TYPE'}->{$debit_type_code}) ) {
                 $mapped = 'mapped';
-                $account = $authValuesAll->{'ACCOUNT_TYPE'}->{$debit_type};
+                $account = $authValuesAll->{'ACCOUNT_TYPE'}->{$debit_type_code};
             }
             if (! exists($result->{data}->{account}->{$mapped}->{$account}) ) {
                 $result->{data}->{account}->{$mapped}->{$account} = {
@@ -3627,6 +3629,23 @@ sub getCashRegisterHandoverInformationByLastOpeningAction {
         $result->{current_balance} = $lastbooking->{current_balance};
         $result->{current_balance_formatted} = $lastbooking->{current_balance_formatted};
         $result->{last_booking_time} = $lastbooking->{booking_time};
+    }
+    
+    return $result;
+}
+
+sub getAuthorisedValuesAsList {
+    my $self = shift;
+    my $category = shift;
+    
+    my $result = [];
+    
+    my $authorisedValueSearch = Koha::AuthorisedValues->search({ category => $category },{ order_by => ['lib'] } );
+    
+    if ( $authorisedValueSearch->count ) {
+        while ( my $authval = $authorisedValueSearch->next ) {
+            push @$result, { authorised_value => $authval->authorised_value, lib => $authval->lib };
+        }
     }
     
     return $result;
