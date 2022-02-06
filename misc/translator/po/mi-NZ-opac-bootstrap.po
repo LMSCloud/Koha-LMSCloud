@@ -1,9 +1,9 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: Koha 21.05\n"
-"POT-Creation-Date: 2021-10-20 05:48-0300\n"
-"PO-Revision-Date: 2020-11-03 01:21+0000\n"
-"Last-Translator: alexbuckley <alexbuckley@catalyst.net.nz>\n"
+"POT-Creation-Date: 2022-01-15 09:01-0300\n"
+"PO-Revision-Date: 2021-11-30 00:12+0000\n"
+"Last-Translator: aleisha <aleisha@catalyst.net.nz>\n"
 "Language-Team: Koha Translation Team <koha-translate@lists.koha.org>\n"
 "Language: mi\n"
 "MIME-Version: 1.0\n"
@@ -13,7 +13,7 @@ msgstr ""
 "X-Generator: Pootle 2.8\n"
 "X-Pootle-Path: /mi/21.05/mi-NZ-opac-bootstrap.po\n"
 "X-Pootle-Revision: 1\n"
-"X-POOTLE-MTIME: 1604366519.590396\n"
+"X-POOTLE-MTIME: 1638231123.271004\n"
 
 #. %1$s:  END 
 #. %2$s:  ELSE 
@@ -81,7 +81,7 @@ msgstr ""
 
 #. %1$s: - END -
 #. %2$s: - BLOCK debit_type_description -
-#. %3$s: - SWITCH debit_type.code -
+#. %3$s: - SWITCH debit_type_code -
 #. %4$s: - CASE 'ACCOUNT'          -
 #. %5$s: - CASE 'ACCOUNT_RENEW'    -
 #. %6$s: - CASE 'LOST'             -
@@ -101,7 +101,7 @@ msgstr ""
 #. %20$s: - END -
 #. %21$s: - END -
 #. %22$s: - BLOCK credit_type_description -
-#. %23$s: - SWITCH credit_type.code -
+#. %23$s: - SWITCH credit_type_code -
 #. %24$s: - CASE 'PAYMENT'      -
 #. %25$s: - CASE 'WRITEOFF'     -
 #. %26$s: - CASE 'FORGIVEN'     -
@@ -639,10 +639,12 @@ msgstr ""
 #. %2$s:  ELSE 
 #. %3$s:  END 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/sco/sco-main.tt:243
-#, fuzzy, c-format
+#, c-format
 msgid ""
 "%s Check out, return, or renew an item: %s Check out or renew an item: %s "
-msgstr "Takina atu%s, whakahokia%s ka whakahou rānei i tētahi tuemi: "
+msgstr ""
+"%s Takina atu, whakahokia ka whakahou rānei i tētahi tuemi: %s Takina atu ka "
+"whakahou rānei i tētahi tuemi: %s"
 
 #. %1$s:  IF ( SEARCH_RESULT.onloancount ) 
 #. %2$s:  SEARCH_RESULT.onloancount | html 
@@ -3897,7 +3899,7 @@ msgstr "Tau karanga: %s"
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-shelves.tt:698
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-suggestions.tt:257
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-user.tt:805
-#: koha-tmpl/opac-tmpl/bootstrap/en/modules/clubs/enroll.tt:33
+#: koha-tmpl/opac-tmpl/bootstrap/en/modules/clubs/enroll.tt:34
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/sci/sci-main.tt:147
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/sco/sco-main.tt:162
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/sco/sco-main.tt:166
@@ -4529,7 +4531,7 @@ msgid "Contents"
 msgstr "Ngā ihirangi"
 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-shelves.tt:105
-#, fuzzy, c-format
+#, c-format
 msgid "Contents of &nbsp;"
 msgstr "Ngā ihi rangi o "
 
@@ -5109,7 +5111,7 @@ msgstr "Tikiake"
 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-basket.tt:32
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-shelves.tt:213
-#, fuzzy, c-format
+#, c-format
 msgid "Download "
 msgstr "Tikiake"
 
@@ -5632,7 +5634,7 @@ msgstr "Ngā whaina:"
 msgid "Finish"
 msgstr "Whakamutu"
 
-#: koha-tmpl/opac-tmpl/bootstrap/en/modules/clubs/enroll.tt:32
+#: koha-tmpl/opac-tmpl/bootstrap/en/modules/clubs/enroll.tt:33
 #, c-format
 msgid "Finish enrollment"
 msgstr "Whakamutu rēhita"
@@ -7026,7 +7028,7 @@ msgid "Limit to any of the following:"
 msgstr "Here ki tētahi o ēnei:"
 
 #: koha-tmpl/opac-tmpl/bootstrap/en/includes/opac-facets.inc:14
-#, fuzzy, c-format
+#, c-format
 msgid "Limit to currently available items"
 msgstr "Here ki ngā tuemi e wātea ana ināianei."
 
@@ -8661,7 +8663,7 @@ msgid "Place hold"
 msgstr "Whakarite puringa"
 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-results.tt:279
-#, fuzzy, c-format
+#, c-format
 msgid "Place hold "
 msgstr "Whakarite puringa"
 
@@ -12136,7 +12138,7 @@ msgid "Unable to cancel enrollment!"
 msgstr "Tē taea te whakakore rēhitatanga!"
 
 #. SCRIPT
-#: koha-tmpl/opac-tmpl/bootstrap/en/modules/clubs/enroll.tt:40
+#: koha-tmpl/opac-tmpl/bootstrap/en/modules/clubs/enroll.tt:39
 msgid "Unable to create enrollment!"
 msgstr "Tē taea te hanga rēhitatanga!"
 

@@ -17,7 +17,7 @@
 
 use Modern::Perl;
 
-use Test::More tests => 3;
+use Test::More tests => 5;
 
 use Test::MockModule;
 use Test::Exception;
@@ -37,8 +37,8 @@ subtest 'create() tests' => sub {
 
     my $email = Koha::Email->create(
         {
-            from        => 'from@example.com',
-            to          => 'to@example.com',
+            from        => 'Fróm <from@example.com>',
+            to          => 'Tö <to@example.com>',
             cc          => 'cc@example.com',
             bcc         => 'bcc@example.com',
             reply_to    => 'reply_to@example.com',
@@ -49,8 +49,8 @@ subtest 'create() tests' => sub {
         }
     );
 
-    is( $email->email->header('From'), 'from@example.com', 'Value set correctly' );
-    is( $email->email->header('To'), 'to@example.com', 'Value set correctly' );
+    is( $email->email->header('From'), 'Fróm <from@example.com>', 'Value set correctly' );
+    is( $email->email->header('To'), 'Tö <to@example.com>', 'Value set correctly' );
     is( $email->email->header('Cc'), 'cc@example.com', 'Value set correctly' );
     is( $email->email->header('Bcc'), 'bcc@example.com', 'Value set correctly' );
     is( $email->email->header('Reply-To'), 'reply_to@example.com', 'Value set correctly' );
@@ -191,7 +191,7 @@ subtest 'create() tests' => sub {
 
 subtest 'send_or_die() tests' => sub {
 
-    plan tests => 4;
+    plan tests => 7;
 
     my $email;
     my $args;
@@ -232,9 +232,10 @@ subtest 'send_or_die() tests' => sub {
     );
 
     $THE_email->send_or_die(
-        { transport => $transport, to => ['tomasito@mail.com'] } );
+        { transport => $transport, to => ['tomasito@mail.com'], from => 'returns@example.com' } );
     is_deeply( $args->{to}, ['tomasito@mail.com'],
         'If explicitly passed, "to" is preserved' );
+    is( $args->{from}, 'returns@example.com', 'If explicitly pass, "from" is preserved');
 
     $THE_email->send_or_die( { transport => $transport } );
     my @to = sort @{ $args->{to} };
@@ -247,4 +248,46 @@ subtest 'send_or_die() tests' => sub {
         'If "to" is not explicitly passed, extract recipients from headers'
     );
     is( $email->header_str('Bcc'), undef, 'The Bcc header is unset' );
+    my $from = $args->{from};
+    is( $from, 'sender@example.com', 'If "from" is not explicitly passed, extract from Sender header' );
+    is( $email->header_str('Sender'), undef, 'The Sender header is unset' );
+};
+
+subtest 'is_valid' => sub {
+    plan tests => 8;
+
+    is(Koha::Email->is_valid('Fróm <from@example.com>'), 1);
+    is(Koha::Email->is_valid('from@example.com'), 1);
+    is(Koha::Email->is_valid('<from@example.com>'), 1);
+    is(Koha::Email->is_valid('root@localhost'), 1); # See bug 28017
+
+    is(Koha::Email->is_valid('<from@fróm.com>'), 0); # "In accordance with RFC 822 and its descendants, this module demands that email addresses be ASCII only"
+    isnt(Koha::Email->is_valid('@example.com'), 1);
+    isnt(Koha::Email->is_valid('example.com'), 1);
+    isnt(Koha::Email->is_valid('from'), 1);
+};
+
+subtest 'new_from_string() tests' => sub {
+
+    plan tests => 1;
+
+    my $html_body = '<h1>Title</h1><p>Message</p>';
+    my $email_1 = Koha::Email->create(
+        {
+            from        => 'Fróm <from@example.com>',
+            to          => 'Tö <to@example.com>',
+            cc          => 'cc@example.com',
+            bcc         => 'bcc@example.com',
+            reply_to    => 'reply_to@example.com',
+            sender      => 'sender@example.com',
+            subject     => 'Some subject',
+            html_body   => $html_body,
+            body_params => { charset => 'iso-8859-1' },
+        }
+    );
+
+    my $string = $email_1->as_string;
+    my $email_2 = Koha::Email->new_from_string( $string );
+
+    is( $email_1->as_string, $email_2->as_string, 'Emails match' );
 };

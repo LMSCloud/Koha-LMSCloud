@@ -20,9 +20,11 @@ package Koha::Email;
 
 use Modern::Perl;
 
-use Email::Valid;
+use Email::Address;
 use Email::MessageID;
-use List::Util qw(pairs);
+use Email::MIME;
+use List::Util qw( pairs );
+use Scalar::Util qw( blessed );
 
 use Koha::Exceptions;
 
@@ -37,6 +39,31 @@ Koha::Email - A wrapper around Email::Stuffer
 =head1 API
 
 =head2 Class methods
+
+=head3 new_from_string
+
+    my $email = Koha::Email->new_from_string( $email_string );
+
+Constructor for the Koha::Email class. The I<$email_string> (mandatory)
+parameter will be parsed with I<Email::MIME>.
+
+Note: I<$email_string> can be the produced by the I<as_string> method from
+B<Koha::Email> or B<Email::MIME>.
+
+=cut
+
+sub new_from_string {
+    my ( $class, $email_string ) = @_;
+
+    Koha::Exceptions::MissingParameter->throw("Mandatory string parameter missing.")
+        unless $email_string;
+
+    my $self = $class->SUPER::new();
+    my $mime = Email::MIME->new( $email_string );
+    $self->{email} = $mime;
+
+    return $self;
+}
 
 =head3 create
 
@@ -77,8 +104,10 @@ sub create {
 
     my $args = {};
     $args->{from} = $params->{from} || C4::Context->preference('KohaAdminEmailAddress');
-    Koha::Exceptions::BadParameter->throw("Invalid 'from' parameter: ".$args->{from})
-        unless Email::Valid->address( -address => $args->{from}, -fqdn => 0 ); # from is mandatory
+    Koha::Exceptions::BadParameter->throw(
+        error     => "Invalid 'from' parameter: " . $args->{from},
+        parameter => 'from'
+    ) unless Koha::Email->is_valid( $args->{from} );    # from is mandatory
 
     $args->{subject} = $params->{subject} // '';
 
@@ -89,8 +118,10 @@ sub create {
         $args->{to} = $params->{to};
     }
 
-    Koha::Exceptions::BadParameter->throw("Invalid 'to' parameter: ".$args->{to})
-        unless Email::Valid->address( -address => $args->{to}, -fqdn => 0 ); # to is mandatory
+    Koha::Exceptions::BadParameter->throw(
+        error     => "Invalid 'to' parameter: " . $args->{to},
+        parameter => 'to'
+    ) unless Koha::Email->is_valid( $args->{to} );    # to is mandatory
 
     my $addresses = {};
     $addresses->{reply_to} = $params->{reply_to};
@@ -110,11 +141,11 @@ sub create {
 
     foreach my $address ( keys %{$addresses} ) {
         Koha::Exceptions::BadParameter->throw(
-            "Invalid '$address' parameter: " . $addresses->{$address} )
-          if $addresses->{$address} and !Email::Valid->address(
-            -address => $addresses->{$address},
-            -fqdn    => 0
-          );
+            error => "Invalid '$address' parameter: " . $addresses->{$address},
+            parameter => $address
+          )
+          if $addresses->{$address}
+          and !Koha::Email->is_valid( $addresses->{$address} );
     }
 
     $args->{cc} = $addresses->{cc}
@@ -122,7 +153,22 @@ sub create {
     $args->{bcc} = $addresses->{bcc}
         if $addresses->{bcc};
 
-    my $email = $self->SUPER::new( $args );
+    my $email;
+    # FIXME: This is ugly, but aids backportability
+    # TODO: Remove this and move address and default headers handling
+    #       to separate subs to be (re)used
+    if ( blessed($self) ) {
+        $email = $self;
+        $email->to( $args->{to} )             if $args->{to};
+        $email->from( $args->{from} )         if $args->{from};
+        $email->cc( $args->{cc} )             if $args->{cc};
+        $email->bcc( $args->{bcc} )           if $args->{bcc};
+        $email->reply_to( $args->{reply_to} ) if $args->{reply_to};
+        $email->subject( $args->{subject} )   if $args->{subject};
+    }
+    else {
+        $email = $self->SUPER::new( $args );
+    }
 
     $email->header( 'Reply-To', $addresses->{reply_to} )
         if $addresses->{reply_to};
@@ -146,9 +192,15 @@ sub create {
 
     $email->send_or_die({ transport => $transport [, $args] });
 
-Overloaded Email::Stuffer I<send_or_die> method, that takes care of Bcc handling.
+Overloaded Email::Stuffer I<send_or_die> method, that takes care of Bcc and Return-path
+handling.
+
 Bcc is removed from the message headers, and included in the recipients list to be
 passed to I<send_or_die>.
+
+Return-path, 'MAIL FROM', is set to the 'Sender' email header unless an explicit 'from'
+parameter is passed to send_or_die.  'Return-path' headers are actually set by the MTA,
+usually using the 'MAIL FROM' information set at mail server connection time.
 
 =cut
 
@@ -173,7 +225,26 @@ sub send_or_die {
         $args->{to} = \@recipients;
     }
 
+    unless ( $args->{from} ) {    # don't do it if passed an explicit 'from' param
+        $args->{from} = $self->email->header_str('Sender');
+        $self->email->header_str_set('Sender'); # remove Sender header
+    }
+
     $self->SUPER::send_or_die($args);
+}
+
+=head3 is_valid
+
+    my $is_valid = Koha::Email->is_valid($email_address);
+
+Return true is the email address passed in parameter is valid following RFC 2822.
+
+=cut
+
+sub is_valid {
+    my ( $class, $email ) = @_;
+    my @addrs = Email::Address->parse($email);
+    return @addrs ? 1 : 0;
 }
 
 1;

@@ -3,7 +3,7 @@ msgstr ""
 "Project-Id-Version: Koha 21.05\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2013-05-16 03:26+0200\n"
-"PO-Revision-Date: 2022-02-04 10:48+0100\n"
+"PO-Revision-Date: 2022-02-06 11:55+0100\n"
 "Last-Translator: Katrin Fischer <katrin.fischer@bsz-bw.de>\n"
 "Language-Team: \n"
 "Language: de\n"
@@ -6312,9 +6312,17 @@ msgstr "Setze den Timeout des Selbstausleihsystems auf"
 msgid "circulation.pref#SelfCheckTimeout# seconds."
 msgstr "Sekunden."
 
-# Circulation > Self check-out module
-msgid "circulation.pref#SelfCheckoutByLogin# ."
-msgstr "."
+# Circulation > Self check-out module > SelfCheckoutByLogin
+msgid ""
+"circulation.pref#SelfCheckoutByLogin# .</br>NOTE: If using 'cardnumber' and "
+"AutoSelfCheckAllowed you should set SelfCheckAllowByIPRanges to prevent "
+"brute force attacks to gain patron information outside the library."
+msgstr ""
+".</br>Hinweis: Wenn hier 'cardnumber' verwendet wird und "
+"AutoSelfCheckAllowed aktiviert ist, sollte der Parameter "
+"SelfCheckAllowByIPRanges gesetzt werden. Damit werden Brute-Force-Angriffe "
+"verhindert, die darauf zielen, Benutzerinformationen außerhalb der "
+"Bibliothek abzugreifen."
 
 # Circulation > Self check-out module
 msgid ""
@@ -16092,8 +16100,13 @@ msgid "tools.pref#NumSavedReports# By default, show"
 msgstr "Zeige standardmässig"
 
 # Tools > Reports
-msgid "tools.pref#NumSavedReports# reports on the saved reports page."
-msgstr "Reports auf der Übersichtsseite für gespeicherte Reports."
+msgid ""
+"tools.pref#NumSavedReports# reports on the saved reports page. A value of 20 "
+"is recommended. If empty, all reports will be shown."
+msgstr ""
+"Reports auf der Übersichtsseite für gespeicherte Reports. Empfohlen wird "
+"hier der Wert 20. Wenn kein Wert angegeben ist, werden alle Reports "
+"aufgelistet."
 
 # Tools > Upload
 msgid ""
@@ -16533,6 +16546,10 @@ msgstr ""
 #~ "circulation.pref#OPACHoldsIfAvailableAtPickupExceptions# (list of patron "
 #~ "categories separated with a pipe '|')"
 #~ msgstr "(Mit Pipe-Symbol '|' separierte Liste von Benutzertypen)"
+
+# Circulation > Self check-out module
+#~ msgid "circulation.pref#SelfCheckoutByLogin# ."
+#~ msgstr "."
 
 # I18N/L10N
 #~ msgid ""

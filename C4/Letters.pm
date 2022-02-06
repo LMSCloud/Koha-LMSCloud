@@ -19,10 +19,9 @@ package C4::Letters;
 
 use Modern::Perl;
 
-use MIME::Lite;
 use Date::Calc qw( Add_Delta_Days );
 use Encode;
-use Carp;
+use Carp qw( carp croak );
 use Template;
 use Module::Load::Conditional qw(can_load);
 
@@ -47,6 +46,8 @@ use Koha::Subscriptions;
 use Koha::Illrequests;
 
 use vars qw(@ISA @EXPORT @EXPORT_OK %EXPORT_TAGS);
+
+use constant SERIALIZED_EMAIL_CONTENT_TYPE => 'message/rfc822';
 
 BEGIN {
     require Exporter;
@@ -1088,7 +1089,6 @@ sub EnqueueLetter {
         $params->{'letter'} = _add_attachments(
             {   letter      => $params->{'letter'},
                 attachments => $params->{'attachments'},
-                message     => MIME::Lite->new( Type => 'multipart/mixed' ),
             }
         );
     }
@@ -1368,45 +1368,50 @@ sub ResendMessage {
 
 =head2 _add_attachements
 
+  _add_attachments({ letter => $letter, attachments => $attachments });
+
   named parameters:
   letter - the standard letter hashref
   attachments - listref of attachments. each attachment is a hashref of:
     type - the mime type, like 'text/plain'
     content - the actual attachment
     filename - the name of the attachment.
-  message - a MIME::Lite object to attach these to.
 
   returns your letter object, with the content updated.
+  This routine picks the I<content> of I<letter> and generates a MIME
+  email, attaching the passed I<attachments> using Koha::Email. The
+  content is replaced by the string representation of the MIME object,
+  and the content-type is updated for later handling.
 
 =cut
 
 sub _add_attachments {
     my $params = shift;
 
-    my $letter = $params->{'letter'};
-    my $attachments = $params->{'attachments'};
+    my $letter = $params->{letter};
+    my $attachments = $params->{attachments};
     return $letter unless @$attachments;
-    my $message = $params->{'message'};
 
-    # First, we have to put the body in as the first attachment
-    $message->attach(
-        Type => $letter->{'content-type'} || 'TEXT',
-        Data => $letter->{'is_html'}
-            ? _wrap_html($letter->{'content'}, $letter->{'title'}, 1)
-            : $letter->{'content'},
-    );
+    my $message = Koha::Email->new;
+
+    if ( $letter->{is_html} ) {
+        $message->html_body( _wrap_html( $letter->{content}, $letter->{title}, 1) );
+    }
+    else {
+        $message->text_body( $letter->{content} );
+    }
 
     foreach my $attachment ( @$attachments ) {
         $message->attach(
-            Type     => $attachment->{'type'},
-            Data     => $attachment->{'content'},
-            Filename => $attachment->{'filename'},
+            Encode::encode( "UTF-8", $attachment->{content} ),
+            content_type => $attachment->{type} || 'application/octet-stream',
+            name         => $attachment->{filename},
+            disposition  => 'attachment',
         );
     }
-    # we're forcing list context here to get the header, not the count back from grep.
-    ( $letter->{'content-type'} ) = grep( /^Content-Type:/, split( /\n/, $params->{'message'}->header_as_string ) );
-    $letter->{'content-type'} =~ s/^Content-Type:\s+//;
-    $letter->{'content'} = $message->body_as_string;
+
+    $letter->{'content-type'} = SERIALIZED_EMAIL_CONTENT_TYPE;
+    $letter->{content} = $message->as_string;
 
     return $letter;
 
@@ -1553,8 +1558,11 @@ sub _send_message_by_email {
         );
         return;
     };
-    my $email = Koha::Email->create(
-        {
+    my $email;
+
+    try {
+
+        my $params = {
             to => $to_address,
             (
                 ( !$sendNoBcc && C4::Context->preference('NoticeBcc') )
@@ -1565,17 +1573,44 @@ sub _send_message_by_email {
             reply_to => $message->{'reply_address'} || $branch_replyto,
             sender   => $branch_returnpath,
             subject  => "" . $message->{subject}
-        }
-    );
+        };
 
-    if ( $is_html ) {
-        $email->html_body(
-            _wrap_html( $content, $subject )
-        );
+        if ( $message->{'content_type'} && $message->{'content_type'} eq SERIALIZED_EMAIL_CONTENT_TYPE ) {
+
+            # The message has been previously composed as a valid MIME object
+            # and serialized as a string on the DB
+            $email = Koha::Email->new_from_string($content);
+            $email->create($params);
+        } else {
+            $email = Koha::Email->create($params);
+            if ($is_html) {
+                $email->html_body( _wrap_html( $content, $subject ) );
+            } else {
+                $email->text_body($content);
+            }
+        }
     }
-    else {
-        $email->text_body( $content );
-    }
+    catch {
+        if ( ref($_) eq 'Koha::Exceptions::BadParameter' ) {
+            _set_message_status(
+                {
+                    message_id   => $message->{'message_id'},
+                    status       => 'failed',
+                    failure_code => "INVALID_EMAIL:".$_->parameter
+                }
+            );
+        } else {
+            _set_message_status(
+                {
+                    message_id   => $message->{'message_id'},
+                    status       => 'failed',
+                    failure_code => 'UNKNOWN_ERROR'
+                }
+            );
+        }
+        return 0;
+    };
+    return unless $email;
 
     my $smtp_server;
     if ( $library ) {

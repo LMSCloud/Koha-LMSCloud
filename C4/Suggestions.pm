@@ -585,7 +585,7 @@ sub DelSuggestionsOlderThan {
         q{
         DELETE FROM suggestions
         WHERE STATUS<>'ASKED'
-            AND date < ADDDATE(NOW(), ?)
+            AND manageddate < ADDDATE(NOW(), ?)
     }
     );
     $sth->execute("-$days");

@@ -6,8 +6,8 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: Koha 21.05\n"
-"POT-Creation-Date: 2021-10-20 05:09-0300\n"
-"PO-Revision-Date: 2021-10-20 08:59+0000\n"
+"POT-Creation-Date: 2022-01-15 08:44-0300\n"
+"PO-Revision-Date: 2021-12-09 15:00+0000\n"
 "Last-Translator: Jon McGowan <jon.mcgowan@ptfs-europe.com>\n"
 "Language-Team: Koha-translate <koha-translate@lists.koha.org>\n"
 "Language: en_GB\n"
@@ -16,7 +16,7 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
 "X-Generator: Pootle 2.8\n"
-"X-POOTLE-MTIME: 1634720375.206052\n"
+"X-POOTLE-MTIME: 1639062006.462334\n"
 "X-Pootle-Path: /en_GB/21.05/en-GB-opac-bootstrap.po\n"
 "X-Pootle-Revision: 1\n"
 
@@ -81,7 +81,7 @@ msgstr ""
 
 #. %1$s: - END -
 #. %2$s: - BLOCK debit_type_description -
-#. %3$s: - SWITCH debit_type.code -
+#. %3$s: - SWITCH debit_type_code -
 #. %4$s: - CASE 'ACCOUNT'          -
 #. %5$s: - CASE 'ACCOUNT_RENEW'    -
 #. %6$s: - CASE 'LOST'             -
@@ -101,7 +101,7 @@ msgstr ""
 #. %20$s: - END -
 #. %21$s: - END -
 #. %22$s: - BLOCK credit_type_description -
-#. %23$s: - SWITCH credit_type.code -
+#. %23$s: - SWITCH credit_type_code -
 #. %24$s: - CASE 'PAYMENT'      -
 #. %25$s: - CASE 'WRITEOFF'     -
 #. %26$s: - CASE 'FORGIVEN'     -
@@ -235,7 +235,8 @@ msgstr "%s %s &rsaquo; %s %s %s %s Koha online %s catalogue "
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-library.tt:6
 #, c-format
 msgid "%s %s &rsaquo; %s Libraries &rsaquo; %s %s %s Koha online %s catalog "
-msgstr "%s %s &rsaquo; %s Libraries &rsaquo; %s %s %s Koha online %s catalogue"
+msgstr ""
+"%s %s &rsaquo; %s Libraries &rsaquo; %s %s %s Koha online %s catalogue "
 
 #. %1$s:  END 
 #. %2$s:  IF item.itemcallnumber 
@@ -3622,7 +3623,7 @@ msgstr "Class number: %s"
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-shelves.tt:698
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-suggestions.tt:257
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-user.tt:805
-#: koha-tmpl/opac-tmpl/bootstrap/en/modules/clubs/enroll.tt:33
+#: koha-tmpl/opac-tmpl/bootstrap/en/modules/clubs/enroll.tt:34
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/sci/sci-main.tt:147
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/sco/sco-main.tt:162
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/sco/sco-main.tt:166
@@ -5340,7 +5341,7 @@ msgstr ""
 msgid "Finish"
 msgstr "Finish"
 
-#: koha-tmpl/opac-tmpl/bootstrap/en/modules/clubs/enroll.tt:32
+#: koha-tmpl/opac-tmpl/bootstrap/en/modules/clubs/enroll.tt:33
 #, c-format
 msgid "Finish enrollment"
 msgstr ""
@@ -5774,7 +5775,7 @@ msgstr "Reservation notes:"
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-reserve.tt:161
 #, c-format
 msgid "Hold requests"
-msgstr ""
+msgstr "Reservation requests"
 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-reserve.tt:283
 #, c-format
@@ -8305,7 +8306,7 @@ msgstr "Place a reservation"
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-results.tt:279
 #, c-format
 msgid "Place hold "
-msgstr "Place reservation"
+msgstr "Place reservation "
 
 #. INPUT type=submit
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-request-article.tt:197
@@ -8337,7 +8338,7 @@ msgstr "Placing a reservation"
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-reserve.tt:8
 #, c-format
 msgid "Placing a hold &rsaquo; %s%s%sKoha online%s catalog"
-msgstr "Placing a hold &rsaquo; %s%s%sKoha online%s catalogue"
+msgstr "Placing a reservation &rsaquo; %s%s%sKoha online%s catalogue"
 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-detail.tt:591
 #, c-format
@@ -8767,9 +8768,9 @@ msgstr ""
 #. %4$s:  ELSE 
 #. %5$s:  END 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/sco/printslip.tt:5
-#, fuzzy, c-format
+#, c-format
 msgid "Print receipt for %s &rsaquo; Self checkout &rsaquo; %s%s%sKoha %s"
-msgstr "Print Receipt for %s &rsaquo; Self issue &rsaquo; %s%s%sKoha %s"
+msgstr "Print receipt for %s &rsaquo; Self issue &rsaquo; %s%s%sKoha %s"
 
 #: koha-tmpl/opac-tmpl/bootstrap/en/includes/holds-table.inc:24
 #, c-format
@@ -9661,14 +9662,14 @@ msgid "Scan a new item or enter its barcode:"
 msgstr "Scan a new item or enter its barcode:"
 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/sco/help.tt:46
-#, fuzzy, c-format
+#, c-format
 msgid ""
 "Scan each item and wait for the page to reload before scanning the next "
 "item. The checked-out item should appear in your checkouts list. The submit "
 "button only needs to be clicked if you enter the barcode manually."
 msgstr ""
 "Scan each item and wait for the page to reload before scanning the next "
-"item. The issued item should appear in your loans list. The Submit button "
+"item. The issued item should appear in your loans list. The submit button "
 "only needs to be clicked if you enter the barcode manually."
 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/sci/sci-main.tt:176
@@ -11709,7 +11710,7 @@ msgid "Unable to cancel enrollment!"
 msgstr ""
 
 #. SCRIPT
-#: koha-tmpl/opac-tmpl/bootstrap/en/modules/clubs/enroll.tt:40
+#: koha-tmpl/opac-tmpl/bootstrap/en/modules/clubs/enroll.tt:39
 msgid "Unable to create enrollment!"
 msgstr ""
 
@@ -12750,7 +12751,7 @@ msgstr "Your reservations history"
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-holdshistory.tt:8
 #, c-format
 msgid "Your holds history &rsaquo; %s%s%sKoha online%s catalog"
-msgstr "Your holds history &rsaquo; %s%s%sKoha online%s catalogue"
+msgstr "Your reservations history &rsaquo; %s%s%sKoha online%s catalogue"
 
 #. %1$s:  IF ( LibraryNameTitle ) 
 #. %2$s:  LibraryNameTitle | html 
@@ -13235,7 +13236,7 @@ msgstr ""
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/ilsdi.tt:776
 #, c-format
 msgid "date after which hold request is no longer needed"
-msgstr "date after which reservation is no longer needed"
+msgstr "date after which the reservation is no longer needed"
 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/ilsdi.tt:744
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/ilsdi.tt:778

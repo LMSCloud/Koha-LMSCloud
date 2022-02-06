@@ -3,8 +3,8 @@ msgstr ""
 "Project-Id-Version: Koha 21.05\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2015-05-20 11:46-0300\n"
-"PO-Revision-Date: 2021-10-13 08:23+0000\n"
-"Last-Translator: Emma Ternrud <emma.gustafsson@ub.gu.se>\n"
+"PO-Revision-Date: 2022-01-20 09:49+0000\n"
+"Last-Translator: andreas.jonsson@kreablo.se <andreas.jonsson@kreablo.se>\n"
 "Language-Team: \n"
 "Language: sv\n"
 "MIME-Version: 1.0\n"
@@ -12,7 +12,7 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
 "X-Generator: Pootle 2.8\n"
-"X-POOTLE-MTIME: 1634113386.815063\n"
+"X-POOTLE-MTIME: 1642672193.990046\n"
 "X-Pootle-Path: /sv/21.05/sv-SE-pref.po\n"
 "X-Pootle-Revision: 1\n"
 
@@ -2479,7 +2479,7 @@ msgstr "Aktivera inte"
 # Cataloging > Interface > CreateAVFromCataloguing
 msgid ""
 "cataloguing.pref#CreateAVFromCataloguing# authorized values to be created "
-"within the cataloguing module. Librarien will need the manage_auth_values "
+"within the cataloguing module. Librarian will need the manage_auth_values "
 "subpermission."
 msgstr ""
 
@@ -6749,6 +6749,14 @@ msgstr ""
 # Enhanced content > Local or remote cover images
 msgid "enhanced_content.pref#CustomCoverImages# Don't display"
 msgstr ""
+
+# Enhanced content > Local or remote cover images
+msgid ""
+"enhanced_content.pref#CustomCoverImages# For control fields you can use just "
+"{field}, like {001}."
+msgstr ""
+"enhanced_content.pref#CustomCoverImages# För kontrollfält kan du bara "
+"använda {field}, som {001}."
 
 # Enhanced content > Local or remote cover images
 msgid ""

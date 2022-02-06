@@ -7,7 +7,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: Koha 21.05\n"
-"POT-Creation-Date: 2021-10-20 10:15-0300\n"
+"POT-Creation-Date: 2022-01-15 09:06-0300\n"
 "PO-Revision-Date: 2016-12-08 20:10+0000\n"
 "Last-Translator: Cédric <cvalmary@yahoo.fr>\n"
 "Language-Team: Tot en òc (totenoc.eu)\n"
@@ -84,7 +84,7 @@ msgstr ""
 
 #. %1$s: - END -
 #. %2$s: - BLOCK debit_type_description -
-#. %3$s: - SWITCH debit_type.code -
+#. %3$s: - SWITCH debit_type_code -
 #. %4$s: - CASE 'ACCOUNT'          -
 #. %5$s: - CASE 'ACCOUNT_RENEW'    -
 #. %6$s: - CASE 'LOST'             -
@@ -104,7 +104,7 @@ msgstr ""
 #. %20$s: - END -
 #. %21$s: - END -
 #. %22$s: - BLOCK credit_type_description -
-#. %23$s: - SWITCH credit_type.code -
+#. %23$s: - SWITCH credit_type_code -
 #. %24$s: - CASE 'PAYMENT'      -
 #. %25$s: - CASE 'WRITEOFF'     -
 #. %26$s: - CASE 'FORGIVEN'     -
@@ -3875,7 +3875,7 @@ msgstr "Quòta: %s"
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-shelves.tt:698
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-suggestions.tt:257
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-user.tt:805
-#: koha-tmpl/opac-tmpl/bootstrap/en/modules/clubs/enroll.tt:33
+#: koha-tmpl/opac-tmpl/bootstrap/en/modules/clubs/enroll.tt:34
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/sci/sci-main.tt:147
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/sco/sco-main.tt:162
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/sco/sco-main.tt:166
@@ -5611,7 +5611,7 @@ msgstr "Emendas&nbsp;:"
 msgid "Finish"
 msgstr "Acabar"
 
-#: koha-tmpl/opac-tmpl/bootstrap/en/modules/clubs/enroll.tt:32
+#: koha-tmpl/opac-tmpl/bootstrap/en/modules/clubs/enroll.tt:33
 #, c-format
 msgid "Finish enrollment"
 msgstr ""
@@ -12086,7 +12086,7 @@ msgid "Unable to cancel enrollment!"
 msgstr "Impossible d'apondre des tags."
 
 #. SCRIPT
-#: koha-tmpl/opac-tmpl/bootstrap/en/modules/clubs/enroll.tt:40
+#: koha-tmpl/opac-tmpl/bootstrap/en/modules/clubs/enroll.tt:39
 #, fuzzy
 msgid "Unable to create enrollment!"
 msgstr "Impossible d'apondre des tags."

@@ -37,6 +37,7 @@ use C4::Letters;
 use C4::Form::MessagingPreferences;
 use Koha::AuthUtils;
 use Koha::AuthorisedValues;
+use Koha::Email;
 use Koha::Patron::Debarments;
 use Koha::Cities;
 use Koha::DateUtils;
@@ -47,7 +48,6 @@ use Koha::Patron::Categories;
 use Koha::Patron::HouseboundRole;
 use Koha::Patron::HouseboundRoles;
 use Koha::Token;
-use Email::Valid;
 use Koha::SMS::Providers;
 
 use vars qw($debug);
@@ -226,7 +226,7 @@ if ( $op eq 'insert' || $op eq 'modify' || $op eq 'save' || $op eq 'duplicate' )
 # remove keys from %newdata that is not part of patron's attributes
 {
     my @keys_to_delete = (
-        qr/^(borrowernumber|date_renewed|debarred|debarredcomment|flags|privacy|privacy_guarantor_fines|privacy_guarantor_checkouts|checkprevcheckout|updated_on|lastseen|lang|login_attempts|overdrive_auth_token|anonymized)$/, # Bug 28935
+        qr/^(borrowernumber|date_renewed|debarred|debarredcomment|flags|privacy|updated_on|lastseen|login_attempts|overdrive_auth_token|anonymized)$/, # Bug 28935
         qr/^BorrowerMandatoryField$/,
         qr/^category_type$/,
         qr/^check_member$/,
@@ -401,13 +401,13 @@ if ($op eq 'save' || $op eq 'insert'){
   my $emailalt = $input->param('B_email');
 
   if ($emailprimary) {
-      push (@errors, "ERROR_bad_email") if (!Email::Valid->address($emailprimary));
+      push (@errors, "ERROR_bad_email") unless Koha::Email->is_valid($emailprimary);
   }
   if ($emailsecondary) {
-      push (@errors, "ERROR_bad_email_secondary") if (!Email::Valid->address($emailsecondary));
+      push (@errors, "ERROR_bad_email_secondary") unless Koha::Email->is_valid($emailsecondary);
   }
   if ($emailalt) {
-      push (@errors, "ERROR_bad_email_alternative") if (!Email::Valid->address($emailalt));
+      push (@errors, "ERROR_bad_email_alternative") unless Koha::Email->is_valid($emailalt);
   }
 
   if (C4::Context->preference('ExtendedPatronAttributes') and $input->param('setting_extended_patron_attributes')) {

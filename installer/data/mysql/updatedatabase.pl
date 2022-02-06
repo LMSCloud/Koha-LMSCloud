@@ -25702,7 +25702,7 @@ if( CheckVersion( $DBversion ) ) {
 $DBversion = '20.12.00.045';
 if( CheckVersion( $DBversion ) ) {
     $dbh->do(q{
-        INSERT IGNORE INTO systempreferences (variable, value, options, explanation, type) VALUES ('SearchLimitLibrary', 'both', 'homebranch|holdingbranch|both', "When limiting search results with a library or library group, use the item's home library, or holding library, or both.", 'Choice')
+        INSERT IGNORE INTO systempreferences (variable, value, options, explanation, type) VALUES ('SearchLimitLibrary', 'homebranch', 'homebranch|holdingbranch|both', "When limiting search results with a library or library group, use the item's home library, or holding library, or both.", 'Choice')
     });
 
     NewVersion( $DBversion, 21249, "Adding new system preference SearchLimitLibrary" );
@@ -26079,6 +26079,46 @@ if( CheckVersion( $DBversion ) ) {
     NewVersion( $DBversion, "", "Rename authorised values category MANUAL_INV_SIP2_MAPPED to DEBIT_TYPE_SIP2_MAPPED.");
 }
 
+$DBversion = '21.05.05.007';
+if( CheckVersion( $DBversion ) ) {
+    $dbh->do(q|
+        ALTER TABLE background_jobs
+        CHANGE COLUMN `data` `data` LONGTEXT DEFAULT NULL
+    |);
+    NewVersion( $DBversion, "29386", "Extend background_jobs.data to LONGTEXT" );
+}
+
+$DBversion = '21.05.05.008';
+if( CheckVersion( $DBversion ) ) {
+    for my $fk ( qw( pseudonymized_transactions_borrowers_ibfk_2 pseudonymized_transactions_borrowers_ibfk_3 pseudonymized_transactions_ibfk_1 ) ) {
+        if ( foreign_key_exists( 'pseudonymized_transactions', $fk ) ) {
+            $dbh->do(qq{
+                ALTER TABLE pseudonymized_transactions DROP FOREIGN KEY $fk
+            });
+        }
+    }
+    NewVersion( $DBversion, "29341", "Remove foreign keys on pseudonymized_transactions" );
+}
+
+$DBversion = '21.05.06.000';
+if( CheckVersion( $DBversion ) ) {
+    NewVersion( $DBversion, "", "Koha 21.05.06 release" );
+}
+
+$DBversion = '21.05.07.000';
+if( CheckVersion( $DBversion ) ) {
+    NewVersion( $DBversion, "", "Koha 21.05.07 release" );
+}
+
+$DBversion = '21.05.08.000';
+if( CheckVersion( $DBversion ) ) {
+    NewVersion( $DBversion, "", "Koha 21.05.08 release" );
+}
+
+$DBversion = '21.05.09.000';
+if( CheckVersion( $DBversion ) ) {
+    NewVersion( $DBversion, "", "Koha 21.05.09 release" );
+}
 
 # SEE bug 13068
 # if there is anything in the atomicupdate, read and execute it.

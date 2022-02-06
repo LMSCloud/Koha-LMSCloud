@@ -7,8 +7,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Koha 21.05\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2021-10-20 05:26-0300\n"
-"PO-Revision-Date: 2021-10-23 13:44+0000\n"
+"POT-Creation-Date: 2022-01-15 08:52-0300\n"
+"PO-Revision-Date: 2022-01-19 09:00+0000\n"
 "Last-Translator: Nikunj Tyagi <nikunj1@gmail.com>\n"
 "Language-Team: none\n"
 "Language: hi\n"
@@ -17,7 +17,7 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
 "X-Generator: Pootle 2.8\n"
-"X-POOTLE-MTIME: 1634996675.037747\n"
+"X-POOTLE-MTIME: 1642582851.938366\n"
 "X-Pootle-Path: /hi/21.05/hi-messages-js.po\n"
 "X-Pootle-Revision: 1\n"
 
@@ -25,8 +25,8 @@ msgstr ""
 msgid " (current) "
 msgstr " (वर्तमान)"
 
-#: koha-tmpl/opac-tmpl/bootstrap/js/basket.js:192
-#: koha-tmpl/opac-tmpl/bootstrap/js/basket.js:195
+#: koha-tmpl/opac-tmpl/bootstrap/js/basket.js:166
+#: koha-tmpl/opac-tmpl/bootstrap/js/basket.js:169
 msgctxt "Bibliographic record"
 msgid " item(s) added to your cart"
 msgstr " आपकी कार्ट मे आइटम(ओ) जोड़ी है"
@@ -54,7 +54,7 @@ msgstr ""
 "%s नष्ट कर दिया आदेश(s) इस रिकॉर्ड का उपयोग कर रहे हैं। आप प्रबंध अनुमतियों के क्रम में इस "
 "रिकॉर्ड को नष्ट करने की जरूरत है."
 
-#: koha-tmpl/intranet-tmpl/prog/js/catalog.js:64
+#: koha-tmpl/intranet-tmpl/prog/js/catalog.js:66
 #, javascript-format
 msgid ""
 "%s hold(s) on this record. You must delete all holds before deleting all "
@@ -117,6 +117,15 @@ msgid ""
 msgstr ""
 "%s आदेश (s) इस रिकॉर्ड का उपयोग कर रहे हैं। आप प्रबंध अनुमतियों के क्रम में इस रिकॉर्ड को "
 "नष्ट करने की जरूरत है।"
+
+#: koha-tmpl/intranet-tmpl/prog/js/catalog.js:48
+#, javascript-format
+msgid ""
+"%s subscription(s) are attached to this record. You must delete all "
+"subscription before deleting this record."
+msgstr ""
+"%s सदस्यता(ओं) को इस रिकॉर्ड से जोड़ा गया है। इस रिकॉर्ड को हटाने से पहले "
+"आपको सभी सदस्यता को हटाना होगा।"
 
 #: koha-tmpl/intranet-tmpl/prog/js/datatables.js:18
 msgid "(filtered from _MAX_ total entries)"
@@ -183,11 +192,11 @@ msgstr "एकाधिक आइटम जोड़ें"
 #: koha-tmpl/intranet-tmpl/prog/js/basket.js:498
 #: koha-tmpl/intranet-tmpl/prog/js/basket.js:501
 #: koha-tmpl/intranet-tmpl/prog/js/basket.js:512
-#: koha-tmpl/intranet-tmpl/prog/js/catalog.js:113
-#: koha-tmpl/opac-tmpl/bootstrap/js/basket.js:472
-#: koha-tmpl/opac-tmpl/bootstrap/js/basket.js:480
-#: koha-tmpl/opac-tmpl/bootstrap/js/basket.js:488
-#: koha-tmpl/opac-tmpl/bootstrap/js/basket.js:491
+#: koha-tmpl/intranet-tmpl/prog/js/catalog.js:115
+#: koha-tmpl/opac-tmpl/bootstrap/js/basket.js:421
+#: koha-tmpl/opac-tmpl/bootstrap/js/basket.js:429
+#: koha-tmpl/opac-tmpl/bootstrap/js/basket.js:437
+#: koha-tmpl/opac-tmpl/bootstrap/js/basket.js:440
 msgid "Add to cart"
 msgstr "कार्ट में जोड़े"
 
@@ -227,7 +236,7 @@ msgstr "क्या आप पक्का इसे हटाना चाह�
 msgid "Are you sure you want to delete %s? %s patron(s) are using it!"
 msgstr "क्या आप वाकई हटाने के इच्छुक हैं  %s? %s संरक्षक(s) यह प्रयोग कर रहे हैं!"
 
-#: koha-tmpl/intranet-tmpl/prog/js/catalog.js:66
+#: koha-tmpl/intranet-tmpl/prog/js/catalog.js:68
 #, javascript-format
 msgid "Are you sure you want to delete the %s attached items?"
 msgstr "क्या आप वाकई %s संलग्न आइटम हटाना चाहते हैं?"
@@ -240,7 +249,7 @@ msgstr "क्या आप वाकई चयनित ऑडियो अल�
 msgid "Are you sure you want to delete this field?"
 msgstr "क्या आप वाकई इस क्षेत्र को मिटाना चाहते हैं?"
 
-#: koha-tmpl/intranet-tmpl/prog/js/catalog.js:48
+#: koha-tmpl/intranet-tmpl/prog/js/catalog.js:50
 msgid "Are you sure you want to delete this record?"
 msgstr "क्या आप इस अभिलेख को हटाना चाहते हैं?"
 
@@ -254,19 +263,14 @@ msgstr "क्या आप वाकई इस सदस्यता को ह
 
 #: koha-tmpl/intranet-tmpl/prog/js/basket.js:287
 #: koha-tmpl/intranet-tmpl/prog/js/basket.js:339
-#: koha-tmpl/opac-tmpl/bootstrap/js/basket.js:271
-#: koha-tmpl/opac-tmpl/bootstrap/js/basket.js:327
+#: koha-tmpl/opac-tmpl/bootstrap/js/basket.js:245
+#: koha-tmpl/opac-tmpl/bootstrap/js/basket.js:300
 msgid "Are you sure you want to empty your cart?"
 msgstr "क्या आप वाकई अपनी कार्ट खाली करना चाहते हैं?"
 
 #: koha-tmpl/intranet-tmpl/prog/js/basket.js:358
 msgid "Are you sure you want to remove the selected items?"
 msgstr "क्या आप वाकई चयनित आइटम निकालना चाहते हैं?"
-
-#: koha-tmpl/opac-tmpl/bootstrap/js/basket.js:341
-msgctxt "Bibliographic records"
-msgid "Are you sure you want to remove the selected items?"
-msgstr "क्या आप चयनित आइटमों को दूर करना चाहते हैं?"
 
 #: koha-tmpl/intranet-tmpl/prog/js/members-menu.js:144
 msgid "Are you sure you want to renew this patron's registration?"
@@ -327,7 +331,7 @@ msgstr "स्वचालित नवीनीकरण में असफल
 msgid "Both subfield values should be filled or empty."
 msgstr "दोनों उपक्षेत्र मान भरे या खाली होने चाहिए."
 
-#: koha-tmpl/intranet-tmpl/prog/js/datatables.js:702
+#: koha-tmpl/intranet-tmpl/prog/js/datatables.js:714
 #: koha-tmpl/opac-tmpl/bootstrap/js/datatables.js:286
 msgid "CSV"
 msgstr "सीएसवी"
@@ -375,8 +379,8 @@ msgstr "अनिश्चित काल के लिए निलंबि�
 
 #: koha-tmpl/intranet-tmpl/prog/js/datatables.js:37
 #: koha-tmpl/intranet-tmpl/prog/js/datatables.js:39
-#: koha-tmpl/intranet-tmpl/prog/js/datatables.js:730
-#: koha-tmpl/intranet-tmpl/prog/js/datatables.js:732
+#: koha-tmpl/intranet-tmpl/prog/js/datatables.js:742
+#: koha-tmpl/intranet-tmpl/prog/js/datatables.js:744
 #: koha-tmpl/opac-tmpl/bootstrap/js/datatables.js:314
 #: koha-tmpl/opac-tmpl/bootstrap/js/datatables.js:316
 msgid "Clear filter"
@@ -392,12 +396,12 @@ msgstr "इस अनुभाग को संक्षिप्त करन�
 msgid "Click to expand this section"
 msgstr "इस अनुभाग का विस्तार करने के लिए क्लिक करें"
 
-#: koha-tmpl/intranet-tmpl/prog/js/datatables.js:748
+#: koha-tmpl/intranet-tmpl/prog/js/datatables.js:760
 #: koha-tmpl/opac-tmpl/bootstrap/js/datatables.js:332
 msgid "Columns"
 msgstr "कॉलम"
 
-#: koha-tmpl/intranet-tmpl/prog/js/datatables.js:747
+#: koha-tmpl/intranet-tmpl/prog/js/datatables.js:759
 #: koha-tmpl/opac-tmpl/bootstrap/js/datatables.js:331
 msgid "Columns settings"
 msgstr "कॉलम सेटिंग्स"
@@ -415,7 +419,7 @@ msgstr "पंक्तियों को क्लिपबोर्ड पर
 msgid "Copied one row to clipboard"
 msgstr "एक पंक्ति को क्लिपबोर्ड पर कॉपी किया गया"
 
-#: koha-tmpl/intranet-tmpl/prog/js/datatables.js:710
+#: koha-tmpl/intranet-tmpl/prog/js/datatables.js:722
 #: koha-tmpl/opac-tmpl/bootstrap/js/datatables.js:294
 msgid "Copy"
 msgstr "प्रतिलिपि"
@@ -508,17 +512,17 @@ msgstr "त्रुटि; आपका डेटा शायद सहेज�
 msgid "Every"
 msgstr "प्रत्येक"
 
-#: koha-tmpl/intranet-tmpl/prog/js/datatables.js:694
+#: koha-tmpl/intranet-tmpl/prog/js/datatables.js:706
 #: koha-tmpl/opac-tmpl/bootstrap/js/datatables.js:278
 msgid "Excel"
 msgstr "एक्सेल"
 
-#: koha-tmpl/intranet-tmpl/prog/js/datatables.js:763
+#: koha-tmpl/intranet-tmpl/prog/js/datatables.js:775
 #: koha-tmpl/opac-tmpl/bootstrap/js/datatables.js:347
 msgid "Export"
 msgstr "निर्यात"
 
-#: koha-tmpl/intranet-tmpl/prog/js/datatables.js:762
+#: koha-tmpl/intranet-tmpl/prog/js/datatables.js:774
 #: koha-tmpl/opac-tmpl/bootstrap/js/datatables.js:346
 msgid "Export or print"
 msgstr "निर्यात या प्रिंट"
@@ -574,8 +578,8 @@ msgstr "फ्रेमवर्क में आयातित: %s. फाइ�
 
 #: koha-tmpl/intranet-tmpl/prog/js/basket.js:493
 #: koha-tmpl/intranet-tmpl/prog/js/basket.js:515
-#: koha-tmpl/opac-tmpl/bootstrap/js/basket.js:469
-#: koha-tmpl/opac-tmpl/bootstrap/js/basket.js:477
+#: koha-tmpl/opac-tmpl/bootstrap/js/basket.js:418
+#: koha-tmpl/opac-tmpl/bootstrap/js/basket.js:426
 msgid "In your cart"
 msgstr "आपकी कार्ट में"
 
@@ -715,7 +719,7 @@ msgid "No cover image available"
 msgstr "कवर छवि उपलब्ध नहीं"
 
 #: koha-tmpl/intranet-tmpl/prog/js/datatables.js:15
-#: koha-tmpl/intranet-tmpl/prog/js/datatables.js:538
+#: koha-tmpl/intranet-tmpl/prog/js/datatables.js:550
 msgid "No data available in table"
 msgstr "सारणी मे डेटा उपलब्ध नही"
 
@@ -723,7 +727,7 @@ msgstr "सारणी मे डेटा उपलब्ध नही"
 msgid "No entries to show"
 msgstr "दिखाने के लिए कोई प्रविष्टि नही"
 
-#: koha-tmpl/opac-tmpl/bootstrap/js/basket.js:203
+#: koha-tmpl/opac-tmpl/bootstrap/js/basket.js:177
 msgctxt "Bibliographic record"
 msgid "No item was added to your cart"
 msgstr "आपकी कार्ट में कोई आइटम नहीं जोड़ा गया"
@@ -743,11 +747,11 @@ msgstr "आपकी कार्ट में कोई आइटम नही�
 msgid "No item was selected"
 msgstr "कोई आइटम नही चुना गया"
 
-#: koha-tmpl/opac-tmpl/bootstrap/js/basket.js:200
-#: koha-tmpl/opac-tmpl/bootstrap/js/basket.js:296
-#: koha-tmpl/opac-tmpl/bootstrap/js/basket.js:391
-#: koha-tmpl/opac-tmpl/bootstrap/js/basket.js:423
-#: koha-tmpl/opac-tmpl/bootstrap/js/basket.js:437
+#: koha-tmpl/opac-tmpl/bootstrap/js/basket.js:174
+#: koha-tmpl/opac-tmpl/bootstrap/js/basket.js:269
+#: koha-tmpl/opac-tmpl/bootstrap/js/basket.js:351
+#: koha-tmpl/opac-tmpl/bootstrap/js/basket.js:382
+#: koha-tmpl/opac-tmpl/bootstrap/js/basket.js:397
 msgctxt "Bibliographic record"
 msgid "No item was selected"
 msgstr "कोई आइटम नही चुना गया"
@@ -910,7 +914,7 @@ msgstr "पिछला"
 msgid "Previous checkouts"
 msgstr "पिछला चैक आउट"
 
-#: koha-tmpl/intranet-tmpl/prog/js/datatables.js:718
+#: koha-tmpl/intranet-tmpl/prog/js/datatables.js:730
 #: koha-tmpl/opac-tmpl/bootstrap/js/datatables.js:32
 #: koha-tmpl/opac-tmpl/bootstrap/js/datatables.js:302
 msgid "Print"
@@ -1102,7 +1106,7 @@ msgstr ""
 msgid "The following values are not formatted correctly:"
 msgstr "निम्नलिखित मानों को सही ढंग से प्रारूपित नहीं किया गया है:"
 
-#: koha-tmpl/opac-tmpl/bootstrap/js/basket.js:135
+#: koha-tmpl/opac-tmpl/bootstrap/js/basket.js:128
 msgctxt "Bibliographic record"
 msgid "The item has been added to your cart"
 msgstr "आइटम आपकी कार्ट में जोड़ा जा चुका है"
@@ -1111,12 +1115,12 @@ msgstr "आइटम आपकी कार्ट में जोड़ा ज�
 msgid "The item has been removed from your cart"
 msgstr "आइटम अपनी कार्ट से हटा दिया गया है"
 
-#: koha-tmpl/opac-tmpl/bootstrap/js/basket.js:244
+#: koha-tmpl/opac-tmpl/bootstrap/js/basket.js:218
 msgctxt "Bibliographic record"
 msgid "The item has been removed from your cart"
 msgstr "आइटम आपकी कार्ट से हटा दिया गया है"
 
-#: koha-tmpl/opac-tmpl/bootstrap/js/basket.js:118
+#: koha-tmpl/opac-tmpl/bootstrap/js/basket.js:111
 msgctxt "Bibliographic record"
 msgid "The item is already in your cart"
 msgstr "यह आइटम पहले से ही आपकी कार्ट में हैं"
@@ -1171,7 +1175,7 @@ msgstr "यह आइटम आपके कार्ट में जोड़�
 msgid "This item is already in your cart"
 msgstr "यह आइटम पहले से ही आपकी कार्ट में हैं"
 
-#: koha-tmpl/intranet-tmpl/prog/js/catalog.js:78
+#: koha-tmpl/intranet-tmpl/prog/js/catalog.js:80
 msgid "This record has no items."
 msgstr "इस रिकार्ड में कोई आइटम नहीं है."
 
@@ -1305,7 +1309,7 @@ msgid "You need to log in again, your session has timed out"
 msgstr "आप फिर से लॉग इन करने की जरूरत है, अपने सत्र का समय समाप्त हो गया है"
 
 #: koha-tmpl/intranet-tmpl/prog/js/basket.js:91
-#: koha-tmpl/opac-tmpl/bootstrap/js/basket.js:89
+#: koha-tmpl/opac-tmpl/bootstrap/js/basket.js:82
 msgid "Your cart is currently empty"
 msgstr "अपनी कार्ट वर्तमान में खाली है"
 
@@ -1317,8 +1321,8 @@ msgstr "a an the"
 msgid "already exists in database"
 msgstr "पहले से ही डेटाबेस में मौजूद"
 
-#: koha-tmpl/opac-tmpl/bootstrap/js/basket.js:192
-#: koha-tmpl/opac-tmpl/bootstrap/js/basket.js:203
+#: koha-tmpl/opac-tmpl/bootstrap/js/basket.js:166
+#: koha-tmpl/opac-tmpl/bootstrap/js/basket.js:177
 msgid "already in your cart"
 msgstr "आपकी कार्ट में पहले से ही है"
 
@@ -1371,6 +1375,10 @@ msgstr "बहुत सारे नवीनीकरण"
 #, javascript-format
 msgid "until %s"
 msgstr "जब तक %s"
+
+#~ msgctxt "Bibliographic records"
+#~ msgid "Are you sure you want to remove the selected items?"
+#~ msgstr "क्या आप चयनित आइटमों को दूर करना चाहते हैं?"
 
 #~ msgid "One or more selected items cannot be placed on hold."
 #~ msgstr "एक या अधिक चयनित वस्तुओं को होल्ड पर नहीं रखा जा सकता है।"

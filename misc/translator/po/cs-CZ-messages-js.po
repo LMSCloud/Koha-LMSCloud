@@ -7,8 +7,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Koha 21.05\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2021-10-20 05:00-0300\n"
-"PO-Revision-Date: 2021-09-16 14:27+0000\n"
+"POT-Creation-Date: 2022-01-15 08:40-0300\n"
+"PO-Revision-Date: 2021-11-14 20:52+0000\n"
 "Last-Translator: m23 <black23@gmail.com>\n"
 "Language-Team: none\n"
 "Language: cs\n"
@@ -17,7 +17,7 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=3; plural=(n==1) ? 0 : (n>=2 && n<=4) ? 1 : 2;\n"
 "X-Generator: Pootle 2.8\n"
-"X-POOTLE-MTIME: 1631802470.834890\n"
+"X-POOTLE-MTIME: 1636923132.893901\n"
 "X-Pootle-Path: /cs/21.05/cs-CZ-messages-js.po\n"
 "X-Pootle-Revision: 1\n"
 
@@ -25,8 +25,8 @@ msgstr ""
 msgid " (current) "
 msgstr " (aktuální) "
 
-#: koha-tmpl/opac-tmpl/bootstrap/js/basket.js:192
-#: koha-tmpl/opac-tmpl/bootstrap/js/basket.js:195
+#: koha-tmpl/opac-tmpl/bootstrap/js/basket.js:166
+#: koha-tmpl/opac-tmpl/bootstrap/js/basket.js:169
 msgctxt "Bibliographic record"
 msgid " item(s) added to your cart"
 msgstr " položka(y) vložena(y) do košíku"
@@ -54,7 +54,7 @@ msgstr ""
 "%s odstraněných objednávek používá tento záznam. Pokud chcete tento záznam "
 "odstranit, musíte mít odpovídající práva."
 
-#: koha-tmpl/intranet-tmpl/prog/js/catalog.js:64
+#: koha-tmpl/intranet-tmpl/prog/js/catalog.js:66
 #, javascript-format
 msgid ""
 "%s hold(s) on this record. You must delete all holds before deleting all "
@@ -117,6 +117,15 @@ msgid ""
 msgstr ""
 "%s objednávek používá tento záznam. Je nutné mít oprávnění pro správu "
 "objednávek, chcete-li odstranit tento záznam."
+
+#: koha-tmpl/intranet-tmpl/prog/js/catalog.js:48
+#, fuzzy, javascript-format
+msgid ""
+"%s subscription(s) are attached to this record. You must delete all "
+"subscription before deleting this record."
+msgstr ""
+"%s jednotka(tek) je napojena(o) na tento záznam. Musíte nejdříve odstranit "
+"všechny takové jednotky před odstraněním tohoto záznamu."
 
 #: koha-tmpl/intranet-tmpl/prog/js/datatables.js:18
 msgid "(filtered from _MAX_ total entries)"
@@ -184,11 +193,11 @@ msgstr "Přidat více jednotek"
 #: koha-tmpl/intranet-tmpl/prog/js/basket.js:498
 #: koha-tmpl/intranet-tmpl/prog/js/basket.js:501
 #: koha-tmpl/intranet-tmpl/prog/js/basket.js:512
-#: koha-tmpl/intranet-tmpl/prog/js/catalog.js:113
-#: koha-tmpl/opac-tmpl/bootstrap/js/basket.js:472
-#: koha-tmpl/opac-tmpl/bootstrap/js/basket.js:480
-#: koha-tmpl/opac-tmpl/bootstrap/js/basket.js:488
-#: koha-tmpl/opac-tmpl/bootstrap/js/basket.js:491
+#: koha-tmpl/intranet-tmpl/prog/js/catalog.js:115
+#: koha-tmpl/opac-tmpl/bootstrap/js/basket.js:421
+#: koha-tmpl/opac-tmpl/bootstrap/js/basket.js:429
+#: koha-tmpl/opac-tmpl/bootstrap/js/basket.js:437
+#: koha-tmpl/opac-tmpl/bootstrap/js/basket.js:440
 msgid "Add to cart"
 msgstr "Přidat do košíku"
 
@@ -229,7 +238,7 @@ msgid "Are you sure you want to delete %s? %s patron(s) are using it!"
 msgstr ""
 "Opravdu jste si jistý/á, že chcete odstranit %s? %s čtenář(ů) ho používá!"
 
-#: koha-tmpl/intranet-tmpl/prog/js/catalog.js:66
+#: koha-tmpl/intranet-tmpl/prog/js/catalog.js:68
 #, javascript-format
 msgid "Are you sure you want to delete the %s attached items?"
 msgstr "Opravdu chcete odstranit %s připojené jednotky?"
@@ -242,7 +251,7 @@ msgstr "Opravdu chcete odstranit vybraná zvuková upozornění?"
 msgid "Are you sure you want to delete this field?"
 msgstr "Opravdu chcete odstranit toto pole?"
 
-#: koha-tmpl/intranet-tmpl/prog/js/catalog.js:48
+#: koha-tmpl/intranet-tmpl/prog/js/catalog.js:50
 msgid "Are you sure you want to delete this record?"
 msgstr "Opravdu chcete odstranit tento záznam?"
 
@@ -257,17 +266,12 @@ msgstr "Opravdu chcete odstranit toto předplatné?"
 
 #: koha-tmpl/intranet-tmpl/prog/js/basket.js:287
 #: koha-tmpl/intranet-tmpl/prog/js/basket.js:339
-#: koha-tmpl/opac-tmpl/bootstrap/js/basket.js:271
-#: koha-tmpl/opac-tmpl/bootstrap/js/basket.js:327
+#: koha-tmpl/opac-tmpl/bootstrap/js/basket.js:245
+#: koha-tmpl/opac-tmpl/bootstrap/js/basket.js:300
 msgid "Are you sure you want to empty your cart?"
 msgstr "Opravdu chcete odstranit z košíku všechny položky?"
 
 #: koha-tmpl/intranet-tmpl/prog/js/basket.js:358
-msgid "Are you sure you want to remove the selected items?"
-msgstr "Opravdu chcete odstranit vybrané položky?"
-
-#: koha-tmpl/opac-tmpl/bootstrap/js/basket.js:341
-msgctxt "Bibliographic records"
 msgid "Are you sure you want to remove the selected items?"
 msgstr "Opravdu chcete odstranit vybrané položky?"
 
@@ -330,7 +334,7 @@ msgstr "Automatické prodloužení selhalo, čtenář má neuhrazené poplatky"
 msgid "Both subfield values should be filled or empty."
 msgstr "Obě hodnoty podpole by měly být vyplněné nebo prázdné."
 
-#: koha-tmpl/intranet-tmpl/prog/js/datatables.js:702
+#: koha-tmpl/intranet-tmpl/prog/js/datatables.js:714
 #: koha-tmpl/opac-tmpl/bootstrap/js/datatables.js:286
 msgid "CSV"
 msgstr "CSV"
@@ -379,8 +383,8 @@ msgstr "Smazáním data konce pozastavíte rezervaci na neomezeně dlouho"
 
 #: koha-tmpl/intranet-tmpl/prog/js/datatables.js:37
 #: koha-tmpl/intranet-tmpl/prog/js/datatables.js:39
-#: koha-tmpl/intranet-tmpl/prog/js/datatables.js:730
-#: koha-tmpl/intranet-tmpl/prog/js/datatables.js:732
+#: koha-tmpl/intranet-tmpl/prog/js/datatables.js:742
+#: koha-tmpl/intranet-tmpl/prog/js/datatables.js:744
 #: koha-tmpl/opac-tmpl/bootstrap/js/datatables.js:314
 #: koha-tmpl/opac-tmpl/bootstrap/js/datatables.js:316
 msgid "Clear filter"
@@ -396,12 +400,12 @@ msgstr "Klikněte pro sbalení této sekce"
 msgid "Click to expand this section"
 msgstr "Klikněte pro rozbalení této sekce"
 
-#: koha-tmpl/intranet-tmpl/prog/js/datatables.js:748
+#: koha-tmpl/intranet-tmpl/prog/js/datatables.js:760
 #: koha-tmpl/opac-tmpl/bootstrap/js/datatables.js:332
 msgid "Columns"
 msgstr "Sloupce"
 
-#: koha-tmpl/intranet-tmpl/prog/js/datatables.js:747
+#: koha-tmpl/intranet-tmpl/prog/js/datatables.js:759
 #: koha-tmpl/opac-tmpl/bootstrap/js/datatables.js:331
 msgid "Columns settings"
 msgstr "Nastavení sloupců"
@@ -419,7 +423,7 @@ msgstr "%d řádků zkopírováno do schránky"
 msgid "Copied one row to clipboard"
 msgstr "Jeden řádek byl zkopírován do schránky"
 
-#: koha-tmpl/intranet-tmpl/prog/js/datatables.js:710
+#: koha-tmpl/intranet-tmpl/prog/js/datatables.js:722
 #: koha-tmpl/opac-tmpl/bootstrap/js/datatables.js:294
 msgid "Copy"
 msgstr "Kopírovat"
@@ -515,17 +519,17 @@ msgstr "Chyba; vaše data nemusela být uložena"
 msgid "Every"
 msgstr "Každý"
 
-#: koha-tmpl/intranet-tmpl/prog/js/datatables.js:694
+#: koha-tmpl/intranet-tmpl/prog/js/datatables.js:706
 #: koha-tmpl/opac-tmpl/bootstrap/js/datatables.js:278
 msgid "Excel"
 msgstr "Excel"
 
-#: koha-tmpl/intranet-tmpl/prog/js/datatables.js:763
+#: koha-tmpl/intranet-tmpl/prog/js/datatables.js:775
 #: koha-tmpl/opac-tmpl/bootstrap/js/datatables.js:347
 msgid "Export"
 msgstr "Exportovat"
 
-#: koha-tmpl/intranet-tmpl/prog/js/datatables.js:762
+#: koha-tmpl/intranet-tmpl/prog/js/datatables.js:774
 #: koha-tmpl/opac-tmpl/bootstrap/js/datatables.js:346
 msgid "Export or print"
 msgstr "Export nebo tisk"
@@ -581,8 +585,8 @@ msgstr "Importuji do šablony: %s. Importuji ze souboru: %s."
 
 #: koha-tmpl/intranet-tmpl/prog/js/basket.js:493
 #: koha-tmpl/intranet-tmpl/prog/js/basket.js:515
-#: koha-tmpl/opac-tmpl/bootstrap/js/basket.js:469
-#: koha-tmpl/opac-tmpl/bootstrap/js/basket.js:477
+#: koha-tmpl/opac-tmpl/bootstrap/js/basket.js:418
+#: koha-tmpl/opac-tmpl/bootstrap/js/basket.js:426
 msgid "In your cart"
 msgstr "V košíku"
 
@@ -724,7 +728,7 @@ msgid "No cover image available"
 msgstr "Obálka není dostupná"
 
 #: koha-tmpl/intranet-tmpl/prog/js/datatables.js:15
-#: koha-tmpl/intranet-tmpl/prog/js/datatables.js:538
+#: koha-tmpl/intranet-tmpl/prog/js/datatables.js:550
 msgid "No data available in table"
 msgstr "Tabulka neobsahuje žádné údaje"
 
@@ -732,7 +736,7 @@ msgstr "Tabulka neobsahuje žádné údaje"
 msgid "No entries to show"
 msgstr "Žádné záznamy k zobrazení"
 
-#: koha-tmpl/opac-tmpl/bootstrap/js/basket.js:203
+#: koha-tmpl/opac-tmpl/bootstrap/js/basket.js:177
 msgctxt "Bibliographic record"
 msgid "No item was added to your cart"
 msgstr "Do košíku nebyly vloženy žádné položky"
@@ -752,11 +756,11 @@ msgstr "Do košíku nebyla přidána žádná položka (již máte v košíku)!"
 msgid "No item was selected"
 msgstr "Není vybrána žádná jednotka"
 
-#: koha-tmpl/opac-tmpl/bootstrap/js/basket.js:200
-#: koha-tmpl/opac-tmpl/bootstrap/js/basket.js:296
-#: koha-tmpl/opac-tmpl/bootstrap/js/basket.js:391
-#: koha-tmpl/opac-tmpl/bootstrap/js/basket.js:423
-#: koha-tmpl/opac-tmpl/bootstrap/js/basket.js:437
+#: koha-tmpl/opac-tmpl/bootstrap/js/basket.js:174
+#: koha-tmpl/opac-tmpl/bootstrap/js/basket.js:269
+#: koha-tmpl/opac-tmpl/bootstrap/js/basket.js:351
+#: koha-tmpl/opac-tmpl/bootstrap/js/basket.js:382
+#: koha-tmpl/opac-tmpl/bootstrap/js/basket.js:397
 msgctxt "Bibliographic record"
 msgid "No item was selected"
 msgstr "Není vybrána žádná jednotka"
@@ -861,14 +865,14 @@ msgid "Please choose at least one external target"
 msgstr "Vyberte, prosím, alespoň jeden Z39.50 server"
 
 #: koha-tmpl/intranet-tmpl/prog/js/select2.js:11
-#, fuzzy, javascript-format
+#, javascript-format
 msgid "Please delete %s character(s)"
-msgstr "Odstraňte %d znak(ů)"
+msgstr "Prosím odstraňte %s znak(ů)"
 
 #: koha-tmpl/intranet-tmpl/prog/js/select2.js:15
-#, fuzzy, javascript-format
+#, javascript-format
 msgid "Please enter %s or more characters"
-msgstr "Zadejte %n nebo více znaků."
+msgstr "Zadejte %s nebo více znaků"
 
 #: koha-tmpl/intranet-tmpl/prog/js/calendar.js:3
 #, javascript-format
@@ -923,7 +927,7 @@ msgstr "Předchozí"
 msgid "Previous checkouts"
 msgstr "Předchozí výpůjčky"
 
-#: koha-tmpl/intranet-tmpl/prog/js/datatables.js:718
+#: koha-tmpl/intranet-tmpl/prog/js/datatables.js:730
 #: koha-tmpl/opac-tmpl/bootstrap/js/datatables.js:32
 #: koha-tmpl/opac-tmpl/bootstrap/js/datatables.js:302
 msgid "Print"
@@ -1115,7 +1119,7 @@ msgstr ""
 msgid "The following values are not formatted correctly:"
 msgstr "Následující hodnoty nejsou ve správném formátu:"
 
-#: koha-tmpl/opac-tmpl/bootstrap/js/basket.js:135
+#: koha-tmpl/opac-tmpl/bootstrap/js/basket.js:128
 msgctxt "Bibliographic record"
 msgid "The item has been added to your cart"
 msgstr "Jednotka byla vložena do košíku"
@@ -1124,12 +1128,12 @@ msgstr "Jednotka byla vložena do košíku"
 msgid "The item has been removed from your cart"
 msgstr "Položka byla odstraněna ze košíku"
 
-#: koha-tmpl/opac-tmpl/bootstrap/js/basket.js:244
+#: koha-tmpl/opac-tmpl/bootstrap/js/basket.js:218
 msgctxt "Bibliographic record"
 msgid "The item has been removed from your cart"
 msgstr "Položka byla odstraněna ze košíku"
 
-#: koha-tmpl/opac-tmpl/bootstrap/js/basket.js:118
+#: koha-tmpl/opac-tmpl/bootstrap/js/basket.js:111
 msgctxt "Bibliographic record"
 msgid "The item is already in your cart"
 msgstr "Tuto jednotku již v košíku máte"
@@ -1184,7 +1188,7 @@ msgstr "Jednotka byla vložena do košíku"
 msgid "This item is already in your cart"
 msgstr "Tuto jednotku již v košíku máte"
 
-#: koha-tmpl/intranet-tmpl/prog/js/catalog.js:78
+#: koha-tmpl/intranet-tmpl/prog/js/catalog.js:80
 msgid "This record has no items."
 msgstr "Tento záznam nemá žádné jednotky."
 
@@ -1319,7 +1323,7 @@ msgid "You need to log in again, your session has timed out"
 msgstr "Musíte se přihlásit znovu, vaše stávající přihlášení vypršelo"
 
 #: koha-tmpl/intranet-tmpl/prog/js/basket.js:91
-#: koha-tmpl/opac-tmpl/bootstrap/js/basket.js:89
+#: koha-tmpl/opac-tmpl/bootstrap/js/basket.js:82
 msgid "Your cart is currently empty"
 msgstr "Váš košík je nyní prázdný"
 
@@ -1331,8 +1335,8 @@ msgstr " "
 msgid "already exists in database"
 msgstr "již v databázi existuje"
 
-#: koha-tmpl/opac-tmpl/bootstrap/js/basket.js:192
-#: koha-tmpl/opac-tmpl/bootstrap/js/basket.js:203
+#: koha-tmpl/opac-tmpl/bootstrap/js/basket.js:166
+#: koha-tmpl/opac-tmpl/bootstrap/js/basket.js:177
 msgid "already in your cart"
 msgstr "již jsou v košíku"
 
@@ -1386,6 +1390,10 @@ msgstr "příliš mnoho prodloužení"
 #, javascript-format
 msgid "until %s"
 msgstr "do %s"
+
+#~ msgctxt "Bibliographic records"
+#~ msgid "Are you sure you want to remove the selected items?"
+#~ msgstr "Opravdu chcete odstranit vybrané položky?"
 
 #~ msgid "One or more selected items cannot be placed on hold."
 #~ msgstr "Jednu nebo více vybraných jednotek nelze rezervovat."

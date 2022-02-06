@@ -44,6 +44,7 @@ my $title_filter    = $input->param('title_filter');
 my $need_confirm    = 0;
 
 my $suggestion = {
+    biblionumber    => scalar $input->param('biblionumber'),
     title           => scalar $input->param('title'),
     author          => scalar $input->param('author'),
     copyrightdate   => scalar $input->param('copyrightdate'),
@@ -245,8 +246,7 @@ foreach my $suggestion(@$suggestions_loop) {
 my $patron_reason_loop = GetAuthorisedValues("OPAC_SUG", "opac");
 
 my @mandatoryfields;
-{
-    last unless ($op eq 'add');
+if ( $op eq 'add' ) {
     my $fldsreq_sp = C4::Context->preference("OPACSuggestionMandatoryFields") || 'title';
     @mandatoryfields = sort split(/\s*\,\s*/, $fldsreq_sp);
     foreach (@mandatoryfields) {
@@ -254,7 +254,7 @@ my @mandatoryfields;
     }
     if ( $biblionumber ) {
         my $biblio = Koha::Biblios->find($biblionumber);
-        $template->param(
+        $suggestion = {
             biblionumber    => $biblio->biblionumber,
             title           => $biblio->title,
             author          => $biblio->author,
@@ -263,7 +263,7 @@ my @mandatoryfields;
             publishercode   => $biblio->biblioitem->publishercode,
             collectiontitle => $biblio->biblioitem->collectiontitle,
             place           => $biblio->biblioitem->place,
-        );
+        };
     }
 }
 

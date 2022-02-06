@@ -21,7 +21,7 @@ use Modern::Perl;
 use Test::Deep qw( cmp_deeply re );
 use Test::MockTime qw/set_fixed_time set_relative_time restore_time/;
 
-use Test::More tests => 33;
+use Test::More tests => 34;
 use DateTime;
 use File::Basename;
 use File::Spec;
@@ -514,7 +514,7 @@ subtest 'ListSets tests' => sub {
 
 subtest 'Tests for timestamp handling' => sub {
 
-    plan tests => 27;
+    plan tests => 28;
 
     t::lib::Mocks::mock_preference( 'OAI::PMH'         => 1 );
     t::lib::Mocks::mock_preference( 'OAI-PMH:MaxCount' => 3 );
@@ -536,7 +536,9 @@ subtest 'Tests for timestamp handling' => sub {
     my $timestamp = dt_from_string(undef, 'sql');
 
     # Test a bib with one item
-    my $biblio1 = $builder->build_sample_biblio();
+    my $biblio1 = $builder->build_sample_biblio;
+    Koha::Biblios->find($biblio1->biblionumber)->timestamp('1970-05-07 13:36:23')->store;
+
     $sth_metadata->execute($timestamp, $biblio1->biblionumber);
     my $item1 = $builder->build_sample_item(
         {
@@ -613,6 +615,22 @@ subtest 'Tests for timestamp handling' => sub {
         'GetRecord - biblio with a single item (items not returned)',
         $get_no_items,
         { GetRecord => $expected_no_items }
+    );
+    t::lib::Mocks::mock_preference('KohaAdminEmailAddress', 'root@localhost');
+    test_query(
+        'Identify - earliestDatestamp in the right format',
+        { verb => 'Identify' },
+        {   Identify => {
+                adminEmail        => 'root@localhost',
+                baseURL           => 'http://localhost',
+                compression       => 'gzip',
+                deletedRecord     => 'persistent',
+                earliestDatestamp => '1970-05-07T13:36:23Z',
+                granularity       => 'YYYY-MM-DDThh:mm:ssZ',
+                protocolVersion   => '2.0',
+                repositoryName    => 'My Library',
+            }
+        }
     );
 
     # Add an item 10 seconds later and check results
@@ -844,6 +862,46 @@ subtest 'Tests for timestamp handling' => sub {
     );
 
     restore_time();
+
+    $schema->storage->txn_rollback;
+};
+
+subtest 'ListSets() tests' => sub {
+
+    plan tests => 2;
+
+    $schema->storage->txn_begin;
+
+    # initial cleanup
+    $schema->resultset('OaiSet')->delete;
+
+    test_query(
+        'ListSets - no sets should return a noSetHierarchy exception',
+        { verb => 'ListSets' },
+        {
+            error => {
+                code    => 'noSetHierarchy',
+                content => 'There are no OAI sets defined',
+            }
+        }
+    );
+
+    # Add a couple sets
+    AddOAISet({ spec => 'set_1', name => 'Set 1' });
+    AddOAISet({ spec => 'set_2', name => 'Set 2' });
+
+    test_query(
+        'ListSets - no sets should return a noSetHierarchy exception',
+        { verb => 'ListSets' },
+        {
+            ListSets => {
+                set => [
+                    { setSpec => 'set_1', setName => 'Set 1' },
+                    { setSpec => 'set_2', setName => 'Set 2' },
+                ]
+            }
+        }
+    );
 
     $schema->storage->txn_rollback;
 };

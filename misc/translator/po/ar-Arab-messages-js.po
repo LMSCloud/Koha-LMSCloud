@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Koha 21.05\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2021-10-20 04:52-0300\n"
+"POT-Creation-Date: 2022-01-15 08:36-0300\n"
 "PO-Revision-Date: 2021-02-18 17:47+0000\n"
 "Last-Translator: KnowledgeWare Technologies Est. <massoudalshareef@kwareict."
 "com>\n"
@@ -27,8 +27,8 @@ msgstr ""
 msgid " (current) "
 msgstr " (الحالي) "
 
-#: koha-tmpl/opac-tmpl/bootstrap/js/basket.js:192
-#: koha-tmpl/opac-tmpl/bootstrap/js/basket.js:195
+#: koha-tmpl/opac-tmpl/bootstrap/js/basket.js:166
+#: koha-tmpl/opac-tmpl/bootstrap/js/basket.js:169
 msgctxt "Bibliographic record"
 msgid " item(s) added to your cart"
 msgstr "تمت إضافة المواد إلى سلتك"
@@ -56,7 +56,7 @@ msgstr ""
 "%s طلبية محذوفة تستخدم هذه التسجيلة. أنت بحاجة إلى صلاحية إدارة الطلبيات "
 "لحذف هذه التسجيلة."
 
-#: koha-tmpl/intranet-tmpl/prog/js/catalog.js:64
+#: koha-tmpl/intranet-tmpl/prog/js/catalog.js:66
 #, javascript-format
 msgid ""
 "%s hold(s) on this record. You must delete all holds before deleting all "
@@ -115,6 +115,14 @@ msgid ""
 "delete this record."
 msgstr ""
 "%s طلبية تستخدم هذه التسجيلة. أنت بحاجة إلى صلاحيات إدارة لحذف هذه التسجيلة."
+
+#: koha-tmpl/intranet-tmpl/prog/js/catalog.js:48
+#, fuzzy, javascript-format
+msgid ""
+"%s subscription(s) are attached to this record. You must delete all "
+"subscription before deleting this record."
+msgstr ""
+"%s مادة مرفقة بهذه التسجيلة. يجب عليك حذف كل المواد قبل حذف هذا التسجيلة."
 
 #: koha-tmpl/intranet-tmpl/prog/js/datatables.js:18
 msgid "(filtered from _MAX_ total entries)"
@@ -181,11 +189,11 @@ msgstr "إضافة عدة مواد"
 #: koha-tmpl/intranet-tmpl/prog/js/basket.js:498
 #: koha-tmpl/intranet-tmpl/prog/js/basket.js:501
 #: koha-tmpl/intranet-tmpl/prog/js/basket.js:512
-#: koha-tmpl/intranet-tmpl/prog/js/catalog.js:113
-#: koha-tmpl/opac-tmpl/bootstrap/js/basket.js:472
-#: koha-tmpl/opac-tmpl/bootstrap/js/basket.js:480
-#: koha-tmpl/opac-tmpl/bootstrap/js/basket.js:488
-#: koha-tmpl/opac-tmpl/bootstrap/js/basket.js:491
+#: koha-tmpl/intranet-tmpl/prog/js/catalog.js:115
+#: koha-tmpl/opac-tmpl/bootstrap/js/basket.js:421
+#: koha-tmpl/opac-tmpl/bootstrap/js/basket.js:429
+#: koha-tmpl/opac-tmpl/bootstrap/js/basket.js:437
+#: koha-tmpl/opac-tmpl/bootstrap/js/basket.js:440
 msgid "Add to cart"
 msgstr "أضف إلى السلة"
 
@@ -225,7 +233,7 @@ msgstr "هل أنت متأكد من أنك تريد حذف %s؟"
 msgid "Are you sure you want to delete %s? %s patron(s) are using it!"
 msgstr "هل أنت متأكد من أنك تريد حذف %s? %s مستفيداً يقومون باستخدامه!"
 
-#: koha-tmpl/intranet-tmpl/prog/js/catalog.js:66
+#: koha-tmpl/intranet-tmpl/prog/js/catalog.js:68
 #, javascript-format
 msgid "Are you sure you want to delete the %s attached items?"
 msgstr "هل أنت متأكد من أنك تريد حذف ال %s مادة المرفقة؟"
@@ -238,7 +246,7 @@ msgstr "هل أنت متأكد من أنك تريد حذف التنبيهات ا
 msgid "Are you sure you want to delete this field?"
 msgstr "هل أنت متأكد من أنك تريد حذف هذا الحقل؟"
 
-#: koha-tmpl/intranet-tmpl/prog/js/catalog.js:48
+#: koha-tmpl/intranet-tmpl/prog/js/catalog.js:50
 msgid "Are you sure you want to delete this record?"
 msgstr "هل أنت متأكد من أنك تريد حذف هذه التسجيلة؟"
 
@@ -252,17 +260,12 @@ msgstr "هل أنت متأكد من أنك تريد حذف هذا الاشترا
 
 #: koha-tmpl/intranet-tmpl/prog/js/basket.js:287
 #: koha-tmpl/intranet-tmpl/prog/js/basket.js:339
-#: koha-tmpl/opac-tmpl/bootstrap/js/basket.js:271
-#: koha-tmpl/opac-tmpl/bootstrap/js/basket.js:327
+#: koha-tmpl/opac-tmpl/bootstrap/js/basket.js:245
+#: koha-tmpl/opac-tmpl/bootstrap/js/basket.js:300
 msgid "Are you sure you want to empty your cart?"
 msgstr "هل أنت متأكد من أنك تريد تفريغ سلتك؟"
 
 #: koha-tmpl/intranet-tmpl/prog/js/basket.js:358
-msgid "Are you sure you want to remove the selected items?"
-msgstr "هل أنت متأكد من أنك تريد إزالة المواد المحددة؟"
-
-#: koha-tmpl/opac-tmpl/bootstrap/js/basket.js:341
-msgctxt "Bibliographic records"
 msgid "Are you sure you want to remove the selected items?"
 msgstr "هل أنت متأكد من أنك تريد إزالة المواد المحددة؟"
 
@@ -325,7 +328,7 @@ msgstr "لقد فشل التجديد التلقائي، لدى المستفيد 
 msgid "Both subfield values should be filled or empty."
 msgstr "يجب أن تكون كلتا قيمتي الحقلين الفرعيين مملوئتين أو فارغتين."
 
-#: koha-tmpl/intranet-tmpl/prog/js/datatables.js:702
+#: koha-tmpl/intranet-tmpl/prog/js/datatables.js:714
 #: koha-tmpl/opac-tmpl/bootstrap/js/datatables.js:286
 msgid "CSV"
 msgstr "CVS"
@@ -375,8 +378,8 @@ msgstr "قم بمسح التاريخ للتعليق إلى أجل غير مسم�
 
 #: koha-tmpl/intranet-tmpl/prog/js/datatables.js:37
 #: koha-tmpl/intranet-tmpl/prog/js/datatables.js:39
-#: koha-tmpl/intranet-tmpl/prog/js/datatables.js:730
-#: koha-tmpl/intranet-tmpl/prog/js/datatables.js:732
+#: koha-tmpl/intranet-tmpl/prog/js/datatables.js:742
+#: koha-tmpl/intranet-tmpl/prog/js/datatables.js:744
 #: koha-tmpl/opac-tmpl/bootstrap/js/datatables.js:314
 #: koha-tmpl/opac-tmpl/bootstrap/js/datatables.js:316
 msgid "Clear filter"
@@ -392,12 +395,12 @@ msgstr "انقر لطي هذا القسم"
 msgid "Click to expand this section"
 msgstr "انقر لتوسيع هذا القسم"
 
-#: koha-tmpl/intranet-tmpl/prog/js/datatables.js:748
+#: koha-tmpl/intranet-tmpl/prog/js/datatables.js:760
 #: koha-tmpl/opac-tmpl/bootstrap/js/datatables.js:332
 msgid "Columns"
 msgstr "الأعمدة"
 
-#: koha-tmpl/intranet-tmpl/prog/js/datatables.js:747
+#: koha-tmpl/intranet-tmpl/prog/js/datatables.js:759
 #: koha-tmpl/opac-tmpl/bootstrap/js/datatables.js:331
 msgid "Columns settings"
 msgstr "إعدادات الأعمدة"
@@ -415,7 +418,7 @@ msgstr "تم نسخ %d صفاً إلى الحافظة"
 msgid "Copied one row to clipboard"
 msgstr "تم نسخ صف واحد إلى الحافظة"
 
-#: koha-tmpl/intranet-tmpl/prog/js/datatables.js:710
+#: koha-tmpl/intranet-tmpl/prog/js/datatables.js:722
 #: koha-tmpl/opac-tmpl/bootstrap/js/datatables.js:294
 msgid "Copy"
 msgstr "نسخ"
@@ -509,17 +512,17 @@ msgstr "خطأ؛ لم يتم حفظ بياناتك"
 msgid "Every"
 msgstr "كل"
 
-#: koha-tmpl/intranet-tmpl/prog/js/datatables.js:694
+#: koha-tmpl/intranet-tmpl/prog/js/datatables.js:706
 #: koha-tmpl/opac-tmpl/bootstrap/js/datatables.js:278
 msgid "Excel"
 msgstr "إكسل"
 
-#: koha-tmpl/intranet-tmpl/prog/js/datatables.js:763
+#: koha-tmpl/intranet-tmpl/prog/js/datatables.js:775
 #: koha-tmpl/opac-tmpl/bootstrap/js/datatables.js:347
 msgid "Export"
 msgstr "تصدير"
 
-#: koha-tmpl/intranet-tmpl/prog/js/datatables.js:762
+#: koha-tmpl/intranet-tmpl/prog/js/datatables.js:774
 #: koha-tmpl/opac-tmpl/bootstrap/js/datatables.js:346
 msgid "Export or print"
 msgstr "تصدير أو طباعة"
@@ -575,8 +578,8 @@ msgstr "استيراد إلى إطار: %s. استيراد من ملف: %s"
 
 #: koha-tmpl/intranet-tmpl/prog/js/basket.js:493
 #: koha-tmpl/intranet-tmpl/prog/js/basket.js:515
-#: koha-tmpl/opac-tmpl/bootstrap/js/basket.js:469
-#: koha-tmpl/opac-tmpl/bootstrap/js/basket.js:477
+#: koha-tmpl/opac-tmpl/bootstrap/js/basket.js:418
+#: koha-tmpl/opac-tmpl/bootstrap/js/basket.js:426
 msgid "In your cart"
 msgstr "في سلتك"
 
@@ -717,7 +720,7 @@ msgid "No cover image available"
 msgstr "لا تتوافر صورة غلاف"
 
 #: koha-tmpl/intranet-tmpl/prog/js/datatables.js:15
-#: koha-tmpl/intranet-tmpl/prog/js/datatables.js:538
+#: koha-tmpl/intranet-tmpl/prog/js/datatables.js:550
 msgid "No data available in table"
 msgstr "لا تتوافر أي بيانات في الجدول"
 
@@ -725,7 +728,7 @@ msgstr "لا تتوافر أي بيانات في الجدول"
 msgid "No entries to show"
 msgstr "لا توجد مدخلات لعرضها"
 
-#: koha-tmpl/opac-tmpl/bootstrap/js/basket.js:203
+#: koha-tmpl/opac-tmpl/bootstrap/js/basket.js:177
 msgctxt "Bibliographic record"
 msgid "No item was added to your cart"
 msgstr "لم تتم إضافة أي مادة إلى سلتك"
@@ -745,11 +748,11 @@ msgstr "لم تتم إضافة أي مادة إلى سلتك (موجودة في 
 msgid "No item was selected"
 msgstr "لم يتم تحديد مواد"
 
-#: koha-tmpl/opac-tmpl/bootstrap/js/basket.js:200
-#: koha-tmpl/opac-tmpl/bootstrap/js/basket.js:296
-#: koha-tmpl/opac-tmpl/bootstrap/js/basket.js:391
-#: koha-tmpl/opac-tmpl/bootstrap/js/basket.js:423
-#: koha-tmpl/opac-tmpl/bootstrap/js/basket.js:437
+#: koha-tmpl/opac-tmpl/bootstrap/js/basket.js:174
+#: koha-tmpl/opac-tmpl/bootstrap/js/basket.js:269
+#: koha-tmpl/opac-tmpl/bootstrap/js/basket.js:351
+#: koha-tmpl/opac-tmpl/bootstrap/js/basket.js:382
+#: koha-tmpl/opac-tmpl/bootstrap/js/basket.js:397
 msgctxt "Bibliographic record"
 msgid "No item was selected"
 msgstr "لم يتم تحديد مواد"
@@ -913,7 +916,7 @@ msgstr "السابق"
 msgid "Previous checkouts"
 msgstr "الإعارات السابقة"
 
-#: koha-tmpl/intranet-tmpl/prog/js/datatables.js:718
+#: koha-tmpl/intranet-tmpl/prog/js/datatables.js:730
 #: koha-tmpl/opac-tmpl/bootstrap/js/datatables.js:32
 #: koha-tmpl/opac-tmpl/bootstrap/js/datatables.js:302
 msgid "Print"
@@ -1106,7 +1109,7 @@ msgstr ""
 msgid "The following values are not formatted correctly:"
 msgstr "القيم التالية غير منسقة بشكل صحيح:"
 
-#: koha-tmpl/opac-tmpl/bootstrap/js/basket.js:135
+#: koha-tmpl/opac-tmpl/bootstrap/js/basket.js:128
 msgctxt "Bibliographic record"
 msgid "The item has been added to your cart"
 msgstr "تمت إضافة المادة إلى سلتك"
@@ -1115,12 +1118,12 @@ msgstr "تمت إضافة المادة إلى سلتك"
 msgid "The item has been removed from your cart"
 msgstr "تمت إزالة المادة من سلتك"
 
-#: koha-tmpl/opac-tmpl/bootstrap/js/basket.js:244
+#: koha-tmpl/opac-tmpl/bootstrap/js/basket.js:218
 msgctxt "Bibliographic record"
 msgid "The item has been removed from your cart"
 msgstr "تمت إزالة المادة من سلتك"
 
-#: koha-tmpl/opac-tmpl/bootstrap/js/basket.js:118
+#: koha-tmpl/opac-tmpl/bootstrap/js/basket.js:111
 msgctxt "Bibliographic record"
 msgid "The item is already in your cart"
 msgstr "المادة موجودة بالفعل في سلتك"
@@ -1175,7 +1178,7 @@ msgstr "تمت إضافة هذه المادة إلى سلتك"
 msgid "This item is already in your cart"
 msgstr "هذه المادة موجودة بالفعل في سلتك"
 
-#: koha-tmpl/intranet-tmpl/prog/js/catalog.js:78
+#: koha-tmpl/intranet-tmpl/prog/js/catalog.js:80
 msgid "This record has no items."
 msgstr "هذه التسجيلة ليس بها مواد."
 
@@ -1309,7 +1312,7 @@ msgid "You need to log in again, your session has timed out"
 msgstr "يجب عليك إعادة تسجيل الدخول، لقد انتهت جلستك"
 
 #: koha-tmpl/intranet-tmpl/prog/js/basket.js:91
-#: koha-tmpl/opac-tmpl/bootstrap/js/basket.js:89
+#: koha-tmpl/opac-tmpl/bootstrap/js/basket.js:82
 msgid "Your cart is currently empty"
 msgstr "سلتك فارغة حالياً"
 
@@ -1321,8 +1324,8 @@ msgstr "ال"
 msgid "already exists in database"
 msgstr "موجودة بالفعل في قاعدة البيانات"
 
-#: koha-tmpl/opac-tmpl/bootstrap/js/basket.js:192
-#: koha-tmpl/opac-tmpl/bootstrap/js/basket.js:203
+#: koha-tmpl/opac-tmpl/bootstrap/js/basket.js:166
+#: koha-tmpl/opac-tmpl/bootstrap/js/basket.js:177
 msgid "already in your cart"
 msgstr "موجودة في سلتك بالفعل"
 
@@ -1375,6 +1378,10 @@ msgstr "عدد كبير جداً من التجديدات"
 #, javascript-format
 msgid "until %s"
 msgstr "حتى %s"
+
+#~ msgctxt "Bibliographic records"
+#~ msgid "Are you sure you want to remove the selected items?"
+#~ msgstr "هل أنت متأكد من أنك تريد إزالة المواد المحددة؟"
 
 #~ msgid "One or more selected items cannot be placed on hold."
 #~ msgstr "إحدى المواد المحددة أو أكثر لا يمكن وضعها بالحجز."

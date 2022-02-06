@@ -145,10 +145,13 @@ if($findclub) {
     if( $club ) {
         $club_hold = $club->id;
     } else {
-        my @clubs = Koha::Clubs->search( [
-            { name => { like => '%'.$findclub.'%' } },
-            { description => { like => '%'.$findclub.'%' } }
-        ] );
+        my @clubs = Koha::Clubs->search(
+            [
+                { name        => { like => '%' . $findclub . '%' } },
+                { description => { like => '%' . $findclub . '%' } }
+            ]
+        )->filter_out_empty->as_list;
+
         if( scalar @clubs == 1 ) {
             $club_hold = $clubs[0]->id;
         } elsif ( @clubs ) {
@@ -242,7 +245,7 @@ if ($club_hold && !$borrowernumber_hold && !$action) {
 
     while(my $enrollment = $enrollments->next) {
         next if $enrollment->is_canceled;
-        my $member = { patron => $enrollment->patron->unblessed };
+        my $member = { patron => $enrollment->patron };
         my $reserves_count = $enrollment->patron->holds->count;
         if ( $maxreserves
             && ( $reserves_count + $new_reserves_count > $maxreserves ) )
@@ -251,12 +254,6 @@ if ($club_hold && !$borrowernumber_hold && !$action) {
                 ? $maxreserves - $reserves_count
                 : 0;
             $member->{exceeded_maxreserves} = 1;
-        }
-        my $expiry_date = $enrollment->patron->dateexpiry;
-        $member->{expiry} = 0; # flag set if patron account has expired
-        if ($expiry_date and
-            Date_to_Days(split /-/,$date) > Date_to_Days(split /-/,$expiry_date)) {
-            $member->{expiry} = 1;
         }
         $member->{amount_outstanding} = $enrollment->patron->account->balance;
         if ( $enrollment->patron->branchcode ne C4::Context->userenv->{'branch'} ) {
@@ -575,13 +572,20 @@ foreach my $biblionumber (@biblionumbers) {
                   )
                 {
                     # Send the pickup locations count to the UI, the pickup locations will be pulled using the API
-                    my $pickup_locations = $item_object->pickup_locations({ patron => $patron });
-                    $item->{pickup_locations_count} = $pickup_locations->count;
-                    if ( $item->{pickup_locations_count} > 0 ) {
+                    my @pickup_locations = $item_object->pickup_locations({ patron => $patron })->as_list;
+                    $item->{pickup_locations_count} = scalar @pickup_locations;
+
+                    if ( @pickup_locations ) {
                         $num_available++;
                         $item->{available} = 1;
-                        # pass the holding branch for use as default
-                        my $default_pickup_location = $pickup_locations->search({ branchcode => $item->{holdingbranch} })->next;
+
+                        my $default_pickup_location;
+
+                        # Default to logged-in, if valid
+                        if ( C4::Context->userenv->{branch} ) {
+                            ($default_pickup_location) = grep { $_->branchcode eq C4::Context->userenv->{branch} } @pickup_locations;
+                        }
+
                         $item->{default_pickup_location} = $default_pickup_location;
                     }
                     else {

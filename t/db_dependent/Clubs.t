@@ -17,7 +17,7 @@
 
 use Modern::Perl;
 
-use Test::More tests => 37;
+use Test::More tests => 38;
 use Test::Warn;
 
 use C4::Context;
@@ -231,3 +231,75 @@ is( $patron->get_enrollable_clubs->count,
 is( $club->club_enrollments->count, 1, 'There is 1 enrollment for club' );
 
 $schema->storage->txn_rollback();
+
+subtest 'filter_out_empty' => sub {
+
+    plan tests => 3;
+
+    $schema->storage->txn_begin();
+
+    my $club_template = $builder->build_object({ class => 'Koha::Club::Templates' });
+
+    # club_1 has 2 patrons
+    my $club_1 = $builder->build_object(
+        {
+            class => 'Koha::Clubs',
+            value => { club_template_id => $club_template->id }
+        }
+    );
+
+    # club_2 has 1 patron but they canceled enrollment
+    my $club_2 = $builder->build_object(
+        {
+            class => 'Koha::Clubs',
+            value => { club_template_id => $club_template->id }
+        }
+    );
+
+    # club_3 is empty
+    my $club_3 = $builder->build_object(
+        {
+            class => 'Koha::Clubs',
+            value => { club_template_id => $club_template->id }
+        }
+    );
+
+    my $patron_1 = $builder->build_object({ class => 'Koha::Patrons' });
+    my $patron_2 = $builder->build_object({ class => 'Koha::Patrons' });
+
+    my $enrollment_1_1 = Koha::Club::Enrollment->new(
+        {
+            club_id        => $club_1->id,
+            borrowernumber => $patron_1->borrowernumber,
+            branchcode     => $patron_1->branchcode,
+        }
+    )->store();
+    my $enrollment_2_1 = Koha::Club::Enrollment->new(
+        {
+            club_id        => $club_2->id,
+            borrowernumber => $patron_1->borrowernumber,
+            branchcode     => $patron_1->branchcode,
+        }
+    )->store();
+    my $enrollment_1_2 = Koha::Club::Enrollment->new(
+        {
+            club_id        => $club_1->id,
+            borrowernumber => $patron_2->borrowernumber,
+            branchcode     => $patron_2->branchcode,
+        }
+    )->store();
+
+
+    $enrollment_2_1->cancel;
+
+    my $clubs = Koha::Clubs->search({ club_template_id => $club_template->id });
+
+    is( $clubs->count, 3, 'Base resultset has all the clubs' );
+
+    my $filtered_out_rs = $clubs->filter_out_empty;
+
+    is( $filtered_out_rs->count, 1, 'Only one club has patron enrolled' );
+    is( $filtered_out_rs->next->id, $club_1->id, 'Correct club is considered non-empty');
+
+    $schema->storage->txn_rollback();
+}

@@ -1354,9 +1354,9 @@
                     <input type="hidden" name="param_category" id="param_category" />
                     <div class="modal-body">
                         <div class="form-group">
-                            <label for="paramLabel">Parameter label: </label>
-                            <input class="form-control" type="text" name="paramLabel" id="paramLabel">
-                            <div class="hint">Optional. The label for the field shown when the report is run, e.g. "Select a library."</div>
+                            <label for="paramLabel" class="required">Parameter label: </label>
+                            <input class="form-control required" type="text" name="paramLabel" id="paramLabel" required="required" />
+                            <div class="hint">The label for the field shown when the report is run, e.g. "Select a library."</div>
                         </div>
                         <div id="authorised_value_category" class="form-group" style="display:none">
                             <label for="authorised_value">Authorized value category:</label>
@@ -1490,7 +1490,8 @@
                     modalTitle.text( _("Insert authorized value parameter") );
                     $("#paramLabel").val( _("Authorized value") );
                     $("#authorised_value_category").show();
-                    $("#authorised_value").prop("required", true ).attr("required", "required");
+                    $("label[for='authorised_value']").addClass("required");
+                    $("#authorised_value").prop("required", true ).attr("required", "required").addClass("required");
                     break;
                 case "insertDate":
                     modalTitle.text( _("Insert date parameter") );
@@ -1511,6 +1512,11 @@
                     modalTitle.text( _("Insert patron category parameter") );
                     $("#paramLabel").val( _("Patron category") );
                     $("#param_category").val("categorycode");
+                    break;
+                case "insertList":
+                    modalTitle.text( _("Insert list parameter") );
+                    $("#paramLabel").val( _("List of values") );
+                    $("#param_category").val("list");
                     break;
                 case "insertText":
                     modalTitle.text( _("Insert text parameter") );
@@ -1536,6 +1542,53 @@
                 } );
                 $("#subgroup, #subgroup *").show();
             }
+        }
+
+        /**
+         * Process the value of the NumSavedReports system preference for use as
+            a DataTable pageLenth option
+         * @param {string} pageLength - The value of the NumSavedReports system
+            preference, passed via the template during table initiation
+         * @return {number} - The number of results to show by default in the
+            DataTable (-1 for "all")
+         */
+        function getPageLength( pageLength ){
+            if( pageLength !== "" ){
+                if( Number( pageLength ) > 0 ){
+                    return Number( pageLength );
+                } else {
+                    return 20; /* Negative or non-numeric value passed. Use default 20 */
+                }
+            } else {
+                return -1;
+            }
+        }
+
+        /**
+         * Rebuild the DataTable's lengthMenu array, adding the value of the NumSavedReports
+            system preference
+         * @param {string} pageLength - The value of the NumSavedReports system
+            preference, passed via the template during table initiation
+         * @return {Array} - An array of two arrays: 1. The numeric values for
+            options in the pageLenth <select>; 2. The text values for options in
+            the pageLength <select>;
+         */
+        function buildLengthMenu( num ){
+            var lengthMenu = dataTablesDefaults.lengthMenu;
+            var pageLength = getPageLength( num );
+            if( !lengthMenu[0].includes( pageLength ) ){
+                /* extend lengthMenu with custom value */
+                lengthMenu.forEach( function( item ){
+                    item.pop(); /* Remove the last entry, "all" */
+                    item.push( Number( pageLength ) ); /* Add the value from NumSavedReports */
+                    item.sort(function( a, b ){ /* Re-sort the values */
+                        return a - b;
+                    });
+                });
+                lengthMenu[0].push(-1); /* Add the numeric "all" option */
+                lengthMenu[1].push( _("All") ); /* Add the textual "all" option */
+            }
+            return lengthMenu;
         }
 
         $(document).ready(function(){
@@ -1713,13 +1766,14 @@
 
             [% IF (saved1) %]
                 var rtable = KohaTable("table_reports", {
-                    'iDisplayLength': [% Koha.Preference('NumSavedReports') | html %],
+                    "pageLength": getPageLength( "[% Koha.Preference('NumSavedReports') | html %]" ),
+                    "lengthMenu": buildLengthMenu( "[% Koha.Preference('NumSavedReports') | html %]" ),
                     'bAutoWidth': false,
                     'sPaginationType': 'full',
                     'aaSorting': [[ 1, "asc" ]],
                     'oLanguage': {
                         'sZeroRecords': _("No matching reports found")
-                    },
+                    }
                 }, columns_settings);
 
                 var rtabs = $("#tabs").tabs({
@@ -1915,7 +1969,8 @@
                 $("#runtime_parameters").on("hide.bs.modal", function(){
                     $("#send_runtime_parameter")[0].reset();
                     $("#authorised_value_category").val("").hide();
-                    $("#authorised_value").prop("required", false ).removeAttr("required");
+                    $("label[for='authorised_value']").removeClass("required");
+                    $("#authorised_value").prop("required", false ).removeAttr("required").removeClass("required");
                 });
 
                 $("#send_runtime_parameter").on("submit", function(e){
@@ -2236,6 +2291,7 @@
             <li><a href="#" class="insertParam" id="insertDate">Date</a></li>
             <li><a href="#" class="insertParam" id="insertItemtypes">Item types</a></li>
             <li><a href="#" class="insertParam" id="insertBranches">Libraries</a></li>
+            <li><a href="#" class="insertParam" id="insertList">List</a></li>
             <li><a href="#" class="insertParam" id="insertCategorycode">Patron categories</a></li>
             <li><a href="#" class="insertParam" id="insertText">Text field</a></li>
         </ul>

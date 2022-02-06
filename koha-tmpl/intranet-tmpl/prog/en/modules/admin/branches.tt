@@ -374,7 +374,7 @@ Libraries &rsaquo; Administration &rsaquo; Koha
         $(document).ready(function() {
 
             var libraries_url = '/api/v1/libraries';
-            var libraries = $("#libraries").api({
+            var libraries = $("#libraries").kohaTable({
                 "ajax": {
                     "url": libraries_url
                 },
@@ -426,13 +426,12 @@ Libraries &rsaquo; Administration &rsaquo; Koha
                             else if ( !is_empty(geographical_location) ) {
                                 library_info.push(geographical_location);
                             }
-                            if ( !is_empty(row.country) ) library_info.push(row.country.escapeHtml());
-                            if ( !is_empty(row.phone) ) library_info.push(_("Ph: ") + row.phone.escapeHtml());
-                            if ( !is_empty(row.fax) ) library_info.push(_("Fax: ") + row.fax.escapeHtml());
-                            if ( !is_empty(row.email)) library_info.push('<a href="mailto:'+encodeURIComponent(row.email)+'">'+row.email.escapeHtml()+'</a>');
-                            if ( !is_empty(row.url) ) library_info.push('<a href="'+encodeURIComponent(row.url)+'">'+row.url.escapeHtml()+'</a>');
-                            if ( !is_empty(row.opac_info)) library_info.push(_("OPAC Info") + ': <div>'+row.opac_info+'</div>');
-                            if ( !is_empty(row.notes) ) library_info.push(_("Notes")+': '+row.notes.escapeHtml());
+                            if ( row.country != null ) library_info.push(row.country.escapeHtml());
+                            if ( row.phone != null ) library_info.push(_("Ph: ") + row.phone.escapeHtml());
+                            if ( row.fax != null ) library_info.push(_("Fax: ") + row.fax.escapeHtml());
+                            if ( row.email != null ) library_info.push('<a href="mailto:'+encodeURIComponent(row.email)+'">'+row.email.escapeHtml()+'</a>');
+                            if ( row.url != null ) library_info.push('<a href="'+encodeURIComponent(row.url)+'">'+row.url.escapeHtml()+'</a>');
+                            if ( row.notes != null ) library_info.push(_("Notes")+': '+row.notes.escapeHtml());
                             return library_info.join('<br/>');
                         },
                         "searchable": false,

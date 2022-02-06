@@ -95,11 +95,13 @@
         [% IF ( QUEUED_MESSAGE.failure_code ) %]
             [% IF ( QUEUED_MESSAGE.failure_code == "INVALID_BORNUMBER" ) %]Invalid borrowernumber [% borrowernumber | html %]
             [% ELSIF ( QUEUED_MESSAGE.failure_code == 'NO_EMAIL' ) %]Unable to find an email address for this borrower
+            [% ELSIF (matches = QUEUED_MESSAGE.failure_code.match('INVALID_EMAIL:(\w+)') ) %]Invalid [% matches.0 | html %] email address found [% borrowernumber | html %]
             [% ELSIF ( QUEUED_MESSAGE.failure_code == 'NO_FROM' ) %]Missing from email address
             [% ELSIF ( QUEUED_MESSAGE.failure_code == 'MISSING_SMS' ) %]Missing SMS number
             [% ELSIF ( QUEUED_MESSAGE.failure_code == 'DUPLICATE_MESSAGE' ) %]Message is duplicate
             [% ELSIF ( QUEUED_MESSAGE.failure_code == 'NO_NOTES' ) %]No notes from SMS driver
             [% ELSIF ( QUEUED_MESSAGE.failure_code == 'SENDMAIL' ) %]Unhandled email failure, check the logs for further details
+            [% ELSIF ( QUEUED_MESSAGE.failure_code == "UNKNOWN_ERROR" ) %]Unknown error
             [% ELSE %]Error occurred while sending email.
             [% END %]
         [% END %]

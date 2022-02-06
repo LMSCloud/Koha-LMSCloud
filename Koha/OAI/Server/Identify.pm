@@ -20,15 +20,20 @@
 package Koha::OAI::Server::Identify;
 
 use Modern::Perl;
+
 use HTTP::OAI;
 use C4::Context;
+use Koha::DateUtils qw(dt_from_string);
 
 use base ("HTTP::OAI::Identify");
 
 sub new {
     my ($class, $repository) = @_;
 
-    my ($baseURL) = $repository->self_url() =~ /(.*)\?.*/;
+    my $baseURL = $repository->self_url();
+    $baseURL = $+{base_url}
+        if $baseURL =~ m/(?<base_url>.*)\?.*/;
+
     my $self = $class->SUPER::new(
         baseURL             => $baseURL,
         repositoryName      => C4::Context->preference("LibraryName"),
@@ -54,8 +59,14 @@ sub new {
 # will be returned and we will report the fallback 0001-01-01.
 sub _get_earliest_datestamp {
     my $dbh = C4::Context->dbh;
-    my ( $earliest ) = $dbh->selectrow_array("SELECT MIN(timestamp) AS earliest FROM biblio" );
-    return $earliest
+    # We do not need to perform timezone conversion here, because the time zone
+    # is set to UTC for the entire SQL session in Koha/OAI/Server/Repository.pm
+    my ( $earliest ) = $dbh->selectrow_array(q{
+        SELECT MIN(timestamp) AS earliest
+        FROM biblio
+    });
+
+    return dt_from_string( $earliest, 'sql' )->strftime('%FT%TZ');
 }
 
 1;

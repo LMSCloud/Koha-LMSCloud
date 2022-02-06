@@ -31,6 +31,7 @@ use Koha::Database;
 use Koha::DateUtils qw(dt_from_string output_pref);
 use Koha::Exceptions::Patron;
 use Koha::Exceptions::Patron::Attribute;
+use Koha::Old::Patrons;
 use Koha::Patron::Attributes;
 use Koha::Patron::Debarments qw/AddDebarment/;
 
@@ -43,7 +44,8 @@ my $t = Test::Mojo->new('Koha::REST::V1');
 t::lib::Mocks::mock_preference( 'RESTBasicAuth', 1 );
 
 subtest 'list() tests' => sub {
-    plan tests => 2;
+
+    plan tests => 3;
 
     $schema->storage->txn_begin;
     unauthorized_access_tests('GET', undef, undef);
@@ -140,10 +142,61 @@ subtest 'list() tests' => sub {
 
         $schema->storage->txn_rollback;
     };
+
+    subtest 'search_limited() tests' => sub {
+
+        plan tests => 9;
+
+        $schema->storage->txn_begin;
+
+        my $library_1 = $builder->build_object({ class => 'Koha::Libraries' });
+        my $library_2 = $builder->build_object({ class => 'Koha::Libraries' });
+
+        my $patron_1 = $builder->build_object({ class => 'Koha::Patrons', value => { branchcode => $library_1->id } });
+        my $patron_2 = $builder->build_object({ class => 'Koha::Patrons', value => { branchcode => $library_1->id } });
+        my $patron_3 = $builder->build_object({ class => 'Koha::Patrons', value => { branchcode => $library_2->id } });
+
+        my @libraries_where_can_see_patrons = ($library_1->id, $library_2->id);
+
+        my $mocked_patron = Test::MockModule->new('Koha::Patron');
+        $mocked_patron->mock( 'libraries_where_can_see_patrons', sub
+            {
+                return @libraries_where_can_see_patrons;
+            }
+        );
+
+        my $librarian = $builder->build_object(
+            {
+                class => 'Koha::Patrons',
+                value => { flags => 2**4 }    # borrowers flag = 4
+            }
+        );
+        my $password = 'thePassword123';
+        $librarian->set_password( { password => $password, skip_validation => 1 } );
+        my $userid = $librarian->userid;
+
+        $t->get_ok("//$userid:$password@/api/v1/patrons?_order_by=patron_id&q=" . encode_json({ library_id => [ $library_1->id, $library_2->id ] }))
+          ->status_is(200)
+          ->json_is( '/0/patron_id' => $patron_1->id )
+          ->json_is( '/1/patron_id' => $patron_2->id )
+          ->json_is( '/2/patron_id' => $patron_3->id );
+
+        @libraries_where_can_see_patrons = ($library_2->id);
+
+        my $res = $t->get_ok("//$userid:$password@/api/v1/patrons?_order_by=patron_id&q=" . encode_json({ library_id => [ $library_1->id, $library_2->id ] }))
+          ->status_is(200)
+          ->json_is( '/0/patron_id' => $patron_3->id, 'Returns the only allowed patron' )
+          ->tx->res->json;
+
+        is( scalar @{$res}, 1, 'Only one patron returned' );
+
+        $schema->storage->txn_rollback;
+    };
 };
 
 subtest 'get() tests' => sub {
-    plan tests => 2;
+
+    plan tests => 3;
 
     $schema->storage->txn_begin;
     unauthorized_access_tests('GET', -1, undef);
@@ -172,6 +225,59 @@ subtest 'get() tests' => sub {
           ->json_is('/category_id'      => $patron->categorycode )
           ->json_is('/surname'          => $patron->surname)
           ->json_is('/patron_card_lost' => Mojo::JSON->false );
+
+        $schema->storage->txn_rollback;
+    };
+
+    subtest 'search_limited() tests' => sub {
+
+        plan tests => 12;
+
+        $schema->storage->txn_begin;
+
+        my $library_1 = $builder->build_object({ class => 'Koha::Libraries' });
+        my $library_2 = $builder->build_object({ class => 'Koha::Libraries' });
+        my $library_3 = $builder->build_object({ class => 'Koha::Libraries' });
+
+        my $patron_1 = $builder->build_object({ class => 'Koha::Patrons', value => { branchcode => $library_1->id } });
+        my $patron_2 = $builder->build_object({ class => 'Koha::Patrons', value => { branchcode => $library_2->id } });
+        my $patron_3 = $builder->build_object({ class => 'Koha::Patrons', value => { branchcode => $library_3->id } });
+
+        my @libraries_where_can_see_patrons = ($library_1->id, $library_2->id);
+
+        my $mocked_patron = Test::MockModule->new('Koha::Patron');
+        $mocked_patron->mock( 'libraries_where_can_see_patrons', sub
+            {
+                return @libraries_where_can_see_patrons;
+            }
+        );
+
+        my $librarian = $builder->build_object(
+            {   class => 'Koha::Patrons',
+                value => { flags => 2**4, branchcode => $library_3->id }    # borrowers flag = 4
+            }
+        );
+        my $password = 'thePassword123';
+        $librarian->set_password( { password => $password, skip_validation => 1 } );
+        my $userid = $librarian->userid;
+
+        $t->get_ok("//$userid:$password@/api/v1/patrons/" . $patron_1->id )
+          ->status_is(200)
+          ->json_is( '/patron_id' => $patron_1->id );
+
+        $t->get_ok("//$userid:$password@/api/v1/patrons/" . $patron_2->id )
+          ->status_is(200)
+          ->json_is( '/patron_id' => $patron_2->id );
+
+        @libraries_where_can_see_patrons = ($library_1->id);
+
+        $t->get_ok("//$userid:$password@/api/v1/patrons/" . $patron_1->id )
+          ->status_is(200)
+          ->json_is( '/patron_id' => $patron_1->id );
+
+        $t->get_ok("//$userid:$password@/api/v1/patrons/" . $patron_2->id )
+          ->status_is(404)
+          ->json_is({ error => "Patron not found." });
 
         $schema->storage->txn_rollback;
     };
@@ -640,7 +746,7 @@ subtest 'delete() tests' => sub {
     $schema->storage->txn_rollback;
 
     subtest 'librarian access test' => sub {
-        plan tests => 8;
+        plan tests => 18;
 
         $schema->storage->txn_begin;
 
@@ -665,10 +771,47 @@ subtest 'delete() tests' => sub {
           ->status_is(403, 'Anonymous patron cannot be deleted')
           ->json_is( { error => 'Anonymous patron cannot be deleted' } );
 
+        t::lib::Mocks::mock_preference( 'borrowerRelationship', 'parent' );
+
+        my $checkout = $builder->build_object(
+            {
+                class => 'Koha::Checkouts',
+                value => { borrowernumber => $patron->borrowernumber }
+            }
+        );
+        my $debit = $patron->account->add_debit({ amount => 10, interface => 'intranet', type => 'MANUAL' });
+        my $guarantee = $builder->build_object({ class => 'Koha::Patrons' });
+
+        $guarantee->add_guarantor({ guarantor_id => $patron->id, relationship => 'parent' });
+
+        $t->delete_ok("//$userid:$password@/api/v1/patrons/" . $patron->borrowernumber)
+          ->status_is(409, 'Patron with checkouts cannot be deleted')
+          ->json_is( { error => 'Pending checkouts prevent deletion' } );
+
+        # Make sure it has no pending checkouts
+        $checkout->delete;
+
+        $t->delete_ok("//$userid:$password@/api/v1/patrons/" . $patron->borrowernumber)
+          ->status_is(409, 'Patron with debt cannot be deleted')
+          ->json_is( { error => 'Pending debts prevent deletion' } );
+
+        # Make sure it has no debt
+        $patron->account->pay({ amount => 10, debits => [ $debit ] });
+
+        $t->delete_ok("//$userid:$password@/api/v1/patrons/" . $patron->borrowernumber)
+          ->status_is(409, 'Patron with guarantees cannot be deleted')
+          ->json_is( { error => 'Patron is a guarantor and it prevents deletion' } );
+
+        # Remove guarantee
+        $patron->guarantee_relationships->delete;
+
         t::lib::Mocks::mock_preference('AnonymousPatron', 0); # back to default
         $t->delete_ok("//$userid:$password@/api/v1/patrons/" . $patron->borrowernumber)
           ->status_is(204, 'SWAGGER3.2.4')
           ->content_is('', 'SWAGGER3.3.4');
+
+        my $deleted_patrons = Koha::Old::Patrons->search({ borrowernumber =>  $patron->borrowernumber });
+        is( $deleted_patrons->count, 1, 'The patron has been moved to the vault' );
 
         $schema->storage->txn_rollback;
     };

@@ -135,13 +135,26 @@ if ( $op eq 'delete_confirm' or $countissues > 0 or $debits or $is_guarantor ) {
             session_id => $input->cookie('CGISESSID'),
             token  => scalar $input->param('csrf_token'),
         });
+
     my $patron = Koha::Patrons->find( $member );
-    $patron->move_to_deleted;
+
     try {
-        $patron->delete;
-        print $input->redirect("/cgi-bin/koha/members/members-home.pl");
-    } catch {
-        print $input->redirect("/cgi-bin/koha/members/moremember.pl?borrowernumber=$member&error=CANT_DELETE_ANONYMOUS_PATRON");
+        my $schema = Koha::Database->new->schema;
+        $schema->txn_do(
+            sub {
+                $patron->move_to_deleted;
+                $patron->delete;
+                print $input->redirect( "/cgi-bin/koha/members/members-home.pl" );
+            }
+        );
+    }
+    catch {
+        if ( $_->isa('Koha::Exceptions::Patron::FailedDeleteAnonymousPatron') ) {
+            print $input->redirect("/cgi-bin/koha/members/moremember.pl?borrowernumber=$member&error=CANT_DELETE_ANONYMOUS_PATRON");
+        }
+        else {
+            $_->rethrow;
+        }
     };
     # TODO Tell the user everything went ok
     exit 0; # Exit without error

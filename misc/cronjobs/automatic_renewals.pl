@@ -179,15 +179,15 @@ while ( my $auto_renew = $auto_renews->next ) {
         }
     }
 
-    if ( $borrower_preferences && $borrower_preferences->{transports} && $borrower_preferences->{transports}->{email} && $borrower_preferences->{'wants_digest'} ) {
+    if ( $error ne 'auto_too_soon' && $borrower_preferences && $borrower_preferences->{transports} && $borrower_preferences->{transports}->{email} && $borrower_preferences->{'wants_digest'} ) {
         # cache this one to process after we've run through all of the items.
         if ($digest_per_branch) {
             $renew_digest->{ $auto_renew->branchcode }->{ $auto_renew->borrowernumber }->{success}++ if $error eq 'auto_renew';
-            $renew_digest->{ $auto_renew->branchcode }->{ $auto_renew->borrowernumber }->{error}++ unless $error eq 'auto_renew' || $error eq 'auto_too_soon' ;
+            $renew_digest->{ $auto_renew->branchcode }->{ $auto_renew->borrowernumber }->{error}++ unless $error eq 'auto_renew';
             push @{$renew_digest->{ $auto_renew->branchcode }->{ $auto_renew->borrowernumber }->{issues}}, $auto_renew->itemnumber;
         } else {
             $renew_digest->{ $auto_renew->borrowernumber }->{success} ++ if $error eq 'auto_renew';
-            $renew_digest->{ $auto_renew->borrowernumber }->{error}++ unless $error eq 'auto_renew' || $error eq 'auto_too_soon' ;
+            $renew_digest->{ $auto_renew->borrowernumber }->{error}++ unless $error eq 'auto_renew';
             push @{$renew_digest->{ $auto_renew->borrowernumber }->{issues}}, $auto_renew->itemnumber;
         }
     }
@@ -282,14 +282,20 @@ sub send_digests {
         next PATRON unless $borrower_preferences; # how could this happen?
 
         my $patron = Koha::Patrons->find( $borrowernumber );
-        my $library = Koha::Libraries->find( $params->{branchcode} );
+        my $branchcode;
+        if ( defined $params->{branchcode} ) {
+            $branchcode = $params->{branchcode};
+        } else {
+            $branchcode = $patron->branchcode;
+        }
+        my $library = Koha::Libraries->find( $branchcode );
         my $from_address = $library->from_email_address;
 
         foreach my $transport ( keys %{ $borrower_preferences->{'transports'} } ) {
             my $letter = C4::Letters::GetPreparedLetter (
                 module => 'circulation',
                 letter_code => $params->{letter_code},
-                branchcode => $params->{branchcode},
+                branchcode => $branchcode,
                 lang => $patron->lang,
                 substitute => {
                     error => $digest->{error}||0,
