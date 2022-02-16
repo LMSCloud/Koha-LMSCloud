@@ -136,6 +136,7 @@
     <input type="hidden" name="collected" id="collected" value="[% total | html %]" />
     <input type="hidden" name="total" id="total" value="[% amountoutstanding %]" />
     <input type="hidden" name="paid" id="paid" value="[% amountoutstanding %]" />
+    <input type="hidden" name="payment_type" id="payment_type" value="CASH" />
 
 <fieldset class="rows">
     <legend>Pay an individual fine</legend>
@@ -331,6 +332,9 @@
     <input type="hidden" name="paid" id="paid" value="[% total %]" />
     <input type="hidden" name="total" id="total" value="[% total %]" />
     <input type="hidden" name="collected" id="collected" value="[% total %]" />
+    [% IF (type != 'WRITEOFF' && type != 'CANCELLATION') %]
+    <input type="hidden" name="payment_type" id="payment_type" value="CASH" />
+    [% END %]
 
     <fieldset class="rows">
     [% IF ( selected_accts ) %]
