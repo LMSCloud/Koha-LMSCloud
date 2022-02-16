@@ -9,9 +9,9 @@
   "[% FILTER escape_quotes = replace('"', '\"') ~%]
     <input type="checkbox" name="itemnumber" value="[% item.itemnumber | html %]"/>
   [%~ END %]",
-  "[% FILTER escape_quotes ~%]
+  "[% FILTER remove_special_character = replace('[\t\r\n\f\b]', '') ~%][% FILTER escape_quotes ~%]
     <a href="/cgi-bin/koha/catalogue/detail.pl?biblionumber=[% biblio.biblionumber | uri %]" title="Go to record detail page">[% biblio.title | html %]</a>[% IF ( Koha.Preference( 'marcflavour' ) == 'UNIMARC' && biblio.author ) %] by[% END %] [% biblio.author | html %]
-  [%~ END %]",
+  [%~ END %][%~ END %]",
   "[% (biblioitem.publicationyear || biblio.copyrightdate) | html | escape_quotes %]",
   "[% biblioitem.publishercode | html | escape_quotes | $To %]",
   "[% AuthorisedValues.GetDescriptionByKohaField( kohafield => 'items.ccode', authorised_value => item.ccode ) | html | escape_quotes %]",
