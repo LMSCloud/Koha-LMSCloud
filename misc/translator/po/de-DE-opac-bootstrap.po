@@ -1,8 +1,8 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: Koha 21.05\n"
-"POT-Creation-Date: 2022-02-06 11:34+0100\n"
-"PO-Revision-Date: 2022-02-06 11:45+0100\n"
+"POT-Creation-Date: 2022-02-16 18:08+0100\n"
+"PO-Revision-Date: 2022-02-16 18:10+0100\n"
 "Last-Translator: Katrin Fischer <katrin.fischer@bsz-bw.de>\n"
 "Language-Team: \n"
 "Language: de\n"
@@ -497,6 +497,28 @@ msgstr "%s %s hat Ihnen eine Titelliste geschickt."
 #, c-format
 msgid "%s %s sent you from our online catalog, the list called : %s."
 msgstr "%s %s hat Ihnen aus dem Online-Katalog die Liste %s geschickt."
+
+#. %1$s:  END
+#. %2$s:  END
+#. %3$s:  END
+#. %4$s:  END
+#. %5$s: - ELSE -
+#. %6$s:  item.gencover| escape_quotes | remove_special_character
+#. %7$s:  END
+#. %8$s:  item.browser_normalized_upc | escape_quotes | remove_special_character
+#. %9$s:  item.browser_normalized_oclc | escape_quotes | remove_special_character
+#. %10$s:  item.browser_normalized_isbn | escape_quotes | remove_special_character
+#. %11$s:  item.browser_normalized_ean | escape_quotes | remove_special_character
+#: koha-tmpl/opac-tmpl/bootstrap/en/includes/coverflow-item.json.inc:69
+#, c-format
+msgid ""
+"%s %s%s%s\", %s \"coverurl\": \"%s\", %s \"normalized_upc\": \"%s\", "
+"\"normalized_oclc_number\": \"%s\", \"normalized_isbn\": \"%s\", "
+"\"normalized_ean\": \"%s\" }"
+msgstr ""
+"%s %s%s%s\", %s \"coverurl\": \"%s\", %s \"normalized_upc\": \"%s\", "
+"\"normalized_oclc_number\": \"%s\", \"normalized_isbn\": \"%s\", "
+"\"normalized_ean\": \"%s\" }"
 
 #. %1$s:  END
 #. %2$s:  IF Koha.Preference('URLLinkText')
@@ -5050,6 +5072,7 @@ msgstr "Buchcover"
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-shelves.tt:478
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-showreviews.tt:164
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-user.tt:328
+#: koha-tmpl/opac-tmpl/bootstrap/en/includes/coverflow-item.json.inc:68
 #: koha-tmpl/opac-tmpl/bootstrap/en/includes/shelfbrowser.inc:85
 #, c-format
 msgid "Cover image"
@@ -8312,6 +8335,10 @@ msgstr "Keine Ausleihen"
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-user.tt:886
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-user.tt:894
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-user.tt:903
+#: koha-tmpl/opac-tmpl/bootstrap/en/includes/coverflow-item.json.inc:33
+#: koha-tmpl/opac-tmpl/bootstrap/en/includes/coverflow-item.json.inc:41
+#: koha-tmpl/opac-tmpl/bootstrap/en/includes/coverflow-item.json.inc:49
+#: koha-tmpl/opac-tmpl/bootstrap/en/includes/coverflow-item.json.inc:61
 #: koha-tmpl/opac-tmpl/bootstrap/en/includes/opac-bottom.inc:147
 #: koha-tmpl/opac-tmpl/bootstrap/en/includes/opac-bottom.inc:154
 #: koha-tmpl/opac-tmpl/bootstrap/en/includes/opac-bottom.inc:259
@@ -10850,6 +10877,7 @@ msgstr "Bereich:"
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-user.tt:319
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-user.tt:593
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-user.tt:901
+#: koha-tmpl/opac-tmpl/bootstrap/en/includes/coverflow-item.json.inc:59
 #: koha-tmpl/opac-tmpl/bootstrap/en/includes/shelfbrowser.inc:76
 msgid "See Baker & Taylor"
 msgstr "Siehe Baker &amp; Taylor"
@@ -15187,6 +15215,103 @@ msgstr "Kontoübersicht"
 #, c-format
 msgid "your tags"
 msgstr "Tags"
+
+#. %1$s:  item.biblionumber
+#. %2$s:  FILTER escape_quotes = replace('"', '\"') ~
+#. %3$s:  FILTER remove_special_character = replace('([\t\r\n\f\b]|\s{3,})','') ~
+#. %4$s:  item.titleblock
+#. %5$s: ~ END
+#. %6$s: ~ END
+#. %7$s:  item.title | escape_quotes | remove_special_character
+#. %8$s:  item.subtitle | escape_quotes | remove_special_character
+#. %9$s:  item.medium | escape_quotes | remove_special_character
+#. %10$s:  item.part_number | escape_quotes | remove_special_character
+#. %11$s:  item.part_name | escape_quotes | remove_special_character
+#. %12$s:  item.year | escape_quotes | remove_special_character
+#. %13$s:  item.edition | escape_quotes | remove_special_character
+#. %14$s:  item.publisher | escape_quotes | remove_special_character
+#. %15$s:  item.place | escape_quotes | remove_special_character
+#. %16$s:  item.author | escape_quotes | remove_special_character
+#. %17$s:  IF item.itemnumber
+#. %18$s:  item.itemnumber
+#. %19$s:  END
+#. %20$s:  IF item.cn_sort
+#. %21$s:  item.cn_sort
+#. %22$s:  END
+#. %23$s:  IF item.itemcallnumber
+#. %24$s:  item.itemcallnumber | escape_quotes | remove_special_character
+#. %25$s:  END
+#. %26$s: - IF item.coverurl
+#. %27$s:  item.coverurl | escape_quotes | remove_special_character
+#. %28$s: - ELSIF ( (OPACLocalCoverImages && item.local_immage_count > 0) || OPACAmazonCoverImages || ( SyndeticsEnabled && SyndeticsCoverImages ) || GoogleJackets || BakerTaylorEnabled || ( Koha.Preference('OpacCoce') && Koha.Preference('CoceProviders') ) || ( Koha.Preference('OPACCustomCoverImages') AND Koha.Preference('CustomCoverImagesURL') ) )
+#. %29$s:  FILTER remove_special_character
+#. %30$s:  FILTER escape_quotes
+#. %31$s: - IF ( item.title ) -
+#. %32$s:  img_title = item.title
+#. %33$s: - ELSE -
+#. %34$s:  img_title = item.biblionumber
+#. %35$s: - END
+#. %36$s:  IF ( OPACLocalCoverImages && item.local_immage_count > 0 )
+#: koha-tmpl/opac-tmpl/bootstrap/en/includes/coverflow-item.json.inc:1
+#, c-format
+msgid ""
+"{ \"biblionumber\": %s, \"titleblock\": \"%s%s%s%s%s\", \"title\": \"%s\", "
+"\"subtitle\": \"%s\", \"medium\": \"%s\", \"part_number\": \"%s\", "
+"\"part_name\": \"%s\", \"year\": \"%s\", \"edition\": \"%s\", \"publisher\": "
+"\"%s\", \"place\": \"%s\", \"author\": \"%s\",%s \"itemnumber\": %s,%s%s "
+"\"cn_sort\": \"%s\",%s%s \"itemcallnumber\": \"%s\",%s %s \"coverurl\": \"%s"
+"\", %s \"coverhtml\": \"%s%s %s %s %s %s %s %s "
+msgstr ""
+"{ \"biblionumber\": %s, \"titleblock\": \"%s%s%s%s%s\", \"title\": \"%s\", "
+"\"subtitle\": \"%s\", \"medium\": \"%s\", \"part_number\": \"%s\", "
+"\"part_name\": \"%s\", \"year\": \"%s\", \"edition\": \"%s\", \"publisher\": "
+"\"%s\", \"place\": \"%s\", \"author\": \"%s\",%s \"itemnumber\": %s,%s%s "
+"\"cn_sort\": \"%s\",%s%s \"itemcallnumber\": \"%s\",%s %s \"coverurl\": \"%s"
+"\", %s \"coverhtml\": \"%s%s %s %s %s %s %s %s "
+
+#. %1$s:  count | html
+#. %2$s: - FOREACH item IN items
+#. %3$s: - INCLUDE 'coverflow-item.json.inc' item = item -
+#. %4$s: - UNLESS loop.last -
+#. %5$s: - END -
+#. %6$s:  END
+#: koha-tmpl/opac-tmpl/bootstrap/en/modules/svc/coverflowbybib.tt:1
+#, c-format
+msgid "{ \"countItems\": %s, \"items\": [ %s %s %s,%s %s ] }"
+msgstr "{ \"countItems\": %s, \"items\": [ %s %s %s,%s %s ] }"
+
+#. %1$s:  count | html
+#. %2$s:  starting_homebranch.code
+#. %3$s:  starting_homebranch.description
+#. %4$s:  starting_location.code
+#. %5$s:  starting_location.description
+#. %6$s:  starting_ccode.code
+#. %7$s:  starting_ccode.description
+#. %8$s:  shelfbrowser_prev_item.biblionumber
+#. %9$s:  shelfbrowser_prev_item.itemnumber
+#. %10$s:  shelfbrowser_next_item.biblionumber
+#. %11$s:  shelfbrowser_next_item.itemnumber
+#. %12$s: - FOREACH item IN items
+#. %13$s: - INCLUDE 'coverflow-item.json.inc' item = item -
+#. %14$s: - UNLESS loop.last -
+#. %15$s: - END -
+#. %16$s:  END
+#: koha-tmpl/opac-tmpl/bootstrap/en/modules/svc/coverflowbyshelfitem.tt:1
+#, c-format
+msgid ""
+"{ \"countItems\": %s, \"starting_homebranch\": { \"code\": \"%s\", "
+"\"description\": \"%s\" }, \"starting_location\": { \"code\": \"%s\", "
+"\"description\": \"%s\" }, \"starting_ccode\": { \"code\": \"%s\", "
+"\"description\": \"%s\" }, \"shelfbrowser_prev_item\": { \"biblionumber\": "
+"%s, \"itemnumber\": %s }, \"shelfbrowser_next_item\": { \"biblionumber\": "
+"%s, \"itemnumber\": %s }, \"items\": [ %s %s %s,%s %s ] }"
+msgstr ""
+"{ \"countItems\": %s, \"starting_homebranch\": { \"code\": \"%s\", "
+"\"description\": \"%s\" }, \"starting_location\": { \"code\": \"%s\", "
+"\"description\": \"%s\" }, \"starting_ccode\": { \"code\": \"%s\", "
+"\"description\": \"%s\" }, \"shelfbrowser_prev_item\": { \"biblionumber\": "
+"%s, \"itemnumber\": %s }, \"shelfbrowser_next_item\": { \"biblionumber\": "
+"%s, \"itemnumber\": %s }, \"items\": [ %s %s %s,%s %s ] }"
 
 #: koha-tmpl/opac-tmpl/bootstrap/en/includes/overdrive-checkout.inc:3
 #: koha-tmpl/opac-tmpl/bootstrap/en/includes/recordedbooks-checkout.inc:3
