@@ -2,6 +2,7 @@ package C4::SIP::ILS::Transaction::FeePayment;
 
 use warnings;
 use strict;
+use Carp;
 
 # Copyright 2011 PTFS-Europe Ltd.
 #
@@ -20,8 +21,12 @@ use strict;
 # You should have received a copy of the GNU General Public License
 # along with Koha; if not, see <http://www.gnu.org/licenses>.
 
+use C4::Context;
+
 use Koha::Account;
 use Koha::Account::Lines;
+
+use C4::CashRegisterManagement;
 
 use parent qw(C4::SIP::ILS::Transaction);
 
@@ -58,6 +63,8 @@ sub pay {
     if ($disallow_overpayment) {
         return { ok => 0 } if $account->balance < $amt;
     }
+    
+    my $withoutCashRegisterManagement = checkOpenedCashRegisterIfConfigured();
 
     if ($fee_id) {
         my $fee = Koha::Account::Lines->find($fee_id);
@@ -68,7 +75,8 @@ sub pay {
                     type         => $type,
                     payment_type => 'SIP' . $sip_type,
                     lines        => [$fee],
-                    interface    => C4::Context->interface
+                    interface    => C4::Context->interface,
+                    withoutCashRegisterManagement => $withoutCashRegisterManagement
                 }
             );
             return {
@@ -89,7 +97,8 @@ sub pay {
                 type          => $type,
                 payment_type  => 'SIP' . $sip_type,
                 interface     => C4::Context->interface,
-                cash_register => $register_id
+                cash_register => $register_id,
+                withoutCashRegisterManagement => $withoutCashRegisterManagement
             }
         );
         return {
@@ -99,8 +108,40 @@ sub pay {
     }
 }
 
-#sub DESTROY {
-#}
+sub checkOpenedCashRegisterIfConfigured {
+    my $withoutCashRegisterManagement = 1;
+    
+    my $cashregname = C4::Context->preference('SIPCashRegisterName');
+    my $branch      = C4::Context->userenv->{branch};
+    my $manager_id  = C4::Context->userenv->{number};
+    my $retWithoutCashRegisterManagement = 1;
+    
+    if ( $cashregname ) {
+        my $cashRegisterMngmt = C4::CashRegisterManagement->new($branch, $manager_id);
+        my $openedCashRegister = $cashRegisterMngmt->getOpenedCashRegisterByManagerID($manager_id);
+        
+        if ( $openedCashRegister ) {
+            if ( $openedCashRegister->{'cash_register_name'} ne $cashregname ) {
+                $cashRegisterMngmt->closeCashRegister($openedCashRegister->{'cash_register_id'}, $manager_id);
+                $openedCashRegister = undef;
+            }
+        }
+        if (! $openedCashRegister ) {
+            my $cashRegisterId = $cashRegisterMngmt->readCashRegisterIdByName($cashregname);
+            if ( defined $cashRegisterId && $cashRegisterMngmt->canOpenCashRegister($cashRegisterId, $manager_id) ) {
+                $openedCashRegister = $cashRegisterMngmt->openCashRegister($cashRegisterId, $manager_id);
+                $withoutCashRegisterManagement = 0 if ($openedCashRegister);
+            }
+        }
+        if (! $openedCashRegister ) {
+            croak "Cannot open cash register '$cashregname' for manager id '$manager_id' of branch '$branch' for SIP payment.";
+        }
+    }
+    return $withoutCashRegisterManagement;
+}
+
+# sub DESTROY {
+# }
 
 1;
 __END__
