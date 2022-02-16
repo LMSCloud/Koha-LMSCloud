@@ -204,7 +204,8 @@ if ( $op =~ /save/i ) {
                         {
                             letter                 => $letter,
                             borrowernumber         => $patron->borrowernumber,
-                            message_transport_type => 'email'
+                            message_transport_type => 'email',
+                            branchcode             => $patron->branchcode,
                         }
                     );
                 }

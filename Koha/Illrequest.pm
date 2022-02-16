@@ -1421,7 +1421,8 @@ sub generic_confirm {
             message_transport_type => 'email',
             to_address             => $to,
             from_address           => $from,
-            reply_address          => $replyto
+            reply_address          => $replyto,
+            branchcode             => $branch->branchcode,
         };
 
         if ($letter) {
@@ -1509,7 +1510,8 @@ sub send_patron_notice {
                 borrowernumber         => $self->borrowernumber,
                 message_transport_type => $transport,
                 from_address           => $from_address,
-                reply_address          => $reply_address
+                reply_address          => $reply_address,
+                branchcode             => $branch->branchcode,
             });
             if ($result) {
                 push @success, $transport;
@@ -1578,7 +1580,8 @@ sub send_staff_notice {
         letter                 => $letter,
         borrowernumber         => $self->borrowernumber,
         message_transport_type => 'email',
-        from_address           => $from_address
+        from_address           => $from_address,
+        branchcode             => $branch->branchcode
     };
 
     if ($to_address) {

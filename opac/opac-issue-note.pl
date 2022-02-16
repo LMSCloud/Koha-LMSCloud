@@ -97,6 +97,7 @@ if ( $action eq 'issuenote' && C4::Context->preference('AllowCheckoutNotes') && 
                 borrowernumber => $patron->borrowernumber,
                 to_address => $to_address,
                 reply_address => $reply_address,
+                branchcode => $branch,
             });
         }
     }

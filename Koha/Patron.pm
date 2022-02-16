@@ -2138,7 +2138,8 @@ sub queue_notice {
             letter => $letter,
             borrowernumber => $self->borrowernumber,
             from_address   => $from_email_address,
-            message_transport_type => $mtt
+            message_transport_type => $mtt,
+            branchcode => $library->branchcode
         }) unless $test_mode;
         push @{$return{sent}}, $mtt;
         $print_sent = 1 if $mtt eq 'print';

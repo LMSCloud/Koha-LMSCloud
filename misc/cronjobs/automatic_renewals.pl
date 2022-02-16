@@ -211,7 +211,7 @@ if ( $send_notices && $confirm ) {
                 lang => $patron->lang,
             );
 
-            my $library = Koha::Libraries->find( $patron->branchcode );
+            my $library = Koha::Libraries->find( Koha::Libraries->get_effective_branch($patron->branchcode) );
             my $admin_email_address = $library->from_email_address;
 
             C4::Letters::EnqueueLetter(
@@ -219,6 +219,7 @@ if ( $send_notices && $confirm ) {
                     borrowernumber         => $borrowernumber,
                     message_transport_type => 'email',
                     from_address           => $admin_email_address,
+                    branchcode             => $library->branchcode,
                 }
             );
         }
@@ -314,7 +315,8 @@ sub send_digests {
                 letter                 => $letter,
                 borrowernumber         => $borrowernumber,
                 from_address           => $from_address,
-                message_transport_type => $transport
+                message_transport_type => $transport,
+                branchcode             => Koha::Libraries->get_effective_branch($branchcode)
             });
         }
     }

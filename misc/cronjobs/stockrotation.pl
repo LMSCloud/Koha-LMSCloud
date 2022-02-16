@@ -464,6 +464,7 @@ sub emit {
                             letter                 => $part->{letter},
                             to_address             => $addressee,
                             message_transport_type => 'email',
+                            branchcode             => $params->{branchcode},
                         }
                       )
                       or warn
@@ -477,6 +478,7 @@ sub emit {
                             letter                 => $part->{letter},
                             to_address             => $params->{admin_email},
                             message_transport_type => 'email',
+                            branchcode             => $params->{branchcode},
                         }
                       )
                       or warn
@@ -531,6 +533,7 @@ emit(
         report      => $out_report,
         send_all    => $send_all,
         send_email  => $send_email,
+        branchcode  => $branch,
     }
 );
 

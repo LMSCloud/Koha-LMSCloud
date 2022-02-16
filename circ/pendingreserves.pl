@@ -94,6 +94,7 @@ if ( $op eq 'cancel_reserve' and $reserve_id ) {
                         borrowernumber         => $patron->borrowernumber,
                         message_transport_type => 'email',
                         from_address           => $from_address,
+                        branchcode             => $library->branchcode
                     }
                 );
                 unless ( $patron->notice_email_address ) {

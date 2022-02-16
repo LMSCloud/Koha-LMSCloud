@@ -541,6 +541,7 @@ sub cancel {
                             letter                   => $letter,
                             borrowernumber         => $self->borrowernumber,
                             message_transport_type => 'email',
+                            branchcode             => $self->borrower->branchcode
                         }
                     );
                 }

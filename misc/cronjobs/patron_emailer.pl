@@ -162,6 +162,7 @@ foreach my $email (@$emails){
         message_transport_type => 'email',
         from_address           => $email->{from_address},
         to_address             => $email->{to_address},
+        branchcode             => $library,
     }) if $commit;
 }
 
