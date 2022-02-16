@@ -1,0 +1,9 @@
+{
+  "countItems": [% count | html %],
+  "items": [
+  [%- FOREACH item IN items %]
+    [%- INCLUDE 'coverflow-item.json.inc' item = item -%]
+    [%- UNLESS loop.last -%],[%- END -%]
+  [% END %]
+  ]
+}

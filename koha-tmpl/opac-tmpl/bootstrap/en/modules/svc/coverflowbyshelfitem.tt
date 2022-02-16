@@ -1,0 +1,14 @@
+{
+  "countItems": [% count | html %],
+  "starting_homebranch": { "code": "[% starting_homebranch.code %]", "description": "[% starting_homebranch.description %]" },
+  "starting_location": { "code": "[% starting_location.code %]", "description": "[% starting_location.description %]" },
+  "starting_ccode": { "code": "[% starting_ccode.code %]", "description": "[% starting_ccode.description %]" },
+  "shelfbrowser_prev_item": { "biblionumber": [% shelfbrowser_prev_item.biblionumber %], "itemnumber": [% shelfbrowser_prev_item.itemnumber %] },
+  "shelfbrowser_next_item": { "biblionumber": [% shelfbrowser_next_item.biblionumber %], "itemnumber": [% shelfbrowser_next_item.itemnumber %] },
+  "items": [
+  [%- FOREACH item IN items %]
+    [%- INCLUDE 'coverflow-item.json.inc' item = item -%]
+    [%- UNLESS loop.last -%],[%- END -%]
+  [% END %]
+  ]
+}
