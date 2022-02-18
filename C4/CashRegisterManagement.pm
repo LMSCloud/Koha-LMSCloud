@@ -771,7 +771,7 @@ sub saveCashRegister {
             $cash_register->set($params)->store();
         } 
     } else {
-        $cash_register = Koha::CashRegister::CashRegisterDefinitions->new();
+        $cash_register = Koha::CashRegister::CashRegisterDefinition->new();
         $cash_register->set($params);
         $cash_register->store();
     }
