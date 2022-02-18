@@ -3,7 +3,7 @@ msgstr ""
 "Project-Id-Version: Koha 21.05\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2013-05-16 03:26+0200\n"
-"PO-Revision-Date: 2022-02-06 11:55+0100\n"
+"PO-Revision-Date: 2022-02-18 16:04+0100\n"
 "Last-Translator: Katrin Fischer <katrin.fischer@bsz-bw.de>\n"
 "Language-Team: \n"
 "Language: de\n"
@@ -25,9 +25,17 @@ msgstr "Gebührenverwaltung"
 msgid "accounting.pref Features"
 msgstr "Funktionen"
 
+# Accounting > Features
+msgid "accounting.pref LMSCloud cash registers"
+msgstr "LMSCloud Kassenverwaltung"
+
 # Accounting > Policy
 msgid "accounting.pref Policy"
 msgstr "Regeln"
+
+# Accounting > Policy
+msgid "accounting.pref SEPA direct debit"
+msgstr "SEPA Lastschriftenmandat"
 
 # Accounting > Policy
 msgid "accounting.pref#AccountAutoReconcile# Do"
@@ -43,6 +51,29 @@ msgid ""
 "automatically on each transaction adding debits or credits."
 msgstr ""
 "ein Guthaben auf dem Benutzerkonto, wenn neue Gebühren eingetragen werden."
+
+# Circulation > Fines Policy > ActivateCashRegisterTransactionsOnly
+msgid ""
+"accounting.pref#ActivateCashRegisterTransactionsOnly# By activating cash "
+"registers, all cash transactions must be treated through an opened cash "
+"register. If activated, all payments of patrons and refunds can be managed "
+"by staff members who are authorized to use a cash register only."
+msgstr ""
+"Mit der Aktivierung der Kassenverwaltung werden alle Barzahlungen nur noch "
+"über eine geöffnete Kasse durchgeführt. Mit Aktivierung des Parameters "
+"können Ein- und Auszahlungen nur noch von Mitarbeitern durchgeführt werden, "
+"die für die Benutzung von Kassen zugelassen worden sind."
+
+# Circulation > Checkin policy
+msgid ""
+"accounting.pref#ActivateCashRegisterTransactionsOnly# Don't use cash "
+"registers."
+msgstr "Kassenverwaltung nicht aktiv."
+
+# Circulation > Checkin policy
+msgid ""
+"accounting.pref#ActivateCashRegisterTransactionsOnly# Use cash registers."
+msgstr "Kassenverwaltung aktiv."
 
 # Accounting > Features
 msgid ""
@@ -114,6 +145,54 @@ msgstr ""
 "automatischen Druckdialog für eine Gebührenquittung, wenn eine Zahlung "
 "durchgeführt wird."
 
+# OPAC > Payments > PaymentsOnlineCashRegisterManagerCardnumber
+msgid ""
+"accounting.pref#PaymentsOnlineCashRegisterManagerCardnumber# Online payments "
+"will be registered using the following cash register manager (provide "
+"cardnumber)."
+msgstr ""
+"Online-Zahlungen werden mit folgendem Mitarbeiter-Account in der Kasse "
+"verbucht (bitte Ausweisnummer angeben) : "
+
+# OPAC > Payments > PaymentsOnlineCashRegisterManagerCardnumber
+msgid ""
+"accounting.pref#PaymentsOnlineCashRegisterManagerCardnumber# Please make "
+"sure the user account has the necessary permissions enabled and is "
+"configured as cash register manager."
+msgstr ""
+"Bitte stellen Sie sicher, dass der Mitarbeiter-Account die Berechtigung für "
+"die Benutzung von Kassen besitzt und für die ausgewählte Kasse zugelassen "
+"ist."
+
+# Accounting > Features
+msgid "accounting.pref#PaymentsOnlineCashRegisterName# ."
+msgstr "."
+
+# OPAC > Payments > PaymentsOnlineCashRegisterName
+msgid ""
+"accounting.pref#PaymentsOnlineCashRegisterName# Online payments will be "
+"registered in the cash register named "
+msgstr "Online-Zahlungen werden unter der folgenden Kasse verbucht "
+
+# Circulation > Course reserves
+msgid "accounting.pref#PermitConcurrentCashRegisterUsers# Permit "
+msgstr "Erlaube "
+
+# Circulation > Course reserves
+msgid ""
+"accounting.pref#PermitConcurrentCashRegisterUsers# all authorized staff users"
+msgstr "allen zugelassenen Mitarbeitern"
+
+# Circulation > Course reserves
+msgid "accounting.pref#PermitConcurrentCashRegisterUsers# only one staff user"
+msgstr "exklusiv nur einem Mitarbeiter"
+
+# Circulation > Fines Policy > PermitConcurrentCashRegisterUsers
+msgid ""
+"accounting.pref#PermitConcurrentCashRegisterUsers# to book to an opened cash "
+"register."
+msgstr " eine Kasse zu zu öffnen und Buchungen vorzunehmen."
+
 # Accounting > Policy
 msgid "accounting.pref#RoundFinesAtPayment# Do"
 msgstr "Runde"
@@ -131,6 +210,207 @@ msgstr ""
 "die Gebühren auf den nächsten Cent, wenn Einzahlungen gemacht werden. Durch "
 "das Aktivieren dieses Parameters ist es möglich auch Teilbeträge von Cents "
 "zu bezahlen, die nicht in der Oberfläche sichtbar sein können."
+
+# OPAC > Payments > PaymentsOnlineCashRegisterName
+msgid ""
+"accounting.pref#SIPCashRegisterName# . If not specified, SIP payments will "
+"not be registered in a cash register."
+msgstr ""
+". Wenn nicht angegeben, werden Zahlungen über die SIP-Schnittstelle nicht "
+"über Kassen verbucht."
+
+# OPAC > Payments > PaymentsOnlineCashRegisterName
+msgid ""
+"accounting.pref#SIPCashRegisterName# Self service payment via SIP will be "
+"registered in the cash register named "
+msgstr ""
+"Zahlungen an Zahlautomaten über die SIP-Schnittstelle werden unter der "
+"folgender Kasse verbucht "
+
+# Accounting > Policy
+msgid "accounting.pref#SepaDirectDebitAccountTypes# ."
+msgstr "."
+
+# Accounting > SEPA direct debit > SepaDirectDebitAccountTypes
+msgid ""
+"accounting.pref#SepaDirectDebitAccountTypes# List of account types of fees "
+"to be paid via SEPA direct debit, separated by '|' "
+msgstr ""
+"Liste von Gebührenarten (getrennt durch '|'), die mit dem SEPA "
+"Lastschriftenmandat eingezogen werden sollen"
+
+# Accounting > SEPA direct debit > SepaDirectDebitBorrowerNoticeLettercode
+msgid "accounting.pref#SepaDirectDebitBorrowerNoticeLettercode# ."
+msgstr "."
+
+# Accounting > SEPA direct debit > SepaDirectDebitBorrowerNoticeLettercode
+msgid ""
+"accounting.pref#SepaDirectDebitBorrowerNoticeLettercode# Default lettercode "
+"of note sent to patron informing about the upcoming SEPA direct debit for "
+"the membership fee or other fines "
+msgstr ""
+"Briefcode der Benachrichtigung an den Bibliotheksbenutzer mit Hinweis auf "
+"den bevorstehenden Lastschrifteinzug der Bibliotheksbenutzungsgebühr "
+
+# Accounting > Features
+msgid "accounting.pref#SepaDirectDebitCashRegisterManagerCardnumber# ."
+msgstr "."
+
+# Accounting > LMSCloud cash registers > SepaDirectDebitCashRegisterManagerCardnumber
+msgid ""
+"accounting.pref#SepaDirectDebitCashRegisterManagerCardnumber# Cardnumber of "
+"the staff account that is used for booking SEPA direct debit in the "
+"specially provided cash register "
+msgstr ""
+"Ausweisnummer des Mitarbeiter-Accounts, der für Verbuchung der SEPA-"
+"Lastschriten in die Kasse verwendet wird "
+
+# Accounting > Features
+msgid "accounting.pref#SepaDirectDebitCashRegisterName# ."
+msgstr "."
+
+# Accounting > Features
+msgid ""
+"accounting.pref#SepaDirectDebitCashRegisterName# Name of cash register for "
+"assignment of the SEPA direct debit payments "
+msgstr ""
+"SEPA-Lastschriften werden unter der folgenden Kasse als Zahlungen verbucht "
+
+# Accounting > Features
+msgid "accounting.pref#SepaDirectDebitCreditorBic# ."
+msgstr "."
+
+# Accounting > SEPA direct debit > SepaDirectDebitCreditorBic
+msgid ""
+"accounting.pref#SepaDirectDebitCreditorBic# BIC of the library's bank "
+"account used in XML file containing SEPA direct debits "
+msgstr ""
+"BIC des Bankkontos der Bibliothek, verwendet in der XML-Datei mit den SEPA-"
+"Lastschriften"
+
+# Accounting > Features
+msgid "accounting.pref#SepaDirectDebitCreditorIban# ."
+msgstr "."
+
+# Accounting > SEPA direct debit > SepaDirectDebitCreditorIban
+msgid ""
+"accounting.pref#SepaDirectDebitCreditorIban# IBAN of the library's bank "
+"account used in XML file containing SEPA direct debits "
+msgstr ""
+"IBAN des Bankkontos der Bibliothek, verwendet in der XML-Datei mit den SEPA-"
+"Lastschriften "
+
+# Cataloging > Record structure
+msgid "accounting.pref#SepaDirectDebitCreditorId# ."
+msgstr "."
+
+# Accounting > SEPA direct debit > SepaDirectDebitCreditorId
+msgid ""
+"accounting.pref#SepaDirectDebitCreditorId# SEPA creditor ID of the library "
+"used in XML file containing SEPA direct debits "
+msgstr ""
+"SEPA Gläubiger-ID der Bibliothek, verwendet in der XML-Datei mit den SEPA-"
+"Lastschriften "
+
+# Accounting > Features
+msgid "accounting.pref#SepaDirectDebitCreditorName# ."
+msgstr "."
+
+# Accounting > SEPA direct debit > SepaDirectDebitCreditorName
+msgid ""
+"accounting.pref#SepaDirectDebitCreditorName# Name of the library used in XML "
+"file containing SEPA direct debits for XML-element &lt;PmtInf&gt;&lt;Cdtr&gt;"
+"&lt;Nm&gt; "
+msgstr ""
+"Name der Bibliothek, verwendet in der XML-Datei mit den SEPA-Lastschriften "
+"für XML-element &lt;PmtInf&gt;&lt;Cdtr&gt;&lt;Nm&gt; "
+
+# Accounting > SEPA direct debit > SepaDirectDebitInitiatingPartyName
+msgid "accounting.pref#SepaDirectDebitInitiatingPartyName# ."
+msgstr "."
+
+# Accounting > SEPA direct debit > SepaDirectDebitInitiatingPartyName
+msgid ""
+"accounting.pref#SepaDirectDebitInitiatingPartyName# Name of the library used "
+"in XML file containing SEPA direct debits for XML-element &lt;GrpHdr&gt;&lt;"
+"InitgPty&gt;&lt;Nm&gt; (usually uppercase) "
+msgstr ""
+"Name der Bibliothek, verwendet in der XML-Datei mit den SEPA-Lastschriften "
+"für XML-element &lt;GrpHdr&gt;&lt;InitgPty&gt;&lt;Nm&gt; (in Großbuchstaben)."
+
+# Accounting > SEPA direct debit > SepaDirectDebitLocalInstrumentCode
+msgid "accounting.pref#SepaDirectDebitLocalInstrumentCode# ."
+msgstr "."
+
+# Accounting > SEPA direct debit > SepaDirectDebitLocalInstrumentCode
+msgid ""
+"accounting.pref#SepaDirectDebitLocalInstrumentCode# Text used in XML file "
+"containing SEPA direct debits for &lt;PmtInf&gt;&lt;PmtTpInf&gt;&lt;"
+"LclInstrm&gt;&lt;Cd&gt;. One of 'CORE', 'COR1' "
+msgstr ""
+"Dieser Text wird in SEPA Lastschriftanweisungen genutzt für das XML-Element "
+"&lt;PmtInf&gt;&lt;PmtTpInf&gt;&lt;LclInstrm&gt;&lt;Cd&gt;. Entweder 'CORE' "
+"oder 'COR1'"
+
+# Accounting > SEPA direct debit > SepaDirectDebitMessageIdHeader
+msgid ""
+"accounting.pref#SepaDirectDebitMessageIdHeader# .<br>Max. length: 27 (+8 for "
+"the date)"
+msgstr ".<br>Maximale Länge: 27 Zeichen(+8 für die Datumsangabe)"
+
+# Accounting > SEPA direct debit > SepaDirectDebitMessageIdHeader
+msgid ""
+"accounting.pref#SepaDirectDebitMessageIdHeader# Text that, after appending "
+"the current date, will be used in XML file containing SEPA direct debits for "
+"XML-element &lt;GrpHdr&gt;&lt;MsgId&gt; "
+msgstr ""
+"Dieser Text wird um das Tagesdatum ergänzt und dann in der XML-Datei mit den "
+"SEPA-Lastschriften für XML-element &lt;GrpHdr&gt;&lt;MsgId&gt; verwendet."
+
+# Accounting > Features
+msgid "accounting.pref#SepaDirectDebitMinFeeSum# ."
+msgstr "."
+
+# Accounting > SEPA direct debit > SepaDirectDebitMinFeeSum
+msgid ""
+"accounting.pref#SepaDirectDebitMinFeeSum# A SEPA direct debit will be "
+"generated only if the sum of open fees of a borrower to be paid via SEPA "
+"direct debit is greater or equal this threshold value "
+msgstr ""
+"Eine SEPA Lastschrift wird nur erzeugt, wenn die Summe der ausstehenden "
+"Gebühren den angegebenen Schwellwert erreicht oder überschreitet (z.B. 0.01)"
+
+# Accounting > SEPA direct debit > SepaDirectDebitPaymentInstructionFileName
+msgid ""
+"accounting.pref#SepaDirectDebitPaymentInstructionFileName# . "
+"<br>Placeholders:<br>century:&lt;&lt;cc&gt;&gt;<br>year:&lt;&lt;yy&gt;&gt;"
+"<br>month:&lt;&lt;mm&gt;&gt;<br>day:&lt;&lt;dd&gt;&gt;"
+msgstr ""
+". <br>Platzhalter:<br>Jahrhundert:&lt;&lt;cc&gt;&gt;<br>Jahr:&lt;&lt;yy&gt;"
+"&gt;<br>Monat:&lt;&lt;mm&gt;&gt;<br>Tag:&lt;&lt;dd&gt;&gt;"
+
+# Accounting > SEPA direct debit > SepaDirectDebitPaymentInstructionFileName
+msgid ""
+"accounting.pref#SepaDirectDebitPaymentInstructionFileName# Pattern for the "
+"name of the file containing the SEPA direct debit payment instructions for "
+"the bank. "
+msgstr ""
+"Struktur für den Aufbau des Dateinamens der SEPA-Lastschriftanweisungen "
+
+# Accounting > SEPA direct debit > SepaDirectDebitRemittanceInfo
+msgid ""
+"accounting.pref#SepaDirectDebitRemittanceInfo# .<br>By many banks only the "
+"first 27 characters are used."
+msgstr ".<br>Bei vielen Banken werden nur die ersten 27 Zeichen verwendet."
+
+# Accounting > SEPA direct debit > SepaDirectDebitRemittanceInfo
+msgid ""
+"accounting.pref#SepaDirectDebitRemittanceInfo# Text used in XML file "
+"containing SEPA direct debits for XML-element &lt;PmtInf&gt;&lt;"
+"DrctDbtTxInf&gt;&lt;RmtInf&gt;&lt;Ustrd&gt; "
+msgstr ""
+"Verwendungszweck, verwendet in der XML-Datei mit den SEPA-Lastschriften für "
+"XML-element &lt;PmtInf&gt;&lt;DrctDbtTxInf&gt;&lt;RmtInf&gt;&lt;Ustrd&gt;"
 
 # Accounting > Features
 msgid ""
@@ -3517,29 +3797,6 @@ msgstr "Selbstausleihe"
 msgid "circulation.pref Stock rotation module"
 msgstr "Bestandsrotationsmodul"
 
-# Circulation > Fines Policy > ActivateCashRegisterTransactionsOnly
-msgid ""
-"circulation.pref#ActivateCashRegisterTransactionsOnly# By activating cash "
-"registers, all cash transactions must be treated through an opened cash "
-"register. If activated, all payments of patrons and refunds can be managed "
-"by staff members who are authorized to use a cash register only."
-msgstr ""
-"Mit der Aktivierung der Kassenverwaltung werden alle Barzahlungen nur noch "
-"über eine geöffnete Kasse durchgeführt. Mit Aktivierung des Parameters "
-"können Ein- und Auszahlungen nur noch von Mitarbeitern durchgeführt werden, "
-"die für die Benutzung von Kassen zugelassen worden sind."
-
-# Circulation > Checkin policy
-msgid ""
-"circulation.pref#ActivateCashRegisterTransactionsOnly# Don't use cash "
-"registers."
-msgstr "Kassenverwaltung nicht aktiv."
-
-# Circulation > Checkin policy
-msgid ""
-"circulation.pref#ActivateCashRegisterTransactionsOnly# Use cash registers."
-msgstr "Kassenverwaltung aktiv."
-
 # Circulation > Checkout policy
 msgid ""
 "circulation.pref#AgeRestrictionMarker# . For example, enter target audience "
@@ -5764,26 +6021,6 @@ msgid ""
 "circulation.pref#PatronAutoComplete# to guess the patron being entered while "
 "typing a patron search for circulation or patron search."
 msgstr "bei der Suche nach Benutzern in den Modulen Ausleihe und Benutzer."
-
-# Circulation > Course reserves
-msgid "circulation.pref#PermitConcurrentCashRegisterUsers# Permit "
-msgstr "Erlaube "
-
-# Circulation > Course reserves
-msgid ""
-"circulation.pref#PermitConcurrentCashRegisterUsers# all authorized staff "
-"users"
-msgstr "allen zugelassenen Mitarbeitern"
-
-# Circulation > Course reserves
-msgid "circulation.pref#PermitConcurrentCashRegisterUsers# only one staff user"
-msgstr "exklusiv nur einem Mitarbeiter"
-
-# Circulation > Fines Policy > PermitConcurrentCashRegisterUsers
-msgid ""
-"circulation.pref#PermitConcurrentCashRegisterUsers# to book to an opened "
-"cash register."
-msgstr " eine Kasse zu zu öffnen und Buchungen vorzunehmen."
 
 # Circulation > Checkout policy
 msgid "circulation.pref#PrintNoticesMaxLines# Include up to"
@@ -10002,26 +10239,6 @@ msgstr "OpenURL"
 msgid "opac.pref Payments"
 msgstr "Zahlungen"
 
-# OPAC > Payments
-msgid "opac.pref Payments via GiroSolution"
-msgstr "Zahlungen mit GiroSolution"
-
-# OPAC > Payments
-msgid "opac.pref Payments via PayPal"
-msgstr "Zahlungen mit PayPal"
-
-# OPAC > Payments
-msgid "opac.pref Payments via ePayBL"
-msgstr "Zahlungen mit ePayBL"
-
-# OPAC > Payments
-msgid "opac.pref Payments via epay21"
-msgstr "Zahlungen mit epay21"
-
-# OPAC > Payments
-msgid "opac.pref Payments via pmPayment"
-msgstr "Zahlungen mit pmPayment"
-
 # OPAC > Policy
 msgid "opac.pref Policy"
 msgstr "Parameter"
@@ -10217,170 +10434,6 @@ msgstr "Speichere"
 msgid "opac.pref#EnableOpacSearchHistory# patron search history in the OPAC."
 msgstr "Benutzer-Suchhistorie im OPAC."
 
-# OPAC > Payments
-msgid "opac.pref#EnablePayPalOpacPayments# Allow"
-msgstr "Erlaube"
-
-# OPAC > Payments
-msgid "opac.pref#EnablePayPalOpacPayments# Don't allow"
-msgstr "Erlaube nicht"
-
-# OPAC > Payments
-msgid "opac.pref#EnablePayPalOpacPayments# Production"
-msgstr "Produktion"
-
-# OPAC > Payments
-msgid "opac.pref#EnablePayPalOpacPayments# Sandbox"
-msgstr "Sandbox"
-
-# OPAC > Payments
-msgid "opac.pref#EnablePayPalOpacPayments# mode."
-msgstr "Modus."
-
-# OPAC > Payments
-msgid ""
-"opac.pref#EnablePayPalOpacPayments# patrons to make payments from the OPAC "
-"via PayPal in"
-msgstr "PayPal-Zahlungen aus dem OPAC im"
-
-# OPAC > Payments via epay21 > Epay21AccountingSystemInfo
-msgid ""
-"opac.pref#Epay21AccountingSystemInfo# (Permitted characters: a-z A-Z 0-9 "
-"':?,-(+.)/)"
-msgstr "(Erlaubte Zeichen: a-z A-Z 0-9 ':?,-(+.)/)"
-
-# OPAC > Payments via epay21 > Epay21AccountingSystemInfo
-msgid ""
-"opac.pref#Epay21AccountingSystemInfo# Additional information transferred to "
-"the library's financial accounting system:"
-msgstr ""
-"Zusatzinformationen, die an das Finanzbuchhaltungssystem übertragen werden "
-"sollen:"
-
-# OPAC > Payments via epay21 > Epay21App
-msgid ""
-"opac.pref#Epay21App# The library's epay21 application designation ('App') is "
-msgstr "Bezeichnung der Anwendung ('App') bei epay21 "
-
-# OPAC > Payments via epay21 > Epay21BasicAuthPw
-msgid ""
-"opac.pref#Epay21BasicAuthPw# The library's epay21 passwort for basic "
-"authentication is "
-msgstr "Passwort für den Zugang zum epay21-Webservice "
-
-# OPAC > Payments via epay21 > Epay21BasicAuthUser
-msgid ""
-"opac.pref#Epay21BasicAuthUser# The library's epay21 user name for basic "
-"authentication is "
-msgstr "Benutzername für den Zugang zum epay21-Webservice"
-
-# OPAC > Payments via epay21 > Epay21Mandant
-msgid ""
-"opac.pref#Epay21Mandant# The library's epay21 mandator designation "
-"('Mandant') is "
-msgstr "Mandanten-Name der Bibliothek bei epay21 "
-
-# OPAC > Payments via epay21 > Epay21MandantDesc
-msgid ""
-"opac.pref#Epay21MandantDesc# The library's epay21 mandator description that "
-"will be displayed on paypage is "
-msgstr ""
-"Bezeichnung des Zahlungsempfängers, der bei jedem epay21-Bezahlvorgang auf "
-"der Bezahlseite angezeigt wird "
-
-# OPAC > Payments via epay21 > Epay21OrderDesc
-msgid ""
-"opac.pref#Epay21OrderDesc# The library's epay21 order description that will "
-"be displayed on paypage is "
-msgstr ""
-"Beschreibungstext, der bei jedem epay21-Bezahlvorgang auf der Bezahlseite "
-"angezeigt wird "
-
-# OPAC > Payments
-msgid "opac.pref#Epay21PaypageOpacPaymentsEnabled# Allow"
-msgstr "Erlaube"
-
-# OPAC > Payments
-msgid "opac.pref#Epay21PaypageOpacPaymentsEnabled# Don't allow"
-msgstr "Erlaube nicht"
-
-# OPAC > Payments
-msgid ""
-"opac.pref#Epay21PaypageOpacPaymentsEnabled# patrons to make paypage payments "
-"from the OPAC via epay21."
-msgstr "epay21-Zahlungen im OPAC."
-
-# OPAC > Payments via epay21 > Epay21PaypageWebservicesURL
-msgid ""
-"opac.pref#Epay21PaypageWebservicesURL# The URL for accessing epay21 paypage "
-"webservices is "
-msgstr "URL für den Zugriff auf den epay21-Webservice"
-
-# OPAC > Payments via ePayBL > EpayblAccountingEntryText
-msgid ""
-"opac.pref#EpayblAccountingEntryText# (Permitted characters: a-z A-Z 0-9 ':?,-"
-"(+.)/)"
-msgstr "(Erlaubte Zeichen: a-z A-Z 0-9 ':?,-(+.)/)"
-
-# OPAC > Payments
-msgid ""
-"opac.pref#EpayblAccountingEntryText# The library's ePayBL accounting entry "
-"text is "
-msgstr "Buchungstext der Bibliothek bei ePayBL: "
-
-# OPAC > Payments via ePayBL > EpayblDunningProcedureLabel
-msgid ""
-"opac.pref#EpayblDunningProcedureLabel# The library's ePayBL dunning "
-"procedure label is "
-msgstr "Kennzeichen des Mahnverfahrens der Bibliothek bei ePayBL: "
-
-# OPAC > Payments via ePayBL > EpayblMandatorNumber
-msgid ""
-"opac.pref#EpayblMandatorNumber# The library's ePayBL mandator number is "
-msgstr "Mandantennummer der Bibliothek bei ePayBL: "
-
-# OPAC > Payments via ePayBL > EpayblOperatorNumber
-msgid ""
-"opac.pref#EpayblOperatorNumber# The library's ePayBL operator number is "
-msgstr "Bewirtschafternummer der Bibliothek bei ePayBL: "
-
-# OPAC > Payments
-msgid "opac.pref#EpayblPaypageOpacPaymentsEnabled# Allow"
-msgstr "Erlaube"
-
-# OPAC > Payments
-msgid "opac.pref#EpayblPaypageOpacPaymentsEnabled# Don't allow"
-msgstr "Erlaube nicht"
-
-# OPAC > Payments
-msgid ""
-"opac.pref#EpayblPaypageOpacPaymentsEnabled# patrons to make paypage payments "
-"from the OPAC via the ePayBL paypage."
-msgstr "ePayBL-Zahlungen im OPAC."
-
-# OPAC > Payments via ePayBL > EpayblPaypagePaypageURL
-msgid "opac.pref#EpayblPaypagePaypageURL# The URL of the ePayBL paypage is "
-msgstr "URL der ePayBL-Paypage: "
-
-# OPAC > Payments via ePayBL > EpayblPaypageWebservicesURL
-msgid ""
-"opac.pref#EpayblPaypageWebservicesURL# The URL for accessing ePayBL "
-"webservices is "
-msgstr "URL für den Zugriff auf die ePayBL-Webservices: "
-
-# OPAC > Payments via ePayBL > EpayblSaltHmacSha256
-msgid ""
-"opac.pref#EpayblSaltHmacSha256# (May not be modified if ePayBL payments are "
-"activated in OPAC.)"
-msgstr ""
-"(Darf nicht geändert werden, wenn Zahlungen mit ePayBL im OPAC aktiviert "
-"sind.)"
-
-# OPAC > Payments via ePayBL > EpayblSaltHmacSha256
-msgid ""
-"opac.pref#EpayblSaltHmacSha256# The library's ePayBL HMAC SHA-256 salt is "
-msgstr "Salt-Wert für die Berechnung der HMAC SHA-256 Prüfsumme: "
-
 # OPAC > Features > ExcludeReviewsWithMARC520Indicator1Value
 msgid ""
 "opac.pref#ExcludeReviewsWithMARC520Indicator1Value# Do not display MARC "
@@ -10398,90 +10451,6 @@ msgid ""
 msgstr ""
 " (Werte getrennt durch | angeben: z.B. 4|8). Das #-Zeichen kann anstelle des "
 "Leerzeichens als Indikator angegeben werden."
-
-# OPAC > Payments
-msgid "opac.pref#GirosolutionCreditcardOpacPaymentsEnabled# Allow"
-msgstr "Erlaube"
-
-# OPAC > Payments
-msgid "opac.pref#GirosolutionCreditcardOpacPaymentsEnabled# Don't allow"
-msgstr "Erlaube nicht"
-
-# OPAC > Payments
-msgid ""
-"opac.pref#GirosolutionCreditcardOpacPaymentsEnabled# patrons to make credit "
-"card payments from the OPAC via GiroSolution."
-msgstr "Kreditkartenzahlungen im OPAC mit GiroSolution."
-
-# OPAC > Payments via GiroSolution > GirosolutionCreditcardProjectId
-msgid ""
-"opac.pref#GirosolutionCreditcardProjectId# The library's GiroSolution "
-"Project ID for credit card payments is "
-msgstr ""
-"Die GiroSolution-Projekt-ID der Bibliothek für Kreditkartenzahlungen ist "
-
-# OPAC > Payments via GiroSolution > GirosolutionCreditcardProjectPwd
-msgid ""
-"opac.pref#GirosolutionCreditcardProjectPwd# The library's GiroSolution "
-"password for credit card payments is "
-msgstr ""
-"Das zugehörige Passwort des GiroSolution-Projekts der Bibliothek für "
-"Kreditkartenzahlungen ist "
-
-# OPAC > Payments
-msgid "opac.pref#GirosolutionGiropayOpacPaymentsEnabled# Allow"
-msgstr "Erlaube"
-
-# OPAC > Payments
-msgid "opac.pref#GirosolutionGiropayOpacPaymentsEnabled# Don't allow"
-msgstr "Erlaube nicht"
-
-# OPAC > Payments
-msgid ""
-"opac.pref#GirosolutionGiropayOpacPaymentsEnabled# patrons to make GiroPay "
-"payments from the OPAC via GiroSolution."
-msgstr "GiroPay-Zahlungen per Online-Banking im OPAC mit GiroSolution."
-
-# OPAC > Payments via GiroSolution > GirosolutionGiropayProjectId
-msgid ""
-"opac.pref#GirosolutionGiropayProjectId# The library's GiroSolution Project "
-"ID for GiroPay payments is "
-msgstr "Die GiroSolution-Projekt-ID der Bibliothek für GiroPay-Zahlungen ist "
-
-# OPAC > Payments via GiroSolution > GirosolutionGiropayProjectPwd
-msgid ""
-"opac.pref#GirosolutionGiropayProjectPwd# The library's GiroSolution password "
-"for GiroPay payments is "
-msgstr ""
-"Das zugehörige Passwort des GiroSolution-Projekts der Bibliothek für GiroPay-"
-"Zahlungen ist "
-
-# OPAC > Payments via GiroSolution > GirosolutionMerchantId
-msgid ""
-"opac.pref#GirosolutionMerchantId# The library's GiroSolution Merchant ID is "
-msgstr "Die GiroSolution-Kundennummer der Bibliothek ist "
-
-# OPAC > Payments via GiroSolution > GirosolutionRemittanceInfo
-msgid ""
-"opac.pref#GirosolutionRemittanceInfo# (Permitted characters: a-z A-Z 0-9 "
-"':?,-(+.)/)"
-msgstr "(Erlaubte Zeichen: a-z A-Z 0-9 ':?,-(+.)/)"
-
-# OPAC > Payments via GiroSolution > GirosolutionRemittanceInfo
-msgid ""
-"opac.pref#GirosolutionRemittanceInfo# The text for the 'remittance "
-"information' of the payment will be constructed from the pattern "
-msgstr ""
-"Der Text für den Verwendungszweck der Zahlung wird erstellt basierend auf "
-"dem Muster "
-
-# OPAC > Payments via GiroSolution > GirosolutionRemittanceInfo
-msgid ""
-"opac.pref#GirosolutionRemittanceInfo# by replacing the placeholder &lt;&lt;"
-"borrowers.cardnumber&gt;&gt; by the patron's cardnumber."
-msgstr ""
-"wobei der Platzhalter &lt;&lt;borrowers.cardnumber&gt;&gt; durch die "
-"Ausweisnummer des Benutzers ersetzt wird."
 
 # OPAC > Appearance
 msgid ""
@@ -12609,28 +12578,6 @@ msgstr ""
 "dass Benutzer, die online ein Konto eröffnen, sich über E-Mail verifizieren."
 
 # OPAC > Payments
-msgid ""
-"opac.pref#PayPalChargeDescription# The patron should see the charge "
-"description as "
-msgstr "Dem Benutzer die Belastungsanzeige mit folgendem Text anzeigen:"
-
-# OPAC > Payments
-msgid ""
-"opac.pref#PayPalPwd# The password for the PayPal account to receive payments "
-"is "
-msgstr "Passwort des PayPal-Kontos des Zahlungsempfängers:"
-
-# OPAC > Payments
-msgid ""
-"opac.pref#PayPalSignature# The signature for the PayPal account to receive "
-"payments is "
-msgstr "Signatur des PayPal-Kontos des Zahlungsempfängers:"
-
-# OPAC > Payments
-msgid "opac.pref#PayPalUser# The email address to receive PayPal payments is "
-msgstr "E-Mail-Adresse des PayPal-Kontos des Zahlungsempfängers:"
-
-# OPAC > Payments
 msgid "opac.pref#PaymentsMinimumPatronAge#  years."
 msgstr " Jahre."
 
@@ -12639,102 +12586,6 @@ msgid ""
 "opac.pref#PaymentsMinimumPatronAge# The minimum patron age for permission to "
 "the payment functionality is "
 msgstr "Das Mindestalter eines Benutzers für Online-Zahlungen im OPAC ist"
-
-# OPAC > Payments > PaymentsOnlineCashRegisterManagerCardnumber
-msgid ""
-"opac.pref#PaymentsOnlineCashRegisterManagerCardnumber# Online payments will "
-"be registered using the following cash register manager (provide cardnumber)."
-msgstr ""
-"Online-Zahlungen werden mit folgendem Mitarbeiter-Account in der Kasse "
-"verbucht (bitte Ausweisnummer angeben) : "
-
-# OPAC > Payments > PaymentsOnlineCashRegisterManagerCardnumber
-msgid ""
-"opac.pref#PaymentsOnlineCashRegisterManagerCardnumber# Please make sure the "
-"user account has the necessary permissions enabled and is configured as cash "
-"register manager."
-msgstr ""
-"Bitte stellen Sie sicher, dass der Mitarbeiter-Account die Berechtigung für "
-"die Benutzung von Kassen besitzt und für die ausgewählte Kasse zugelassen "
-"ist."
-
-# OPAC > Payments > PaymentsOnlineCashRegisterName
-msgid ""
-"opac.pref#PaymentsOnlineCashRegisterName# Online payments will be registered "
-"in the cash register named "
-msgstr "Online-Zahlungen werden unter der folgenden Kasse verbucht "
-
-# OPAC > Payments via pmPayment > PmpaymentAccountingRecord
-msgid ""
-"opac.pref#PmpaymentAccountingRecord# (Permitted characters: a-z A-Z 0-9 ':?,-"
-"(+.)/)"
-msgstr "(Erlaubte Zeichen: a-z A-Z 0-9 ':?,-(+.)/)"
-
-# OPAC > Payments via pmPayment > PmpaymentAccountingRecord
-msgid ""
-"opac.pref#PmpaymentAccountingRecord# Additional information transferred to "
-"the library's financial accounting system:"
-msgstr ""
-"Zusatzinformationen, die an das Finanzbuchhaltungssystem übertragen werden "
-"sollen:"
-
-# OPAC > Payments via pmPayment > PmpaymentAgs
-msgid "opac.pref#PmpaymentAgs# The library's officiary municipal key is "
-msgstr "Amtlicher Gemeindeschlüssel der Bibliothek: "
-
-# OPAC > Payments
-msgid "opac.pref#PmpaymentPaypageOpacPaymentsEnabled# Allow"
-msgstr "Erlaube"
-
-# OPAC > Payments
-msgid "opac.pref#PmpaymentPaypageOpacPaymentsEnabled# Don't allow"
-msgstr "Erlaube nicht"
-
-# OPAC > Payments
-msgid ""
-"opac.pref#PmpaymentPaypageOpacPaymentsEnabled# patrons to make paypage "
-"payments from the OPAC via pmPayment."
-msgstr "pmPayment-Zahlungen im OPAC."
-
-# OPAC > Payments via pmPayment > PmpaymentPaypageWebservicesURL
-msgid ""
-"opac.pref#PmpaymentPaypageWebservicesURL# The URL for accessing pmPayment "
-"paypage webservices is "
-msgstr "URL für den Zugriff auf den pmPayment-Webservice: "
-
-# OPAC > Payments via pmPayment > PmpaymentProcedure
-msgid ""
-"opac.pref#PmpaymentProcedure# The library's pmPayment procedure designation "
-"is "
-msgstr "Fachverfahrensname der Bibliothek bei pmPayment: "
-
-# OPAC > Payments via pmPayment > PmpaymentRemittanceInfo
-msgid ""
-"opac.pref#PmpaymentRemittanceInfo# (Permitted characters: a-z A-Z 0-9 ':?,-"
-"(+.)/)"
-msgstr "(Erlaubte Zeichen: a-z A-Z 0-9 ':?,-(+.)/)"
-
-# OPAC > Payments via pmPayment > PmpaymentRemittanceInfo
-msgid ""
-"opac.pref#PmpaymentRemittanceInfo# The text for the 'remittance information' "
-"of the payment will be constructed from the pattern "
-msgstr ""
-"Der Text für den Verwendungszweck der Zahlung wird erstellt basierend auf "
-"dem Muster "
-
-# OPAC > Payments via pmPayment > PmpaymentRemittanceInfo
-msgid ""
-"opac.pref#PmpaymentRemittanceInfo# by replacing the placeholder &lt;&lt;"
-"borrowers.cardnumber&gt;&gt; by the patron's cardnumber."
-msgstr ""
-"wobei der Platzhalter &lt;&lt;borrowers.cardnumber&gt;&gt; durch die "
-"Ausweisnummer des Benutzers ersetzt wird."
-
-# OPAC > Payments via pmPayment > PmpaymentSaltHmacSha256
-msgid ""
-"opac.pref#PmpaymentSaltHmacSha256# The library's pmPayment HMAC SHA-256 salt "
-"is "
-msgstr "Salt-Wert für Berechnung der HMAC SHA-256 Prüfsumme: "
 
 # OPAC > Features
 msgid "opac.pref#QuoteOfTheDay# OPAC"
@@ -16585,6 +16436,26 @@ msgstr ""
 #~ msgid "logs.pref#LetterLog# Log"
 #~ msgstr "Aufzeichnung"
 
+# OPAC > Payments
+#~ msgid "opac.pref Payments via GiroSolution"
+#~ msgstr "Zahlungen mit GiroSolution"
+
+# OPAC > Payments
+#~ msgid "opac.pref Payments via PayPal"
+#~ msgstr "Zahlungen mit PayPal"
+
+# OPAC > Payments
+#~ msgid "opac.pref Payments via ePayBL"
+#~ msgstr "Zahlungen mit ePayBL"
+
+# OPAC > Payments
+#~ msgid "opac.pref Payments via epay21"
+#~ msgstr "Zahlungen mit epay21"
+
+# OPAC > Payments
+#~ msgid "opac.pref Payments via pmPayment"
+#~ msgstr "Zahlungen mit pmPayment"
+
 # OPAC > Appearance
 #~ msgid ""
 #~ "opac.pref#COinSinOPACResults# <br/><code>OpenURLResolverURL</code>, "
@@ -16604,6 +16475,257 @@ msgstr ""
 #~ "<br/><strong>Warnung</strong>: Diese Funktionalität wird zukünftig "
 #~ "zugunsten von Payment-Plugins, die Dienste von verschiedenen "
 #~ "Bezahldienstleistern implementieren können, entfallen. "
+
+# OPAC > Payments
+#~ msgid "opac.pref#EnablePayPalOpacPayments# Allow"
+#~ msgstr "Erlaube"
+
+# OPAC > Payments
+#~ msgid "opac.pref#EnablePayPalOpacPayments# Don't allow"
+#~ msgstr "Erlaube nicht"
+
+# OPAC > Payments
+#~ msgid "opac.pref#EnablePayPalOpacPayments# Production"
+#~ msgstr "Produktion"
+
+# OPAC > Payments
+#~ msgid "opac.pref#EnablePayPalOpacPayments# Sandbox"
+#~ msgstr "Sandbox"
+
+# OPAC > Payments
+#~ msgid "opac.pref#EnablePayPalOpacPayments# mode."
+#~ msgstr "Modus."
+
+# OPAC > Payments
+#~ msgid ""
+#~ "opac.pref#EnablePayPalOpacPayments# patrons to make payments from the "
+#~ "OPAC via PayPal in"
+#~ msgstr "PayPal-Zahlungen aus dem OPAC im"
+
+# OPAC > Payments via epay21 > Epay21AccountingSystemInfo
+#~ msgid ""
+#~ "opac.pref#Epay21AccountingSystemInfo# (Permitted characters: a-z A-Z 0-9 "
+#~ "':?,-(+.)/)"
+#~ msgstr "(Erlaubte Zeichen: a-z A-Z 0-9 ':?,-(+.)/)"
+
+# OPAC > Payments via epay21 > Epay21AccountingSystemInfo
+#~ msgid ""
+#~ "opac.pref#Epay21AccountingSystemInfo# Additional information transferred "
+#~ "to the library's financial accounting system:"
+#~ msgstr ""
+#~ "Zusatzinformationen, die an das Finanzbuchhaltungssystem übertragen "
+#~ "werden sollen:"
+
+# OPAC > Payments via epay21 > Epay21App
+#~ msgid ""
+#~ "opac.pref#Epay21App# The library's epay21 application designation ('App') "
+#~ "is "
+#~ msgstr "Bezeichnung der Anwendung ('App') bei epay21 "
+
+# OPAC > Payments via epay21 > Epay21BasicAuthPw
+#~ msgid ""
+#~ "opac.pref#Epay21BasicAuthPw# The library's epay21 passwort for basic "
+#~ "authentication is "
+#~ msgstr "Passwort für den Zugang zum epay21-Webservice "
+
+# OPAC > Payments via epay21 > Epay21BasicAuthUser
+#~ msgid ""
+#~ "opac.pref#Epay21BasicAuthUser# The library's epay21 user name for basic "
+#~ "authentication is "
+#~ msgstr "Benutzername für den Zugang zum epay21-Webservice"
+
+# OPAC > Payments via epay21 > Epay21Mandant
+#~ msgid ""
+#~ "opac.pref#Epay21Mandant# The library's epay21 mandator designation "
+#~ "('Mandant') is "
+#~ msgstr "Mandanten-Name der Bibliothek bei epay21 "
+
+# OPAC > Payments via epay21 > Epay21MandantDesc
+#~ msgid ""
+#~ "opac.pref#Epay21MandantDesc# The library's epay21 mandator description "
+#~ "that will be displayed on paypage is "
+#~ msgstr ""
+#~ "Bezeichnung des Zahlungsempfängers, der bei jedem epay21-Bezahlvorgang "
+#~ "auf der Bezahlseite angezeigt wird "
+
+# OPAC > Payments via epay21 > Epay21OrderDesc
+#~ msgid ""
+#~ "opac.pref#Epay21OrderDesc# The library's epay21 order description that "
+#~ "will be displayed on paypage is "
+#~ msgstr ""
+#~ "Beschreibungstext, der bei jedem epay21-Bezahlvorgang auf der Bezahlseite "
+#~ "angezeigt wird "
+
+# OPAC > Payments
+#~ msgid "opac.pref#Epay21PaypageOpacPaymentsEnabled# Allow"
+#~ msgstr "Erlaube"
+
+# OPAC > Payments
+#~ msgid "opac.pref#Epay21PaypageOpacPaymentsEnabled# Don't allow"
+#~ msgstr "Erlaube nicht"
+
+# OPAC > Payments
+#~ msgid ""
+#~ "opac.pref#Epay21PaypageOpacPaymentsEnabled# patrons to make paypage "
+#~ "payments from the OPAC via epay21."
+#~ msgstr "epay21-Zahlungen im OPAC."
+
+# OPAC > Payments via epay21 > Epay21PaypageWebservicesURL
+#~ msgid ""
+#~ "opac.pref#Epay21PaypageWebservicesURL# The URL for accessing epay21 "
+#~ "paypage webservices is "
+#~ msgstr "URL für den Zugriff auf den epay21-Webservice"
+
+# OPAC > Payments via ePayBL > EpayblAccountingEntryText
+#~ msgid ""
+#~ "opac.pref#EpayblAccountingEntryText# (Permitted characters: a-z A-Z 0-9 "
+#~ "':?,-(+.)/)"
+#~ msgstr "(Erlaubte Zeichen: a-z A-Z 0-9 ':?,-(+.)/)"
+
+# OPAC > Payments
+#~ msgid ""
+#~ "opac.pref#EpayblAccountingEntryText# The library's ePayBL accounting "
+#~ "entry text is "
+#~ msgstr "Buchungstext der Bibliothek bei ePayBL: "
+
+# OPAC > Payments via ePayBL > EpayblDunningProcedureLabel
+#~ msgid ""
+#~ "opac.pref#EpayblDunningProcedureLabel# The library's ePayBL dunning "
+#~ "procedure label is "
+#~ msgstr "Kennzeichen des Mahnverfahrens der Bibliothek bei ePayBL: "
+
+# OPAC > Payments via ePayBL > EpayblMandatorNumber
+#~ msgid ""
+#~ "opac.pref#EpayblMandatorNumber# The library's ePayBL mandator number is "
+#~ msgstr "Mandantennummer der Bibliothek bei ePayBL: "
+
+# OPAC > Payments via ePayBL > EpayblOperatorNumber
+#~ msgid ""
+#~ "opac.pref#EpayblOperatorNumber# The library's ePayBL operator number is "
+#~ msgstr "Bewirtschafternummer der Bibliothek bei ePayBL: "
+
+# OPAC > Payments
+#~ msgid "opac.pref#EpayblPaypageOpacPaymentsEnabled# Allow"
+#~ msgstr "Erlaube"
+
+# OPAC > Payments
+#~ msgid "opac.pref#EpayblPaypageOpacPaymentsEnabled# Don't allow"
+#~ msgstr "Erlaube nicht"
+
+# OPAC > Payments
+#~ msgid ""
+#~ "opac.pref#EpayblPaypageOpacPaymentsEnabled# patrons to make paypage "
+#~ "payments from the OPAC via the ePayBL paypage."
+#~ msgstr "ePayBL-Zahlungen im OPAC."
+
+# OPAC > Payments via ePayBL > EpayblPaypagePaypageURL
+#~ msgid "opac.pref#EpayblPaypagePaypageURL# The URL of the ePayBL paypage is "
+#~ msgstr "URL der ePayBL-Paypage: "
+
+# OPAC > Payments via ePayBL > EpayblPaypageWebservicesURL
+#~ msgid ""
+#~ "opac.pref#EpayblPaypageWebservicesURL# The URL for accessing ePayBL "
+#~ "webservices is "
+#~ msgstr "URL für den Zugriff auf die ePayBL-Webservices: "
+
+# OPAC > Payments via ePayBL > EpayblSaltHmacSha256
+#~ msgid ""
+#~ "opac.pref#EpayblSaltHmacSha256# (May not be modified if ePayBL payments "
+#~ "are activated in OPAC.)"
+#~ msgstr ""
+#~ "(Darf nicht geändert werden, wenn Zahlungen mit ePayBL im OPAC aktiviert "
+#~ "sind.)"
+
+# OPAC > Payments via ePayBL > EpayblSaltHmacSha256
+#~ msgid ""
+#~ "opac.pref#EpayblSaltHmacSha256# The library's ePayBL HMAC SHA-256 salt is "
+#~ msgstr "Salt-Wert für die Berechnung der HMAC SHA-256 Prüfsumme: "
+
+# OPAC > Payments
+#~ msgid "opac.pref#GirosolutionCreditcardOpacPaymentsEnabled# Allow"
+#~ msgstr "Erlaube"
+
+# OPAC > Payments
+#~ msgid "opac.pref#GirosolutionCreditcardOpacPaymentsEnabled# Don't allow"
+#~ msgstr "Erlaube nicht"
+
+# OPAC > Payments
+#~ msgid ""
+#~ "opac.pref#GirosolutionCreditcardOpacPaymentsEnabled# patrons to make "
+#~ "credit card payments from the OPAC via GiroSolution."
+#~ msgstr "Kreditkartenzahlungen im OPAC mit GiroSolution."
+
+# OPAC > Payments via GiroSolution > GirosolutionCreditcardProjectId
+#~ msgid ""
+#~ "opac.pref#GirosolutionCreditcardProjectId# The library's GiroSolution "
+#~ "Project ID for credit card payments is "
+#~ msgstr ""
+#~ "Die GiroSolution-Projekt-ID der Bibliothek für Kreditkartenzahlungen ist "
+
+# OPAC > Payments via GiroSolution > GirosolutionCreditcardProjectPwd
+#~ msgid ""
+#~ "opac.pref#GirosolutionCreditcardProjectPwd# The library's GiroSolution "
+#~ "password for credit card payments is "
+#~ msgstr ""
+#~ "Das zugehörige Passwort des GiroSolution-Projekts der Bibliothek für "
+#~ "Kreditkartenzahlungen ist "
+
+# OPAC > Payments
+#~ msgid "opac.pref#GirosolutionGiropayOpacPaymentsEnabled# Allow"
+#~ msgstr "Erlaube"
+
+# OPAC > Payments
+#~ msgid "opac.pref#GirosolutionGiropayOpacPaymentsEnabled# Don't allow"
+#~ msgstr "Erlaube nicht"
+
+# OPAC > Payments
+#~ msgid ""
+#~ "opac.pref#GirosolutionGiropayOpacPaymentsEnabled# patrons to make GiroPay "
+#~ "payments from the OPAC via GiroSolution."
+#~ msgstr "GiroPay-Zahlungen per Online-Banking im OPAC mit GiroSolution."
+
+# OPAC > Payments via GiroSolution > GirosolutionGiropayProjectId
+#~ msgid ""
+#~ "opac.pref#GirosolutionGiropayProjectId# The library's GiroSolution "
+#~ "Project ID for GiroPay payments is "
+#~ msgstr ""
+#~ "Die GiroSolution-Projekt-ID der Bibliothek für GiroPay-Zahlungen ist "
+
+# OPAC > Payments via GiroSolution > GirosolutionGiropayProjectPwd
+#~ msgid ""
+#~ "opac.pref#GirosolutionGiropayProjectPwd# The library's GiroSolution "
+#~ "password for GiroPay payments is "
+#~ msgstr ""
+#~ "Das zugehörige Passwort des GiroSolution-Projekts der Bibliothek für "
+#~ "GiroPay-Zahlungen ist "
+
+# OPAC > Payments via GiroSolution > GirosolutionMerchantId
+#~ msgid ""
+#~ "opac.pref#GirosolutionMerchantId# The library's GiroSolution Merchant ID "
+#~ "is "
+#~ msgstr "Die GiroSolution-Kundennummer der Bibliothek ist "
+
+# OPAC > Payments via GiroSolution > GirosolutionRemittanceInfo
+#~ msgid ""
+#~ "opac.pref#GirosolutionRemittanceInfo# (Permitted characters: a-z A-Z 0-9 "
+#~ "':?,-(+.)/)"
+#~ msgstr "(Erlaubte Zeichen: a-z A-Z 0-9 ':?,-(+.)/)"
+
+# OPAC > Payments via GiroSolution > GirosolutionRemittanceInfo
+#~ msgid ""
+#~ "opac.pref#GirosolutionRemittanceInfo# The text for the 'remittance "
+#~ "information' of the payment will be constructed from the pattern "
+#~ msgstr ""
+#~ "Der Text für den Verwendungszweck der Zahlung wird erstellt basierend auf "
+#~ "dem Muster "
+
+# OPAC > Payments via GiroSolution > GirosolutionRemittanceInfo
+#~ msgid ""
+#~ "opac.pref#GirosolutionRemittanceInfo# by replacing the placeholder &lt;"
+#~ "&lt;borrowers.cardnumber&gt;&gt; by the patron's cardnumber."
+#~ msgstr ""
+#~ "wobei der Platzhalter &lt;&lt;borrowers.cardnumber&gt;&gt; durch die "
+#~ "Ausweisnummer des Benutzers ersetzt wird."
 
 # OPAC > Appearance
 #~ msgid ""
@@ -16636,8 +16758,20 @@ msgstr ""
 #~ msgstr "."
 
 # OPAC > Payments
+#~ msgid ""
+#~ "opac.pref#PayPalChargeDescription# The patron should see the charge "
+#~ "description as "
+#~ msgstr "Dem Benutzer die Belastungsanzeige mit folgendem Text anzeigen:"
+
+# OPAC > Payments
 #~ msgid "opac.pref#PayPalPwd# ."
 #~ msgstr "."
+
+# OPAC > Payments
+#~ msgid ""
+#~ "opac.pref#PayPalPwd# The password for the PayPal account to receive "
+#~ "payments is "
+#~ msgstr "Passwort des PayPal-Kontos des Zahlungsempfängers:"
 
 # OPAC > Payments
 #~ msgid "opac.pref#PayPalReturnURL# ."
@@ -16662,8 +16796,91 @@ msgstr ""
 #~ msgstr "konfigurierte Rückkehr-URL"
 
 # OPAC > Payments
+#~ msgid ""
+#~ "opac.pref#PayPalSignature# The signature for the PayPal account to "
+#~ "receive payments is "
+#~ msgstr "Signatur des PayPal-Kontos des Zahlungsempfängers:"
+
+# OPAC > Payments
 #~ msgid "opac.pref#PayPalUser# ."
 #~ msgstr "."
+
+# OPAC > Payments
+#~ msgid ""
+#~ "opac.pref#PayPalUser# The email address to receive PayPal payments is "
+#~ msgstr "E-Mail-Adresse des PayPal-Kontos des Zahlungsempfängers:"
+
+# OPAC > Payments via pmPayment > PmpaymentAccountingRecord
+#~ msgid ""
+#~ "opac.pref#PmpaymentAccountingRecord# (Permitted characters: a-z A-Z 0-9 "
+#~ "':?,-(+.)/)"
+#~ msgstr "(Erlaubte Zeichen: a-z A-Z 0-9 ':?,-(+.)/)"
+
+# OPAC > Payments via pmPayment > PmpaymentAccountingRecord
+#~ msgid ""
+#~ "opac.pref#PmpaymentAccountingRecord# Additional information transferred "
+#~ "to the library's financial accounting system:"
+#~ msgstr ""
+#~ "Zusatzinformationen, die an das Finanzbuchhaltungssystem übertragen "
+#~ "werden sollen:"
+
+# OPAC > Payments via pmPayment > PmpaymentAgs
+#~ msgid "opac.pref#PmpaymentAgs# The library's officiary municipal key is "
+#~ msgstr "Amtlicher Gemeindeschlüssel der Bibliothek: "
+
+# OPAC > Payments
+#~ msgid "opac.pref#PmpaymentPaypageOpacPaymentsEnabled# Allow"
+#~ msgstr "Erlaube"
+
+# OPAC > Payments
+#~ msgid "opac.pref#PmpaymentPaypageOpacPaymentsEnabled# Don't allow"
+#~ msgstr "Erlaube nicht"
+
+# OPAC > Payments
+#~ msgid ""
+#~ "opac.pref#PmpaymentPaypageOpacPaymentsEnabled# patrons to make paypage "
+#~ "payments from the OPAC via pmPayment."
+#~ msgstr "pmPayment-Zahlungen im OPAC."
+
+# OPAC > Payments via pmPayment > PmpaymentPaypageWebservicesURL
+#~ msgid ""
+#~ "opac.pref#PmpaymentPaypageWebservicesURL# The URL for accessing pmPayment "
+#~ "paypage webservices is "
+#~ msgstr "URL für den Zugriff auf den pmPayment-Webservice: "
+
+# OPAC > Payments via pmPayment > PmpaymentProcedure
+#~ msgid ""
+#~ "opac.pref#PmpaymentProcedure# The library's pmPayment procedure "
+#~ "designation is "
+#~ msgstr "Fachverfahrensname der Bibliothek bei pmPayment: "
+
+# OPAC > Payments via pmPayment > PmpaymentRemittanceInfo
+#~ msgid ""
+#~ "opac.pref#PmpaymentRemittanceInfo# (Permitted characters: a-z A-Z 0-9 "
+#~ "':?,-(+.)/)"
+#~ msgstr "(Erlaubte Zeichen: a-z A-Z 0-9 ':?,-(+.)/)"
+
+# OPAC > Payments via pmPayment > PmpaymentRemittanceInfo
+#~ msgid ""
+#~ "opac.pref#PmpaymentRemittanceInfo# The text for the 'remittance "
+#~ "information' of the payment will be constructed from the pattern "
+#~ msgstr ""
+#~ "Der Text für den Verwendungszweck der Zahlung wird erstellt basierend auf "
+#~ "dem Muster "
+
+# OPAC > Payments via pmPayment > PmpaymentRemittanceInfo
+#~ msgid ""
+#~ "opac.pref#PmpaymentRemittanceInfo# by replacing the placeholder &lt;&lt;"
+#~ "borrowers.cardnumber&gt;&gt; by the patron's cardnumber."
+#~ msgstr ""
+#~ "wobei der Platzhalter &lt;&lt;borrowers.cardnumber&gt;&gt; durch die "
+#~ "Ausweisnummer des Benutzers ersetzt wird."
+
+# OPAC > Payments via pmPayment > PmpaymentSaltHmacSha256
+#~ msgid ""
+#~ "opac.pref#PmpaymentSaltHmacSha256# The library's pmPayment HMAC SHA-256 "
+#~ "salt is "
+#~ msgstr "Salt-Wert für Berechnung der HMAC SHA-256 Prüfsumme: "
 
 # OPAC > Features
 #~ msgid "opac.pref#reviewson# Allow"
