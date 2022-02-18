@@ -93,7 +93,7 @@ Accounting:
             - pref: SepaDirectDebitCreditorName
             - "."
         -
-            - "Name of the library used in XML file containing SEPA direct debits for XML-element &lt;GrpHdr&gt;&lt;InitgPty&gt;&lt;Nm&gt (usually uppercase) "
+            - "Name of the library used in XML file containing SEPA direct debits for XML-element &lt;GrpHdr&gt;&lt;InitgPty&gt;&lt;Nm&gt; (usually uppercase) "
             - pref: SepaDirectDebitInitiatingPartyName
             - "."
         -
