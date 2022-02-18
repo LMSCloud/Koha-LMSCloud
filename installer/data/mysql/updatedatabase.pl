@@ -26120,6 +26120,29 @@ if( CheckVersion( $DBversion ) ) {
     NewVersion( $DBversion, "", "Koha 21.05.09 release" );
 }
 
+$DBversion = '21.05.09.001';
+if( CheckVersion( $DBversion ) ) {
+    $dbh->do( q{
+        INSERT IGNORE INTO `systempreferences` VALUES 
+            ('SepaDirectDebitAccountTypes','ACCOUNT',NULL,'List of account types of open charges to be paid via SEPA direct debit, separated by \'|\'','Free'),
+            ('SepaDirectDebitBorrowerNoticeLettercode','',NULL,'Default lettercode of note sent to patron informing about the upcoming SEPA direct debit for the membership fee or other fines.','Free'),
+            ('SepaDirectDebitCashRegisterManagerCardnumber','',NULL,'Cardnumber of the staff account that is used for booking SEPA direct debit in the specially provided cash register.','Free'),
+            ('SepaDirectDebitCashRegisterName','',NULL,'Name of cash register for assignment of the SEPA direct debit payments.','Free'),
+            ('SepaDirectDebitCreditorBic','',NULL,'BIC of the library\'s bank account used in XML file containing SEPA direct debits.','Free'),
+            ('SepaDirectDebitCreditorIban','',NULL,'IBAN of the library\'s bank account used in XML file containing SEPA direct debits.','Free'),
+            ('SepaDirectDebitCreditorId','',NULL,'SEPA creditor ID of the library used in XML file containing SEPA direct debits.','Free'),
+            ('SepaDirectDebitCreditorName','',NULL,'Name of the library used in XML file containing SEPA direct debits for XML-element <PmtInf><Cdtr><Nm>.','Free'),
+            ('SepaDirectDebitInitiatingPartyName','',NULL,'Name of the library used in XML file containing SEPA direct debits for XML-element <GrpHdr><InitgPty><Nm> (usually uppercase).','Free'),
+            ('SepaDirectDebitLocalInstrumentCode','CORE',NULL,'Text used in XML file containing SEPA direct debits for <PmtInf><PmtTpInf><LclInstrm><Cd>. One of \'CORE\', \'COR1\'','Free'),
+            ('SepaDirectDebitMessageIdHeader','',NULL,'Text that, after appending the current date, will be used in XML file containing SEPA direct debits for XML-element <GrpHdr><MsgId>. Max. length: 27 (+8 for the date)','Free'),
+            ('SepaDirectDebitMinFeeSum','0.01',NULL,'A SEPA direct debit will be generated only if the sum of open fees of a borrower to be paid via SEPA direct debit is greater or equal this threshold value.','Free'),
+            ('SepaDirectDebitPaymentInstructionFileName','',NULL,'Pattern for the name of the file containing the SEPA direct debit payment instructions for the bank. Placeholders: century:<<cc>>, year:<<yy>>, month:<<mm>>, day:<<dd>>','Free'),
+            ('SepaDirectDebitRemittanceInfo','',NULL,'Text used in XML file containing SEPA direct debits for XML-element <PmtInf><DrctDbtTxInf><RmtInf><Ustrd>. By many banks only the first 27 characters are used.','Free'),
+            ('SIPCashRegisterName','',NULL,'Cash register name for SIP payments. If not specified, SIP payments will not be registered with a cash register.','Free')
+    });
+    NewVersion( $DBversion, "", "Add new system preferences for SEPA direct debit and a cash register name for SIP payments.");
+}
+
 # SEE bug 13068
 # if there is anything in the atomicupdate, read and execute it.
 my $update_dir = C4::Context->config('intranetdir') . '/installer/data/mysql/atomicupdate/';
