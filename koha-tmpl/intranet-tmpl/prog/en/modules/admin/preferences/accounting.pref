@@ -41,3 +41,86 @@ Accounting:
                 branchyyyymmincr: 'Automatically generate credit numbers in the form <branchcode>yyyymm0001'
                 incremental: 'Automatically generate credit numbers in the form 1, 2, 3'
             - Automatic generation also has to be enabled for each credit type (<a href="/cgi-bin/koha/admin/credit_types.pl">Configure credit types</a>)
+    LMSCloud cash registers:
+        -
+            - pref: ActivateCashRegisterTransactionsOnly
+              choices:
+                  1: "Use cash registers."
+                  0: "Don't use cash registers."
+            - "By activating cash registers, all cash transactions must be treated through an opened cash register. If activated, all payments of patrons and refunds can be managed by staff members who are authorized to use a cash register only."
+        -
+            - "Permit " 
+            - pref: PermitConcurrentCashRegisterUsers
+              choices:
+                  1: "all authorized staff users"
+                  0: "only one staff user"
+            - "to book to an opened cash register."
+        -
+            - "Online payments will be registered in the cash register named "
+            - pref: PaymentsOnlineCashRegisterName
+            - "."
+        -
+            - "Online payments will be registered using the following cash register manager (provide cardnumber)."
+            - pref: PaymentsOnlineCashRegisterManagerCardnumber
+            - "Please make sure the user account has the necessary permissions enabled and is configured as cash register manager."
+        -
+            - "Self service payment via SIP will be registered in the cash register named "
+            - pref: SIPCashRegisterName
+            - ". If not specified, SIP payments will not be registered in a cash register."
+        -
+            - "Name of cash register for assignment of the SEPA direct debit payments "
+            - pref: SepaDirectDebitCashRegisterName
+            - "."
+        -
+            - "Cardnumber of the staff account that is used for booking SEPA direct debit in the specially provided cash register "
+            - pref: SepaDirectDebitCashRegisterManagerCardnumber
+            - "."
+    SEPA direct debit:
+        -
+            - "BIC of the library's bank account used in XML file containing SEPA direct debits "
+            - pref: SepaDirectDebitCreditorBic
+            - "."
+        -
+            - "IBAN of the library's bank account used in XML file containing SEPA direct debits "
+            - pref: SepaDirectDebitCreditorIban
+            - "."
+        -
+            - "SEPA creditor ID of the library used in XML file containing SEPA direct debits "
+            - pref: SepaDirectDebitCreditorId
+            - "."
+        -
+            - "Name of the library used in XML file containing SEPA direct debits for XML-element &lt;PmtInf&gt;&lt;Cdtr&gt;&lt;Nm&gt; "
+            - pref: SepaDirectDebitCreditorName
+            - "."
+        -
+            - "Name of the library used in XML file containing SEPA direct debits for XML-element &lt;GrpHdr&gt;&lt;InitgPty&gt;&lt;Nm&gt (usually uppercase) "
+            - pref: SepaDirectDebitInitiatingPartyName
+            - "."
+        -
+            - "Text that, after appending the current date, will be used in XML file containing SEPA direct debits for XML-element &lt;GrpHdr&gt;&lt;MsgId&gt; "
+            - pref: SepaDirectDebitMessageIdHeader
+            - ".<br>Max. length: 27 (+8 for the date)"
+        -
+            - "Text used in XML file containing SEPA direct debits for XML-element &lt;PmtInf&gt;&lt;DrctDbtTxInf&gt;&lt;RmtInf&gt;&lt;Ustrd&gt; "
+            - pref: SepaDirectDebitRemittanceInfo
+            - ".<br>By many banks only the first 27 characters are used."
+        -
+            - "Default lettercode of note sent to patron informing about the upcoming SEPA direct debit for the membership fee or other fines "
+            - pref: SepaDirectDebitBorrowerNoticeLettercode
+            - "."
+        -
+            - "List of account types of fees to be paid via SEPA direct debit, separated by '|' "
+            - pref: SepaDirectDebitAccountTypes
+            - "."
+        -
+            - "A SEPA direct debit will be generated only if the sum of open fees of a borrower to be paid via SEPA direct debit is greater or equal this threshold value "
+            - pref: SepaDirectDebitMinFeeSum
+            - "."
+        -
+            - "Text used in XML file containing SEPA direct debits for &lt;PmtInf&gt;&lt;PmtTpInf&gt;&lt;LclInstrm&gt;&lt;Cd&gt;. One of 'CORE', 'COR1' "
+            - pref: SepaDirectDebitLocalInstrumentCode
+            - "."
+        -
+            - "Pattern for the name of the file containing the SEPA direct debit payment instructions for the bank. "
+            - pref: SepaDirectDebitPaymentInstructionFileName
+            - ". <br>Placeholders:<br>century:&lt;&lt;cc&gt;&gt;<br>year:&lt;&lt;yy&gt;&gt;<br>month:&lt;&lt;mm&gt;&gt;<br>day:&lt;&lt;dd&gt;&gt;"

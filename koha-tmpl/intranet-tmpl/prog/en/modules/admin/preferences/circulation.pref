@@ -1113,19 +1113,6 @@ Circulation:
                   not_always: "only if all items are checked out and the record has at least one hold already."
                   any_time_is_collected: "any time a hold is collected."
         -
-            - pref: ActivateCashRegisterTransactionsOnly
-              choices:
-                  1: "Use cash registers."
-                  0: "Don't use cash registers."
-            - "By activating cash registers, all cash transactions must be treated through an opened cash register. If activated, all payments of patrons and refunds can be managed by staff members who are authorized to use a cash register only."
-        -
-            - "Permit " 
-            - pref: PermitConcurrentCashRegisterUsers
-              choices:
-                  1: "all authorized staff users"
-                  0: "only one staff user"
-            - "to book to an opened cash register." 
-        -
             - pref: useDefaultReplacementCost
               choices:
                   1: Use
