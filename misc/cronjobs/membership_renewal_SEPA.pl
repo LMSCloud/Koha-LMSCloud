@@ -19,11 +19,11 @@
 
 =head1 NAME
 
-membership_renewal.pl - cron script for renewal of soon ending memberships and payment of resulting enrolment fees, and even other fines, via SEPA direct debit.
+membership_renewal_SEPA.pl - cron script for renewal of soon ending memberships and payment of resulting enrolment fees, and even other fines, via SEPA direct debit.
 
 =head1 SYNOPSIS
 
-./membership_renewal.pl -c -expiryAfterDays 0 -expiryBeforeDays 14 \ -sepaDirectDebitDelayDays 17 -action renewal_and_sepaDirectDebit
+./membership_renewal_SEPA.pl -c -expiryAfterDays 0 -expiryBeforeDays 14 \ -sepaDirectDebitDelayDays 17 -action renewal_and_sepaDirectDebit
 
 =head1 DESCRIPTION
 
