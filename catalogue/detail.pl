@@ -554,6 +554,33 @@ if ( (C4::Context->preference("HTML5MediaEnabled") eq 'both') or (C4::Context->p
     $template->param( C4::HTML5Media->gethtml5media($record));
 }
 
+# EKZ or Divibib Cover
+if ( C4::Context->preference("EKZCover") || C4::Context->preference("DivibibEnabled")) {
+    my @titlecoverurls = ();
+    my $coverfound = 0;
+    foreach my $tag( $record->field('856') ) {
+        if ( $tag->subfield('q') && $tag->subfield('u') && $tag->subfield('q') =~ /cover/ ) {
+            my $link = $tag->subfield('u');
+            $link =~ s#http:\/\/cover\.ekz\.de#https://cover.ekz.de#;
+            $link =~ s#http:\/\/www\.onleihe\.de#https://www.onleihe.de#;
+            push @titlecoverurls,$link;
+            $coverfound = 1;
+        }
+        elsif ( C4::Context->preference("DivibibEnabled") 
+                && $tag->subfield('u') 
+                && (
+                    ( $tag->subfield('n') && $tag->subfield('n') =~ /content sample/i ) ||
+                    ( $tag->subfield('z') && $tag->subfield('z') =~ /content sample/i )
+                   )
+                && $record->field('337') 
+                && $record->field('337')->subfield('a') ) 
+        {
+            $template->param('contentsample', { 'link' => $tag->subfield('u'), 'type' => $record->field('337')->subfield('a') });
+        }
+    }
+    $template->param(titlecoverurls => \@titlecoverurls ); 
+}
+
 # Displaying tags
 my $tag_quantity;
 if (C4::Context->preference('TagsEnabled') and $tag_quantity = C4::Context->preference('TagsShowOnDetail')) {

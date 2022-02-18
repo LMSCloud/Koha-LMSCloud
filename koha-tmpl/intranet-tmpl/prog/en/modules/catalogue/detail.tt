@@ -112,7 +112,7 @@
         <span class="Z3988" title="[% ocoins | html %]"></span>
     [% END %]
 
-    [% IF ( AmazonCoverImages  || LocalCoverImages || AdlibrisEnabled || IntranetCoce || (Koha.Preference('CustomCoverImages') && Koha.Preference('CustomCoverImagesURL')) ) %]
+    [% IF ( ( titlecoverurls && ( Koha.Preference('EKZCover') || Koha.Preference('DivibibEnabled') ) ) || AmazonCoverImages  || LocalCoverImages || AdlibrisEnabled || IntranetCoce || (Koha.Preference('CustomCoverImages') && Koha.Preference('CustomCoverImagesURL')) ) %]
         [% IF ( XSLTDetailsDisplay ) %]
             <div id="catalogue_detail_biblio" class="col-xs-9">
         [% ELSE %]
@@ -195,7 +195,7 @@
             </span>
         [% END %]
 
-        [% IF ( AmazonCoverImages  || LocalCoverImages || AdlibrisEnabled || IntranetCoce || (Koha.Preference('CustomCoverImages') && Koha.Preference('CustomCoverImagesURL')) ) %]
+        [% IF ( ( titlecoverurls && ( Koha.Preference('EKZCover') || Koha.Preference('DivibibEnabled') ) ) || AmazonCoverImages  || LocalCoverImages || AdlibrisEnabled || IntranetCoce || (Koha.Preference('CustomCoverImages') && Koha.Preference('CustomCoverImagesURL')) ) %]
             </div>
             <div class="col-xs-3 bookcoverimg">
                 <div id="biblio-cover-slider" class="cover-slider">
@@ -211,6 +211,21 @@
                             [% END %]
                         [% END %]
                     [% END %]
+
+                    [% IF ( titlecoverurls && ( Koha.Preference('EKZCover') || Koha.Preference('DivibibEnabled') ) ) %]
+                        [% FOREACH myurl IN titlecoverurls %] 
+                            <div class="cover-image">
+                                <img src="[% myurl %]" style="max-width:300px" alt="Cover image of record [% biblionumber %]"></img>
+                                [% IF myurl.match('ekz') %]
+                                    <div class="hint">ekz cover image</div>
+                                [% ELSIF myurl.match('onleihe') %]
+                                    <div class="hint">Onleihe cover image</div>
+                                [% ELSE %]
+                                    <div class="hint">Cover image</div>
+                                [% END %]
+                            </div>
+                        [% END # /FOREACH  %]
+                    [% END # / IF titlecoverurls %]
 
                     [% IF ( AdlibrisEnabled && normalized_isbn ) %]
                         <div class="cover-image" id="adlibris-coverimg">

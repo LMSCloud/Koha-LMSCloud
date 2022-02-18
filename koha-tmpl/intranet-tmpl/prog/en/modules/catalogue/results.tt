@@ -425,7 +425,7 @@
                                 <!-- TABLE RESULTS START -->
                                 <table>
                                     <tr>
-                                        [% IF ( AmazonCoverImages  || LocalCoverImages || AdlibrisEnabled || (Koha.Preference('CustomCoverImages') && Koha.Preference('CustomCoverImagesURL')) ) %]
+                                        [% IF ( Koha.Preference('EKZCover') || AmazonCoverImages  || LocalCoverImages || AdlibrisEnabled || (Koha.Preference('CustomCoverImages') && Koha.Preference('CustomCoverImagesURL')) ) %]
                                             <th>&nbsp;</th>
                                         [% END %]
                                         <th colspan="2">Results</th>
@@ -435,7 +435,7 @@
                                     [% SET MaxSearchResultsItemsPerRecordStatusCheck = Koha.Preference('MaxSearchResultsItemsPerRecordStatusCheck') %]
                                     [% FOREACH SEARCH_RESULT IN SEARCH_RESULTS %]
                                         <tr id="row[% SEARCH_RESULT.biblionumber | html %]">
-                                            [% IF ( AmazonCoverImages  || LocalCoverImages || AdlibrisEnabled || IntranetCoce || (Koha.Preference('CustomCoverImages') && Koha.Preference('CustomCoverImagesURL')) ) %]
+                                            [% IF ( Koha.Preference('EKZCover') || AmazonCoverImages  || LocalCoverImages || AdlibrisEnabled || IntranetCoce || (Koha.Preference('CustomCoverImages') && Koha.Preference('CustomCoverImagesURL')) ) %]
     <td class="bookcoverimg">
         <div id="cover-slides-[% SEARCH_RESULT.biblionumber | html %]" class="cover-slides" data-biblionumber="[% SEARCH_RESULT.biblionumber | html %]">
             [% IF ( LocalCoverImages ) %][% SEARCH_RESULT.localimage | html %]
@@ -453,6 +453,14 @@
                     <div class="hint">Adlibris cover image</div>
                 </div>
             [% END %]
+            
+            [% IF ( SEARCH_RESULT.url && Koha.Preference('EKZCover') ) %]
+                [% FOREACH myurl IN SEARCH_RESULT.titlecoverurls %] 
+                <div id="ekzcover-[% SEARCH_RESULT.biblionumber | html %]" class="cover-image ekzcover-coverimg">
+                    <img src="[% myurl %]" width="170" title="[% SEARCH_RESULT.biblionumber |url %]"></img>[% LAST %]
+                </div>
+                [% END # /FOREACH  %]
+            [% END # / IF url %]
 
             [% IF ( AmazonCoverImages && SEARCH_RESULT.normalized_isbn ) %]
                 <div id="amazon-bookcoverimg-[% SEARCH_RESULT.biblionumber | html %]" class="cover-image amazon-bookcoverimg">
