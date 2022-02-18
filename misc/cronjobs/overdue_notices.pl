@@ -540,8 +540,8 @@ foreach my $branchcode (@branches) {
     
     my $familyCardMemberOverdueReceiverSelect = '';
     if ( C4::Context->preference('FamilyCardMemberOverdueReceiver') eq 'owner' ) {
-       $familyCardMemberOverdueReceiverSelect = ' OR issues.borrowernumber IN ( SELECT DISTINCT b.borrowernumber FROM borrowers b, borrowers o, categories c ' .
-                                                ' WHERE b.guarantorid = ? AND o.borrowernumber = b.guarantorid AND c.categorycode = o.categorycode AND c.family_card = 1)';
+       $familyCardMemberOverdueReceiverSelect = ' OR issues.borrowernumber IN ( SELECT DISTINCT b.guarantee_id FROM borrower_relationships b, borrowers o, categories c ' .
+                                                ' WHERE o.borrowernumber = ? AND o.borrowernumber = b.guarantor_id AND c.categorycode = o.categorycode AND c.family_card = 1)';
     }
     
     my $sql2 = <<"END_SQL";
@@ -619,7 +619,7 @@ END_SQL
 
             my $exludeFamilyCardMembers = '';
             if ( C4::Context->preference('FamilyCardMemberOverdueReceiver') eq 'owner' ) {
-                $exludeFamilyCardMembers = 'AND NOT EXISTS ( SELECT 1 FROM borrowers b, categories c WHERE b.borrowernumber = borrowers.guarantorid AND c.categorycode = b.categorycode AND c.family_card = 1)';
+                $exludeFamilyCardMembers = 'AND NOT EXISTS (SELECT 1 FROM borrower_relationships r, borrowers b, categories c WHERE borrowers.borrowernumber = r.guarantee_id and b.borrowernumber = r.guarantor_id AND c.categorycode = b.categorycode AND c.family_card = 1)';
             }
             my $branchsel = 'branches.branchcode = issues.branchcode';
             if ( $owning_library ) {
