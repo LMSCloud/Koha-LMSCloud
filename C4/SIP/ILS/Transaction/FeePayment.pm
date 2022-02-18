@@ -1,9 +1,5 @@
 package C4::SIP::ILS::Transaction::FeePayment;
 
-use warnings;
-use strict;
-use Carp;
-
 # Copyright 2011 PTFS-Europe Ltd.
 #
 # This file is part of Koha.
@@ -21,12 +17,16 @@ use Carp;
 # You should have received a copy of the GNU General Public License
 # along with Koha; if not, see <http://www.gnu.org/licenses>.
 
+use warnings;
+use strict;
+
 use C4::Context;
 
 use Koha::Account;
 use Koha::Account::Lines;
 
 use C4::CashRegisterManagement;
+use C4::SIP::Sip qw(siplog);
 
 use parent qw(C4::SIP::ILS::Transaction);
 
@@ -63,26 +63,24 @@ sub pay {
     if ($disallow_overpayment) {
         return { ok => 0 } if $account->balance < $amt;
     }
-    
+ 
     my $withoutCashRegisterManagement = checkOpenedCashRegisterIfConfigured();
+    
+    siplog("LOG_DEBUG", "pay fee: borrowernumber %d, sip_type %s, amount %f, withoutCashRegisterManagement = %d",$borrowernumber, $amt, $sip_type, $withoutCashRegisterManagement);
 
+    my $pay_options = {
+        amount        => $amt,
+        type          => $type,
+        payment_type  => 'SIP' . $sip_type,
+        interface     => C4::Context->interface,
+        cash_register => $register_id,
+        withoutCashRegisterManagement => $withoutCashRegisterManagement,
+    };
+    
     if ($fee_id) {
         my $fee = Koha::Account::Lines->find($fee_id);
         if ( $fee ) {
-            my $pay_response = $account->pay(
-                {
-                    amount       => $amt,
-                    type         => $type,
-                    payment_type => 'SIP' . $sip_type,
-                    lines        => [$fee],
-                    interface    => C4::Context->interface,
-                    withoutCashRegisterManagement => $withoutCashRegisterManagement
-                }
-            );
-            return {
-                ok           => 1,
-                pay_response => $pay_response
-            };
+            $pay_options->{lines} = [$fee];
         }
         else {
             return {
@@ -90,22 +88,23 @@ sub pay {
             };
         }
     }
-    else {
-        my $pay_response = $account->pay(
-            {
-                amount        => $amt,
-                type          => $type,
-                payment_type  => 'SIP' . $sip_type,
-                interface     => C4::Context->interface,
-                cash_register => $register_id,
-                withoutCashRegisterManagement => $withoutCashRegisterManagement
-            }
-        );
+
+    my $pay_response;
+    eval {
+            $pay_response = $account->pay($pay_options);
+    };
+    
+    if ( $@ ) {
+        siplog("LOG_DEBUG", "pay fee error: %s", $@);
         return {
-            ok           => 1,
-            pay_response => $pay_response
+            ok           => 0,
         };
     }
+    
+    return {
+        ok           => 1,
+        pay_response => $pay_response
+    };
 }
 
 sub checkOpenedCashRegisterIfConfigured {
@@ -117,13 +116,19 @@ sub checkOpenedCashRegisterIfConfigured {
     my $retWithoutCashRegisterManagement = 1;
     
     if ( $cashregname ) {
+        
         my $cashRegisterMngmt = C4::CashRegisterManagement->new($branch, $manager_id);
         my $openedCashRegister = $cashRegisterMngmt->getOpenedCashRegisterByManagerID($manager_id);
+        
+        siplog("LOG_DEBUG", "sip pay fee: use cash register %s (current status open: %d)",$cashregname,($openedCashRegister ? 1 : 0));
         
         if ( $openedCashRegister ) {
             if ( $openedCashRegister->{'cash_register_name'} ne $cashregname ) {
                 $cashRegisterMngmt->closeCashRegister($openedCashRegister->{'cash_register_id'}, $manager_id);
                 $openedCashRegister = undef;
+            }
+            else {
+                $withoutCashRegisterManagement = 0;
             }
         }
         if (! $openedCashRegister ) {
@@ -134,7 +139,7 @@ sub checkOpenedCashRegisterIfConfigured {
             }
         }
         if (! $openedCashRegister ) {
-            croak "Cannot open cash register '$cashregname' for manager id '$manager_id' of branch '$branch' for SIP payment.";
+            siplog("LOG_ERROR", "Cannot open cash register '%s' for manager id '%s' of branch '%s' for SIP payment.", $cashregname, $manager_id, $branch);
         }
     }
     return $withoutCashRegisterManagement;

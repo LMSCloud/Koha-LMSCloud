@@ -87,7 +87,7 @@ sub pay {
     my $onlinePaymentCashRegisterManagerId = $params->{onlinePaymentCashRegisterManagerId} || 0;
 
     my $userenv = C4::Context->userenv;
-
+    $library_id = $userenv->{branch} if (!$library_id && $userenv && $userenv->{branch});
     my $manager_id = $userenv ? $userenv->{number} : undef;
     if ( $onlinePaymentCashRegisterManagerId > 0 ) {
         $manager_id = $onlinePaymentCashRegisterManagerId;
@@ -118,14 +118,11 @@ sub pay {
             { debits => [ $self->outstanding_debits->as_list ] } );
     }
 
-    my $patron = Koha::Patrons->find( $self->{patron_id} );
-    my @account_offsets = $payment->credit_offsets(
-        {
-            type => $Koha::Account::offset_type->{$type},
-            -not => { debit_id => undef }
-        }
-    )->as_list;
     if ( C4::Context->preference('UseEmailReceipts') ) {
+        
+        my $patron = Koha::Patrons->find( $self->{patron_id} );
+        my @account_offsets = $payment->credit_offsets({ type => 'APPLY' })->as_list;
+        
         if (
             my $letter = C4::Letters::GetPreparedLetter(
                 module                 => 'circulation',
@@ -366,7 +363,7 @@ sub payin_amount {
     # Check whether cash registers are activated and mandatory for payment actions.
     # If thats the case than we need to check whether the manager has opened a cash
     # register to use for payments.
-    if ( !$params->{noCashReg} && $params->{payment_type} eq /^(CASH|SEPA|ONLINE|SIP)/ && C4::Context->preference("ActivateCashRegisterTransactionsOnly") && $params->{type} eq 'PAYMENT' ) {
+    if ( !$params->{noCashReg} && $params->{payment_type} =~ /^(CASH|SEPA|ONLINE|SIP)/ && C4::Context->preference("ActivateCashRegisterTransactionsOnly") && $params->{type} eq 'PAYMENT' ) {
         $cash_register_mngmt = C4::CashRegisterManagement->new($params->{library_id}, $params->{user_id});
         
         # if there is no open cash register of the manager we return without a doing the payment
@@ -405,7 +402,7 @@ sub payin_amount {
             
             # If it is not SIP it is a cash payment and if cash registers are activated as too,
             # the cash payment need to registered for the opened cash register as cash receipt
-            if ( !$params->{noCashReg} && $params->{payment_type} eq /^(CASH|SEPA|ONLINE|SIP)/ && C4::Context->preference("ActivateCashRegisterTransactionsOnly") && $params->{type} eq 'PAYMENT' ) {    
+            if ( !$params->{noCashReg} && $params->{payment_type} =~  /^(CASH|SEPA|ONLINE|SIP)/ && C4::Context->preference("ActivateCashRegisterTransactionsOnly") && $params->{type} eq 'PAYMENT' ) {    
                 $cash_register_mngmt->registerPayment($params->{library_id}, $params->{user_id}, $params->{amount}, $credit->id());
             }
         }
