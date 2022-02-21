@@ -970,7 +970,7 @@ sub _parseletter {
         }
     }
 
-    if ($table eq 'borrowers' && $letter->{content}) {
+    if (($table eq 'borrowers' || $table eq 'account') && $letter->{content}) {
         if ( my $attributes = GetBorrowerAttributes($values->{borrowernumber}) ) {
             my %attr;
             foreach (@$attributes) {
@@ -983,6 +983,9 @@ sub _parseletter {
             }
             while ( my ($code, $val_ar) = each %attr ) {
                 my $replacefield = "<<borrower-attribute:$code>>";
+                if ($table eq 'account') {
+                    $replacefield = "<<account-attribute:$code>>";
+                }
                 my $replacedby   = join ',', @$val_ar;
                 $letter->{content} =~ s/$replacefield/$replacedby/g;
             }
