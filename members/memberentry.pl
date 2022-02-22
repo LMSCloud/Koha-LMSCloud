@@ -273,19 +273,6 @@ if ( ( $op eq 'insert' ) and !$nodouble ) {
     if ( $patrons->count > 0) {
         $nodouble = 0;
         $check_member = $patrons->next->borrowernumber;
-
-
-        my @new_guarantors;
-        my @new_guarantor_id           = $input->multi_param('new_guarantor_id');
-        my @new_guarantor_relationship = $input->multi_param('new_guarantor_relationship');
-        foreach my $gid ( @new_guarantor_id ) {
-            my $patron = Koha::Patrons->find( $gid );
-            my $relationship = shift( @new_guarantor_relationship );
-            next unless $patron;
-            my $g = { patron => $patron, relationship => $relationship };
-            push( @new_guarantors, $g );
-        }
-        $template->param( new_guarantors => \@new_guarantors );
     }
 }
 
@@ -605,6 +592,21 @@ if ((!$nok) and $nodouble and ($op eq 'insert' or $op eq 'save')){
           );
         exit; # You can only send 1 redirect!  After that, content or other headers don't matter.
     }
+}
+
+
+if ($op eq 'save' || $op eq 'insert' || $op eq 'add' || $op eq 'modify' ){
+    my @new_guarantors;
+    my @new_guarantor_id           = $input->multi_param('new_guarantor_id');
+    my @new_guarantor_relationship = $input->multi_param('new_guarantor_relationship');
+    foreach my $gid ( @new_guarantor_id ) {
+        my $patron = Koha::Patrons->find( $gid );
+        my $relationship = shift( @new_guarantor_relationship );
+        next unless $patron;
+        my $g = { patron => $patron, relationship => $relationship };
+        push( @new_guarantors, $g );
+    }
+    $template->param( new_guarantors => \@new_guarantors );
 }
 
 if ($delete){
