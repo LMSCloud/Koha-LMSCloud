@@ -122,7 +122,7 @@ sub checkSepaDirectDebitConfiguration {
         { variable => 'SepaDirectDebitMessageIdHeader', mandatory => 0 },           # e.g. 'Lastschrift Stadtbuecherei-' (current date will be appended in form yyyymmdd)
         { variable => 'SepaDirectDebitRemittanceInfo', mandatory => 1 },            # e.g. 'Jahresentgelt' (max. length 140 chars)
         { variable => 'SepaDirectDebitBorrowerNoticeLettercode', mandatory => 0 },  # e.g. 'SEPA_NOTE_CHARGE'. Value '' or undef indicates that the library has deactivated the notification.
-        { variable => 'SepaDirectDebitAccountTypes', mandatory => 1 },              # e.g. 'A|M|F'
+        { variable => 'SepaDirectDebitAccountTypes', mandatory => 1 },              # e.g. 'ACCOUNT|MANUAL|OVERDUE'
         { variable => 'SepaDirectDebitMinFeeSum', mandatory => 0 },                 # e.g. '5.00'. Value '' or undef results in default value 0.01.
         { variable => 'SepaDirectDebitLocalInstrumentCode', mandatory => 1 },       # e.g. 'CORE'. 'COR1'.'B2B' (CORE = SEPA Basis-Lastschrift (Verbraucher); COR1 entspricht CORE, jedoch mit auf 1 Bankarbeitstag reduzierter Bearbeitungszeit)
         { variable => 'SepaDirectDebitPaymentInstructionFileName', mandatory => 1 } # e.g. 'pain.008.<<cc>><<yy>><<mm>><<dd>>.xml'
@@ -367,11 +367,11 @@ sub paySelectedFeesForSepaDirectDebitPatrons {
     }
 
     # providing selection for accounttype
-    my $accountTypesSel = 'A';    # In the first version of SEPA direct debit payment only membership fees (accounttype = 'A') had to be handled.
+    my $accountTypesSel = 'ACCOUNT';    # In the first version of SEPA direct debit payment only membership fees (accounttype = 'ACCOUNT') had to be handled.
     my $sepaDirectDebitAccountTypes = $self->{sepaSysPrefs}->{SepaDirectDebitAccountTypes};
     print STDERR "Koha::SEPAPayment::paySelectedFeesForSepaDirectDebitPatrons() sepaDirectDebitAccountTypes:" . $sepaDirectDebitAccountTypes . ":\n" if $self->{verbose} > 1;
     if ( $sepaDirectDebitAccountTypes ) {
-        $accountTypesSel = '';    # In the second version of SEPA direct debit payment all accounttypes of interest have to be configured. (e.g. 'A|M|F')
+        $accountTypesSel = '';    # In the second version of SEPA direct debit payment all accounttypes of interest have to be configured. (e.g. 'ACCOUNT|MANUAL|OVERDUE')
         my @accountTypes = split(/\|/, $sepaDirectDebitAccountTypes);
         foreach my $accountType (@accountTypes) {
             if ( $accountTypesSel ) {
