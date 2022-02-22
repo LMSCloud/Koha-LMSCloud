@@ -115,6 +115,9 @@
                         case "Order ID":
                             labeltext =  _("Order ID");
                         break;
+                        case "ordererRemark":
+                            labeltext =  _("Remark");
+                        break;
                         case "Title":
                             labeltext =  _("Title");
                         break;
