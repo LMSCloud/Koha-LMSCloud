@@ -40,6 +40,7 @@ updateVariablesInNewsTexts();
 updateSidebarLinks();
 updateOPACUserJS();
 rebuildElasticSearchIndex();
+createSIPEnabledFile($instance);
 
 &migrate_epayment_to_2105('LMSC');
 &migrate_epayment_to_2105('KohaPayPal');
@@ -1554,3 +1555,14 @@ sub migrate_epayment_to_2105 {
 
 }
 
+sub createSIPEnabledFile {
+    my $instance = shift;
+    my $libfile = "/var/lib/koha/$instance/sip.enabled" ;
+    
+    if ( -f "/etc/koha/sites/$instance/SIPconfig.xml" && ! -f $libfile )  {
+        open(my $fh, "<", $libfile);
+        close($fh);
+        chown "$instance-koha", "$instance-koha", $libfile;
+        chmod 0644, $libfile;
+    }
+}
