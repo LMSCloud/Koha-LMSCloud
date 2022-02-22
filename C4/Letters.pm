@@ -1026,7 +1026,7 @@ sub _parseletter {
         }
     }
 
-    if ($table eq 'borrowers' && $letter->{content}) {
+    if (($table eq 'borrowers' || $table eq 'account') && $letter->{content}) {
         my $patron = Koha::Patrons->find( $values->{borrowernumber} );
         if ( $patron ) {
             my $attributes = $patron->extended_attributes;
@@ -1041,6 +1041,9 @@ sub _parseletter {
             }
             while ( my ($code, $val_ar) = each %attr ) {
                 my $replacefield = "<<borrower-attribute:$code>>";
+                if ($table eq 'account') {
+                    $replacefield = "<<account-attribute:$code>>";
+                }
                 my $replacedby   = join ',', @$val_ar;
                 $letter->{content} =~ s/$replacefield/$replacedby/g;
             }
