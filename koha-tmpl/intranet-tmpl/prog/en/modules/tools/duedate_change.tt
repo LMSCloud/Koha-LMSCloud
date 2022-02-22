@@ -106,8 +106,8 @@
                     
                     [% IF ( founddates > 0 ) %]
                     <form id="changeDate" method="post" action="/cgi-bin/koha/tools/duedate_change.pl">
-                        <div class="yui-g">
-                            <div class="yui-u first">
+                        <div class="row">
+                            <div class="col-sm-6">
                                 <fieldset class="rows">
                                     <legend>Current due-dates of checked-out items:</legend>
                                     <input type="hidden" name="branchselect" value="[% selectedbranch | html %]"/>
@@ -141,7 +141,7 @@
                                     </table>
                                 </fieldset>
                             </div>
-                            <div class="yui-u">
+                            <div class="col-sm-6">
                                 <div id="changeDate-actions" class="changeDate-duedates">
                                     <fieldset class="rows">
                                         <legend>Selected due-dates to change:</legend>
@@ -258,6 +258,26 @@
             else {
                 $("#changeDate-actions").css("visibility", "hidden");
             }
+        }
+        
+        function get_local_dateformat_str(dateformat) {
+            var dateformat_str;
+            if ( dateformat == 'us' ) {
+                dateformat_str = 'mm/dd/yy';
+            } else if ( dateformat == 'metric' ) {
+                dateformat_str = 'dd/mm/yy';
+            } else if (dateformat == 'iso' ) {
+                dateformat_str = 'yy-mm-dd';
+            } else if ( dateformat == 'dmydot' ) {
+                dateformat_str = 'dd.mm.yy';
+            }
+            return dateformat_str;
+        }
+
+        function formatIsoAsLocalDate(datestr) {
+            var date = $.datepicker.parseDate(get_local_dateformat_str('iso'), datestr);
+            var ret = $.datepicker.formatDate(get_local_dateformat_str('dmydot'), date);
+            return (ret);
         }
      
         $(document).ready(function() {
