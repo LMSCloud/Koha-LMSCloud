@@ -5776,20 +5776,6 @@ msgstr ""
 "dass Benutzer die Bibliothek auswählen, in der Sie eine Vormerkung abholen "
 "möchten."
 
-# Circulation > Holds policy
-msgid "circulation.pref#OPACAllowUserToChooseMobileStation# Don't show"
-msgstr "Zeige nicht"
-
-# Circulation > Holds policy
-msgid "circulation.pref#OPACAllowUserToChooseMobileStation# Show"
-msgstr "Zeige"
-
-# Circulation > Holds policy
-msgid ""
-"circulation.pref#OPACAllowUserToChooseMobileStation# book mobile stations in "
-"branches select box when placing a hold."
-msgstr " Bushaltestellen in der Auswahl der Abholstandorte für Reservierungen."
-
 # Circulation > Checkout policy
 msgid ""
 "circulation.pref#OPACFineNoRenewalsBlockAutoRenew# If a patron owes more "
@@ -16370,6 +16356,21 @@ msgstr ""
 #~ "circulation.pref#BatchCheckoutsValidCategories# (list of patron "
 #~ "categories separated with a pipe '|')."
 #~ msgstr "(Liste der Benutzertypen getrennt mit Pipe '|')."
+
+# Circulation > Holds policy
+#~ msgid "circulation.pref#OPACAllowUserToChooseMobileStation# Don't show"
+#~ msgstr "Zeige nicht"
+
+# Circulation > Holds policy
+#~ msgid "circulation.pref#OPACAllowUserToChooseMobileStation# Show"
+#~ msgstr "Zeige"
+
+# Circulation > Holds policy
+#~ msgid ""
+#~ "circulation.pref#OPACAllowUserToChooseMobileStation# book mobile stations "
+#~ "in branches select box when placing a hold."
+#~ msgstr ""
+#~ " Bushaltestellen in der Auswahl der Abholstandorte für Reservierungen."
 
 # Circulation > Checkout policy
 #~ msgid "circulation.pref#OPACFineNoRenewalsBlockAutoRenew# Allow"

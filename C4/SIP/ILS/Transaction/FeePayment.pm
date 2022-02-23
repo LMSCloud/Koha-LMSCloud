@@ -63,9 +63,9 @@ sub pay {
     if ($disallow_overpayment) {
         return { ok => 0 } if $account->balance < $amt;
     }
- 
+
     my $withoutCashRegisterManagement = checkOpenedCashRegisterIfConfigured();
-    
+
     siplog("LOG_DEBUG", "pay fee: borrowernumber %d, sip_type %s, amount %f, withoutCashRegisterManagement = %d",$borrowernumber, $amt, $sip_type, $withoutCashRegisterManagement);
 
     my $pay_options = {
@@ -76,7 +76,7 @@ sub pay {
         cash_register => $register_id,
         withoutCashRegisterManagement => $withoutCashRegisterManagement,
     };
-    
+
     if ($fee_id) {
         my $fee = Koha::Account::Lines->find($fee_id);
         if ( $fee ) {
@@ -100,7 +100,7 @@ sub pay {
             ok           => 0,
         };
     }
-    
+
     return {
         ok           => 1,
         pay_response => $pay_response

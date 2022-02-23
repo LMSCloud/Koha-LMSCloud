@@ -181,9 +181,10 @@ sub set_waiting {
     $self->priority(0);
 
     my $today = dt_from_string();
+
     my $values = {
         found => 'W',
-        waitingdate => $today->ymd,
+        ( !$self->waitingdate ? ( waitingdate => $today->ymd ) : () ),
         desk_id => $desk_id,
     };
 
@@ -240,16 +241,16 @@ sub is_pickup_location_valid {
     Koha::Exceptions::MissingParameter->throw('The library_id parameter is mandatory')
         unless $params->{library_id};
 
-    my @pickup_locations;
+    my $pickup_locations;
 
     if ( $self->itemnumber ) { # item-level
-        @pickup_locations = $self->item->pickup_locations({ patron => $self->patron });
+        $pickup_locations = $self->item->pickup_locations({ patron => $self->patron });
     }
     else { # biblio-level
-        @pickup_locations = $self->biblio->pickup_locations({ patron => $self->patron });
+        $pickup_locations = $self->biblio->pickup_locations({ patron => $self->patron });
     }
 
-    return any { $_->branchcode eq $params->{library_id} } @pickup_locations;
+    return any { $_->branchcode eq $params->{library_id} } $pickup_locations->as_list;
 }
 
 =head3 set_pickup_location

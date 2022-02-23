@@ -26145,6 +26145,16 @@ if( CheckVersion( $DBversion ) ) {
 
 $DBversion = '21.05.09.002';
 if( CheckVersion( $DBversion ) ) {
+    $dbh->do(q{
+            UPDATE letter
+            SET content=REPLACE(content, "[% ELSIF checkout.auto_renew_error == 'too_unseen' %]\r\nThis item must be renewed at the library.\r\n[% END %]", "[% ELSIF checkout.auto_renew_error == 'too_unseen' %]\r\nThis item must be renewed at the library.\r\n[% ELSIF checkout.auto_renew_error == 'auto_account_expired' %]\r\nYour account has expired.\r\n[% END %]")
+            WHERE code="AUTO_RENEWALS"
+            });
+    NewVersion( $DBversion, "29557", "Add auto_account_expired to AUTO_RENEWALS notice. Please update your AUTO_RENEWALS notice manually if you have changed or translated it." );
+}
+
+$DBversion = '21.05.09.003';
+if( CheckVersion( $DBversion ) ) {
     my $accounttypes = [['NOTF','NOTIFICATION'],
                         ['CL1','CLAIM_LEVEL1'],
                         ['CL2','CLAIM_LEVEL2'],
@@ -26250,6 +26260,65 @@ if( CheckVersion( $DBversion ) ) {
     }
     
     NewVersion( $DBversion, "", "Map debit types of systempreference settings SepaDirectDebitAccountTypes and authorized values categorie PaymentAccounttypeEpaybl, ACCOUNT_TYPE_MAPPING, DEBIT_TYPE_SIP2_MAPPED to new Koha debit type codes.");
+}
+
+$DBversion = '21.05.09.004';
+if( CheckVersion( $DBversion ) ) {
+    $dbh->do(q{
+        UPDATE branches SET pickup_location = 0 WHERE branchcode = 'eBib' AND pickup_location = 1
+    });
+    
+    my $pickupMobile = C4::Context->preference('OPACAllowUserToChooseMobileStation');
+    
+    if (! $pickupMobile ) {
+        $dbh->do(q{
+            UPDATE branches SET pickup_location = 0 WHERE mobilebranch IS NOT NULL AND mobilebranch <> '' AND pickup_location = 1
+        });
+    }
+    # Remove the OPACAllowUserToChooseMobileStation system preference
+    $dbh->do("DELETE FROM systempreferences WHERE variable='OPACAllowUserToChooseMobileStation'");
+    
+    NewVersion( $DBversion, "", "Remove system preference 'OPACAllowUserToChooseMobileStation'");
+}
+
+$DBversion = '21.05.10.000';
+if( CheckVersion( $DBversion ) ) {
+    NewVersion( $DBversion, "", "Koha 21.05.10 release" );
+}
+
+$DBversion = '21.05.10.001';
+if( CheckVersion( $DBversion ) ) {
+    $dbh->do(q|ALTER TABLE additional_fields CHANGE authorised_value_category authorised_value_category varchar(32) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT ''|);
+    $dbh->do(q|ALTER TABLE auth_subfield_structure CHANGE authorised_value authorised_value varchar(32) COLLATE utf8mb4_unicode_ci DEFAULT NULL|);
+    $dbh->do(q|ALTER TABLE auth_tag_structure CHANGE authorised_value authorised_value varchar(32) COLLATE utf8mb4_unicode_ci DEFAULT NULL|);
+    $dbh->do(q|ALTER TABLE club_template_enrollment_fields CHANGE authorised_value_category authorised_value_category varchar(32) COLLATE utf8mb4_unicode_ci DEFAULT NULL|);
+    $dbh->do(q|ALTER TABLE club_template_fields CHANGE authorised_value_category authorised_value_category varchar(32) COLLATE utf8mb4_unicode_ci DEFAULT NULL|);
+    $dbh->do(q|ALTER TABLE marc_tag_structure CHANGE authorised_value authorised_value varchar(32) COLLATE utf8mb4_unicode_ci DEFAULT NULL|);
+    NewVersion( $DBversion, 29336, "Resize authorised value category fields to 32 chars");
+}
+
+$DBversion = '21.05.10.002'; # will be replaced by the RM
+if( CheckVersion( $DBversion ) ) {
+    if ( foreign_key_exists( 'return_claims', 'issue_id' ) ) {
+        $dbh->do(q{
+            ALTER TABLE return_claims DROP FOREIGN KEY issue_id
+        });
+    }
+
+    NewVersion( $DBversion, 29495, "Issue link is lost in return claims when using 'MarkLostItemsAsReturned'");
+}
+
+$DBversion = '21.05.10.003';
+if( CheckVersion( $DBversion ) ) {
+    $dbh->do(q{
+             UPDATE letter SET content = REPLACE(content, '[% borrowers.', '[% borrower.') WHERE code = 'NOTIFY_MANAGER'
+           });
+    NewVersion( $DBversion, "29943", "Fix typo in NOTIFY_MANAGER notice" );
+}
+
+$DBversion = '21.05.11.000';
+if( CheckVersion( $DBversion ) ) {
+    NewVersion( $DBversion, "", "Koha 21.05.11 release" );
 }
 
 # SEE bug 13068

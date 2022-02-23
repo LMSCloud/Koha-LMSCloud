@@ -2,7 +2,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Koha 21.05\n"
 "POT-Creation-Date: \n"
-"PO-Revision-Date: 2022-02-06 11:38+0100\n"
+"PO-Revision-Date: 2022-02-23 11:37+0100\n"
 "Last-Translator: Katrin Fischer <katrin.fischer@bsz-bw.de>\n"
 "Language-Team: Koha Translation Team\n"
 "Language: de\n"
@@ -419,6 +419,10 @@ msgstr "BevollmächtigteR"
 #: installer/data/mysql/en/optional/marc21_relatorterms.yml:authorised_values:1:row:16
 msgid "Associated name"
 msgstr "Assoziierter Name"
+
+#: installer/data/mysql/en/optional/sample_quotes.yml:quotes:1:row:35
+msgid "At the end of the day, we can endure much more than we think we can."
+msgstr "Am Ende des Tages können wir viel mehr ertragen, als wir glauben."
 
 #: installer/data/mysql/en/optional/marc21_relatorterms.yml:authorised_values:1:row:17
 msgid "Attributed name"
@@ -1136,6 +1140,18 @@ msgstr "UngewisseR VerfasserIn"
 msgid "EBook"
 msgstr "E-Book"
 
+#: installer/data/mysql/en/optional/sample_quotes.yml:quotes:1:row:45
+msgid ""
+"Each and every one of us has the capacity to be an oppressor. I want to "
+"encourage each and every one of us to interrogate how we might be an "
+"oppressor and how we might be able to become liberators for ourselves and "
+"for each other."
+msgstr ""
+"Jeder von uns hat die Fähigkeit, ein Unterdrücker zu sein. Ich möchte jeden "
+"einzelnen von uns ermutigen, zu hinterfragen, wie wir Unterdrücker sein "
+"könnten und wie wir in der Lage sein könnten, Befreier für uns selbst und "
+"füreinander zu werden."
+
 #: installer/data/mysql/en/optional/sample_quotes.yml:quotes:1:row:28
 msgid ""
 "Each generation goes further than the generation preceding it because it "
@@ -1272,6 +1288,14 @@ msgstr "Generische Umbruchregeln"
 msgid "Geographic information specialist"
 msgstr "GeographischeR InformationsspezialistIn"
 
+#: installer/data/mysql/en/optional/sample_quotes.yml:quotes:1:row:32
+msgid ""
+"Girls are capable of doing everything men are capable of doing. Sometimes "
+"they have more imagination than men."
+msgstr ""
+"Mädchen können alles, was Männer können. Manchmal haben sie mehr Fantasie "
+"als Männer."
+
 #: installer/data/mysql/en/optional/marc21_holdings_coded_values.yml:authorised_values:1:row:26
 msgid "Globe"
 msgstr "Globus"
@@ -1299,6 +1323,10 @@ msgstr "Erdglobus"
 #: installer/data/mysql/en/optional/marc21_relatorterms.yml:authorised_values:1:row:106
 msgid "Graphic technician"
 msgstr "GrafischeR TechnikerIn"
+
+#: installer/data/mysql/en/optional/sample_quotes.yml:quotes:1:row:36
+msgid "Have no fear of perfection; you'll never reach it."
+msgstr "Habe keine Angst vor Perfektion; du wirst sie nie erreichen."
 
 #: installer/data/mysql/en/optional/sample_quotes.yml:quotes:1:row:6
 msgid "He serves his party best who serves his country best."
@@ -1354,6 +1382,14 @@ msgstr "GefeierteR"
 msgid "Host"
 msgstr "GastgeberIn"
 
+#: installer/data/mysql/en/optional/sample_quotes.yml:quotes:1:row:41
+msgid ""
+"I am thankful for my struggle because, without it, I wouldn't have stumbled "
+"across my strength."
+msgstr ""
+"Ich bin dankbar für meinen Kampf, denn ohne ihn wäre ich nicht über meine "
+"Stärke gestolpert."
+
 #: installer/data/mysql/en/optional/sample_quotes.yml:quotes:1:row:20
 msgid ""
 "I do not think it altogether inappropriate to introduce myself to this "
@@ -1363,6 +1399,13 @@ msgstr ""
 "I do not think it altogether inappropriate to introduce myself to this "
 "audience. I am the man who accompanied Jacqueline Kennedy to Paris, and I "
 "have enjoyed it."
+
+#: installer/data/mysql/en/optional/sample_quotes.yml:quotes:1:row:39
+msgid ""
+"I don't mind living in a man's world, as long as I get to be a woman in it."
+msgstr ""
+"Es macht mir nichts aus, in einer Männerwelt zu leben, solange ich darin "
+"eine Frau sein darf."
 
 #: installer/data/mysql/en/optional/sample_quotes.yml:quotes:1:row:5
 msgid ""
@@ -1386,6 +1429,14 @@ msgstr ""
 "I have come to the conclusion that the major part of the president is to "
 "increase the gate receipts of expositions and fairs and bring tourists to "
 "town."
+
+#: installer/data/mysql/en/optional/sample_quotes.yml:quotes:1:row:33
+msgid ""
+"I really think a champion is defined not by their wins but by how they can "
+"recover when they fall."
+msgstr ""
+"Ich glaube fest, dass ein Champion nicht durch seine Siege definiert wird, "
+"sondern wie er sich nach einem Sturz erholen kann."
 
 #: installer/data/mysql/en/mandatory/sample_notices.yml:letter:1:row:29
 msgid "ILL request cancelled"
@@ -1426,6 +1477,14 @@ msgid ""
 msgstr ""
 "Wenn Sie diese Anfrage nicht gestellt haben, können Sie diese einmalige "
 "Nachricht ignorieren. Die Anfrage wird in Kürze ablaufen."
+
+#: installer/data/mysql/en/optional/sample_quotes.yml:quotes:1:row:38
+msgid ""
+"If you don't like something, change it. If you can't change it, change your "
+"attitude."
+msgstr ""
+"Wenn dir etwas nicht gefällt, ändere es. Wenn du es nicht ändern kannst, "
+"ändere deine Einstellung."
 
 #: installer/data/mysql/en/optional/sample_quotes.yml:quotes:1:row:11
 msgid "If you don't say anything, you won't be called on to repeat it."
@@ -1578,6 +1637,14 @@ msgstr ""
 "Government can and must provide opportunity, not smother it; foster "
 "productivity, not stifle it. This Administration's objective will be a "
 "healthy, vigorous, growing economy."
+
+#: installer/data/mysql/en/optional/sample_quotes.yml:quotes:1:row:42
+msgid ""
+"It took me quite a long time to develop a voice, and now that I have it, I "
+"am not going to be silent."
+msgstr ""
+"Ich habe ziemlich lange gebraucht, um eine Stimme zu entwickeln, und jetzt, "
+"wo ich sie habe, werde ich nicht schweigen."
 
 #: installer/data/mysql/en/mandatory/sample_notices.yml:letter:1:row:60:mul:13
 msgid "It's too late to renew this item."
@@ -1926,6 +1993,15 @@ msgid ""
 msgstr ""
 "My fellow Americans, ask not what your country can do for you; ask what you "
 "can do for your country."
+
+#: installer/data/mysql/en/optional/sample_quotes.yml:quotes:1:row:40
+msgid ""
+"My mission in life is not merely to survive but to thrive and to do so with "
+"some passion, some compassion, some humor, and some style."
+msgstr ""
+"Meine Mission im Leben ist nicht nur zu überleben, sondern zu wachsen und "
+"dies mit etwas Leidenschaft, etwas Mitgefühl, etwas Humor und etwas Stil zu "
+"tun."
 
 #: installer/data/mysql/en/optional/marc21_relatorterms.yml:authorised_values:1:row:144
 msgid "Narrator"
@@ -2931,6 +3007,18 @@ msgstr "Die folgenden Medien wurden entliehen:"
 msgid "The following items have been renewed:"
 msgstr "Die folgenden Ausleihen wurden verlängert:"
 
+#: installer/data/mysql/en/optional/sample_quotes.yml:quotes:1:row:46
+msgid ""
+"The future depends entirely on what each of us does every day; a movement is "
+"only people moving."
+msgstr ""
+"Die Zukunft hängt ganz davon ab, was jeder von uns jeden Tag tut; "
+"Entwicklung erreicht man nur, indem man Menschen bewegt."
+
+#: installer/data/mysql/en/optional/sample_quotes.yml:quotes:1:row:47
+msgid "The land knows you, even when you are lost."
+msgstr "Das Land kennt dich, selbst wenn du verloren bist."
+
 #: installer/data/mysql/en/mandatory/sample_notices.yml:letter:1:row:56:mul:5
 msgid ""
 "The library has reviewed your request today, and has decided not to accept "
@@ -2976,6 +3064,13 @@ msgid ""
 msgstr ""
 "The slogan of progress is changing from the full dinner pail to the full "
 "garage."
+
+#: installer/data/mysql/en/optional/sample_quotes.yml:quotes:1:row:44
+msgid ""
+"The way I see it, if you want the rainbow, you gotta put up with the rain!"
+msgstr ""
+"So wie ich es sehe, wenn du den Regenbogen willst, musst du den Regen "
+"ertragen!"
 
 #: installer/data/mysql/en/mandatory/sample_notices.yml:letter:1:row:62:mul:3
 msgid "There were %s items that were not renewed."
@@ -3036,6 +3131,14 @@ msgstr "Transportquittung"
 #: installer/data/mysql/en/optional/marc21_relatorterms.yml:authorised_values:1:row:214
 msgid "Translator"
 msgstr "ÜbersetzerIn"
+
+#: installer/data/mysql/en/optional/sample_quotes.yml:quotes:1:row:34
+msgid ""
+"Tremendous amounts of talent are being lost to our society just because that "
+"talent wears a skirt."
+msgstr ""
+"Enorme Mengen an Talent gehen unserer Gesellschaft verloren, nur weil dieses "
+"Talent einen Rock trägt."
 
 #: installer/data/mysql/en/optional/marc21_relatorterms.yml:authorised_values:1:row:215
 msgid "Type designer"
@@ -3239,6 +3342,14 @@ msgstr ""
 "internationalen Team aus Dienstleistern und Anwendern kontinuierlich "
 "weiterentwickelt."
 
+#: installer/data/mysql/en/optional/sample_quotes.yml:quotes:1:row:43
+msgid ""
+"What you do makes a difference, and you have to decide what kind of "
+"difference you want to make."
+msgstr ""
+"Was Sie tun, macht den Unterschied, und Sie müssen entscheiden, welche Art "
+"von Unterschied Sie wollen."
+
 #: installer/data/mysql/en/optional/sample_news.yml:opac_news:1:row:2
 msgid "What's Next?"
 msgstr "Wie geht es jetzt weiter?"
@@ -3300,6 +3411,10 @@ msgstr ""
 "You cannot become thorough Americans if you think of yourselves in groups. "
 "America does not consist of groups. A man who thinks of himself as belonging "
 "to a particular national group in America has not yet become an American."
+
+#: installer/data/mysql/en/optional/sample_quotes.yml:quotes:1:row:37
+msgid "You cannot shake hands with a clenched fist."
+msgstr "Mit geballter Faust kann man sich nicht die Hand geben."
 
 #: installer/data/mysql/en/mandatory/sample_notices.yml:letter:1:row:47:mul:3
 msgid "You have a hold available for pickup as of %s:"

@@ -24,6 +24,7 @@ use Carp;
 use Koha::Database;
 
 use Koha::Item;
+use Koha::CirculationRules;
 
 use base qw(Koha::Objects);
 
@@ -41,13 +42,51 @@ Koha::Items - Koha Item object set class
 
     my $filtered_items = $items->filter_by_for_hold;
 
-Return the items of the set that are holdable
+Return the items of the set that are *potentially* holdable.
+
+Caller has the responsibility to call C4::Reserves::CanItemBeReserved before
+placing a hold on one of those items.
 
 =cut
 
 sub filter_by_for_hold {
     my ($self) = @_;
-    return $self->search( { notforloan => { '<=' => 0 } } ); # items with negative or zero notforloan value are holdable
+
+    my @hold_not_allowed_itypes = Koha::CirculationRules->search(
+        {
+            rule_name    => 'holdallowed',
+            branchcode   => undef,
+            categorycode => undef,
+            rule_value   => 'not_allowed',
+        }
+    )->get_column('itemtype');
+    push @hold_not_allowed_itypes, Koha::ItemTypes->search({ notforloan => 1 })->get_column('itemtype');
+
+    my $params = {
+        itemlost   => 0,
+        withdrawn  => 0,
+        notforloan => { '<=' => 0 },    # items with negative or zero notforloan value are holdable
+        ( C4::Context->preference('AllowHoldsOnDamagedItems')? (): ( damaged => 0 ) ),
+    };
+
+    if ( C4::Context->preference("item-level_itypes") ) {
+        return $self->search(
+            {
+                %$params,
+                itype        => { -not_in => \@hold_not_allowed_itypes },
+            }
+        );
+    } else {
+        return $self->search(
+            {
+                %$params,
+                'biblioitem.itemtype' => { -not_in => \@hold_not_allowed_itypes },
+            },
+            {
+                join => 'biblioitem',
+            }
+        );
+    }
 }
 
 =head3 filter_by_visible_in_opac

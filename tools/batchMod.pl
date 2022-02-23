@@ -121,6 +121,19 @@ if ($op eq "action") {
     my $values_to_modify = scalar(grep {!/^$/} @values) || scalar(grep {!/^$/} @searches);
     my $values_to_blank  = scalar(@disabled);
 
+    # Clear the fields we are not editing, leave fields we are blanking
+    foreach( my $i = 0; $i < scalar @values; $i++ ){
+        unless( $values[$i] ne q{} || $searches[$i] ne q{}  || grep { $subfields[$i] } @disabled ){
+            splice(@values,$i,1);
+            splice(@subfields,$i,1);
+            splice(@tags,$i,1);
+            splice(@searches,$i,1);
+            splice(@replaces,$i,1);
+            splice(@modifiers,$i,1);
+            $i--; # We made the arrays smaller - go back a step in iteration
+        }
+    }
+
     my $marcitem;
 
     #initializing values for updates
@@ -239,7 +252,6 @@ if ($op eq "action") {
                                     }
                                 }
                             }
-
                             $modified += UpdateMarcWith( $marcitem, $localmarcitem );
                             if ($modified) {
                                 eval {

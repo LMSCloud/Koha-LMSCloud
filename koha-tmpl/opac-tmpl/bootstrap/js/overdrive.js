@@ -11,7 +11,7 @@ KOHA.OverDrive = ( function() {
         Get: function( url, params, callback ) {
             $.ajax( {
                 type: 'GET',
-                url: url.replace( /https?:\/\/api.overdrive.com\/v1/, proxy_base_url ),
+                url: url.replace( /https?:\/\/api.overdrive.com\/v[1|2]/, proxy_base_url ),
                 dataType: 'json',
                 data: params,
                 error: function( xhr, error ) {
@@ -283,40 +283,12 @@ KOHA.OverDriveCirculation = new function() {
                     .appendTo(el);
                 $(el).append(" ");
 
-                if (item.format) {
-                    var download = $('<a href="#">').appendTo(el);
-                    decorate_button(download,  MSG_DOWNLOAD  + " " + item.format);
-                    svc_ajax('get', {action: "download-url", id: id, format: item.format}, function(data) {
-                        download.attr("href", data.action);
-                    });
-                    $(el).append(" ");
-                }
-
-                if (item.formats) {
-                    var lockable_formats = [];
-                    for (var f in item.formats) {
-                        if (f == item.format) continue;
-
-                        if (item.formats[f]) {
-                            var access = $('<a target="_blank">').appendTo(el);
-                            decorate_button(access,  MSG_OVERDRIVE_ACCESS_ONLINE + " " + f);
-                            svc_ajax('get', {action: "download-url", id: id, format: f}, function(data) {
-                                access.attr("href", data.action);
-                            });
-                            $(el).append(" ");
-                        }
-                        else {
-                            lockable_formats.push(f);
-                        }
-                    }
-                    if (lockable_formats.length > 0 && checkout_popup) {
-                        $(el).append( ajax_button( MSG_OVERDRIVE_DOWNLOAD_AS, function() {
-                            checkout_format(el, id, lockable_formats, copies_available);
-                        }) ).append(" ");
-                    }
-                }
-
-                if (item.format) return item;
+                var access = $('<a target="_blank">').appendTo(el);
+                decorate_button(access, __("Get item") );
+                svc_ajax('get', {action: "download-url", id: id}, function(data) {
+                    access.attr("href", data.action.redirect);
+                });
+                $(el).append(" ");
 
                 $(el).append( ajax_button( MSG_CHECK_IN, function() {
                     if( confirm( MSG_CHECK_IN_CONFIRM ) ) {
