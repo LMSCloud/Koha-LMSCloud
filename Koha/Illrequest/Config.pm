@@ -210,16 +210,8 @@ Return the branch prefix for ILLs defined by our config.
 =cut
 
 sub getPrefixes {
-
-    my ( $self, $type ) = @_;
-    die "Unexpected type." unless ( $type eq 'brw_cat' || $type eq 'branch' );
-    my $values = {};
-    $values->{$type} = $self->{cachedConfigPrefixes}->{$type};
-    $values->{default} = $self->{cachedConfigPrefixes}->{default};
-    return $values;
-    ### JOIN-TODO ### Activate the next two lines and remove the previous lines if community 21.05 is the correct
-    # my ( $self ) = @_;
-    # return $self->{configuration}->{prefixes}->{branch};
+    my ( $self ) = @_;
+    return $self->{configuration}->{prefixes}->{branch};
 }
 
 =head3 getLimitRules

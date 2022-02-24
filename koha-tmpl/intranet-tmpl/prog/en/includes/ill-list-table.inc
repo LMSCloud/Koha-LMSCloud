@@ -1,9 +1,5 @@
 <div>
-    [% IF prefilters.length > 0 %]
-    <table id="ill-requests" data-prefilters="[% prefilters | html %]">
-    [% ELSE %]
-    <table id="ill-requests">
-    [% END %]
+    <table id="ill-requests"[% IF prefilters.length > 0 %] data-prefilters="[% prefilters | html %]"[% END %][% IF infilter.length > 0 %] data-infilter="[% infilter | html %]"[% END %]>
         <thead>
             <tr id="illview-header">
                 <th scope="col">Request ID</th>
@@ -33,6 +29,7 @@
                 <th scope="col">OPAC notes</th>
                 <th scope="col">Staff notes</th>
                 <th scope="col">Backend</th>
+                <th scope="col">ILL order last checked by</th>
                 <th scope="col" class="actions"></th>
             </tr>
         </thead>

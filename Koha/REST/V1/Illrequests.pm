@@ -45,8 +45,7 @@ sub list {
 
     my $args = $c->req->params->to_hash // {};
     my $output = [];
-    #my @format_dates = ( 'placed', 'updated', 'completed' );  # Koha master
-    my @format_dates = ( 'updated' );
+    my @format_dates = ( 'placed', 'updated', 'completed' );
     my $filter;
 
     # Create a hash where all keys are embedded values
@@ -73,12 +72,23 @@ sub list {
     
     # Get the pipe-separated string of hidden ILL statuses
     my $hidden_statuses_string = C4::Context->preference('ILLHiddenRequestStatuses') // q{};
-    # Turn into arrayref
-    my $hidden_statuses = [ split /\|/, $hidden_statuses_string ];
-    $filter->{status} = { 'not in' => $hidden_statuses } if ( $hidden_statuses );
+    if ( $hidden_statuses_string ) {
+        # Turn into arrayref
+        my $hidden_statuses = [ split /\|/, $hidden_statuses_string ];
+
+        if ( $filter->{status} ) {
+            # $filter->{status} is already set via $args->{infilter}, so we have to unite the two conditions
+            $filter->{-and} = [ status => $filter->{status}, status => { 'not in' => $hidden_statuses } ];
+        } else {
+            $filter->{status} = { 'not in' => $hidden_statuses };
+        }
+    }
     
     my $fetchadd = {};
-    $fetchadd = { prefetch => 'illrequestattributes' } if ($embed{metadata});
+    my @tablesToPrefetch = [];
+    push @tablesToPrefetch, 'illrequestattributes' if ($embed{metadata});
+    push @tablesToPrefetch, 'illcomments' if ($embed{comments});
+    $fetchadd = { prefetch => \@tablesToPrefetch } if (scalar @tablesToPrefetch);
     
     # Get all requests
     # If necessary, only get those from a specified patron
@@ -90,8 +100,8 @@ sub list {
           Koha::Illrequest->new->load_backend( $request->backend );
     }
 
-    # Pre-load the backend object to avoid useless backend lookup/loads
-    @requests = map { $_->_backend( $fetch_backends->{ $_->backend } ); $_ } @requests;
+#    # Pre-load the backend object to avoid useless backend lookup/loads
+#    @requests = map { $_->_backend( $fetch_backends->{ $_->backend } ); $_ } @requests;    # wh: this nonsense stores a Illrequest in place of a Illbackend. Strictly to be avoided.
 
     # Identify patrons & branches that
     # we're going to need and get them
@@ -163,16 +173,15 @@ sub list {
     $output[3] = $backendcapabilities;    # for backend capabilities
 
     foreach my $req(@requests) {
-        my $to_push->{illreq} = $req->unblessed;
-        $to_push->{illreq}->{id_prefix} = $req->id_prefix;  # Koha master
-        #$to_push->{illreq}->{id_prefix} = '';    # faster variant
+        my $to_push = $req->unblessed;
+        $to_push->{id_prefix} = $req->id_prefix;
 
         # Create new "formatted" columns for each date column
         # that needs formatting
         foreach my $field(@format_dates) {
-            if (defined $to_push->{illreq}->{$field}) {
-                $to_push->{illreq}->{$field . "_formatted"} = format_sqldatetime(
-                    $to_push->{illreq}->{$field},
+            if (defined $to_push->{$field}) {
+                $to_push->{$field . "_formatted"} = format_sqldatetime(
+                    $to_push->{$field},
                     undef,
                     undef,
                     ### 1  # Koha master
@@ -205,6 +214,7 @@ sub list {
             foreach my $meta (@$attributes) {
                 $meta_hash_backend->{$meta->{type}} = $meta->{value};
             }
+# XXXWH aim: make the next 3 lines obsolete in 21.05
             $meta_hash_json->{Author} = $meta_hash_backend->{author};
             $meta_hash_json->{Title} = $meta_hash_backend->{title};
             $meta_hash_json->{ISBN} = $meta_hash_backend->{isbn};

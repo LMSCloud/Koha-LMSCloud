@@ -60,16 +60,16 @@
         if ( backend_name ) {
             switch( backend_name ) {
                 case "ILLALV":
-                    backend_designation =  _("ALV");
+                    backend_designation =  ill_backend.ILLALV;
                 break;
                 case "ILLSLNPKoha":
-                    backend_designation =  _("SLNP-passive");
+                    backend_designation =  ill_backend.ILLSLNPKoha;
                 break;
                 case "ILLZKSHA":
-                    backend_designation =  _("RLV-active");
+                    backend_designation =  ill_backend.ILLZKSHA;
                 break;
                 case "ILLZKSHP":
-                    backend_designation =  _("RLV-passive");
+                    backend_designation =  ill_backend.ILLZKSHP;
                 break;
                 default:
                     backend_designation = backend_name;
@@ -86,6 +86,47 @@
                     linkForCreateIllRequest.innerText = backendNameToDesignation ('[% backend %]');
                 }
             [% END %]
+        [% END %]
+    };
+
+    function mediumTypeToDesignation (medium, metadata_type) {
+        var mediumType_designation = '';
+        var mediumtype = metadata_type;
+        if ( ! mediumtype ) {
+            mediumtype = medium;
+        }
+        if ( mediumtype ) {
+            switch( mediumtype ) {
+                case "Book":
+                    mediumType_designation =  ill_medium.Book;
+                break;
+                case "Article":
+                    mediumType_designation =  ill_medium.Article;
+                break;
+                case "Journal":
+                    mediumType_designation =  ill_medium.Journal;
+                break;
+                case "Other":
+                    mediumType_designation =  ill_medium.Other;
+                break;
+                default:
+                    mediumType_designation = mediumtype;
+            }
+        }
+        return mediumType_designation;
+    };
+
+    function updateRequestType() {
+        var requestTypeElement = document.getElementById('Request_type');
+        [% type = request.get_type %]
+        [% IF type %]
+            var requestTypeText = '';
+            if ( requestTypeElement ) {
+                requestTypeText = '[% type | html %]';
+                if ( requestTypeText ) {
+                    requestTypeElement.innerText = requestTypeElement.replace(requestTypeText,mediumTypeToDesignation ('[% type %]', '[% type %]'));
+                }
+            }
         [% END %]
     };
 
@@ -106,7 +147,7 @@
                 var labelHavingLabelId = document.getElementById(labelId);
                 if ( labelHavingLabelId ) {
                     switch( requestmetadatakey ) {
-                        case "Author":
+                        case "author":
                             labeltext =  _("Author");
                         break;
                         case "ISBN":
@@ -118,7 +159,7 @@
                         case "ordererRemark":
                             labeltext =  _("Remark");
                         break;
-                        case "Title":
+                        case "title":
                             labeltext =  _("Title");
                         break;
                         default:

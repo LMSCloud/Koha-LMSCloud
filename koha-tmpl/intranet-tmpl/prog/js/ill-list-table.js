@@ -4,27 +4,18 @@ $(document).ready(function() {
     var mybranches;    // introduced for efficiency reasons in method illlist
     var mybackendcapabilities;    // introduced for efficiency reasons in method illlist
 
-// XXXWH TODO adapt to translation solution via new ill-list-table-strings.inc
-//    // language dependent update of backend designation
-//    updateBackendNamesInDropDown();
-//    [% IF query_type == 'illlist' %]
-//        // language dependent update of backend hit header text
-//        updateHitHeaderText();
-//    [% ELSIF query_type == 'illview' %]
-//        // language dependent update of labels etc. for 'Details from Supplier' header line
-//        updateDetailsFromSupplier();
-//    [% END %]
 
-
-    // Illview Datatable setup
+    // Illlist Datatable setup
 
     var table;
 
     // Filters that are active
     var activeFilters = {};
 
-    // Get any prefilters
+    // Get any prefilters, e.g. "backend=ILLALV"
     var prefilters = $('table#ill-requests').data('prefilters');
+    // Get any infilter, e.g. "status,-not_in,COMP,QUEUED"
+    var infilter = $('table#ill-requests').data('infilter');
 
     // Fields we need to expand (flatten)
     var expand = [
@@ -203,6 +194,11 @@ $(document).ready(function() {
         return value;
     };
 
+    // Our 'render' function for orderid
+    var createOrderId = function(data, type, row) {
+        return row.id_prefix + row.orderid;
+    };
+
     // Our 'render' function for borrowerlink
     var createPatronLink = function(data, type, row) {
         var patronLink = '';
@@ -231,12 +227,21 @@ $(document).ready(function() {
 
     // Our 'render' function for biblio_id
     var createBiblioLink = function(data, type, row) {
-        return (row.biblio_id) ?
-            '<a title="' + ill_biblio_details + '" ' +
-            'href="/cgi-bin/koha/catalogue/detail.pl?biblionumber=' +
-            row.biblio_id + '">' +
-            row.biblio_id +
-            '</a>' : '';
+        var ret = '';
+        var textToDisplay = row.metadata_title;
+        if ( ! textToDisplay ) {
+            textToDisplay = row.biblio_id ? row.biblio_id : '';
+        }
+        if ( row.biblio_id  && row.status !== 'COMP' ) {
+            ret = '<a title="' + ill_biblio_details + '" ' +
+                'href="/cgi-bin/koha/catalogue/detail.pl?biblionumber=' +
+                row.biblio_id + '">' +
+                textToDisplay +
+                '</a>';
+        } else {
+            ret = textToDisplay;
+        } 
+        return ret;
     };
 
     // Our 'render' function for title
@@ -254,35 +259,18 @@ $(document).ready(function() {
 
     // Render function for type
     var createType = function(data, type, row) {
-        if (!row.hasOwnProperty('metadata_Type') || !row.metadata_Type) {
+        if (!row.hasOwnProperty('metadata_type') || !row.metadata_type) {
             if (row.hasOwnProperty('medium') && row.medium) {
-                row.metadata_Type = row.medium;
+                row.metadata_type = row.medium;
             } else {
-                row.metadata_Type = null;
+                row.metadata_type = null;
             }
         }
-// XXXWH TODO adapt to translation solution via new ill-list-table-strings.inc
-        if ( row.metadata_Type ) {
-            var medium = row.metadata_Type;
-            switch( medium ) {
-                case "Book":
-                    $medium = _("Book");
-                break;
-                case "Article":
-                    $medium = _("Article");
-                break;
-                case "Journal":
-                    $medium = _("Journal");
-                break;
-                case "Other":
-                    $medium = _("Other");
-                break;
-                default:
-                    $medium = $medium;
-            }
-            row.metadata_Type = $medium;
+        // using translations of illrequest.medium via ill-list-table-strings.inc
+        if ( row.metadata_type ) {
+            row.metadata_type = mediumTypeToDesignation(row.metadata_type,row.metadata_type);
         }
-        return row.metadata_Type;
+        return row.metadata_type;
     };
 
     // Render function for request status
@@ -331,12 +319,11 @@ $(document).ready(function() {
         }
     };
 
-// XXXWH TODO adapt to translation solution via new ill-list-table-strings.inc
-//        // Render function for backend designation
-//        var createBackendDesignation = function(data, type, row, meta) {
-//            var backend_designation = backendNameToDesignation(row.backend);
-//            return backend_designation;
-//        };
+    // Render function for backend designation
+    var createBackendDesignation = function(data, type, row, meta) {
+        var backend_designation = backendNameToDesignation(row.backend);
+        return backend_designation;
+    };
 
     // Render function for creating a row's action link
     var createActionLink = function(data, type, row) {
@@ -346,15 +333,6 @@ $(document).ready(function() {
             row.illrequest_id +
             '">' + ill_manage + '</a>';
     };
-
-// XXXWH TODO 
-//    // Render function for field illrequests.updated,
-//    // displaying dates conforming to locale, 
-//    // but sorting dates by using 'sType': "title-string", 'aTargets': [ 'title-string'] feature of DataTable
-//    var createUpdatedOn = function(data, type, row) {
-//        var ret = '<span title="' + row.updated + '">' + row.updated_formatted + '</span>';
-//        return ret;
-//    };
 
     // Render function for Checked by
     var createCheckedBy = function(data, type, row) {
@@ -372,8 +350,6 @@ $(document).ready(function() {
             skipSanitize: true
         },
         illrequest_id: {
-// XXXWH TODO adapt to translation solution via new ill-list-table-strings.inc (TODO for all of these columns, via 'name' field and 'ill_columns')
-//          name: _("Request number"),
             func: createRequestId
         },
         status: {
@@ -387,7 +363,8 @@ $(document).ready(function() {
         metadata_title: {
             func: createTitle
         },
-        metadata_Type: {
+        metadata_type: {
+            name: ill_columns.type,
             func: createType
         },
         updated: {
@@ -396,20 +373,13 @@ $(document).ready(function() {
         patron: {
             skipSanitize: true,
             func: createPatronLink
-        }
-// XXXWH TODO handle additional LMSCloud columns
-//        orderid: {
-//            name: _("Order ID"),
-//            func: createOrderId
-//        },
-//        library: {
-//            name: _("Library"),
-//            func: createLibrary
-//        },
-//        backend: {
-//            name: _("ILL backend type"),
-//            func: createBackendDesignation
-//        },
+        },
+        orderid: {
+            func: createOrderId
+        },
+        backend: {
+            func: createBackendDesignation
+        },
         metadata_checkedBy: {
             name: _("ILL order last checked by"),
             func: createCheckedBy
@@ -477,27 +447,21 @@ $(document).ready(function() {
     // Get our data from the API and process it prior to passing
     // it to datatables
     var filterParam = prefilters ? '&' + prefilters : '';
+    filterParam += infilter ? '&infilter=' + infilter : '';
 
-    [% IF ( query_type == 'illlist' ) %]    // call ajax only if method = illlist, the ajax result is not required in other cases
+    if ( query_type_js === 'illlist' ) {    // call ajax only if method = illlist, the ajax result is not required in other cases
     // Only fire the request if we're on an appropriate page
     if (
         (
             // ILL list requests page
-            window.location.href.match(/ill\/ill-requests\.pl/) &&
-            window.location.search.length == 0
+            window.location.href.match(/ill\/ill-requests\.pl/)
         ) ||
         // Patron profile page
         window.location.href.match(/members\/ill-requests\.pl/)
     ) {
-        [% IF infilter %]
-            [% SET restApiUrl = '/api/v1/illrequests?embed=metadata,patron,capabilities,library,status_alias,comments,requested_partners' _ infilter %]
-        [% ELSE %]
-            [% SET restApiUrl = '/api/v1/illrequests?embed=metadata,patron,capabilities,library,status_alias,comments,requested_partners' %]
-        [% END %]
-
+        var restApiUrl = '/api/v1/illrequests?embed=metadata,patron,capabilities,library,status_alias,comments,requested_partners' + filterParam;
         var ajax = $.ajax(
-            '[% restApiUrl %]'
-            + filterParam
+            restApiUrl
         ).done(function() {
             var dataAll = JSON.parse(ajax.responseText);
             var data = dataAll[0];    // all illrequests fields and some illrequestattributes fields
@@ -670,7 +634,7 @@ $(document).ready(function() {
 
         });
     } //END if window.location.search.length == 0
-    [% END %] // End of [% IF ( query_type == 'illlist' ) %]
+    } // End of if ( query_type_js === 'illlist' ) {
 
     var clearSearch = function() {
         table.api().search('').columns().search('');

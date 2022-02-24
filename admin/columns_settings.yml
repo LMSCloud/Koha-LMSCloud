@@ -676,6 +676,8 @@ modules:
             -
               columnname: backend
             -
+              columnname: metadata_checkedBy
+            -
               columnname: action
               cannot_be_toggled: 1
               cannot_be_modified: 1
