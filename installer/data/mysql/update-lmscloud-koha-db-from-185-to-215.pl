@@ -71,6 +71,13 @@ sub updateKohaConfig {
     
     my $changed = 0;
     my $configtext;
+    {
+        local( $/ ); # undefine the record seperator
+        open(my $rh,'<:encoding(UTF-8)', $conf_fname) or croak "Error opening $conf_fname: $!";
+        $configtext = <$rh>;
+        close $rh;
+    }
+    
     if ( exists( $config->{listen}->{publicserver}->{content} ) ) {
         if ( $config->{listen}->{publicserver}->{content} =~ /^\s*tcp:([^:]+):([0-9]+)\s*$/i ) {
             my $host = $1;
@@ -78,13 +85,6 @@ sub updateKohaConfig {
             my $listenConfig = $config->{listen}->{publicserver}->{content};
             
             print "Configuring Z3950Responder from Zebra config: host ($host), port ($port)\n";
-            
-            {
-                local( $/ ); # undefine the record seperator
-                open(my $rh,'<:encoding(UTF-8)', $conf_fname) or croak "Error opening $conf_fname: $!";
-                $configtext = <$rh>;
-                close $rh;
-            }
             
             $configtext =~ s/(\r?\n)(<listen\s+id="publicserver"[^>]*>.+?(?=\<\/listen>)<\/listen>)(\r?\n)/$1<!--$1$2$3-->$3/is;
             $changed = 1;
@@ -168,6 +168,192 @@ sub updateKohaConfig {
                     }
                 }
             }
+        }
+    }
+    if (! exists( $config->{config}->{tls} ) ) {
+        if ( exists( $config->{config}->{pass} ) ) {
+            my $add =  ' <tls>__DB_USE_TLS__</tls>' . "\n" . 
+                       ' <ca>__DB_TLS_CA_CERTIFICATE__</ca>' . "\n" . 
+                       ' <cert>__DB_TLS_CLIENT_CERTIFICATE__</cert>' . "\n" . 
+                       ' <key>__DB_TLS_CLIENT_KEY__</key>' . "\n";
+            $configtext =~ s/(\r?\n *<pass>.+?(?=\<\/pass>)<\/pass> *\r?\n)/$1$add/is;
+            $changed = 1;
+        }
+    }
+    if (! exists( $config->{config}->{mana_config} ) ) {
+        if ( exists( $config->{config}->{backupdir} ) ) {
+            my $add =  ' <!-- URL of the mana KB server -->' . "\n" . 
+                       ' <!-- alternative value http://mana-test.koha-community.org to query the test server -->' . "\n" . 
+                       ' <mana_config>https://mana-kb.koha-community.org</mana_config>' . "\n";
+            $configtext =~ s/(\r?\n *<backupdir>.+?(?=\<\/backupdir>)<\/backupdir> *\r?\n)/$1$add/is;
+            $changed = 1;
+        }
+    }
+    if (! exists( $config->{config}->{lockdir} ) ) {
+        if ( exists( $config->{config}->{zebra_lockdir} ) ) {
+            my $add =  ' <lockdir>/var/lock/koha/' . $instance . '</lockdir>' . "\n";
+            $configtext =~ s/(\r?\n *<zebra_lockdir>.+?(?=\<\/zebra_lockdir>)<\/zebra_lockdir> *\r?\n)/$1$add/is;
+            $changed = 1;
+        }
+    }
+    if (! exists( $config->{config}->{zebra_max_record_size} ) ) {
+        if ( exists( $config->{config}->{use_zebra_facets} ) ) {
+            my $add =  ' <zebra_max_record_size>1024</zebra_max_record_size>' . "\n";
+            $configtext =~ s/(\r?\n *<use_zebra_facets>.+?(?=\<\/use_zebra_facets>)<\/use_zebra_facets> *\r?\n)/$1$add/is;
+            $changed = 1;
+        }
+    }
+    if (! exists( $config->{config}->{access_dirs} ) && $configtext !~ /<access_dirs>/ ) {
+        if ( exists( $config->{config}->{api_secret_passphrase} ) ) {
+            my $add =  "\n" .
+                       ' <!-- Accessible directory from the staff interface, uncomment the following line and define a valid path to let the intranet user access it-->' . "\n" .
+                       ' <!--' . "\n" . 
+                       ' <access_dirs>' . "\n" . 
+                       '     <access_dir></access_dir>' . "\n" . 
+                       '     <access_dir></access_dir>' . "\n" . 
+                       ' </access_dirs>' . "\n" . 
+                       '  -->' . "\n\n";
+            $configtext =~ s/(\r?\n *<api_secret_passphrase>.+?(?=\<\/api_secret_passphrase>)<\/api_secret_passphrase> *\r?\n)/$1$add/is;
+            $changed = 1;
+        }
+    }
+    if (! exists( $config->{config}->{sms_send_config} ) ) {
+        if ( exists( $config->{config}->{ttf} ) ) {
+            my $add =  ' <!-- Path to the config file for SMS::Send -->' . "\n" .
+                       ' <sms_send_config>/etc/koha/sites/' . $instance . '/sms_send/</sms_send_config>' . "\n";
+            $configtext =~ s/(\r?\n *<ttf>.+?(?=\<\/ttf>)<\/ttf> *\r?\n)/$1$add/is;
+            $changed = 1;
+        }
+    }
+    if (! exists( $config->{config}->{elasticsearch} ) ) {
+        if ( exists( $config->{config}->{plack_workers} ) ) {
+            my $add =  ' <!-- Configuration for X-Forwarded-For -->' . "\n" . 
+                       ' <!--' . "\n" . 
+                       ' <koha_trusted_proxies>1.2.3.4 2.3.4.5 3.4.5.6</koha_trusted_proxies>' . "\n" . 
+                       ' -->' . "\n" .
+                       "\n" . 
+                       ' <!-- Elasticsearch Configuration -->' . "\n" .
+                       ' <elasticsearch>' . "\n" .
+                       '     <server>127.0.0.1:9200</server> <!-- may be repeated to include all servers on your cluster -->' . "\n" .
+                       '     <index_name>koha_' . $instance . '</index_name> <!-- should be unique amongst all the indices on your cluster. _biblios and _authorities will be appended. -->' . "\n" .
+                       "\n" .
+                       '     <!-- See https://metacpan.org/pod/Search::Elasticsearch#cxn_pool -->' . "\n" .
+                       '     <cxn_pool>Static</cxn_pool>' . "\n" .
+                       '     <!-- See https://metacpan.org/pod/Search::Elasticsearch#trace_to -->' . "\n" .
+                       '     <!-- <trace_to>Stderr</trace_to> -->' . "\n" .
+                       ' </elasticsearch>' . "\n" .
+                       ' <!-- Uncomment the following line if you want to override the Elasticsearch default index settings -->' . "\n" .
+                       ' <!-- <elasticsearch_index_config>/etc/koha/sites/' . $instance . '/searchengine/elasticsearch/index_config.yaml</elasticsearch_index_config> -->' . "\n" .
+                       ' <!-- Uncomment the following line if you want to override the Elasticsearch default field settings -->' . "\n" .
+                       ' <!-- <elasticsearch_field_config>/etc/koha/sites/' . $instance . '/searchengine/elasticsearch/field_config.yaml</elasticsearch_field_config> -->' . "\n" .
+                       ' <!-- Uncomment the following line if you want to override the Elasticsearch index default settings.' . "\n" .
+                       '      Note that any changes made to the mappings file only take effect if you reset the mappings in' . "\n" .
+                       '      by visiting /cgi-bin/koha/admin/searchengine/elasticsearch/mappings.pl?op=reset&i_know_what_i_am_doing=1&reset_fields=1.' . "\n" .
+                       '      Resetting mappings will override any changes made in the Search engine configuration UI.' . "\n" .
+                       ' -->' . "\n" .
+                       ' <!-- <elasticsearch_index_mappings>/etc/koha/sites/' . $instance . '/searchengine/elasticsearch/mappings.yaml</elasticsearch_index_mappings> -->' . "\n" .
+                       "\n\n";
+            $configtext =~ s/(\r?\n *<plack_workers>.+?(?=\<\/plack_workers>)<\/plack_workers> *\r?\n)/$1$add/is;
+            $changed = 1;
+        }
+    }
+    elsif ( $configtext !~ /<!-- Elasticsearch Configuration -->/ ) {
+        my $add =  "\n" .
+                   ' <!-- Configuration for X-Forwarded-For -->' . "\n" . 
+                   ' <!--' . "\n" . 
+                   ' <koha_trusted_proxies>1.2.3.4 2.3.4.5 3.4.5.6</koha_trusted_proxies>' . "\n" . 
+                   ' -->' . "\n" .
+                   "\n" . 
+                   ' <!-- Elasticsearch Configuration -->';
+        $configtext =~ s/(\r?\n *<elasticsearch>.+?(?=\<\/elasticsearch>)<\/elasticsearch> *\r?\n)/$add$1/is;
+        if ( exists( $config->{config}->{elasticsearch}->{server} ) ) {
+            $configtext =~ s/<server>localhost:9200<\/server>/'<server>127.0.0.1:9200<\/server> <!-- may be repeated to include all servers on your cluster -->'/se;
+        }
+        $add = "\n\n" .
+               '     <!-- See https://metacpan.org/pod/Search::Elasticsearch#cxn_pool -->';
+        $configtext =~ s/(\r?\n *<cxn_pool>.+?(?=\<\/cxn_pool>)<\/cxn_pool> *\r?\n)/$add$1/is;
+        $add = "\n" .
+               '     <!-- See https://metacpan.org/pod/Search::Elasticsearch#trace_to -->';
+        $configtext =~ s/(\r?\n *<trace_to>.+?(?=\<\/trace_to>)<\/trace_to> *\r?\n)/$add$1/is;
+        $configtext =~ s/(\r?\n *<!-- <trace_to>.+?(?=\<\/trace_to>)<\/trace_to> --> *\r?\n)/$add$1/is;
+        $configtext =~ s/(\r?\n *<!-- <log_to>Stderr<\/log_to> --> *\r?\n)/\n/is;
+        $add = ' <!-- Uncomment the following line if you want to override the Elasticsearch default index settings -->' . "\n" .
+               ' <!-- <elasticsearch_index_config>/etc/koha/sites/' . $instance . '/searchengine/elasticsearch/index_config.yaml</elasticsearch_index_config> -->' . "\n" .
+               ' <!-- Uncomment the following line if you want to override the Elasticsearch default field settings -->' . "\n" .
+               ' <!-- <elasticsearch_field_config>/etc/koha/sites/' . $instance . '/searchengine/elasticsearch/field_config.yaml</elasticsearch_field_config> -->' . "\n" .
+               ' <!-- Uncomment the following line if you want to override the Elasticsearch index default settings.' . "\n" .
+               '      Note that any changes made to the mappings file only take effect if you reset the mappings in' . "\n" .
+               '      by visiting /cgi-bin/koha/admin/searchengine/elasticsearch/mappings.pl?op=reset&i_know_what_i_am_doing=1&reset_fields=1.' . "\n" .
+               '      Resetting mappings will override any changes made in the Search engine configuration UI.' . "\n" .
+               ' -->' . "\n" .
+               ' <!-- <elasticsearch_index_mappings>/etc/koha/sites/' . $instance . '/searchengine/elasticsearch/mappings.yaml</elasticsearch_index_mappings> -->' . "\n" .
+               "\n";
+        $configtext =~ s/(\r?\n *<elasticsearch>.+?(?=\<\/elasticsearch>)<\/elasticsearch> *\r?\n)/$1$add/is;
+        $changed = 1;
+    }
+    if ( exists( $config->{config}->{timezone} ) && $config->{config}->{timezone} eq '' ) {
+        $configtext =~ s/<timezone><\/timezone>/'<timezone>Europe\/Berlin<\/timezone>'/se;
+    }
+    if (! exists( $config->{config}->{bcrypt_settings} ) ) {
+        if ( exists( $config->{config}->{timezone} ) ) {
+            my $brypt_settings=`htpasswd -bnBC 10 "" password | tr -d ':\n' | sed 's/\$2y/\$2a/'`;
+            my $add =  "\n" .
+                       ' <!-- This is the bcrypt settings used to generate anonymized content -->' . "\n" .
+                       ' <bcrypt_settings>' . xmlEncode($brypt_settings) . '</bcrypt_settings>' . "\n" .
+                       '       ' . "\n" .                
+                       ' <!-- flag for development purposes' . "\n" .
+                       '      dev_install is used to adjust some paths specific to dev installations' . "\n" .
+                       '      strict_sql_modes should not be used in a production environment' . "\n" .
+                       '      developers use it to catch bugs related to strict SQL modes -->' . "\n" .
+                       ' <dev_install>0</dev_install>' . "\n" .
+                       ' <strict_sql_modes>0</strict_sql_modes>' . "\n" .
+                       ' <plugin_repos>' . "\n" .
+                       '    <!--' . "\n" .
+                       '    <repo>' . "\n" .
+                       '        <name>ByWater Solutions</name>' . "\n" .
+                       '        <org_name>bywatersolutions</org_name>' . "\n" .
+                       '        <service>github</service>' . "\n" .
+                       '    </repo>' . "\n" .
+                       '    <repo>' . "\n" .
+                       '        <name>Theke Solutions</name>' . "\n" .
+                       '        <org_name>thekesolutions</org_name>' . "\n" .
+                       '        <service>gitlab</service>' . "\n" .
+                       '    </repo>' . "\n" .
+                       '    <repo>' . "\n" .
+                       '        <name>PTFS Europe</name>' . "\n" .
+                       '        <org_name>ptfs-europe</org_name>' . "\n" .
+                       '        <service>github</service>' . "\n" .
+                       '    </repo>' . "\n" .
+                       '    -->' . "\n" .
+                       ' </plugin_repos>' . "\n" .
+                       "\n" .
+                       ' <koha_xslt_security>' . "\n" .
+                       ' <!-- Uncomment the following entry ONLY when you explicitly want the XSLT' . "\n" .
+                       '      parser to expand entities like <!ENTITY secret SYSTEM "/etc/secrets">.' . "\n" .
+                       '      This is unsafe and therefore NOT recommended!' . "\n" .
+                       '     <expand_entities_unsafe>1</expand_entities_unsafe>' . "\n" .
+                       ' -->' . "\n" .
+                       ' </koha_xslt_security>' . "\n" .
+                       "\n" .
+                       ' <smtp_server>' . "\n" .
+                       '    <host>localhost</host>' . "\n" .
+                       '    <port>25</port>' . "\n" .
+                       '    <timeout>120</timeout>' . "\n" .
+                       '    <ssl_mode>disabled</ssl_mode>' . "\n" .
+                       '    <user_name></user_name>' . "\n" .
+                       '    <password></password>' . "\n" .
+                       '    <debug>0</debug>' . "\n" .
+                       ' </smtp_server>' . "\n" .
+                       "\n" .
+                       ' <message_broker>' . "\n" .
+                       '   <hostname>localhost</hostname>' . "\n" .
+                       '   <port>61613</port>' . "\n" .
+                       '   <username>guest</username>' . "\n" .
+                       '   <password>guest</password>' . "\n" .
+                       '   <vhost></vhost>' . "\n" .
+                       ' </message_broker>' . "\n";
+            $configtext =~ s/(\r?\n *<timezone>.*?(?=\<\/timezone>)<\/timezone> *\r?\n)/$1$add/is;
+            $changed = 1;
         }
     }
     if ( $changed ) {
@@ -332,6 +518,7 @@ sub updateHiddenColumnsSettings {
 
 sub updateSimpleVariables {
     my $dbh = C4::Context->dbh;
+    $dbh->do("UPDATE systempreferences SET value='OpacAdditionalStylesheet' WHERE variable='QueryFuzzy' AND value='/webcustom/css/opac-lmscloud.css'");
     $dbh->do("UPDATE systempreferences SET value='1' WHERE variable IN ('AcquisitionLog','AuthFailureLog','AuthoritiesLog','AuthSuccessLog','BorrowersLog','CataloguingLog','ClaimsLog','CronjobLog','DivibibLog','FinesLog','HoldsLog','IllLog','IssueLog','NewsLog','NoticesLog','RenewalLog','ReportsLog','ReturnLog','SubscriptionLog')");
     $dbh->do("UPDATE systempreferences SET value='0' WHERE variable='Mana' and value='2'");
     $dbh->do("UPDATE systempreferences SET value='0' WHERE variable='UsageStats' and value='2'");
