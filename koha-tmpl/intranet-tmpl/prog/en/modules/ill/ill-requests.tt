@@ -11,19 +11,6 @@
 [% INCLUDE 'doc-head-open.inc' %]
 <title>ILL requests &rsaquo; Koha</title>
 [% INCLUDE 'doc-head-close.inc' %]
-[% USE raw %]
-[% USE Asset %]
-[% USE Branches %]
-[% USE Koha %]
-[% USE KohaDates %]
-[% SET footerjs = 1 %]
-[% USE AuthorisedValues %]
-[% USE TablesSettings %]
-[% USE Price %]
-
-[% INCLUDE 'doc-head-open.inc' %]
-<title>ILL requests &rsaquo; Koha</title>
-[% INCLUDE 'doc-head-close.inc' %]
 </head>
 
 <body id="illrequests" class="ill">
@@ -125,6 +112,7 @@
             <div class="col-sm-10 col-sm-offset-2">
                 <main>
         [% END %]
+
             <div id="interlibraryloans">
         [% IF !backends_available || !has_branch %]
             <div class="dialog message">ILL module configuration problem. Take a look at the <a href="/cgi-bin/koha/about.pl#sysinfo">about page</a></div>
@@ -282,25 +270,26 @@
                         [% IF whole.value.check_out_errors.error.STATS %]
                             <a class="cancel" href="/cgi-bin/koha/ill/ill-requests.pl?method=illview&amp;illrequest_id=[% request.id | html %]">Return to request</a>
                         [% END %]
-                    [% ELSIF whole.stage == 'done_check_out' %]
-                        <h1>Item checked out</h1>
-                        <fieldset class="rows">
-                            <legend>Check out details</legend>
-                            <ol>
-                                <li>
-                                    <label>Checked out to:</label>
-                                    [% INCLUDE 'patron-title.inc' patron = whole.value.patron %]
-                                </li>
-                                <li>
-                                    <label>Due date:</label>
-                                    [% whole.value.check_out.date_due | $KohaDates with_hours => 1 %]
-                                </li>
-                            </ol>
-                        </fieldset>
-                        <fieldset class="action">
-                            <a class="cancel" href="/cgi-bin/koha/ill/ill-requests.pl?method=illview&amp;illrequest_id=[% request.id | html %]">Return to request</a>
-                        </fieldset>
-                    [% END %]
+
+                [% ELSIF whole.stage == 'done_check_out' %]
+                    <h1>Item checked out</h1>
+                    <fieldset class="rows">
+                        <legend>Check out details</legend>
+                        <ol>
+                            <li>
+                                <label>Checked out to:</label>
+                                [% INCLUDE 'patron-title.inc' patron = whole.value.patron %]
+                            </li>
+                            <li>
+                                <label>Due date:</label>
+                                [% whole.value.check_out.date_due | $KohaDates with_hours => 1 %]
+                            </li>
+                        </ol>
+                    </fieldset>
+                    <fieldset class="action">
+                        <a class="cancel" href="/cgi-bin/koha/ill/ill-requests.pl?method=illview&amp;illrequest_id=[% request.id | html %]">Return to request</a>
+                    </fieldset>
+                [% END %]
 
                 [% ELSIF query_type == 'generic_confirm' %]
                     <h1>Place request with partner libraries</h1>
@@ -449,7 +438,7 @@
                                 </li>
                                 <li class="medium">
                                     <label class="medium">Request type:</label>
-                                    [% IF type %][% type | html %][% ELSE %]<span>N/A</span>[% END %]
+                                     <span id="Request_type">[% IF type %][% type | html %][% ELSE %]<span>N/A</span>[% END %]</span>
                                 </li>
                                 <li class="cost">
                                     <label class="cost">Cost:</label>
@@ -700,11 +689,11 @@
                                 </ol>
                             </div>
                             <div class="rows">
-                                <h4>Details from supplier ([% request.backend | html %])</h4>
+                                <h4 id="MetaDataSupplierDetailsHeader">Details from supplier ([% request.backend | html %])</h4>
                                 <ol>
                                     [% FOREACH meta IN request.metadata %]
                                         <li class="requestmeta-[% meta.key.replace('\s','_') | html %]">
-                                            <span class="label">[% meta.key | html %]:</span>
+                                            <span class="label" id="labelForMetaData[% meta.key %]">[% meta.key | html %]:</span>
                                             [% meta.value | html %]
                                         </li>
                                     [% END %]
@@ -808,9 +797,9 @@
                     <div id="results">
                         <h3 id="hitheader" name="hitheader" >[% IF hitname %][% hitname %][% ELSE %]Details for all requests[% END %]</h3>
                         [% INCLUDE 'ill-list-table.inc' %]
-<!-- XXXWH TODO: add the special LMSCloud columns <th>Order ID</th> and <th>ILL order last checked by</th> to intranet/htdocs/intranet-tmpl/prog/en/includes/ill-list-table.inc-->
 
                     </div> <!-- /#results -->
+
                 [% ELSIF query_type == 'availability' %]
                     <!-- availability -->
                     <h1>Availability</h1>
@@ -863,7 +852,12 @@
     [% INCLUDE 'calendar.inc' %]
     [% Asset.js("lib/jquery/plugins/jquery-ui-timepicker-addon.min.js") | $raw %]
     <script>
-        var prefilters = '[% prefilters | $raw %]';
+
+        // introducing JS variables to make the filter parameters accessible for js/ill-list-table.js
+        var prefilters = '[% prefilters | $raw %]';    // e.g. "backend=ILLALV"
+        var infilter = '[% infilter | $raw %]';    // e.g. "status,-not_in,COMP,QUEUED"
+        var query_type_js = '[% query_type %]';    // e.g. "illview", or "illlist"
+
         // Set column settings
         var columns_settings = [% TablesSettings.GetColumns( 'illrequests', 'ill-requests', 'ill-requests', 'json' ) %];
         $("#ill_checkout_duedate_input").datetimepicker({
@@ -905,6 +899,18 @@
     [% IF query_type == 'generic_confirm' && Koha.Preference('ILLCheckAvailability') %]
         [% Asset.js("js/ill-availability-partner.js") | $raw %]
     [% END %]
+
+    <script>
+        // language dependent update of backend designation
+        updateBackendNamesInDropDown();
+        [% IF query_type == 'illlist' %]
+            // language dependent update of backend hit header text
+            updateHitHeaderText();
+        [% ELSIF query_type == 'illview' %]
+            // language dependent update of labels etc. for 'Details from Supplier' header line
+            updateDetailsFromSupplier();
+        [% END %]
+    </script>
 [% END %]
 
 [% TRY %]

@@ -1022,7 +1022,7 @@ Return a string representing the material type of this request or undef
 sub get_type {
     my ($self) = @_;
     my $attr = $self->illrequestattributes->find({ type => 'type'});
-    return if !$attr;
+    return $self->medium if !$attr;
     return $attr->value;
 };
 
