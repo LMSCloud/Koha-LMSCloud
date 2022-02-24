@@ -105,6 +105,7 @@ INSERT INTO systempreferences ( `variable`, `value`, `options`, `explanation`, `
 ('BibtexExportAdditionalFields',  '', NULL ,  'Define additional BibTex tags to export from MARC records in YAML format as an associative array with either a marc tag/subfield combination as the value, or a list of tag/subfield combinations.',  'textarea'),
 ('BibtipCatalog','',NULL,'Bibtip catalog name. Used to request recommendations from Bibtip.','Free'),
 ('BibtipEnabled','0',NULL,'Enable Bibtip recommendations to be displayed in OPAC detail title view.','YesNo'),
+('BibtipPatronSpecificRecommendations','0',NULL,'Enable patron specific recommendations based on the reading history of a patron using a Bibtip service.','YesNo'),
 ('BlockExpiredPatronOpacActions','1',NULL,'Set whether an expired patron can perform opac actions such as placing holds or renew books, can be overridden on a per patron-type basis','YesNo'),
 ('BlockReturnOfLostItems','0','0','If enabled, items that are marked as lost cannot be returned.','YesNo'),
 ('BlockReturnOfWithdrawnItems','1','0','If enabled, items that are marked as withdrawn cannot be returned.','YesNo'),
