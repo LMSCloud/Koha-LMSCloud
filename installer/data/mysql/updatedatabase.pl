@@ -26281,6 +26281,17 @@ if( CheckVersion( $DBversion ) ) {
     NewVersion( $DBversion, "", "Remove system preference 'OPACAllowUserToChooseMobileStation'");
 }
 
+$DBversion = '21.05.09.005';
+if( CheckVersion( $DBversion ) ) {
+    # Add the OpacSingleHitInResultList system preference
+    $dbh->do(q{ 
+        INSERT IGNORE INTO `systempreferences` VALUES 
+                ('OpacSingleHitInResultList','0',NULL,'Show a single hit search result as result hit list rather than in the detailed result view.','YesNo')
+        });
+    
+    NewVersion( $DBversion, "", "Add system preference 'OpacSingleHitInResultList'");
+}
+
 $DBversion = '21.05.10.000';
 if( CheckVersion( $DBversion ) ) {
     NewVersion( $DBversion, "", "Koha 21.05.10 release" );
