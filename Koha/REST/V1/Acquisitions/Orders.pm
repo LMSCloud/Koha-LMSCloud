@@ -77,6 +77,14 @@ sub list {
             $c->stash('koha.embed', $fixed_embed);
         }
 
+        if ( exists $reserved_params->{_order_by} ) {
+            # _order_by passed, fix if required
+            for my $p ( @{$reserved_params->{_order_by}} ) {
+                $p =~ s|biblio\.|biblio\.biblioitem\.|g
+                    if $p =~ m/.*(isbn|ean|publisher).*/;
+            }
+        }
+
         # Merge sorting into query attributes
         $c->dbic_merge_sorting(
             {

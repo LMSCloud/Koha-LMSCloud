@@ -3,7 +3,7 @@ msgstr ""
 "Project-Id-Version: Koha 21.05\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2013-05-16 03:26+0200\n"
-"PO-Revision-Date: 2022-02-18 16:04+0100\n"
+"PO-Revision-Date: 2022-02-18 18:18+0100\n"
 "Last-Translator: Katrin Fischer <katrin.fischer@bsz-bw.de>\n"
 "Language-Team: \n"
 "Language: de\n"
@@ -35,7 +35,7 @@ msgstr "Regeln"
 
 # Accounting > Policy
 msgid "accounting.pref SEPA direct debit"
-msgstr "SEPA Lastschriftenmandat"
+msgstr "SEPA Lastschriften"
 
 # Accounting > Policy
 msgid "accounting.pref#AccountAutoReconcile# Do"
@@ -5775,20 +5775,6 @@ msgid ""
 msgstr ""
 "dass Benutzer die Bibliothek auswählen, in der Sie eine Vormerkung abholen "
 "möchten."
-
-# Circulation > Holds policy
-msgid "circulation.pref#OPACAllowUserToChooseMobileStation# Don't show"
-msgstr "Zeige nicht"
-
-# Circulation > Holds policy
-msgid "circulation.pref#OPACAllowUserToChooseMobileStation# Show"
-msgstr "Zeige"
-
-# Circulation > Holds policy
-msgid ""
-"circulation.pref#OPACAllowUserToChooseMobileStation# book mobile stations in "
-"branches select box when placing a hold."
-msgstr " Bushaltestellen in der Auswahl der Abholstandorte für Reservierungen."
 
 # Circulation > Checkout policy
 msgid ""
@@ -16370,6 +16356,21 @@ msgstr ""
 #~ "circulation.pref#BatchCheckoutsValidCategories# (list of patron "
 #~ "categories separated with a pipe '|')."
 #~ msgstr "(Liste der Benutzertypen getrennt mit Pipe '|')."
+
+# Circulation > Holds policy
+#~ msgid "circulation.pref#OPACAllowUserToChooseMobileStation# Don't show"
+#~ msgstr "Zeige nicht"
+
+# Circulation > Holds policy
+#~ msgid "circulation.pref#OPACAllowUserToChooseMobileStation# Show"
+#~ msgstr "Zeige"
+
+# Circulation > Holds policy
+#~ msgid ""
+#~ "circulation.pref#OPACAllowUserToChooseMobileStation# book mobile stations "
+#~ "in branches select box when placing a hold."
+#~ msgstr ""
+#~ " Bushaltestellen in der Auswahl der Abholstandorte für Reservierungen."
 
 # Circulation > Checkout policy
 #~ msgid "circulation.pref#OPACFineNoRenewalsBlockAutoRenew# Allow"

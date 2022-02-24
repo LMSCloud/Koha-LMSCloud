@@ -1,8 +1,8 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: Koha 21.05\n"
-"POT-Creation-Date: 2022-02-18 15:31+0100\n"
-"PO-Revision-Date: 2022-02-16 18:10+0100\n"
+"POT-Creation-Date: 2022-02-23 12:21+0100\n"
+"PO-Revision-Date: 2022-02-23 11:58+0100\n"
 "Last-Translator: Katrin Fischer <katrin.fischer@bsz-bw.de>\n"
 "Language-Team: \n"
 "Language: de\n"
@@ -5158,6 +5158,11 @@ msgstr "Aktuelles Passwort:"
 msgid "Current session"
 msgstr "Aktuelle Sitzung"
 
+#. SCRIPT
+#: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-overdrive-search.tt:70
+msgid "Currently available"
+msgstr "Im Moment verfügbar"
+
 #: koha-tmpl/opac-tmpl/bootstrap/en/includes/item-status.inc:33
 #, c-format
 msgid "Currently in local use"
@@ -5178,6 +5183,11 @@ msgstr "Zur Zeit in Benutzung durch %s %s %s(%s)%s vor Ort"
 #: koha-tmpl/opac-tmpl/bootstrap/en/includes/divibib-js.inc:1
 msgid "Currently not available."
 msgstr "Im Moment nicht verfügbar."
+
+#. SCRIPT
+#: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-overdrive-search.tt:70
+msgid "Currently unavailable"
+msgstr "Im Moment nicht verfügbar"
 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-advsearch.tt:97
 #, c-format

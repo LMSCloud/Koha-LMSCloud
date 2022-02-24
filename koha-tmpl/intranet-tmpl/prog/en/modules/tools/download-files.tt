@@ -83,8 +83,8 @@
                     <form method="post" action="/cgi-bin/koha/tools/download-files.pl" target="_new" name="downloadfile" enctype="multipart/form-data">
 			<input type="hidden" name="filename" value="">
 			<input type="hidden" name="op" value="download">
-                        <div class="yui-gd">
-                            <div class="yui-u first"> 
+                        <div class="row">
+                            <div class="col-sm-4"> 
                                 <fieldset class="brief" id="downloaddates">
                                     <legend>Date</legend>
 
@@ -97,7 +97,7 @@
 
                                 </fieldset>
                             </div>
-                            <div class="yui-u">
+                            <div class="col-sm-8">
                                 <fieldset class="brief" id="downloadffiles">
                                     <legend>Files</legend>
                                     

@@ -112,7 +112,11 @@ Items that are not:
 sub get_items_that_can_fill {
     my ( $self ) = @_;
 
-    my @biblionumbers = $self->get_column('biblionumber');
+    my @itemnumbers = $self->search({ 'me.itemnumber' => { '!=' => undef } })->get_column('itemnumber');
+    my @biblionumbers = $self->search({ 'me.itemnumber' => undef })->get_column('biblionumber');
+    my @bibs_or_items;
+    push @bibs_or_items, 'me.itemnumber' => { in => \@itemnumbers } if @itemnumbers;
+    push @bibs_or_items, 'biblionumber' => { in => \@biblionumbers } if @biblionumbers;
 
     my @branchtransfers = map { $_->itemnumber }
       Koha::Item::Transfers->search(
@@ -131,29 +135,13 @@ sub get_items_that_can_fill {
           }
       );
 
-    my @hold_not_allowed_itypes = Koha::CirculationRules->search(
+    return Koha::Items->search(
         {
-            rule_name    => 'holdallowed',
-            branchcode   => undef,
-            categorycode => undef,
-            rule_value   => 'not_allowed',
-        }
-    )->get_column('itemtype');
-
-    @hold_not_allowed_itypes = grep { defined() and length() } @hold_not_allowed_itypes;
-
-    my $searchconditions = 
-       {
-            biblionumber => { in => \@biblionumbers },
-            itemlost     => 0,
-            withdrawn    => 0,
-            notforloan   => 0,
+            -or => \@bibs_or_items,
+            itemnumber   => { -not_in => [ @branchtransfers, @waiting_holds ] },
             onloan       => undef,
-            itemnumber   => { -not_in => [ @branchtransfers, @waiting_holds ] }
-       };
-    $searchconditions->{itype} = { -not_in => \@hold_not_allowed_itypes } if (scalar(@hold_not_allowed_itypes)>0);
-
-    return Koha::Items->search($searchconditions);
+        }
+    )->filter_by_for_hold();
 }
 
 =head3 type

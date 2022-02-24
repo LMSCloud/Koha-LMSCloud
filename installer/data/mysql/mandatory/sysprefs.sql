@@ -480,7 +480,6 @@ INSERT INTO systempreferences ( `variable`, `value`, `options`, `explanation`, `
 ('OpacAllowPublicListCreation','1',NULL,'If set, allows opac users to create public lists','YesNo'),
 ('OpacAllowSharingPrivateLists','0',NULL,'If set, allows opac users to share private lists with other patrons','YesNo'),
 ('OPACAllowUserToChooseBranch','1','1','Allow the user to choose the branch they want to pickup their hold from','YesNo'),
-('OPACAllowUserToChooseMobileStation','1',NULL,'If set, show book mobile stations in branches select box when placing a hold.','YesNo'),
 ('OPACAmazonCoverImages','0','','Display cover images on OPAC from Amazon Web Services','YesNo'),
 ('OpacAuthorities','1',NULL,'If ON, enables the search authorities link on OPAC','YesNo'),
 ('OPACBaseURL','',NULL,'Specify the Base URL of the OPAC, e.g., http://opac.mylibrary.com, including the protocol (http:// or https://). Otherwise, the http:// will be added automatically by Koha upon saving.','Free'),

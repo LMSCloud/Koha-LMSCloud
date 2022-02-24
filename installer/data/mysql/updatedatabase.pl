@@ -26143,6 +26143,184 @@ if( CheckVersion( $DBversion ) ) {
     NewVersion( $DBversion, "", "Add new system preferences for SEPA direct debit and a cash register name for SIP payments.");
 }
 
+$DBversion = '21.05.09.002';
+if( CheckVersion( $DBversion ) ) {
+    $dbh->do(q{
+            UPDATE letter
+            SET content=REPLACE(content, "[% ELSIF checkout.auto_renew_error == 'too_unseen' %]\r\nThis item must be renewed at the library.\r\n[% END %]", "[% ELSIF checkout.auto_renew_error == 'too_unseen' %]\r\nThis item must be renewed at the library.\r\n[% ELSIF checkout.auto_renew_error == 'auto_account_expired' %]\r\nYour account has expired.\r\n[% END %]")
+            WHERE code="AUTO_RENEWALS"
+            });
+    NewVersion( $DBversion, "29557", "Add auto_account_expired to AUTO_RENEWALS notice. Please update your AUTO_RENEWALS notice manually if you have changed or translated it." );
+}
+
+$DBversion = '21.05.09.003';
+if( CheckVersion( $DBversion ) ) {
+    my $accounttypes = [['NOTF','NOTIFICATION'],
+                        ['CL1','CLAIM_LEVEL1'],
+                        ['CL2','CLAIM_LEVEL2'],
+                        ['CL3','CLAIM_LEVEL3'],
+                        ['CL4','CLAIM_LEVEL4'],
+                        ['CL5','CLAIM_LEVEL5'],
+                        ['M','MANUAL'],
+                        ['Res','RESERVE'],
+                        ['PF','PROCESSING'],
+                        ['HE','RESERVE_EXPIRED'],
+                        ['N','NEW_CARD'],
+                        ['F','OVERDUE'],
+                        ['FU','OVERDUE'],
+                        ['Rent','RENT'],
+                        ['A','ACCOUNT'],
+                        ['LR','LOST'],
+                        ['CR','LOST'],
+                        ['L','LOST'],
+                        ['Pay','PAYMENT'],
+                        ['PAY','PAYMENT'],
+                        ['Pay01','PAYMENT'],
+                        ['Pay02','PAYMENT'],
+                        ['Pay03','PAYMENT'],
+                        ['W','WRITEOFF'],
+                        ['WO','WRITEOFF'],
+                        ['CAN','CANCELLATION'],
+                        ['FOR','FORGIVEN'],
+                        ['C','CREDIT']
+                        ];
+
+    my $sth = C4::Context->dbh->prepare(q{ SELECT code,description FROM account_credit_types UNION SELECT code,description FROM account_debit_types });
+    $sth->execute();
+    my $acctypes = $sth->fetchall_arrayref( {} );
+    my $acctypenames = {};
+    
+    if ( $acctypes ) {
+        foreach my $acctype(@$acctypes) {
+            $acctypenames->{$acctype->{code}} = $acctype->{description};
+        }
+    }
+    my $maptype = {};
+    foreach my $acctype(@$accounttypes) {
+        $maptype->{$acctype->[0]} = [$acctype->[1],($acctypenames->{$acctype->[1]} || '')];
+    }
+    
+    # Update the mapping of SIP2 fee debit types to Koha debit types 
+    # defined with authorised value category DEBIT_TYPE_SIP2_MAPPED.
+    
+    my $upd = C4::Context->dbh->prepare(q{ UPDATE authorised_values SET lib = ?, lib_opac = ? WHERE category = 'DEBIT_TYPE_SIP2_MAPPED' AND authorised_value = ? AND lib = ?});
+    $sth = C4::Context->dbh->prepare(q{ SELECT authorised_value,lib,lib_opac FROM authorised_values WHERE category = 'DEBIT_TYPE_SIP2_MAPPED' });
+    $sth->execute();
+    my $authvals = $sth->fetchall_arrayref( {} );
+
+    if ( $authvals ) {
+        foreach my $authval(@$authvals) {
+            if ( $authval->{lib} && exists( $maptype->{$authval->{lib}} ) ) {
+                $upd->execute($maptype->{$authval->{lib}}->[0],$maptype->{$authval->{lib}}->[1],$authval->{authorised_value},$authval->{lib});
+            }
+        }
+    }
+    
+    # Update system preference SepaDirectDebitAccountTypes
+    
+    $sth = $dbh->prepare("SELECT value FROM systempreferences WHERE variable= ?");
+    $sth->execute('SepaDirectDebitAccountTypes');
+    my ($value) = $sth->fetchrow;
+    if ( $value ) {
+        my @values = split('\|',$value);
+        for (my $i=0; $i <= $#values; $i++ ) {
+            $values[$i] =~ s/(^\s+|\s+$)//;
+            if ( exists( $maptype->{$values[$i]} ) ) {
+                $values[$i] = $maptype->{$values[$i]}->[0];
+            }
+        }
+        my $updvalue = join('|',@values);
+        $dbh->do("UPDATE systempreferences SET value = ? WHERE variable = ?", undef, $updvalue, 'SepaDirectDebitAccountTypes') if ($updvalue ne $value);
+    }
+    
+    $upd = C4::Context->dbh->prepare(q{ UPDATE authorised_values SET authorised_value = ? WHERE category = 'PaymentAccounttypeEpaybl' AND authorised_value = ? });
+    $sth = C4::Context->dbh->prepare(q{ SELECT authorised_value FROM authorised_values WHERE category = 'PaymentAccounttypeEpaybl' });
+    $sth->execute;
+    $authvals = $sth->fetchall_arrayref( {} );
+
+    if ( $authvals ) {
+        foreach my $authval(@$authvals) {
+            if ( $authval->{authorised_value} && exists( $maptype->{$authval->{authorised_value}} ) ) {
+                $upd->execute($maptype->{$authval->{authorised_value}}->[0],$authval->{authorised_value});
+            }
+        }
+    }
+    
+    $upd = C4::Context->dbh->prepare(q{ UPDATE authorised_values SET authorised_value = ? WHERE category = 'ACCOUNT_TYPE_MAPPING' AND authorised_value = ? });
+    $sth = C4::Context->dbh->prepare(q{ SELECT authorised_value FROM authorised_values WHERE category = 'ACCOUNT_TYPE_MAPPING' });
+    $sth->execute;
+    $authvals = $sth->fetchall_arrayref( {} );
+
+    if ( $authvals ) {
+        foreach my $authval(@$authvals) {
+            if ( $authval->{authorised_value} && exists( $maptype->{$authval->{authorised_value}} ) ) {
+                $upd->execute($maptype->{$authval->{authorised_value}}->[0],$authval->{authorised_value});
+            }
+        }
+    }
+    
+    NewVersion( $DBversion, "", "Map debit types of systempreference settings SepaDirectDebitAccountTypes and authorized values categorie PaymentAccounttypeEpaybl, ACCOUNT_TYPE_MAPPING, DEBIT_TYPE_SIP2_MAPPED to new Koha debit type codes.");
+}
+
+$DBversion = '21.05.09.004';
+if( CheckVersion( $DBversion ) ) {
+    $dbh->do(q{
+        UPDATE branches SET pickup_location = 0 WHERE branchcode = 'eBib' AND pickup_location = 1
+    });
+    
+    my $pickupMobile = C4::Context->preference('OPACAllowUserToChooseMobileStation');
+    
+    if (! $pickupMobile ) {
+        $dbh->do(q{
+            UPDATE branches SET pickup_location = 0 WHERE mobilebranch IS NOT NULL AND mobilebranch <> '' AND pickup_location = 1
+        });
+    }
+    # Remove the OPACAllowUserToChooseMobileStation system preference
+    $dbh->do("DELETE FROM systempreferences WHERE variable='OPACAllowUserToChooseMobileStation'");
+    
+    NewVersion( $DBversion, "", "Remove system preference 'OPACAllowUserToChooseMobileStation'");
+}
+
+$DBversion = '21.05.10.000';
+if( CheckVersion( $DBversion ) ) {
+    NewVersion( $DBversion, "", "Koha 21.05.10 release" );
+}
+
+$DBversion = '21.05.10.001';
+if( CheckVersion( $DBversion ) ) {
+    $dbh->do(q|ALTER TABLE additional_fields CHANGE authorised_value_category authorised_value_category varchar(32) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT ''|);
+    $dbh->do(q|ALTER TABLE auth_subfield_structure CHANGE authorised_value authorised_value varchar(32) COLLATE utf8mb4_unicode_ci DEFAULT NULL|);
+    $dbh->do(q|ALTER TABLE auth_tag_structure CHANGE authorised_value authorised_value varchar(32) COLLATE utf8mb4_unicode_ci DEFAULT NULL|);
+    $dbh->do(q|ALTER TABLE club_template_enrollment_fields CHANGE authorised_value_category authorised_value_category varchar(32) COLLATE utf8mb4_unicode_ci DEFAULT NULL|);
+    $dbh->do(q|ALTER TABLE club_template_fields CHANGE authorised_value_category authorised_value_category varchar(32) COLLATE utf8mb4_unicode_ci DEFAULT NULL|);
+    $dbh->do(q|ALTER TABLE marc_tag_structure CHANGE authorised_value authorised_value varchar(32) COLLATE utf8mb4_unicode_ci DEFAULT NULL|);
+    NewVersion( $DBversion, 29336, "Resize authorised value category fields to 32 chars");
+}
+
+$DBversion = '21.05.10.002'; # will be replaced by the RM
+if( CheckVersion( $DBversion ) ) {
+    if ( foreign_key_exists( 'return_claims', 'issue_id' ) ) {
+        $dbh->do(q{
+            ALTER TABLE return_claims DROP FOREIGN KEY issue_id
+        });
+    }
+
+    NewVersion( $DBversion, 29495, "Issue link is lost in return claims when using 'MarkLostItemsAsReturned'");
+}
+
+$DBversion = '21.05.10.003';
+if( CheckVersion( $DBversion ) ) {
+    $dbh->do(q{
+             UPDATE letter SET content = REPLACE(content, '[% borrowers.', '[% borrower.') WHERE code = 'NOTIFY_MANAGER'
+           });
+    NewVersion( $DBversion, "29943", "Fix typo in NOTIFY_MANAGER notice" );
+}
+
+$DBversion = '21.05.11.000';
+if( CheckVersion( $DBversion ) ) {
+    NewVersion( $DBversion, "", "Koha 21.05.11 release" );
+}
+
 # SEE bug 13068
 # if there is anything in the atomicupdate, read and execute it.
 my $update_dir = C4::Context->config('intranetdir') . '/installer/data/mysql/atomicupdate/';

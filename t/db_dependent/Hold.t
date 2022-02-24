@@ -29,7 +29,7 @@ use Koha::Item;
 use Koha::DateUtils;
 use t::lib::TestBuilder;
 
-use Test::More tests => 34;
+use Test::More tests => 35;
 use Test::Exception;
 use Test::Warn;
 
@@ -221,6 +221,25 @@ subtest "store() tests" => sub {
 
     is( $hold->expirationdate,
         $passed_date->ymd, 'Passed expiration date when updating hold correctly set (Passing both reservedate and expirationdate.' );
+
+    $schema->storage->txn_rollback();
+};
+
+subtest "set_waiting() tests" => sub {
+
+    plan tests => 2;
+
+    $schema->storage->txn_begin();
+
+    my $hold = $builder->build_object({ class => 'Koha::Holds' });
+
+    $hold->waitingdate('2021-01-01');
+    $hold->set_waiting();
+    is($hold->waitingdate, '2021-01-01', "Setting waiting when already waiting should not update waitingdate");
+
+    $hold->waitingdate(undef)->store;
+    $hold->set_waiting();
+    isnt($hold->waitingdate, undef, "Setting waiting when not waiting already should update waitingdate");
 
     $schema->storage->txn_rollback();
 };
