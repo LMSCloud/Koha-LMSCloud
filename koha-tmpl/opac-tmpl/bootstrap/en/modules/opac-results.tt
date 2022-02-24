@@ -318,7 +318,7 @@
                                         [% END %]
                                         -->
                                     <!-- </div> --><!-- / .selections-toolbar -->
-                                <!-- </div> --><!-- /#floating -->
+                                </div><!-- /#floating -->
 
                                 <!-- TABLE RESULTS START -->
                                 <table class="table table-striped">
@@ -859,6 +859,12 @@
 
         $(document).ready(function(){
             
+            $("#didyoumean").bind("DOMSubtreeModified", function() {
+                 if ($('#didyoumean .searchsuggestion').length > 0) {
+                     $("#didyoumean:hidden").show();
+                 }
+            });
+            
             var query_desc = "[% query_desc |replace("'", "\'") |replace('\n', '\\n') |replace('\r', '\\r') | html %]";
             
             [% IF ( Koha.Preference( 'BrockhausSearchActive' ) ) %]
@@ -1103,13 +1109,14 @@
             $("input.newtag").on('keydown', function(e){
                 if (e.keyCode == 13) { e.preventDefault(); }
             });
+            
 
             Sticky = $("#floating");
             Sticky.hcSticky({
                 stickTo: ".searchresults",
                 stickyClass: "floating"
             });
-            
+
             truncate_text(".searchresults");
 
         });
