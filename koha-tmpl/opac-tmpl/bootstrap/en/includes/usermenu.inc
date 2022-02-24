@@ -8,6 +8,16 @@
                 <li>
             [% END %]
                 <a href="/cgi-bin/koha/opac-user.pl">your summary</a></li>
+
+            [% IF ( Koha.Preference('BibtipPatronSpecificRecommendations') && Koha.Preference('opacreadinghistory') ) %]
+                [% IF ( recommendationview ) %]
+                    <li class="active">
+                [% ELSE %]
+                    <li>
+                [% END %]
+                <a href="/cgi-bin/koha/opac-user-recommendations.pl">your recommendations</a></li>
+            [% END %]
+            
             [% IF ( OPACFinesTab ) %]
                 [% IF ( accountview ) %]
                     <li class="active">
