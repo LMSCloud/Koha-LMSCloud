@@ -44,13 +44,12 @@
                             <div id="lmscoverflow"></div>
                             <div id="nothingFound" class="d-none">
                                 Sorry, we currently have no recommendations for you.<br>
-                                Reasons might be that your checkout history is too short or the service has data for your read books.
+                                Reasons might be that your checkout history is too short or the service has no data for your read books.
                             </div>
                         [% ELSE %]
                             <div class="recs-container-heading">
-                                <h4>Momentan können wir keine Empfehlungen für Sie generieren...</h4>
+                                Sorry, there are no recommendations for you.
                             </div>
-                            <hr>
                             <div class="no-recs">
                                 <p>To be able to generate recommendations from your checkout history, 
                                 you need to select and save the option "Forever" or "Default" in the menu under 
