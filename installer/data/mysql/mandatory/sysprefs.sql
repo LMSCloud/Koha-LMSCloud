@@ -569,7 +569,7 @@ INSERT INTO systempreferences ( `variable`, `value`, `options`, `explanation`, `
 ('OPACPlayMusicalInscripts','0','','If displayed musical inscripts, play midi conversion on the OPAC record details page.','YesNo'),
 ('OpacShowRecentComments','0',NULL,'If ON a link to recent comments will appear in the OPAC masthead','YesNo'),
 ('OPACShowUnusedAuthorities','1','','Show authorities that are not being used in the OPAC.','YesNo'),
-('OpacSingleHitInResultList','0',NULL,'Show a single hit search result as result hit list rather than in the detailed result view.','YesNo'),
+('OpacSingleHitResultList','0',NULL,'Show a single hit search result as result hit list rather than in the detailed result view.','YesNo'),
 ('OpacStarRatings','all','disable|all|details',NULL,'Choice'),
 ('OpacSuggestionManagedBy',1,'','Show the name of the staff member who managed a suggestion in OPAC','YesNo'),
 ('OPACSuggestionUnwantedFields',NULL,'','Define the hidden fields for a patron purchase suggestions made via OPAC.','multiple'),
