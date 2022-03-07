@@ -1749,18 +1749,20 @@
         }
     </script>
 
-    [% Asset.js("js/shelfbrowser.js", type => "module") | $raw %]
-    <!--
-    [% Asset.js("js/LMSCoverFlow.js", type => "module") | $raw %]
-    <script type="text/javascript">
-        import { LMSCoverFlowShelfBrowser };
-        LMSCoverFlowShelfBrowser( { 
-                                        header_browsing : _("Browsing {starting_homebranch} shelves"),
-                                        header_location : _("Shelving location: {starting_location}"),
-                                        header_collection : _("Collection: {starting_ccode}")
-                                  } );
+    [% Asset.js("js/LMSCoverFlow.js") | $raw %]
+    [% Asset.js("js/ShelfBrowser.js") | $raw %]
+
+    <script>
+        const LMSCOVERFLOW = LMSCoverFlow.LMSCoverFlow;
+        const REMOVE_CHILD_NODES = LMSCoverFlow.removeChildNodes;
+
+        ShelfBrowser(LMSCOVERFLOW, REMOVE_CHILD_NODES, {
+            header_browsing : _("Browsing {starting_homebranch} shelves"),
+            header_location : _("Shelving location: {starting_location}"),
+            header_collection : _("Collection: {starting_ccode}"),
+            header_close : _("Close shelf"),
+        });
     </script>
-    -->
     
     [% IF ( Koha.Preference('BibtipEnabled') ) %]
     [% IF ( Koha.Preference('BibtipCatalog') ) %]

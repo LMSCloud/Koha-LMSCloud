@@ -66,12 +66,9 @@
 [% BLOCK jsinclude %]
 [% INCLUDE 'datatables.inc' %]
 
-<!--
-[% Asset.js("js/LMSCoverFlow.js", type => "module") | $raw %]
--->
-<script type="module">
-        import { LMSCoverFlow } from "/opac-tmpl/bootstrap/js/LMSCoverFlow.js";
-        
+[% Asset.js("js/LMSCoverFlow.js") | $raw %]
+<script>
+        const LMSCOVERFLOW = LMSCoverFlow.LMSCoverFlow;
         const fetchItemData = async (endpoint) => {
             const url = endpoint;
             let options = {
@@ -88,7 +85,7 @@
             const response = await fetch(url, options);
             return response.json();
         }
-        
+
         const renderRecommendations = (result) => {
             if ( result.items.length === 0 ) {
                 document.getElementById('nothingFound').classList.toggle("d-none");
@@ -97,7 +94,7 @@
             for(var i=0;i<result.items.length;i++) {
                 result.items[i].referenceToDetailsView = '/cgi-bin/koha/opac-detail.pl?biblionumber=' + result.items[i].biblionumber;
             }
-            const lmscoverflow = LMSCoverFlow(
+            const lmscoverflow = LMSCOVERFLOW(
                 'lmscoverflow',
                 {
                     coverImageFallbackHeight: 210,

@@ -1,0 +1,49 @@
+:root {
+    --lmscblue: #106592;
+    --content-height: 210px;
+}
+
+.bibtiprecommendations-no-recommendations {
+    padding: 3rem 25%;
+}
+
+.bibtiprecommendations-container-heading {
+    display: flex;
+    justify-content: center;
+}
+.bibtiprecommendations-container-heading > * {
+    cursor: pointer;
+}
+.bibtiprecommendations-user-info {
+    position: absolute;
+    max-width: 400px;
+    border: 2px solid var(--lmscblue);
+    border-radius: 15px;
+    background-color: white;
+    padding: 20px;
+    z-index: 1;
+}
+
+::-webkit-scrollbar-button:start {
+    display: none;
+}
+::-webkit-scrollbar-button:end {
+    display: block;
+}
+::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+    border-color: transparent;
+}
+::-webkit-scrollbar-track {
+    background: #fff;
+    border-radius: 15px;
+}
+::-webkit-scrollbar-thumb {
+    background: gainsboro;
+    border-radius: 15px;
+}
+::-webkit-scrollbar-thumb:hover {
+    background: grey;
+}
+
