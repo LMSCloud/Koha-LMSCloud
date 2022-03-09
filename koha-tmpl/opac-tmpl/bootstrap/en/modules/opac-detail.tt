@@ -68,6 +68,27 @@
                         [% IF ( OPACLocalCoverImages ) %]
                             <div title="[% img_title | html %]" class="[% biblio.biblionumber | html %]" id="local-thumbnail-preview"></div>
                         [% END %]
+                        
+                        [% IF ( contentsample && Koha.Preference('DivibibEnabled') ) %]
+                            <div class="contentsamplelink">
+                            [% IF ( contentsample.type == 'ebook' ) %]
+                                <a href="[% contentsample.link %]" target="_new"><img src="https://static.lmscloud.net/images/Preview_[% lang.match('^de') ? 'de' : 'en' %].png" alt="Preview" title="Preview" /></a><br />
+                            [% ELSIF ( contentsample.type == 'eaudio' ) %]
+                                <a href="[% contentsample.link %]" target="_new"><img src="https://static.lmscloud.net/images/Sample_[% lang.match('^de') ? 'de' : 'en' %].png" alt="Preview" title="Sample" /></a><br />
+                            [% ELSIF ( contentsample.type == 'emusic' ) %]
+                                <a href="[% contentsample.link %]" target="_new"><img src="https://static.lmscloud.net/images/Sample_[% lang.match('^de') ? 'de' : 'en' %].png" alt="Preview" title="Sample" /></a><br />
+                            [% ELSIF ( contentsample.type == 'evideo' ) %]
+                                <a href="[% contentsample.link %]" target="_new"><img src="https://static.lmscloud.net/images/Preview_[% lang.match('^de') ? 'de' : 'en' %].png" alt="Preview" title="Preview" /></a><br />
+                            [% ELSE %]
+                                <a href="[% contentsample.link %]" target="_new"><img src="https://static.lmscloud.net/images/Preview_[% lang.match('^de') ? 'de' : 'en' %].png" alt="Preview" title="Preview" /></a><br />
+                            [% END %]
+                            </div>
+                        [% END # / IF contentsample %]
+                        [% IF ( titlecoverurls && ( Koha.Preference('EKZCover') || Koha.Preference('DivibibEnabled') ) ) %]
+                            [% FOREACH myurl IN titlecoverurls %] 
+                                <img src="[% myurl %]" alt="Cover of [% img_title | html %]" title="[% img_title | html %]"></img>[% LAST %]
+                            [% END # /FOREACH  %]
+                        [% END # / IF titlecoverurls %]
 
                         [% IF ( AdlibrisEnabled && normalized_isbn ) %]
                             <a href="[% AdlibrisURL | url %]?isbn=[% normalized_isbn | uri %]"><img src="[% AdlibrisURL | url %]?isbn=[% normalized_isbn | uri %]" alt="Cover image" class="adlibris-cover-big" /></a>
@@ -136,7 +157,7 @@
                         </span>
                         [% IF ( ISBD ) %]
                             <span class="view"><a id="ISBDview" class="btn btn-link" href="/cgi-bin/koha/opac-ISBDdetail.pl?biblionumber=[% biblio.biblionumber | html %]"><i class="fa fa-list-ul" aria-hidden="true"></i> ISBD view</a></span>
-                            [% END %]
+                        [% END %]
                     </div>
 
                     [% XSLTBloc | $raw %]
@@ -513,8 +534,6 @@
                                 [% END %]
                             [% END %]
                         [% END # IF itemloop.size %]
-                        [% PROCESS 'shelfbrowser.inc' %]
-                        [% INCLUDE shelfbrowser tab='holdings' %]
                         <br style="clear:both;" />
                     </div> <!-- / #holdings -->
 
@@ -525,7 +544,6 @@
                             [% ELSE %]
                                 <span>No other items.</span>
                             [% END %]
-                            [% INCLUDE shelfbrowser tab='otherholdings' %]
                         </div>
                     [% END # / SeparateHoldings %]
 
@@ -897,6 +915,10 @@
                     </div>
                 [% END # / IF Babeltheque %]
 
+                <span class="results_summary">
+                    <div id="bibtip_reclist" style="display:none"></div>
+                </span>
+
             </div> <!-- /.col-lg-10 -->
 
             <div class="col-lg-3">
@@ -1189,10 +1211,36 @@
                     [% IF ( ITEM_RESULT.itemcallnumber ) %]
                         [% ITEM_RESULT.itemcallnumber | html %]
                         [% IF ( OPACShelfBrowser ) %]
-                            [% IF ( ITEM_RESULT.itemnumber == starting_itemnumber ) %]
-                                (<a class="close_shelf" href="/cgi-bin/koha/opac-detail.pl?biblionumber=[% ITEM_RESULT.biblionumber | html %]&amp;shelfbrowse_itemnumber=[% ITEM_RESULT.itemnumber | html %]#[% tab | html %]">Browse shelf<span class="sr-only">(Opens below)</span></a>)
+                            (<a class="lmscoverflow-shelfbrowser" data-biblionumber="[% ITEM_RESULT.biblionumber %]" data-itemnumber="[% ITEM_RESULT.itemnumber %]">Browse shelf<span class="sr-only">(Opens below)</span></a>)
+                        [% END %]
+                    [% END %]
+                    [% IF ( Koha.Preference('DivibibEnabled') ) %]
+                        [% IF ( ITEM_RESULT.onleihe ) %]
+                            [% IF ( ITEM_RESULT.available ) %]
+                                [% IF ( loggedinusername ) %]
+                                    <a href="#" onclick="accessDivibibResource('loan','[% ITEM_RESULT.itemId %]'); return false;">
+                                       <b><span class="available">Online available for download.</span></b>
+                                   </a>
+                                [% ELSE %]
+                                   [% IF Koha.Preference( 'DivibibTitleAccessURL' ) %]
+                                   <a href="[% Koha.Preference( 'DivibibTitleAccessURL' ).replace('{TITLEID}',ITEM_RESULT.itemId) %]" alt="Link to Onleihe" target="_blank"><b><span class="available">Available as digital version. Click here for online lending.</span></b></a>
+                                   [% ELSE %]
+                                   <span class="available">Download available for logged in users.</span>
+                                   [% END %]
+                                [% END %]
+                            [% ELSIF ITEM_RESULT.reservable %]
+                                [% IF ( loggedinusername ) %]
+                                     <a href="#" onclick="accessDivibibResource('reservation','[% ITEM_RESULT.itemId %]'); return false;">
+                                        <b><span class="available">A copy is available on the [% ITEM_RESULT.datedue | $KohaDates %]. Click here to place a hold.</span></b></a>
+                                [% ELSE %]
+                                     [% IF Koha.Preference( 'DivibibTitleAccessURL' ) %]
+                                     <a href="[% Koha.Preference( 'DivibibTitleAccessURL' ).replace('{TITLEID}',ITEM_RESULT.itemId) %]" alt="Link to Onleihe" target="_blank"><b><span class="available">Becomes available as digital version on [% ITEM_RESULT.datedue | $KohaDates %]. Click here to make a reservation.</span></b></a>
+                                     [% ELSE %]
+                                     <span class="available"><b>Available on the  [% ITEM_RESULT.datedue | $KohaDates %]. Reservable for logged in users.</b></span>
+                                     [% END %]
+                                [% END %]
                             [% ELSE %]
-                                (<a href="/cgi-bin/koha/opac-detail.pl?biblionumber=[% ITEM_RESULT.biblionumber | uri %]&amp;shelfbrowse_itemnumber=[% ITEM_RESULT.itemnumber | uri %]#[% tab | uri %]">Browse shelf<span class="sr-only">(Opens below)</span></a>)
+                                <span class="available">Currently not available.</span>
                             [% END %]
                         [% END %]
                     [% END %]
@@ -1287,6 +1335,13 @@
             [% END %]
         </tbody>
     </table>
+    
+    [% IF OPACShelfBrowser %]
+        <div id="shelfbrowser">
+            <div id="lmscoverflow"></div>
+        </div>
+    [% END # /IF OPACShelfBrowser %]
+
 [% END %][%# end of items_table block %]
 
 [% BLOCK jsinclude %]
@@ -1310,6 +1365,9 @@
     [% Asset.js("lib/emoji-picker/js/emoji-picker-all.min.js") | $raw %]
     [% IF OpenLibraryCovers || OpenLibrarySearch %]
         [% Asset.js("js/openlibrary.js") | $raw %]
+    [% END %]
+    [% IF ( Koha.Preference('DivibibEnabled') ) %]
+    [% INCLUDE 'divibib-js.inc' %]
     [% END %]
 
     <script>
@@ -1506,77 +1564,6 @@
                     });
             [% END %]
 
-            [% IF ( OPACShelfBrowser ) %]
-                // Focus on shelf browser if present
-                var shelfbrowser = $("#shelfbrowser");
-                if (shelfbrowser.length > 0) {
-                    $('html,body').animate({
-                        scrollTop: shelfbrowser.first().offset().top
-                    },
-                    'slow');
-                    shelfbrowser.first().find(':focusable').eq(0).focus();
-                }
-
-                (function prepareShelfBrowser(){
-
-                    $(".main").on("click",".close_shelf",function(e){
-                        e.preventDefault();
-                        $("#shelfbrowser").toggle();
-                    });
-                    $(".main").on("click", "#browser_previous a", function(e){
-                        e.preventDefault();
-                        $.ajax({
-                            url: "/cgi-bin/koha/svc/shelfbrowser.pl",
-                            type: "POST",
-                            data: {
-                                "shelfbrowse_itemnumber": $("#browser_previous a").data( "prev-itemnumber" )
-                            },
-                            success: function(data){
-                                $("#shelfbrowser").replaceWith(data);
-                                [% IF ( GoogleJackets ) %]
-                                    KOHA.Google.GetCoverFromIsbn([% covernewwindow | html %]);
-                                [% END %]
-                                [% IF ( Koha.Preference('OpacCoce') && Koha.Preference('CoceProviders') ) %]
-                                    KOHA.coce.getURL('[% Koha.Preference('CoceHost') | html %]', '[% Koha.Preference('CoceProviders') | html %]',[% covernewwindow | html %]);
-                                [% END %]
-                                [% IF OpenLibraryCovers %]
-                                    KOHA.OpenLibrary.GetCoverFromIsbn();
-                                [% END %]
-                                [% IF OPACLocalCoverImages %]
-                                    KOHA.LocalCover.GetCoverFromBibnumber(true);
-                                [% END %]
-                            }
-                        });
-                    });
-
-                    $(".main").on("click", "#browser_next a", function(e){
-                        e.preventDefault();
-                        $.ajax({
-                            url: "/cgi-bin/koha/svc/shelfbrowser.pl",
-                            type: "POST",
-                            data: {
-                                "shelfbrowse_itemnumber": $("#browser_next a").data( "next-itemnumber" )
-                            },
-                            success: function(data){
-                                $("#shelfbrowser").replaceWith(data);
-                                [% IF ( GoogleJackets ) %]
-                                    KOHA.Google.GetCoverFromIsbn([% covernewwindow | html %]);
-                                [% END %]
-                                [% IF ( Koha.Preference('OpacCoce') && Koha.Preference('CoceProviders') ) %]
-                                    KOHA.coce.getURL('[% Koha.Preference('CoceHost') | html %]', '[% Koha.Preference('CoceProviders') | html %]',[% covernewwindow | html %]);
-                                [% END %]
-                                [% IF OpenLibraryCovers %]
-                                    KOHA.OpenLibrary.GetCoverFromIsbn();
-                                [% END %]
-                                [% IF OPACLocalCoverImages %]
-                                    KOHA.LocalCover.GetCoverFromBibnumber(true);
-                                [% END %]
-                            }
-                        });
-                    });
-                }());
-            [% END # /IF ( OPACShelfBrowser ) %]
-
             [% IF ( OpacStarRatings != 'disable' ) %]
                 // -----------------------------------------------------
                 // star-ratings code
@@ -1703,5 +1690,90 @@
             }
 
         }
+
+        //init dotdotdot
+        $(document).ready(function() {
+            $(".truncable-txt").dotdotdot({
+                ellipsis    : ' ... ',
+                wrap        : 'word',
+                after       : "a.truncable-txt-readmore",
+                watch       : true,
+                height      : 50,
+                callback : function( isTruncated, orgContent ) {
+                    var self = $( this );
+                    self.find(".truncable-txt-readmore").click(function(){
+                        toggleRead($(this));
+                    });
+            
+                    //if no more text to show hide read more link
+                    if(!isTruncated){                        
+                        self.find("a.truncable-txt-readmore").css("display","none");
+                    }
+            
+                }
+            });
+        });
+        
+        // Toggle truncation
+        function toggleRead(caller) {
+            var callerText = $(caller).text();
+            var parent = $(caller).closest(".truncable-txt");
+            var isTruncated = $(parent).triggerHandler("isTruncated");
+            if (isTruncated) {        
+                // Remove ellipsis
+                $(parent).trigger("destroy.dot");
+                // Update text - have to be clever about it, since destroy overwrites after element text values apparently
+                $(parent).find("a").html( _(" &laquo; Read less") );
+                // Re-add click function since I guess destroy also removes this
+                $(parent).find("a").click(function () {
+                    toggleRead(this);
+                });
+            } else {       
+                // Update text
+                $(parent).find("a").html( _("Read more &raquo;") );
+            
+                // Re-add ellipsis
+                $(parent).dotdotdot({
+                    ellipsis    : ' ... ',
+                    wrap        : 'word',
+                    after       : "a.truncable-txt-readmore",
+                    watch       : true,
+                    height      : 50
+                });
+          
+                // Have to re-add click function again, not totally sure why
+                $(parent).find("a").click(function () {
+                    toggleRead(this);
+                });
+            }
+        }
     </script>
+
+    [% Asset.js("js/LMSCoverFlow.js") | $raw %]
+    [% Asset.js("js/ShelfBrowser.js") | $raw %]
+
+    <script>
+        const LMSCOVERFLOW = LMSCoverFlow.LMSCoverFlow;
+        const REMOVE_CHILD_NODES = LMSCoverFlow.removeChildNodes;
+
+        ShelfBrowser(LMSCOVERFLOW, REMOVE_CHILD_NODES, {
+            header_browsing : _("Browsing {starting_homebranch} shelves"),
+            header_location : _("Shelving location: {starting_location}"),
+            header_collection : _("Collection: {starting_ccode}"),
+            header_close : _("Close shelf"),
+        });
+    </script>
+    
+    [% IF ( Koha.Preference('BibtipEnabled') ) %]
+    [% IF ( Koha.Preference('BibtipCatalog') ) %]
+    <script type="text/javascript">
+    //<![CDATA[
+        var BibtipCatalog = "[% Koha.Preference('BibtipCatalog') | html %]";
+    //]]>
+    </script>
+    [% END %]
+    <script src="https://static.lmscloud.net/js/bibtip_lmscloud.js" type="text/javascript"></script>
+    [% END %]
+
+    <script src="/opac-tmpl/bootstrap/js/jquery.dotdotdot.min.js" type="text/javascript"></script>
 [% END %]

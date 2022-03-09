@@ -386,6 +386,12 @@ OPAC:
             - "List the following not for loan statuses as available for reference in OPAC search results:"
             - pref: Reference_NFL_Statuses
             - "(Use | as delimiter.)"
+        -
+            - pref: OpacSingleHitResultList
+              choices:
+                  1: Show
+                  0: Don't show
+            - "a single hit search result as result hit list rather than in the detailed result view."
     Features:
         -
             - pref: OPACReportProblem

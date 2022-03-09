@@ -563,6 +563,12 @@ Enhanced content:
         -
             - Name of the Bibtip catalog used to request recommendations from Bibtip service:
             - pref: BibtipCatalog
+        -
+            - pref: BibtipPatronSpecificRecommendations
+              choices:
+                  1: Enable
+                  0: Disable
+            - "patron specific recommendations based on the reading history of a patron using a Bibtip service."
     Divibib:
         -
             - pref: DivibibEnabled

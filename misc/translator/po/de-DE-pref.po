@@ -3,7 +3,7 @@ msgstr ""
 "Project-Id-Version: Koha 21.05\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2013-05-16 03:26+0200\n"
-"PO-Revision-Date: 2022-02-18 18:18+0100\n"
+"PO-Revision-Date: 2022-02-25 00:03+0100\n"
 "Last-Translator: Katrin Fischer <katrin.fischer@bsz-bw.de>\n"
 "Language-Team: \n"
 "Language: de\n"
@@ -7886,6 +7886,23 @@ msgstr "Aktiviere nicht"
 msgid "enhanced_content.pref#BibtipEnabled# Enable"
 msgstr "Aktiviere"
 
+# Enhanced content > RecordedBooks
+msgid "enhanced_content.pref#BibtipPatronSpecificRecommendations# Disable"
+msgstr "Aktiviere nicht"
+
+# Enhanced content > RecordedBooks
+msgid "enhanced_content.pref#BibtipPatronSpecificRecommendations# Enable"
+msgstr "Aktiviere"
+
+# Enhanced content > Bibtip recommendations > BibtipPatronSpecificRecommendations
+msgid ""
+"enhanced_content.pref#BibtipPatronSpecificRecommendations# patron specific "
+"recommendations based on the reading history of a patron using a Bibtip "
+"service."
+msgstr ""
+"die Anzeige von benutzerspezifischen Empfehlungen im Benutzerkonto anhand "
+"der Ausleihhistorie durch den Bibtip-Dienst."
+
 # Enhanced content > Brockhaus > BrockhausCustomerID
 msgid ""
 "enhanced_content.pref#BrockhausCustomerID# In order to use Brockhaus "
@@ -12238,6 +12255,22 @@ msgid ""
 "masthead."
 msgstr ""
 "Link zu kürzlich verfassten Kommentaren in der Navigationsleiste des OPACs."
+
+# OPAC > Features
+msgid "opac.pref#OpacSingleHitResultList# Don't show"
+msgstr "Zeige keine"
+
+# OPAC > Policy
+msgid "opac.pref#OpacSingleHitResultList# Show"
+msgstr "Zeige"
+
+# OPAC > Appearance > OpacSingleHitResultList
+msgid ""
+"opac.pref#OpacSingleHitResultList# a single hit search result as result hit "
+"list rather than in the detailed result view."
+msgstr ""
+"eine Trefferliste mit einem Einzeltreffer anstelle der Detailanzeige des "
+"Treffers für eine Suche die nur einen Treffer liefert."
 
 # OPAC > Appearance
 msgid "opac.pref#OpacStarRatings# Show star-ratings on"

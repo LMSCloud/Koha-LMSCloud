@@ -30,33 +30,36 @@ use CGI qw ( -utf8 );
 use C4::Context;
 use C4::Auth;
 use C4::Output;
-use C4::CoverFlowData qw(GetCoverFlowDataByBiblionumber);
+use C4::External::BibtipRecommendations;
 
 
 my @bibids;
 
 my $cgi = CGI->new;
-if ( $cgi && $cgi->param('bibid') ) {
-    foreach my $splitId( split /(\s+|,)/, $cgi->param('bibid')  ) {
-        if ( $splitId =~ /^\d+$/ ) {
-            push @bibids, $splitId;
-        }
-    }
-}
 
 my ( $template, $borrowernumber, $cookie ) = get_template_and_user(
     {
-        template_name   => "svc/coverflowbybib.tt",
+        template_name   => "svc/user-recommendations.tt",
         query           => $cgi,
         type            => "opac",
         authnotrequired => ( C4::Context->preference("OpacPublic") ? 1 : 0 ),
     }
 );
 
-my $coverdata = GetCoverFlowDataByBiblionumber(@bibids);
-$template->param(
-    count => (exists($coverdata->{count}) ? $coverdata->{count} : 0),
-    items => (exists($coverdata->{items}) ? $coverdata->{items} : ())
-);
+# get cover flow data used for the recommendations
+if ( C4::Context->preference("BibtipPatronSpecificRecommendations") ) {
+    my $borrowernumber = C4::Context->userenv->{'number'};
+    
+    if (defined($borrowernumber)) {
+        my $bibtip = C4::External::BibtipRecommendations->new();
+        my $count = $cgi->param('count');
+        my $coverdata = $bibtip->getPatronSpecificRecommendations($borrowernumber,$count);
+
+        $template->param(
+            count => (exists($coverdata->{count}) ? $coverdata->{count} : 0),
+            items => (exists($coverdata->{items}) ? $coverdata->{items} : ())
+        );
+    }
+}
 
 output_with_http_headers $cgi, $cookie, $template->output, 'json';

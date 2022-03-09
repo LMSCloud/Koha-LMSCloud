@@ -17,46 +17,51 @@
 # You should have received a copy of the GNU General Public License
 # along with Koha; if not, see <http://www.gnu.org/licenses>.
 
-=head1 DESCRIPTION
-
-Return catalogue data that is needed to support coverflows in Koha.
-
-=cut
 
 use Modern::Perl;
+
+use Data::Dumper;
 
 use CGI qw ( -utf8 );
 
 use C4::Context;
 use C4::Auth;
+use C4::Koha;
+
 use C4::Output;
-use C4::CoverFlowData qw(GetCoverFlowDataByBiblionumber);
+use Koha::Patrons;
+use C4::External::BibtipRecommendations;
 
+use Koha::ItemTypes;
 
-my @bibids;
+my $query = new CGI;
 
-my $cgi = CGI->new;
-if ( $cgi && $cgi->param('bibid') ) {
-    foreach my $splitId( split /(\s+|,)/, $cgi->param('bibid')  ) {
-        if ( $splitId =~ /^\d+$/ ) {
-            push @bibids, $splitId;
-        }
-    }
+# if opacreadinghistory is disabled, leave immediately
+if ( ! C4::Context->preference('opacreadinghistory') ) {
+    print $query->redirect("/cgi-bin/koha/errors/404.pl");
+    exit;
 }
 
 my ( $template, $borrowernumber, $cookie ) = get_template_and_user(
     {
-        template_name   => "svc/coverflowbybib.tt",
-        query           => $cgi,
+        template_name   => "opac-user-recommendations.tt",
+        query           => $query,
         type            => "opac",
-        authnotrequired => ( C4::Context->preference("OpacPublic") ? 1 : 0 ),
+        authnotrequired => 0,
+        debug           => 1,
     }
 );
 
-my $coverdata = GetCoverFlowDataByBiblionumber(@bibids);
+if ( $borrowernumber ) {
+    my $borrower = Koha::Patrons->find( $borrowernumber );
+    my $privacy = $borrower->privacy();
+
+    $template->param(%{$borrower->unblessed});
+    $template->param( privacy => $privacy );
+}
+
 $template->param(
-    count => (exists($coverdata->{count}) ? $coverdata->{count} : 0),
-    items => (exists($coverdata->{items}) ? $coverdata->{items} : ())
+    recommendationview => 1
 );
 
-output_with_http_headers $cgi, $cookie, $template->output, 'json';
+output_html_with_http_headers $query, $cookie, $template->output, undef, { force_no_caching => 1 };

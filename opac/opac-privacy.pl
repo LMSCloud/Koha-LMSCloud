@@ -75,7 +75,7 @@ elsif ( $op eq "delete_record" ) {
 }
 
 # get borrower privacy ....
-my $borrower = Koha::Patrons->find( $borrowernumber );;
+my $borrower = Koha::Patrons->find( $borrowernumber );
 
 $template->param(
     'Ask_data'                       => 1,

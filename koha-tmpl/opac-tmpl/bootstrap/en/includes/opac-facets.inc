@@ -10,7 +10,7 @@
             <li id="filmfriend-facet" style="display: none;"><h5 id="facet-brockhaus">filmfriend film portal (<span id="filmfriend-count"></span>&nbsp;hits)</h5>
                <ul>
                  <li>
-                    <span class="facet-label"></span> <span class="facet-count"></li>
+                    <span class="facet-label"></span> <span class="facet-count"></span>
                  </li>
                </ul>
             </li>
@@ -19,7 +19,7 @@
             <li id="munzinger-facet" style="display: none;"><h5 id="facet-munzinger">Munzinger encyclopedia (<span id="munzinger-count"></span>&nbsp;hits)</h5>
                <ul>
                  <li>
-                    <span class="facet-label"></span> <span class="facet-count"></li>
+                    <span class="facet-label"></span> <span class="facet-count"></span>
                  </li>
                </ul>
             </li>
@@ -28,7 +28,7 @@
             <li id="brockhaus-facet" style="display: none;"><h5 id="facet-brockhaus">Brockhaus encyclopedia (<span id="brockhaus-count"></span>&nbsp;hits)</h5>
                <ul>
                  <li>
-                    <span class="facet-label"></span> <span class="facet-count"></li>
+                    <span class="facet-label"></span> <span class="facet-count"></span>
                  </li>
                </ul>
             </li>
