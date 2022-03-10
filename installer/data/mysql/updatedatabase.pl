@@ -21142,7 +21142,7 @@ if ( CheckVersion($DBversion) ) {
             )
             VALUES
               ('ACCOUNT', 'Anmeldegebühr', 0, NULL, 1),
-              ('ACCOUNT_RENEW', 'Benutzungsgebühr, 0, NULL, 1),
+              ('ACCOUNT_RENEW', 'Benutzungsgebühr', 0, NULL, 1),
               ('RESERVE_EXPIRED', 'Nicht abgeholte Vormerkung', 0, NULL, 1),
               ('LOST', 'Medienersatz', 1, NULL, 1),
               ('MANUAL', 'Manuelle Gebühr', 1, NULL, 0),
