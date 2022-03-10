@@ -238,21 +238,21 @@
                       </li>
                       <li>
                         <label for="chargessince_filter">Open charges since:</label>
-                        <input type="text" size="10" id="chargessince_filter" name="chargessince_filter" value="[% chargessince %]" />
+                        <input type="text" size="10" id="chargessince_filter" name="chargessince_filter" value="[% chargessince %]" class="datepicker" />
                       </li>
                       <li>
                         <label for="accountexpiresfrom_filter">Account expires/expired: </label>
-                        from&#160;<input type="text" size="10" id="accountexpiresfrom_filter" name="accountexpiresfrom_filter" value="[% accountexpiresfrom %]" /><br />
-                        to&#160;<input type="text" size="10" id="accountexpiresto_filter" name="accountexpiresto_filter" value="[% accountexpiresto %]" />
+                        from&#160;<input type="text" size="10" id="accountexpiresfrom_filter" name="accountexpiresfrom_filter" value="[% accountexpiresfrom %]" class="datepicker" /><br />
+                        to&#160;<input type="text" size="10" id="accountexpiresto_filter" name="accountexpiresto_filter" value="[% accountexpiresto %]" class="datepicker" />
                       </li>
                       <li>
                         <label for="debarreduntilfrom_filter">Debarred until: </label>
-                        from&#160;<input type="text" size="10" id="debarreduntilfrom_filter" name="debarreduntilfrom_filter" value="[% debarreduntilfrom %]" /><br />
-                        to&#160;<input type="text" size="10" id="debarreduntilto_filter" name="debarreduntilto_filter" value="[% debarreduntilto %]" />
+                        from&#160;<input type="text" size="10" id="debarreduntilfrom_filter" name="debarreduntilfrom_filter" value="[% debarreduntilfrom %]" class="datepicker" /><br />
+                        to&#160;<input type="text" size="10" id="debarreduntilto_filter" name="debarreduntilto_filter" value="[% debarreduntilto %]" class="datepicker" />
                       </li>
                       <li>
                         <label for="inactivesince_filter">Inactive since:</label>
-                        <input type="text" size="10" id="inactivesince_filter" name="inactivesince_filter" value="[% inactivesince %]" />
+                        <input type="text" size="10" id="inactivesince_filter" name="inactivesince_filter" value="[% inactivesince %]" class="datepicker" />
                       </li>
                       <li>
                         <label for="lastlettercode_filter">Last letter: </label>
@@ -370,6 +370,7 @@
     </div>
 </div>
 [% MACRO jsinclude BLOCK %]
+    [% INCLUDE 'calendar.inc' %]
     [% INCLUDE 'datatables.inc' %]
     [% INCLUDE 'columns_settings.inc' %]
     [% INCLUDE 'str/members-menu.inc' %]
@@ -586,73 +587,6 @@
             $("#clear_search").on("click",function(e){
                 e.preventDefault();
                 clearFilters(true);
-            });
-            $("#chargessince_filter").datepicker( { 
-                autoclose: true, 
-                maxDate: -1 ,
-                showOn: "both",
-                changeMonth: true,
-                changeYear: true,
-                buttonImage: '/intranet-tmpl/prog/img/famfamfam/silk/calendar.png',
-                buttonImageOnly: true,
-                showButtonPanel: true,
-                showOtherMonths: true,
-                selectOtherMonths: true
-            });
-            $("#accountexpiresto_filter").datepicker( { 
-                autoclose: true, 
-                showOn: "both",
-                changeMonth: true,
-                changeYear: true,
-                buttonImage: '/intranet-tmpl/prog/img/famfamfam/silk/calendar.png',
-                buttonImageOnly: true,
-                showButtonPanel: true,
-                showOtherMonths: true,
-                selectOtherMonths: true
-            });
-            $("#accountexpiresfrom_filter").datepicker( { 
-                autoclose: true, 
-                showOn: "both",
-                changeMonth: true,
-                changeYear: true,
-                buttonImage: '/intranet-tmpl/prog/img/famfamfam/silk/calendar.png',
-                buttonImageOnly: true,
-                showButtonPanel: true,
-                showOtherMonths: true,
-                selectOtherMonths: true
-            });
-            $("#debarreduntilto_filter").datepicker( {
-                autoclose: true,
-                showOn: "both",
-                changeMonth: true,
-                changeYear: true,
-                buttonImage: '/intranet-tmpl/prog/img/famfamfam/silk/calendar.png',
-                buttonImageOnly: true,
-                showButtonPanel: true,
-                showOtherMonths: true,
-                selectOtherMonths: true
-            });
-            $("#debarreduntilfrom_filter").datepicker( {
-                autoclose: true,
-                showOn: "both",
-                changeMonth: true,
-                changeYear: true,
-                buttonImage: '/intranet-tmpl/prog/img/famfamfam/silk/calendar.png',
-                buttonImageOnly: true,
-                showButtonPanel: true,
-                showOtherMonths: true,
-                selectOtherMonths: true
-            });
-            $("#inactivesince_filter").datepicker( { 
-                autoclose: true, 
-                showOn: "both",
-                changeMonth: true,
-                changeYear: true,
-                buttonImage: '/intranet-tmpl/prog/img/famfamfam/silk/calendar.png',
-                buttonImageOnly: true,
-                showButtonPanel: true,
-                showOtherMonths: true,
-                selectOtherMonths: true
             });
             $("#searchform").on("submit", filter);
 

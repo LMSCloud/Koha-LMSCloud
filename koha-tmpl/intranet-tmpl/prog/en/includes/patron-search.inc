@@ -102,24 +102,24 @@
         
         <p>
             <label for="chargessince">Open charges since: </label>
-            <input type="text" size="13" id="chargessince" name="chargessince" value="" class="dateinput" />
+            <input type="text" size="13" id="chargessince" name="chargessince" value="" class="datepicker" />
         </p>
         
         <p>
             <label for="accountexpiresfrom">Account expires/expired: </label>
-            from&#160;<input type="text" size="13" id="accountexpiresfrom" name="accountexpiresfrom" value="" class="dateinput" />
-            to&#160;<input type="text" size="13" id="accountexpiresto" name="accountexpiresto" value="" class="dateinput" />
+            from&#160;<input type="text" size="13" id="accountexpiresfrom" name="accountexpiresfrom" value="" class="datepicker" />
+            to&#160;<input type="text" size="13" id="accountexpiresto" name="accountexpiresto" value="" class="datepicker" />
         </p>
         
         <p>
             <label for="debarreduntilfrom">Debarred until: </label>
-            from&#160;<input type="text" size="13" id="debarreduntilfrom" name="debarreduntilfrom" value="" class="dateinput" />
-            to&#160;<input type="text" size="13" id="debarreduntilto" name="debarreduntilto" value="" class="dateinput" />
+            from&#160;<input type="text" size="13" id="debarreduntilfrom" name="debarreduntilfrom" value="" class="datepicker" />
+            to&#160;<input type="text" size="13" id="debarreduntilto" name="debarreduntilto" value="" class="datepicker" />
         </p>
         
         <p>
             <label for="inactivesince">Inactive since: </label>
-            <input type="text" size="13" id="inactivesince" name="inactivesince" value="" class="dateinput" />
+            <input type="text" size="13" id="inactivesince" name="inactivesince" value="" class="datepicker" />
         </p>
         
         <p>
