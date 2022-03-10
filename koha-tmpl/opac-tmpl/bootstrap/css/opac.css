@@ -151,8 +151,11 @@ th {
     height: 45px;
     margin: 0 0;
     font-size: 100%;
-    padding: .7em .2em;
     text-align: center;
+}
+#encyclopediaheader.encyclopediasource {
+    top: 0.55em;
+    position: relative;
 }
 .detail_volume_list { margin-top: 1em; clear: left; }
 .detail_volume_list .toolbar { border-radius: 0px 0px 0px 0px; }
@@ -394,8 +397,4 @@ label.hotlink-entry {
 }
 #loginModal .modal-footer, #loginModal .modal-header, #loginModal input,  #loginModal .modal-body {
     font-size: 100%; 
-}
-.encyclopediasource {
-    top: 0.45em;
-    position: relative;
 }
