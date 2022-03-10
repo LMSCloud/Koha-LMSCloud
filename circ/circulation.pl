@@ -419,9 +419,17 @@ if (@$barcodes) {
             my $switch_onsite_checkout = exists $messages->{ONSITE_CHECKOUT_WILL_BE_SWITCHED};
             my $issue = AddIssue( $patron->unblessed, $barcode, $datedue, $cancelreserve, undef, undef, { onsite_checkout => $onsite_checkout, auto_renew => $session->param('auto_renew'), switch_onsite_checkout => $switch_onsite_checkout, } );
             $template_params->{issue} = $issue;
-            $template_params->{issue_item_biblio_title_saved} = $issue->item->biblio->title;    # this issues record may be deleted already when template toolkit will build the HTML output
+
+            # LMSCloud handling of ILL article requests:
+            # This issues record may be deleted already (via C4::Circulation::AddIssue() call at the end of this script)
+            # when template toolkit will build the HTML output.
+            # Problem: Since 21.05 circulation.tt displays title, barcode and date_due of the issue,
+            #          but standard Koha template toolkit DB access via [% issue.item.biblio.title %] therefore will not work in this ILL special case.
+            # Solution: Using the following three scalar tt variables instead of tt DB access.
+            $template_params->{issue_item_biblio_title_saved} = $issue->item->biblio->title;
             $template_params->{issue_item_barcode_saved} = $issue->item->barcode;
             $template_params->{issue_date_due_saved} = $issue->date_due;
+
             $session->clear('auto_renew');
             $inprocess = 1;
             push @issuesDone, $issue;
