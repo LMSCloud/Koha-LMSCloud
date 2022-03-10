@@ -717,7 +717,7 @@
 
                                             [% IF ( issue ) %]
                                                 <div class="lastchecked">
-                                                    <p><strong>Checked out: </strong>[% issue.item.biblio.title | html %] (<span class="lastcheckoutbarcode">[% issue.item.barcode | html %]</span>). Due on [% issue.date_due | $KohaDates as_due_date => 1 %]</p>
+                                                    <p><strong>Checked out: </strong>[% issue_item_biblio_title_saved | html %] (<span class="lastcheckoutbarcode">[% issue_item_barcode_saved | html %]</span>). Due on [% issue_date_due_saved | $KohaDates as_due_date => 1 %]</p>
                                                 </div>
                                             [% END %]
                                         </form> <!-- /#mainform -->

@@ -214,10 +214,6 @@ sub list {
             foreach my $meta (@$attributes) {
                 $meta_hash_backend->{$meta->{type}} = $meta->{value};
             }
-# XXXWH aim: make the next 3 lines obsolete in 21.05
-            $meta_hash_json->{Author} = $meta_hash_backend->{author};
-            $meta_hash_json->{Title} = $meta_hash_backend->{title};
-            $meta_hash_json->{ISBN} = $meta_hash_backend->{isbn};
 
             # try to get better values from the backend
             my $backend_metadata;

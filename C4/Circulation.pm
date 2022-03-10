@@ -1740,15 +1740,6 @@ sub AddIssue {
                 $item_object->itemnumber,
             ) if C4::Context->preference("IssueLog");
 
-            # if it is an ILL item that not needs to be shipped back, then check it in now
-            if ( $itisanillitem && $illrequest ) {
-                eval {
-                    my $shippingBackRequired = $illrequest->_backend_capability( "isShippingBackRequired", $illrequest );
-                    if ( ! $shippingBackRequired ) {
-                        AddReturn($barcode, C4::Context->userenv->{'branch'});
-                    }
-                };
-            }
             Koha::Plugins->call('after_circ_action', {
                 action  => 'checkout',
                 payload => {
@@ -1756,6 +1747,8 @@ sub AddIssue {
                     checkout => $issue->get_from_storage
                 }
             });
+
+            # The automatic AddReturn() call for certain types of ILL items had to be moved from here to circ/circulation.pl to avoid access to an otherwise already deleted issues record.
         }
     }
     return $issue;
