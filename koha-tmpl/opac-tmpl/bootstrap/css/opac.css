@@ -70,9 +70,9 @@ th {
 #encyclopedia-facets form {
     margin:0
 }
-#encyclopedia-facets h2 {
+#encyclopedia-facets h2, #search-facets h2 {
     font-size: 90%;
-    margin: 0 0 .6em;
+    margin: 0 0;
     text-align: center;
 }
 #encyclopedia-facets h2 a {
@@ -148,7 +148,7 @@ th {
     display:none
 }
 #encyclopediaheader {
-    height: 27px;
+    height: 45px;
     margin: 0 0;
     font-size: 100%;
     padding: .7em .2em;
@@ -391,4 +391,11 @@ label.hotlink-entry {
 }
 #opac-user-recommendations #lmscoverflow {
     margin-top: 1rem;
+}
+#loginModal .modal-footer, #loginModal .modal-header, #loginModal input,  #loginModal .modal-body {
+    font-size: 100%; 
+}
+.encyclopediasource {
+    top: 0.45em;
+    position: relative;
 }
