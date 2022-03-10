@@ -442,6 +442,13 @@ sub update_category_to {
     my $counter = 0;
     while( my $patron = $self->next ) {
         $counter++;
+        if ( $params->{removeGuarantors} ) {
+            $patron->contactname(undef);
+            $patron->contactfirstname(undef);
+            $patron->contacttitle(undef);
+            $patron->relationship(undef);
+            $patron->guarantor_relationships->delete;
+        }
         $patron->categorycode($params->{category})->store();
     }
     return $counter;

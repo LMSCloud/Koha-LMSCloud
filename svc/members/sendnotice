@@ -195,9 +195,10 @@ sub SendAdhocNotices {
                                     AND ( issues.borrowernumber = ? OR issues.borrowernumber IN 
                                            (
                                             SELECT DISTINCT b.borrowernumber 
-                                               FROM borrowers b, borrowers o, categories c 
-                                               WHERE b.guarantorid = ? 
-                                                 AND o.borrowernumber = b.guarantorid
+                                               FROM borrowers b, borrowers o, borrower_relationships r, categories c 
+                                               WHERE b.borrowernumber = ? 
+                                                 AND o.borrowernumber = r.guarantor_id
+                                                 AND b.borrowernumber = r.guarantee_id
                                                  AND c.categorycode = o.categorycode 
                                                  AND c.family_card = 1
                                            )

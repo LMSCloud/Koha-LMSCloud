@@ -58,6 +58,17 @@ sub guarantors {
     return wantarray ? $guarantors->as_list : $guarantors;
 }
 
+sub hasFamilyCardRelationship {
+    my ($self) = @_;
+    
+    my @guarantors = $self->guarantors();
+    
+    foreach my $guarantor(@guarantors) {
+        return 1 if ($guarantor->is_family_card);
+    }
+    return undef;
+}
+
 =head3 guarantees
 
 Returns all the guarantees in this set of relationships as a list of Koha::Patron objects

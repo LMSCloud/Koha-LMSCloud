@@ -41,6 +41,8 @@ updateSidebarLinks();
 updateOPACUserJS();
 rebuildElasticSearchIndex();
 createSIPEnabledFile($instance);
+updateIntranetMainUserBlock();
+updateGermanLetterTemplates();
 
 &migrate_epayment_to_2105('LMSC');
 &migrate_epayment_to_2105('KohaPayPal');
@@ -511,6 +513,20 @@ sub updateHiddenColumnsSettings {
     $sth->execute('reports','saved-sql','table_reports','saved_results');
     $sth->execute('reports','saved-sql','table_reports','type');
     
+    $sth->execute('illrequests','ill-requests','ill-requests','metadata_article_title');
+    $sth->execute('illrequests','ill-requests','ill-requests','metadata_issue');
+    $sth->execute('illrequests','ill-requests','ill-requests','metadata_volume');
+    $sth->execute('illrequests','ill-requests','ill-requests','metadata_year');
+    $sth->execute('illrequests','ill-requests','ill-requests','metadata_pages');
+    $sth->execute('illrequests','ill-requests','ill-requests','replied');
+    $sth->execute('illrequests','ill-requests','ill-requests','completed_formatted');
+    $sth->execute('illrequests','ill-requests','ill-requests','accessurl');
+    $sth->execute('illrequests','ill-requests','ill-requests','cost');
+    $sth->execute('illrequests','ill-requests','ill-requests','comments');
+    $sth->execute('illrequests','ill-requests','ill-requests','notesopac');
+    $sth->execute('illrequests','ill-requests','ill-requests','notesstaff');
+    $sth->execute('illrequests','ill-requests','ill-requests','metadata_checkedBy');
+    
     $sth->finish();
     
     print "Default column settings of hidden UI table columns updated.\n";
@@ -911,6 +927,21 @@ sub updateMoreSearchesContent {
                 $value =~ s!(<li[^>]*><a href="/cgi-bin/koha/opac-search\.pl">(.|\n)*?</li>)!"$1\n$replace"!e;
             }
         }
+
+        if ( $origvalue ne $value ) {
+            $dbh->do("UPDATE systempreferences SET value=? WHERE variable=?", undef, $value, $variable);
+            print "Updated value of variable $variable\n";
+        }
+    }
+}
+
+sub updateIntranetMainUserBlock {
+    my $dbh = C4::Context->dbh;
+    my $sth = $dbh->prepare("SELECT value,variable FROM systempreferences WHERE variable like 'IntranetmainUserblock'");
+    $sth->execute;
+    while ( my ($value,$variable) = $sth->fetchrow ) {
+        my $origvalue = $value;
+        $value =~ s/<b>Wichtige Links für Ihre Arbeit:<\/br>(<\/b>)?\r?\n<p>(.+?(?=\<\/p>))<\/p>/'<strong>Wichtige Links für Ihre Arbeit:<\/strong>'.$2/se;
 
         if ( $origvalue ne $value ) {
             $dbh->do("UPDATE systempreferences SET value=? WHERE variable=?", undef, $value, $variable);
@@ -1751,5 +1782,633 @@ sub createSIPEnabledFile {
         close($fh);
         chown "$instance-koha", "$instance-koha", $libfile;
         chmod 0644, $libfile;
+    }
+}
+
+sub updateGermanLetterTemplates {
+    my $templates = ();
+    
+    my $text = 
+q{[% USE Price %]
+[% PROCESS 'accounts.inc' %]
+<table>
+[% IF ( LibraryName ) %]
+ <tr>
+    <th colspan="4" class="centerednames">
+        <h3>[% LibraryName | html %]</h3>
+    </th>
+ </tr>
+[% END %]
+ <tr>
+    <th colspan="4" class="centerednames">
+        <h2><u>Gebührenquittung</u></h2>
+    </th>
+ </tr>
+ <tr>
+    <th colspan="4" class="centerednames">
+        <h2>[% Branches.GetName( credit.patron.branchcode ) | html %]</h2>
+    </th>
+ </tr>
+ <tr>
+    <th colspan="4">
+       Bezahlt von  [% credit.patron.firstname | html %] [% credit.patron.surname | html %]<br />
+        Ausweisnummer: [% credit.patron.cardnumber | html %]<br />
+    </th>
+ </tr>
+  <tr>
+    <th>Datum</th>
+    <th>Gebührenbeschreibung</th>
+    <th>Hinweis</th>
+    <th>Betrag</th>
+ </tr>
+
+ <tr class="highlight">
+    <td>[% credit.date | $KohaDates %]</td>
+    <td>
+      [% PROCESS account_type_description account=credit %]
+      [%- IF credit.description %], [% credit.description | html %][% END %]
+    </td>
+    <td>[% credit.note | html %]</td>
+    <td class="credit">[% credit.amount | $Price %]</td>
+ </tr>
+
+<tfoot>
+  <tr>
+    <td colspan="3">Total der Ausstände am: </td>
+    [% IF ( credit.patron.account.balance >= 0 ) %]<td class="credit">[% ELSE %]<td class="debit">[% END %][% credit.patron.account.balance | $Price %]</td>
+  </tr>
+</tfoot>
+</table>
+};
+    push @$templates, ['circulation','ACCOUNT_CREDIT','','Quittung für Anwendung von Guthaben',1,'Quittung für Anwendung von Guthaben',$text,'print','default'];
+
+    
+    $text = 
+q{[% USE Price %]
+[% PROCESS 'accounts.inc' %]
+<table>
+  [% IF ( LibraryName ) %]
+    <tr>
+      <th colspan="5" class="centerednames">
+        <h3>[% LibraryName | html %]</h3>
+      </th>
+    </tr>
+  [% END %]
+
+  <tr>
+    <th colspan="5" class="centerednames">
+      <h2><u>RECHNUNG</u></h2>
+    </th>
+  </tr>
+  <tr>
+    <th colspan="5" class="centerednames">
+      <h2>[% Branches.GetName( debit.patron.branchcode ) | html %]</h2>
+    </th>
+  </tr>
+  <tr>
+    <th colspan="5" >
+      Rechnung für: [% debit.patron.firstname | html %] [% debit.patron.surname | html %] <br />
+      Ausweisnummer: [% debit.patron.cardnumber | html %]<br />
+    </th>
+  </tr>
+  <tr>
+    <th>Datum</th>
+    <th>Gebührenbeschreibung</th>
+    <th>Hinweis</th>
+    <th style="text-align:right;">Betrag</th>
+    <th style="text-align:right;">Offener Betrag</th>
+  </tr>
+
+  <tr class="highlight">
+    <td>[% debit.date | $KohaDates%]</td>
+    <td>
+      [% PROCESS account_type_description account=debit %]
+      [%- IF debit.description %], [% debit.description | html %][% END %]
+    </td>
+    <td>[% debit.note | html %]</td>
+    <td class="debit">[% debit.amount | $Price %]</td>
+    <td class="debit">[% debit.amountoutstanding | $Price %]</td>
+  </tr>
+
+  [% IF ( tendered ) %]
+    <tr>
+      <td colspan="3">Betrag eingezahlt: </td>
+      <td>[% tendered | $Price %]</td>
+    </tr>
+    <tr>
+      <td colspan="3">Rückgeld: </td>
+      <td>[% change | $Price %]</td>
+    </tr>
+  [% END %]
+
+  <tfoot>
+    <tr>
+      <td colspan="4">Total der Ausstände am: </td>
+      [% IF ( debit.patron.account.balance <= 0 ) %]<td class="credit">[% ELSE %]<td class="debit">[% END %][% debit.patron.account.balance | $Price %]</td>
+    </tr>
+  </tfoot>
+</table>
+};
+    push @$templates, ['circulation','ACCOUNT_DEBIT','','Quittung für offene / teilbezahlte Gebühren',1,'Quittung für offene / teilbezahlte Gebühren',$text,'print','default'];
+
+    $text = 
+q{<!DOCTYPE html>
+<html>
+<head>
+<title>Elektronische Zahlungsquittung</title>
+</head>
+<body dir="auto" style="word-wrap: break-word; -webkit-nbsp-mode: space; line-break: after-white-space; font-family: Arial, sans-serif;">
+
+<h2><<branches.branchname>></h2>
+<<branches.opac_info>>
+<p>Telefon: <<branches.branchphone>><br />
+E-Mail: <<branches.branchreplyto>></p>
+<br />
+<<borrowers.surname>>, <<borrowers.firstname>><br />
+Ausweis-Nummer: <<borrowers.cardnumber>><br />
+Ausweis gültig bis: <<borrowers.dateexpiry>>
+<br /><br />
+<<today>>
+<br /><br />
+
+<div style="margin: 0cm 0cm 0.0001pt; font-size: 11pt; font-family: Arial, sans-serif;">
+<br />
+<br />
+<span>
+Guten Tag <<borrowers.title>> <<borrowers.firstname>> <<borrowers.surname>>,
+</span>
+<br />
+<br />
+
+[%- USE Price -%]
+[%- USE AuthorisedValues -%]
+
+eine Zahlung in Höhe von [% credit.amount * -1 | $Price %] € wurde auf Ihrem Gebührenkonto vorgenommen.<br /><br />
+
+Diese Zahlung betraf die folgenden Gebühren:<br />
+
+[%- FOREACH o IN offsets %]
+
+Beschreibung: [% o.debit.description %]<br />
+
+Eingezahlter Betrag: $[% o.amount * -1 | $Price %]<br />
+
+[% IF ( o.credit.note == 'PayPal' ) %] Bezahlt per: [% o.credit.note %] [% ELSE%] Zahlungsart: [% AuthorisedValues.GetByCode('PAYMENT_TYPE', o.credit.payment_type) %] [% END %]<br /><br />
+
+Offener Restbetrag: $[% o.debit.amountoutstanding | $Price %]<br /><br/ />
+
+[% END %]
+
+Mit freundlichen Grüßen<br />
+<br /><br />
+- Ihre <<branches.branchname>> -
+
+</div>
+
+</body>
+</html>
+};
+    push @$templates, ['circulation','ACCOUNT_PAYMENT','','Quittung für Gebührenzahlung',1,'Quittung für Gebührenzahlung',$text,'email','default'];
+
+    $text = 
+q{<!DOCTYPE html>
+<html>
+<head>
+<title>Elektronische Zahlungsquittung</title>
+</head>
+<body dir="auto" style="word-wrap: break-word; -webkit-nbsp-mode: space; line-break: after-white-space; font-family: Arial, sans-serif;">
+
+<h2><<branches.branchname>></h2>
+<<branches.opac_info>>
+<p>Telefon: <<branches.branchphone>><br />
+E-Mail: <<branches.branchreplyto>></p>
+<br />
+<<borrowers.surname>>, <<borrowers.firstname>><br />
+Ausweis-Nummer: <<borrowers.cardnumber>><br />
+Ausweis gültig bis: <<borrowers.dateexpiry>>
+<br /><br />
+<<today>>
+<br /><br />
+
+<div style="margin: 0cm 0cm 0.0001pt; font-size: 11pt; font-family: Arial, sans-serif;">
+<br />
+<br />
+<span>
+Guten Tag <<borrowers.title>> <<borrowers.firstname>> <<borrowers.surname>>,
+</span>
+<br />
+<br />
+
+[%- USE Price -%]
+Ein Gebührenerlass in Höhe von [% credit.amount * -1 | $Price %] € wurde auf Ihrem Gebührenkonto vorgenommen.<br /><br />
+
+Dieser Gebührenerlass betrifft die folgenden Gebühren:<br />
+[%- FOREACH o IN offsets %]
+Beschreibung: [% o.debit.description %]<br />
+Betrag eingezahlt: [% o.amount * -1 | $Price %]<br />
+Offener Restbetrag: [% o.debit.amountoutstanding | $Price %]<br />
+[% END %]
+
+<br /><br />
+
+Mit freundlichen Grüßen<br />
+<br /><br />
+- Ihre <<branches.branchname>> -
+
+
+</div>
+
+</body>
+</html>
+};
+    push @$templates, ['circulation','ACCOUNT_WRITEOFF','','Quittung für Gebührenerlass',1,'Quittung für Gebührenerlass',$text,'email','default'];
+    
+    $text = 
+q{Guten Tag [% borrower.firstname %] [% borrower.surname %],
+
+[% IF checkout.auto_renew_error %]
+Der Titel [% biblio.title %] konnte nicht korrekt verlängert werden.
+[% IF checkout.auto_renew_error == 'too_many' %]
+Sie haben die maximale Anzahl an Verlängerungen erreicht.
+[% ELSIF checkout.auto_renew_error == 'on_reserve' %]
+Dieses Exemplar wurde von anderen Leser*innen vorgemerkt, weswegen keine Verlängerung stattfand.
+[% ELSIF checkout.auto_renew_error == 'restriction' %]
+es fand keine Verlängerung statt, da Ihr Konto gesperrt wurde.
+[% ELSIF checkout.auto_renew_error == 'overdue' %]
+Sie haben überfällige Medien ausgeliehen, weswegen keine Verlängerung stattfand.
+[% ELSIF checkout.auto_renew_error == 'auto_too_late' %]
+Die Frist für die Verlängerung dieses Mediums ist überschritten worden, weswegen keine Verlängerung stattfand.
+[% ELSIF checkout.auto_renew_error == 'auto_too_much_oweing' %]
+Sie haben den maximal zulässigen Gesamtbetrag ausstehender Gebühren überschritten, weswegen keine Verlängerung stattfand.
+[% END %]
+[% ELSE %]
+Der Titel [% biblio.title %] wurde korrekt verlängert und ist nun am [% checkout.date_due | $KohaDates as_due_date => 1 %] fällig.
+
+[% END %]
+};
+    push @$templates, ['circulation','AUTO_RENEWALS','','Automatische Verlängerung der Ausleihfrist',0,'Automatische Verlängerung der Ausleihfrist',$text,'email','default'];
+    
+    $text = 
+q{Guten Tag [% borrower.firstname %] [% borrower.surname %],
+        [% IF error %]
+             [% error %] Medien wurden nicht verlängert.
+        [% END %]
+        [% IF success %]
+             [% success %] Medien wurden verlängert.
+        [% END %]
+        [% FOREACH checkout IN checkouts %]
+            [% checkout.item.biblio.title %] : [% checkout.item.barcode %]
+            [% IF !checkout.auto_renew_error %]
+                wurde bis zum [% checkout.date_due | $KohaDates as_due_date => 1%] verlängert.
+            [% ELSIF checkout.auto_renew_error == 'too_many' %]
+                Sie haben die maximale Anzahl an Verlängerungen erreicht.
+            [% ELSIF checkout.auto_renew_error == 'on_reserve' %]
+                Dieses Exemplar wurde von anderen Leser*innen vorgemerkt, weswegen keine Verlängerung stattfand.
+            [% ELSIF checkout.auto_renew_error == 'restriction' %]
+                es fand keine Verlängerung statt, da Ihr Konto gesperrt wurde.
+            [% ELSIF checkout.auto_renew_error == 'overdue' %]
+                Sie haben überfällige Medien ausgeliehen, weswegen keine Verlängerung stattfand.
+            [% ELSIF checkout.auto_renew_error == 'auto_too_late' %]
+                Die Frist für die Verlängerung dieses Mediums ist überschritten worden, weswegen keine Verlängerung stattfand.
+            [% ELSIF checkout.auto_renew_error == 'auto_too_much_oweing' %]
+                Sie haben den maximal zulässigen Gesamtbetrag ausstehender Gebühren überschritten, weswegen keine Verlängerung stattfand.
+            [% ELSIF checkout.auto_renew_error == 'too_unseen' %]
+                Dieses Medium kann nur vor Ort in der Bibliothek verlängert werden.
+            [% END %]
+        [% END %]
+};
+    push @$templates, ['circulation','AUTO_RENEWALS_DGST','','Automatische Verlängerung der Ausleihfrist',0,'Automatische Verlängerung der Ausleihfrist',$text,'email','default'];
+    
+    $text = 
+q{<h3>[% branch.branchname %]</h3>
+Rückgabequittung für<br />
+[% borrower.title %] [% borrower.firstname %] [% borrower.initials %] [% borrower.surname %] <br />
+([% borrower.cardnumber %]) <br />
+
+[% today | $KohaDates %]<br />
+
+<h4>Heute zurückgegeben</h4>
+[% FOREACH checkin IN old_checkouts %]
+[% SET item = checkin.item %]
+<p>
+[% item.biblio.title %] <br />
+Barcode: [% item.barcode %] <br />
+</p>
+[% END %]
+
+<hr />
+<<branches.opac_info>>
+};
+    push @$templates, ['circulation','CHECKINSLIP','','Rückgabequittung',1,'Rückgabequittung',$text,'print','default'];
+    
+    $text = 
+q{<!DOCTYPE html>
+<html>
+<head>
+<title>Erinnerung an abholbereite Medien</title>
+</head>
+<body dir="auto" style="word-wrap: break-word; -webkit-nbsp-mode: space; line-break: after-white-space; font-family: Arial, sans-serif;">
+
+<h2><<branches.branchname>></h2>
+<<branches.opac_info>>
+<p>Telefon: <<branches.branchphone>><br />
+E-Mail: <<branches.branchreplyto>></p>
+<br />
+<<borrowers.surname>>, <<borrowers.firstname>><br />
+Ausweis-Nummer: <<borrowers.cardnumber>><br />
+Ausweis gültig bis: <<borrowers.dateexpiry>>
+<br /><br />
+<<today>>
+<br /><br />
+
+<div style="margin: 0cm 0cm 0.0001pt; font-size: 11pt; font-family: Arial, sans-serif;">
+
+<br />
+<br />
+
+<span>Guten Tag [% borrower.firstname %] [% borrower.surname %],</span>
+
+<br />
+<br />
+
+in der Bibliothek [% branch.branchname %] sind folgende von Ihnen vorgemerkten Medien für Sie bereitgestellt worden und noch nicht abgeholt worden:
+
+[% FOREACH hold IN holds %]
+    [% hold.biblio.title %] : bereitgestellt seit [% hold.waitingdate | $KohaDates %] <br />
+[% END %]
+
+<br /><br />
+
+Bitte holen Sie die Medien zeitnah ab.
+
+<br /><br />
+
+Mit freundlichen Grüßen<br />
+<br /><br />
+- Ihre <<branches.branchname>> -
+
+
+</div>
+
+</body>
+</html>
+};
+    push @$templates, ['circulation','HOLD_REMINDER','','Erinnerung an abholbereite Medien',1,'Erinnerung an abholbereite Medien',$text,'email','default'];
+    
+    $text = 
+q{Sehr geehrte Damen und Herren,
+
+wir würden gerne eine Fernleihbestellung für den folgenden Titel anfragen:
+
+[% ill_full_metadata %]
+
+Bitte geben Sie uns eine kurze Rückmeldung, ob Sie diesen Titel per Fernleihe liefern können.
+
+Vielen Dank und mit freundlichen Grüßen
+
+[% branch.branchname %]
+[% branch.branchaddress1 %]
+[% branch.branchaddress2 %]
+[% branch.branchaddress3 %]
+[% branch.branchcity %]
+[% branch.branchstate %]
+[% branch.branchzip %]
+[% branch.branchphone %]
+[% branch.branchillemail %]
+[% branch.branchreplyto %]
+};
+    push @$templates, ['ill','ILL_PARTNER_REQ','','Fernleihbestellung bei Partnerbibliotheken',0,'Fernleihbestellung',$text,'email','default'];
+    
+    $text = 
+q{Guten Tag [% borrower.firstname %] [% borrower.surname %],
+
+Ihre Fernleihbestellung mit der Bestellnummer [% illrequest.illrequest_id %] für folgenden Titel:
+
+- [% ill_bib_title %] - [% ill_bib_author %]
+
+ist geliefert worden und kann ab sofort in der folgenden Zweigstelle abgeholt werden: [% branch.branchname %].
+
+Vielen Dank und mit freundlichen Grüßen
+
+[% branch.branchname %]
+[% branch.branchaddress1 %]
+[% branch.branchaddress2 %]
+[% branch.branchaddress3 %]
+[% branch.branchcity %]
+[% branch.branchstate %]
+[% branch.branchzip %]
+[% branch.branchphone %]
+[% branch.branchillemail %]
+[% branch.branchreplyto %]
+};
+    push @$templates, ['ill','ILL_PICKUP_READY','','Abholbernachrichtigung einer Fernleihbestellung',0,'Fernleihbestellung zur Abholung bereit',$text,'email','default'];
+    
+    $text = 
+q{Die/der anfragende Benutzer/in wünscht für die Bestellanfrage für Fernleihbestellung Nummer [% illrequest.illrequest_id %] eine Stornierung und hat dazu den folgenden Hinweis mitgegeben:
+
+[% ill_full_metadata %]
+};
+    push @$templates, ['ill','ILL_REQUEST_CANCEL','','Stornierung einer Fernleihbestellung',0,'Stornierung einer Fernleihbestellung',$text,'email','default'];
+
+    $text = 
+q{Die/der anfragende Benutzer/in hat die Bestellanfrage für Fernleihbestellung Nummer [% illrequest.illrequest_id %] geändert:
+
+[% ill_full_metadata %]
+};
+    push @$templates, ['ill','ILL_REQUEST_MODIFIED','','Änderung einer Fernleihbestellung',0,'Änderung einer Fernleihbestellung',$text,'email','default'];
+
+
+    $text = 
+q{Guten Tag [% borrower.firstname %] [% borrower.surname %],
+
+Ihre gewünschte Fernleihbestellung mit der Bestellnummer [% illrequest.illrequest_id %] für folgenden Titel:
+
+- [% ill_bib_title %] - [% ill_bib_author %]
+
+kann leider derzeit nicht geliefert werden. Die Bestellanfrage wird hiermit geschlossen.
+
+Mit freundlichen Grüßen
+
+[% branch.branchname %]
+[% branch.branchaddress1 %]
+[% branch.branchaddress2 %]
+[% branch.branchaddress3 %]
+[% branch.branchcity %]
+[% branch.branchstate %]
+[% branch.branchzip %]
+[% branch.branchphone %]
+[% branch.branchillemail %]
+[% branch.branchreplyto %]
+};
+    push @$templates, ['ill','ILL_REQUEST_UNAVAIL','','Fernleihbestellung nicht lieferbar',0,'Fernleihbestellung nicht lieferbar',$text,'email','default'];
+    
+    $text = 
+q{<!DOCTYPE html>
+<html>
+<head>
+<title>Erinnerung an abholbereite Medien</title>
+</head>
+<body>
+<h2>Anschaffungsvorschlag eingereicht</h2>
+<p>
+    <h4>Vorgeschlagen von</h4>
+    <ul style="list-style-type:none;">
+        <li><<borrowers.firstname>> <<borrowers.surname>></li>
+        <li><<borrowers.cardnumber>></li>
+        <li><<borrowers.phone>></li>
+        <li><<borrowers.email>></li>
+    </ul>
+</p>
+
+<p>
+    <h4>Vorgeschlagener Titel</h4>
+    <ul style="list-style-type:none;">
+        <li><strong>Zweigstelle:</strong> <<branches.branchname>></li>
+        <li><strong>Titel:</strong> <<suggestions.title>></li>
+        <li><strong>Autor:</strong> <<suggestions.author>></li>
+        <li><strong>Erscheinungsdatum:</strong> <<suggestions.copyrightdate>></li>
+        <li><strong>Standardnummer (ISBN, ISSN, EAN oder sonstige):</strong> <<suggestions.isbn>></li>
+        <li><strong>Verlag:</strong> <<suggestions.publishercode>></li>
+        <li><strong>Gesamttitel:</strong> <<suggestions.collectiontitle>></li>
+        <li><strong>Verlagsort:</strong> <<suggestions.place>></li>
+        <li><strong>Stückzahl:</strong> <<suggestions.quantity>></li>
+        <li><strong>Medientyp:</strong> <<suggestions.itemtype>></li>
+        <li><strong>Grund:</strong> <<suggestions.patronreason>></li>
+        <li><strong>Hinweise:</strong> <<suggestions.note>></li>
+    </ul>
+</p>
+</body>
+</html>
+};
+    push @$templates, ['suggestions','NEW_SUGGESTION','','Anschaffungsvorschlag eingereicht',1,'Anschaffungsvorschlag eingereicht',$text,'email','default'];
+
+
+    $text = 
+q{Guten Tag [% borrower.firstname %] [% borrower.surname %],
+
+folgender Anschaffungsvorschlag wurde Ihnen zugewiesen: [% suggestion.title %].
+
+Vielen Dank
+[% branch.branchname %]
+};
+    push @$templates, ['suggestions','NOTIFY_MANAGER','','Anschaffungsvorschlag zugewiesen',0,'Anschaffungsvorschlag zugewiesen',$text,'email','default'];
+
+    $text = 
+q{Es liegt ein neuer Problembericht vor.
+    
+Benutzername: <<problem_reports.username>>
+
+Das Problem auf folgender Seite gemeldet: <<problem_reports.problempage>>
+
+Titel: <<problem_reports.title>>
+
+Nachricht: <<problem_reports.content>>
+};
+    push @$templates, ['members','PROBLEM_REPORT','','Neuer Problembericht',0,'Neuer Problembericht',$text,'email','default'];
+
+    $text = 
+q{[% PROCESS "accounts.inc" %]
+<table>
+[% IF ( LibraryName ) %]
+ <tr>
+    <th colspan="2" class="centerednames">
+        <h3>[% LibraryName | html %]</h3>
+    </th>
+ </tr>
+[% END %]
+ <tr>
+    <th colspan="2" class="centerednames">
+        <h2>[% Branches.GetName( payment.branchcode ) | html %]</h2>
+    </th>
+ </tr>
+<tr>
+    <th colspan="2" class="centerednames">
+        <h3>[% payment.date | $KohaDates %]</h3>
+</tr>
+<tr>
+  <td>Transaktions-ID: </td>
+  <td>[% payment.accountlines_id %]</td>
+</tr>
+<tr>
+  <td>Operator-ID: </td>
+  <td>[% payment.manager_id %]</td>
+</tr>
+<tr>
+  <td>Zahlungsart: </td>
+  <td>[% payment.payment_type %]</td>
+</tr>
+ <tr></tr>
+ <tr>
+    <th colspan="2" class="centerednames">
+        <h2><u>Gebührenquittung</u></h2>
+    </th>
+ </tr>
+ <tr></tr>
+ <tr>
+    <th>Gebührenbeschreibung</th>
+    <th>Höhe</th>
+  </tr>
+
+  [% FOREACH offset IN offsets %]
+    <tr>
+        <td>[% PROCESS account_type_description account=offset.debit %]</td>
+        <td>[% offset.amount * -1 | $Price %]</td>
+    </tr>
+  [% END %]
+
+<tfoot>
+  <tr class="highlight">
+    <td>Gesamt: </td>
+    <td>[% payment.amount * -1| $Price %]</td>
+  </tr>
+  <tr>
+    <td>Eingezahlt: </td>
+    <td>[% collected | $Price %]</td>
+  </tr>
+  <tr>
+    <td>Rückgeld: </td>
+    <td>[% change | $Price %]</td>
+    </tr>
+</tfoot>
+</table>
+};
+    push @$templates, ['pos','RECEIPT','','Kassenbon',1,'Kassenbon',$text,'print','default'];
+
+    $text = 
+q{Rotationsbestände - Report für [% branch.name %]:
+
+[% IF branch.items.size %][% branch.items.size %] Medien müssen in dieser Zweigstelle bearbeitet werden.
+[% ELSE %]Keine Medien zur Bearbeitung in dieser Zweigstelle.
+[% END %][% FOREACH item IN branch.items %][% IF item.reason != 'in-demand' %]Titel: [% item.title %]
+Autor: [% item.author %]
+Signatur: [% item.callnumber %]
+Standort: [% item.location %]
+Barcode: [% item.barcode %]
+Ausgeliehen?: [% item.onloan %]
+Status: [% item.reason %]
+Aufenthaltsbibliothek: [% item.branch.branchname %] [% item.branch.branchcode %]
+
+[% END %][% END %]
+};
+    push @$templates, ['circulation','SR_SLIP','','Rotationsbestand-Bericht',0,'Rotationsbestand-Bericht',$text,'email','default'];
+    
+    my $dbh = C4::Context->dbh;
+    my $sth1 = $dbh->prepare("UPDATE letter SET name = ?, is_html = ?, title = ?, content = ? WHERE module = ? AND code = ? AND branchcode = '' AND message_transport_type = ? AND lang = ?");
+    my $sth2 = $dbh->prepare("INSERT INTO letter (module,code,branchcode,name,is_html,title,content,message_transport_type,lang) VALUES (?,?,?,?,?,?,?,?,?)");
+    
+    foreach my $template (@$templates) {
+        my($count) = $dbh->selectrow_array("SELECT COUNT(*) FROM letter WHERE module = ? AND code = ? AND branchcode = '' AND message_transport_type = ? AND lang = ?",
+                                           undef,
+                                           $template->[0], $template->[1], $template->[7],$template->[8]);
+        
+        if ( $count == 1 ) {
+            $sth1->execute($template->[3], $template->[4], $template->[5], $template->[6], $template->[0], $template->[1], $template->[7], $template->[8]);
+        }
+        elsif ( $count == 0 ) {
+            $sth2->execute($template->[0], $template->[1], $template->[2], $template->[3], $template->[4], $template->[5], $template->[6], $template->[7], $template->[8]);
+        }
+        else {
+            print "Muliple templates found for update: (", join(", ",@$template), "\n";
+        }
     }
 }

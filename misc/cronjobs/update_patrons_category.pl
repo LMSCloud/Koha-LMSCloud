@@ -63,6 +63,7 @@ Options:
    -b --branch <branchname> only deal with patrons from this library/branch
    -f --from <categorycode> change patron category from this category
    -t --to   <categorycode> change patron category to this category
+   -reldel                  remove any guarantor relationship and clear also the guarantor contact name fields
 
 =head1 OPTIONS
 
@@ -138,6 +139,10 @@ e.g.
 --where 'email IS NULL'
 will update all patrons with no value for email
 
+=item B<--reldel>
+
+Remove any existing guarantor relationships and clear also the guarantor contact name fields.
+
 =back
 
 =head1 DESCRIPTION
@@ -175,6 +180,7 @@ my $reg_aft;
 my $branch_lim;
 my %fields;
 my @where;
+my $reldel = 0;
 
 GetOptions(
     'help|?'          => \$help,
@@ -192,6 +198,7 @@ GetOptions(
     'b|branch=s'      => \$branch_lim,
     'd|field=s'       => \%fields,
     'where=s'         => \@where,
+    'reldel'          => \$reldel
 );
 
 pod2usage(1) if $help;
@@ -283,7 +290,9 @@ if ($verbose) {
     $target_patrons->reset;
 }
 if ($doit) {
-    $actually_updated = $target_patrons->update_category_to( { category => $tocat } );
+    my $params = { category => $tocat };
+    $params->{removeGuarantors} = 1 if ( $reldel );
+    $actually_updated = $target_patrons->update_category_to( $params );
 }
 
 $verbose and print "$patrons_found found, $actually_updated updated\n";

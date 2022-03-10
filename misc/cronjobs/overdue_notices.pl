@@ -558,7 +558,7 @@ SELECT biblio.*, items.*, issues.*, biblioitems.itemtype, branchname, IFNULL(cla
 END_SQL
 
     if($owning_library) {
-      $sql2 .= ' AND b.branchcode = items.homebranch = ? ';
+      $sql2 .= ' AND b.branchcode = items.homebranch ';
     } else {
       $sql2 .= ' AND b.branchcode = issues.branchcode ';
     }

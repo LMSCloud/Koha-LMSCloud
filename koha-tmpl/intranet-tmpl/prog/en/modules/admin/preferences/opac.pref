@@ -381,7 +381,6 @@ OPAC:
                   1: Show
                   0: "Don't show"
             - " linked titles in OPAC detailed view based on the linked records in fields 770$w, 772$w, 773$w, 774$w, 775$w, 776$w, 777$w, 780$w, 785$w, 787$w, 800$w, 810$w, 811$w, 830$w."
-            - "."
         -
             - "List the following not for loan statuses as available for reference in OPAC search results:"
             - pref: Reference_NFL_Statuses
@@ -392,6 +391,7 @@ OPAC:
                   1: Show
                   0: Don't show
             - "a single hit search result as result hit list rather than in the detailed result view."
+        -
     Features:
         -
             - pref: OPACReportProblem
@@ -572,6 +572,11 @@ OPAC:
                   0: Don't display
             - a library selection list for news items in the OPAC.
         -
+            - "Limit the number of news displayed on the OPAC start page to news with a maximum position number of "
+            - pref: NewsMaxNumberOnMainPage
+              class: integer
+            - ". If this value is empty, all news will be displayed."
+        -
             - "Use the following as the OPAC ISBD template:"
             - pref: OPACISBD
               type: textarea
@@ -624,6 +629,47 @@ OPAC:
                   1: Enable
                   0: Disable
             - "interface for browsing all holdings (Elasticsearch only)."
+        -
+            - pref: OpacDetailAntolinLinks
+              default: 0
+              choices:
+                  1: Display
+                  0: Don't display
+            - "Antolin links in the OPAC detailed view. Antolin links need to be provided as 856-tag entries."
+        -
+            - pref: OpacDetailWikipediaLinks
+              default: 0
+              choices:
+                  1: Display
+                  0: Don't display
+            - "Wikipedia links in the OPAC detailed view. Wikipedia links need to be provided as 856-tag entries."
+        -
+            - pref: OpacDetailBookShopLinks
+              default: 0
+              choices:
+                  1: Display
+                  0: Don't display
+            - "book shop links in the OPAC detailed view. Dependent on the availability of an EAN, ISSN or ISBN in a cataloge record the content of the following will be displayed."
+            - "<br>If an ISBN is available:"
+            - pref: OpacDetailBookShopLinkContentISBN
+              type: textarea
+              syntax: text/html
+              class: code
+            - "<br>If an EAN is available:"
+            - pref: OpacDetailBookShopLinkContentEAN
+              type: textarea
+              syntax: text/html
+              class: code
+            - "<br>If an ISSN is available:"
+            - pref: OpacDetailBookShopLinkContentISSN
+              type: textarea
+              syntax: text/html
+              class: code
+            - "<br>The use of the following placeholders is supported: {ISBN13}, {ISBN}, {EAN}, {ISSN}, {TITLE}, {AUTHOR}, {BIBLIONUMBER}."
+            - "<br>Examples:"
+            - "<br>&lt;a class=&quot;dropdown-item&quot; href=&quot;http://www.buch.de/shop/home/suche/?sq={EAN}&quot; title=&quot;Buy the book at Buch.de shop&quot;&gt;Buch.de&lt;/a&gt;"
+            - "<br>&lt;a class=&quot;dropdown-item&quot; href=&quot;http://www.amazon.de/gp/search?k={EAN}&quot; title=&quot;Buy the book at Amazon shop&quot;&gt;Amazon&lt;/a&gt;"
+            
     OpenURL:
         -
             - 'Complete URL of OpenURL resolver (starting with <code>http://</code> or <code>https://</code>):'
