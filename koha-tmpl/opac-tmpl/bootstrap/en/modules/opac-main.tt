@@ -9,6 +9,7 @@
 [% SET OpacNavRight = KohaNews.get( location => "OpacNavRight", lang => lang, library => branchcode ) %]
 [% SET OpacMainUserBlock = KohaNews.get( location => "OpacMainUserBlock", lang => lang, library => branchcode ) %]
 [% SET OpacLoginInstructions = KohaNews.get( location => "OpacLoginInstructions", lang => lang, library => branchcode ) %]
+[% SET OpacMainPageLeftPanel = KohaNews.get( location => "OpacMainPageLeftPanel", lang => lang, library => branchcode ) %]
 [% INCLUDE 'doc-head-open.inc' %]
 <title>[% IF ( LibraryNameTitle ) %][% LibraryNameTitle | html %][% ELSE %]Koha online[% END %] catalog</title>
 [% INCLUDE 'doc-head-close.inc' %]
@@ -46,7 +47,11 @@
     [% END %]
 
     <div class="row">
-        [% IF ( OpacNav ||  OpacNavBottom ) %]
+        [% IF ( OpacMainPageLeftPanel )  %]
+            <div class="col-12 col-lg-4 order-3 order-lg-1">
+                <div>[% PROCESS koha_news_block news => OpacMainPageLeftPanel | eval %]</div>
+            </div>
+        [% ELSIF ( OpacNav ||  OpacNavBottom ) %]
             <div class="col-12 col-lg-2 order-3 order-lg-1">
                 <div id="navigation">
                     [% INCLUDE 'navigation.inc' %]
@@ -54,12 +59,18 @@
             </div>
         [% END %]
 
-        [% IF ( OpacNav ||  OpacNavBottom  ) && (Koha.Preference( 'opacuserlogin' ) == 1 || OpacNavRight) %]
+        [% IF ( OpacMainPageLeftPanel  ) && (Koha.Preference( 'opacuserlogin' ) == 1 || OpacNavRight) %]
+            [% #  Three-column layout with right and left sidebars %]
+            <div class="col-12 col-lg-5 order-md-1 maincontent">
+        [% ELSIF ( OpacNav ||  OpacNavBottom  ) && (Koha.Preference( 'opacuserlogin' ) == 1 || OpacNavRight) %]
             [% #  Three-column layout with right and left sidebars %]
             <div class="col-12 col-lg-7 order-md-1 maincontent">
         [% ELSIF (Koha.Preference( 'opacuserlogin' ) == 1 || OpacNavRight) %]
             [% #  Two-column layout with right sidebar %]
             <div class="col-12 col-lg-9 order-md-1 maincontent">
+        [% ELSIF ( OpacMainPageLeftPanel  ) %]
+            [% #  Three-column layout with right and left sidebars %]
+            <div class="col-12 col-lg-8 order-md-1 maincontent">
         [% ELSIF ( OpacNav ||  OpacNavBottom  ) %]
             <div class="col-12 col-lg-10 order-md-1 maincontent">
         [% ELSE %]
@@ -84,6 +95,20 @@
                 </form>
             [% END %]
         [% END %]
+        
+        [% maxnewsnumber = Koha.Preference('NewsMaxNumberOnMainPage')       %]
+        [% IF ( koha_news && maxnewsnumber.search('^[-+]?[0-9]+$') )        %]
+        [%     newsfiltercount = 0                                          %]
+        [%     newsfilter = []                                              %]
+        [%     FOREACH koha_new IN koha_news                                %]
+        [%        IF ( koha_new.number <= maxnewsnumber )                   %]
+        [%             newsfilter.push(koha_new)                            %]
+        [%             newsfiltercount = newsfiltercount + 1                %]
+        [%        END                                                       %]
+        [%     END                                                          %]
+        [%     koha_news_count = newsfiltercount                            %]
+        [%     koha_news = newsfilter                                       %]
+        [% END                                                              %]
 
         [% IF ( koha_news ) %]
 
@@ -93,7 +118,7 @@
                     This news item does not exist.
                 </div>
 
-            [% ELSE %]
+            [% ELSIF koha_news.size > 0 %]
 
                 <div id="news" class="newscontainer">
                     [% SET newsdisp = ( Koha.Preference('NewsAuthorDisplay') ) %]
@@ -124,7 +149,7 @@
                         </div>
 
                     [% END %]
-                    [% UNLESS news_item %]
+                    [% UNLESS (news_item || koha_news.size == 0 ) %]
                         <div id="rssnews-container">
                             <!-- Logged in users have a branch code or it could be explicitly set -->
                             <a href="[% OPACBaseURL | url %]/cgi-bin/koha/opac-news-rss.pl?branchcode=[% branchcode | uri %]">
@@ -172,7 +197,9 @@
             [% END %]
 
             [% IF ( OpacMainUserBlock ) %]
-                [% PROCESS koha_news_block news => OpacMainUserBlock %]
+                <div id="opacmainuserblock">
+                    [% PROCESS koha_news_block news => OpacMainUserBlock | eval %]
+                </div>
             [% END %]
         [% END %]
 
@@ -183,6 +210,8 @@
                 [% IF Koha.Preference( 'opacuserlogin' ) == 1 %]
                     [% UNLESS ( loggedinusername ) %]
                         [% UNLESS ( casAuthentication || shibbolethAuthentication || Koha.Preference('opacShibOnly') ) %]
+                            <div class="ui-tabs ui-widget ui-widget-content ui-corner-all">
+                            <div class="ui-tabs-panel ui-widget-content ui-corner-bottom">
                             <div id="login">
                                 <form action="/cgi-bin/koha/opac-user.pl" method="post" name="auth" id="auth" autocomplete="off">
                                     <input type="hidden" name="koha_login_context" value="opac" />
@@ -212,6 +241,8 @@
                                         [% END %]
                                     </fieldset>
                                 </form>
+                            </div>
+                            </div>
                             </div> <!-- /#login -->
                         [% END # /casAuthentication %]
                     [% ELSE %]
@@ -282,7 +313,7 @@
                         [% END %]
                     [% END # /loggedinusername %]
                 [% END # /opacuserlogin %]
-                [% PROCESS koha_news_block news => OpacNavRight %]
+                [% PROCESS koha_news_block news => OpacNavRight | eval %]
             </div> <!-- / .col -->
         [% END # /opacuserlogin || OpacNavRight %]
 
