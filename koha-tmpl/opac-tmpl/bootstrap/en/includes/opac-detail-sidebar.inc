@@ -52,6 +52,93 @@
         </li>
     [% END %]
 
+    [% IF ( ( MARCURLS ) && ( Koha.Preference('OpacDetailAntolinLinks') ) ) %]
+        [% AntolinLinks = 0 %]
+        [% FOREACH MARCurl IN MARCURLS %]
+            [% IF MARCurl.linktext.match('^Antolin') %]
+                [% AntolinLinks = AntolinLinks + 1 %]
+                [% IF AntolinLinks == 1 %]
+                    <li>
+                        <div id="antolinquiz_menu">
+                            <div class="dropdown">
+                                <a id="open_antolinquiz_menu" class="btn btn-link btn-lg dropdown-toggle" data-toggle="dropdown" href="#"><img src="/webcustom/images/Antolin16.png" alt="Antolin book" title="Antolin book" class="antolin_menu_icon" aria-hidden="true" /> Antolin Quiz <b class="caret"></b></a>
+                                <div class="dropdown-menu dropdown-menu-right" aria-labelledby="format">
+                [% END # / AntolinLinks == 1 %]
+                    [% IF ( OPACURLOpenInNewWindow ) %]
+                        [% IF trackclicks == 'track' || trackclicks == 'anonymous' %]
+                            <a class="dropdown-item" href="/cgi-bin/koha/tracklinks.pl?uri=[% MARCurl.MARCURL |url%]&amp;biblionumber=[% biblionumber | url %]" title="[% MARCurl.MARCURL %]" target="_blank">
+                        [% ELSE %]
+                            <a class="dropdown-item" href="[% MARCurl.MARCURL %]" title="[% MARCurl.MARCURL %]" target="_blank">
+                        [% END %]
+                    [% ELSE %]
+                        [% IF trackclicks == 'track' || trackclicks == 'anonymous' %]
+                            <a class="dropdown-item" href="/cgi-bin/koha/tracklinks.pl?uri=[% MARCurl.MARCURL |url%]&amp;biblionumber=[% biblionumber | url %]" title="[% MARCurl.MARCURL %]">
+                        [% ELSE %]
+                            <a class="dropdown-item" href="[% MARCurl.MARCURL %]" title="[% MARCurl.MARCURL %]">
+                        [% END %]
+                    [% END %]
+                    [% MARCurl.linktext %]</a>
+            [% END # / IF MARCurl.linktext.match('^Antolin') %]
+        [% END # / FOREACH MARCURLS %]
+        [% IF AntolinLinks >= 1 %]
+                        </div>
+                    </div>
+                </div>
+            </li>
+        [% END # / AntolinLinks >= 1 %]
+    [% END # / IF MARCURL &&Koha.Preference('OpacDetailAntolinLinks') %]
+
+
+    [% IF ( ( MARCURLS ) && ( Koha.Preference('OpacDetailWikipediaLinks') ) ) %]
+        [% WikipediaLinks = 0 %]
+        [% FOREACH MARCurl IN MARCURLS %]
+            [% IF MARCurl.MARCURL.match('wikipedia') %]
+                [% WikipediaLinks = WikipediaLinks + 1 %]
+                [% IF WikipediaLinks == 1 %]
+                    <li>
+                        <div id="wikipedia_menu">
+                            <div class="dropdown">
+                                <a id="format" class="btn btn-link btn-lg dropdown-toggle" data-toggle="dropdown" href="#"><i class="fa fa-fw fa-wikipedia-w" aria-hidden="true"></i> Wikipedia-Article <b class="caret"></b></a>
+                                <div class="dropdown-menu dropdown-menu-right" aria-labelledby="format">
+                [% END # / WikipediaLinks == 1 %]
+                    [% IF ( OPACURLOpenInNewWindow ) %]
+                        [% IF trackclicks == 'track' || trackclicks == 'anonymous' %]
+                            <a class="dropdown-item" href="/cgi-bin/koha/tracklinks.pl?uri=[% MARCurl.MARCURL |url%]&amp;biblionumber=[% biblionumber | url %]" title="[% MARCurl.MARCURL %]" target="_blank">
+                        [% ELSE %]
+                            <a class="dropdown-item" href="[% MARCurl.MARCURL %]" title="[% MARCurl.MARCURL %]" target="_blank">
+                        [% END %]
+                    [% ELSE %]
+                        [% IF trackclicks == 'track' || trackclicks == 'anonymous' %]
+                            <a class="dropdown-item" href="/cgi-bin/koha/tracklinks.pl?uri=[% MARCurl.MARCURL |url%]&amp;biblionumber=[% biblionumber | url %]" title="[% MARCurl.MARCURL %]">
+                        [% ELSE %]
+                            <a class="dropdown-item" href="[% MARCurl.MARCURL %]" title="[% MARCurl.MARCURL %]">
+                        [% END %]
+                    [% END %]
+                    [% MARCurl.linktext %]</a>
+                
+            [% END # / IF MARCurl.MARCURL.match('wikipedia') %]
+        [% END # / FOREACH MARCURLS %]
+        [% IF WikipediaLinks >= 1 %]
+                        </div>
+                    </div>
+                </div>
+            </li>
+        [% END # / WikipediaLinks >= 1 %]
+    [% END # / IF MARCURL && Koha.Preference('OpacDetailWikipediaLinks') %]
+    
+    [% IF ( Koha.Preference('OpacDetailBookShopLinks') ) %]
+        <li>
+            <div id="bookshop_menu">
+                <div class="dropdown"> 
+                   <a id="open_bookshop_menu" class="btn btn-link btn-lg dropdown-toggle" class="dropdown-toggle" data-toggle="dropdown" href="#"><i class="fa fa-fw fa-eur" aria-hidden="true"></i> Buy here<b class="caret"></b></a>
+                    <div class="dropdown-menu dropdown-menu-right" aria-labelledby="format">
+                        [% OpacDetailBookShopLinkContent %]
+                    </div>
+                </div>
+            </div>
+        </li>
+    [% END # IF ( Koha.Preference('OpacDetailBookShopLinks') %]
+
     [% SET export_options = Koha.Preference('OpacExportOptions').split(',') %]
     [% IF export_options.size %]
         <li>
