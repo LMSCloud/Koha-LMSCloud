@@ -763,7 +763,7 @@ if ($op eq "additem") {
             if ( C4::Context->preference("IllModule") ) {    # check if the ILL module is activated at all
                 my ( $itisanillitem, $illrequest ) = ( 0, undef );
                 eval {
-                    ( $itisanillitem, $illrequest ) = Koha::Illrequest->checkIfIllItem($item);
+                    ( $itisanillitem, $illrequest ) = Koha::Illrequest->checkIfIllItem($item->unblessed);
                     if ( $itisanillitem && $illrequest ) {
                         $illrequest->_backend_capability( "itemLost", $illrequest );
                     }

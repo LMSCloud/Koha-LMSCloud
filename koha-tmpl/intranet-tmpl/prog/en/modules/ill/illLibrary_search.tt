@@ -4,7 +4,6 @@
 [% INCLUDE 'doc-head-open.inc' %]
 <title>Koha &rsaquo; ILL library search</title>
 [% INCLUDE 'doc-head-close.inc' %]
-[% Asset.css("css/datatables.css") %]
 </head>
 
 <body id="common_illLibrary_search" class="common" onload="dofocus();">
@@ -101,6 +100,9 @@
                     },{
                         'name': 'categorycode',
                         'value': $("#categorycode_filter").val()
+                    },{
+                        'name': 'cardnumber_sorton',
+                        'value': 'borrowers.cardnumber'
                     },{
                         'name': 'name_sorton',
                         'value': 'borrowers.surname borrowers.firstname'
