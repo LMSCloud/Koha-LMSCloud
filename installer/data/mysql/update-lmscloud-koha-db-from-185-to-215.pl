@@ -646,6 +646,8 @@ sub updateSimpleVariables {
               ('MARC-FIELD-338-SELECT','zu','nicht spezifiziert')});
     $dbh->do(q{UPDATE marc_subfield_structure SET value_builder='marc21_field_rda.pl' WHERE tagfield IN ('336','337','338') AND tagsubfield='a' AND frameworkcode = ''});
     $dbh->do(q{UPDATE marc_subfield_structure SET hidden='0' WHERE tagfield IN ('336','337','338') AND tagsubfield='2' AND frameworkcode = ''});
+    $dbh->do(q{UPDATE marc_subfield_structure SET hidden='0' WHERE tagfield IN ('336','337','338') AND tagsubfield='a' AND frameworkcode = ''});
+    $dbh->do(q{UPDATE marc_subfield_structure SET hidden='0' WHERE tagfield IN ('336','337','338') AND tagsubfield='b' AND frameworkcode = ''});
 }
 
 sub updateSidebarLinks {
@@ -783,6 +785,19 @@ sub updateEntryPages {
         if ( $origvalue ne $value ) {
             $dbh->do("UPDATE systempreferences SET value=? WHERE variable=?", undef, $value, $variable);
             print "Updated value of variable $variable.", ($imageAltAdded ? " $imageAltAdded image alt attributes added." : ""), "\n";
+        }
+    }
+    
+    $sth = $dbh->prepare("SELECT idnew,lang,content FROM opac_news WHERE lang like 'OpacNavRight_%' OR lang like 'OpacMainPageLeftPanel_%' OR lang like 'OpacMainUserBlock_%' OR lang like 'OpacLoginInstructions_%' OR lang like 'opacheader_%'");
+    $sth->execute;
+    while ( my ($id,$name,$value) = $sth->fetchrow ) {
+        my $origvalue = $value;
+        my $imageAltAdded = 0;
+        ($value,$imageAltAdded) = replaceEntryPageContent($value);
+    
+        if ( $origvalue ne $value ) {
+            $dbh->do("UPDATE opac_news SET content=? WHERE idnew=? AND lang=?", undef, $value, $id, $name);
+            print "Updated content of new content $name.", ($imageAltAdded ? " $imageAltAdded image alt attributes added." : ""), "\n";
         }
     }
 }
@@ -1780,7 +1795,8 @@ sub createSIPEnabledFile {
     if ( -f "/etc/koha/sites/$instance/SIPconfig.xml" && ! -f $libfile )  {
         open(my $fh, "<", $libfile);
         close($fh);
-        chown "$instance-koha", "$instance-koha", $libfile;
+        my ($login,$pass,$uid,$gid) = getpwnam("$instance-koha");
+        chown $uid, $gid, $libfile;
         chmod 0644, $libfile;
     }
 }
