@@ -1384,7 +1384,7 @@ sub migrate_epayment_to_2105 {
 
     sub install_koha_plugin {
         my ( $uploadfilename ) = @_;    # name of the KPZ file
-        my $uploaddirname = 'https://configuration.lmscloud.net/pluginstore';
+        my $uploaddirname = 'https://orgaknecht.lmscloud.net/updates/koha-21-05/pluginstore';
         #my $uploadlocation = '';
         my $uploadlocation = $uploaddirname . '/' . $uploadfilename;
         my $plugins_enabled = C4::Context->config("enable_plugins");
