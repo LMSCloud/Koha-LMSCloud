@@ -63,6 +63,7 @@
                         [% IF facets_loo.type_label_Topics %]<h3 id="facet-topics">Topics</h3>[% END %]
                         [% IF facets_loo.type_label_Places %]<h3 id="facet-places">Places</h3>[% END %]
                         [% IF facets_loo.type_label_Series %]<h3 id="facet-series">Series</h3>[% END %]
+                        [% IF facets_loo.type_label_Genres %]<h3 id="facet-genres">Genres</h3>[% END %]
                         [% IF facets_loo.type_label_Years %]<h3 id="facet-years">Publication years</h3>[% END %]
                         [% IF facets_loo.type_label_ItemTypes %]<h3 id="facet-itemtypes">Item types</h3>[% END %]
                         [% IF facets_loo.type_label_CollectionCodes %]<h3 id="facet-collections">Collections</h3>[% END %]
