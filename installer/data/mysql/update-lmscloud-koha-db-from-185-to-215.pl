@@ -534,7 +534,7 @@ sub updateHiddenColumnsSettings {
 
 sub updateSimpleVariables {
     my $dbh = C4::Context->dbh;
-    $dbh->do("UPDATE systempreferences SET value='OpacAdditionalStylesheet' WHERE variable='QueryFuzzy' AND value='/webcustom/css/opac-lmscloud.css'");
+    $dbh->do("UPDATE systempreferences SET value='' WHERE variable='OpacAdditionalStylesheet' AND value='/webcustom/css/opac-lmscloud.css'");
     $dbh->do("UPDATE systempreferences SET value='1' WHERE variable IN ('AcquisitionLog','AuthFailureLog','AuthoritiesLog','AuthSuccessLog','BorrowersLog','CataloguingLog','ClaimsLog','CronjobLog','DivibibLog','FinesLog','HoldsLog','IllLog','IssueLog','NewsLog','NoticesLog','RenewalLog','ReportsLog','ReturnLog','SubscriptionLog')");
     $dbh->do("UPDATE systempreferences SET value='0' WHERE variable='Mana' and value='2'");
     $dbh->do("UPDATE systempreferences SET value='0' WHERE variable='UsageStats' and value='2'");
