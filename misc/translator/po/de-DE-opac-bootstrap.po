@@ -1,8 +1,8 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: Koha 21.05\n"
-"POT-Creation-Date: 2022-03-10 13:28+0100\n"
-"PO-Revision-Date: 2022-03-10 14:20+0100\n"
+"POT-Creation-Date: 2022-03-15 20:05+0100\n"
+"PO-Revision-Date: 2022-03-15 20:07+0100\n"
 "Last-Translator: Katrin Fischer <katrin.fischer@bsz-bw.de>\n"
 "Language-Team: \n"
 "Language: de\n"
@@ -4837,7 +4837,7 @@ msgstr "Sammlung: %s "
 msgid "Collection: {starting_ccode}"
 msgstr "Sammlung: {starting_ccode}"
 
-#: koha-tmpl/opac-tmpl/bootstrap/en/includes/opac-facets.inc:68
+#: koha-tmpl/opac-tmpl/bootstrap/en/includes/opac-facets.inc:69
 #, c-format
 msgid "Collections"
 msgstr "Sammlungen"
@@ -6324,6 +6324,11 @@ msgstr "Spiele"
 msgid "General"
 msgstr "Allgemein"
 
+#: koha-tmpl/opac-tmpl/bootstrap/en/includes/opac-facets.inc:66
+#, c-format
+msgid "Genres"
+msgstr "Interessenkreise"
+
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-password-recovery.tt:97
 #, c-format
 msgid "Get new password recovery link"
@@ -6619,7 +6624,7 @@ msgstr "HoldItem"
 msgid "HoldTitle"
 msgstr "HoldTitle"
 
-#: koha-tmpl/opac-tmpl/bootstrap/en/includes/opac-facets.inc:72
+#: koha-tmpl/opac-tmpl/bootstrap/en/includes/opac-facets.inc:73
 #, c-format
 msgid "Holding libraries"
 msgstr "Aktuelle Bibliotheken"
@@ -6727,7 +6732,7 @@ msgstr "Vormerkhistorie"
 msgid "Home"
 msgstr "Start"
 
-#: koha-tmpl/opac-tmpl/bootstrap/en/includes/opac-facets.inc:71
+#: koha-tmpl/opac-tmpl/bootstrap/en/includes/opac-facets.inc:72
 #, c-format
 msgid "Home libraries"
 msgstr "Heimatbibliothek"
@@ -7275,7 +7280,7 @@ msgstr "Medientyp:"
 msgid "Item type: "
 msgstr "Medientyp: "
 
-#: koha-tmpl/opac-tmpl/bootstrap/en/includes/opac-facets.inc:67
+#: koha-tmpl/opac-tmpl/bootstrap/en/includes/opac-facets.inc:68
 #, c-format
 msgid "Item types"
 msgstr "Medientypen"
@@ -7409,7 +7414,7 @@ msgid "Language"
 msgstr "Sprache"
 
 #: koha-tmpl/opac-tmpl/bootstrap/en/includes/masthead-langmenu.inc:6
-#: koha-tmpl/opac-tmpl/bootstrap/en/includes/opac-facets.inc:69
+#: koha-tmpl/opac-tmpl/bootstrap/en/includes/opac-facets.inc:70
 #, c-format
 msgid "Languages"
 msgstr "Sprachen"
@@ -7707,7 +7712,7 @@ msgstr "Standort(e) (Status)"
 msgid "Location: %s %s %s "
 msgstr "Standort: %s %s %s "
 
-#: koha-tmpl/opac-tmpl/bootstrap/en/includes/opac-facets.inc:74
+#: koha-tmpl/opac-tmpl/bootstrap/en/includes/opac-facets.inc:75
 #, c-format
 msgid "Locations"
 msgstr "Standorte"
@@ -9928,7 +9933,7 @@ msgstr "Erscheinungsjahrbereich"
 msgid "Publication place:"
 msgstr "Erscheinungsort:"
 
-#: koha-tmpl/opac-tmpl/bootstrap/en/includes/opac-facets.inc:66
+#: koha-tmpl/opac-tmpl/bootstrap/en/includes/opac-facets.inc:67
 #, c-format
 msgid "Publication years"
 msgstr "Erscheinungsjahre"
@@ -10237,7 +10242,7 @@ msgid "Remove"
 msgstr "Entfernen"
 
 #. A
-#: koha-tmpl/opac-tmpl/bootstrap/en/includes/opac-facets.inc:94
+#: koha-tmpl/opac-tmpl/bootstrap/en/includes/opac-facets.inc:95
 msgid "Remove facet %s"
 msgstr "Facette entfernen %s"
 
@@ -11353,7 +11358,7 @@ msgstr "Alle Transaktionen anzeigen"
 msgid "Show last 50 items"
 msgstr "Zeige letzte 50 Ausleihen"
 
-#: koha-tmpl/opac-tmpl/bootstrap/en/includes/opac-facets.inc:109
+#: koha-tmpl/opac-tmpl/bootstrap/en/includes/opac-facets.inc:110
 #, c-format
 msgid "Show less"
 msgstr "Weniger anzeigen"
@@ -11363,7 +11368,7 @@ msgstr "Weniger anzeigen"
 msgid "Show lists"
 msgstr "Zeige Listen"
 
-#: koha-tmpl/opac-tmpl/bootstrap/en/includes/opac-facets.inc:106
+#: koha-tmpl/opac-tmpl/bootstrap/en/includes/opac-facets.inc:107
 #, c-format
 msgid "Show more"
 msgstr "Mehr zeigen"
