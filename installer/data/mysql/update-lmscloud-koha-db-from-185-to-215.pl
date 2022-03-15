@@ -43,6 +43,7 @@ rebuildElasticSearchIndex();
 createSIPEnabledFile($instance);
 updateIntranetMainUserBlock();
 updateGermanLetterTemplates();
+updateReports();
 
 &migrate_epayment_to_2105('LMSC');
 &migrate_epayment_to_2105('KohaPayPal');
@@ -2426,5 +2427,486 @@ Aufenthaltsbibliothek: [% item.branch.branchname %] [% item.branch.branchcode %]
         else {
             print "Muliple templates found for update: (", join(", ",@$template), "\n";
         }
+    }
+}
+
+sub updateReports {
+    my $updates = ();
+    
+    my $sqltext = 
+q{SELECT
+ *
+FROM
+ (SELECT
+ @TargetBranch:=<<Bibliothek|branches>> COLLATE utf8mb4_unicode_ci AS "Medientyp",
+ TO_DAYS(@StartDate:=<<Zeitraum von (Datum)|date>>) - TO_DAYS(@EndDate:=<<bis (Datum)|date>>) AS "Anzahl Ausleihen" ) AS set_variables
+WHERE 0 = 1
+UNION ALL
+SELECT 
+ "Summe: Alle Medientypen" COLLATE utf8mb4_unicode_ci AS "Medientyp", 
+ count(*) AS "Anzahl Ausleihen" 
+FROM 
+ statistics s 
+LEFT JOIN itemtypes i ON s.itemtype=i.itemtype 
+WHERE 
+ s.type IN ('issue','renew') 
+ AND date(s.datetime) BETWEEN @StartDate AND @EndDate 
+ AND s.branch=@TargetBranch COLLATE utf8mb4_unicode_ci
+UNION ALL
+SELECT 
+ i.description COLLATE utf8mb4_unicode_ci AS "Medientyp", 
+ count(*) AS "Anzahl Ausleihen" 
+FROM 
+ statistics s 
+LEFT JOIN itemtypes i ON s.itemtype=i.itemtype 
+WHERE 
+ s.type IN ('issue','renew') 
+ AND date(s.datetime) BETWEEN @StartDate AND @EndDate
+ AND s.branch=@TargetBranch COLLATE utf8mb4_unicode_ci
+GROUP BY i.itemtype 
+};
+    push @$updates, ['A0050 Anzahl Ausleihen (inkl. VL) pro Medientyp in ausgewähltem Zeitraum',$sqltext];
+    
+    $sqltext = 
+q{SELECT
+*
+FROM
+(SELECT
+@Jahr:=<<Auswertung für Jahr (JJJJ)>> COLLATE utf8mb4_unicode_ci AS "PLZ",
+@TargetBranch:=<<Für Zweigstelle|branches>> COLLATE utf8mb4_unicode_ci AS "Ort",
+@StartDate:=<< von |date>> COLLATE utf8mb4_unicode_ci AS "Gesamt",
+@EndDate:=<<bis |date>> AS "Bis 12",
+" " AS "Ab 60" )
+AS set_variables
+WHERE 0 = 1
+UNION ALL
+SELECT zipcode AS"PLZ", city AS "Ort", COUNT(borrowernumber) AS "Gesamt", SUM(IF( @Jahr-YEAR(dateofbirth) <= 12 ,1,0)) AS "Bis 12", SUM(IF( @Jahr-YEAR(dateofbirth) >= 60 ,1,0)) AS "Ab 60" FROM borrowers
+WHERE dateexpiry >= @StartDate and dateenrolled <= @EndDate
+
+AND branchcode=@TargetBranch COLLATE utf8mb4_unicode_ci
+GROUP BY zipcode
+};
+    push @$updates, ['B0312-zw Aktive Nutzer nach Sitzkommune und Alter auswerten (für BZSH)',$sqltext];
+    
+$sqltext = 
+q{SELECT
+*
+FROM
+(SELECT
+@Jahr:=<<Auswertung für Jahr (JJJJ)>> COLLATE utf8mb4_unicode_ci AS "PLZ",
+@TargetBranch:=<<Für Zweigstelle|branches>> COLLATE utf8mb4_unicode_ci AS "Ort",
+@StartDate:=<< von |date>> COLLATE utf8mb4_unicode_ci AS "Gesamt",
+@EndDate:=<<bis |date>> AS "Bis 12",
+" " AS "Ab 60" )
+AS set_variables
+WHERE 0 = 1
+UNION ALL
+SELECT zipcode AS"PLZ", city AS "Ort", COUNT(borrowernumber) AS "Gesamt", SUM(IF( @Jahr-YEAR(dateofbirth) <= 12 ,1,0)) AS "Bis 12", SUM(IF( @Jahr-YEAR(dateofbirth) >= 60 ,1,0)) AS "Ab 60" FROM borrowers
+WHERE dateexpiry >= @StartDate and dateenrolled <= @EndDate
+
+AND branchcode=@TargetBranch COLLATE utf8mb4_unicode_ci
+GROUP BY zipcode
+};
+    push @$updates, ['B0312-zw Aktive Nutzer nach Sitzkommune und Alter auswerten (für BZSH)',$sqltext];
+    
+    $sqltext = 
+q{SELECT
+*
+FROM
+(SELECT
+@Jahr:=<<Auswertung für Jahr (JJJJ)>> COLLATE utf8mb4_unicode_ci AS "PLZ",
+@TargetBranch:=<<Für Zweigstelle|branches>> COLLATE utf8mb4_unicode_ci AS "Ort",
+@StartDate:=<< von |date>> COLLATE utf8mb4_unicode_ci AS "Gesamt",
+@EndDate:=<<bis |date>> AS "Bis 12",
+" " AS "Ab 60" )
+AS set_variables
+WHERE 0 = 1
+UNION ALL
+SELECT zipcode AS"PLZ", city AS "Ort", COUNT(borrowernumber) AS "Gesamt", SUM(IF( @Jahr-YEAR(dateofbirth) <= 12 ,1,0)) AS "Bis 12", SUM(IF( @Jahr-YEAR(dateofbirth) >= 60 ,1,0)) AS "Ab 60" FROM borrowers
+WHERE dateexpiry >= @StartDate and dateenrolled <= @EndDate
+
+AND branchcode=@TargetBranch COLLATE utf8mb4_unicode_ci
+GROUP BY zipcode
+};
+
+    push @$updates, ['B0312-zw Aktive Nutzer nach Sitzkommune und Alter auswerten (für BZSH)',$sqltext];
+    
+    $sqltext = 
+q{SELECT
+adt.description AS "Kostenart",
+act.description AS "Zahlungsart",
+FORMAT(SUM(a.amount-a.amountoutstanding),2) AS 'Betrag in Euro',
+IFNULL(ityp.description,IFNULL(i.itype,'')) AS Medientyp
+FROM accountlines a
+LEFT JOIN (
+SELECT itemnumber, itype FROM deleteditems
+UNION
+SELECT itemnumber, itype FROM items
+) AS i USING (itemnumber)
+LEFT JOIN itemtypes ityp ON ityp.itemtype = i.itype
+LEFT JOIN account_debit_types adt ON adt.code=a.debit_type_code
+LEFT JOIN account_credit_types act ON act.code=a.credit_type_code
+WHERE branchcode=<<Auswahl Zweigstelle|branches>>
+AND a.amountoutstanding <> a.amount
+AND (DATE(a.timestamp) BETWEEN <<Zwischen |date>> AND <<und|date>>)
+GROUP BY
+a.debit_type_code, a.credit_type_code, i.itype, ityp.description
+ORDER BY 1,2,3
+};
+    push @$updates, ['G0150 Beglichene Gebühren in ausgewähltem Zeitraum summiert nach Gebührenart und Medientyp',$sqltext];
+        
+    $sqltext = 
+q{SELECT
+    *
+FROM
+    (
+    SELECT
+       '' AS Benutzergruppe,
+       (@SelDate1:= <<Von Datum |date>> ) AS "1. Mahnung",
+       (@SelDate2:= <<Bis Datum |date>> ) AS "2. Mahnung",
+       '0.00' AS "3. Mahnung",
+       '0.00'  AS "Bereitstellungsbenachrichtigung",
+       '0.00' AS "Summe Gebührenmahnung",
+       '0.00' AS "Gesamt"
+    ) AS set_variables
+WHERE 0 = 1
+UNION ALL
+SELECT 
+       c.description AS Benutzergruppe,
+       FORMAT(SUM(claim1),2,'de_DE') AS "1. Mahnung",
+       FORMAT(SUM(claim2),2,'de_DE') AS "2. Mahnung",
+       FORMAT(SUM(claim3),2,'de_DE') AS "3. Mahnung",
+       FORMAT(SUM(hold),2,'de_DE')   AS "Bereitstellungsbenachtichtigung",
+       FORMAT(SUM(claimfee),2,'de_DE') AS "Summe Gebührenmahnung",
+       FORMAT(SUM(notfall),2,'de_DE') AS "Gesamt"
+FROM
+       (
+            SELECT 
+                   b.categorycode AS category,
+                   'Normale Bezahlungen' AS Zahlungsform,
+                   SUM(IF(a.description LIKE 'Benachrichtigungsgebühr für 1. Mahnung%',ao.amount,0.0)) * -1 AS claim1,
+                   SUM(IF(a.description LIKE 'Benachrichtigungsgebühr für 2. Mahnung%',ao.amount,0.0)) * -1 AS claim2,
+                   SUM(IF(a.description LIKE 'Benachrichtigungsgebühr für 3. Mahnung%',ao.amount,0.0)) * -1 AS claim3,
+                   SUM(IF(a.description LIKE 'Gebühr für Bereitstellungsbenachrichtigung%',ao.amount,0.0)) * -1 AS hold,
+                   SUM(IF(a.description LIKE '__.__.____',ao.amount,0.0)) * -1 AS claimfee,
+                   SUM(ao.amount) * -1 AS notfall
+            FROM   branches br, account_offsets ao, accountlines c, accountlines a, borrowers b
+            WHERE      c.branchcode = br.branchcode
+                   AND ao.debit_id = a.accountlines_id
+                   AND ao.credit_id = c.accountlines_id
+                   AND ao.type = 'Payment'
+                   AND ao.created_on BETWEEN @SelDate1 AND @SelDate2
+                   AND NOT EXISTS (SELECT 1 FROM items WHERE a.itemnumber = items.itemnumber)
+                   AND NOT EXISTS (SELECT 1 FROM deleteditems WHERE a.itemnumber = deleteditems.itemnumber)
+                   AND (
+                              a.description LIKE 'Benachrichtigungsgebühr für %. Mahnung%' 
+                           OR a.description LIKE 'Gebühr für Bereitstellungsbenachrichtigung%'
+                           OR a.description LIKE 'Gebührenmahnung%'
+                           OR a.description LIKE '__.__.____'
+                       )
+                   AND a.debit_type_code = 'NOTIFICATION'
+                   AND ao.amount <> 0.00
+                   AND a.borrowernumber = b.borrowernumber
+            GROUP BY 
+                   a.debit_type_code, b.categorycode
+            UNION ALL
+            SELECT 
+                   b.categorycode AS category,
+                   'Erneute Zahlung nach Zahlungsstorno' AS Zahlungsform,
+                   SUM(IF(a.description LIKE 'Benachrichtigungsgebühr für 1. Mahnung%',o.amount,0.0)) * -1 AS claim1,
+                   SUM(IF(a.description LIKE 'Benachrichtigungsgebühr für 2. Mahnung%',o.amount,0.0)) * -1 AS claim2,
+                   SUM(IF(a.description LIKE 'Benachrichtigungsgebühr für 3. Mahnung%',o.amount,0.0)) * -1 AS claim3,
+                   SUM(IF(a.description LIKE 'Gebühr für Bereitstellungsbenachrichtigung%',o.amount,0.0))* -1  AS hold,
+                   SUM(IF(a.description LIKE '__.__.____',o.amount,0.0)) * -1 AS claimfee,
+                   SUM(o.amount) * -1 AS notfall
+            FROM   branches br, account_offsets o, account_offsets ao, accountlines c, accountlines u, accountlines a, borrowers b
+            WHERE      c.branchcode = br.branchcode
+                   AND ao.debit_id = u.accountlines_id
+                   AND ao.credit_id = c.accountlines_id
+                   AND ao.type = 'Payment'
+                   AND ao.created_on BETWEEN @SelDate1 AND @SelDate2
+                   AND ao.debit_id = o.credit_id
+                   AND o.type = 'Payment'
+                   AND o.debit_id = a.accountlines_id
+                   AND u.debit_type_code IN ('Pay', 'Pay00', 'Pay01', 'Pay02', 'Pay03')
+                   AND (
+                              a.description LIKE 'Benachrichtigungsgebühr für %. Mahnung%' 
+                           OR a.description LIKE 'Gebühr für Bereitstellungsbenachrichtigung%'
+                           OR a.description LIKE 'Gebührenmahnung%'
+                           OR a.description LIKE '__.__.____'
+                       )
+                   AND a.debit_type_code = 'NOTIFICATION'
+                   AND NOT EXISTS (SELECT 1 FROM items WHERE a.itemnumber = items.itemnumber)
+                   AND NOT EXISTS (SELECT 1 FROM deleteditems WHERE a.itemnumber = deleteditems.itemnumber)
+                   AND o.amount <> 0.00
+                   AND ao.amount = u.amount
+                   AND a.borrowernumber = b.borrowernumber
+            GROUP BY 
+                   a.debit_type_code, b.categorycode
+            UNION ALL
+            SELECT 
+                   b.categorycode AS category,
+                   'Zahlungsstorno' AS Zahlungsform,
+                   SUM(IF(a.description LIKE 'Benachrichtigungsgebühr für 1. Mahnung%',o.amount,0.0)) * -1 AS claim1,
+                   SUM(IF(a.description LIKE 'Benachrichtigungsgebühr für 2. Mahnung%',o.amount,0.0)) * -1 AS claim2,
+                   SUM(IF(a.description LIKE 'Benachrichtigungsgebühr für 3. Mahnung%',o.amount,0.0)) * -1 AS claim3,
+                   SUM(IF(a.description LIKE 'Gebühr für Bereitstellungsbenachrichtigung%',o.amount,0.0)) * -1 AS hold,
+                   SUM(IF(a.description LIKE '__.__.____',o.amount,0.0)) * -1 AS claimfee,
+                   SUM(o.amount) * -1 AS notfall
+            FROM   branches br, account_offsets o, account_offsets ao, accountlines c, accountlines a, borrowers b
+            WHERE      c.branchcode = br.branchcode
+                   AND ao.type = 'Reverse Payment'
+                   AND ao.credit_id = c.accountlines_id
+                   AND ao.amount > 0.0
+                   AND ao.created_on BETWEEN @SelDate1 AND @SelDate2
+                   AND ao.credit_id = o.credit_id
+                   AND o.type = 'Payment'
+                   AND o.debit_id = a.accountlines_id
+                   AND (
+                              a.description LIKE 'Benachrichtigungsgebühr für %. Mahnung%' 
+                           OR a.description LIKE 'Gebühr für Bereitstellungsbenachrichtigung%'
+                           OR a.description LIKE 'Gebührenmahnung%'
+                           OR a.description LIKE '__.__.____'
+                       )
+                   AND a.debit_type_code = 'NOTIFICATION'
+                   AND NOT EXISTS (SELECT 1 FROM items WHERE a.itemnumber = items.itemnumber)
+                   AND NOT EXISTS (SELECT 1 FROM deleteditems WHERE a.itemnumber = deleteditems.itemnumber)
+                   AND o.amount <> 0.00
+                   AND -ao.amount = c.amount
+                   AND a.borrowernumber = b.borrowernumber
+            GROUP BY 
+                   a.debit_type_code, b.categorycode
+            UNION ALL
+            SELECT 
+                   b.categorycode AS category,
+                   'Rückzahlungen' AS Zahlungsform,
+                   SUM(IF(a.description LIKE 'Benachrichtigungsgebühr für 1. Mahnung%',o.amount,0.0)) AS claim1,
+                   SUM(IF(a.description LIKE 'Benachrichtigungsgebühr für 2. Mahnung%',o.amount,0.0)) AS claim2,
+                   SUM(IF(a.description LIKE 'Benachrichtigungsgebühr für 3. Mahnung%',o.amount,0.0)) AS claim3,
+                   SUM(IF(a.description LIKE 'Gebühr für Bereitstellungsbenachrichtigung%',o.amount,0.0)) AS hold,
+                   SUM(IF(a.description LIKE '__.__.____',o.amount,0.0)) AS claimfee,
+                   SUM(o.amount) AS notfall
+            FROM   branches br, account_offsets o, account_offsets ao, accountlines c, accountlines a, borrowers b
+            WHERE      c.branchcode = br.branchcode
+                   AND ao.type = 'Reverse Payment'
+                   AND ao.amount < 0.0
+                   AND ao.created_on BETWEEN @SelDate1 AND @SelDate2
+                   AND ao.credit_id = o.credit_id
+                   AND ao.credit_id = c.accountlines_id
+                   AND o.type = 'Payment'
+                   AND o.debit_id = a.accountlines_id
+                   AND (
+                              a.description LIKE 'Benachrichtigungsgebühr für %. Mahnung%' 
+                           OR a.description LIKE 'Gebühr für Bereitstellungsbenachrichtigung%'
+                           OR a.description LIKE 'Gebührenmahnung%'
+                           OR a.description LIKE '__.__.____'
+                       )
+                   AND a.debit_type_code = 'NOTIFICATION'
+                   AND NOT EXISTS (SELECT 1 FROM items WHERE a.itemnumber = items.itemnumber)
+                   AND NOT EXISTS (SELECT 1 FROM deleteditems WHERE a.itemnumber = deleteditems.itemnumber)
+                   AND o.amount <> 0.00
+                   AND a.borrowernumber = b.borrowernumber
+             GROUP BY 
+                   a.debit_type_code, b.categorycode
+       ) AS notf, categories c
+WHERE  notf.category = c.categorycode
+GROUP BY c.description
+};
+    push @$updates, ['G0010 Benachrichtigungsgebühren nach Art für ausgewählten Zeitraum',$sqltext];
+
+    $sqltext = 
+q{SELECT 
+ '<b>Summe gesamt</b>' AS 'Einnahme von', 
+ '<b>Summe gesamt</b>' AS 'Gebühr erhoben von', 
+ '<b>Betrag gesamt</b>' AS Betrag,
+ '<b>Transfer</b>' AS Gebührenart, 
+ '<b>Transferbetrag</b>' AS Verrechnung
+FROM dual
+WHERE
+ CURDATE() >= ( @FromDate:= <<Von Datum |date>> ) AND CURDATE() >= ( @ToDate:= <<Bis Datum |date>> )
+UNION ALL
+SELECT 
+ br2.branchname AS 'Einnahme von', 
+ br1.branchname AS 'Gebühr erhoben von', 
+ FORMAT(origsum.betrag, 2, 'de_DE') AS Betrag,
+ CASE
+ WHEN (origsum.betrag - addsum.betrag) > 0.0 THEN CONCAT('VON ',br2.branchname, ' <br />NACH ',br1.branchname)
+ WHEN addsum.betrag IS NULL THEN CONCAT('VON ',br2.branchname, ' <br />NACH ',br1.branchname)
+ ELSE ''
+ END AS Gebührenart,
+ CASE
+ WHEN (origsum.betrag - addsum.betrag) > 0.0 THEN FORMAT(origsum.betrag - addsum.betrag, 2, 'de_DE')
+ WHEN addsum.betrag IS NULL THEN FORMAT(origsum.betrag, 2, 'de_DE')
+ ELSE ''
+ END AS Verrechnung
+FROM 
+ (
+  SELECT 
+ c.branchcode AS angefallen, 
+ p.branchcode AS bezahlt, 
+ SUM(op.amount * -1) AS betrag
+ FROM accountlines p, 
+ account_offsets op, 
+ accountlines c
+ WHERE 
+ p.credit_type_code="PAYMENT"
+ AND op.credit_id = p.accountlines_id
+ AND p.branchcode <> c.branchcode
+ AND op.debit_id = c.accountlines_id
+ AND DATE(op.created_on) BETWEEN @FromDate AND @ToDate
+ GROUP BY c.branchcode, p.branchcode 
+ ORDER BY betrag DESC ) AS origsum
+ LEFT JOIN 
+ (
+ SELECT 
+ c.branchcode AS angefallen, 
+ p.branchcode AS bezahlt, 
+ SUM(op.amount * -1) AS betrag
+ FROM accountlines p, 
+ account_offsets op, 
+ accountlines c
+ WHERE 
+ p.credit_type_code="PAYMENT"
+ AND op.credit_id = p.accountlines_id
+ AND p.branchcode <> c.branchcode
+ AND op.debit_id = c.accountlines_id
+ AND DATE(op.created_on) BETWEEN @FromDate AND @ToDate
+ GROUP BY c.branchcode, p.branchcode
+ ) AS addsum ON ( origsum.angefallen = addsum.bezahlt AND origsum.bezahlt = addsum.angefallen )
+ LEFT JOIN branches br1 ON ( origsum.angefallen = br1.branchcode )
+ LEFT JOIN branches br2 ON ( origsum.bezahlt = br2.branchcode )
+UNION ALL
+SELECT 
+ '<hr />' AS 'Einnahme von', 
+ '<hr />' AS 'Gebühr erhoben von', 
+ '<hr />' AS Betrag,
+ '<hr />' AS Gebührenart, 
+ '<hr />' AS Verrechnung
+UNION ALL
+SELECT 
+ '<b>Summe nach Gebührenart</b>' AS 'Einnahme von', 
+ '<b>Summe nach Gebührenart</b>' AS 'Gebühr erhoben von', 
+ '<b>Betrag</b>' AS Betrag,
+ '<b>Gebührenart</b>' AS Gebührenart, 
+ '' AS Verrechnung
+UNION ALL
+
+SELECT 
+ br1.branchname AS 'Einnahme von', 
+ br2.branchname AS 'Gebühr erhoben von', 
+ FORMAT(SUM(op.amount * -1), 2, 'de_DE') AS Betrag, 
+ deb.description AS Gebührenart, 
+ '' AS Verrechnung
+FROM accountlines p
+ LEFT JOIN branches br1 ON ( p.branchcode = br1.branchcode ), 
+ account_offsets op, 
+ accountlines c
+ LEFT JOIN account_debit_types deb ON deb.code=c.debit_type_code
+ LEFT JOIN borrowers b ON ( b.borrowernumber = c.borrowernumber AND (deb.code = 'ACCOUNT_RENEW' OR deb.code='ACCOUNT'))
+ LEFT JOIN categories g ON ( b.categorycode = g.categorycode )
+ LEFT JOIN branches br2 ON ( c.branchcode = br2.branchcode )
+WHERE 
+ p.credit_type_code="PAYMENT"
+ AND op.credit_id = p.accountlines_id
+ AND p.branchcode <> c.branchcode
+ AND op.debit_id = c.accountlines_id
+ AND DATE(op.created_on) BETWEEN @FromDate AND @ToDate
+GROUP BY c.branchcode, p.branchcode, c.debit_type_code, g.description
+};
+    push @$updates, ['G0100-zw Einnahmenverrechnung zwischen Zweigstellen',$sqltext];
+    
+    $sqltext = 
+q{SELECT accountlines_id AS 'Vorgangsnr.', DATE_FORMAT(date,'%d.%m.%Y') AS 'Datum', timestamp, FORMAT(amount,2,'de_DE') AS 'Betrag',FORMAT(amountoutstanding,2,'de_DE') AS 'Betrag offen', deb.description AS 'Beschreibung', 
+deb.code AS 'Vorgangsart',
+b1.cardnumber AS 'Ausweisnummer', CONCAT(b1.firstname, " ",b1.surname) AS 'Benutzername', note AS 'Bemerkung' , b2.surname AS 'Mitarbeitername' 
+FROM accountlines
+LEFT JOIN borrowers b1 ON (accountlines.borrowernumber=b1.borrowernumber) 
+LEFT JOIN borrowers b2 ON (accountlines.manager_id=b2.borrowernumber) 
+LEFT JOIN account_debit_types deb ON deb.code=accountlines.debit_type_code
+WHERE date >= <<Von|date>> AND date <= <<bis|date>>
+ORDER BY date, accountlines_id
+};
+    push @$updates, ['G0140 Gebührenvorgänge - Einzelauflistung für einen auswählbaren Zeitraum',$sqltext];
+    
+    $sqltext = 
+q{SELECT CONCAT('<a href=\"/cgi-bin/koha/members/boraccount.pl?borrowernumber=',borrowers.borrowernumber,'\" target="_blank">', borrowers.borrowernumber, '</a>') AS borrowernumber,
+ borrowers.cardnumber AS Ausweisnummer,
+ borrowers.firstname AS Vorname,
+ borrowers.surname AS Nachname,
+ borrowers.branchcode AS Heimatzweigstelle,
+ FORMAT(accountlines.amount,2) AS Betrag,
+ accountlines.date AS Datum, 
+ accountlines.credit_type_code AS Typ,
+ accountlines.note AS Grund,
+ accountlines.manager_id
+FROM accountlines, borrowers
+WHERE borrowers.borrowernumber = accountlines.borrowernumber 
+AND credit_type_code IN ('WRITEOFF','CANCELLATION','DISCOUNT','FORGIVEN')
+AND date BETWEEN <<Von|date>> AND <<Bis|date>>
+ORDER BY accountlines.credit_type_code
+};
+    push @$updates, ['G0200 Gebührenerlass / Storno mit Grund für einen wählbaren Zeitraum',$sqltext];
+    
+    $sqltext = 
+q{SELECT
+*
+FROM
+(
+SELECT
+0 AS Zweigstelle,
+0 AS Exemplarnummer,
+0 AS Buchungsnummer,
+0 AS Zugangsdatum,
+( @StartDate:= <<Von Datum|date>> COLLATE utf8mb4_unicode_ci ) AS Standort,
+0 AS Autor,
+0 AS Titel,
+0 AS Sammlung,
+( @EndDate:= <<Bis Datum|date>> COLLATE utf8mb4_unicode_ci ) AS Medientyp,
+
+0 AS Preis,
+0 AS Status
+) AS set_variables
+WHERE 0 = 1
+
+UNION
+
+SELECT
+homebranch AS Zweigstelle ,
+itemnumber AS Exemplarnummer,
+barcode AS Buchungsnummer,
+DATE_FORMAT(dateaccessioned, '%d.%m.%Y') AS Zugangsdatum,
+lib AS Standort,
+author AS Autor,
+title AS Titel,
+lib2 AS Sammlung,
+itype AS Medientyp,
+FORMAT(price, 2, 'de_DE') AS Preis,
+status AS Status
+
+FROM (
+
+SELECT homebranch, itemnumber, barcode, dateaccessioned, av.lib, av2.lib as lib2, b.author, b. title, itype, price, IF(onloan IS NOT NULL,'entliehen','verfügbar') AS status FROM items
+LEFT JOIN biblio b USING (biblionumber)
+LEFT JOIN authorised_values av ON ( av.authorised_value = location AND av.category = 'LOC')
+LEFT JOIN authorised_values av2 ON ( av2.authorised_value = ccode AND av2.category = 'CCODE')
+WHERE (date(dateaccessioned) BETWEEN @StartDate AND @EndDate) AND (itype is null OR itype NOT LIKE "e%")
+UNION
+SELECT homebranch, itemnumber, barcode, dateaccessioned, av.lib, av2.lib as lib2, b.author , b. title, itype, price, 'gelöscht' AS status FROM deleteditems
+LEFT JOIN deletedbiblio b USING (biblionumber)
+LEFT JOIN authorised_values av ON ( av.authorised_value = location AND av.category = 'LOC')
+LEFT JOIN authorised_values av2 ON ( av2.authorised_value = ccode AND av2.category = 'CCODE')
+WHERE (date(dateaccessioned) BETWEEN @StartDate AND @EndDate) AND (itype is null OR itype NOT LIKE "e%")
+
+) AS allitems
+
+ORDER BY Zugangsdatum
+};
+    push @$updates, ['K0030 Zugangsbuch',$sqltext];
+    
+    my $dbh = C4::Context->dbh;
+    my $sth1 = $dbh->prepare("UPDATE saved_sql SET savedsql = ? WHERE report_name = BINARY ?");
+    
+    foreach my $update (@$updates) {
+        $sth1->execute($update->[1], $update->[0]);
     }
 }
