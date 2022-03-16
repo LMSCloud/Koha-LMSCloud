@@ -731,7 +731,7 @@ sub replaceModifierList {
     elsif ( defined $modifier{phr} ) {
         $searchstring = "($searchstring)";
     }
-    elsif ( (defined $modifier{'st-numeric'} || defined $modifier{'st-date-normalized'} || defined $modifier{'st-date'}) || defined $modifier{ge} || defined $modifier{gt} || defined $modifier{le} || defined $modifier{le} ) {
+    elsif ( (defined $modifier{'st-numeric'} || defined $modifier{'st-date-normalized'} || defined $modifier{'st-date'}) || defined $modifier{ge} || defined $modifier{gt} || defined $modifier{le} || defined $modifier{lt} ) {
         if ( defined $modifier{ge} ) {
             $searchstring = "(>=$searchstring)";
         }
@@ -760,7 +760,7 @@ sub updateQuery {
     
     $query =~ s/(\s+(and|or|not)\s+)/uc($1)/seg;
     $query =~ s/=/:/sg;
-    $query =~ s/(^|\W)([a-zA-Z][a-z0-9A-Z-]*)(((\,|%2[Cc])(ext|phr|rtrn|ltrn|st-numeric|gt|ge|lt|le|eq|st-date-normalized|st-date|startswithnt|first-in-subfield))*)([:=]|%3[Aa])\s*(["][^"]+["]|&quot;[^"]+&quot;|['][^']+[']|[^\s]+)/$1.replaceModifierList($2,$3,$8)/eg;
+    $query =~ s/(^|\W|\()([a-zA-Z][a-z0-9A-Z-]*)(((\,|%2[Cc])(wrdl|ext|phr|rtrn|ltrn|st-numeric|gt|ge|lt|le|eq|st-date-normalized|st-date|startswithnt|first-in-subfield))*)([:=]|%3[Aa])\s*(["][^"]+["]|&quot;(?!("|&quot;))&quot;|['][^']+[']|[^\s\(\)]+)/$1.replaceModifierList($2,$3,$8)/eg;
     
     # rtrn : right truncation
     # ltrn : left truncation
@@ -868,6 +868,8 @@ sub replaceEntryPageContent {
     
     $value =~ s!(<a\s+href\s*=\s*\'opac-search\.pl\?q=)([^\']+)(\')!"$1".updateQuery($2)."$3"!seg;
     $value =~ s!(<a\s+href\s*=\s*\"opac-search\.pl\?q=)([^\"]+)(\")!"$1".updateQuery($2)."$3"!seg;
+    $value =~ s!(<a\s+href\s*=\s*\'\/cgi-bin\/koha\/opac-search\.pl\?q=)([^\']+)(\')!"$1".updateQuery($2)."$3"!seg;
+    $value =~ s!(<a\s+href\s*=\s*\"\/cgi-bin\/koha\/opac-search\.pl\?q=)([^\"]+)(\")!"$1".updateQuery($2)."$3"!seg;
 
     my $documentTree = getDocumentTree($value);
     my $changes = getElementsByName($documentTree, "img", \&addImageAltAttributeFromLegend);
@@ -996,6 +998,7 @@ sub updateOPACUserJS {
         $value =~ s/\.navbar-inverse/'.navbar-expanded'/esg;
         $value =~ s/\.brand/'.navbar-brand'/esg;
         $value =~ s/\.navbar-inner/'#cart-list-nav'/esg;
+        $value =~ s/\.mastheadsearch/'#opac-main-search'/esg;
 
         if ( $origvalue ne $value ) {
             $dbh->do("UPDATE systempreferences SET value=? WHERE variable=?", undef, $value, $variable);
