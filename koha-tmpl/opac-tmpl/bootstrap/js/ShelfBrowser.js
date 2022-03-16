@@ -84,6 +84,7 @@ var ShelfBrowser = (function () {
       buttonDirection = null,
     ) => {
       const shelfBrowserItems = newlyLoadedItems.items.map((item) => ({
+        author: item.author,
         biblionumber: item.biblionumber,
         title: item.title,
         coverurl: item.coverurl,
@@ -101,6 +102,11 @@ var ShelfBrowser = (function () {
         {
           coverImageFallbackHeight: 210, // #shelfbrowser img { max-height: 250px } is koha's default.
           coverFlowTooltips: false,
+          coverFlowCardBody: {
+            lcfMediaAuthor: false,
+            lcfMediaTitle: true,
+            lcfMediaItemCallNumber: true,
+          },
           coverFlowContext: 'default',
           coverFlowFlippableCards: false,
           coverFlowShelfBrowser: true,
