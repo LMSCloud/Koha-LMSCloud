@@ -86,4 +86,11 @@ $(document).ready(function(){
     $("#loginModal").on("shown.bs.modal", function(){
         $("#muserid").focus();
     });
+    $(".link-collection-collapse-toggle").unbind("click");
+    $(".link-collection-collapse-toggle").on("click",function(e){
+        e.preventDefault();
+        $(this).toggleClass("menu-open");
+        $($(this).attr("href")).toggle();
+    });
 });
+
