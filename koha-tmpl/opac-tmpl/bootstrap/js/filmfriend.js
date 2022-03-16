@@ -152,7 +152,7 @@ function showFilmfriendResult(facetID) {
     if ( pagination.length == 0 ) {
         $('#encyclopediaheader').html('<strong><span class="encyclopediasource"></span></strong>');
     } else {
-        $('#encyclopediaheader').html('<div class="container-fluid"><div class="row"><div class="span6"><strong><span class="encyclopediasource"></span></strong></div>' + pagination + '</div></div>');
+        $('#encyclopediaheader').html('<div class="container-fluid"><div class="row"><div class="col-sm-6"><strong><span class="encyclopediasource"></span></strong></div>' + pagination + '</div></div>');
     }
     $('.encyclopediasource').html(filmfriendData.results[facetID].name);
     
@@ -168,7 +168,7 @@ function getFilmfriendPagination(facetID, maxHitCount) {
     if ( filmfriendData.results[facetID].numFound <= maxHitCount ) {
         return paginationText;
     }
-    paginationText = '<div class="span6"><div id="top-pages" class="right-align"><div class="pagination pagination-small noprint"><ul>';
+    paginationText = '<div class="col-sm-6"><div id="top-pages" class="right-align"><nav class="pagination pagination-sm noprint"><ul class="pagination">';
     
     var offset = filmfriendData.results[facetID].start;
     var results_per_page = maxHitCount;
@@ -183,33 +183,33 @@ function getFilmfriendPagination(facetID, maxHitCount) {
     var prev_page_offset = offset - results_per_page;
     var next_page_offset = offset + results_per_page;
     if ( prev_page_offset > 0 && last_page > 2 ) {
-        paginationText += '<li><a href="javascript:getFilmfriendResult(' + facetID + ',' + prev_page_offset + ')">' + prevPageTextFilmfriend + '</a></li>';
+        paginationText += '<li class="page-item"><a href="javascript:getFilmfriendResult(' + facetID + ',' + prev_page_offset + ')" class="page-link">' + prevPageTextFilmfriend + '</a></li>';
     }
     if ( current_page > 1 ) {
-        paginationText += '<li><a href="javascript:getFilmfriendResult(' + facetID + ',0)">1</a></li>';
+        paginationText += '<li class="page-item"><a href="javascript:getFilmfriendResult(' + facetID + ',0)" class="page-link">1</a></li>';
         if ( current_page > 2 ) {
-            paginationText += '<li><a href="#" style="pointer-events: none;cursor: default;">...</a></li>';
+            paginationText += '<li class="page-item"><a href="#" style="pointer-events: none;cursor: default;" class="page-link">...</a></li>';
         }
         if ( current_page > 2 && current_page == last_page ) {
-             paginationText += '<li><a href="javascript:getFilmfriendResult(' + facetID + ',' + prev_page_offset + ')">' + (last_page - 1) + '</a></li>';
+             paginationText += '<li class="page-item"><a href="javascript:getFilmfriendResult(' + facetID + ',' + prev_page_offset + ')" class="page-link">' + (last_page - 1) + '</a></li>';
         }
-        paginationText += '<li class="active"><a href="#">' + current_page + '</a></li>';
+        paginationText += '<li class="page-item active"><a href="#" class="page-link">' + current_page + '</a></li>';
     }
     else {
-        paginationText += '<li class="active"><a href="#">' + current_page + '</a></li>';
+        paginationText += '<li class="page-item active"><a href="#" class="page-link">' + current_page + '</a></li>';
         if ( last_page >= 2 ) {
-            paginationText += '<li><a href="javascript:getFilmfriendResult(' + facetID + ',' + results_per_page + ')">2</a></li>';
+            paginationText += '<li class="page-item"><a href="javascript:getFilmfriendResult(' + facetID + ',' + results_per_page + ')" class="page-link">2</a></li>';
         }
     }
     if ( ( ( current_page + 1 ) < last_page && current_page > 2 ) || ( last_page > 2 && current_page < 3 ) ) {
-        paginationText += '<li><a href="#" style="pointer-events: none;cursor: default;">...</a></li>';
+        paginationText += '<li class="page-item"><a href="#" style="pointer-events: none;cursor: default;" class="page-link">...</a></li>';
     }
     if ( last_page > 2 && current_page < last_page ) {
-        paginationText += '<li><a href="javascript:getFilmfriendResult(' + facetID + ',' + last_page_offset + ')">' + last_page + '</a></li>&nbsp;';
-        paginationText += '<li><a href="javascript:getFilmfriendResult(' + facetID + ',' + next_page_offset + ')">' + nextPageTextFilmfriend + '</a></li>';
+        paginationText += '<li class="page-item"><a href="javascript:getFilmfriendResult(' + facetID + ',' + last_page_offset + ')" class="page-link">' + last_page + '</a></li>&nbsp;';
+        paginationText += '<li class="page-item"><a href="javascript:getFilmfriendResult(' + facetID + ',' + next_page_offset + ')" class="page-link">' + nextPageTextFilmfriend + '</a></li>';
     }
     
-    paginationText += '<ul></div></div></div>';
+    paginationText += '<ul></nav></div></div>';
     
     return paginationText;
 }

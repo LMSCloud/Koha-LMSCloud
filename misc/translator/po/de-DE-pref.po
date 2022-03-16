@@ -3,7 +3,7 @@ msgstr ""
 "Project-Id-Version: Koha 21.05\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2013-05-16 03:26+0200\n"
-"PO-Revision-Date: 2022-02-25 00:03+0100\n"
+"PO-Revision-Date: 2022-03-10 13:23+0100\n"
 "Last-Translator: Katrin Fischer <katrin.fischer@bsz-bw.de>\n"
 "Language-Team: \n"
 "Language: de\n"
@@ -10602,6 +10602,22 @@ msgstr "Tagen."
 msgid "opac.pref#MaxTotalSuggestions# in"
 msgstr "in einem Zeitraum von"
 
+# OPAC > Features > NewsMaxNumberOnMainPage
+msgid ""
+"opac.pref#NewsMaxNumberOnMainPage# . If this value is empty, all news will "
+"be displayed."
+msgstr ""
+". Wenn der Wert leer ist, werden alle News in der Startseite des OPACs "
+"angezeigt."
+
+# OPAC > Features > NewsMaxNumberOnMainPage
+msgid ""
+"opac.pref#NewsMaxNumberOnMainPage# Limit the number of news displayed on the "
+"OPAC start page to news with a maximum position number of "
+msgstr ""
+"Begrenze die Anzeige von News in der Startseite des OPACs auf News mit einer "
+"maximalen Anzeigeposition von "
+
 # OPAC > Features
 msgid "opac.pref#OPACAcquisitionDetails# Display"
 msgstr "Zeige"
@@ -11684,6 +11700,86 @@ msgstr "Zeige eine"
 msgid "opac.pref#OpacCloud# a subject cloud on the OPAC."
 msgstr "eine Schlagwortwolke im OPAC."
 
+# OPAC > Features > OpacDetailAntolinLinks
+msgid ""
+"opac.pref#OpacDetailAntolinLinks# Antolin links in the OPAC detailed view. "
+"Antolin links need to be provided as 856-tag entries."
+msgstr ""
+"Links auf Antolin-Quiz in der Treffer-Detailanzeige des OPACs. Links auf "
+"Antolin-Quiz müssen in MARC-856-Tags in den Katalogdaten verfügbar sein."
+
+# OPAC > Features
+msgid "opac.pref#OpacDetailAntolinLinks# Display"
+msgstr "Zeige"
+
+# OPAC > Features
+msgid "opac.pref#OpacDetailAntolinLinks# Don't display"
+msgstr "Zeige keine"
+
+# OPAC > Features > OpacDetailBookShopLinks
+msgid ""
+"opac.pref#OpacDetailBookShopLinks# <br>&lt;a class=&quot;dropdown-item&quot; "
+"href=&quot;http://www.amazon.de/gp/search?k={EAN}&quot; title=&quot;Buy the "
+"book at Amazon shop&quot;&gt;Amazon&lt;/a&gt;"
+msgstr ""
+"<br>&lt;a class=&quot;dropdown-item&quot; href=&quot;http://www.amazon.de/gp/"
+"search?k={EAN}&quot; title=&quot;Im Amazon-Shop kaufen&quot;&gt;Bei "
+"Amazon&lt;/a&gt;"
+
+# OPAC > Features > OpacDetailBookShopLinks
+msgid ""
+"opac.pref#OpacDetailBookShopLinks# <br>&lt;a class=&quot;dropdown-item&quot; "
+"href=&quot;http://www.buch.de/shop/home/suche/?sq={EAN}&quot; title=&quot;"
+"Buy the book at Buch.de shop&quot;&gt;Buch.de&lt;/a&gt;"
+msgstr ""
+"<br>&lt;a class=&quot;dropdown-item&quot; href=&quot;http://www.buch.de/shop/"
+"home/suche/?sq={EAN}&quot; title=&quot;Im Buch.de-Shop kaufen&quot;&gt;Bei "
+"Buch.de&lt;/a&gt;"
+
+# OPAC > OpenURL
+msgid "opac.pref#OpacDetailBookShopLinks# <br>Examples:"
+msgstr "<br>Beispiele:"
+
+# OPAC > Features > OpacDetailBookShopLinks
+msgid "opac.pref#OpacDetailBookShopLinks# <br>If an EAN is available:"
+msgstr "<br>Wenn in den Katalogdaten eine EAN angegeben wurde:"
+
+# OPAC > Features > OpacDetailBookShopLinks
+msgid "opac.pref#OpacDetailBookShopLinks# <br>If an ISBN is available:"
+msgstr "<br>Wenn in den Katalogdaten eine ISBN angegeben wurde:"
+
+# OPAC > Features > OpacDetailBookShopLinks
+msgid "opac.pref#OpacDetailBookShopLinks# <br>If an ISSN is available:"
+msgstr "<br>Wenn in den Katalogdaten eine ISSN angegeben wurde:"
+
+# OPAC > Features > OpacDetailBookShopLinks
+msgid ""
+"opac.pref#OpacDetailBookShopLinks# <br>The use of the following placeholders "
+"is supported: {ISBN13}, {ISBN}, {EAN}, {ISSN}, {TITLE}, {AUTHOR}, "
+"{BIBLIONUMBER}."
+msgstr ""
+"<br>Folgende Platzhalter werden in der Detailanzeige mit den konkreten Daten "
+"des Titels ersetzt: {ISBN13}, {ISBN}, {EAN}, {ISSN}, {TITLE}, {AUTHOR}, "
+"{BIBLIONUMBER}."
+
+# OPAC > Features
+msgid "opac.pref#OpacDetailBookShopLinks# Display"
+msgstr "Zeige"
+
+# OPAC > Features
+msgid "opac.pref#OpacDetailBookShopLinks# Don't display"
+msgstr "Zeige keine"
+
+# OPAC > Features > OpacDetailBookShopLinks
+msgid ""
+"opac.pref#OpacDetailBookShopLinks# book shop links in the OPAC detailed "
+"view. Dependent on the availability of an EAN, ISSN or ISBN in a cataloge "
+"record the content of the following will be displayed."
+msgstr ""
+"Links auf Buchhändler zum Kauf eines Titels in der Treffer-Detailanzeige des "
+"OAPCs. Abhängig davon, ob in den Katalogdaten eine ISBN, ISSN oder EAN "
+"angegeben wurde, werden nachfolgend konfigurierte Inhalte angezeigt."
+
 # OPAC > Appearance > OpacDetailVolumeDisplay
 msgid ""
 "opac.pref#OpacDetailVolumeDisplay#  linked titles in OPAC detailed view "
@@ -11695,16 +11791,29 @@ msgstr ""
 "810$w, 811$w, 830$w."
 
 # OPAC > Features
-msgid "opac.pref#OpacDetailVolumeDisplay# ."
-msgstr "Zeige"
-
-# OPAC > Features
 msgid "opac.pref#OpacDetailVolumeDisplay# Don't show"
 msgstr "Zeige nicht"
 
 # OPAC > Features
 msgid "opac.pref#OpacDetailVolumeDisplay# Show"
 msgstr "Zeige"
+
+# OPAC > Features
+msgid "opac.pref#OpacDetailWikipediaLinks# Display"
+msgstr "Zeige"
+
+# OPAC > Features
+msgid "opac.pref#OpacDetailWikipediaLinks# Don't display"
+msgstr "Zeige keine"
+
+# OPAC > Features > OpacDetailWikipediaLinks
+msgid ""
+"opac.pref#OpacDetailWikipediaLinks# Wikipedia links in the OPAC detailed "
+"view. Wikipedia links need to be provided as 856-tag entries."
+msgstr ""
+"Links auf Wikipedia-Einträge in der Treffer-Detailanzeige des OAPCs. Links "
+"auf Wikipedia-Einträge müssen in MARC-856-Tags in den Katalogdaten verfügbar "
+"sein."
 
 # OPAC > Appearance
 msgid "opac.pref#OpacExportOptions# BibTeX"

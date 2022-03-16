@@ -19532,6 +19532,9 @@ if( CheckVersion( $DBversion ) ) {
 
 $DBversion = '18.12.00.058';
 if( CheckVersion( $DBversion ) ) {
+    
+    $dbh->do( "ALTER TABLE opac_news CHANGE lang lang VARCHAR(50) NOT NULL DEFAULT ''" );
+    
     my $opaclang = C4::Context->preference("opaclanguages");
     my @langs;
     push @langs, split ( '\,', $opaclang );
@@ -21142,7 +21145,7 @@ if ( CheckVersion($DBversion) ) {
             )
             VALUES
               ('ACCOUNT', 'Anmeldegebühr', 0, NULL, 1),
-              ('ACCOUNT_RENEW', 'Benutzungsgebühr, 0, NULL, 1),
+              ('ACCOUNT_RENEW', 'Benutzungsgebühr', 0, NULL, 1),
               ('RESERVE_EXPIRED', 'Nicht abgeholte Vormerkung', 0, NULL, 1),
               ('LOST', 'Medienersatz', 1, NULL, 1),
               ('MANUAL', 'Manuelle Gebühr', 1, NULL, 0),
@@ -23963,8 +23966,6 @@ if( CheckVersion( $DBversion ) ) {
 $DBversion = '20.06.00.014';
 if( CheckVersion( $DBversion ) ) {
 
-    $dbh->do( "ALTER TABLE opac_news CHANGE lang lang VARCHAR(50) NOT NULL DEFAULT ''" );
-
     NewVersion( $DBversion, 23797, "Extend the opac_news lang column to accommodate longer values" );
 }
 
@@ -26283,14 +26284,14 @@ if( CheckVersion( $DBversion ) ) {
 
 $DBversion = '21.05.09.005';
 if( CheckVersion( $DBversion ) ) {
-    # Add the OpacSingleHitInResultList system preference
+    # Add the OpacSingleHitResultList system preference
     $dbh->do(q{ 
         INSERT IGNORE INTO `systempreferences` VALUES 
-                ('OpacSingleHitInResultList','0',NULL,'Show a single hit search result as result hit list rather than in the detailed result view.','YesNo'),
+                ('OpacSingleHitResultList','0',NULL,'Show a single hit search result as result hit list rather than in the detailed result view.','YesNo'),
                 ('BibtipPatronSpecificRecommendations','0',NULL,'Enable patron specific recommendations based on the reading history of a patron using a Bibtip service.','YesNo')
         });
     
-    NewVersion( $DBversion, "", "Add system preferences OpacSingleHitInResultList and BibtipPatronSpecificRecommendations.");
+    NewVersion( $DBversion, "", "Add system preferences OpacSingleHitResultList and BibtipPatronSpecificRecommendations.");
 }
 
 $DBversion = '21.05.10.000';
@@ -26328,10 +26329,27 @@ if( CheckVersion( $DBversion ) ) {
     NewVersion( $DBversion, "29943", "Fix typo in NOTIFY_MANAGER notice" );
 }
 
+$DBversion = '21.05.10.004';
+if( CheckVersion( $DBversion ) ) {
+    # Add the OpacDetailAntolinLinks, OpacDetailWikipediaLinks, OpacDetailBookShopLinks, OpacDetailBookShopLinkContentISBN, OpacDetailBookShopLinkContentEAN, OpacDetailBookShopLinkContentISSN system preferences
+    $dbh->do(q{ 
+        INSERT IGNORE INTO `systempreferences` VALUES 
+            ('OpacDetailAntolinLinks','0',NULL,'Display Antolin links in the OPAC detailed view.','YesNo'),
+            ('OpacDetailBookShopLinkContentEAN','0',NULL,'Book shop link list for biblio records with an EAN if display of book shop links is activ in the OPAC detailed view.','Textarea'),
+            ('OpacDetailBookShopLinkContentISBN','0',NULL,'Book shop link list for biblio records with an ISBN if display of book shop links is activ in the OPAC detailed view.','Textarea'),
+            ('OpacDetailBookShopLinkContentISSN','0',NULL,'Book shop link list for biblio records with an ISSN if display of book shop links is activ in the OPAC detailed view.','Textarea'),
+            ('OpacDetailBookShopLinks','0',NULL,'Display book shop links in the OPAC detailed view.','YesNo'),
+            ('OpacDetailWikipediaLinks','0',NULL,'Display Wikipedia links in the OPAC detailed view.','YesNo')
+        });
+    
+    NewVersion( $DBversion, "", "Add system preferences OpacDetailAntolinLinks, OpacDetailWikipediaLinks, OpacDetailBookShopLinks, OpacDetailBookShopLinkContentISBN, OpacDetailBookShopLinkContentEAN, OpacDetailBookShopLinkContentISSN0 if not already available.");
+}
+
 $DBversion = '21.05.11.000';
 if( CheckVersion( $DBversion ) ) {
     NewVersion( $DBversion, "", "Koha 21.05.11 release" );
 }
+
 
 # SEE bug 13068
 # if there is anything in the atomicupdate, read and execute it.

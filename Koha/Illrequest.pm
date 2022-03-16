@@ -1849,7 +1849,7 @@ Check if item is an ILL item (is indicated by $item->{'itype'}).
 
 # check if item is an ILL item and if an alternative datedue is stored in the Illbackend
 sub  checkIfIllItem {
-    my ($class, $item) = @_;
+    my ($class, $itemUnblessed) = @_;    # expecting a ref to unblessed HASH, not to Koha::Item
 
     # return values:
     my $itisanillitem = 0;
@@ -1859,7 +1859,7 @@ sub  checkIfIllItem {
         # if it is an ILL item then try to read the assigned illrequest record
         my @illItemtypes = split( /\|/, C4::Context->preference("IllItemtypes") );
         foreach my $illItemtype (@illItemtypes) {
-            if ( $illItemtype eq $item->{'itype'} ) {
+            if ( $illItemtype eq $itemUnblessed->{'itype'} ) {
                 $itisanillitem = 1;
                 last;
             }
@@ -1867,7 +1867,7 @@ sub  checkIfIllItem {
         if ( $itisanillitem ) {
             eval {
                 my $illrequests = Koha::Illrequests->new();
-                my $illrequesthits = $illrequests->search( { biblio_id => $item->{'biblionumber'} } );
+                my $illrequesthits = $illrequests->search( { biblio_id => $itemUnblessed->{'biblionumber'} } );
                 $illrequesthit = $illrequesthits->next();
             };
         }

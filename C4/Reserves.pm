@@ -270,9 +270,9 @@ sub AddReserve {
         my ( $itisanillitem, $illrequest ) = ( 0, undef );
         if ( $checkitem && C4::Context->preference("IllModule") ) {    # check if the ILL module is activated at all
             eval {
-                my $item = GetItem($checkitem);
-                if ( $item ) {
-                    ( $itisanillitem, $illrequest ) = Koha::Illrequest->checkIfIllItem($item);
+                my $kohaItem = Koha::Items->find($checkitem);
+                if ( $kohaItem ) {
+                    ( $itisanillitem, $illrequest ) = Koha::Illrequest->checkIfIllItem($kohaItem->unblessed);
                     if ( $itisanillitem && $illrequest ) {
                         $reservefee_acceptable = $illrequest->_backend_capability( "isReserveFeeAcceptable", $illrequest );
                     }

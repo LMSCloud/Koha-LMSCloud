@@ -351,7 +351,11 @@ sub GetCatalogueData {
                 my $val = $field->subfield('u');
                 next if (! $val);
                 next if ( $val =~ /\.ekz\.de/ && !C4::Context->preference('EKZCover') );
+<<<<<<< HEAD
                 next if ( $val =~ /\.onleihe\.de/ && !C4::Context->preference(' DivibibEnabled ') );
+=======
+                next if ( $val =~ /\.onleihe\.de/ && !C4::Context->preference('DivibibEnabled') );
+>>>>>>> 8fc589fe3be109501df6aa0ab5a00e1e80fd7a46
                 $coverurl = $val;
                 $coverurl =~ s#http:\/\/cover\.ekz\.de#https://cover.ekz.de#;
                 $coverurl =~ s#http:\/\/www\.onleihe\.de#https://www.onleihe.de#;

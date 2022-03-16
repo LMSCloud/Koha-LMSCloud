@@ -558,7 +558,7 @@ SELECT biblio.*, items.*, issues.*, biblioitems.itemtype, branchname, IFNULL(cla
 END_SQL
 
     if($owning_library) {
-      $sql2 .= ' AND b.branchcode = items.homebranch = ? ';
+      $sql2 .= ' AND b.branchcode = items.homebranch ';
     } else {
       $sql2 .= ' AND b.branchcode = issues.branchcode ';
     }
@@ -655,16 +655,16 @@ END_SQL
             if ( $exludeFamilyCardMembers ) {
                 $borrower_sql .= <<"END_SQL";
 UNION
-SELECT DISTINCT bo.borrowernumber, bo.firstname, bo.surname, bo.address, bo.address2, bo.city, bo.zipcode, bo.country, bo.email, bo.emailpro, bo.B_email, bo.smsalertnumber, bo.phone, 
-                bo.cardnumber, date_due, IFNULL(claim_level,0) as claim_level, IFNULL(DATE(claim_time),'0000-00-00') as claim_date, issues.branchcode
-FROM   branches, borrowers bo, borrowers bb, borrower_relationships br, categories, items, issues
+SELECT DISTINCT owner.borrowernumber, owner.firstname, owner.surname, owner.address, owner.address2, owner.city, owner.zipcode, owner.country, owner.email, owner.emailpro, owner.B_email, owner.smsalertnumber, owner.phone, 
+                owner.cardnumber, date_due, IFNULL(claim_level,0) as claim_level, IFNULL(DATE(claim_time),'0000-00-00') as claim_date, issues.branchcode
+FROM   branches, borrowers owner, borrowers familiy_member, borrower_relationships rel, categories, items, issues
 LEFT JOIN ( SELECT issue_id, MAX(claim_level) AS claim_level, MAX(claim_time) as claim_time FROM overdue_issues GROUP BY issue_id) oi ON (issues.issue_id=oi.issue_id)
 WHERE  categories.family_card = 1
-AND    issues.borrowernumber = bb.borrowernumber
-AND    bb.borrowernumber = br.guarantee_id
-AND    bo.borrowernumber = br.guarantor_id
-AND    NOT EXISTS ( SELECT 1 FROM borrowers b, categories c WHERE b.borrowernumber = br.guarantor_id AND c.categorycode = b.categorycode AND c.family_card = 1)
-AND    bo.categorycode=categories.categorycode
+AND    issues.borrowernumber = familiy_member.borrowernumber
+AND    familiy_member.borrowernumber = rel.guarantee_id
+AND    owner.borrowernumber = rel.guarantor_id
+AND    NOT EXISTS ( SELECT 1 FROM borrowers b, categories c WHERE b.borrowernumber = familiy_member.borrowernumber AND c.categorycode = b.categorycode AND c.family_card = 1)
+AND    owner.categorycode=categories.categorycode
 AND    issues.itemnumber = items.itemnumber
 AND    items.itemlost = 0
 AND    categories.overduenoticerequired=1 
@@ -681,7 +681,7 @@ END_SQL
                     }
                 }
                 if ( $overdue_rules->{categorycode} ) {
-                    $borrower_sql .= ' AND bo.categorycode=? ';
+                    $borrower_sql .= ' AND owner.categorycode=? ';
                     push @borrower_parameters, $overdue_rules->{categorycode};
                 }
             }

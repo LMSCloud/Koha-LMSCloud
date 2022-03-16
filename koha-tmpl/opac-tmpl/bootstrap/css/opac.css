@@ -70,9 +70,9 @@ th {
 #encyclopedia-facets form {
     margin:0
 }
-#encyclopedia-facets h2 {
+#encyclopedia-facets h2, #search-facets h2 {
     font-size: 90%;
-    margin: 0 0 .6em;
+    margin: 0 0;
     text-align: center;
 }
 #encyclopedia-facets h2 a {
@@ -148,11 +148,14 @@ th {
     display:none
 }
 #encyclopediaheader {
-    height: 27px;
+    height: 45px;
     margin: 0 0;
     font-size: 100%;
-    padding: .7em .2em;
     text-align: center;
+}
+#encyclopediaheader.encyclopediasource {
+    top: 0.55em;
+    position: relative;
 }
 .detail_volume_list { margin-top: 1em; clear: left; }
 .detail_volume_list .toolbar { border-radius: 0px 0px 0px 0px; }
@@ -173,21 +176,21 @@ th {
     padding: .4em .0em;
 }
 /* Änderung der Navigationsleistenfarbe */
-.navbar-inverse .navbar-inner {
+#header-region .navbar {
     background-image: linear-gradient(to bottom, #cd5c5c, #ffa07a);
     border-color: #ffa07a;
     background-color: #ffa07a;
 }
 /* Änderung der Schriftfarbe in der Navigationsleiste zu schwarz */
-.navbar-inverse .brand, .navbar-inverse .nav > li > a, #members > .nav > li > a, #members > .nav > li > .navbar-text > a {
+.navbar-expand .navbar-brand, .navbar-expand .navbar-nav > li > a, #members > li > a, #members > li > .navbar-text > a {
     color: #ffffff !important; 
 }
 /* Entfernen der schwarzen Striche aus der Navigationsleiste */
-.navbar-inverse .divider-vertical {
+.navbar-expand .divider-vertical {
     border-left: none;
     border-right: none;
 }
-.navbar-inner {
+.cart-list-nav {
     min-height: 45px;
     padding-top: 10px;
 }
@@ -267,6 +270,12 @@ label.hotlink-entry {
 .entrypage-image {
 	max-width: 100%;
 	margin-bottom: 10px;
+}
+.entrypage-image img {
+	max-width: 100%;
+}
+.entry-page-col > label.link-page-entry {
+    display: block;
 }
 .entrypage-btn-grp {
 	margin-left: 10px;
@@ -391,4 +400,7 @@ label.hotlink-entry {
 }
 #opac-user-recommendations #lmscoverflow {
     margin-top: 1rem;
+}
+#loginModal .modal-footer, #loginModal .modal-header, #loginModal input,  #loginModal .modal-body {
+    font-size: 100%; 
 }

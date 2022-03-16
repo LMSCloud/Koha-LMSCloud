@@ -1473,7 +1473,7 @@ sub _get_unsent_messages {
             $statement .= ' AND message_transport_type = ? ';
             push @query_params, $params->{'type'};
         }
-        if ( $params->{message_id} ) {
+        if ( $params->{message_id} && !ref $params->{'message_id'} eq 'ARRAY' ) {
             $statement .= ' AND message_id = ?';
             push @query_params, $params->{message_id};
         }

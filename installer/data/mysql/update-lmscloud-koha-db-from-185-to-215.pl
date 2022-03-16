@@ -41,6 +41,9 @@ updateSidebarLinks();
 updateOPACUserJS();
 rebuildElasticSearchIndex();
 createSIPEnabledFile($instance);
+updateIntranetMainUserBlock();
+updateGermanLetterTemplates();
+updateReports();
 
 &migrate_epayment_to_2105('LMSC');
 &migrate_epayment_to_2105('KohaPayPal');
@@ -511,6 +514,20 @@ sub updateHiddenColumnsSettings {
     $sth->execute('reports','saved-sql','table_reports','saved_results');
     $sth->execute('reports','saved-sql','table_reports','type');
     
+    $sth->execute('illrequests','ill-requests','ill-requests','metadata_article_title');
+    $sth->execute('illrequests','ill-requests','ill-requests','metadata_issue');
+    $sth->execute('illrequests','ill-requests','ill-requests','metadata_volume');
+    $sth->execute('illrequests','ill-requests','ill-requests','metadata_year');
+    $sth->execute('illrequests','ill-requests','ill-requests','metadata_pages');
+    $sth->execute('illrequests','ill-requests','ill-requests','replied');
+    $sth->execute('illrequests','ill-requests','ill-requests','completed_formatted');
+    $sth->execute('illrequests','ill-requests','ill-requests','accessurl');
+    $sth->execute('illrequests','ill-requests','ill-requests','cost');
+    $sth->execute('illrequests','ill-requests','ill-requests','comments');
+    $sth->execute('illrequests','ill-requests','ill-requests','notesopac');
+    $sth->execute('illrequests','ill-requests','ill-requests','notesstaff');
+    $sth->execute('illrequests','ill-requests','ill-requests','metadata_checkedBy');
+    
     $sth->finish();
     
     print "Default column settings of hidden UI table columns updated.\n";
@@ -518,7 +535,7 @@ sub updateHiddenColumnsSettings {
 
 sub updateSimpleVariables {
     my $dbh = C4::Context->dbh;
-    $dbh->do("UPDATE systempreferences SET value='OpacAdditionalStylesheet' WHERE variable='QueryFuzzy' AND value='/webcustom/css/opac-lmscloud.css'");
+    $dbh->do("UPDATE systempreferences SET value='' WHERE variable='OpacAdditionalStylesheet' AND value='/webcustom/css/opac-lmscloud.css'");
     $dbh->do("UPDATE systempreferences SET value='1' WHERE variable IN ('AcquisitionLog','AuthFailureLog','AuthoritiesLog','AuthSuccessLog','BorrowersLog','CataloguingLog','ClaimsLog','CronjobLog','DivibibLog','FinesLog','HoldsLog','IllLog','IssueLog','NewsLog','NoticesLog','RenewalLog','ReportsLog','ReturnLog','SubscriptionLog')");
     $dbh->do("UPDATE systempreferences SET value='0' WHERE variable='Mana' and value='2'");
     $dbh->do("UPDATE systempreferences SET value='0' WHERE variable='UsageStats' and value='2'");
@@ -630,6 +647,8 @@ sub updateSimpleVariables {
               ('MARC-FIELD-338-SELECT','zu','nicht spezifiziert')});
     $dbh->do(q{UPDATE marc_subfield_structure SET value_builder='marc21_field_rda.pl' WHERE tagfield IN ('336','337','338') AND tagsubfield='a' AND frameworkcode = ''});
     $dbh->do(q{UPDATE marc_subfield_structure SET hidden='0' WHERE tagfield IN ('336','337','338') AND tagsubfield='2' AND frameworkcode = ''});
+    $dbh->do(q{UPDATE marc_subfield_structure SET hidden='0' WHERE tagfield IN ('336','337','338') AND tagsubfield='a' AND frameworkcode = ''});
+    $dbh->do(q{UPDATE marc_subfield_structure SET hidden='0' WHERE tagfield IN ('336','337','338') AND tagsubfield='b' AND frameworkcode = ''});
 }
 
 sub updateSidebarLinks {
@@ -767,6 +786,19 @@ sub updateEntryPages {
         if ( $origvalue ne $value ) {
             $dbh->do("UPDATE systempreferences SET value=? WHERE variable=?", undef, $value, $variable);
             print "Updated value of variable $variable.", ($imageAltAdded ? " $imageAltAdded image alt attributes added." : ""), "\n";
+        }
+    }
+    
+    $sth = $dbh->prepare("SELECT idnew,lang,content FROM opac_news WHERE lang like 'OpacNavRight_%' OR lang like 'OpacMainPageLeftPanel_%' OR lang like 'OpacMainUserBlock_%' OR lang like 'OpacLoginInstructions_%' OR lang like 'opacheader_%'");
+    $sth->execute;
+    while ( my ($id,$name,$value) = $sth->fetchrow ) {
+        my $origvalue = $value;
+        my $imageAltAdded = 0;
+        ($value,$imageAltAdded) = replaceEntryPageContent($value);
+    
+        if ( $origvalue ne $value ) {
+            $dbh->do("UPDATE opac_news SET content=? WHERE idnew=? AND lang=?", undef, $value, $id, $name);
+            print "Updated content of new content $name.", ($imageAltAdded ? " $imageAltAdded image alt attributes added." : ""), "\n";
         }
     }
 }
@@ -919,6 +951,21 @@ sub updateMoreSearchesContent {
     }
 }
 
+sub updateIntranetMainUserBlock {
+    my $dbh = C4::Context->dbh;
+    my $sth = $dbh->prepare("SELECT value,variable FROM systempreferences WHERE variable like 'IntranetmainUserblock'");
+    $sth->execute;
+    while ( my ($value,$variable) = $sth->fetchrow ) {
+        my $origvalue = $value;
+        $value =~ s/<b>Wichtige Links für Ihre Arbeit:<\/br>(<\/b>)?\r?\n<p>(.+?(?=\<\/p>))<\/p>/'<strong>Wichtige Links für Ihre Arbeit:<\/strong>'.$2/se;
+
+        if ( $origvalue ne $value ) {
+            $dbh->do("UPDATE systempreferences SET value=? WHERE variable=?", undef, $value, $variable);
+            print "Updated value of variable $variable\n";
+        }
+    }
+}
+
 sub updateOPACUserJS {
     my $dbh = C4::Context->dbh;
     my $sth = $dbh->prepare("SELECT value,variable FROM systempreferences WHERE variable = 'OPACUserJS'");
@@ -928,7 +975,27 @@ sub updateOPACUserJS {
         my @replace;
         $replace[0] = '$("#availability_facet").hide();';
         $replace[1] = '$("h5#facet-locations").text("Standorte");';
+        $replace[2] = '$(".view a:contains(\'MARC\')").hide();';
         $value = removeLineTrimmed($value,\@replace);
+        
+        $value =~ s/\.holdingst/'#holdingst'/eg;
+        $value =~ s/[\n][ \t]*\$\("\.link-collection-collapse-toggle"\)\.on\([^}]+\}\);[ \t]*//s;
+
+        if ( $origvalue ne $value ) {
+            $dbh->do("UPDATE systempreferences SET value=? WHERE variable=?", undef, $value, $variable);
+            print "Updated value of variable $variable\n";
+        }
+    }
+    
+    $sth = $dbh->prepare("SELECT value,variable FROM systempreferences WHERE variable = 'OPACUserCSS'");
+    $sth->execute;
+    while ( my ($value,$variable) = $sth->fetchrow ) {
+        my $origvalue = $value;
+        
+        $value =~ s/\.navbar-inverse \.navbar-inner/'#header-region .navbar'/esg;
+        $value =~ s/\.navbar-inverse/'.navbar-expanded'/esg;
+        $value =~ s/\.brand/'.navbar-brand'/esg;
+        $value =~ s/\.navbar-inner/'#cart-list-nav'/esg;
 
         if ( $origvalue ne $value ) {
             $dbh->do("UPDATE systempreferences SET value=? WHERE variable=?", undef, $value, $variable);
@@ -1338,7 +1405,7 @@ sub migrate_epayment_to_2105 {
 
     sub install_koha_plugin {
         my ( $uploadfilename ) = @_;    # name of the KPZ file
-        my $uploaddirname = 'https://configuration.lmscloud.net/pluginstore';
+        my $uploaddirname = 'https://orgaknecht.lmscloud.net/updates/koha-21-05/pluginstore';
         #my $uploadlocation = '';
         my $uploadlocation = $uploaddirname . '/' . $uploadfilename;
         my $plugins_enabled = C4::Context->config("enable_plugins");
@@ -1749,7 +1816,1117 @@ sub createSIPEnabledFile {
     if ( -f "/etc/koha/sites/$instance/SIPconfig.xml" && ! -f $libfile )  {
         open(my $fh, "<", $libfile);
         close($fh);
-        chown "$instance-koha", "$instance-koha", $libfile;
+        my ($login,$pass,$uid,$gid) = getpwnam("$instance-koha");
+        chown $uid, $gid, $libfile;
         chmod 0644, $libfile;
+    }
+}
+
+sub updateGermanLetterTemplates {
+    my $templates = ();
+    
+    my $text = 
+q{[% USE Price %]
+[% PROCESS 'accounts.inc' %]
+<table>
+[% IF ( LibraryName ) %]
+ <tr>
+    <th colspan="4" class="centerednames">
+        <h3>[% LibraryName | html %]</h3>
+    </th>
+ </tr>
+[% END %]
+ <tr>
+    <th colspan="4" class="centerednames">
+        <h2><u>Gebührenquittung</u></h2>
+    </th>
+ </tr>
+ <tr>
+    <th colspan="4" class="centerednames">
+        <h2>[% Branches.GetName( credit.patron.branchcode ) | html %]</h2>
+    </th>
+ </tr>
+ <tr>
+    <th colspan="4">
+       Bezahlt von  [% credit.patron.firstname | html %] [% credit.patron.surname | html %]<br />
+        Ausweisnummer: [% credit.patron.cardnumber | html %]<br />
+    </th>
+ </tr>
+  <tr>
+    <th>Datum</th>
+    <th>Gebührenbeschreibung</th>
+    <th>Hinweis</th>
+    <th>Betrag</th>
+ </tr>
+
+ <tr class="highlight">
+    <td>[% credit.date | $KohaDates %]</td>
+    <td>
+      [% PROCESS account_type_description account=credit %]
+      [%- IF credit.description %], [% credit.description | html %][% END %]
+    </td>
+    <td>[% credit.note | html %]</td>
+    <td class="credit">[% credit.amount | $Price %]</td>
+ </tr>
+
+<tfoot>
+  <tr>
+    <td colspan="3">Total der Ausstände am: </td>
+    [% IF ( credit.patron.account.balance >= 0 ) %]<td class="credit">[% ELSE %]<td class="debit">[% END %][% credit.patron.account.balance | $Price %]</td>
+  </tr>
+</tfoot>
+</table>
+};
+    push @$templates, ['circulation','ACCOUNT_CREDIT','','Quittung für Anwendung von Guthaben',1,'Quittung für Anwendung von Guthaben',$text,'print','default'];
+
+    
+    $text = 
+q{[% USE Price %]
+[% PROCESS 'accounts.inc' %]
+<table>
+  [% IF ( LibraryName ) %]
+    <tr>
+      <th colspan="5" class="centerednames">
+        <h3>[% LibraryName | html %]</h3>
+      </th>
+    </tr>
+  [% END %]
+
+  <tr>
+    <th colspan="5" class="centerednames">
+      <h2><u>RECHNUNG</u></h2>
+    </th>
+  </tr>
+  <tr>
+    <th colspan="5" class="centerednames">
+      <h2>[% Branches.GetName( debit.patron.branchcode ) | html %]</h2>
+    </th>
+  </tr>
+  <tr>
+    <th colspan="5" >
+      Rechnung für: [% debit.patron.firstname | html %] [% debit.patron.surname | html %] <br />
+      Ausweisnummer: [% debit.patron.cardnumber | html %]<br />
+    </th>
+  </tr>
+  <tr>
+    <th>Datum</th>
+    <th>Gebührenbeschreibung</th>
+    <th>Hinweis</th>
+    <th style="text-align:right;">Betrag</th>
+    <th style="text-align:right;">Offener Betrag</th>
+  </tr>
+
+  <tr class="highlight">
+    <td>[% debit.date | $KohaDates%]</td>
+    <td>
+      [% PROCESS account_type_description account=debit %]
+      [%- IF debit.description %], [% debit.description | html %][% END %]
+    </td>
+    <td>[% debit.note | html %]</td>
+    <td class="debit">[% debit.amount | $Price %]</td>
+    <td class="debit">[% debit.amountoutstanding | $Price %]</td>
+  </tr>
+
+  [% IF ( tendered ) %]
+    <tr>
+      <td colspan="3">Betrag eingezahlt: </td>
+      <td>[% tendered | $Price %]</td>
+    </tr>
+    <tr>
+      <td colspan="3">Rückgeld: </td>
+      <td>[% change | $Price %]</td>
+    </tr>
+  [% END %]
+
+  <tfoot>
+    <tr>
+      <td colspan="4">Total der Ausstände am: </td>
+      [% IF ( debit.patron.account.balance <= 0 ) %]<td class="credit">[% ELSE %]<td class="debit">[% END %][% debit.patron.account.balance | $Price %]</td>
+    </tr>
+  </tfoot>
+</table>
+};
+    push @$templates, ['circulation','ACCOUNT_DEBIT','','Quittung für offene / teilbezahlte Gebühren',1,'Quittung für offene / teilbezahlte Gebühren',$text,'print','default'];
+
+    $text = 
+q{<!DOCTYPE html>
+<html>
+<head>
+<title>Elektronische Zahlungsquittung</title>
+</head>
+<body dir="auto" style="word-wrap: break-word; -webkit-nbsp-mode: space; line-break: after-white-space; font-family: Arial, sans-serif;">
+
+<h2><<branches.branchname>></h2>
+<<branches.opac_info>>
+<p>Telefon: <<branches.branchphone>><br />
+E-Mail: <<branches.branchreplyto>></p>
+<br />
+<<borrowers.surname>>, <<borrowers.firstname>><br />
+Ausweis-Nummer: <<borrowers.cardnumber>><br />
+Ausweis gültig bis: <<borrowers.dateexpiry>>
+<br /><br />
+<<today>>
+<br /><br />
+
+<div style="margin: 0cm 0cm 0.0001pt; font-size: 11pt; font-family: Arial, sans-serif;">
+<br />
+<br />
+<span>
+Guten Tag <<borrowers.title>> <<borrowers.firstname>> <<borrowers.surname>>,
+</span>
+<br />
+<br />
+
+[%- USE Price -%]
+[%- USE AuthorisedValues -%]
+
+eine Zahlung in Höhe von [% credit.amount * -1 | $Price %] € wurde auf Ihrem Gebührenkonto vorgenommen.<br /><br />
+
+Diese Zahlung betraf die folgenden Gebühren:<br />
+
+[%- FOREACH o IN offsets %]
+
+Beschreibung: [% o.debit.description %]<br />
+
+Eingezahlter Betrag: $[% o.amount * -1 | $Price %]<br />
+
+[% IF ( o.credit.note == 'PayPal' ) %] Bezahlt per: [% o.credit.note %] [% ELSE%] Zahlungsart: [% AuthorisedValues.GetByCode('PAYMENT_TYPE', o.credit.payment_type) %] [% END %]<br /><br />
+
+Offener Restbetrag: $[% o.debit.amountoutstanding | $Price %]<br /><br/ />
+
+[% END %]
+
+Mit freundlichen Grüßen<br />
+<br /><br />
+- Ihre <<branches.branchname>> -
+
+</div>
+
+</body>
+</html>
+};
+    push @$templates, ['circulation','ACCOUNT_PAYMENT','','Quittung für Gebührenzahlung',1,'Quittung für Gebührenzahlung',$text,'email','default'];
+
+    $text = 
+q{<!DOCTYPE html>
+<html>
+<head>
+<title>Elektronische Zahlungsquittung</title>
+</head>
+<body dir="auto" style="word-wrap: break-word; -webkit-nbsp-mode: space; line-break: after-white-space; font-family: Arial, sans-serif;">
+
+<h2><<branches.branchname>></h2>
+<<branches.opac_info>>
+<p>Telefon: <<branches.branchphone>><br />
+E-Mail: <<branches.branchreplyto>></p>
+<br />
+<<borrowers.surname>>, <<borrowers.firstname>><br />
+Ausweis-Nummer: <<borrowers.cardnumber>><br />
+Ausweis gültig bis: <<borrowers.dateexpiry>>
+<br /><br />
+<<today>>
+<br /><br />
+
+<div style="margin: 0cm 0cm 0.0001pt; font-size: 11pt; font-family: Arial, sans-serif;">
+<br />
+<br />
+<span>
+Guten Tag <<borrowers.title>> <<borrowers.firstname>> <<borrowers.surname>>,
+</span>
+<br />
+<br />
+
+[%- USE Price -%]
+Ein Gebührenerlass in Höhe von [% credit.amount * -1 | $Price %] € wurde auf Ihrem Gebührenkonto vorgenommen.<br /><br />
+
+Dieser Gebührenerlass betrifft die folgenden Gebühren:<br />
+[%- FOREACH o IN offsets %]
+Beschreibung: [% o.debit.description %]<br />
+Betrag eingezahlt: [% o.amount * -1 | $Price %]<br />
+Offener Restbetrag: [% o.debit.amountoutstanding | $Price %]<br />
+[% END %]
+
+<br /><br />
+
+Mit freundlichen Grüßen<br />
+<br /><br />
+- Ihre <<branches.branchname>> -
+
+
+</div>
+
+</body>
+</html>
+};
+    push @$templates, ['circulation','ACCOUNT_WRITEOFF','','Quittung für Gebührenerlass',1,'Quittung für Gebührenerlass',$text,'email','default'];
+    
+    $text = 
+q{Guten Tag [% borrower.firstname %] [% borrower.surname %],
+
+[% IF checkout.auto_renew_error %]
+Der Titel [% biblio.title %] konnte nicht korrekt verlängert werden.
+[% IF checkout.auto_renew_error == 'too_many' %]
+Sie haben die maximale Anzahl an Verlängerungen erreicht.
+[% ELSIF checkout.auto_renew_error == 'on_reserve' %]
+Dieses Exemplar wurde von anderen Leser*innen vorgemerkt, weswegen keine Verlängerung stattfand.
+[% ELSIF checkout.auto_renew_error == 'restriction' %]
+es fand keine Verlängerung statt, da Ihr Konto gesperrt wurde.
+[% ELSIF checkout.auto_renew_error == 'overdue' %]
+Sie haben überfällige Medien ausgeliehen, weswegen keine Verlängerung stattfand.
+[% ELSIF checkout.auto_renew_error == 'auto_too_late' %]
+Die Frist für die Verlängerung dieses Mediums ist überschritten worden, weswegen keine Verlängerung stattfand.
+[% ELSIF checkout.auto_renew_error == 'auto_too_much_oweing' %]
+Sie haben den maximal zulässigen Gesamtbetrag ausstehender Gebühren überschritten, weswegen keine Verlängerung stattfand.
+[% END %]
+[% ELSE %]
+Der Titel [% biblio.title %] wurde korrekt verlängert und ist nun am [% checkout.date_due | $KohaDates as_due_date => 1 %] fällig.
+
+[% END %]
+};
+    push @$templates, ['circulation','AUTO_RENEWALS','','Automatische Verlängerung der Ausleihfrist',0,'Automatische Verlängerung der Ausleihfrist',$text,'email','default'];
+    
+    $text = 
+q{Guten Tag [% borrower.firstname %] [% borrower.surname %],
+        [% IF error %]
+             [% error %] Medien wurden nicht verlängert.
+        [% END %]
+        [% IF success %]
+             [% success %] Medien wurden verlängert.
+        [% END %]
+        [% FOREACH checkout IN checkouts %]
+            [% checkout.item.biblio.title %] : [% checkout.item.barcode %]
+            [% IF !checkout.auto_renew_error %]
+                wurde bis zum [% checkout.date_due | $KohaDates as_due_date => 1%] verlängert.
+            [% ELSIF checkout.auto_renew_error == 'too_many' %]
+                Sie haben die maximale Anzahl an Verlängerungen erreicht.
+            [% ELSIF checkout.auto_renew_error == 'on_reserve' %]
+                Dieses Exemplar wurde von anderen Leser*innen vorgemerkt, weswegen keine Verlängerung stattfand.
+            [% ELSIF checkout.auto_renew_error == 'restriction' %]
+                es fand keine Verlängerung statt, da Ihr Konto gesperrt wurde.
+            [% ELSIF checkout.auto_renew_error == 'overdue' %]
+                Sie haben überfällige Medien ausgeliehen, weswegen keine Verlängerung stattfand.
+            [% ELSIF checkout.auto_renew_error == 'auto_too_late' %]
+                Die Frist für die Verlängerung dieses Mediums ist überschritten worden, weswegen keine Verlängerung stattfand.
+            [% ELSIF checkout.auto_renew_error == 'auto_too_much_oweing' %]
+                Sie haben den maximal zulässigen Gesamtbetrag ausstehender Gebühren überschritten, weswegen keine Verlängerung stattfand.
+            [% ELSIF checkout.auto_renew_error == 'too_unseen' %]
+                Dieses Medium kann nur vor Ort in der Bibliothek verlängert werden.
+            [% END %]
+        [% END %]
+};
+    push @$templates, ['circulation','AUTO_RENEWALS_DGST','','Automatische Verlängerung der Ausleihfrist',0,'Automatische Verlängerung der Ausleihfrist',$text,'email','default'];
+    
+    $text = 
+q{<h3>[% branch.branchname %]</h3>
+Rückgabequittung für<br />
+[% borrower.title %] [% borrower.firstname %] [% borrower.initials %] [% borrower.surname %] <br />
+([% borrower.cardnumber %]) <br />
+
+[% today | $KohaDates %]<br />
+
+<h4>Heute zurückgegeben</h4>
+[% FOREACH checkin IN old_checkouts %]
+[% SET item = checkin.item %]
+<p>
+[% item.biblio.title %] <br />
+Barcode: [% item.barcode %] <br />
+</p>
+[% END %]
+
+<hr />
+<<branches.opac_info>>
+};
+    push @$templates, ['circulation','CHECKINSLIP','','Rückgabequittung',1,'Rückgabequittung',$text,'print','default'];
+    
+    $text = 
+q{<!DOCTYPE html>
+<html>
+<head>
+<title>Erinnerung an abholbereite Medien</title>
+</head>
+<body dir="auto" style="word-wrap: break-word; -webkit-nbsp-mode: space; line-break: after-white-space; font-family: Arial, sans-serif;">
+
+<h2><<branches.branchname>></h2>
+<<branches.opac_info>>
+<p>Telefon: <<branches.branchphone>><br />
+E-Mail: <<branches.branchreplyto>></p>
+<br />
+<<borrowers.surname>>, <<borrowers.firstname>><br />
+Ausweis-Nummer: <<borrowers.cardnumber>><br />
+Ausweis gültig bis: <<borrowers.dateexpiry>>
+<br /><br />
+<<today>>
+<br /><br />
+
+<div style="margin: 0cm 0cm 0.0001pt; font-size: 11pt; font-family: Arial, sans-serif;">
+
+<br />
+<br />
+
+<span>Guten Tag [% borrower.firstname %] [% borrower.surname %],</span>
+
+<br />
+<br />
+
+in der Bibliothek [% branch.branchname %] sind folgende von Ihnen vorgemerkten Medien für Sie bereitgestellt worden und noch nicht abgeholt worden:
+
+[% FOREACH hold IN holds %]
+    [% hold.biblio.title %] : bereitgestellt seit [% hold.waitingdate | $KohaDates %] <br />
+[% END %]
+
+<br /><br />
+
+Bitte holen Sie die Medien zeitnah ab.
+
+<br /><br />
+
+Mit freundlichen Grüßen<br />
+<br /><br />
+- Ihre <<branches.branchname>> -
+
+
+</div>
+
+</body>
+</html>
+};
+    push @$templates, ['circulation','HOLD_REMINDER','','Erinnerung an abholbereite Medien',1,'Erinnerung an abholbereite Medien',$text,'email','default'];
+    
+    $text = 
+q{Sehr geehrte Damen und Herren,
+
+wir würden gerne eine Fernleihbestellung für den folgenden Titel anfragen:
+
+[% ill_full_metadata %]
+
+Bitte geben Sie uns eine kurze Rückmeldung, ob Sie diesen Titel per Fernleihe liefern können.
+
+Vielen Dank und mit freundlichen Grüßen
+
+[% branch.branchname %]
+[% branch.branchaddress1 %]
+[% branch.branchaddress2 %]
+[% branch.branchaddress3 %]
+[% branch.branchcity %]
+[% branch.branchstate %]
+[% branch.branchzip %]
+[% branch.branchphone %]
+[% branch.branchillemail %]
+[% branch.branchreplyto %]
+};
+    push @$templates, ['ill','ILL_PARTNER_REQ','','Fernleihbestellung bei Partnerbibliotheken',0,'Fernleihbestellung',$text,'email','default'];
+    
+    $text = 
+q{Guten Tag [% borrower.firstname %] [% borrower.surname %],
+
+Ihre Fernleihbestellung mit der Bestellnummer [% illrequest.illrequest_id %] für folgenden Titel:
+
+- [% ill_bib_title %] - [% ill_bib_author %]
+
+ist geliefert worden und kann ab sofort in der folgenden Zweigstelle abgeholt werden: [% branch.branchname %].
+
+Vielen Dank und mit freundlichen Grüßen
+
+[% branch.branchname %]
+[% branch.branchaddress1 %]
+[% branch.branchaddress2 %]
+[% branch.branchaddress3 %]
+[% branch.branchcity %]
+[% branch.branchstate %]
+[% branch.branchzip %]
+[% branch.branchphone %]
+[% branch.branchillemail %]
+[% branch.branchreplyto %]
+};
+    push @$templates, ['ill','ILL_PICKUP_READY','','Abholbernachrichtigung einer Fernleihbestellung',0,'Fernleihbestellung zur Abholung bereit',$text,'email','default'];
+    
+    $text = 
+q{Die/der anfragende Benutzer/in wünscht für die Bestellanfrage für Fernleihbestellung Nummer [% illrequest.illrequest_id %] eine Stornierung und hat dazu den folgenden Hinweis mitgegeben:
+
+[% ill_full_metadata %]
+};
+    push @$templates, ['ill','ILL_REQUEST_CANCEL','','Stornierung einer Fernleihbestellung',0,'Stornierung einer Fernleihbestellung',$text,'email','default'];
+
+    $text = 
+q{Die/der anfragende Benutzer/in hat die Bestellanfrage für Fernleihbestellung Nummer [% illrequest.illrequest_id %] geändert:
+
+[% ill_full_metadata %]
+};
+    push @$templates, ['ill','ILL_REQUEST_MODIFIED','','Änderung einer Fernleihbestellung',0,'Änderung einer Fernleihbestellung',$text,'email','default'];
+
+
+    $text = 
+q{Guten Tag [% borrower.firstname %] [% borrower.surname %],
+
+Ihre gewünschte Fernleihbestellung mit der Bestellnummer [% illrequest.illrequest_id %] für folgenden Titel:
+
+- [% ill_bib_title %] - [% ill_bib_author %]
+
+kann leider derzeit nicht geliefert werden. Die Bestellanfrage wird hiermit geschlossen.
+
+Mit freundlichen Grüßen
+
+[% branch.branchname %]
+[% branch.branchaddress1 %]
+[% branch.branchaddress2 %]
+[% branch.branchaddress3 %]
+[% branch.branchcity %]
+[% branch.branchstate %]
+[% branch.branchzip %]
+[% branch.branchphone %]
+[% branch.branchillemail %]
+[% branch.branchreplyto %]
+};
+    push @$templates, ['ill','ILL_REQUEST_UNAVAIL','','Fernleihbestellung nicht lieferbar',0,'Fernleihbestellung nicht lieferbar',$text,'email','default'];
+    
+    $text = 
+q{<!DOCTYPE html>
+<html>
+<head>
+<title>Erinnerung an abholbereite Medien</title>
+</head>
+<body>
+<h2>Anschaffungsvorschlag eingereicht</h2>
+<p>
+    <h4>Vorgeschlagen von</h4>
+    <ul style="list-style-type:none;">
+        <li><<borrowers.firstname>> <<borrowers.surname>></li>
+        <li><<borrowers.cardnumber>></li>
+        <li><<borrowers.phone>></li>
+        <li><<borrowers.email>></li>
+    </ul>
+</p>
+
+<p>
+    <h4>Vorgeschlagener Titel</h4>
+    <ul style="list-style-type:none;">
+        <li><strong>Zweigstelle:</strong> <<branches.branchname>></li>
+        <li><strong>Titel:</strong> <<suggestions.title>></li>
+        <li><strong>Autor:</strong> <<suggestions.author>></li>
+        <li><strong>Erscheinungsdatum:</strong> <<suggestions.copyrightdate>></li>
+        <li><strong>Standardnummer (ISBN, ISSN, EAN oder sonstige):</strong> <<suggestions.isbn>></li>
+        <li><strong>Verlag:</strong> <<suggestions.publishercode>></li>
+        <li><strong>Gesamttitel:</strong> <<suggestions.collectiontitle>></li>
+        <li><strong>Verlagsort:</strong> <<suggestions.place>></li>
+        <li><strong>Stückzahl:</strong> <<suggestions.quantity>></li>
+        <li><strong>Medientyp:</strong> <<suggestions.itemtype>></li>
+        <li><strong>Grund:</strong> <<suggestions.patronreason>></li>
+        <li><strong>Hinweise:</strong> <<suggestions.note>></li>
+    </ul>
+</p>
+</body>
+</html>
+};
+    push @$templates, ['suggestions','NEW_SUGGESTION','','Anschaffungsvorschlag eingereicht',1,'Anschaffungsvorschlag eingereicht',$text,'email','default'];
+
+
+    $text = 
+q{Guten Tag [% borrower.firstname %] [% borrower.surname %],
+
+folgender Anschaffungsvorschlag wurde Ihnen zugewiesen: [% suggestion.title %].
+
+Vielen Dank
+[% branch.branchname %]
+};
+    push @$templates, ['suggestions','NOTIFY_MANAGER','','Anschaffungsvorschlag zugewiesen',0,'Anschaffungsvorschlag zugewiesen',$text,'email','default'];
+
+    $text = 
+q{Es liegt ein neuer Problembericht vor.
+    
+Benutzername: <<problem_reports.username>>
+
+Das Problem auf folgender Seite gemeldet: <<problem_reports.problempage>>
+
+Titel: <<problem_reports.title>>
+
+Nachricht: <<problem_reports.content>>
+};
+    push @$templates, ['members','PROBLEM_REPORT','','Neuer Problembericht',0,'Neuer Problembericht',$text,'email','default'];
+
+    $text = 
+q{[% PROCESS "accounts.inc" %]
+<table>
+[% IF ( LibraryName ) %]
+ <tr>
+    <th colspan="2" class="centerednames">
+        <h3>[% LibraryName | html %]</h3>
+    </th>
+ </tr>
+[% END %]
+ <tr>
+    <th colspan="2" class="centerednames">
+        <h2>[% Branches.GetName( payment.branchcode ) | html %]</h2>
+    </th>
+ </tr>
+<tr>
+    <th colspan="2" class="centerednames">
+        <h3>[% payment.date | $KohaDates %]</h3>
+</tr>
+<tr>
+  <td>Transaktions-ID: </td>
+  <td>[% payment.accountlines_id %]</td>
+</tr>
+<tr>
+  <td>Operator-ID: </td>
+  <td>[% payment.manager_id %]</td>
+</tr>
+<tr>
+  <td>Zahlungsart: </td>
+  <td>[% payment.payment_type %]</td>
+</tr>
+ <tr></tr>
+ <tr>
+    <th colspan="2" class="centerednames">
+        <h2><u>Gebührenquittung</u></h2>
+    </th>
+ </tr>
+ <tr></tr>
+ <tr>
+    <th>Gebührenbeschreibung</th>
+    <th>Höhe</th>
+  </tr>
+
+  [% FOREACH offset IN offsets %]
+    <tr>
+        <td>[% PROCESS account_type_description account=offset.debit %]</td>
+        <td>[% offset.amount * -1 | $Price %]</td>
+    </tr>
+  [% END %]
+
+<tfoot>
+  <tr class="highlight">
+    <td>Gesamt: </td>
+    <td>[% payment.amount * -1| $Price %]</td>
+  </tr>
+  <tr>
+    <td>Eingezahlt: </td>
+    <td>[% collected | $Price %]</td>
+  </tr>
+  <tr>
+    <td>Rückgeld: </td>
+    <td>[% change | $Price %]</td>
+    </tr>
+</tfoot>
+</table>
+};
+    push @$templates, ['pos','RECEIPT','','Kassenbon',1,'Kassenbon',$text,'print','default'];
+
+    $text = 
+q{Rotationsbestände - Report für [% branch.name %]:
+
+[% IF branch.items.size %][% branch.items.size %] Medien müssen in dieser Zweigstelle bearbeitet werden.
+[% ELSE %]Keine Medien zur Bearbeitung in dieser Zweigstelle.
+[% END %][% FOREACH item IN branch.items %][% IF item.reason != 'in-demand' %]Titel: [% item.title %]
+Autor: [% item.author %]
+Signatur: [% item.callnumber %]
+Standort: [% item.location %]
+Barcode: [% item.barcode %]
+Ausgeliehen?: [% item.onloan %]
+Status: [% item.reason %]
+Aufenthaltsbibliothek: [% item.branch.branchname %] [% item.branch.branchcode %]
+
+[% END %][% END %]
+};
+    push @$templates, ['circulation','SR_SLIP','','Rotationsbestand-Bericht',0,'Rotationsbestand-Bericht',$text,'email','default'];
+    
+    my $dbh = C4::Context->dbh;
+    my $sth1 = $dbh->prepare("UPDATE letter SET name = ?, is_html = ?, title = ?, content = ? WHERE module = ? AND code = ? AND branchcode = '' AND message_transport_type = ? AND lang = ?");
+    my $sth2 = $dbh->prepare("INSERT INTO letter (module,code,branchcode,name,is_html,title,content,message_transport_type,lang) VALUES (?,?,?,?,?,?,?,?,?)");
+    
+    foreach my $template (@$templates) {
+        my($count) = $dbh->selectrow_array("SELECT COUNT(*) FROM letter WHERE module = ? AND code = ? AND branchcode = '' AND message_transport_type = ? AND lang = ?",
+                                           undef,
+                                           $template->[0], $template->[1], $template->[7],$template->[8]);
+        
+        if ( $count == 1 ) {
+            $sth1->execute($template->[3], $template->[4], $template->[5], $template->[6], $template->[0], $template->[1], $template->[7], $template->[8]);
+        }
+        elsif ( $count == 0 ) {
+            $sth2->execute($template->[0], $template->[1], $template->[2], $template->[3], $template->[4], $template->[5], $template->[6], $template->[7], $template->[8]);
+        }
+        else {
+            print "Muliple templates found for update: (", join(", ",@$template), "\n";
+        }
+    }
+}
+
+sub updateReports {
+    my $updates = ();
+    
+    my $sqltext = 
+q{SELECT
+ *
+FROM
+ (SELECT
+ @TargetBranch:=<<Bibliothek|branches>> COLLATE utf8mb4_unicode_ci AS "Medientyp",
+ TO_DAYS(@StartDate:=<<Zeitraum von (Datum)|date>>) - TO_DAYS(@EndDate:=<<bis (Datum)|date>>) AS "Anzahl Ausleihen" ) AS set_variables
+WHERE 0 = 1
+UNION ALL
+SELECT 
+ "Summe: Alle Medientypen" COLLATE utf8mb4_unicode_ci AS "Medientyp", 
+ count(*) AS "Anzahl Ausleihen" 
+FROM 
+ statistics s 
+LEFT JOIN itemtypes i ON s.itemtype=i.itemtype 
+WHERE 
+ s.type IN ('issue','renew') 
+ AND date(s.datetime) BETWEEN @StartDate AND @EndDate 
+ AND s.branch=@TargetBranch COLLATE utf8mb4_unicode_ci
+UNION ALL
+SELECT 
+ i.description COLLATE utf8mb4_unicode_ci AS "Medientyp", 
+ count(*) AS "Anzahl Ausleihen" 
+FROM 
+ statistics s 
+LEFT JOIN itemtypes i ON s.itemtype=i.itemtype 
+WHERE 
+ s.type IN ('issue','renew') 
+ AND date(s.datetime) BETWEEN @StartDate AND @EndDate
+ AND s.branch=@TargetBranch COLLATE utf8mb4_unicode_ci
+GROUP BY i.itemtype 
+};
+    push @$updates, ['A0050 Anzahl Ausleihen (inkl. VL) pro Medientyp in ausgewähltem Zeitraum',$sqltext];
+    
+    $sqltext = 
+q{SELECT
+*
+FROM
+(SELECT
+@Jahr:=<<Auswertung für Jahr (JJJJ)>> COLLATE utf8mb4_unicode_ci AS "PLZ",
+@TargetBranch:=<<Für Zweigstelle|branches>> COLLATE utf8mb4_unicode_ci AS "Ort",
+@StartDate:=<< von |date>> COLLATE utf8mb4_unicode_ci AS "Gesamt",
+@EndDate:=<<bis |date>> AS "Bis 12",
+" " AS "Ab 60" )
+AS set_variables
+WHERE 0 = 1
+UNION ALL
+SELECT zipcode AS"PLZ", city AS "Ort", COUNT(borrowernumber) AS "Gesamt", SUM(IF( @Jahr-YEAR(dateofbirth) <= 12 ,1,0)) AS "Bis 12", SUM(IF( @Jahr-YEAR(dateofbirth) >= 60 ,1,0)) AS "Ab 60" FROM borrowers
+WHERE dateexpiry >= @StartDate and dateenrolled <= @EndDate
+
+AND branchcode=@TargetBranch COLLATE utf8mb4_unicode_ci
+GROUP BY zipcode
+};
+    push @$updates, ['B0312-zw Aktive Nutzer nach Sitzkommune und Alter auswerten (für BZSH)',$sqltext];
+    
+$sqltext = 
+q{SELECT
+*
+FROM
+(SELECT
+@Jahr:=<<Auswertung für Jahr (JJJJ)>> COLLATE utf8mb4_unicode_ci AS "PLZ",
+@TargetBranch:=<<Für Zweigstelle|branches>> COLLATE utf8mb4_unicode_ci AS "Ort",
+@StartDate:=<< von |date>> COLLATE utf8mb4_unicode_ci AS "Gesamt",
+@EndDate:=<<bis |date>> AS "Bis 12",
+" " AS "Ab 60" )
+AS set_variables
+WHERE 0 = 1
+UNION ALL
+SELECT zipcode AS"PLZ", city AS "Ort", COUNT(borrowernumber) AS "Gesamt", SUM(IF( @Jahr-YEAR(dateofbirth) <= 12 ,1,0)) AS "Bis 12", SUM(IF( @Jahr-YEAR(dateofbirth) >= 60 ,1,0)) AS "Ab 60" FROM borrowers
+WHERE dateexpiry >= @StartDate and dateenrolled <= @EndDate
+
+AND branchcode=@TargetBranch COLLATE utf8mb4_unicode_ci
+GROUP BY zipcode
+};
+    push @$updates, ['B0312-zw Aktive Nutzer nach Sitzkommune und Alter auswerten (für BZSH)',$sqltext];
+    
+    $sqltext = 
+q{SELECT
+*
+FROM
+(SELECT
+@Jahr:=<<Auswertung für Jahr (JJJJ)>> COLLATE utf8mb4_unicode_ci AS "PLZ",
+@TargetBranch:=<<Für Zweigstelle|branches>> COLLATE utf8mb4_unicode_ci AS "Ort",
+@StartDate:=<< von |date>> COLLATE utf8mb4_unicode_ci AS "Gesamt",
+@EndDate:=<<bis |date>> AS "Bis 12",
+" " AS "Ab 60" )
+AS set_variables
+WHERE 0 = 1
+UNION ALL
+SELECT zipcode AS"PLZ", city AS "Ort", COUNT(borrowernumber) AS "Gesamt", SUM(IF( @Jahr-YEAR(dateofbirth) <= 12 ,1,0)) AS "Bis 12", SUM(IF( @Jahr-YEAR(dateofbirth) >= 60 ,1,0)) AS "Ab 60" FROM borrowers
+WHERE dateexpiry >= @StartDate and dateenrolled <= @EndDate
+
+AND branchcode=@TargetBranch COLLATE utf8mb4_unicode_ci
+GROUP BY zipcode
+};
+
+    push @$updates, ['B0312-zw Aktive Nutzer nach Sitzkommune und Alter auswerten (für BZSH)',$sqltext];
+    
+    $sqltext = 
+q{SELECT
+adt.description AS "Kostenart",
+act.description AS "Zahlungsart",
+FORMAT(SUM(a.amount-a.amountoutstanding),2) AS 'Betrag in Euro',
+IFNULL(ityp.description,IFNULL(i.itype,'')) AS Medientyp
+FROM accountlines a
+LEFT JOIN (
+SELECT itemnumber, itype FROM deleteditems
+UNION
+SELECT itemnumber, itype FROM items
+) AS i USING (itemnumber)
+LEFT JOIN itemtypes ityp ON ityp.itemtype = i.itype
+LEFT JOIN account_debit_types adt ON adt.code=a.debit_type_code
+LEFT JOIN account_credit_types act ON act.code=a.credit_type_code
+WHERE branchcode=<<Auswahl Zweigstelle|branches>>
+AND a.amountoutstanding <> a.amount
+AND (DATE(a.timestamp) BETWEEN <<Zwischen |date>> AND <<und|date>>)
+GROUP BY
+a.debit_type_code, a.credit_type_code, i.itype, ityp.description
+ORDER BY 1,2,3
+};
+    push @$updates, ['G0150 Beglichene Gebühren in ausgewähltem Zeitraum summiert nach Gebührenart und Medientyp',$sqltext];
+        
+    $sqltext = 
+q{SELECT
+    *
+FROM
+    (
+    SELECT
+       '' AS Benutzergruppe,
+       (@SelDate1:= <<Von Datum |date>> ) AS "1. Mahnung",
+       (@SelDate2:= <<Bis Datum |date>> ) AS "2. Mahnung",
+       '0.00' AS "3. Mahnung",
+       '0.00'  AS "Bereitstellungsbenachrichtigung",
+       '0.00' AS "Summe Gebührenmahnung",
+       '0.00' AS "Gesamt"
+    ) AS set_variables
+WHERE 0 = 1
+UNION ALL
+SELECT 
+       c.description AS Benutzergruppe,
+       FORMAT(SUM(claim1),2,'de_DE') AS "1. Mahnung",
+       FORMAT(SUM(claim2),2,'de_DE') AS "2. Mahnung",
+       FORMAT(SUM(claim3),2,'de_DE') AS "3. Mahnung",
+       FORMAT(SUM(hold),2,'de_DE')   AS "Bereitstellungsbenachtichtigung",
+       FORMAT(SUM(claimfee),2,'de_DE') AS "Summe Gebührenmahnung",
+       FORMAT(SUM(notfall),2,'de_DE') AS "Gesamt"
+FROM
+       (
+            SELECT 
+                   b.categorycode AS category,
+                   'Normale Bezahlungen' AS Zahlungsform,
+                   SUM(IF(a.description LIKE 'Benachrichtigungsgebühr für 1. Mahnung%',ao.amount,0.0)) * -1 AS claim1,
+                   SUM(IF(a.description LIKE 'Benachrichtigungsgebühr für 2. Mahnung%',ao.amount,0.0)) * -1 AS claim2,
+                   SUM(IF(a.description LIKE 'Benachrichtigungsgebühr für 3. Mahnung%',ao.amount,0.0)) * -1 AS claim3,
+                   SUM(IF(a.description LIKE 'Gebühr für Bereitstellungsbenachrichtigung%',ao.amount,0.0)) * -1 AS hold,
+                   SUM(IF(a.description LIKE '__.__.____',ao.amount,0.0)) * -1 AS claimfee,
+                   SUM(ao.amount) * -1 AS notfall
+            FROM   branches br, account_offsets ao, accountlines c, accountlines a, borrowers b
+            WHERE      c.branchcode = br.branchcode
+                   AND ao.debit_id = a.accountlines_id
+                   AND ao.credit_id = c.accountlines_id
+                   AND ao.type = 'Payment'
+                   AND ao.created_on BETWEEN @SelDate1 AND @SelDate2
+                   AND NOT EXISTS (SELECT 1 FROM items WHERE a.itemnumber = items.itemnumber)
+                   AND NOT EXISTS (SELECT 1 FROM deleteditems WHERE a.itemnumber = deleteditems.itemnumber)
+                   AND (
+                              a.description LIKE 'Benachrichtigungsgebühr für %. Mahnung%' 
+                           OR a.description LIKE 'Gebühr für Bereitstellungsbenachrichtigung%'
+                           OR a.description LIKE 'Gebührenmahnung%'
+                           OR a.description LIKE '__.__.____'
+                       )
+                   AND a.debit_type_code = 'NOTIFICATION'
+                   AND ao.amount <> 0.00
+                   AND a.borrowernumber = b.borrowernumber
+            GROUP BY 
+                   a.debit_type_code, b.categorycode
+            UNION ALL
+            SELECT 
+                   b.categorycode AS category,
+                   'Erneute Zahlung nach Zahlungsstorno' AS Zahlungsform,
+                   SUM(IF(a.description LIKE 'Benachrichtigungsgebühr für 1. Mahnung%',o.amount,0.0)) * -1 AS claim1,
+                   SUM(IF(a.description LIKE 'Benachrichtigungsgebühr für 2. Mahnung%',o.amount,0.0)) * -1 AS claim2,
+                   SUM(IF(a.description LIKE 'Benachrichtigungsgebühr für 3. Mahnung%',o.amount,0.0)) * -1 AS claim3,
+                   SUM(IF(a.description LIKE 'Gebühr für Bereitstellungsbenachrichtigung%',o.amount,0.0))* -1  AS hold,
+                   SUM(IF(a.description LIKE '__.__.____',o.amount,0.0)) * -1 AS claimfee,
+                   SUM(o.amount) * -1 AS notfall
+            FROM   branches br, account_offsets o, account_offsets ao, accountlines c, accountlines u, accountlines a, borrowers b
+            WHERE      c.branchcode = br.branchcode
+                   AND ao.debit_id = u.accountlines_id
+                   AND ao.credit_id = c.accountlines_id
+                   AND ao.type = 'Payment'
+                   AND ao.created_on BETWEEN @SelDate1 AND @SelDate2
+                   AND ao.debit_id = o.credit_id
+                   AND o.type = 'Payment'
+                   AND o.debit_id = a.accountlines_id
+                   AND u.debit_type_code IN ('Pay', 'Pay00', 'Pay01', 'Pay02', 'Pay03')
+                   AND (
+                              a.description LIKE 'Benachrichtigungsgebühr für %. Mahnung%' 
+                           OR a.description LIKE 'Gebühr für Bereitstellungsbenachrichtigung%'
+                           OR a.description LIKE 'Gebührenmahnung%'
+                           OR a.description LIKE '__.__.____'
+                       )
+                   AND a.debit_type_code = 'NOTIFICATION'
+                   AND NOT EXISTS (SELECT 1 FROM items WHERE a.itemnumber = items.itemnumber)
+                   AND NOT EXISTS (SELECT 1 FROM deleteditems WHERE a.itemnumber = deleteditems.itemnumber)
+                   AND o.amount <> 0.00
+                   AND ao.amount = u.amount
+                   AND a.borrowernumber = b.borrowernumber
+            GROUP BY 
+                   a.debit_type_code, b.categorycode
+            UNION ALL
+            SELECT 
+                   b.categorycode AS category,
+                   'Zahlungsstorno' AS Zahlungsform,
+                   SUM(IF(a.description LIKE 'Benachrichtigungsgebühr für 1. Mahnung%',o.amount,0.0)) * -1 AS claim1,
+                   SUM(IF(a.description LIKE 'Benachrichtigungsgebühr für 2. Mahnung%',o.amount,0.0)) * -1 AS claim2,
+                   SUM(IF(a.description LIKE 'Benachrichtigungsgebühr für 3. Mahnung%',o.amount,0.0)) * -1 AS claim3,
+                   SUM(IF(a.description LIKE 'Gebühr für Bereitstellungsbenachrichtigung%',o.amount,0.0)) * -1 AS hold,
+                   SUM(IF(a.description LIKE '__.__.____',o.amount,0.0)) * -1 AS claimfee,
+                   SUM(o.amount) * -1 AS notfall
+            FROM   branches br, account_offsets o, account_offsets ao, accountlines c, accountlines a, borrowers b
+            WHERE      c.branchcode = br.branchcode
+                   AND ao.type = 'Reverse Payment'
+                   AND ao.credit_id = c.accountlines_id
+                   AND ao.amount > 0.0
+                   AND ao.created_on BETWEEN @SelDate1 AND @SelDate2
+                   AND ao.credit_id = o.credit_id
+                   AND o.type = 'Payment'
+                   AND o.debit_id = a.accountlines_id
+                   AND (
+                              a.description LIKE 'Benachrichtigungsgebühr für %. Mahnung%' 
+                           OR a.description LIKE 'Gebühr für Bereitstellungsbenachrichtigung%'
+                           OR a.description LIKE 'Gebührenmahnung%'
+                           OR a.description LIKE '__.__.____'
+                       )
+                   AND a.debit_type_code = 'NOTIFICATION'
+                   AND NOT EXISTS (SELECT 1 FROM items WHERE a.itemnumber = items.itemnumber)
+                   AND NOT EXISTS (SELECT 1 FROM deleteditems WHERE a.itemnumber = deleteditems.itemnumber)
+                   AND o.amount <> 0.00
+                   AND -ao.amount = c.amount
+                   AND a.borrowernumber = b.borrowernumber
+            GROUP BY 
+                   a.debit_type_code, b.categorycode
+            UNION ALL
+            SELECT 
+                   b.categorycode AS category,
+                   'Rückzahlungen' AS Zahlungsform,
+                   SUM(IF(a.description LIKE 'Benachrichtigungsgebühr für 1. Mahnung%',o.amount,0.0)) AS claim1,
+                   SUM(IF(a.description LIKE 'Benachrichtigungsgebühr für 2. Mahnung%',o.amount,0.0)) AS claim2,
+                   SUM(IF(a.description LIKE 'Benachrichtigungsgebühr für 3. Mahnung%',o.amount,0.0)) AS claim3,
+                   SUM(IF(a.description LIKE 'Gebühr für Bereitstellungsbenachrichtigung%',o.amount,0.0)) AS hold,
+                   SUM(IF(a.description LIKE '__.__.____',o.amount,0.0)) AS claimfee,
+                   SUM(o.amount) AS notfall
+            FROM   branches br, account_offsets o, account_offsets ao, accountlines c, accountlines a, borrowers b
+            WHERE      c.branchcode = br.branchcode
+                   AND ao.type = 'Reverse Payment'
+                   AND ao.amount < 0.0
+                   AND ao.created_on BETWEEN @SelDate1 AND @SelDate2
+                   AND ao.credit_id = o.credit_id
+                   AND ao.credit_id = c.accountlines_id
+                   AND o.type = 'Payment'
+                   AND o.debit_id = a.accountlines_id
+                   AND (
+                              a.description LIKE 'Benachrichtigungsgebühr für %. Mahnung%' 
+                           OR a.description LIKE 'Gebühr für Bereitstellungsbenachrichtigung%'
+                           OR a.description LIKE 'Gebührenmahnung%'
+                           OR a.description LIKE '__.__.____'
+                       )
+                   AND a.debit_type_code = 'NOTIFICATION'
+                   AND NOT EXISTS (SELECT 1 FROM items WHERE a.itemnumber = items.itemnumber)
+                   AND NOT EXISTS (SELECT 1 FROM deleteditems WHERE a.itemnumber = deleteditems.itemnumber)
+                   AND o.amount <> 0.00
+                   AND a.borrowernumber = b.borrowernumber
+             GROUP BY 
+                   a.debit_type_code, b.categorycode
+       ) AS notf, categories c
+WHERE  notf.category = c.categorycode
+GROUP BY c.description
+};
+    push @$updates, ['G0010 Benachrichtigungsgebühren nach Art für ausgewählten Zeitraum',$sqltext];
+
+    $sqltext = 
+q{SELECT 
+ '<b>Summe gesamt</b>' AS 'Einnahme von', 
+ '<b>Summe gesamt</b>' AS 'Gebühr erhoben von', 
+ '<b>Betrag gesamt</b>' AS Betrag,
+ '<b>Transfer</b>' AS Gebührenart, 
+ '<b>Transferbetrag</b>' AS Verrechnung
+FROM dual
+WHERE
+ CURDATE() >= ( @FromDate:= <<Von Datum |date>> ) AND CURDATE() >= ( @ToDate:= <<Bis Datum |date>> )
+UNION ALL
+SELECT 
+ br2.branchname AS 'Einnahme von', 
+ br1.branchname AS 'Gebühr erhoben von', 
+ FORMAT(origsum.betrag, 2, 'de_DE') AS Betrag,
+ CASE
+ WHEN (origsum.betrag - addsum.betrag) > 0.0 THEN CONCAT('VON ',br2.branchname, ' <br />NACH ',br1.branchname)
+ WHEN addsum.betrag IS NULL THEN CONCAT('VON ',br2.branchname, ' <br />NACH ',br1.branchname)
+ ELSE ''
+ END AS Gebührenart,
+ CASE
+ WHEN (origsum.betrag - addsum.betrag) > 0.0 THEN FORMAT(origsum.betrag - addsum.betrag, 2, 'de_DE')
+ WHEN addsum.betrag IS NULL THEN FORMAT(origsum.betrag, 2, 'de_DE')
+ ELSE ''
+ END AS Verrechnung
+FROM 
+ (
+  SELECT 
+ c.branchcode AS angefallen, 
+ p.branchcode AS bezahlt, 
+ SUM(op.amount * -1) AS betrag
+ FROM accountlines p, 
+ account_offsets op, 
+ accountlines c
+ WHERE 
+ p.credit_type_code="PAYMENT"
+ AND op.credit_id = p.accountlines_id
+ AND p.branchcode <> c.branchcode
+ AND op.debit_id = c.accountlines_id
+ AND DATE(op.created_on) BETWEEN @FromDate AND @ToDate
+ GROUP BY c.branchcode, p.branchcode 
+ ORDER BY betrag DESC ) AS origsum
+ LEFT JOIN 
+ (
+ SELECT 
+ c.branchcode AS angefallen, 
+ p.branchcode AS bezahlt, 
+ SUM(op.amount * -1) AS betrag
+ FROM accountlines p, 
+ account_offsets op, 
+ accountlines c
+ WHERE 
+ p.credit_type_code="PAYMENT"
+ AND op.credit_id = p.accountlines_id
+ AND p.branchcode <> c.branchcode
+ AND op.debit_id = c.accountlines_id
+ AND DATE(op.created_on) BETWEEN @FromDate AND @ToDate
+ GROUP BY c.branchcode, p.branchcode
+ ) AS addsum ON ( origsum.angefallen = addsum.bezahlt AND origsum.bezahlt = addsum.angefallen )
+ LEFT JOIN branches br1 ON ( origsum.angefallen = br1.branchcode )
+ LEFT JOIN branches br2 ON ( origsum.bezahlt = br2.branchcode )
+UNION ALL
+SELECT 
+ '<hr />' AS 'Einnahme von', 
+ '<hr />' AS 'Gebühr erhoben von', 
+ '<hr />' AS Betrag,
+ '<hr />' AS Gebührenart, 
+ '<hr />' AS Verrechnung
+UNION ALL
+SELECT 
+ '<b>Summe nach Gebührenart</b>' AS 'Einnahme von', 
+ '<b>Summe nach Gebührenart</b>' AS 'Gebühr erhoben von', 
+ '<b>Betrag</b>' AS Betrag,
+ '<b>Gebührenart</b>' AS Gebührenart, 
+ '' AS Verrechnung
+UNION ALL
+
+SELECT 
+ br1.branchname AS 'Einnahme von', 
+ br2.branchname AS 'Gebühr erhoben von', 
+ FORMAT(SUM(op.amount * -1), 2, 'de_DE') AS Betrag, 
+ deb.description AS Gebührenart, 
+ '' AS Verrechnung
+FROM accountlines p
+ LEFT JOIN branches br1 ON ( p.branchcode = br1.branchcode ), 
+ account_offsets op, 
+ accountlines c
+ LEFT JOIN account_debit_types deb ON deb.code=c.debit_type_code
+ LEFT JOIN borrowers b ON ( b.borrowernumber = c.borrowernumber AND (deb.code = 'ACCOUNT_RENEW' OR deb.code='ACCOUNT'))
+ LEFT JOIN categories g ON ( b.categorycode = g.categorycode )
+ LEFT JOIN branches br2 ON ( c.branchcode = br2.branchcode )
+WHERE 
+ p.credit_type_code="PAYMENT"
+ AND op.credit_id = p.accountlines_id
+ AND p.branchcode <> c.branchcode
+ AND op.debit_id = c.accountlines_id
+ AND DATE(op.created_on) BETWEEN @FromDate AND @ToDate
+GROUP BY c.branchcode, p.branchcode, c.debit_type_code, g.description
+};
+    push @$updates, ['G0100-zw Einnahmenverrechnung zwischen Zweigstellen',$sqltext];
+    
+    $sqltext = 
+q{SELECT accountlines_id AS 'Vorgangsnr.', DATE_FORMAT(date,'%d.%m.%Y') AS 'Datum', timestamp, FORMAT(amount,2,'de_DE') AS 'Betrag',FORMAT(amountoutstanding,2,'de_DE') AS 'Betrag offen', deb.description AS 'Beschreibung', 
+deb.code AS 'Vorgangsart',
+b1.cardnumber AS 'Ausweisnummer', CONCAT(b1.firstname, " ",b1.surname) AS 'Benutzername', note AS 'Bemerkung' , b2.surname AS 'Mitarbeitername' 
+FROM accountlines
+LEFT JOIN borrowers b1 ON (accountlines.borrowernumber=b1.borrowernumber) 
+LEFT JOIN borrowers b2 ON (accountlines.manager_id=b2.borrowernumber) 
+LEFT JOIN account_debit_types deb ON deb.code=accountlines.debit_type_code
+WHERE date >= <<Von|date>> AND date <= <<bis|date>>
+ORDER BY date, accountlines_id
+};
+    push @$updates, ['G0140 Gebührenvorgänge - Einzelauflistung für einen auswählbaren Zeitraum',$sqltext];
+    
+    $sqltext = 
+q{SELECT CONCAT('<a href=\"/cgi-bin/koha/members/boraccount.pl?borrowernumber=',borrowers.borrowernumber,'\" target="_blank">', borrowers.borrowernumber, '</a>') AS borrowernumber,
+ borrowers.cardnumber AS Ausweisnummer,
+ borrowers.firstname AS Vorname,
+ borrowers.surname AS Nachname,
+ borrowers.branchcode AS Heimatzweigstelle,
+ FORMAT(accountlines.amount,2) AS Betrag,
+ accountlines.date AS Datum, 
+ accountlines.credit_type_code AS Typ,
+ accountlines.note AS Grund,
+ accountlines.manager_id
+FROM accountlines, borrowers
+WHERE borrowers.borrowernumber = accountlines.borrowernumber 
+AND credit_type_code IN ('WRITEOFF','CANCELLATION','DISCOUNT','FORGIVEN')
+AND date BETWEEN <<Von|date>> AND <<Bis|date>>
+ORDER BY accountlines.credit_type_code
+};
+    push @$updates, ['G0200 Gebührenerlass / Storno mit Grund für einen wählbaren Zeitraum',$sqltext];
+    
+    $sqltext = 
+q{SELECT
+*
+FROM
+(
+SELECT
+0 AS Zweigstelle,
+0 AS Exemplarnummer,
+0 AS Buchungsnummer,
+0 AS Zugangsdatum,
+( @StartDate:= <<Von Datum|date>> COLLATE utf8mb4_unicode_ci ) AS Standort,
+0 AS Autor,
+0 AS Titel,
+0 AS Sammlung,
+( @EndDate:= <<Bis Datum|date>> COLLATE utf8mb4_unicode_ci ) AS Medientyp,
+
+0 AS Preis,
+0 AS Status
+) AS set_variables
+WHERE 0 = 1
+
+UNION
+
+SELECT
+homebranch AS Zweigstelle ,
+itemnumber AS Exemplarnummer,
+barcode AS Buchungsnummer,
+DATE_FORMAT(dateaccessioned, '%d.%m.%Y') AS Zugangsdatum,
+lib AS Standort,
+author AS Autor,
+title AS Titel,
+lib2 AS Sammlung,
+itype AS Medientyp,
+FORMAT(price, 2, 'de_DE') AS Preis,
+status AS Status
+
+FROM (
+
+SELECT homebranch, itemnumber, barcode, dateaccessioned, av.lib, av2.lib as lib2, b.author, b. title, itype, price, IF(onloan IS NOT NULL,'entliehen','verfügbar') AS status FROM items
+LEFT JOIN biblio b USING (biblionumber)
+LEFT JOIN authorised_values av ON ( av.authorised_value = location AND av.category = 'LOC')
+LEFT JOIN authorised_values av2 ON ( av2.authorised_value = ccode AND av2.category = 'CCODE')
+WHERE (date(dateaccessioned) BETWEEN @StartDate AND @EndDate) AND (itype is null OR itype NOT LIKE "e%")
+UNION
+SELECT homebranch, itemnumber, barcode, dateaccessioned, av.lib, av2.lib as lib2, b.author , b. title, itype, price, 'gelöscht' AS status FROM deleteditems
+LEFT JOIN deletedbiblio b USING (biblionumber)
+LEFT JOIN authorised_values av ON ( av.authorised_value = location AND av.category = 'LOC')
+LEFT JOIN authorised_values av2 ON ( av2.authorised_value = ccode AND av2.category = 'CCODE')
+WHERE (date(dateaccessioned) BETWEEN @StartDate AND @EndDate) AND (itype is null OR itype NOT LIKE "e%")
+
+) AS allitems
+
+ORDER BY Zugangsdatum
+};
+    push @$updates, ['K0030 Zugangsbuch',$sqltext];
+    
+    my $dbh = C4::Context->dbh;
+    my $sth1 = $dbh->prepare("UPDATE saved_sql SET savedsql = ? WHERE report_name = BINARY ?");
+    
+    foreach my $update (@$updates) {
+        $sth1->execute($update->[1], $update->[0]);
     }
 }

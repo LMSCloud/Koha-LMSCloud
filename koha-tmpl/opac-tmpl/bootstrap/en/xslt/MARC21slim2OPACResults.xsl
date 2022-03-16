@@ -709,7 +709,7 @@
             </xsl:if>
         </xsl:for-each>
     </xsl:if>
--->
+ -->
 
 <xsl:if test="$DisplayOPACiconsXSLT!='0'">
     <span class="results_summary type">
@@ -1173,9 +1173,12 @@
         <xsl:with-param name="UseAuthoritiesForTracings" select="$UseAuthoritiesForTracings"/>
     </xsl:call-template>
 
+    <!--
     <xsl:call-template name="show-lang-041"/>
+    -->
 
     <!-- Publisher Statement: Alternate Graphic Representation (MARC 880) -->
+    <!--
     <xsl:if test="$display880">
       <xsl:call-template name="m880Select">
         <xsl:with-param name="basetags">260</xsl:with-param>
@@ -1184,8 +1187,10 @@
         <xsl:with-param name="label">Publication details: </xsl:with-param>
       </xsl:call-template>
     </xsl:if>
+    -->
 
     <!-- Publisher or Distributor Number -->
+    <!--
     <xsl:if test="marc:datafield[@tag=028]">
          <span class="results_summary publisher_number ">
             <span class="label">Publisher number: </span>
@@ -1197,8 +1202,10 @@
             </xsl:for-each>
         </span>
     </xsl:if>
+    -->
 
     <!-- Publisher info and RDA related info from tags 260, 264 -->
+    <!--
     <xsl:choose>
         <xsl:when test="marc:datafield[@tag=264]">
             <xsl:call-template name="showRDAtag264"/>
@@ -1240,6 +1247,7 @@
             </span>
         </xsl:when>
     </xsl:choose>
+    -->
 
     <!-- Dissertation note -->
     <xsl:if test="marc:datafield[@tag=502]">
@@ -1325,6 +1333,8 @@
             <xsl:with-param name="marcFieldList" select="$IncludeAdditionalMARCFields"/>
         </xsl:call-template>
     </xsl:if>
+
+    <!--
     <xsl:if test="marc:datafield[@tag=856 and not(marc:subfield[@code='n' and text()='Wikipedia']) and not(marc:subfield[@code='3' and text()='Titelbild']) and not(marc:subfield[@code='z' and text()='content sample']) and not(marc:subfield[@code='n' and text()='Antolin']) and not(marc:subfield[@code='q' and (text()='cover/jpg' or text()='cover/jpeg') ])]">
          <span class="results_summary online_resources">
 			   <span class="label">Online access: </span>
@@ -1422,6 +1432,7 @@
                             </xsl:for-each>
                             </span>
                         </xsl:if>
+        -->
                         
         <!-- Availability line -->
         <span class="results_summary availability">

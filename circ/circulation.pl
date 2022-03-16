@@ -55,6 +55,7 @@ use Koha::Patron::Messages;
 use Koha::SearchEngine;
 use Koha::SearchEngine::Search;
 use Koha::Patron::Modifications;
+use Koha::Illrequest qw(checkIfIllItem);
 
 use Date::Calc qw(
   Today
@@ -74,6 +75,8 @@ my $override_high_holds_tmp = $query->param('override_high_holds_tmp');
 my $sessionID = $query->cookie("CGISESSID") ;
 my $session = get_session($sessionID);
 
+my @itemsFound = ();
+my @issuesDone = ();
 my $barcodes = [];
 my $barcode =  $query->param('barcode');
 my $findborrower;
@@ -345,6 +348,7 @@ if (@$barcodes) {
     my $biblio;
     if ( $item ) {
         $biblio = $item->biblio;
+        push @itemsFound, $item;
     }
 
     # Fix for bug 7494: optional checkout-time fallback search for a book
@@ -415,8 +419,20 @@ if (@$barcodes) {
             my $switch_onsite_checkout = exists $messages->{ONSITE_CHECKOUT_WILL_BE_SWITCHED};
             my $issue = AddIssue( $patron->unblessed, $barcode, $datedue, $cancelreserve, undef, undef, { onsite_checkout => $onsite_checkout, auto_renew => $session->param('auto_renew'), switch_onsite_checkout => $switch_onsite_checkout, } );
             $template_params->{issue} = $issue;
+
+            # LMSCloud handling of ILL article requests:
+            # This issues record may be deleted already (via C4::Circulation::AddIssue() call at the end of this script)
+            # when template toolkit will build the HTML output.
+            # Problem: Since 21.05 circulation.tt displays title, barcode and date_due of the issue,
+            #          but standard Koha template toolkit DB access via [% issue.item.biblio.title %] therefore will not work in this ILL special case.
+            # Solution: Using the following three scalar tt variables instead of tt DB access.
+            $template_params->{issue_item_biblio_title_saved} = $issue->item->biblio->title;
+            $template_params->{issue_item_barcode_saved} = $issue->item->barcode;
+            $template_params->{issue_date_due_saved} = $issue->date_due;
+
             $session->clear('auto_renew');
             $inprocess = 1;
+            push @issuesDone, $issue;
         }
     }
 
@@ -646,5 +662,32 @@ $template->param(
     autoswitched              => $autoswitched,
     logged_in_user            => $logged_in_user,
 );
+
+
+if ( scalar @issuesDone > 0 ) {
+    @issuesDone = ();
+    foreach my $item ( @itemsFound ) {
+        # Check if it is an ILL item that not needs to be shipped back (e.g. a copied article from a journal).
+        # If this is true then automatically check it in now (pro forma) as last action of this (pro forma) checkout,
+        # in order to trigger the change of illrequests.status to 'COMP' via C4::Circulation::AddReturn().
+        # This cannot be done earlier (e.g. at the end of C4::Circulation::AddIssue()) because the check-in deletes the issues record,
+        # but it is still required here for building this HTML output.
+        my ( $itisanillitem, $illrequest ) = ( 0, undef );
+        if ( C4::Context->preference("IllModule") ) {    # check if the ILL module is activated at all
+            eval {
+                ( $itisanillitem, $illrequest ) = Koha::Illrequest->checkIfIllItem($item->unblessed);
+                if ( $itisanillitem && $illrequest ) {
+                    eval {
+                        my $shippingBackRequired = $illrequest->_backend_capability( "isShippingBackRequired", $illrequest );
+                        if ( ! $shippingBackRequired ) {
+                            AddReturn($item->unblessed->{barcode}, C4::Context->userenv->{'branch'});
+                        }
+                    };
+                }
+            };
+        }
+    }
+}
+@itemsFound = ();
 
 output_html_with_http_headers $query, $cookie, $template->output;

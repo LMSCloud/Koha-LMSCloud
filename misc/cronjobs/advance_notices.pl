@@ -668,7 +668,8 @@ sub send_digests {
                     C4::Letters::EnqueueLetter( { letter                 => $letter,
                                                   borrowernumber         => $borrowernumber,
                                                   from_address           => $from_address,
-                                                  message_transport_type => $letter->{message_transport_type} } );
+                                                  message_transport_type => $letter->{message_transport_type},
+                                                  branchcode             => Koha::Libraries->get_effective_branch($branchcode) } );
                 }
             }
         }
