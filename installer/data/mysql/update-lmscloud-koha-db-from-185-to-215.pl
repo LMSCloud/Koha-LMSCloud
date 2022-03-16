@@ -1419,9 +1419,14 @@ sub migrate_epayment_to_2105 {
 
         if ( ! $plugins_enabled ) {
             # set <enable_plugins>1</enable_plugins> in /etc/koha/sites/<instancename>/koha-conf.xml
-            my $kohaConfFileName = $ENV{'KOHA_CONF'};
+            my $kohaConfFileName = Koha::Config->guess_koha_conf;
             `sed -i.bak -e 's|<enable_plugins>.*</enable_plugins>|<enable_plugins>1</enable_plugins>|g' $kohaConfFileName`;
             &trace("migrate_epayment_to_2105::install_koha_plugin() updated '$kohaConfFileName'\n");
+
+            # 'publish' this modification, otherwise Koha::Plugins->new(), called a few lines below, will fail (i.e. will return undef)
+            my $contextNew = C4::Context->new($kohaConfFileName);
+            $contextNew->set_context();
+            &trace("migrate_epayment_to_2105::install_koha_plugin() reread the C4::Context context, now getting C4::Context->config(enable_plugins):" . C4::Context->config("enable_plugins") . ":\n");
         }
 
         my $dirname = File::Temp::tempdir( CLEANUP => 1 );
