@@ -36,8 +36,36 @@
     function setGlobalStyles(config, container) {
         let globalStyles = [
             [
+                '.text-custom-4',
+                'font-size: .25rem;',
+            ],
+            [
+                '.text-custom-8',
+                'font-size: .5rem;',
+            ],
+            [
                 '.text-custom-12',
                 'font-size: .75rem;',
+            ],
+            [
+                '.text-custom-16',
+                'font-size: 1rem;',
+            ],
+            [
+                '.text-custom-20',
+                'font-size: 1.25rem;',
+            ],
+            [
+                '.text-custom-24',
+                'font-size: 1.5rem;',
+            ],
+            [
+                '.text-custom-28',
+                'font-size: 1.75rem;',
+            ],
+            [
+                '.text-custom-32',
+                'font-size: 2rem;',
             ],
         ];
         if (config.coverFlowTooltips) {
@@ -707,11 +735,10 @@
             new LcfItemWrapper('div', 'lcfCoverImageWrapper', 'lcfFlipCardFront', ['card-img-top', containerReferenceAsClass]),
             new LcfItemWrapper('a', 'lcfAnchor', 'lcfCoverImageWrapper', [containerReferenceAsClass]),
             new LcfItemWrapper('img', 'lcfCoverImage', 'lcfAnchor', [containerReferenceAsClass]),
-            new LcfItemWrapper('img', 'lcfCoverAmazon', 'lcfAnchor', [containerReferenceAsClass]),
             new LcfItemWrapper('div', 'lcfCardBody', 'lcfFlipCardFront', ['card-body', 'p-2', 'text-center', containerReferenceAsClass]),
-            new LcfItemWrapper('p', 'lcfMediaAuthor', 'lcfCardBody', ['card-text', 'text-muted', 'text-truncate', 'font-weight-light', 'mb-0', 'text-custom-12', containerReferenceAsClass]),
-            new LcfItemWrapper('p', 'lcfMediaItemCallNumber', 'lcfCardBody', ['card-text', 'text-muted', 'text-truncate', 'font-weight-light', 'mb-0', 'text-custom-12', containerReferenceAsClass]),
-            new LcfItemWrapper('p', 'lcfMediaTitle', 'lcfCardBody', ['card-text', 'text-truncate', 'font-weight-lighter', 'mb-0', 'text-custom-12', containerReferenceAsClass]),
+            new LcfItemWrapper('p', 'lcfMediaAuthor', 'lcfCardBody', ['card-text', 'text-muted', 'text-truncate', 'font-weight-light', 'mb-0', config.coverFlowCardBodyTextHeights.lcfMediaAuthor, containerReferenceAsClass]),
+            new LcfItemWrapper('p', 'lcfMediaItemCallNumber', 'lcfCardBody', ['card-text', 'text-muted', 'text-truncate', 'font-weight-light', 'mb-0', config.coverFlowCardBodyTextHeights.lcfMediaItemCallNumber, containerReferenceAsClass]),
+            new LcfItemWrapper('p', 'lcfMediaTitle', 'lcfCardBody', ['card-text', 'text-truncate', 'font-weight-lighter', 'mb-0', config.coverFlowCardBodyTextHeights.lcfMediaTitle, containerReferenceAsClass]),
         ];
         if (config.coverFlowFlippableCards) {
             lcfItemWrapperAspects.push(...[
@@ -986,19 +1013,16 @@
                 },
                 checkForUnresolvableResources(localData) {
                     const LOCAL_DATA = localData.map(async (entry) => {
-                        let newEntry = entry;
+                        const newEntry = entry;
                         if (entry.coverurl === '') {
-                            // console.error('Resource url is an empty string.');
-                            newEntry = { ...entry, coverurl: self.config.coverImageFallbackUrl };
+                            return { ...newEntry, coverurl: self.config.coverImageFallbackUrl };
                         }
                         if (entry.coverurl === undefined) {
-                            // console.error('Resource url is undefined.');
-                            newEntry = { ...entry, coverurl: self.config.coverImageFallbackUrl };
+                            return { ...newEntry, coverurl: self.config.coverImageFallbackUrl };
                         }
                         const fileExists = await this.checkIfFileExists(entry.coverurl);
                         if (!fileExists) {
-                            // console.error('Resource url is non-resolvable.');
-                            newEntry = { ...entry, coverurl: self.config.coverImageFallbackUrl };
+                            return { ...newEntry, coverurl: self.config.coverImageFallbackUrl };
                         }
                         return newEntry;
                     });
@@ -1013,6 +1037,16 @@
                 coverFlowTooltips: configuration.coverFlowTooltips || false,
                 coverFlowAutoScroll: configuration.coverFlowAutoScroll || false,
                 coverFlowAutoScrollInterval: configuration.coverFlowAutoScrollInterval || 8000,
+                coverFlowCardBody: configuration.coverFlowCardBody || {
+                    lcfMediaAuthor: true,
+                    lcfMediaTitle: true,
+                    lcfMediaItemCallNumber: false,
+                },
+                coverFlowCardBodyTextHeights: configuration.coverFlowCardBodyTextHeights || {
+                    lcfMediaAuthor: 'text-custom-12',
+                    lcfMediaTitle: 'text-custom-12',
+                    lcfMediaItemCallNumber: 'text-custom-12',
+                },
                 coverImageFallbackUrl: configuration.coverImageFallbackUrl || 'http://placekitten.com/g/200/300',
                 coverFlowContext: configuration.coverFlowContext || 'default',
                 coverFlowShelfBrowser: configuration.coverFlowShelfBrowser || false,
@@ -1214,6 +1248,14 @@
                             const itemClassIndex = TAG.classList[1];
                             const itemCurrent = formattedData[itemClassIndex];
                             switch (itemClassReference) {
+                                case 'lcfItemContainer':
+                                    if (itemCurrent.additionalProperties) {
+                                        Array.from(Object.entries(itemCurrent.additionalProperties)).forEach((entry) => {
+                                            const [key, value] = entry;
+                                            TAG.setAttribute(`data-${key}`, value);
+                                        });
+                                    }
+                                    break;
                                 case 'lcfAnchor':
                                     TAG.href = itemCurrent.referenceToDetailsView;
                                     break;
@@ -1289,6 +1331,25 @@
                         autoScrollId = self.container.autoScrollContainer();
                     });
                 }
+                const containerReferenceAsClass = self.container.reference.id;
+                /** The following two blocks determine the visibility of card body aspects or the visibility
+                 * of the card body alltogether.
+                 */
+                if (Object.values(self.config.coverFlowCardBody).every((setting) => setting === false)) {
+                    const cardBodies = document.querySelectorAll(`.lcfCardBody.${containerReferenceAsClass}`);
+                    cardBodies.forEach((cardBody) => {
+                        cardBody.classList.add('d-none');
+                    });
+                }
+                Object.entries(self.config.coverFlowCardBody).forEach((itemCardBodyAspect) => {
+                    const [cardBodyClass, setting] = itemCardBodyAspect;
+                    if (!setting) {
+                        const aspectToHide = document.querySelectorAll(`.${cardBodyClass}.${containerReferenceAsClass}`);
+                        aspectToHide.forEach((item) => {
+                            item.classList.add('d-none');
+                        });
+                    }
+                });
             },
             /* end of render() */
         };

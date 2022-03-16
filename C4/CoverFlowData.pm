@@ -348,14 +348,18 @@ sub GetCatalogueData {
         foreach my $field ( $record->field('856') ) {
             if ( $field->subfield('q') && $field->subfield('q') =~ /^cover/ && $field->subfield('u') ) {
                 next if ($field->subfield('n') && $field->subfield('n') =~ /^(Wikipedia|Antolin)$/i );
-                $coverurl = $field->subfield('u');
+                my $val = $field->subfield('u');
+                next if (! $val);
+                next if ( $val =~ /\.ekz\.de/ && !C4::Context->preference('EKZCover') );
+                next if ( $val =~ /\.onleihe\.de/ && !C4::Context->preference(' DivibibEnabled ') );
+                $coverurl = $val;
                 $coverurl =~ s#http:\/\/cover\.ekz\.de#https://cover.ekz.de#;
                 $coverurl =~ s#http:\/\/www\.onleihe\.de#https://www.onleihe.de#;
                 last;
             }
         }
-        
-        my $generic_coverurl = 'https://cover.lmscloud.net/gencover?ti=' . uri_escape_utf8($title) .'&au=' . uri_escape_utf8($author) ;
+            
+        my $generic_coverurl = '/cgi-bin/koha/svc/gencover?title=' . uri_escape_utf8($title) .'&author=' . uri_escape_utf8($author) ;
 
         $item->{'titleblock'} = $titleblock;
         $item->{'coverurl'}   = $coverurl;

@@ -1,0 +1,73 @@
+#!/usr/bin/perl
+
+# Copyright 2022 LMSCloud GmbH
+#
+# This file is part of Koha.
+#
+# Koha is free software; you can redistribute it and/or modify it
+# under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 3 of the License, or
+# (at your option) any later version.
+#
+# Koha is distributed in the hope that it will be useful, but
+# WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with Koha; if not, see <http://www.gnu.org/licenses>.
+
+=head1 DESCRIPTION
+
+Generate text-filled images based on supplied author and title combinations.
+
+=cut
+
+use Modern::Perl;
+
+use CGI qw ( -utf8 );
+
+use C4::Context;
+use C4::Auth;
+use C4::Output;
+use C4::CoverGen qw( render_image );
+
+my $cgi = CGI->new;
+
+my ( $template, $borrowernumber, $cookie ) = get_template_and_user(
+    {
+        template_name   => "svc/covergen.tt",
+        query           => $cgi,
+        type            => "opac",
+        authnotrequired => 1,
+    }
+);
+
+my $first_line = $cgi->param('author');
+my $second_line  = $cgi->param('title');
+
+my $font      = 'DejaVuSans';
+my $font_path = '/usr/share/fonts/truetype/dejavu/';
+my $width     = 400;
+my $height    = 480;
+my $fontsize  = 28;
+my $padding   = 20;
+
+my $generated_cover_image_source = render_image(
+    (
+        first_line      => $first_line,
+        second_line     => $second_line,
+        font            => $font,
+        font_path       => $font_path,
+        width           => $width,
+        height          => $height,
+        fontsize        => $fontsize,
+        padding         => $padding
+    )
+);
+
+$template->param(
+    generated_cover_image_source => $generated_cover_image_source, 
+);
+
+output_with_http_headers $cgi, $cookie, $template->output, 'html';
