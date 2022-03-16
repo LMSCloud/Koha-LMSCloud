@@ -975,7 +975,27 @@ sub updateOPACUserJS {
         my @replace;
         $replace[0] = '$("#availability_facet").hide();';
         $replace[1] = '$("h5#facet-locations").text("Standorte");';
+        $replace[2] = '$(".view a:contains(\'MARC\')").hide();';
         $value = removeLineTrimmed($value,\@replace);
+        
+        $value =~ s/\.holdingst/'#holdingst'/eg;
+        $value =~ s/[\n][ \t]*\$\("\.link-collection-collapse-toggle"\)\.on\([^}]+\}\);[ \t]*//s;
+
+        if ( $origvalue ne $value ) {
+            $dbh->do("UPDATE systempreferences SET value=? WHERE variable=?", undef, $value, $variable);
+            print "Updated value of variable $variable\n";
+        }
+    }
+    
+    $sth = $dbh->prepare("SELECT value,variable FROM systempreferences WHERE variable = 'OPACUserCSS'");
+    $sth->execute;
+    while ( my ($value,$variable) = $sth->fetchrow ) {
+        my $origvalue = $value;
+        
+        $value =~ s/\.navbar-inverse \.navbar-inner/'#header-region .navbar'/esg;
+        $value =~ s/\.navbar-inverse/'.navbar-expanded'/esg;
+        $value =~ s/\.brand/'.navbar-brand'/esg;
+        $value =~ s/\.navbar-inner/'#cart-list-nav'/esg;
 
         if ( $origvalue ne $value ) {
             $dbh->do("UPDATE systempreferences SET value=? WHERE variable=?", undef, $value, $variable);
