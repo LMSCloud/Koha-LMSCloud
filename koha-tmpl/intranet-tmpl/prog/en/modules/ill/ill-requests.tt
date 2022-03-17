@@ -663,8 +663,7 @@
                                     <li class="medium">
                                         <span class="label medium">Request type:</span>
                                         [% type = request.get_type %]
-                                        [% IF type %][% type | html %][% ELSE %]<span>N/A</span>[% END %]
-<!-- XXXWH TODO: for medium/type: adapt to translation solution via new ill-list-table-strings.inc -->
+                                        <span id="Request_type">[% IF type %][% type | html %][% ELSE %]<span>N/A</span>[% END %]</span>
                                     </li>
                                     <li class="cost">
                                         <span class="label cost">Cost:</span>
@@ -909,6 +908,8 @@
         [% ELSIF query_type == 'illview' %]
             // language dependent update of labels etc. for 'Details from Supplier' header line
             updateDetailsFromSupplier();
+            // language dependent update of illrequest.medium type
+            updateRequestType();
         [% END %]
     </script>
 [% END %]

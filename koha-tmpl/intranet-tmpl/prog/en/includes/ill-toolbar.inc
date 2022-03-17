@@ -124,7 +124,7 @@
             if ( requestTypeElement ) {
                 requestTypeText = '[% type | html %]';
                 if ( requestTypeText ) {
-                    requestTypeElement.innerText = requestTypeElement.replace(requestTypeText,mediumTypeToDesignation ('[% type %]', '[% type %]'));
+                    requestTypeElement.innerText = requestTypeElement.innerText.replace(requestTypeText,mediumTypeToDesignation ('[% type %]', '[% type %]'));
                 }
             }
         [% END %]
