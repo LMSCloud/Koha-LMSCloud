@@ -404,3 +404,6 @@ label.hotlink-entry {
 #loginModal .modal-footer, #loginModal .modal-header, #loginModal input,  #loginModal .modal-body {
     font-size: 100%; 
 }
+img {
+    max-width: 100%;
+}
