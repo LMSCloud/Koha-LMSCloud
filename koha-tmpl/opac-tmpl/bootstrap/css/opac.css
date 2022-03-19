@@ -35,6 +35,9 @@ th {
 .mastheadsearch {
     background: #dcdcdc;
 }
+#opac-main-search label {
+    color: unset;
+}
 #opacheader {
     background-color: #ffffff;
 }
@@ -364,6 +367,9 @@ label.hotlink-entry {
     box-shadow: 1px 2px 4px rgb(0 0 0 / 40%);
     margin-bottom: 1em;
 }
+.ui-tabs-panel label.link-page-entry {
+    display: block;
+}
 #user_summary {
     padding: 0.5em;
 }
@@ -396,7 +402,7 @@ label.hotlink-entry {
     max-width: 250px;
 }
 #opac-detail #views {
-   display: none;
+    display: none;
 }
 #opac-user-recommendations #lmscoverflow {
     margin-top: 1rem;
@@ -406,4 +412,10 @@ label.hotlink-entry {
 }
 img {
     max-width: 100%;
+}
+.ui-widget-content a {
+    color: #222;
+}
+.ui-widget-content a, .ui-widget-content a:visited {
+    color: #0076B2;
 }
