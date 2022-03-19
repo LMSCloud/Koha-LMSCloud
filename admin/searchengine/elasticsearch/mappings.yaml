@@ -3393,6 +3393,16 @@ biblios:
         marc_type: marc21
         sort: 1
         suggestible: 1
+      - facet: ''
+        marc_field: 100a_/9-12
+        marc_type: unimarc
+        sort: 1
+        suggestible: 1
+      - facet: ''
+        marc_field: 008_/7-10
+        marc_type: normarc
+        sort: 1
+        suggestible: 1
     type: year
   reading-grade-level:
     label: reading-grade-level
