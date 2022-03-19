@@ -709,7 +709,7 @@ sub _convert_sort_fields {
         popularity  => 'issues',
         relevance   => undef,       # default
         title       => 'title',
-        pubdate     => 'date-of-publication',
+        pubdate     => 'publyear',
     );
     my %sort_order_convert =
       ( qw( desc desc ), qw( dsc desc ), qw( asc asc ), qw( az asc ), qw( za desc ) );
