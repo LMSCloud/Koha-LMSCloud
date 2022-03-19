@@ -1,8 +1,8 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: Koha 21.05\n"
-"POT-Creation-Date: 2022-03-15 20:05+0100\n"
-"PO-Revision-Date: 2022-03-15 20:07+0100\n"
+"POT-Creation-Date: 2022-03-19 22:45+0100\n"
+"PO-Revision-Date: 2022-03-19 22:46+0100\n"
 "Last-Translator: Katrin Fischer <katrin.fischer@bsz-bw.de>\n"
 "Language-Team: \n"
 "Language: de\n"
@@ -14628,6 +14628,12 @@ msgstr ""
 "ctx_ver=Z39.88-2004&rft_val_fmt=info%3Aofi%2Ffmt%3Akev%3Amtx%3Abook&rft.au="
 "%s&rft.btitle=%s&rft.date=%s&rft.tpages=%s&rft.isbn=%s&rft.aucorp=&rft.place="
 "%s&rft.pub=%s&rft.edition=%s&rft.series=%s&rft.genre="
+
+#. %1$s:  generated_cover_image_source
+#: koha-tmpl/opac-tmpl/bootstrap/en/modules/svc/covergen.tt:1
+#, c-format
+msgid "data:image/png;base64,%s"
+msgstr "data:image/png;base64,%s"
 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/ilsdi.tt:742
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/ilsdi.tt:776
