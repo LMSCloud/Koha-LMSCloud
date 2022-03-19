@@ -23924,7 +23924,7 @@ if( CheckVersion( $DBversion ) ) {
     if( $opaccredits ){
         foreach my $lang ( @langs ) {
             # If there is a value in the opaccredits preference, insert it into opac_news
-            $dbh->do("INSERT IGNORE INTO opac_news (branchcode, lang, title, content ) VALUES (NULL, ?, '', ?)", undef, "opaccredits_$lang", $opaccredits);
+            $dbh->do("INSERT IGNORE INTO opac_news (branchcode, lang, title, content ) VALUES (NULL, ?, 'Text für die Fußzeile aller OPAC-Seiten', ?)", undef, "opaccredits_$lang", $opaccredits);
         }
     }
     # Remove the opaccredits system preference
@@ -23990,7 +23990,7 @@ if( CheckVersion( $DBversion ) ) {
     if( $opaclogininstructions ){
         foreach my $lang ( @langs ) {
             # If there is a value in the OpacLoginInstructions preference, insert it into opac_news
-            $dbh->do("INSERT INTO opac_news (branchcode, lang, title, content ) VALUES (NULL, ?, '', ?)", undef, "OpacLoginInstructions_$lang", $opaclogininstructions);
+            $dbh->do("INSERT INTO opac_news (branchcode, lang, title, content ) VALUES (NULL, ?, 'Text für das Login-Formular im OPAC', ?)", undef, "OpacLoginInstructions_$lang", $opaclogininstructions);
         }
     }
     # Remove the OpacLoginInstructions system preference
