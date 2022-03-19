@@ -760,7 +760,7 @@ sub updateQuery {
     
     $query =~ s/(\s+(and|or|not)\s+)/uc($1)/seg;
     $query =~ s/=/:/sg;
-    $query =~ s/(^|\W|\()([a-zA-Z][a-z0-9A-Z-]*)(((\,|%2[Cc])(wrdl|ext|phr|rtrn|ltrn|st-numeric|gt|ge|lt|le|eq|st-date-normalized|st-date|startswithnt|first-in-subfield))*)([:=]|%3[Aa])\s*(["][^"]+["]|&quot;(?!("|&quot;))&quot;|['][^']+[']|[^\s\(\)]+)/$1.replaceModifierList($2,$3,$8)/eg;
+    $query =~ s/(^|\W|\()([a-zA-Z][a-z0-9A-Z-]*)(((\,|%2[Cc])(wrdl|ext|phr|rtrn|ltrn|st-numeric|gt|ge|lt|le|eq|st-date-normalized|st-date|startswithnt|first-in-subfield))*)([:=]|%3[Aa])\s*(["][^"]+["]|&quot;(?:(?!("|&quot;)).)*&quot;|['][^']+[']|[^\s\(\)]+)/$1.replaceModifierList($2,$3,$8)/eg;
     
     # rtrn : right truncation
     # ltrn : left truncation
@@ -795,6 +795,10 @@ sub updateEntryPages {
         my $origvalue = $value;
         my $imageAltAdded = 0;
         ($value,$imageAltAdded) = replaceEntryPageContent($value);
+        
+        if ( $name =~ /^OpacLoginInstructions/i ) {
+            $value =~ s/^(\s*<!--\s*Script deactivate (?:(?!-->).)*-->)?\s*<br\s*\/?>\s*//si;
+        }
     
         if ( $origvalue ne $value ) {
             $dbh->do("UPDATE opac_news SET content=? WHERE idnew=? AND lang=?", undef, $value, $id, $name);
@@ -871,6 +875,8 @@ sub replaceEntryPageContent {
     $value =~ s!(<a\s+href\s*=\s*\'\/cgi-bin\/koha\/opac-search\.pl\?q=)([^\']+)(\')!"$1".updateQuery($2)."$3"!seg;
     $value =~ s!(<a\s+href\s*=\s*\"\/cgi-bin\/koha\/opac-search\.pl\?q=)([^\"]+)(\")!"$1".updateQuery($2)."$3"!seg;
 
+    $value =~ s!(onclick=\"changeVisibility)!"class=\"toggleVisibility\" $1"!seg;
+    
     my $documentTree = getDocumentTree($value);
     my $changes = getElementsByName($documentTree, "img", \&addImageAltAttributeFromLegend);
     $value = getDocumentFromTree($documentTree);
