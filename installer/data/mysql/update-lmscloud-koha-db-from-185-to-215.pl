@@ -875,7 +875,7 @@ sub replaceEntryPageContent {
     $value =~ s!(<a\s+href\s*=\s*\'\/cgi-bin\/koha\/opac-search\.pl\?q=)([^\']+)(\')!"$1".updateQuery($2)."$3"!seg;
     $value =~ s!(<a\s+href\s*=\s*\"\/cgi-bin\/koha\/opac-search\.pl\?q=)([^\"]+)(\")!"$1".updateQuery($2)."$3"!seg;
 
-    $value =~ s!(onclick=\"changeVisibility)!"class=\"toggleVisibility\" $1"!seg;
+    $value =~ s!(onclick=\"(javascript:)?changeVisibility)!"class=\"toggleVisibility\" $1"!seg;
     
     my $documentTree = getDocumentTree($value);
     my $changes = getElementsByName($documentTree, "img", \&addImageAltAttributeFromLegend);
