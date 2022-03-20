@@ -1,8 +1,8 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: Koha 21.05\n"
-"POT-Creation-Date: 2022-03-10 12:16+0100\n"
-"PO-Revision-Date: 2022-01-12 16:38+0100\n"
+"POT-Creation-Date: 2022-03-20 18:33+0100\n"
+"PO-Revision-Date: 2022-03-20 18:35+0100\n"
 "Last-Translator: Katrin Fischer <katrin.fischer@bsz-bw.de>\n"
 "Language-Team: \n"
 "Language: de\n"
@@ -35,12 +35,12 @@ msgstr "!'()*-.0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ_abcdefghijklmnopqrstuvwxyz~"
 #, c-format
 msgid ""
 "!'()*-.0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ_abcdefghijklmnopqrstuvwxyz~&#192;"
-"&#193;&#196;&#200;&#201;&#210;&#211;&#214;&#220;&#223;&#224;&#225;&#228;"
-"&#232;&#233;&#242;&#243;&#246;&#252;"
+"&#193;&#196;&#200;&#201;&#210;&#211;&#214;&#220;&#223;&#224;&#225;&#228;&#232;"
+"&#233;&#242;&#243;&#246;&#252;"
 msgstr ""
 "!'()*-.0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ_abcdefghijklmnopqrstuvwxyz~&#192;"
-"&#193;&#196;&#200;&#201;&#210;&#211;&#214;&#220;&#223;&#224;&#225;&#228;"
-"&#232;&#233;&#242;&#243;&#246;&#252;"
+"&#193;&#196;&#200;&#201;&#210;&#211;&#214;&#220;&#223;&#224;&#225;&#228;&#232;"
+"&#233;&#242;&#243;&#246;&#252;"
 
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slimUtils.xsl:489
 #: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slimUtils.xsl:497
@@ -114,24 +114,24 @@ msgstr "#- Geographisch nicht unterteilt"
 msgid "#- Undefined"
 msgstr "#- Undefiniert"
 
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:163
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:173
 #, c-format
 msgid "#record"
 msgstr "#record"
 
-#. %1$s:  IF ( total ) 
-#. %2$s:  from | html 
-#. %3$s:  to | html 
-#. %4$s:  total | html 
-#. %5$s:  ELSE 
-#. %6$s:  END 
+#. %1$s:  IF ( total )
+#. %2$s:  from | html
+#. %3$s:  to | html
+#. %4$s:  total | html
+#. %5$s:  ELSE
+#. %6$s:  END
 #: koha-tmpl/intranet-tmpl/prog/en/modules/cataloguing/value_builder/marc21_linking_section.tt:56
 #, c-format
 msgid "%sResults %s to %s of %s %sNo results found %s"
 msgstr "%sErgebnisse %s bis %s von %s %sKeine Ergebnisse gefunden %s"
 
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:1146
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:1149
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:1156
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:1159
 #, c-format
 msgid "&amp;biblionumber="
 msgstr "&amp;biblionumber="
@@ -170,14 +170,14 @@ msgstr ""
 "(Eingabe falls exakte Bittiefe bekannt; <br />andernfalls aus Liste wählen)"
 
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:787
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:924
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:934
 #, c-format
 msgid "(index-term-genre"
 msgstr "(index-term-genre"
 
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:728
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:872
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:1107
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:882
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:1108
 #, c-format
 msgid "(su"
 msgstr "(su"
@@ -191,19 +191,19 @@ msgstr ""
 "Codierungsversuch)"
 
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:234
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:316
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:326
 #, c-format
 msgid "+AND+(bib-level:a+OR+bib-level:b)"
 msgstr "+AND+(bib-level:a+OR+bib-level:b)"
 
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:1162
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:1338
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:1348
 #, c-format
 msgid "+AND+au:"
 msgstr "+AND+au:"
 
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:251
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:333
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:343
 #, c-format
 msgid "+NOT+(bib-level:a+OR+bib-level:b)"
 msgstr "+NOT+(bib-level:a+OR+bib-level:b)"
@@ -222,7 +222,7 @@ msgid "--- - Unknown"
 msgstr "--- - Unbekannt"
 
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:187
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:252
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:262
 #, c-format
 msgid ".png"
 msgstr ".png"
@@ -367,15 +367,15 @@ msgstr "/cgi-bin/koha/opac-ISBDdetail.pl?biblionumber="
 msgid "/cgi-bin/koha/opac-MARCdetail.pl?biblionumber="
 msgstr "/cgi-bin/koha/opac-MARCdetail.pl?biblionumber="
 
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:896
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:943
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:2149
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:906
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:953
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:2159
 #, c-format
 msgid "/cgi-bin/koha/opac-authoritiesdetail.pl?authid="
 msgstr "/cgi-bin/koha/opac-authoritiesdetail.pl?authid="
 
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:1491
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:1332
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:1342
 #: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slimUtils.xsl:142
 #: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slimUtils.xsl:151
 #: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slimUtils.xsl:249
@@ -383,119 +383,119 @@ msgstr "/cgi-bin/koha/opac-authoritiesdetail.pl?authid="
 msgid "/cgi-bin/koha/opac-detail.pl?biblionumber="
 msgstr "/cgi-bin/koha/opac-detail.pl?biblionumber="
 
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:289
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:1171
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:299
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:1172
 #, c-format
 msgid "/cgi-bin/koha/opac-search.pl"
 msgstr "/cgi-bin/koha/opac-search.pl"
 
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:869
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:921
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:1104
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:879
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:931
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:1105
 #: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slimUtils.xsl:261
 #, c-format
 msgid "/cgi-bin/koha/opac-search.pl?q="
 msgstr "/cgi-bin/koha/opac-search.pl?q="
 
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:358
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:1327
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:1540
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:1583
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:1628
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:1694
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:1765
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:368
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:1337
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:1550
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:1593
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:1638
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:1704
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:1775
 #, c-format
 msgid "/cgi-bin/koha/opac-search.pl?q=Control-number:"
 msgstr "/cgi-bin/koha/opac-search.pl?q=Control-number:"
 
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:319
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:329
 #, c-format
 msgid "/cgi-bin/koha/opac-search.pl?q=Host-item:("
 msgstr "/cgi-bin/koha/opac-search.pl?q=Host-item:("
 
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:405
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:415
 #: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slimUtils.xsl:337
 #, c-format
 msgid "/cgi-bin/koha/opac-search.pl?q=Provider:"
 msgstr "/cgi-bin/koha/opac-search.pl?q=Provider:"
 
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:865
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:918
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:1101
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:875
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:928
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:1102
 #: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slimUtils.xsl:255
 #, c-format
 msgid "/cgi-bin/koha/opac-search.pl?q=an:"
 msgstr "/cgi-bin/koha/opac-search.pl?q=an:"
 
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:1915
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:1925
 #: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:558
 #, c-format
 msgid "/cgi-bin/koha/opac-search.pl?q=an:\""
 msgstr "/cgi-bin/koha/opac-search.pl?q=an:\""
 
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:1918
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:1928
 #: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:561
 #, c-format
 msgid "/cgi-bin/koha/opac-search.pl?q=au:\""
 msgstr "/cgi-bin/koha/opac-search.pl?q=au:\""
 
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:982
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:1030
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:992
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:1040
 #, c-format
 msgid "/cgi-bin/koha/opac-search.pl?q=control-number:"
 msgstr "/cgi-bin/koha/opac-search.pl?q=control-number:"
 
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:931
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:941
 #, c-format
 msgid "/cgi-bin/koha/opac-search.pl?q=index-term-genre"
 msgstr "/cgi-bin/koha/opac-search.pl?q=index-term-genre"
 
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:830
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:843
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:1160
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:840
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:853
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:1161
 #, c-format
 msgid "/cgi-bin/koha/opac-search.pl?q=katno,st-numeric:"
 msgstr "/cgi-bin/koha/opac-search.pl?q=katno,st-numeric:"
 
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:316
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:333
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:326
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:343
 #, c-format
 msgid "/cgi-bin/koha/opac-search.pl?q=rcn:"
 msgstr "/cgi-bin/koha/opac-search.pl?q=rcn:"
 
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:817
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:1131
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:827
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:1132
 #, c-format
 msgid "/cgi-bin/koha/opac-search.pl?q=sbg"
 msgstr "/cgi-bin/koha/opac-search.pl?q=sbg"
 
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:880
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:1113
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:1141
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:890
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:1114
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:1142
 #, c-format
 msgid "/cgi-bin/koha/opac-search.pl?q=su"
 msgstr "/cgi-bin/koha/opac-search.pl?q=su"
 
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:1058
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:1068
 #, c-format
-msgid "/cgi-bin/koha/opac-search.pl?q=sys,phr,ext:\""
-msgstr "/cgi-bin/koha/opac-search.pl?q=sys,phr,ext:\""
+msgid "/cgi-bin/koha/opac-search.pl?q=sys.phrase:\""
+msgstr "/cgi-bin/koha/opac-search.pl?q=sys.phrase:\""
 
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:336
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:361
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:1035
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:1338
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:1545
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:1588
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:1631
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:1699
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:1770
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:346
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:371
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:1045
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:1348
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:1555
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:1598
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:1641
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:1709
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:1780
 #, c-format
-msgid "/cgi-bin/koha/opac-search.pl?q=ti,phr:"
-msgstr "/cgi-bin/koha/opac-search.pl?q=ti,phr:"
+msgid "/cgi-bin/koha/opac-search.pl?q=ti.phrase:"
+msgstr "/cgi-bin/koha/opac-search.pl?q=ti.phrase:"
 
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:1146
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:1149
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:1156
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:1159
 #, c-format
 msgid "/cgi-bin/koha/tracklinks.pl?uri="
 msgstr "/cgi-bin/koha/tracklinks.pl?uri="
@@ -511,7 +511,7 @@ msgstr "/intranet-tmpl/prog/img/famfamfam/"
 msgid "/intranet-tmpl/prog/img/filefind.png"
 msgstr "/intranet-tmpl/prog/img/filefind.png"
 
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:252
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:262
 #, c-format
 msgid "/opac-tmpl/lib/famfamfam/"
 msgstr "/opac-tmpl/lib/famfamfam/"
@@ -1016,7 +1016,7 @@ msgstr "10-19%%"
 
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:164
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetResults.xsl:357
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:223
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:233
 #: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:544
 #: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACVolume.xsl:106
 #, c-format
@@ -1126,7 +1126,7 @@ msgid "13- Numbered or unnumbered series"
 msgstr "13- Gezählte oder ungezählte Reihen"
 
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:601
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:693
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:703
 #, c-format
 msgid "130,240"
 msgstr "130,240"
@@ -1469,7 +1469,7 @@ msgid "40-49%%"
 msgstr "40-49%%"
 
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:198
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:280
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:290
 #, c-format
 msgid "440,490"
 msgstr "440,490"
@@ -1708,47 +1708,47 @@ msgid "9x9 in. or 23x23 cm. transparency"
 msgstr "Arbeitstransparent 9x9 Zoll oder 23x23 cm"
 
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetResults.xsl:811
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:1055
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:1056
 #, c-format
 msgid "; Audience: "
 msgstr "; Zielgruppe: "
 
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetResults.xsl:531
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:753
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:754
 #, c-format
 msgid "; Format: "
 msgstr "; Format: "
 
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetResults.xsl:657
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetResults.xsl:698
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:901
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:942
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:902
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:943
 #, c-format
 msgid "; Literary form: "
 msgstr "; Literarische Form: "
 
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetResults.xsl:561
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetResults.xsl:647
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:789
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:888
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:790
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:889
 #, c-format
 msgid "; Nature of contents: "
 msgstr "; Inhaltstyp: "
 
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetResults.xsl:635
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:867
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:868
 #, c-format
 msgid "; Type of computer file: "
 msgstr "; Art der Computerdatei: "
 
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetResults.xsl:540
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:762
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:763
 #, c-format
 msgid "; Type of continuing resource: "
 msgstr "; Art des Periodikums: "
 
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetResults.xsl:745
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:989
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:990
 #, c-format
 msgid "; Type of visual material: "
 msgstr "; Art des visuellen Materials: "
@@ -1761,17 +1761,17 @@ msgstr "; Art des visuellen Materials: "
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2MODS32.xsl:1845
 #, c-format
 msgid ""
-"<xsl:call-template name=\"chopPunctuation\"> <xsl:with-param name="
-"\"chopString\"> <xsl:call-template name=\"specialSubfieldSelect\"> <xsl:with-"
-"param name=\"anyCodes\">tfklmorsv</xsl:with-param> <xsl:with-param name="
-"\"axis\">t</xsl:with-param> <xsl:with-param name=\"afterCodes\">dg</xsl:with-"
-"param> </xsl:call-template> </xsl:with-param> </xsl:call-template> "
+"<xsl:call-template name=\"chopPunctuation\"> <xsl:with-param name=\"chopString"
+"\"> <xsl:call-template name=\"specialSubfieldSelect\"> <xsl:with-param name="
+"\"anyCodes\">tfklmorsv</xsl:with-param> <xsl:with-param name=\"axis\">t</xsl:"
+"with-param> <xsl:with-param name=\"afterCodes\">dg</xsl:with-param> </xsl:"
+"call-template> </xsl:with-param> </xsl:call-template> "
 msgstr ""
-"<xsl:call-template name=\"chopPunctuation\"> <xsl:with-param name="
-"\"chopString\"> <xsl:call-template name=\"specialSubfieldSelect\"> <xsl:with-"
-"param name=\"anyCodes\">tfklmorsv</xsl:with-param> <xsl:with-param name="
-"\"axis\">t</xsl:with-param> <xsl:with-param name=\"afterCodes\">dg</xsl:with-"
-"param> </xsl:call-template> </xsl:with-param> </xsl:call-template> "
+"<xsl:call-template name=\"chopPunctuation\"> <xsl:with-param name=\"chopString"
+"\"> <xsl:call-template name=\"specialSubfieldSelect\"> <xsl:with-param name="
+"\"anyCodes\">tfklmorsv</xsl:with-param> <xsl:with-param name=\"axis\">t</xsl:"
+"with-param> <xsl:with-param name=\"afterCodes\">dg</xsl:with-param> </xsl:"
+"call-template> </xsl:with-param> </xsl:call-template> "
 
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2MODS3-1.xsl:1252
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2MODS3-1.xsl:1440
@@ -1781,17 +1781,17 @@ msgstr ""
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2MODS32.xsl:1810
 #, c-format
 msgid ""
-"<xsl:call-template name=\"chopPunctuation\"> <xsl:with-param name="
-"\"chopString\"> <xsl:call-template name=\"specialSubfieldSelect\"> <xsl:with-"
-"param name=\"anyCodes\">tfklmorsv</xsl:with-param> <xsl:with-param name="
-"\"axis\">t</xsl:with-param> <xsl:with-param name=\"afterCodes\">g</xsl:with-"
-"param> </xsl:call-template> </xsl:with-param> </xsl:call-template> "
+"<xsl:call-template name=\"chopPunctuation\"> <xsl:with-param name=\"chopString"
+"\"> <xsl:call-template name=\"specialSubfieldSelect\"> <xsl:with-param name="
+"\"anyCodes\">tfklmorsv</xsl:with-param> <xsl:with-param name=\"axis\">t</xsl:"
+"with-param> <xsl:with-param name=\"afterCodes\">g</xsl:with-param> </xsl:call-"
+"template> </xsl:with-param> </xsl:call-template> "
 msgstr ""
-"<xsl:call-template name=\"chopPunctuation\"> <xsl:with-param name="
-"\"chopString\"> <xsl:call-template name=\"specialSubfieldSelect\"> <xsl:with-"
-"param name=\"anyCodes\">tfklmorsv</xsl:with-param> <xsl:with-param name="
-"\"axis\">t</xsl:with-param> <xsl:with-param name=\"afterCodes\">g</xsl:with-"
-"param> </xsl:call-template> </xsl:with-param> </xsl:call-template> "
+"<xsl:call-template name=\"chopPunctuation\"> <xsl:with-param name=\"chopString"
+"\"> <xsl:call-template name=\"specialSubfieldSelect\"> <xsl:with-param name="
+"\"anyCodes\">tfklmorsv</xsl:with-param> <xsl:with-param name=\"axis\">t</xsl:"
+"with-param> <xsl:with-param name=\"afterCodes\">g</xsl:with-param> </xsl:call-"
+"template> </xsl:with-param> </xsl:call-template> "
 
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2MODS3-1.xsl:1331
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2MODS3-1.xsl:1514
@@ -1801,32 +1801,32 @@ msgstr ""
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2MODS32.xsl:1884
 #, c-format
 msgid ""
-"<xsl:call-template name=\"chopPunctuation\"> <xsl:with-param name="
-"\"chopString\"> <xsl:call-template name=\"specialSubfieldSelect\"> <xsl:with-"
-"param name=\"anyCodes\">tfklsv</xsl:with-param> <xsl:with-param name=\"axis"
-"\">t</xsl:with-param> <xsl:with-param name=\"afterCodes\">g</xsl:with-param> "
-"</xsl:call-template> </xsl:with-param> </xsl:call-template> "
+"<xsl:call-template name=\"chopPunctuation\"> <xsl:with-param name=\"chopString"
+"\"> <xsl:call-template name=\"specialSubfieldSelect\"> <xsl:with-param name="
+"\"anyCodes\">tfklsv</xsl:with-param> <xsl:with-param name=\"axis\">t</xsl:"
+"with-param> <xsl:with-param name=\"afterCodes\">g</xsl:with-param> </xsl:call-"
+"template> </xsl:with-param> </xsl:call-template> "
 msgstr ""
-"<xsl:call-template name=\"chopPunctuation\"> <xsl:with-param name="
-"\"chopString\"> <xsl:call-template name=\"specialSubfieldSelect\"> <xsl:with-"
-"param name=\"anyCodes\">tfklsv</xsl:with-param> <xsl:with-param name=\"axis"
-"\">t</xsl:with-param> <xsl:with-param name=\"afterCodes\">g</xsl:with-param> "
-"</xsl:call-template> </xsl:with-param> </xsl:call-template> "
+"<xsl:call-template name=\"chopPunctuation\"> <xsl:with-param name=\"chopString"
+"\"> <xsl:call-template name=\"specialSubfieldSelect\"> <xsl:with-param name="
+"\"anyCodes\">tfklsv</xsl:with-param> <xsl:with-param name=\"axis\">t</xsl:"
+"with-param> <xsl:with-param name=\"afterCodes\">g</xsl:with-param> </xsl:call-"
+"template> </xsl:with-param> </xsl:call-template> "
 
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2MODS3-1.xsl:132
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2MODS3.xsl:129
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2MODS32.xsl:137
 #, c-format
 msgid ""
-"<xsl:call-template name=\"chopPunctuation\"> <xsl:with-param name="
-"\"chopString\"> <xsl:call-template name=\"subfieldSelect\"> <xsl:with-param "
-"name=\"codes\">a</xsl:with-param> </xsl:call-template> </xsl:with-param> </"
-"xsl:call-template> "
+"<xsl:call-template name=\"chopPunctuation\"> <xsl:with-param name=\"chopString"
+"\"> <xsl:call-template name=\"subfieldSelect\"> <xsl:with-param name=\"codes"
+"\">a</xsl:with-param> </xsl:call-template> </xsl:with-param> </xsl:call-"
+"template> "
 msgstr ""
-"<xsl:call-template name=\"chopPunctuation\"> <xsl:with-param name="
-"\"chopString\"> <xsl:call-template name=\"subfieldSelect\"> <xsl:with-param "
-"name=\"codes\">a</xsl:with-param> </xsl:call-template> </xsl:with-param> </"
-"xsl:call-template> "
+"<xsl:call-template name=\"chopPunctuation\"> <xsl:with-param name=\"chopString"
+"\"> <xsl:call-template name=\"subfieldSelect\"> <xsl:with-param name=\"codes"
+"\">a</xsl:with-param> </xsl:call-template> </xsl:with-param> </xsl:call-"
+"template> "
 
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2MODS3-1.xsl:1361
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2MODS3-1.xsl:1543
@@ -1836,59 +1836,57 @@ msgstr ""
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2MODS32.xsl:1913
 #, c-format
 msgid ""
-"<xsl:call-template name=\"chopPunctuation\"> <xsl:with-param name="
-"\"chopString\"> <xsl:call-template name=\"subfieldSelect\"> <xsl:with-param "
-"name=\"codes\">adfgklmorsv</xsl:with-param> </xsl:call-template> </xsl:with-"
-"param> </xsl:call-template> "
+"<xsl:call-template name=\"chopPunctuation\"> <xsl:with-param name=\"chopString"
+"\"> <xsl:call-template name=\"subfieldSelect\"> <xsl:with-param name=\"codes"
+"\">adfgklmorsv</xsl:with-param> </xsl:call-template> </xsl:with-param> </xsl:"
+"call-template> "
 msgstr ""
-"<xsl:call-template name=\"chopPunctuation\"> <xsl:with-param name="
-"\"chopString\"> <xsl:call-template name=\"subfieldSelect\"> <xsl:with-param "
-"name=\"codes\">adfgklmorsv</xsl:with-param> </xsl:call-template> </xsl:with-"
-"param> </xsl:call-template> "
+"<xsl:call-template name=\"chopPunctuation\"> <xsl:with-param name=\"chopString"
+"\"> <xsl:call-template name=\"subfieldSelect\"> <xsl:with-param name=\"codes"
+"\">adfgklmorsv</xsl:with-param> </xsl:call-template> </xsl:with-param> </xsl:"
+"call-template> "
 
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2MODS3-1.xsl:2193
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2MODS3.xsl:2420
 #, c-format
 msgid ""
-"<xsl:call-template name=\"chopPunctuation\"> <xsl:with-param name="
-"\"chopString\"> <xsl:call-template name=\"subfieldSelect\"> <xsl:with-param "
-"name=\"codes\">adfhklor</xsl:with-param> </xsl:call-template> </xsl:with-"
-"param> </xsl:call-template> <xsl:call-template name=\"part\"/> "
+"<xsl:call-template name=\"chopPunctuation\"> <xsl:with-param name=\"chopString"
+"\"> <xsl:call-template name=\"subfieldSelect\"> <xsl:with-param name=\"codes"
+"\">adfhklor</xsl:with-param> </xsl:call-template> </xsl:with-param> </xsl:"
+"call-template> <xsl:call-template name=\"part\"/> "
 msgstr ""
-"<xsl:call-template name=\"chopPunctuation\"> <xsl:with-param name="
-"\"chopString\"> <xsl:call-template name=\"subfieldSelect\"> <xsl:with-param "
-"name=\"codes\">adfhklor</xsl:with-param> </xsl:call-template> </xsl:with-"
-"param> </xsl:call-template> <xsl:call-template name=\"part\"/> "
+"<xsl:call-template name=\"chopPunctuation\"> <xsl:with-param name=\"chopString"
+"\"> <xsl:call-template name=\"subfieldSelect\"> <xsl:with-param name=\"codes"
+"\">adfhklor</xsl:with-param> </xsl:call-template> </xsl:with-param> </xsl:"
+"call-template> <xsl:call-template name=\"part\"/> "
 
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2MODS32.xsl:2643
 #, c-format
 msgid ""
-"<xsl:call-template name=\"chopPunctuation\"> <xsl:with-param name="
-"\"chopString\"> <xsl:call-template name=\"subfieldSelect\"> <xsl:with-param "
-"name=\"codes\">adfhklor</xsl:with-param> </xsl:call-template> </xsl:with-"
-"param> </xsl:call-template> <xsl:call-template name=\"part\"></xsl:call-"
-"template> "
+"<xsl:call-template name=\"chopPunctuation\"> <xsl:with-param name=\"chopString"
+"\"> <xsl:call-template name=\"subfieldSelect\"> <xsl:with-param name=\"codes"
+"\">adfhklor</xsl:with-param> </xsl:call-template> </xsl:with-param> </xsl:"
+"call-template> <xsl:call-template name=\"part\"></xsl:call-template> "
 msgstr ""
-"<xsl:call-template name=\"chopPunctuation\"> <xsl:with-param name="
-"\"chopString\"> <xsl:call-template name=\"subfieldSelect\"> <xsl:with-param "
-"name=\"codes\">adfhklor</xsl:with-param> </xsl:call-template> </xsl:with-"
-"param> </xsl:call-template> <xsl:call-template name=\"part\"></xsl:call-"
-"template> "
+"<xsl:call-template name=\"chopPunctuation\"> <xsl:with-param name=\"chopString"
+"\"> <xsl:call-template name=\"subfieldSelect\"> <xsl:with-param name=\"codes"
+"\">adfhklor</xsl:with-param> </xsl:call-template> </xsl:with-param> </xsl:"
+"call-template> <xsl:call-template name=\"part\"></xsl:call-template> "
 
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2MODS3-1.xsl:206
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2MODS3.xsl:216
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2MODS32.xsl:215
 #, c-format
 msgid ""
-"<xsl:call-template name=\"chopPunctuation\"> <xsl:with-param name="
-"\"chopString\"> <xsl:call-template name=\"subfieldSelect\"> <xsl:with-param "
-"name=\"codes\">ah</xsl:with-param> </xsl:call-template> </xsl:with-param> </"
-"xsl:call-template> "
+"<xsl:call-template name=\"chopPunctuation\"> <xsl:with-param name=\"chopString"
+"\"> <xsl:call-template name=\"subfieldSelect\"> <xsl:with-param name=\"codes"
+"\">ah</xsl:with-param> </xsl:call-template> </xsl:with-param> </xsl:call-"
+"template> "
 msgstr ""
-"<xsl:call-template name=\"chopPunctuation\"> <xsl:with-param name="
-"\"chopString\"> <xsl:call-template name=\"subfieldSelect\"> <xsl:with-param "
-"name=\"codes\">ah</xsl:with-param> </xsl:call-template> </xsl:with-param> </"
-"xsl:call-template> "
+"<xsl:call-template name=\"chopPunctuation\"> <xsl:with-param name=\"chopString"
+"\"> <xsl:call-template name=\"subfieldSelect\"> <xsl:with-param name=\"codes"
+"\">ah</xsl:with-param> </xsl:call-template> </xsl:with-param> </xsl:call-"
+"template> "
 
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2MODS3-1.xsl:1183
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2MODS3-1.xsl:1199
@@ -1898,15 +1896,15 @@ msgstr ""
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2MODS32.xsl:1569
 #, c-format
 msgid ""
-"<xsl:call-template name=\"chopPunctuation\"> <xsl:with-param name="
-"\"chopString\"> <xsl:call-template name=\"subfieldSelect\"> <xsl:with-param "
-"name=\"codes\">av</xsl:with-param> </xsl:call-template> </xsl:with-param> </"
-"xsl:call-template> "
+"<xsl:call-template name=\"chopPunctuation\"> <xsl:with-param name=\"chopString"
+"\"> <xsl:call-template name=\"subfieldSelect\"> <xsl:with-param name=\"codes"
+"\">av</xsl:with-param> </xsl:call-template> </xsl:with-param> </xsl:call-"
+"template> "
 msgstr ""
-"<xsl:call-template name=\"chopPunctuation\"> <xsl:with-param name="
-"\"chopString\"> <xsl:call-template name=\"subfieldSelect\"> <xsl:with-param "
-"name=\"codes\">av</xsl:with-param> </xsl:call-template> </xsl:with-param> </"
-"xsl:call-template> "
+"<xsl:call-template name=\"chopPunctuation\"> <xsl:with-param name=\"chopString"
+"\"> <xsl:call-template name=\"subfieldSelect\"> <xsl:with-param name=\"codes"
+"\">av</xsl:with-param> </xsl:call-template> </xsl:with-param> </xsl:call-"
+"template> "
 
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2MODS.xsl:1031
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2MODS.xsl:1216
@@ -1928,13 +1926,13 @@ msgstr ""
 msgid ""
 "<xsl:call-template name=\"specialSubfieldSelect\"> <xsl:with-param name="
 "\"anyCodes\">tfklmorsv</xsl:with-param> <xsl:with-param name=\"axis\">t</xsl:"
-"with-param> <xsl:with-param name=\"afterCodes\">g</xsl:with-param> </xsl:"
-"call-template> "
+"with-param> <xsl:with-param name=\"afterCodes\">g</xsl:with-param> </xsl:call-"
+"template> "
 msgstr ""
 "<xsl:call-template name=\"specialSubfieldSelect\"> <xsl:with-param name="
 "\"anyCodes\">tfklmorsv</xsl:with-param> <xsl:with-param name=\"axis\">t</xsl:"
-"with-param> <xsl:with-param name=\"afterCodes\">g</xsl:with-param> </xsl:"
-"call-template> "
+"with-param> <xsl:with-param name=\"afterCodes\">g</xsl:with-param> </xsl:call-"
+"template> "
 
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2MODS.xsl:1078
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2MODS.xsl:1256
@@ -1942,13 +1940,13 @@ msgstr ""
 msgid ""
 "<xsl:call-template name=\"specialSubfieldSelect\"> <xsl:with-param name="
 "\"anyCodes\">tfklsv</xsl:with-param> <xsl:with-param name=\"axis\">t</xsl:"
-"with-param> <xsl:with-param name=\"afterCodes\">g</xsl:with-param> </xsl:"
-"call-template> "
+"with-param> <xsl:with-param name=\"afterCodes\">g</xsl:with-param> </xsl:call-"
+"template> "
 msgstr ""
 "<xsl:call-template name=\"specialSubfieldSelect\"> <xsl:with-param name="
 "\"anyCodes\">tfklsv</xsl:with-param> <xsl:with-param name=\"axis\">t</xsl:"
-"with-param> <xsl:with-param name=\"afterCodes\">g</xsl:with-param> </xsl:"
-"call-template> "
+"with-param> <xsl:with-param name=\"afterCodes\">g</xsl:with-param> </xsl:call-"
+"template> "
 
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2MODS.xsl:69
 #, c-format
@@ -2083,23 +2081,23 @@ msgstr "?q=se,phr:\""
 #: koha-tmpl/intranet-tmpl/prog/en/data/marc21_field_008.xml:1381
 #: koha-tmpl/intranet-tmpl/prog/en/data/marc21_field_008.xml:1395
 #, c-format
-msgid ""
-"A date specified by the code in 008/06 (Type of date/Publication status)"
+msgid "A date specified by the code in 008/06 (Type of date/Publication status)"
 msgstr ""
 "Ein Datum spezifiziert durch den Code in 008/006 (Art der Datumsangaben/"
 "Veröffentlichungsstatus)"
 
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:727
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:786
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:871
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:923
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:1106
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:881
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:933
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:1107
 #, c-format
 msgid "AND "
 msgstr "AND "
 
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:57
 #: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:65
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:72
 #, c-format
 msgid "AR"
 msgstr "AR"
@@ -2116,25 +2114,25 @@ msgid "Absent"
 msgstr "Fehlend"
 
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:1441
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:1733
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:1743
 #, c-format
 msgid "Absorbed by:"
 msgstr "Aufgegangen in:"
 
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:1444
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:1736
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:1746
 #, c-format
 msgid "Absorbed in part by:"
 msgstr "Teilweise aufgegangen in:"
 
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:1380
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:1671
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:1681
 #, c-format
 msgid "Absorbed in part:"
 msgstr "Teilweise darin aufgegangen:"
 
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:1377
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:1668
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:1678
 #, c-format
 msgid "Absorbed:"
 msgstr "Darin aufgegangen:"
@@ -2192,7 +2190,7 @@ msgid "Acoustical capture, direct storage"
 msgstr "Akustische Aufnahme, direkte Speicherung"
 
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:1107
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:1257
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:1267
 #, c-format
 msgid "Action note: "
 msgstr "Bearbeitungsvermerk: "
@@ -2214,7 +2212,7 @@ msgid "Adangme"
 msgstr "Adangme"
 
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:824
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:957
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:967
 #, c-format
 msgid "Additional physical formats: "
 msgstr "Andere physische Formen: "
@@ -2232,7 +2230,7 @@ msgid "Adolescent"
 msgstr "Kind (13-17 Jahre)"
 
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetResults.xsl:822
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:1066
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:1067
 #, c-format
 msgid "Adolescent; "
 msgstr "Kind (13-17 Jahre); "
@@ -2250,7 +2248,7 @@ msgid "Adult"
 msgstr "Erwachsener"
 
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetResults.xsl:825
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:1069
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:1070
 #, c-format
 msgid "Adult; "
 msgstr "Erwachsener; "
@@ -2398,7 +2396,7 @@ msgid "Analog electrical storage"
 msgstr "Analoge elektrische Speicherung"
 
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:230
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:312
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:322
 #, c-format
 msgid "Analytics: "
 msgstr "Aufsätze: "
@@ -2538,7 +2536,7 @@ msgstr "Kunst-Reproduktion"
 
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:84
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetResults.xsl:511
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:93
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:103
 #: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:725
 #, c-format
 msgid "Article"
@@ -2580,12 +2578,12 @@ msgid "Attitude of sensor"
 msgstr "Einstellung des Sensors"
 
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:426
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:529
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:539
 #, c-format
 msgid "Audience: "
 msgstr "Zielgruppe: "
 
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:1847
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:1857
 #, c-format
 msgid "Audio file"
 msgstr "Audio-Datei"
@@ -2624,7 +2622,7 @@ msgstr "Autobiographie"
 msgid "Autonomous or semi-autonomous component"
 msgstr "Autonome oder teilautonome Einheit"
 
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:1439
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:1442
 #: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACVolume.xsl:250
 #, c-format
 msgid "Availability: "
@@ -2649,7 +2647,7 @@ msgid "Awadhi"
 msgstr "Awadhi"
 
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:1082
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:1291
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:1301
 #, c-format
 msgid "Awards: "
 msgstr "Auszeichnungen: "
@@ -3037,7 +3035,7 @@ msgstr "Blues"
 msgid "Bonne"
 msgstr "Gut"
 
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:113
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:123
 #, c-format
 msgid "Book"
 msgstr "Buch"
@@ -3155,7 +3153,7 @@ msgid "Butterfly"
 msgstr "Schmetterling"
 
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:1554
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:1898
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:1908
 #, c-format
 msgid "By: "
 msgstr "Von: "
@@ -3176,7 +3174,7 @@ msgstr "CED (Capacitance Electronic Disc) Bildplatte"
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2MODS32.xsl:74
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:62
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetResults.xsl:48
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:70
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:78
 #: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:82
 #, c-format
 msgid "CF"
@@ -3218,12 +3216,12 @@ msgstr "Kalender"
 msgid "Calendars"
 msgstr "Kalender"
 
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:1471
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:1493
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:1513
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:1551
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:1660
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:1678
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:1474
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:1496
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:1516
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:1554
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:1663
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:1681
 #: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACVolume.xsl:275
 #: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACVolume.xsl:292
 #: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACVolume.xsl:307
@@ -3297,7 +3295,7 @@ msgid "Carols"
 msgstr "Weihnachtslieder"
 
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:411
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:514
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:524
 #, c-format
 msgid "Carrier type: "
 msgstr "Datenträgertyp: "
@@ -3313,7 +3311,7 @@ msgstr "Kartografisches Material"
 msgid "Cassini-Soldner"
 msgstr "Cassini-Soldner"
 
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:1365
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:1375
 #, c-format
 msgid "Cast: "
 msgstr "Besetzung: "
@@ -3438,7 +3436,7 @@ msgid "Chance compositions"
 msgstr "Aleatorische Musik"
 
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:1453
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:1745
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:1755
 #, c-format
 msgid "Changed back to:"
 msgstr "Fortsetzung:"
@@ -3483,7 +3481,7 @@ msgstr "Diagrammw, graph. Darstellungen"
 msgid "Chechen"
 msgstr "Tschetschenisch"
 
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:1582
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:1585
 #: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACVolume.xsl:358
 #, c-format
 msgid "Checked out ("
@@ -3591,7 +3589,7 @@ msgstr "Tschuwaschisch"
 msgid "Class of braille writing"
 msgstr "Gattung der Brailleschrift"
 
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:1053
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:1063
 #, c-format
 msgid "Classification: "
 msgstr "Systematik: "
@@ -3603,7 +3601,7 @@ msgstr "Feld löschen"
 
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:1028
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetResults.xsl:1054
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:1186
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:1196
 #, c-format
 msgid "Click here to access online"
 msgstr "Online-Zugang"
@@ -3638,7 +3636,7 @@ msgstr "Wappen"
 msgid "Collage"
 msgstr "Kollage"
 
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:1645
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:1648
 #, c-format
 msgid "Collection(s): "
 msgstr "Sammlung(en): "
@@ -3785,8 +3783,8 @@ msgstr "Computer Disc, nicht näher spezifiziert"
 
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:90
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetResults.xsl:517
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:99
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:738
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:109
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:739
 #, c-format
 msgid "Computer file"
 msgstr "Computerdatei"
@@ -3813,8 +3811,8 @@ msgid ""
 "Computer-generated, six-character numeric string that indicates the date the "
 "MARC record was created. Recorded in the pattern yymmdd."
 msgstr ""
-"Computer-generierter, sechstelliger Zeichencode, der das Datum angibt, an "
-"dem der Datensatz erstellt wurde. Das Format ist JJMMTT."
+"Computer-generierter, sechstelliger Zeichencode, der das Datum angibt, an dem "
+"der Datensatz erstellt wurde. Das Format ist JJMMTT."
 
 #: koha-tmpl/intranet-tmpl/prog/en/data/marc21_field_006.xml:346
 #: koha-tmpl/intranet-tmpl/prog/en/data/marc21_field_008.xml:759
@@ -3904,7 +3902,7 @@ msgid "Conic, specific type unknown"
 msgstr "Konisch, nicht spezifiziert"
 
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:674
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:770
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:780
 #, c-format
 msgid "Contained works: "
 msgstr "Enthaltene Werke: "
@@ -3945,37 +3943,37 @@ msgid "Contains blank (#) or a fill character (|)."
 msgstr "Enthält ein Leer- (#) oder Füllzeichen (|)."
 
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:387
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:490
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:500
 #, c-format
 msgid "Content type: "
 msgstr "Inhaltstyp: "
 
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:1048
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:1230
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:1240
 #, c-format
 msgid "Contents:"
 msgstr "Inhalte:"
 
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:1429
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:1721
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:1731
 #, c-format
 msgid "Continued by:"
 msgstr "Fortsetzung:"
 
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:1432
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:1724
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:1734
 #, c-format
 msgid "Continued in part by:"
 msgstr "Teilweise Fortsetzung:"
 
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:1365
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:1656
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:1666
 #, c-format
 msgid "Continues in part:"
 msgstr "Vorgänger teilweise:"
 
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:1362
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:1653
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:1663
 #, c-format
 msgid "Continues:"
 msgstr "Vorgänger:"
@@ -3988,7 +3986,7 @@ msgstr "Periodikum"
 
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:80
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetResults.xsl:510
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:89
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:99
 #: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:724
 #, c-format
 msgid "Continuing resource"
@@ -4045,7 +4043,7 @@ msgid "Contracted"
 msgstr "Braillekurzschrift"
 
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:1556
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:1900
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:1910
 #, c-format
 msgid "Contributor(s): "
 msgstr "Mitwirkende(r): "
@@ -4112,7 +4110,7 @@ msgstr "Korsisch"
 msgid "Country music"
 msgstr "Country-Musik"
 
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:116
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:126
 #, c-format
 msgid "CreativeWork"
 msgstr "CreativeWork"
@@ -4214,7 +4212,7 @@ msgid "D-2 (3/4 in., videocassette)"
 msgstr "D-2 (0,75 Zoll, Videokassette)"
 
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:934
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:1078
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:1088
 #, c-format
 msgid "DDC classification: "
 msgstr "DDC-Klassifikation: "
@@ -4236,7 +4234,7 @@ msgstr "Täglich"
 msgid "Dakota"
 msgstr "Dakota"
 
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:1603
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:1606
 #: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACVolume.xsl:379
 #, c-format
 msgid "Damaged ("
@@ -4526,8 +4524,8 @@ msgstr "Delaware"
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:364
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:369
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetResults.xsl:922
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:464
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:469
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:474
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:479
 #, c-format
 msgid "Description: "
 msgstr "Beschreibung: "
@@ -4567,11 +4565,11 @@ msgstr "Diagramm"
 #: koha-tmpl/intranet-tmpl/prog/en/data/marc21_field_007.xml:988
 #, c-format
 msgid ""
-"Diameter of an open reel or disc, or the dimensions of a cassette, "
-"cartridge, or cylinder."
+"Diameter of an open reel or disc, or the dimensions of a cassette, cartridge, "
+"or cylinder."
 msgstr ""
-"Durchmesser einer Spule oder Platte, oder die Dimensionen einer Kassette "
-"oder eines Zylinders."
+"Durchmesser einer Spule oder Platte, oder die Dimensionen einer Kassette oder "
+"eines Zylinders."
 
 #: koha-tmpl/intranet-tmpl/prog/en/data/marc21_field_007.xml:489
 #, c-format
@@ -4716,8 +4714,8 @@ msgstr "Diskographie"
 
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:1182
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetResults.xsl:911
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:1375
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:1255
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:1385
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:1256
 #, c-format
 msgid "Dissertation note: "
 msgstr "Hochschulschriftenvermerk: "
@@ -4786,7 +4784,7 @@ msgid "Dramas"
 msgstr "Dramen"
 
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetResults.xsl:666
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:910
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:911
 #, c-format
 msgid "Dramas "
 msgstr "Dramen "
@@ -4844,8 +4842,8 @@ msgstr "Dzongkha"
 
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:465
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:468
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:561
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:564
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:571
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:574
 #, c-format
 msgid "EAN: "
 msgstr "EAN: "
@@ -4881,8 +4879,8 @@ msgstr "Eckert"
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:339
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:344
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetResults.xsl:940
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:437
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:442
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:447
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:452
 #, c-format
 msgid "Edition: "
 msgstr "Auflage: "
@@ -5047,7 +5045,7 @@ msgid "Essays"
 msgstr "Essays"
 
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetResults.xsl:669
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:913
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:914
 #, c-format
 msgid "Essays "
 msgstr "Essays "
@@ -5096,9 +5094,9 @@ msgstr "Genaue Bittiefe 001-999"
 #, c-format
 msgid ""
 "Exact bit depth of the scanned image(s) that comprise the electronic "
-"resource, or a three-character alphabetic code which indicates that the "
-"exact bit depth cannot be recorded. Since only exact bit depth is useful, "
-"coding should not include missing digits represented by hyphens (-)."
+"resource, or a three-character alphabetic code which indicates that the exact "
+"bit depth cannot be recorded. Since only exact bit depth is useful, coding "
+"should not include missing digits represented by hyphens (-)."
 msgstr ""
 "Genaue Bittiefe von Bild-Scans einer elektronischen Ressource, oder ein "
 "dreistelliger alphabetischer Code wenn die Bittiefe nicht erfasst werden "
@@ -5130,19 +5128,19 @@ msgstr "Faksimile"
 #, c-format
 msgid ""
 "Family of braille to which the item belongs. This is not the particular "
-"braille code, but the type of braille code used, representing different "
-"types of written symbols. Up to two braille types may be indicated, or the "
+"braille code, but the type of braille code used, representing different types "
+"of written symbols. Up to two braille types may be indicated, or the "
 "cataloging agency can choose to encode only the predominate type. Multiple "
-"codes are coded in order of predominance, if any. If fewer than two codes "
-"are assigned, the codes are left justified and unused positions contain "
-"blanks (#)."
+"codes are coded in order of predominance, if any. If fewer than two codes are "
+"assigned, the codes are left justified and unused positions contain blanks "
+"(#)."
 msgstr ""
 "Gattung der Braille-Schrift des Exemplars. Dies ist nicht eine bestimmte "
 "Braille-Schrift, sondern der Typ des verwendeten Braille-Codes, der die "
 "unterschiedlichen Typen der geschriebenen Symbole repräsentiert. Es können "
 "bis zu zwei Typen angegeben werden. Die Katalogisierungsstelle kann "
-"entscheiden nur den vorherrschenden Typ anzugeben. Es können mehrere Codes "
-"in der Reihenfolge ihrer Dominanz angegeben werden. Werden weniger als zwei "
+"entscheiden nur den vorherrschenden Typ anzugeben. Es können mehrere Codes in "
+"der Reihenfolge ihrer Dominanz angegeben werden. Werden weniger als zwei "
 "Codes zugewiesen, werden die Codes linksbündig angeordnet und ungenutzte "
 "Positonen enthalten ein Leerzeichen (#)."
 
@@ -5209,7 +5207,7 @@ msgid "Fiction"
 msgstr "Belletristik"
 
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetResults.xsl:663
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:907
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:908
 #, c-format
 msgid "Fiction "
 msgstr "Belletristik "
@@ -5239,8 +5237,7 @@ msgstr "Die Datei wurde von einer elektronischen Ressource reproduziert"
 #: koha-tmpl/intranet-tmpl/prog/en/data/marc21_field_007.xml:158
 #, c-format
 msgid "File reproduced from an intermediate (not microform)"
-msgstr ""
-"Die Datei wurde von einem Zwischenmedium reproduziert (keine Mikroform)"
+msgstr "Die Datei wurde von einem Zwischenmedium reproduziert (keine Mikroform)"
 
 #: koha-tmpl/intranet-tmpl/prog/en/data/marc21_field_007.xml:156
 #, c-format
@@ -5260,8 +5257,8 @@ msgstr "Filipinisch"
 
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:92
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetResults.xsl:519
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:101
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:742
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:111
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:743
 #: koha-tmpl/intranet-tmpl/prog/en/data/marc21_field_007.xml:66
 #, c-format
 msgid "Film"
@@ -5413,8 +5410,8 @@ msgid ""
 "the sensor is involved in the creation of the transmission it eventually "
 "measures."
 msgstr ""
-"Für den Aufnahmemodus des Fernaufnahmegerätes, insbesondere die Angabe ob "
-"der Sensor in die Erzeugung der Übermittlung der Messungen einbezogen ist."
+"Für den Aufnahmemodus des Fernaufnahmegerätes, insbesondere die Angabe ob der "
+"Sensor in die Erzeugung der Übermittlung der Messungen einbezogen ist."
 
 #: koha-tmpl/intranet-tmpl/prog/en/data/marc21_field_006.xml:209
 #: koha-tmpl/intranet-tmpl/prog/en/data/marc21_field_008.xml:552
@@ -5475,7 +5472,7 @@ msgid "Format of music"
 msgstr "Musikformat"
 
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:1374
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:1665
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:1675
 #, c-format
 msgid "Formed by the union: ... and: ..."
 msgstr "Vorgänger ... und ...:"
@@ -5632,8 +5629,7 @@ msgstr "Allgemein"
 
 #: koha-tmpl/intranet-tmpl/prog/en/data/marc21_field_007.xml:830
 #, c-format
-msgid ""
-"General angle of the device from which the remote-sensing image is made."
+msgid "General angle of the device from which the remote-sensing image is made."
 msgstr "Allgemeiner Aufnahmewinkel des Fernerkundungsbiledes."
 
 #: koha-tmpl/intranet-tmpl/prog/en/data/marc21_field_007.xml:821
@@ -5648,7 +5644,7 @@ msgid "General vertical near-sided"
 msgstr "General vertical near-sided"
 
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetResults.xsl:828
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:1072
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:1073
 #, c-format
 msgid "General; "
 msgstr "Allgemein; "
@@ -5665,7 +5661,7 @@ msgid "Generation aspect of a microform. "
 msgstr "Erstellungsansicht einer Mikroform. "
 
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:776
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:913
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:923
 #, c-format
 msgid "Genre/Form: "
 msgstr "Genre/Form: "
@@ -6020,7 +6016,7 @@ msgid "Hmong"
 msgstr "Hmong"
 
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:1194
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:1485
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:1495
 #, c-format
 msgid "Holdings: "
 msgstr "Bestand: "
@@ -6046,8 +6042,8 @@ msgid ""
 "such re-releases may have been enhanced using another technique."
 msgstr ""
 "Ursprüngliche Aufnahme und Speicherung des Tons. Neuausgaben von Aufnahmen "
-"sollten mit den Originalangaben codiert werden, auch wenn sie unterdessen "
-"mit einer anderen Technik verbessert worden sein sollten."
+"sollten mit den Originalangaben codiert werden, auch wenn sie unterdessen mit "
+"einer anderen Technik verbessert worden sein sollten."
 
 #: koha-tmpl/intranet-tmpl/prog/en/data/marc21_field_006.xml:122
 #: koha-tmpl/intranet-tmpl/prog/en/data/marc21_field_008.xml:320
@@ -6056,7 +6052,7 @@ msgid "Humor, satires, etc."
 msgstr "Humor, Satiren, usw."
 
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetResults.xsl:675
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:919
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:920
 #, c-format
 msgid "Humor, satires, etc. "
 msgstr "Humor, Satiren, usw. "
@@ -6080,25 +6076,25 @@ msgid "Hymns"
 msgstr "Hymnen"
 
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slimUtils.xsl:327
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:577
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:587
 #, c-format
 msgid "ISBN: "
 msgstr "ISBN: "
 
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:464
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:560
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:570
 #, c-format
 msgid "ISMN: "
 msgstr "ISMN:"
 
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:462
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:558
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:568
 #, c-format
 msgid "ISRC: "
 msgstr "ISRC: "
 
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slimUtils.xsl:333
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:589
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:599
 #, c-format
 msgid "ISSN: "
 msgstr "ISSN: "
@@ -6194,14 +6190,14 @@ msgstr "Icon"
 msgid "Imbibition dye transfer prints"
 msgstr "Farbgetränkte Trägerdrucke"
 
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:1617
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:1620
 #: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACVolume.xsl:393
 #, c-format
 msgid "In transit ("
 msgstr "Unterwegs ("
 
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:1130
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:1306
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:1316
 #, c-format
 msgid "In: "
 msgstr "In: "
@@ -6229,7 +6225,7 @@ msgid "Incomplete"
 msgstr "Unvollständig"
 
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:1051
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:1224
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:1234
 #, c-format
 msgid "Incomplete contents:"
 msgstr "Unvollständige Inhalte:"
@@ -6264,7 +6260,7 @@ msgid "Indexes"
 msgstr "Indices"
 
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:1222
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:1513
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:1523
 #, c-format
 msgid "Indexes: "
 msgstr "Indices: "
@@ -6306,8 +6302,8 @@ msgstr "Infometrisches SAR"
 #: koha-tmpl/intranet-tmpl/prog/en/data/marc21_field_007.xml:154
 #, c-format
 msgid ""
-"Information about the source of a digital file important to the creation, "
-"use and management of digitally reformatted materials. "
+"Information about the source of a digital file important to the creation, use "
+"and management of digitally reformatted materials. "
 msgstr ""
 "Information über die Quelle einer Digitalen Datei die wichtig ist bezüglich "
 "Erstellung, Benutzung und Verwaltung von digital neu formatiertem Material. "
@@ -6445,7 +6441,7 @@ msgid "Isostatic"
 msgstr "Isostatisch"
 
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:881
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:1014
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:1024
 #, c-format
 msgid "Issued with:"
 msgstr "Erschienen mit:"
@@ -6467,18 +6463,18 @@ msgstr "Die Vorlage ist eine Musikaufnahme"
 msgid "Item type"
 msgstr "Medientyp"
 
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:1538
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:1541
 #, c-format
 msgid "ItemSummary "
 msgstr "ItemSummary "
 
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:1461
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:1464
 #: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACVolume.xsl:269
 #, c-format
 msgid "Items available for loan: "
 msgstr "Ausleihbare Exemplare: "
 
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:1534
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:1537
 #: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACVolume.xsl:328
 #, c-format
 msgid "Items available for reference: "
@@ -6504,7 +6500,7 @@ msgstr "Javanisch"
 msgid "Jazz"
 msgstr "Jazz"
 
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:86
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:96
 #, c-format
 msgid "Journal issue"
 msgstr "Zeitschriftenheft"
@@ -6539,7 +6535,7 @@ msgid "Juvenile"
 msgstr "Jugendliche"
 
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetResults.xsl:831
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:1075
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:1076
 #, c-format
 msgid "Juvenile; "
 msgstr "Jugendliche; "
@@ -6723,7 +6719,7 @@ msgstr "Kinyarwanda"
 
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:88
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetResults.xsl:515
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:97
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:107
 #: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:729
 #: koha-tmpl/intranet-tmpl/prog/en/data/marc21_field_006.xml:696
 #: koha-tmpl/intranet-tmpl/prog/en/data/marc21_field_006.xml:750
@@ -6834,7 +6830,7 @@ msgid "LDR "
 msgstr "LDR "
 
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:951
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:1095
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:1105
 #, c-format
 msgid "LOC classification: "
 msgstr "LOC-Klassifikation: "
@@ -7071,7 +7067,7 @@ msgid "Letters"
 msgstr "Briefe"
 
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetResults.xsl:678
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:922
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:923
 #, c-format
 msgid "Letters "
 msgstr "Briefe "
@@ -7178,7 +7174,7 @@ msgstr "Lädt..."
 msgid "Local"
 msgstr "Lokal"
 
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:1642
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:1645
 #: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACVolume.xsl:409
 #, c-format
 msgid "Location(s): "
@@ -7213,7 +7209,7 @@ msgstr "Verlustfrei"
 msgid "Lossy"
 msgstr "Mit Verlust"
 
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:1596
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:1599
 #: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACVolume.xsl:372
 #, c-format
 msgid "Lost ("
@@ -7347,7 +7343,8 @@ msgstr "MM"
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2MODS32.xsl:75
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:63
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetResults.xsl:49
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:71
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:76
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:81
 #: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:83
 #, c-format
 msgid "MP"
@@ -7361,7 +7358,8 @@ msgstr "MP"
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:68
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetResults.xsl:51
 #: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:75
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:76
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:85
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:86
 #: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:85
 #, c-format
 msgid "MU"
@@ -7565,9 +7563,9 @@ msgstr "Maori"
 
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:91
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetResults.xsl:518
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:100
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:114
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:741
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:110
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:124
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:742
 #: koha-tmpl/intranet-tmpl/prog/en/data/marc21_field_007.xml:8
 #: koha-tmpl/intranet-tmpl/prog/en/data/marc21_field_007.xml:13
 #: koha-tmpl/intranet-tmpl/prog/en/modules/cataloguing/value_builder/marc21_field_007.tt:14
@@ -7669,7 +7667,7 @@ msgstr "Material des Globus."
 
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:186
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetResults.xsl:504
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:249
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:259
 #: koha-tmpl/intranet-tmpl/prog/en/modules/cataloguing/value_builder/marc21_field_007.tt:11
 #, c-format
 msgid "Material type: "
@@ -7693,7 +7691,7 @@ msgid "Mazurkas"
 msgstr "Mazurken"
 
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:399
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:502
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:512
 #, c-format
 msgid "Media type: "
 msgstr "Medientyp: "
@@ -7724,7 +7722,7 @@ msgid "Mercator"
 msgstr "Mercator"
 
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:1450
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:1742
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:1752
 #, c-format
 msgid "Merged with ... to form ..."
 msgstr "Als Fortsetzung gilt:"
@@ -7968,7 +7966,7 @@ msgid "Mixed forms"
 msgstr "Verschiedene Formen"
 
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetResults.xsl:684
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:928
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:929
 #, c-format
 msgid "Mixed forms "
 msgstr "Verschiedene Formen "
@@ -7985,7 +7983,7 @@ msgstr "Medienkombination"
 
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:89
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetResults.xsl:516
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:98
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:108
 #: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:730
 #, c-format
 msgid "Mixed materials"
@@ -8106,8 +8104,8 @@ msgstr "Mooré"
 #: koha-tmpl/intranet-tmpl/prog/en/data/marc21_field_007.xml:734
 #, c-format
 msgid ""
-"More specific color characteristics of the moving image than are contained "
-"in 007/03 (Color). "
+"More specific color characteristics of the moving image than are contained in "
+"007/03 (Color). "
 msgstr ""
 "Weitere spezifische Farbcharakteristiken des bewegten Bildes die in 007/03 "
 "(Farbe) enthalten sind. "
@@ -8263,8 +8261,8 @@ msgstr "Munda (Weitere)"
 
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:95
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetResults.xsl:524
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:104
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:747
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:114
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:748
 #: koha-tmpl/intranet-tmpl/prog/en/data/marc21_field_006.xml:19
 #: koha-tmpl/intranet-tmpl/prog/en/data/marc21_field_006.xml:330
 #: koha-tmpl/intranet-tmpl/prog/en/data/marc21_field_006.xml:477
@@ -8289,12 +8287,12 @@ msgstr "Musikalische Stimmen"
 msgid "Music braille"
 msgstr "Musik-Brailleschrift"
 
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:115
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:125
 #, c-format
 msgid "MusicAlbum"
 msgstr "MusicAlbum"
 
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:1935
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:1945
 #, c-format
 msgid "MusicGroup"
 msgstr "MusicGroup"
@@ -8322,7 +8320,7 @@ msgid "NAB standard"
 msgstr "NAB-Standard"
 
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:964
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:1108
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:1118
 #, c-format
 msgid "NLM classification: "
 msgstr "NLM-Klassifikation: "
@@ -8834,7 +8832,7 @@ msgstr "Keine Information angegeben"
 msgid "No items available "
 msgstr "Keine Exemplare verfügbar."
 
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:1456
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:1459
 #, c-format
 msgid "No items available."
 msgstr "Keine Exemplare verfügbar."
@@ -8926,7 +8924,7 @@ msgid "No specified special format characteristics"
 msgstr "Keine speziellen Formateigenschaften"
 
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:835
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:968
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:978
 #, c-format
 msgid "No title"
 msgstr "Kein Titel"
@@ -9165,13 +9163,13 @@ msgstr "Nicht anwendbar"
 msgid "Not arrangement or transposition or not specified"
 msgstr "Nicht arrangiert oder transponiert oder nicht spezifiziert"
 
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:1565
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:1568
 #, c-format
 msgid "Not available: "
 msgstr "Nicht verfügbar: "
 
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetResults.xsl:660
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:904
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:905
 #, c-format
 msgid "Not fiction "
 msgstr "Sachliteratur "
@@ -9227,7 +9225,7 @@ msgid "Novels"
 msgstr "Novellen"
 
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetResults.xsl:672
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:916
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:917
 #, c-format
 msgid "Novels "
 msgstr "Novellen "
@@ -9251,10 +9249,10 @@ msgid ""
 "zero (e.g., 015, 048). A hyphen is used for any unknown portion of the "
 "reduction ratio (e.g., 03-, 1--, or ---)"
 msgstr ""
-"Dreistellige Zahl für die Verkleinerungsrate einer Mikroform. Die Zahlen "
-"sind rechtsbündig und jede unbenutzte Stelle enthält eine Null (z.B. 015, "
-"048). Ein Bindestrich wird für jede unbekannte Stelle verwendet, z.B. 03-, "
-"1-- oder ---)."
+"Dreistellige Zahl für die Verkleinerungsrate einer Mikroform. Die Zahlen sind "
+"rechtsbündig und jede unbenutzte Stelle enthält eine Null (z.B. 015, 048). "
+"Ein Bindestrich wird für jede unbekannte Stelle verwendet, z.B. 03-, 1-- oder "
+"---)."
 
 #: koha-tmpl/intranet-tmpl/prog/en/data/marc21_field_006.xml:165
 #: koha-tmpl/intranet-tmpl/prog/en/data/marc21_field_008.xml:436
@@ -9293,7 +9291,7 @@ msgid "Nzima"
 msgstr "Nzema"
 
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:66
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:74
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:84
 #, c-format
 msgid "OB"
 msgstr "OB"
@@ -9316,8 +9314,8 @@ msgstr "OPAC-Sicht: "
 
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:94
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetResults.xsl:521
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:103
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:744
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:113
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:745
 #, c-format
 msgid "Object"
 msgstr "Objekt"
@@ -9367,7 +9365,7 @@ msgstr "Altnordisch"
 msgid "Old Persian (ca. 600-400 B.C.)"
 msgstr "Altpersisch (ca. 600-400 v.Chr.)"
 
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:1624
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:1627
 #: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACVolume.xsl:400
 #, c-format
 msgid "On hold ("
@@ -9440,11 +9438,10 @@ msgstr ""
 #, c-format
 msgid ""
 "One-character alphabetic code that indicates the category of material to "
-"which the item belongs is globe, which is defined as the model of a "
-"celestial body, usually the Earth or the celestial sphere, depicted on the "
-"surface of a sphere. Code d is used when 008/25 (Type of cartographic "
-"material) contains code d. A fill character (|) is not allowed in this "
-"position."
+"which the item belongs is globe, which is defined as the model of a celestial "
+"body, usually the Earth or the celestial sphere, depicted on the surface of a "
+"sphere. Code d is used when 008/25 (Type of cartographic material) contains "
+"code d. A fill character (|) is not allowed in this position."
 msgstr ""
 "Einstelliger alphabetischer Code der angibt ob die Kategorie eines Objektes "
 "ein Globus ist, definiert als ein Himmelskörper, in der Regel die Abbildung "
@@ -9457,8 +9454,8 @@ msgstr ""
 msgid ""
 "One-character alphabetic code that indicates the category of material to "
 "which the item belongs is microform. Microform is a generic term for any "
-"medium, transparent or opaque, bearing microimages. A microimage is a unit "
-"(e.g., a page) of textual, graphic, or computer-generated material that is "
+"medium, transparent or opaque, bearing microimages. A microimage is a unit (e."
+"g., a page) of textual, graphic, or computer-generated material that is "
 "contained on aperture cards, microfiche, microfilm, microopaques, or other "
 "microformats and that is too small to be read without magnification. "
 "Microforms may be reproductions of existing textual or graphic materials or "
@@ -9486,8 +9483,8 @@ msgid ""
 msgstr ""
 "Einstelliger alphabetischer Code der angibt ob die Materialkategorie des "
 "Objekts eine projizierte Grafik ist, definiert als zweidimensionale "
-"Repräsentation zur bewegungslosen Projektion über ein optisches Gerät wie "
-"zum Beispiel ein Filmstreifen, ein Dia oder eine transparente Folie. Das "
+"Repräsentation zur bewegungslosen Projektion über ein optisches Gerät wie zum "
+"Beispiel ein Filmstreifen, ein Dia oder eine transparente Folie. Das "
 "Füllzeichen (|) ist an dieser Position nicht erlaubt. "
 
 #: koha-tmpl/intranet-tmpl/prog/en/data/marc21_field_007.xml:228
@@ -9507,10 +9504,10 @@ msgid ""
 "One-character alphabetic code that indicates the category of material to "
 "which the item belongs is unspecified, which means that the item is not "
 "identified by one of the other 007 code values or that its multiple physical "
-"forms are not being specifically denoted (for instance, when the item in "
-"hand is a collection containing different material categories and an "
-"institution chooses not to input separate 007 fields for the various "
-"components). A fill character (|) is not allowed in this position."
+"forms are not being specifically denoted (for instance, when the item in hand "
+"is a collection containing different material categories and an institution "
+"chooses not to input separate 007 fields for the various components). A fill "
+"character (|) is not allowed in this position."
 msgstr ""
 "Einstelliger Zeichencode der angibt dass das Material des Objektes nicht "
 "spezifiziert ist, das heisst dass das Objekt nicht durch einen anderen Wert "
@@ -9548,8 +9545,8 @@ msgstr ""
 #: koha-tmpl/intranet-tmpl/prog/en/data/marc21_field_008.xml:1048
 #, c-format
 msgid ""
-"One-character alphabetic code that indicates the form of material in which "
-"an item was originally published."
+"One-character alphabetic code that indicates the form of material in which an "
+"item was originally published."
 msgstr ""
 "Die Position enthält einen einstelligen Zeichencode, der das Material des "
 "Exemplars angibt, in dem es ursprünglich veröffentlicht wurde."
@@ -9599,9 +9596,9 @@ msgid ""
 "of the language of the title on the source item upon which the key title "
 "(field 222) is based."
 msgstr ""
-"Die Position enthält einen einstelligen Zeichencode, der das "
-"Originalalphabet oder die Schrift der Sprache des Quellexemplars angibt, auf "
-"dem der Key-Titel (Feld 222) basiert."
+"Die Position enthält einen einstelligen Zeichencode, der das Originalalphabet "
+"oder die Schrift der Sprache des Quellexemplars angibt, auf dem der Key-Titel "
+"(Feld 222) basiert."
 
 #: koha-tmpl/intranet-tmpl/prog/en/data/marc21_field_006.xml:771
 #: koha-tmpl/intranet-tmpl/prog/en/data/marc21_field_008.xml:1328
@@ -9653,12 +9650,12 @@ msgstr ""
 #, c-format
 msgid ""
 "One-character alphabetic code that indicates the type of dates given in "
-"008/07-10 (Date 1) and 008/11-14 (Date 2). For continuing resources, the "
-"code in 008/06 also indicates the publication status."
+"008/07-10 (Date 1) and 008/11-14 (Date 2). For continuing resources, the code "
+"in 008/06 also indicates the publication status."
 msgstr ""
-"Diese Position enthält einen einstelligen Zeichencode, der die Art des "
-"Datums in 008/007 (Datum 1) und 008/11-14 (Datum 2) beschreibt. Für "
-"Periodika gibt der Code in 008/06 außerdem den Publikationsstatus an."
+"Diese Position enthält einen einstelligen Zeichencode, der die Art des Datums "
+"in 008/007 (Datum 1) und 008/11-14 (Datum 2) beschreibt. Für Periodika gibt "
+"der Code in 008/06 außerdem den Publikationsstatus an."
 
 #: koha-tmpl/intranet-tmpl/prog/en/data/marc21_field_006.xml:748
 #: koha-tmpl/intranet-tmpl/prog/en/data/marc21_field_008.xml:1305
@@ -9681,8 +9678,8 @@ msgid ""
 msgstr ""
 "Die Position enthält einen einstelligen Zeichencode, der angibt, ob das "
 "Exemplar von oder für eine(r) amtliche(n) Agentur veröffentlicht oder "
-"hergestellt wurde, und, wenn dies der Fall ist, den juristischen Level "
-"dieser Agentur."
+"hergestellt wurde, und, wenn dies der Fall ist, den juristischen Level dieser "
+"Agentur."
 
 #: koha-tmpl/intranet-tmpl/prog/en/data/marc21_field_006.xml:131
 #: koha-tmpl/intranet-tmpl/prog/en/data/marc21_field_008.xml:329
@@ -9714,10 +9711,10 @@ msgstr ""
 #: koha-tmpl/intranet-tmpl/prog/en/data/marc21_field_008.xml:625
 #, c-format
 msgid ""
-"One-character alphabetic code that indicates whether the item is published "
-"or produced by or for an international, national, provincial, state, or "
-"local government agency, or by any subdivision of such a body, and, if so, "
-"the jurisdictional level of the agency."
+"One-character alphabetic code that indicates whether the item is published or "
+"produced by or for an international, national, provincial, state, or local "
+"government agency, or by any subdivision of such a body, and, if so, the "
+"jurisdictional level of the agency."
 msgstr ""
 "Die Position enthält einen einstelligen Zeichencode, der angibt, ob das "
 "Exemplar von oder für eine(r)amtliche(n) Agentur veröffentlicht oder "
@@ -9728,10 +9725,10 @@ msgstr ""
 #: koha-tmpl/intranet-tmpl/prog/en/data/marc21_field_008.xml:1277
 #, c-format
 msgid ""
-"One-character alphabetic code that indicates whether the item is published "
-"or produced by or for an international, provincial, national, state, or "
-"local government agency, or by any subdivision of such a body, and, if so, "
-"the jurisdictional level of the agency."
+"One-character alphabetic code that indicates whether the item is published or "
+"produced by or for an international, provincial, national, state, or local "
+"government agency, or by any subdivision of such a body, and, if so, the "
+"jurisdictional level of the agency."
 msgstr ""
 "Die Position enthält einen einstelligen Zeichencode, der angibt, ob das "
 "Exemplar von oder für eine(r)amtliche(n) Agentur veröffentlicht oder "
@@ -9743,8 +9740,7 @@ msgstr ""
 #: koha-tmpl/intranet-tmpl/prog/en/data/marc21_field_008.xml:428
 #, c-format
 msgid ""
-"One-character alphabetic code that specifies the form of material for the "
-"item"
+"One-character alphabetic code that specifies the form of material for the item"
 msgstr ""
 "Die Position enthält einen einstelligen Zeichencode, der das Material der zu "
 "beschreibenden Vorlage angibt."
@@ -9816,8 +9812,8 @@ msgstr ""
 #, c-format
 msgid ""
 "One-character code that indicates the original cataloging source of the "
-"record. If the cataloging source is known, it is identified in subfield $a "
-"of field 040 (Cataloging Source)."
+"record. If the cataloging source is known, it is identified in subfield $a of "
+"field 040 (Cataloging Source)."
 msgstr ""
 "Einstelliger Zeichencode, der die originale Katalogisierungsquelle des "
 "Datensatzes angibt. Wenn die Katalogisierungsquelle bekannt ist, wird diese "
@@ -9833,8 +9829,8 @@ msgstr ""
 #, c-format
 msgid ""
 "One-character code that indicates whether any data in a bibliographic record "
-"is a modification of information that appeared on the item being cataloged "
-"or that was intended to be included in the MARC record."
+"is a modification of information that appeared on the item being cataloged or "
+"that was intended to be included in the MARC record."
 msgstr ""
 "Die Position enthält einen einstelligen Zeichencode, der angibt, ob entweder "
 "einige Daten des bibliografischen Datensatzes modifizierte Informationen des "
@@ -9879,12 +9875,12 @@ msgstr ""
 msgid ""
 "One-character code used to indicate the literary form of an item. Numeric "
 "codes 0 and 1 provide a generic identification of whether or not the item is "
-"a work of fiction. Alphabetic codes may be used to identify specific "
-"literary forms."
+"a work of fiction. Alphabetic codes may be used to identify specific literary "
+"forms."
 msgstr ""
-"Die Position gibt die literarische Form eines Exemplars an. Die Ziffern 0 "
-"und 1 bieten eine allgemeine Angabe, ob es sich bei dem Werk um Fiktion "
-"handelt oder nicht. Die Buchstaben können verwendet werden, um spezifischere "
+"Die Position gibt die literarische Form eines Exemplars an. Die Ziffern 0 und "
+"1 bieten eine allgemeine Angabe, ob es sich bei dem Werk um Fiktion handelt "
+"oder nicht. Die Buchstaben können verwendet werden, um spezifischere "
 "literarische Formen zu bestimmen."
 
 #: koha-tmpl/intranet-tmpl/prog/en/data/marc21_field_006.xml:661
@@ -9957,7 +9953,7 @@ msgid "Online access: "
 msgstr "Online-Ressourcen: "
 
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:993
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:1140
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:1150
 #, c-format
 msgid "Online resources: "
 msgstr "Online-Ressourcen: "
@@ -9980,8 +9976,8 @@ msgstr "In neuem Fenster öffnen"
 msgid "Open score"
 msgstr "Offene Partitur"
 
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:1798
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:1811
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:1808
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:1821
 #: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:504
 #: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:517
 #, c-format
@@ -10019,7 +10015,7 @@ msgstr "Optische Tonspur auf dem Film"
 msgid "Oratorios"
 msgstr "Oratorien"
 
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:1939
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:1949
 #, c-format
 msgid "Organization"
 msgstr "Organisation"
@@ -10197,7 +10193,7 @@ msgid "Other classification: "
 msgstr "Andere Klassifikation: "
 
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:1321
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:1612
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:1622
 #, c-format
 msgid "Other editions: "
 msgstr "Andere Ausgaben: "
@@ -10226,10 +10222,10 @@ msgstr "Weitere spezifische physische Eigenschaften der Brailleschrift."
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:549
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetResults.xsl:966
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetResults.xsl:972
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:630
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:635
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:1271
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:1277
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:640
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:645
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:1272
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:1278
 #, c-format
 msgid "Other title: "
 msgstr "Weitere Titel: "
@@ -10279,14 +10275,15 @@ msgid "Overtures"
 msgstr "Overtüren"
 
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:65
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:73
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:83
 #, c-format
 msgid "PK"
 msgstr "PK"
 
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:69
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetResults.xsl:52
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:77
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:74
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:87
 #: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:86
 #, c-format
 msgid "PR"
@@ -10381,7 +10378,7 @@ msgid "Part-songs"
 msgstr "Mehrstimmige Lieder"
 
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:1054
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:1227
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:1237
 #, c-format
 msgid "Partial contents:"
 msgstr "Teilweise enthalten:"
@@ -10418,7 +10415,7 @@ msgid "Patent document"
 msgstr "Patentdokument"
 
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:481
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:601
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:611
 #, c-format
 msgid "Patent information: "
 msgstr "Patentinformation: "
@@ -10429,7 +10426,7 @@ msgstr "Patentinformation: "
 msgid "Pavans"
 msgstr "Pavanen"
 
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:1610
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:1613
 #, c-format
 msgid "Pending hold ("
 msgstr "Offene Vormerkung ("
@@ -10452,7 +10449,7 @@ msgstr "Periodika"
 msgid "Persian"
 msgstr "Persisch"
 
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:1936
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:1946
 #, c-format
 msgid "Person"
 msgstr "Person"
@@ -10551,8 +10548,8 @@ msgstr "Bildlich"
 
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:93
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetResults.xsl:520
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:102
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:743
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:112
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:744
 #: koha-tmpl/intranet-tmpl/prog/en/data/marc21_field_006.xml:755
 #: koha-tmpl/intranet-tmpl/prog/en/data/marc21_field_007.xml:532
 #: koha-tmpl/intranet-tmpl/prog/en/data/marc21_field_008.xml:1312
@@ -10621,7 +10618,7 @@ msgstr "Art der Plattformkonstruktion"
 msgid "Platform use category"
 msgstr "Kategorie der Plattformnutzung"
 
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:1870
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:1880
 #, c-format
 msgid "Play this sample"
 msgstr "Probe abspielen"
@@ -10629,15 +10626,15 @@ msgstr "Probe abspielen"
 #: koha-tmpl/intranet-tmpl/prog/en/data/marc21_field_007.xml:1065
 #, c-format
 msgid ""
-"Playback characteristics for sound recordings, including special equipment "
-"or equalization necessary for proper playback. This code is not used to "
-"indicate special processes used during recording unless those processes must "
-"be applied during playback."
+"Playback characteristics for sound recordings, including special equipment or "
+"equalization necessary for proper playback. This code is not used to indicate "
+"special processes used during recording unless those processes must be "
+"applied during playback."
 msgstr ""
-"Wiedergabecharakteristiken von Tonaufnahmen, einschließlich für eine "
-"korrekte Wiedergabe benötigte Spezialgeräte und Equalizer. Dieser Code wird "
-"nicht für spezielle Verfahren bei der Aufnahme verwendet, außer wenn dieses "
-"Verfahren auch für die Wiedergabe notwendig ist."
+"Wiedergabecharakteristiken von Tonaufnahmen, einschließlich für eine korrekte "
+"Wiedergabe benötigte Spezialgeräte und Equalizer. Dieser Code wird nicht für "
+"spezielle Verfahren bei der Aufnahme verwendet, außer wenn dieses Verfahren "
+"auch für die Wiedergabe notwendig ist."
 
 #: koha-tmpl/intranet-tmpl/prog/en/data/marc21_field_007.xml:951
 #, c-format
@@ -10668,7 +10665,7 @@ msgid "Poetry"
 msgstr "Poesie"
 
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetResults.xsl:687
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:931
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:932
 #, c-format
 msgid "Poetry "
 msgstr "Poesie "
@@ -10787,7 +10784,7 @@ msgid "Pre-adolescent"
 msgstr "Kind (10-12 Jahre)"
 
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetResults.xsl:819
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:1063
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:1064
 #, c-format
 msgid "Pre-adolescent; "
 msgstr "Kind (10-12 Jahre); "
@@ -10816,7 +10813,7 @@ msgid "Preschool"
 msgstr "Vorschule"
 
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetResults.xsl:813
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:1057
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:1058
 #, c-format
 msgid "Preschool; "
 msgstr "Vorschule; "
@@ -10863,7 +10860,7 @@ msgstr ""
 "(Art der Plattformkonstruktion)."
 
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetResults.xsl:816
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:1060
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:1061
 #, c-format
 msgid "Primary; "
 msgstr "Primär; "
@@ -10894,13 +10891,13 @@ msgstr "Dupliziervorlage"
 msgid "Producer: "
 msgstr "Produzent: "
 
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:162
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:172
 #, c-format
 msgid "Product"
 msgstr "Produkt"
 
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:1094
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:1277
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:1287
 #, c-format
 msgid "Production credits: "
 msgstr "Herstellerabspann: "
@@ -10990,20 +10987,20 @@ msgstr "Erscheinungs- und Copyrightjahr"
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:303
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetResults.xsl:852
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetResults.xsl:868
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:380
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:392
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:390
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:402
 #, c-format
 msgid "Publication details: "
 msgstr "Veröffentlichungsangaben: "
 
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:921
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetResults.xsl:898
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:265
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:275
 #, c-format
 msgid "Publisher number: "
 msgstr "Verlagsnummer: "
 
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:1442
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:1452
 #, c-format
 msgid "Publisher recommendation: "
 msgstr "Empfehlung des Verlages: "
@@ -11134,10 +11131,12 @@ msgstr "Verhältnis"
 msgid "Ratio element is not applicable"
 msgstr "Verhältnisangabe nicht anwendbar"
 
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:1401
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:1433
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:1455
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:1477
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:1411
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:1443
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:1465
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:1487
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:1311
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:1325
 #, c-format
 msgid "Read more &#187;"
 msgstr "Mehr lesen &#187;"
@@ -11184,8 +11183,8 @@ msgid ""
 "Reduction ratio range for a microform. The specific reduction ratio is "
 "recorded in 007/06-08 (Reduction ratio)."
 msgstr ""
-"Verkleinerungsrate für einen Mikroform. Die spezifische Verkleinerung wird "
-"in 007/06-08 erfasst (Verkleinerungsrate)."
+"Verkleinerungsrate für einen Mikroform. Die spezifische Verkleinerung wird in "
+"007/06-08 erfasst (Verkleinerungsrate)."
 
 #: koha-tmpl/intranet-tmpl/prog/en/data/marc21_field_007.xml:715
 #, c-format
@@ -11210,14 +11209,14 @@ msgstr "Konvertierungsqualität"
 #: koha-tmpl/intranet-tmpl/prog/en/data/marc21_field_007.xml:172
 #, c-format
 msgid ""
-"Reformatting quality of the electronic resource; an overall assessment of "
-"the physical quality of the electronic resource in relation to its intended "
-"use. It can be used to judge the level of quality of a file, and an "
-"institution's commitment to maintain its availability over time."
+"Reformatting quality of the electronic resource; an overall assessment of the "
+"physical quality of the electronic resource in relation to its intended use. "
+"It can be used to judge the level of quality of a file, and an institution's "
+"commitment to maintain its availability over time."
 msgstr ""
-"Konvertierungsqualität einer elektronischen Ressource; eine umfassende "
-"Angabe über die physische Qualität der elektronischen Ressource in Bezug auf "
-"deren beabsichtigte Anwendung. Kann zur Beurteilung der Qualität einer Datei "
+"Konvertierungsqualität einer elektronischen Ressource; eine umfassende Angabe "
+"über die physische Qualität der elektronischen Ressource in Bezug auf deren "
+"beabsichtigte Anwendung. Kann zur Beurteilung der Qualität einer Datei "
 "verwendet werden wie auch der Absicht der Institution, die Datei langfristig "
 "zur Verfügung zu halten."
 
@@ -11261,7 +11260,7 @@ msgid "Rehearsals"
 msgstr "Proben"
 
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:632
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:728
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:738
 #, c-format
 msgid "Related works: "
 msgstr "Verwandte Werke: "
@@ -11293,7 +11292,7 @@ msgid "Replacement"
 msgstr "Ersatz"
 
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:494
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:614
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:624
 #, c-format
 msgid "Report number: "
 msgstr "Reportnummer: "
@@ -11327,7 +11326,7 @@ msgstr "Nachdruck/Neuauflagendatum und Datum des Originals"
 msgid "Requiems"
 msgstr "Requien"
 
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:1464
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:1474
 #, c-format
 msgid "Review: "
 msgstr "Rezension: "
@@ -11475,7 +11474,7 @@ msgid "SE"
 msgstr "SE"
 
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:466
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:562
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:572
 #, c-format
 msgid "SICI: "
 msgstr "SICI: "
@@ -11603,15 +11602,15 @@ msgstr "Sasak"
 msgid "Save"
 msgstr "Speichern"
 
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:1414
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:1424
 #, c-format
 msgid "Scope: "
 msgstr "Zusammenfassung: "
 
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:97
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetResults.xsl:522
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:106
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:745
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:116
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:746
 #: koha-tmpl/intranet-tmpl/prog/en/data/marc21_field_006.xml:423
 #: koha-tmpl/intranet-tmpl/prog/en/data/marc21_field_008.xml:836
 #, c-format
@@ -11682,7 +11681,7 @@ msgstr "Wählen Sie einen Materialtyp um die Werte der Variabel festzulegen"
 msgid "Select: "
 msgstr "Auswahl: "
 
-#. %1$s:  rdafield 
+#. %1$s:  rdafield
 #: koha-tmpl/intranet-tmpl/prog/en/modules/cataloguing/value_builder/marc21_field_rda.tt:8
 #, c-format
 msgid "Selection of values of RDA field %s"
@@ -11730,7 +11729,7 @@ msgid "Separate supplement to another work"
 msgstr "Separate Karte als Beilage eines anderen Werkes"
 
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:1383
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:1674
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:1684
 #, c-format
 msgid "Separated from:"
 msgstr "Hervorgegangen aus:"
@@ -11758,14 +11757,14 @@ msgid "Serial/Integrating resource"
 msgstr "Ressource mit fortlaufender, integrierender Erscheinungsweise"
 
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:81
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:90
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:100
 #, c-format
 msgid "Series"
 msgstr "Reihen"
 
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:201
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slimUtils.xsl:412
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:283
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:293
 #: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slimUtils.xsl:420
 #, c-format
 msgid "Series: "
@@ -11778,14 +11777,14 @@ msgstr "Gebrauchskopie"
 
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:74
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetResults.xsl:506
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:82
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:92
 #: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:720
 #, c-format
 msgid "Set"
 msgstr "Gesamtaufnahme"
 
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:264
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:353
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:363
 #, c-format
 msgid "Set: "
 msgstr "Gesamtaufnahme: "
@@ -11827,7 +11826,7 @@ msgid "Short stories"
 msgstr "Kurzgeschichten"
 
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetResults.xsl:681
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:925
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:926
 #, c-format
 msgid "Short stories "
 msgstr "Kurzgeschichten "
@@ -11849,12 +11848,12 @@ msgid "Shortwave infrared (SWIR)"
 msgstr "Kurzwellen-Infrarot (SWIR)"
 
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:240
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:322
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:332
 #, c-format
 msgid "Show analytics"
 msgstr "Zeige unselbstständige Werke"
 
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:341
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:351
 #, c-format
 msgid "Show issues"
 msgstr "Zeige Hefte"
@@ -11867,7 +11866,7 @@ msgid "Show values for '%s' material type?"
 msgstr "Werte für Materialtyp '%s' anzeigen?"
 
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:257
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:344
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:354
 #, c-format
 msgid "Show volumes"
 msgstr "Zeige Bände"
@@ -11993,8 +11992,8 @@ msgid ""
 "Six undefined character positions; each contains a blank (#) or a fill "
 "character (|)."
 msgstr ""
-"Sechs nicht definierte Zeichenpositionen. Jede Position enthält ein Leer- "
-"(#) oder Füllzeichen (|)."
+"Sechs nicht definierte Zeichenpositionen. Jede Position enthält ein Leer- (#) "
+"oder Füllzeichen (|)."
 
 #: koha-tmpl/intranet-tmpl/prog/en/data/marc21_field_007.xml:1020
 #, c-format
@@ -12116,8 +12115,8 @@ msgstr "Sotho"
 
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:96
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetResults.xsl:523
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:105
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:746
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:115
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:747
 #: koha-tmpl/intranet-tmpl/prog/en/data/marc21_field_006.xml:172
 #: koha-tmpl/intranet-tmpl/prog/en/data/marc21_field_007.xml:128
 #: koha-tmpl/intranet-tmpl/prog/en/data/marc21_field_007.xml:130
@@ -12239,8 +12238,8 @@ msgstr "Spanner short form scoring"
 #: koha-tmpl/intranet-tmpl/prog/en/data/marc21_field_007.xml:10
 #, c-format
 msgid ""
-"Special class of cartographic material to which the item belongs. Usually "
-"the class of physical object, e.g., a diagram."
+"Special class of cartographic material to which the item belongs. Usually the "
+"class of physical object, e.g., a diagram."
 msgstr ""
 "Spezielle Klasse des kartografischen Materials zu der das Objekt gehört. "
 "Normalerweise die Klasse eines physikalischen Objekts, z.B. ein Diagramm."
@@ -12251,9 +12250,8 @@ msgid ""
 "Special class of material (usually the class of physical object) to which an "
 "item belongs (e.g., a magnetic disk)."
 msgstr ""
-"Spezielle Klasse des Materials (normalerweise die Klasse eines "
-"physikalischen Objekts) zu der das Objekt gehört (z.B. eine magnetsche "
-"Platte)."
+"Spezielle Klasse des Materials (normalerweise die Klasse eines physikalischen "
+"Objekts) zu der das Objekt gehört (z.B. eine magnetsche Platte)."
 
 #: koha-tmpl/intranet-tmpl/prog/en/data/marc21_field_007.xml:185
 #, c-format
@@ -12287,8 +12285,7 @@ msgstr "Spezielle Klasse der Mikroform des Objektes (z.B. Mikrokarte)."
 #: koha-tmpl/intranet-tmpl/prog/en/data/marc21_field_007.xml:615
 #, c-format
 msgid ""
-"Special class of motion picture to which the item belongs., e.g., a film "
-"reel."
+"Special class of motion picture to which the item belongs., e.g., a film reel."
 msgstr "Spezielle Klasse des Films, z.B. eine Filmspule."
 
 #: koha-tmpl/intranet-tmpl/prog/en/data/marc21_field_007.xml:524
@@ -12307,8 +12304,7 @@ msgstr "Spezielle Klasse der projizierten Grafik (z.B. ein Dia)."
 #: koha-tmpl/intranet-tmpl/prog/en/data/marc21_field_007.xml:934
 #, c-format
 msgid ""
-"Special class of sound recording to which the item belongs (e.g., a "
-"cylinder)."
+"Special class of sound recording to which the item belongs (e.g., a cylinder)."
 msgstr "Spezielle Klasse der Tonaufnahme (z.B. ein Zylinder)."
 
 #: koha-tmpl/intranet-tmpl/prog/en/data/marc21_field_007.xml:231
@@ -12357,7 +12353,7 @@ msgid "Specialized"
 msgstr "Fachkundige"
 
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetResults.xsl:834
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:1078
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:1079
 #, c-format
 msgid "Specialized; "
 msgstr "Spezialisiert; "
@@ -12400,8 +12396,8 @@ msgid ""
 "for the item."
 msgstr ""
 "Spezielles Medium das als Tonträger eines Objektes dient (ob der Ton in der "
-"projizierten Grafik enthalten oder separat ist), sowie der notwendige Typ "
-"der Tonwiedergabe."
+"projizierten Grafik enthalten oder separat ist), sowie der notwendige Typ der "
+"Tonwiedergabe."
 
 #: koha-tmpl/intranet-tmpl/prog/en/data/marc21_field_007.xml:1158
 #, c-format
@@ -12433,7 +12429,7 @@ msgid "Speeches"
 msgstr "Reden"
 
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetResults.xsl:690
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:934
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:935
 #, c-format
 msgid "Speeches "
 msgstr "Reden "
@@ -12444,7 +12440,7 @@ msgid "Speed"
 msgstr "Geschwindigkeit"
 
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:1447
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:1739
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:1749
 #, c-format
 msgid "Split into .. and ...:"
 msgstr "Fortsetzung ... und ...:"
@@ -12586,7 +12582,7 @@ msgid "Study print"
 msgstr "Studiendruck"
 
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:716
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:858
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:868
 #, c-format
 msgid "Subject(s): "
 msgstr "Schlagwörter: "
@@ -12632,8 +12628,8 @@ msgstr "Sumerisch"
 msgid "Summary language: "
 msgstr "Sprache der Zusammenfassung: "
 
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:1388
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:1418
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:1398
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:1428
 #, c-format
 msgid "Summary: "
 msgstr "Zusammenfassung: "
@@ -12660,43 +12656,43 @@ msgid "Super-VHS (1/2 in., videocassette)"
 msgstr "Super-VHS (0,5 Zoll, Videokassette)"
 
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:1435
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:1727
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:1737
 #, c-format
 msgid "Superseded by:"
 msgstr "Daraus hervorgegangen:"
 
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:1438
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:1730
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:1740
 #, c-format
 msgid "Superseded in part by:"
 msgstr "Teilweise daraus hervorgegangen:"
 
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:1371
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:1662
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:1672
 #, c-format
 msgid "Supersedes in part:"
 msgstr "Teilweise hervorgegangen aus:"
 
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:1368
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:1659
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:1669
 #, c-format
 msgid "Supersedes:"
 msgstr "Hervorgegangen aus:"
 
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:1279
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:1570
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:1580
 #, c-format
 msgid "Supplement to: "
 msgstr "Beilage zu: "
 
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:1236
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:1527
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:1537
 #, c-format
 msgid "Supplement: "
 msgstr "Beilage: "
 
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:1208
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:1499
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:1509
 #, c-format
 msgid "Supplements: "
 msgstr "Ergänzungen:"
@@ -12985,8 +12981,8 @@ msgstr "Tetum"
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:87
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetResults.xsl:509
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetResults.xsl:514
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:85
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:96
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:95
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:106
 #: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:723
 #: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:728
 #: koha-tmpl/intranet-tmpl/prog/en/data/marc21_field_007.xml:1090
@@ -13023,7 +13019,7 @@ msgstr "Thai"
 msgid "Thematic index"
 msgstr "Thematisches Register"
 
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:811
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:821
 #, c-format
 msgid "Theme: "
 msgstr "Themenkreis: "
@@ -13090,12 +13086,12 @@ msgstr "Alphabetischer 3-Zeichen-Code"
 #: koha-tmpl/intranet-tmpl/prog/en/data/marc21_field_007.xml:264
 #, c-format
 msgid ""
-"Three-character code that indicates the braille music format of the item. "
-"The music formats are the way measures, sections, parts, and related "
-"information, such as words, are presented in relation to each other. Up to "
-"three formats may be indicated, left justified in order of predominance. If "
-"fewer than three codes are assigned, the codes are left justified and unused "
-"positions contain blanks (#)."
+"Three-character code that indicates the braille music format of the item. The "
+"music formats are the way measures, sections, parts, and related information, "
+"such as words, are presented in relation to each other. Up to three formats "
+"may be indicated, left justified in order of predominance. If fewer than "
+"three codes are assigned, the codes are left justified and unused positions "
+"contain blanks (#)."
 msgstr ""
 "Dreistelliger Zeichencode für das Braille-Musikformat des Objekts. Die "
 "Musikformate betreffen die Art wie Takte, Abschnitte, Teile und zugehörige "
@@ -13159,8 +13155,8 @@ msgid "Title bands/inter-title rolls"
 msgstr "Titelbänder/Zwischentitelrollen"
 
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:584
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:673
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:1289
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:683
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:1290
 #, c-format
 msgid "Title translated: "
 msgstr "Übersetzter Titel: "
@@ -13361,8 +13357,8 @@ msgid ""
 "Two- or three-character alphabetic code that indicates the place of "
 "publication, production, or execution."
 msgstr ""
-"Die Position enthält einen zweistelligen Code, der die Projektion angibt, "
-"die bei der Erstellung der Vorlage verwendet wurde."
+"Die Position enthält einen zweistelligen Code, der die Projektion angibt, die "
+"bei der Erstellung der Vorlage verwendet wurde."
 
 #: koha-tmpl/intranet-tmpl/prog/en/data/marc21_field_008.xml:56
 #: koha-tmpl/intranet-tmpl/prog/en/data/marc21_field_008.xml:412
@@ -13382,25 +13378,25 @@ msgid ""
 "Two-character alphabetic code that indicates the form of composition. Codes "
 "are based on Library of Congress subject headings. If more than one code is "
 "appropriate, the code mu (Multiple forms) is used in 008/18-19 and all "
-"appropriate specific codes are given in field 047 (Form of Composition). "
-"Code mu (Multiple forms) may also signify that field 047 (Form of "
-"Composition) contains non-MARC composition codes."
+"appropriate specific codes are given in field 047 (Form of Composition). Code "
+"mu (Multiple forms) may also signify that field 047 (Form of Composition) "
+"contains non-MARC composition codes."
 msgstr ""
 "Die Position enthält einen zweistelligen Code, der die Art der Komposition "
-"angibt. Die Codes basieren aufden Schlagwörtern der Library of Congress. "
-"Wenn mehr als ein Code zutrifft, wird der Code mu (mehrfacheFormen) in "
-"008/18-19 benutzt, wobei alle zutreffenden spezifizierten Codes im Feld 047 "
-"(Art der Komposition)angegeben werden."
+"angibt. Die Codes basieren aufden Schlagwörtern der Library of Congress. Wenn "
+"mehr als ein Code zutrifft, wird der Code mu (mehrfacheFormen) in 008/18-19 "
+"benutzt, wobei alle zutreffenden spezifizierten Codes im Feld 047 (Art der "
+"Komposition)angegeben werden."
 
 #: koha-tmpl/intranet-tmpl/prog/en/data/marc21_field_006.xml:218
 #: koha-tmpl/intranet-tmpl/prog/en/data/marc21_field_008.xml:561
 #, c-format
 msgid ""
-"Two-character alphabetic code that indicates the projection used in "
-"producing the item."
+"Two-character alphabetic code that indicates the projection used in producing "
+"the item."
 msgstr ""
-"Die Position enthält einen zweistelligen Code, der die Projektion angibt, "
-"die bei der Erstellung der Vorlageverwendet wurde."
+"Die Position enthält einen zweistelligen Code, der die Projektion angibt, die "
+"bei der Erstellung der Vorlageverwendet wurde."
 
 #: koha-tmpl/intranet-tmpl/prog/en/data/marc21_field_006.xml:695
 #, c-format
@@ -13438,8 +13434,8 @@ msgstr "Art der Datei"
 #, c-format
 msgid ""
 "Type of construction of the platform serving as the base for the remote-"
-"sensing device. For the purposes of this data element, \"platform\" refers "
-"to any structure that serves as a base, not only flat surfaces."
+"sensing device. For the purposes of this data element, \"platform\" refers to "
+"any structure that serves as a base, not only flat surfaces."
 msgstr ""
 "Konstruktionstyp der Plattform des Fernerkundungsgerätes. In diesem "
 "Datenelement bezeichnet Plattform jede Trägerstruktur, nicht nur ebene "
@@ -13507,8 +13503,8 @@ msgstr ""
 #: koha-tmpl/intranet-tmpl/prog/en/data/marc21_field_007.xml:559
 #, c-format
 msgid ""
-"Type of material used for the support or base on which an image is printed "
-"or executed."
+"Type of material used for the support or base on which an image is printed or "
+"executed."
 msgstr ""
 "Typ des Materials das als Unterlage oder Basis dient auf welcher das Bild "
 "gedruckt oder ausgeführt wird."
@@ -13536,7 +13532,7 @@ msgid "U-matic (3/4 in., videocasstte)"
 msgstr "U-matic (0,75 Zoll, Videokassette)"
 
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:463
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:559
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:569
 #, c-format
 msgid "UPC: "
 msgstr "UPC: "
@@ -13717,8 +13713,8 @@ msgid "Uniform title: "
 msgstr "Einheitssachtitel: "
 
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:609
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:696
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:702
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:706
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:712
 #, c-format
 msgid "Uniform titles: "
 msgstr "Einheitssachtitel: "
@@ -13904,18 +13900,17 @@ msgid ""
 msgstr ""
 "Die Zeichenposition enthält bis zu vier einstellige Zeichencodes (in "
 "alphabetischer Ordnung erfasst), welchedie Illustrationsarten im Exemplar "
-"angeben. Wenn weniger als vier Zeichencodes zugewiesen werden, sind die "
-"Codes rechtsbündig, wobei jede ungenutzte Position ein Leerzeichen (#) "
-"enthält."
+"angeben. Wenn weniger als vier Zeichencodes zugewiesen werden, sind die Codes "
+"rechtsbündig, wobei jede ungenutzte Position ein Leerzeichen (#) enthält."
 
 #: koha-tmpl/intranet-tmpl/prog/en/data/marc21_field_006.xml:202
 #: koha-tmpl/intranet-tmpl/prog/en/data/marc21_field_008.xml:545
 #, c-format
 msgid ""
 "Up to four one-character alphabetic codes that indicate the relief type "
-"specified on the item. Codes are recorded in order of their importance to "
-"the described item. If fewer than four codes are assigned, the codes are "
-"left justified and each unused position contains a blank (#)"
+"specified on the item. Codes are recorded in order of their importance to the "
+"described item. If fewer than four codes are assigned, the codes are left "
+"justified and each unused position contains a blank (#)"
 msgstr ""
 "Die Position enthält bis zu vier einstellige Codes, welche die spezifische "
 "Reliefart im Exemplar angeben. Die Codes werden in der Reihenfolge ihrer "
@@ -13967,9 +13962,8 @@ msgid ""
 msgstr ""
 "Die Zeichenposition enthält bis zu vier einstellige Zeichencodes (in "
 "alphabetischer Ordnung erfasst), welchedie Illustrationsarten im Exemplar "
-"angeben. Wenn weniger als vier Zeichencodes zugewiesen werden, sind die "
-"Codes rechtsbündig, wobei jede ungenutzte Position ein Leerzeichen (#) "
-"enthält."
+"angeben. Wenn weniger als vier Zeichencodes zugewiesen werden, sind die Codes "
+"rechtsbündig, wobei jede ungenutzte Position ein Leerzeichen (#) enthält."
 
 #: koha-tmpl/intranet-tmpl/prog/en/data/marc21_field_006.xml:316
 #: koha-tmpl/intranet-tmpl/prog/en/data/marc21_field_008.xml:659
@@ -13977,8 +13971,8 @@ msgstr ""
 msgid ""
 "Up to two one-character alphabetic codes that indicate the special format "
 "characteristics of the map. Codes are recorded in order of their importance "
-"to the described item. If only one code is assigned, it is left justified "
-"and the unused position contains a blank (#)."
+"to the described item. If only one code is assigned, it is left justified and "
+"the unused position contains a blank (#)."
 msgstr ""
 "Die Position enthält bis zu zwei einstellige Codes, welche die speziellen "
 "Formatmerkmale der Karte angeben. Die Codes werden in der Reihenfolge ihrer "
@@ -13995,10 +13989,9 @@ msgid ""
 "position contains a blank (#)."
 msgstr ""
 "Die Position enthält bis zu zwei einstellige Codes (in der Reihenfolge der "
-"folgenden Liste aufgeführt), welche die Art des literarischen Textes in "
-"einer nicht-musikalischen Tonaufnahme angeben. Wenn nur ein Code zutrifft, "
-"ist er linksbündig, wobei die ungenutzte Position ein Leerzeichen (#) "
-"enthält."
+"folgenden Liste aufgeführt), welche die Art des literarischen Textes in einer "
+"nicht-musikalischen Tonaufnahme angeben. Wenn nur ein Code zutrifft, ist er "
+"linksbündig, wobei die ungenutzte Position ein Leerzeichen (#) enthält."
 
 #. SCRIPT
 #: koha-tmpl/intranet-tmpl/prog/en/includes/cateditor-widgets-marc21.inc:73
@@ -14052,7 +14045,9 @@ msgstr "VHS (0,5 Zoll, Videokassette)"
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2MODS32.xsl:76
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:64
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetResults.xsl:50
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:72
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:73
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:77
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:82
 #: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:84
 #, c-format
 msgid "VM"
@@ -14234,7 +14229,7 @@ msgid "Volapük"
 msgstr "Volapük"
 
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:247
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:329
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:339
 #, c-format
 msgid "Volumes: "
 msgstr "Bände: "
@@ -14279,8 +14274,7 @@ msgstr "Wáray-Wáray"
 #: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slimUtils.xsl:35
 #, c-format
 msgid ""
-"Warning: string contains a character that is out of range! Substituting \"?"
-"\"."
+"Warning: string contains a character that is out of range! Substituting \"?\"."
 msgstr ""
 "Achtung: Die Zeichenkette enthält ein Zeichen, dass nicht innerhalb des "
 "darstellbaren Zeichenraums liegt! Es wird ersetzt mit \"?\"."
@@ -14374,8 +14368,8 @@ msgstr ""
 #: koha-tmpl/intranet-tmpl/prog/en/data/marc21_field_007.xml:691
 #, c-format
 msgid ""
-"Whether the film is part of a complete production or is a preliminary or "
-"post-production element."
+"Whether the film is part of a complete production or is a preliminary or post-"
+"production element."
 msgstr ""
 "Ob der Film Teil einer kompletten Produktion ist oder ob er ein ein "
 "vorläufiges Element oder ein Element der Post-Production ist."
@@ -14408,8 +14402,7 @@ msgstr "Ob das Objekt einfarbig oder mehrfarbig ist."
 #: koha-tmpl/intranet-tmpl/prog/en/data/marc21_field_007.xml:128
 #, c-format
 msgid ""
-"Whether the production of sound is an integral part of an electronic "
-"resource."
+"Whether the production of sound is an integral part of an electronic resource."
 msgstr ""
 "Ob die Produktion des Tons ein integraler Teil der elektronischen Ressource "
 "ist."
@@ -14420,8 +14413,8 @@ msgid ""
 "Whether the sound is on or is separate from the projected graphic (i.e., on "
 "the accompanying material). "
 msgstr ""
-"Ob der Ton in der projizierten Grafik enthalten oder separat vorhanden ist "
-"(z.B. auf dem Begleitmaterial). "
+"Ob der Ton in der projizierten Grafik enthalten oder separat vorhanden ist (z."
+"B. auf dem Begleitmaterial). "
 
 #: koha-tmpl/intranet-tmpl/prog/en/data/marc21_field_007.xml:1151
 #, c-format
@@ -14445,8 +14438,8 @@ msgstr "Filmbreite."
 #: koha-tmpl/intranet-tmpl/prog/en/data/marc21_field_007.xml:980
 #, c-format
 msgid ""
-"Width of the groove of the recording for discs or the pitch of the groove "
-"for cylinders."
+"Width of the groove of the recording for discs or the pitch of the groove for "
+"cylinders."
 msgstr "Gravurbreite einer Plattenaufnahme oder Rillenabstand auf Zylindern."
 
 #: koha-tmpl/intranet-tmpl/prog/en/data/marc21_field_007.xml:1004
@@ -14461,9 +14454,9 @@ msgid ""
 "match the measurements of the item as given in the physical description "
 "should be used. If no code exactly matches, code z is used."
 msgstr ""
-"Zu Videoaufnahmen. Für Videoaufnahmen sollten nur Codes verwendet werden, "
-"die exakt auf die Masse der physikalischen Beschreibung zutreffen. Wenn kein "
-"Code zutrifft, ist z zu verwenden."
+"Zu Videoaufnahmen. Für Videoaufnahmen sollten nur Codes verwendet werden, die "
+"exakt auf die Masse der physikalischen Beschreibung zutreffen. Wenn kein Code "
+"zutrifft, ist z zu verwenden."
 
 #: koha-tmpl/intranet-tmpl/prog/en/data/marc21_field_007.xml:389
 #, c-format
@@ -14475,7 +14468,7 @@ msgstr "Breite oder Dimensionen des projizierten grafischen Objektes."
 msgid "Wire recording"
 msgstr "Drahtaufzeichnung"
 
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:1589
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:1592
 #: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACVolume.xsl:365
 #, c-format
 msgid "Withdrawn ("
@@ -14615,55 +14608,55 @@ msgid "Zuni"
 msgstr "Zuñi"
 
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:571
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:658
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:668
 #, c-format
 msgid "[Added title page title]"
 msgstr "[Titel von zusätzlicher Titelseite]"
 
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:572
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:659
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:669
 #, c-format
 msgid "[Caption title]"
 msgstr "[Beschriftung]"
 
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:570
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:657
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:667
 #, c-format
 msgid "[Cover title]"
 msgstr "[Umschlagtitel]"
 
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:568
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:655
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:665
 #, c-format
 msgid "[Distinctive title]"
 msgstr "[Schlüsseltitel]"
 
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:569
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:656
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:666
 #, c-format
 msgid "[Other title]"
 msgstr "[Weiterer Titel]"
 
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:567
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:654
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:664
 #, c-format
 msgid "[Parallel title]"
 msgstr "[Paralleltitel]"
 
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:566
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:653
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:663
 #, c-format
 msgid "[Portion of title]"
 msgstr "[Teil des Titels]"
 
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:573
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:660
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:670
 #, c-format
 msgid "[Running title]"
 msgstr "[Kolumnentitel]"
 
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:574
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:661
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:671
 #, c-format
 msgid "[Spine title]"
 msgstr "[Rückentitel]"
@@ -14689,9 +14682,9 @@ msgid "_ - Not specified or not applicable"
 msgstr "_ - Nicht spezifiziert oder nicht anwendbar"
 
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:1491
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:1171
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:1208
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:1815
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:1181
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:1218
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:1825
 #: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:521
 #, c-format
 msgid "_blank"
@@ -15222,14 +15215,14 @@ msgstr "a- Workprint"
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slimUtils.xsl:513
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slimUtils.xsl:524
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slimUtils.xsl:535
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:1023
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:1320
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:1551
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:1594
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:1616
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:1635
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:1688
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:1759
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:1033
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:1330
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:1561
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:1604
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:1626
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:1645
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:1698
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:1769
 #: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slimUtils.xsl:479
 #: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slimUtils.xsl:490
 #: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slimUtils.xsl:501
@@ -15322,14 +15315,14 @@ msgstr "aat"
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetResults.xsl:943
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetResults.xsl:964
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetResults.xsl:975
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:435
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:448
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:1098
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:1952
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:2020
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:445
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:458
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:1108
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:1962
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:2030
 #: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:571
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:1269
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:1280
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:1270
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:1281
 #: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACVolume.xsl:124
 #, c-format
 msgid "ab"
@@ -15337,7 +15330,7 @@ msgstr "ab"
 
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:165
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetResults.xsl:358
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:224
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:234
 #: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:545
 #: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACVolume.xsl:107
 #, c-format
@@ -15354,7 +15347,7 @@ msgstr "abc"
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2RDFDC.xsl.1:163
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2RSS2.xsl:157
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2SRWDC.xsl:228
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:1203
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:1213
 #, c-format
 msgid "abcd"
 msgstr "abcd"
@@ -15391,7 +15384,7 @@ msgid "abcdefghklmnoprstu4"
 msgstr "abcdefghklmnoprstu4"
 
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:1115
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:1265
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:1275
 #, c-format
 msgid "abcdefgijklnou"
 msgstr "abcdefgijklnou"
@@ -15406,33 +15399,33 @@ msgstr "abcdeqnp"
 
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:636
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:678
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:732
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:774
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:742
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:784
 #, c-format
 msgid "abcdfghiklmnporstux"
 msgstr "abcdfghiklmnporstux"
 
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:726
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:744
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:870
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:886
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:1145
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:880
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:896
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:1146
 #, c-format
 msgid "abcdfgklmnopqrstvxyz"
 msgstr "abcdfgklmnopqrstvxyz"
 
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:1185
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetResults.xsl:914
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:1378
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:1258
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:1388
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:1259
 #, c-format
 msgid "abcdgo"
 msgstr "abcdgo"
 
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:1514
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetResults.xsl:1086
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:2180
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:1711
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:2190
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:1714
 #: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACVolume.xsl:460
 #, c-format
 msgid "abcdn"
@@ -15493,33 +15486,33 @@ msgstr "abce"
 
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:374
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetResults.xsl:927
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:475
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:485
 #, c-format
 msgid "abcefg"
 msgstr "abcefg"
 
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:362
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:462
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:472
 #, c-format
 msgid "abceg"
 msgstr "abceg"
 
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:289
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetResults.xsl:850
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:378
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:388
 #, c-format
 msgid "abcg"
 msgstr "abcg"
 
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:589
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:679
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:689
 #, c-format
 msgid "abchnp"
 msgstr "abchnp"
 
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:1578
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetResults.xsl:384
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:1953
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:1963
 #: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:572
 #: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACVolume.xsl:125
 #, c-format
@@ -15533,18 +15526,18 @@ msgstr "abcjq"
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:1501
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:1695
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetResults.xsl:1073
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:2069
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:2167
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:1698
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:2079
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:2177
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:1701
 #: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACVolume.xsl:447
 #, c-format
 msgid "abcq"
 msgstr "abcq"
 
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:1397
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:1429
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:1451
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:1473
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:1407
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:1439
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:1461
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:1483
 #, c-format
 msgid "abcu"
 msgstr "abcu"
@@ -15572,14 +15565,14 @@ msgstr "abfghk"
 msgid "abfgk"
 msgstr "abfgk"
 
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:1292
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:1293
 #, c-format
 msgid "abh"
 msgstr "abh"
 
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:114
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetResults.xsl:298
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:171
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:181
 #: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:434
 #: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACVolume.xsl:44
 #, c-format
@@ -15588,8 +15581,8 @@ msgstr "abhfgknps"
 
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:542
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:560
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:628
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:647
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:638
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:657
 #, c-format
 msgid "abhfgnp"
 msgstr "abhfgnp"
@@ -15608,7 +15601,7 @@ msgstr "abje"
 
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:924
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetResults.xsl:901
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:268
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:278
 #, c-format
 msgid "abq"
 msgstr "abq"
@@ -15622,7 +15615,7 @@ msgid "abstract or summary"
 msgstr "Kurzfassung oder Zusammenfassung"
 
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetResults.xsl:563
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:791
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:792
 #, c-format
 msgid "abstract or summary "
 msgstr "Kurzfassung oder Zusammenfassung "
@@ -15659,7 +15652,7 @@ msgid "accompanying material"
 msgstr "Begleitmaterial"
 
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:484
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:604
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:614
 #, c-format
 msgid "acdef"
 msgstr "acdef"
@@ -15680,8 +15673,8 @@ msgstr "acdenq"
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2MODS32.xsl:2402
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:1525
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetResults.xsl:1097
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:2191
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:1722
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:2201
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:1725
 #: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACVolume.xsl:471
 #, c-format
 msgid "acdeq"
@@ -15698,7 +15691,7 @@ msgid "adfghklmnoprst"
 msgstr "adfghklmnoprst"
 
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:602
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:694
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:704
 #, c-format
 msgid "adfklmor"
 msgstr "adfklmor"
@@ -15727,8 +15720,8 @@ msgstr "ae"
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:1576
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:1645
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetResults.xsl:382
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:1951
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:2019
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:1961
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:2029
 #: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:570
 #: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACVolume.xsl:123
 #, c-format
@@ -15763,37 +15756,37 @@ msgid "ai"
 msgstr "ai"
 
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:217
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:299
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:309
 #, c-format
 msgid "analytic_collection"
 msgstr "analytic_collection"
 
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:219
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:301
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:311
 #, c-format
 msgid "analytic_ires"
 msgstr "analytic_ires"
 
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:220
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:302
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:312
 #, c-format
 msgid "analytic_monograph"
 msgstr "analytic_monograph"
 
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:221
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:303
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:313
 #, c-format
 msgid "analytic_serial"
 msgstr "analytic_serial"
 
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:218
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:300
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:310
 #, c-format
 msgid "analytic_subunit"
 msgstr "analytic_subunit"
 
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:222
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:304
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:314
 #, c-format
 msgid "analytic_undefined"
 msgstr "analytic_undefined"
@@ -15852,7 +15845,7 @@ msgid "art original"
 msgstr "Kunst-Original"
 
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetResults.xsl:747
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:991
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:992
 #, c-format
 msgid "art original "
 msgstr "Kunst-Original "
@@ -15866,7 +15859,7 @@ msgid "art reproduction"
 msgstr "Kunst-Reproduktion"
 
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetResults.xsl:753
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:997
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:998
 #, c-format
 msgid "art reproduction "
 msgstr "Kunst-Reproduktion "
@@ -15892,24 +15885,24 @@ msgid "atlas "
 msgstr "Atlas "
 
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:1069
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:1245
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:1255
 #, c-format
 msgid "atrug"
 msgstr "atrug"
 
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:166
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:225
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:235
 #, c-format
 msgid "au"
 msgstr "au"
 
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:1927
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:1937
 #, c-format
 msgid "author"
 msgstr "author"
 
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:199
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:281
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:291
 #, c-format
 msgid "av"
 msgstr "av"
@@ -15922,10 +15915,10 @@ msgstr "online verfügbar "
 
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:785
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:798
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:922
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:935
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:1105
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:1117
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:932
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:945
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:1106
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:1118
 #, c-format
 msgid "avxyz"
 msgstr "avxyz"
@@ -15937,9 +15930,9 @@ msgstr "avxyz"
 msgid "axz"
 msgstr "axz"
 
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:1489
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:1503
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:1517
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:1499
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:1513
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:1527
 #, c-format
 msgid "az"
 msgstr "az"
@@ -16355,8 +16348,8 @@ msgstr "bc"
 
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:1267
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:1309
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:1558
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:1600
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:1568
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:1610
 #, c-format
 msgid "bdghkmnr9usxyz"
 msgstr "bdghkmnr9usxyz"
@@ -16365,28 +16358,28 @@ msgstr "bdghkmnr9usxyz"
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2MODS3-1.xsl:343
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2MODS3.xsl:368
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2MODS32.xsl:354
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:796
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:797
 #, c-format
 msgid "bibliography"
 msgstr "Bibliographie"
 
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetResults.xsl:566
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:794
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:795
 #, c-format
 msgid "bibliography "
 msgstr "Bibliographie "
 
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:153
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:163
 #, c-format
 msgid "bibtip_id"
 msgstr "bibtip_id"
 
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:138
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:148
 #, c-format
 msgid "bibtip_isxn"
 msgstr "bibtip_isxn"
 
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:148
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:158
 #, c-format
 msgid "bibtip_shorttitle"
 msgstr "bibtip_shorttitle"
@@ -16399,13 +16392,13 @@ msgstr "bibtip_shorttitle"
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2MODS3.xsl:502
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2MODS32.xsl:447
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2MODS32.xsl:483
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:897
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:898
 #, c-format
 msgid "biography"
 msgstr "Biographie"
 
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetResults.xsl:699
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:943
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:944
 #, c-format
 msgid "biography "
 msgstr "Biographie "
@@ -16449,7 +16442,7 @@ msgstr "weiter"
 msgid "by "
 msgstr "von "
 
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:1926
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:1936
 #, c-format
 msgid "byArtist"
 msgstr "byArtist"
@@ -16874,7 +16867,7 @@ msgid "catalog"
 msgstr "Katalog"
 
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetResults.xsl:569
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:798
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:799
 #, c-format
 msgid "catalog "
 msgstr "Katalog "
@@ -16882,8 +16875,8 @@ msgstr "Katalog "
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:1614
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:1666
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetResults.xsl:420
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:1989
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:2040
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:1999
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:2050
 #: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:608
 #: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACVolume.xsl:161
 #, c-format
@@ -16910,8 +16903,8 @@ msgstr "cdnp"
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:1597
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:1682
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetResults.xsl:403
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:1972
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:2056
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:1982
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:2066
 #: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:591
 #: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACVolume.xsl:144
 #, c-format
@@ -16926,7 +16919,7 @@ msgstr "Himmelsglobus"
 
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:323
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetResults.xsl:885
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:419
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:429
 #, c-format
 msgid "cg"
 msgstr "cg"
@@ -16942,7 +16935,7 @@ msgid "chart"
 msgstr "Tabelle"
 
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetResults.xsl:777
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:1021
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:1022
 #, c-format
 msgid "chart "
 msgstr "Tabelle "
@@ -17017,6 +17010,7 @@ msgstr "Comicstrip"
 #: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:736
 #: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:737
 #: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:738
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:739
 msgid "computer file"
 msgstr "Computerdatei"
 
@@ -17040,8 +17034,8 @@ msgstr "Konferenzschrift"
 
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetResults.xsl:625
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetResults.xsl:702
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:857
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:946
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:858
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:947
 #, c-format
 msgid "conference publication "
 msgstr "Konferenzschrift "
@@ -17062,12 +17056,12 @@ msgstr "Komponente"
 msgid "continuing"
 msgstr "fortlaufend"
 
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:1930
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:1940
 #, c-format
 msgid "contributor"
 msgstr "contributor"
 
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:1921
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:1931
 #, c-format
 msgid "contributors"
 msgstr "Mitwirkende"
@@ -17426,8 +17420,8 @@ msgstr "da- Nahes Intrarot"
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2MODS3.xsl:443
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2MODS32.xsl:328
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2MODS32.xsl:428
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:766
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:874
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:767
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:875
 #, c-format
 msgid "database"
 msgstr "Datenbank"
@@ -17512,7 +17506,7 @@ msgid "dictionary"
 msgstr "Wörterbuch"
 
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetResults.xsl:572
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:801
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:802
 #, c-format
 msgid "dictionary "
 msgstr "Wörterbuch "
@@ -17548,7 +17542,7 @@ msgid "diorama"
 msgstr "Diorama"
 
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetResults.xsl:756
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:1000
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:1001
 #, c-format
 msgid "diorama "
 msgstr "Diorama "
@@ -17567,7 +17561,7 @@ msgid "directory"
 msgstr "Verzeichnis"
 
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetResults.xsl:608
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:837
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:838
 #, c-format
 msgid "directory "
 msgstr "Verzeichnis "
@@ -17581,7 +17575,7 @@ msgid "discography"
 msgstr "Diskographie"
 
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetResults.xsl:587
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:816
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:817
 #, c-format
 msgid "discography "
 msgstr "Diskographie "
@@ -17592,9 +17586,9 @@ msgstr "Diskographie "
 msgid "display:block; "
 msgstr "display:block; "
 
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:139
 #: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:149
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:154
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:159
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:164
 #, c-format
 msgid "display:none"
 msgstr "display:none"
@@ -17645,7 +17639,7 @@ msgid "drama"
 msgstr "Drama"
 
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetResults.xsl:705
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:949
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:950
 #, c-format
 msgid "drama "
 msgstr "Drama "
@@ -17898,7 +17892,7 @@ msgid "encyclopedia"
 msgstr "Enzyklopädie"
 
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetResults.xsl:575
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:804
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:805
 #, c-format
 msgid "encyclopedia "
 msgstr "Enzyklopädie "
@@ -17921,7 +17915,7 @@ msgid "essay"
 msgstr "Essay"
 
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetResults.xsl:708
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:952
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:953
 #, c-format
 msgid "essay "
 msgstr "Essay "
@@ -18100,9 +18094,9 @@ msgstr "f- Unbemanntes Raumschiff"
 msgid "f- Videocassette"
 msgstr "f- Videokassette"
 
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:898
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:945
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:2151
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:908
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:955
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:2161
 #, c-format
 msgid "fa fa-search"
 msgstr "fa fa-search"
@@ -18116,13 +18110,13 @@ msgid "festschrift"
 msgstr "Festschrift"
 
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetResults.xsl:652
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:893
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:894
 #, c-format
 msgid "festschrift "
 msgstr "Festschrift "
 
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:1721
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:2095
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:2105
 #, c-format
 msgid "fghjklmnoprstux"
 msgstr "fghjklmnoprstux"
@@ -18163,7 +18157,7 @@ msgid "fiction"
 msgstr "Belletristik"
 
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetResults.xsl:711
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:955
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:956
 #, c-format
 msgid "fiction "
 msgstr "Belletristik "
@@ -18210,7 +18204,7 @@ msgid "filmography"
 msgstr "Filmographie"
 
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetResults.xsl:605
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:834
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:835
 #, c-format
 msgid "filmography "
 msgstr "Filmographie "
@@ -18235,7 +18229,7 @@ msgid "filmstrip"
 msgstr "Filmstreifen"
 
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetResults.xsl:759
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:1003
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:1004
 #, c-format
 msgid "filmstrip "
 msgstr "Filmstreifen "
@@ -18273,7 +18267,7 @@ msgid "flash card"
 msgstr "Speicherkarte"
 
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetResults.xsl:780
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:1024
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:1025
 #, c-format
 msgid "flash card "
 msgstr "Speicherkarte "
@@ -18287,7 +18281,7 @@ msgid "folktale"
 msgstr "Volkssage"
 
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetResults.xsl:714
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:958
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:959
 #, c-format
 msgid "folktale "
 msgstr "Volkssage "
@@ -18296,14 +18290,14 @@ msgstr "Volkssage "
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2MODS3-1.xsl:420
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2MODS3.xsl:446
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2MODS32.xsl:431
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:877
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:878
 #, c-format
 msgid "font"
 msgstr "Schriftart"
 
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:1004
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetResults.xsl:1030
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:1159
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:1169
 #, c-format
 msgid "ftp://"
 msgstr "ftp://"
@@ -18481,13 +18475,13 @@ msgstr "ga- Sidelooking airborne radar (SLAR)"
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2MODS3-1.xsl:423
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2MODS3.xsl:449
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2MODS32.xsl:434
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:880
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:881
 #, c-format
 msgid "game"
 msgstr "Spiel"
 
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetResults.xsl:762
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:1006
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:1007
 #, c-format
 msgid "game "
 msgstr "Spiel"
@@ -18565,7 +18559,7 @@ msgid "graphic"
 msgstr "Graphik"
 
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetResults.xsl:768
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:1012
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:1013
 #, c-format
 msgid "graphic "
 msgstr "Graphik "
@@ -18686,7 +18680,7 @@ msgid "handbook"
 msgstr "Handbuch"
 
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetResults.xsl:578
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:807
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:808
 #, c-format
 msgid "handbook "
 msgstr "Handbuch "
@@ -18698,7 +18692,7 @@ msgstr "Handbuch "
 msgid "hdl"
 msgstr "hdl"
 
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:1175
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:1185
 #, c-format
 msgid "height:100px"
 msgstr "height:100px"
@@ -18713,19 +18707,19 @@ msgid "history"
 msgstr "Geschichte"
 
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetResults.xsl:717
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:961
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:962
 #, c-format
 msgid "history "
 msgstr "Geschichte "
 
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:1007
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetResults.xsl:1033
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:1162
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:1172
 #, c-format
 msgid "http://"
 msgstr "http://"
 
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:161
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:171
 #, c-format
 msgid "http://schema.org/"
 msgstr "http://schema.org/"
@@ -18743,7 +18737,7 @@ msgid "humor, satire"
 msgstr "Humor, Satire"
 
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetResults.xsl:720
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:964
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:965
 #, c-format
 msgid "humor, satire "
 msgstr "Humor, Satire "
@@ -18882,7 +18876,7 @@ msgid "index"
 msgstr "Index"
 
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetResults.xsl:584
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:813
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:814
 #, c-format
 msgid "index "
 msgstr "Index "
@@ -19157,7 +19151,7 @@ msgstr "kit"
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetResults.xsl:129
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetResults.xsl:750
 #: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:242
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:994
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:995
 #, c-format
 msgid "kit "
 msgstr "kit "
@@ -19270,7 +19264,7 @@ msgid "law report or digest"
 msgstr "Entscheidungsbericht oder -sammlung"
 
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetResults.xsl:617
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:849
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:850
 #, c-format
 msgid "law report or digest "
 msgstr "Entscheidungsbericht oder -sammlung "
@@ -19325,7 +19319,7 @@ msgid "legal article"
 msgstr "Rechtsartikel"
 
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetResults.xsl:581
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:810
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:811
 #, c-format
 msgid "legal article "
 msgstr "Rechtsartikel "
@@ -19339,7 +19333,7 @@ msgid "legal case and case notes"
 msgstr "Rechtsfall oder Fallbeschreibung"
 
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetResults.xsl:614
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:846
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:847
 #, c-format
 msgid "legal case and case notes "
 msgstr "Rechtsfall oder Fallbeschreibung "
@@ -19353,7 +19347,7 @@ msgid "legislation"
 msgstr "Gesetze"
 
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetResults.xsl:590
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:819
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:820
 #, c-format
 msgid "legislation "
 msgstr "Gesetze "
@@ -19383,7 +19377,7 @@ msgid "loose-leaf"
 msgstr "Loseblattsammlung"
 
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetResults.xsl:543
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:768
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:769
 #, c-format
 msgid "loose-leaf "
 msgstr "Loseblattsammlung "
@@ -19631,7 +19625,7 @@ msgid "marcgac"
 msgstr "marcgac"
 
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:187
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:254
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:264
 #, c-format
 msgid "materialtype mt_icon_"
 msgstr "materialtype mt_icon_"
@@ -19659,7 +19653,7 @@ msgid "memoir"
 msgstr "Memoiren"
 
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetResults.xsl:723
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:967
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:968
 #, c-format
 msgid "memoir "
 msgstr "Memoiren "
@@ -19769,7 +19763,7 @@ msgid "microscope slide"
 msgstr "Objektträger"
 
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetResults.xsl:783
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:1027
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:1028
 #, c-format
 msgid "microscope slide "
 msgstr "Objektträger "
@@ -19817,7 +19811,7 @@ msgstr "Modell"
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetResults.xsl:142
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetResults.xsl:786
 #: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:255
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:1030
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:1031
 #, c-format
 msgid "model "
 msgstr "Modell "
@@ -19850,7 +19844,7 @@ msgid "motion picture"
 msgstr "Film"
 
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetResults.xsl:774
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:1018
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:1019
 #, c-format
 msgid "motion picture "
 msgstr "Film "
@@ -20019,7 +20013,7 @@ msgid "newspaper"
 msgstr "Zeitung"
 
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetResults.xsl:549
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:774
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:775
 #, c-format
 msgid "newspaper "
 msgstr "Zeitung "
@@ -20090,7 +20084,7 @@ msgid "numeric data"
 msgstr "numerische Daten"
 
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetResults.xsl:638
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:870
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:871
 #, c-format
 msgid "numeric data "
 msgstr "numerische Daten "
@@ -20196,6 +20190,11 @@ msgstr "o- Original"
 #: koha-tmpl/intranet-tmpl/prog/en/modules/cataloguing/value_builder/marc21_field_007.tt:97
 msgid "o- Paper"
 msgstr "o- Papier"
+
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:738
+#, c-format
+msgid "online Learning"
+msgstr "Online-Lernkurs"
 
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2MODS32.xsl:937
 #: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:213
@@ -20349,7 +20348,7 @@ msgid "patent"
 msgstr "Patent"
 
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetResults.xsl:649
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:890
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:891
 #, c-format
 msgid "patent "
 msgstr "Patent "
@@ -20387,7 +20386,7 @@ msgid "periodical"
 msgstr "Periodika"
 
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetResults.xsl:552
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:777
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:778
 #, c-format
 msgid "periodical "
 msgstr "Periodika "
@@ -20444,7 +20443,7 @@ msgid "picture"
 msgstr "Bild"
 
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetResults.xsl:765
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:1009
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:1010
 #, c-format
 msgid "picture "
 msgstr "Bild "
@@ -20469,7 +20468,7 @@ msgid "poetry"
 msgstr "Poesie"
 
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetResults.xsl:726
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:970
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:971
 #, c-format
 msgid "poetry "
 msgstr "Poesie "
@@ -20530,7 +20529,7 @@ msgid "programmed text"
 msgstr "Programme"
 
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetResults.xsl:602
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:831
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:832
 #, c-format
 msgid "programmed text "
 msgstr "Programme "
@@ -20748,7 +20747,7 @@ msgid "realia"
 msgstr "Gegenstand"
 
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetResults.xsl:789
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:1033
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:1034
 #, c-format
 msgid "realia "
 msgstr "Gegenstand "
@@ -20787,7 +20786,7 @@ msgid "rehearsal"
 msgstr "Probe"
 
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetResults.xsl:729
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:973
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:974
 #, c-format
 msgid "rehearsal "
 msgstr "Probe "
@@ -20841,58 +20840,58 @@ msgid "reporting"
 msgstr "Reportagen"
 
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetResults.xsl:732
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:976
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:977
 #, c-format
 msgid "reporting "
 msgstr "Reportagen "
 
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:229
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:311
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:321
 #, c-format
 msgid "results_summary analytics "
 msgstr "results_summary analytics "
 
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:363
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:463
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:473
 #, c-format
 msgid "results_summary description"
 msgstr "results_summary description"
 
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:338
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:436
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:446
 #, c-format
 msgid "results_summary edition"
 msgstr "results_summary edition"
 
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:543
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetResults.xsl:965
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:629
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:1270
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:639
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:1271
 #, c-format
 msgid "results_summary other_title"
 msgstr "results_summary other_title"
 
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:290
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetResults.xsl:851
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:379
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:389
 #, c-format
 msgid "results_summary publisher"
 msgstr "results_summary publisher"
 
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:200
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:282
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:292
 #, c-format
 msgid "results_summary series"
 msgstr "results_summary series"
 
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:1413
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:1417
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:1423
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:1427
 #, c-format
 msgid "results_summary summary truncable-txt"
 msgstr "results_summary summary truncable-txt"
 
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:603
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:695
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:705
 #, c-format
 msgid "results_summary uniform_title"
 msgstr "results_summary uniform_title"
@@ -20906,7 +20905,7 @@ msgid "review"
 msgstr "Besprechung"
 
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetResults.xsl:599
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:828
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:829
 #, c-format
 msgid "review "
 msgstr "Besprechung "
@@ -21089,7 +21088,7 @@ msgid "score"
 msgstr "Partitur"
 
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:202
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:284
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:294
 #, c-format
 msgid "se"
 msgstr "se"
@@ -21124,7 +21123,7 @@ msgid "series"
 msgstr "Reihen"
 
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetResults.xsl:546
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:771
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:772
 #, c-format
 msgid "series "
 msgstr "Reihen "
@@ -21153,7 +21152,7 @@ msgid "slide"
 msgstr "Dia"
 
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetResults.xsl:792
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:1036
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:1037
 #, c-format
 msgid "slide "
 msgstr "Dia "
@@ -21182,7 +21181,7 @@ msgid "sound"
 msgstr "Ton"
 
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetResults.xsl:735
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:979
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:980
 #, c-format
 msgid "sound "
 msgstr "Ton "
@@ -21288,7 +21287,7 @@ msgid "speech"
 msgstr "Rede"
 
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetResults.xsl:738
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:982
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:983
 #, c-format
 msgid "speech "
 msgstr "Rede "
@@ -21307,7 +21306,7 @@ msgid "statistics"
 msgstr "Statistiken"
 
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetResults.xsl:611
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:840
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:841
 #, c-format
 msgid "statistics "
 msgstr "Statistiken "
@@ -21326,7 +21325,7 @@ msgstr "Statistiken "
 msgid "still image"
 msgstr "Standbild"
 
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:862
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:872
 #, c-format
 msgid "subject"
 msgstr "Thema"
@@ -21361,7 +21360,7 @@ msgid "survey of literature"
 msgstr "Literaturübersicht"
 
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetResults.xsl:596
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:825
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:826
 #, c-format
 msgid "survey of literature "
 msgstr "Literaturübersicht "
@@ -21496,7 +21495,7 @@ msgstr "Technische Zeichnung"
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetResults.xsl:203
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetResults.xsl:771
 #: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:331
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:1015
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:1016
 #, c-format
 msgid "technical drawing "
 msgstr "Technische Zeichnung "
@@ -21505,7 +21504,7 @@ msgstr "Technische Zeichnung "
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2MODS3-1.xsl:391
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2MODS3.xsl:416
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2MODS32.xsl:402
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:844
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:845
 #, c-format
 msgid "technical report"
 msgstr "Technischer Bericht"
@@ -21553,7 +21552,7 @@ msgid "theses"
 msgstr "Hochschulschriften"
 
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetResults.xsl:593
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:822
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:823
 #, c-format
 msgid "theses "
 msgstr "Hochschulschriften "
@@ -21587,7 +21586,7 @@ msgid "toy"
 msgstr "Spielzeug"
 
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetResults.xsl:801
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:1045
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:1046
 #, c-format
 msgid "toy "
 msgstr "Spielzeug "
@@ -21612,7 +21611,7 @@ msgstr "Folie"
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetResults.xsl:218
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetResults.xsl:795
 #: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:352
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:1039
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:1040
 #, c-format
 msgid "transparency "
 msgstr "Folie "
@@ -21626,13 +21625,13 @@ msgid "treaty"
 msgstr "Vertrag"
 
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetResults.xsl:620
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:852
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:853
 #, c-format
 msgid "treaty "
 msgstr "Vertrag "
 
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:1063
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:1239
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:1249
 #, c-format
 msgid "trug"
 msgstr "trug"
@@ -21783,7 +21782,7 @@ msgid "videorecording"
 msgstr "Videoaufnahme"
 
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetResults.xsl:798
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:1042
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:1043
 #, c-format
 msgid "videorecording "
 msgstr "Videoaufnahme "
@@ -21826,10 +21825,10 @@ msgstr "Sicht "
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2SRWDC.xsl:219
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:745
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:799
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:887
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:936
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:1118
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:1146
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:897
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:946
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:1119
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:1147
 #, c-format
 msgid "vxyz"
 msgstr "vxyz"
@@ -21861,7 +21860,7 @@ msgstr "w- Drahtaufzeichnung"
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2MODS3-1.xsl:332
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2MODS3.xsl:356
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2MODS32.xsl:343
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:781
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACResults.xsl:782
 #, c-format
 msgid "web site"
 msgstr "Webseite"
@@ -21940,7 +21939,7 @@ msgstr "y3"
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2MODS32.xsl:2043
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:1019
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetResults.xsl:1045
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:1179
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:1189
 #, c-format
 msgid "y3z"
 msgstr "y3z"
