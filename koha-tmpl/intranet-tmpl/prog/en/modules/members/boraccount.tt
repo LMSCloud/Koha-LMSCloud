@@ -159,7 +159,7 @@
             <button type="button"  class="btn btn-default btn-xs" data-toggle="modal" data-target="#issueRefundModal" data-item="[%- PROCESS account_type_description account=account -%]" data-accountline="[% account.accountlines_id | html %]" data-amount="[% account.amount %]" data-amountformatted="[% account.amount | $Price %]" data-amountoutstanding="[% account.amountoutstanding %]" data-amountoutstandingformatted="[% account.amountoutstanding | $Price %]" data-member="[% account.borrowernumber | html %]"><i class="fa fa-money"></i> Issue refund</button>
           [% END %]
         [% END %]
-        [% IF CAN_user_updatecharges_discount && account.is_debit && ( account.amountoutstanding == account.amount ) && !(account.debit_type_code == 'PAYOUT') %]
+        [% IF CAN_user_updatecharges_discount && account.is_debit && ( account.amountoutstanding == account.amount ) && !(account.debit_type_code == 'PAYOUT') && !(account.debit_type_code == 'VOID') %]
           <button type="button" data-toggle="modal" data-target="#applyDiscountModal" data-item="[%- PROCESS account_type_description account=account -%]" data-accountline="[% account.accountlines_id | html %]" data-amount="[% account.amount %]" data-amountformatted="[% account.amount | $Price %]" data-amountoutstanding="[% account.amountoutstanding %]" data-amountoutstandingformatted="[% account.amountoutstanding | $Price %]" class="btn btn-default btn-xs">Apply discount</button>
         [% END %]
       </td>
