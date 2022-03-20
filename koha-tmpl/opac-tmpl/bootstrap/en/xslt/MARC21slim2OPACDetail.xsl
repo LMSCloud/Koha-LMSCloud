@@ -67,7 +67,17 @@
                 </xsl:when>
                 <xsl:when test="$leader6='t'">BK</xsl:when>
                 <xsl:when test="$leader6='o' or $leader6='p'">MX</xsl:when>
-                <xsl:when test="$leader6='m'">CF</xsl:when>
+                <xsl:when test="$leader6='m'">
+                    <xsl:choose>
+                        <xsl:when test="marc:datafield[@tag=337 and marc:subfield[@code='a' and text()='ebook']]">AR</xsl:when>
+                        <xsl:when test="marc:datafield[@tag=337 and marc:subfield[@code='a' and text()='evideo']]">VM</xsl:when>
+                        <xsl:when test="marc:datafield[@tag=337 and marc:subfield[@code='a' and text()='emusic']]">PR</xsl:when>
+                        <xsl:when test="marc:datafield[@tag=337 and marc:subfield[@code='a' and text()='eaudio']]">MU</xsl:when>
+                        <xsl:when test="marc:datafield[@tag=337 and marc:subfield[@code='a' and text()='epaper']]">MP</xsl:when>
+                        <xsl:when test="marc:datafield[@tag=337 and marc:subfield[@code='a' and text()='elearning']]">VM</xsl:when>
+                        <xsl:otherwise>CF</xsl:otherwise>
+                    </xsl:choose>
+                </xsl:when>
                 <xsl:when test="$leader6='e' or $leader6='f'">MP</xsl:when>
                 <xsl:when test="$leader6='g'">VM</xsl:when>
                 <xsl:when test="$leader6='k'">PK</xsl:when>
@@ -333,7 +343,7 @@
                 <xsl:attribute name="href">/cgi-bin/koha/opac-search.pl?q=rcn:<xsl:value-of select="str:encode-uri(marc:controlfield[@tag=001], true())"/>+NOT+(bib-level:a+OR+bib-level:b)</xsl:attribute>
             </xsl:when>
             <xsl:otherwise>
-                <xsl:attribute name="href">/cgi-bin/koha/opac-search.pl?q=ti,phr:<xsl:value-of select="str:encode-uri(translate(marc:datafield[@tag=245]/marc:subfield[@code='a'], '/', ''), true())"/></xsl:attribute>
+                <xsl:attribute name="href">/cgi-bin/koha/opac-search.pl?q=ti.phrase:<xsl:value-of select="str:encode-uri(translate(marc:datafield[@tag=245]/marc:subfield[@code='a'], '/', ''), true())"/></xsl:attribute>
             </xsl:otherwise>
             </xsl:choose>
             <xsl:choose>
@@ -358,7 +368,7 @@
                 <xsl:attribute name="href">/cgi-bin/koha/opac-search.pl?q=Control-number:<xsl:call-template name="extractControlNumber"><xsl:with-param name="subfieldW" select="marc:subfield[@code='w']"/></xsl:call-template></xsl:attribute>
             </xsl:when>
             <xsl:otherwise>
-                <xsl:attribute name="href">/cgi-bin/koha/opac-search.pl?q=ti,phr:<xsl:value-of select="str:encode-uri(translate(//marc:datafield[@tag=245]/marc:subfield[@code='a'], '.', ''), true())"/></xsl:attribute>
+                <xsl:attribute name="href">/cgi-bin/koha/opac-search.pl?q=ti.phrase:<xsl:value-of select="str:encode-uri(translate(//marc:datafield[@tag=245]/marc:subfield[@code='a'], '.', ''), true())"/></xsl:attribute>
             </xsl:otherwise>
             </xsl:choose>
             <xsl:value-of select="translate(//marc:datafield[@tag=245]/marc:subfield[@code='a'], '.', '')" />
@@ -1032,7 +1042,7 @@
                             </a>
                         </xsl:when>
                         <xsl:otherwise>
-                            <a><xsl:attribute name="href">/cgi-bin/koha/opac-search.pl?q=ti,phr:<xsl:value-of select="str:encode-uri(marc:subfield[@code='t'], true())"/></xsl:attribute>
+                            <a><xsl:attribute name="href">/cgi-bin/koha/opac-search.pl?q=ti.phrase:<xsl:value-of select="str:encode-uri(marc:subfield[@code='t'], true())"/></xsl:attribute>
                             <xsl:value-of select="$f777"/>
                             </a>
                         </xsl:otherwise>
@@ -1055,7 +1065,7 @@
                 <xsl:for-each select="marc:subfield[@code='a' and text()]">
                     <xsl:variable name="wupidupi"><xsl:call-template name="url-encode"><xsl:with-param name="str" select="text()"/></xsl:call-template></xsl:variable>
                     <a>
-                        <xsl:attribute name="href">/cgi-bin/koha/opac-search.pl?q=sys,phr,ext:"<xsl:value-of select="$wupidupi"/>"</xsl:attribute>
+                        <xsl:attribute name="href">/cgi-bin/koha/opac-search.pl?q=sys.phrase:"<xsl:value-of select="$wupidupi"/>"</xsl:attribute>
                         <xsl:call-template name="chopPunctuation">
                             <xsl:with-param name="chopString">
                                 <xsl:value-of select="text()"/>
@@ -1335,7 +1345,7 @@
                         </xsl:when>
                         <xsl:otherwise>
                             <a>
-                                <xsl:attribute name="href">/cgi-bin/koha/opac-search.pl?q=ti,phr:<xsl:value-of select="str:encode-uri(translate(marc:subfield[@code='t'], '()', ''), true())"/><xsl:if test="marc:subfield[@code='a']">+AND+au:<xsl:value-of select="str:encode-uri(translate(marc:subfield[@code='a'], '()', ''), true())"/></xsl:if></xsl:attribute>
+                                <xsl:attribute name="href">/cgi-bin/koha/opac-search.pl?q=ti.phrase:<xsl:value-of select="str:encode-uri(translate(marc:subfield[@code='t'], '()', ''), true())"/><xsl:if test="marc:subfield[@code='a']">+AND+au:<xsl:value-of select="str:encode-uri(translate(marc:subfield[@code='a'], '()', ''), true())"/></xsl:if></xsl:attribute>
                                 <xsl:value-of select="$f773"/>
                             </a>
                         </xsl:otherwise>
@@ -1542,7 +1552,7 @@
                                 </xsl:attribute>
                             </xsl:when>
                             <xsl:otherwise>
-                                <xsl:attribute name="href">/cgi-bin/koha/opac-search.pl?q=ti,phr:<xsl:value-of select="str:encode-uri(translate(marc:subfield[@code='t'], '()', ''),true())"/></xsl:attribute>
+                                <xsl:attribute name="href">/cgi-bin/koha/opac-search.pl?q=ti.phrase:<xsl:value-of select="str:encode-uri(translate(marc:subfield[@code='t'], '()', ''),true())"/></xsl:attribute>
                             </xsl:otherwise>
                         </xsl:choose>
                         <xsl:choose>
@@ -1585,7 +1595,7 @@
                                 </xsl:attribute>
                             </xsl:when>
                             <xsl:otherwise>
-                                <xsl:attribute name="href">/cgi-bin/koha/opac-search.pl?q=ti,phr:<xsl:value-of select="str:encode-uri(translate(marc:subfield[@code='t'], '()', ''),true())"/></xsl:attribute>
+                                <xsl:attribute name="href">/cgi-bin/koha/opac-search.pl?q=ti.phrase:<xsl:value-of select="str:encode-uri(translate(marc:subfield[@code='t'], '()', ''),true())"/></xsl:attribute>
                             </xsl:otherwise>
                         </xsl:choose>
                         <xsl:choose>
@@ -1628,7 +1638,7 @@
                 <xsl:attribute name="href">/cgi-bin/koha/opac-search.pl?q=Control-number:<xsl:call-template name="extractControlNumber"><xsl:with-param name="subfieldW" select="marc:subfield[@code='w']"/></xsl:call-template></xsl:attribute>
             </xsl:when>
             <xsl:otherwise>
-                <xsl:attribute name="href">/cgi-bin/koha/opac-search.pl?q=ti,phr:<xsl:value-of select="str:encode-uri(translate($f775, '()', ''), true())"/></xsl:attribute>
+                <xsl:attribute name="href">/cgi-bin/koha/opac-search.pl?q=ti.phrase:<xsl:value-of select="str:encode-uri(translate($f775, '()', ''), true())"/></xsl:attribute>
             </xsl:otherwise>
             </xsl:choose>
             <xsl:call-template name="subfieldSelect">
@@ -1696,7 +1706,7 @@
                                 </a>
                             </xsl:when>
                             <xsl:otherwise>
-                                <a><xsl:attribute name="href">/cgi-bin/koha/opac-search.pl?q=ti,phr:<xsl:value-of select="str:encode-uri(translate($f780, '()', ''), true())"/></xsl:attribute>
+                                <a><xsl:attribute name="href">/cgi-bin/koha/opac-search.pl?q=ti.phrase:<xsl:value-of select="str:encode-uri(translate($f780, '()', ''), true())"/></xsl:attribute>
                                     <xsl:value-of select="$f780"/>
                                 </a>
                             </xsl:otherwise>
@@ -1767,7 +1777,7 @@
                                 </a>
                             </xsl:when>
                             <xsl:otherwise>
-                                <a><xsl:attribute name="href">/cgi-bin/koha/opac-search.pl?q=ti,phr:<xsl:value-of select="str:encode-uri(translate($f785, '()', ''), true())"/></xsl:attribute>
+                                <a><xsl:attribute name="href">/cgi-bin/koha/opac-search.pl?q=ti.phrase:<xsl:value-of select="str:encode-uri(translate($f785, '()', ''), true())"/></xsl:attribute>
                                     <xsl:value-of select="$f785"/>
                                 </a>
                             </xsl:otherwise>
