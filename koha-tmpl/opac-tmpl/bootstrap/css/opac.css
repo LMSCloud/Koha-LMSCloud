@@ -26,7 +26,6 @@ th {
 .main {
     background-color:#ffffff;
     border: 1px solid #ffffff;
-    .border-radius-all(7px);
     -webkit-box-shadow: none;
     -moz-box-shadow: none;
     box-shadow: none;
@@ -34,6 +33,9 @@ th {
 }
 .mastheadsearch {
     background: #dcdcdc;
+}
+#moresearches {
+    justify-content: center!important; 
 }
 #opac-main-search label {
     color: unset;
@@ -110,44 +112,25 @@ th {
 #encyclopedia-facets .facet-count{
     display:inline-block
 }
-#encyclopedia-facets, #menu {
-	margin-top: 30px;
+
+@media only screen and (min-width:768px) {
+    #encyclopedia-facets, #menu {
+	    margin-top: 30px;
+    }
 }
 
-@media only screen and (max-width:767px){
-    #encyclopedia-facets {
-        margin-bottom:.5em
-    }
-    #encyclopedia-facets h3 {
-        display:block;
-        margin:0;
-        padding:0
-    }
-    #encyclopedia-facets h3 a {
-        -webkit-border-radius:7px;
-        -moz-border-radius:7px;
-        border-radius:7px;
-        border-bottom:0;
-        font-weight:400;
-        padding:.7em .2em
-    }
+@media only screen and (max-width:767px) {
     #encyclopedia-facets ul {
         padding:0
     }
     #encyclopedia-facets li  {
         padding:.4em
     }
-    #encyclopedia-facets h5 {
-        margin:.2em
-    }
-    #encyclopedia-facets h4 a.menu-open{
-        -webkit-border-radius:7px 7px 0 0;
-        -moz-border-radius:7px 7px 0 0;
-        border-radius:7px 7px 0 0;
-        border-bottom:1px solid #D8D8D8
+    #search-facets {
+        margin-bottom: 30px;
     }
 }
-#encyclopedia-facets,#munzinger-facet,#encyclopediaresults,#encyclopedianumresults {
+#encyclopedia-facets, #munzinger-facet, #encyclopediaresults, #encyclopedianumresults {
     display:none
 }
 #encyclopediaheader {
@@ -160,21 +143,60 @@ th {
     top: 0.55em;
     position: relative;
 }
-.detail_volume_list { margin-top: 1em; clear: left; }
-.detail_volume_list .toolbar { border-radius: 0px 0px 0px 0px; }
-.detail_volume_volname { font-size: 100%; font-weight: 600; }
-.detail_volume_header { font-weight: bold; margin-left: 12px; margin-top: 4px; }
-.detail_volume_bibdata .title { font-size: 100%; }
-.detail_linked_record_list { margin-top: 1em; clear: left; }
-.detail_linked_record_list .toolbar { border-radius: 0px 0px 0px 0px; }
-.detail_linked_record_header { font-weight: bold; margin-left: 12px; margin-top: 4px; }
-.detail_linked_record_bibdata .title { font-size: 100%; }
-.newsitem { margin-bottom: 20px; }
-.newscontainer { border: none; }
-.container-news { max-width: 1080px; margin-left: auto; margin-right: auto; }
-.mt_icon_antolin { margin-bottom: 2px; }
-.materialtype { margin-right: 2px; }
-#age_limits.row { margin-bottom: 15px; }
+.detail_volume_list { 
+    margin-top: 1em; 
+    clear: left; 
+}
+.detail_volume_list .toolbar { 
+    border-radius: 0px 0px 0px 0px; 
+}
+.detail_volume_volname { 
+    font-size: 100%; 
+    font-weight: 600; 
+}
+.detail_volume_header { 
+    font-weight: bold; 
+    margin-left: 12px; 
+    margin-top: 4px; 
+}
+.detail_volume_bibdata .title { 
+    font-size: 100%; 
+}
+.detail_linked_record_list { 
+    margin-top: 1em; 
+    clear: left; 
+}
+.detail_linked_record_list .toolbar { 
+    border-radius: 0px 0px 0px 0px; 
+}
+.detail_linked_record_header { 
+    font-weight: bold; 
+    margin-left: 12px; 
+    margin-top: 4px; 
+}
+.detail_linked_record_bibdata .title { 
+    font-size: 100%; 
+}
+.newsitem { 
+    margin-bottom: 20px; 
+}
+.newscontainer { 
+    border: none; 
+}
+.container-news { 
+    max-width: 1080px; 
+    margin-left: auto; 
+    margin-right: auto; 
+}
+.mt_icon_antolin { 
+    margin-bottom: 2px; 
+}
+.materialtype { 
+    margin-right: 2px; 
+}
+#age_limits.row { 
+    margin-bottom: 15px; 
+}
 .pg_menu .pg_link a, .pg_menu .pg_link span {
     padding: .4em .0em;
 }
@@ -200,30 +222,6 @@ th {
 /* Keine Anzeige des "no image found"-Bilds */
 .no-image { 
     display: none !important;
-}
-.alert {
-    background: #d5db00; /* Old browsers */
-    background: -moz-linear-gradient(top, #d5db00 0%, #d5db00 9%, #d5db00 89%, #d5db00 100%); /* FF3.6+ */
-    background: -webkit-gradient(linear, left top, left bottom, color-stop(0%,#d5db00), color-stop(9%,#d5db00), color-stop(89%,#d5db00), color-stop(100%,#d5db00)); /* Chrome,Safari4+ */
-    background: -webkit-linear-gradient(top, #d5db00 0%,#d5db00 9%,#d5db00 89%,#d5db00 100%); /* Chrome10+,Safari5.1+ */
-    background: -o-linear-gradient(top, #d5db00 0%,#d5db00 9%,#d5db00 89%,#d5db00 100%); /* Opera 11.10+ */
-    background: -ms-linear-gradient(top, #d5db00 0%,#d5db00 9%,#d5db00 89%,#d5db00 100%); /* IE10+ */
-    background: linear-gradient(to bottom, #d5db00 0%,#d5db00 9%,#d5db00 89%,#d5db00 100%); /* W3C */
-    filter: progid:DXImageTransform.Microsoft.gradient( startColorstr='#d5db00', endColorstr='#d5db00',GradientType=0 ); /* IE6-9 */
-    border-color : #d5db00;
-    color: #333;
-}
-.alert-info {
-    background: #d5db00; /* Old browsers */
-    background: -moz-linear-gradient(top,  #d5db00 0%, #d5db00 4%, #d5db00 96%, #d5db00 100%); /* FF3.6+ */
-    background: -webkit-gradient(linear, left top, left bottom, color-stop(0%,#d5db00), color-stop(4%,#d5db00), color-stop(96%,#d5db00), color-stop(100%,#d5db00)); /* Chrome,Safari4+ */
-    background: -webkit-linear-gradient(top, #d5db00 0%,#d5db00 4%,#d5db00 96%,#d5db00 100%); /* Chrome10+,Safari5.1+ */
-    background: -o-linear-gradient(top, #d5db00 0%,#d5db00 4%,#d5db00 96%,#d5db00 100%); /* Opera 11.10+ */
-    background: -ms-linear-gradient(top, #d5db00 0%,#d5db00 4%,#d5db00 96%,#d5db00 100%); /* IE10+ */
-    background: linear-gradient(to bottom, #d5db00 0%,#d5db00 4%,#d5db00 96%,#d5db00 100%); /* W3C */
-    filter: progid:DXImageTransform.Microsoft.gradient( startColorstr='#d5db00', endColorstr='#d5db00',GradientType=0 ); /* IE6-9 */
-    border-color : #d5db00;
-    color: #333;
 }
 nav .pagination {
     margin-top: 6px;
@@ -418,4 +416,7 @@ img {
 }
 .ui-widget-content a, .ui-widget-content a:visited {
     color: #0076B2;
+}
+#overdrive-results-list .thumbnail {
+    max-width: 100px;
 }
