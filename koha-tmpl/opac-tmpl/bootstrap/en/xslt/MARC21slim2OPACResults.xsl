@@ -735,7 +735,8 @@
                         <xsl:when test="marc:datafield[@tag=337 and marc:subfield[@code='a' and text()='emusic']]"><img src="/opac-tmpl/lib/famfamfam/PR.png" title="computer file" alt="computer file" class="materialtype mt_icon_emusic" /> downloadable Music</xsl:when>
                         <xsl:when test="marc:datafield[@tag=337 and marc:subfield[@code='a' and text()='eaudio']]"><img src="/opac-tmpl/lib/famfamfam/MU.png" title="computer file" alt="computer file" class="materialtype mt_icon_eaudio" /> downloadable Audio Book</xsl:when>
                         <xsl:when test="marc:datafield[@tag=337 and marc:subfield[@code='a' and text()='epaper']]"><img src="/opac-tmpl/lib/famfamfam/MP.png" title="computer file" alt="computer file" class="materialtype mt_icon_epaper" /> downloadable Newspaper</xsl:when>
-                        <xsl:otherwise><img src="/opac-tmpl/lib/famfamfam/silk/computer_link.png" title="computer file" alt="computer file" class="materialtype mt_icon_CF"/> Computer file</xsl:otherwise>
+                        <xsl:when test="marc:datafield[@tag=337 and marc:subfield[@code='a' and text()='elearning']]"><img src="/opac-tmpl/lib/famfamfam/VM.png" title="computer file" alt="computer file" class="materialtype mt_icon_elearning" /> online Learning</xsl:when>
+                        <xsl:otherwise><img src="/opac-tmpl/lib/famfamfam/CF.png" title="computer file" alt="computer file" class="materialtype mt_icon_CF"/> Computer file</xsl:otherwise>
                     </xsl:choose>
                 </xsl:when>
                 <xsl:when test="$leader6='e' or $leader6='f'"><img src="/opac-tmpl/lib/famfamfam/MP.png" alt="Map" class="materialtype mt_icon_MP"/> Map</xsl:when>
@@ -1303,10 +1304,11 @@
             <xsl:if test="not(contains($ExcludeReviewsWithMARC520Indicator1Value,'|8|'))">
                 <xsl:for-each select="marc:datafield[@tag=520 and @ind1=8]">
                     <xsl:if test="position()=1 and marc:subfield[@code='a']">
-                        <span class="results_summary summary">
+                        <span class="results_summary summary truncable-txt">
                             <xsl:call-template name="subfieldSelect">
                                 <xsl:with-param name="codes">a</xsl:with-param>
                             </xsl:call-template>
+                            <a href="javascript:void(0)" class="truncable-txt-readmore">Read more &#187;</a>
                         </span>
                     </xsl:if> 
                 </xsl:for-each>
@@ -1316,10 +1318,11 @@
             <xsl:if test="not(contains($ExcludeReviewsWithMARC520Indicator1Value,'| |'))">
                 <xsl:for-each select="marc:datafield[@tag=520 and @ind1=' ']">
                     <xsl:if test="marc:subfield[@code='a']">
-                        <span class="results_summary summary">
+                        <span class="results_summary summary truncable-txt">
                             <xsl:call-template name="subfieldSelect">
                                 <xsl:with-param name="codes">a</xsl:with-param>
                             </xsl:call-template>
+                            <a href="javascript:void(0)" class="truncable-txt-readmore">Read more &#187;</a>
                         </span>
                     </xsl:if> 
                 </xsl:for-each>
