@@ -200,7 +200,7 @@
                                         <a href="/cgi-bin/koha/opac-password-recovery.pl">Forgot your password?</a>
                                     </div>
                                 [% END %]
-                                <div id="nologininstructions">
+                                <div id="nologininstructions" class="nologininstructions">
                                     [% IF ( OpacLoginInstructions ) %]
                                         [% PROCESS koha_news_block news => OpacLoginInstructions %]
                                     [% ELSE %]
