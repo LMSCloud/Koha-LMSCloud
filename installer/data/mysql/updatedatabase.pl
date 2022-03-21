@@ -21791,7 +21791,7 @@ if( CheckVersion( $DBversion ) ) {
             UPDATE library_groups
             SET parent_id = NULL, ft_search_groups_opac = ?, ft_search_groups_staff = ?
             WHERE parent_id = ?
-        |, undef, $parent_group->{id}, $parent_group->{ft_search_groups_opac}, $parent_group->{ft_search_groups_staff});
+        |, undef, $parent_group->{ft_search_groups_opac}, $parent_group->{ft_search_groups_staff}, $parent_group->{id});
         $dbh->do(q|
             DELETE FROM library_groups WHERE id = ?
         |, undef, $parent_group->{id});
@@ -26392,6 +26392,14 @@ if( CheckVersion( $DBversion ) ) {
             VALUES ( 'yi', 'Hebr');
         });
     NewVersion( $DBversion, "29596", "Add Yiddish language" );
+}
+
+$DBversion = '21.05.11.002';
+if( CheckVersion( $DBversion ) ) {
+    $dbh->do(q{
+              ALTER TABLE creator_layouts MODIFY `format_string` varchar(1024) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'barcode'
+           });
+    NewVersion( $DBversion, "", "Extend field creator_layouts.format_string to 1024 characters." );
 }
 
 $DBversion = '21.05.12.000';
