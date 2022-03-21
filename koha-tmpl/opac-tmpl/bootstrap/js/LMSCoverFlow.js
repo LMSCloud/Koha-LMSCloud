@@ -4,6 +4,30 @@
     (global = typeof globalThis !== 'undefined' ? globalThis : global || self, factory(global.LMSCoverFlow = {}));
 })(this, (function (exports) { 'use strict';
 
+    class Observable {
+        _listeners;
+        _value;
+        constructor(value) {
+            this._listeners = [];
+            this._value = value;
+        }
+        notify() {
+            this._listeners.forEach((listener) => listener(this._value));
+        }
+        subscribe(listener) {
+            this._listeners.push(listener);
+        }
+        get value() {
+            return this._value;
+        }
+        set value(val) {
+            if (val !== this._value) {
+                this._value = val;
+                this.notify();
+            }
+        }
+    }
+
     /* This method can be used to create a global style tag inside the head */
     // TODO: Check if style tag already exists and use a unique name for style.
     function createStyleTag() {
@@ -735,6 +759,7 @@
             new LcfItemWrapper('div', 'lcfCoverImageWrapper', 'lcfFlipCardFront', ['card-img-top', containerReferenceAsClass]),
             new LcfItemWrapper('a', 'lcfAnchor', 'lcfCoverImageWrapper', [containerReferenceAsClass]),
             new LcfItemWrapper('img', 'lcfCoverImage', 'lcfAnchor', [containerReferenceAsClass]),
+            // new LcfItemWrapper('div', 'lcfCoverHtmlWrapper', 'lcfAnchor', [containerReferenceAsClass]),
             new LcfItemWrapper('div', 'lcfCardBody', 'lcfFlipCardFront', ['card-body', 'p-2', 'text-center', containerReferenceAsClass]),
             new LcfItemWrapper('p', 'lcfMediaAuthor', 'lcfCardBody', ['card-text', 'text-muted', 'text-truncate', 'font-weight-light', 'mb-0', config.coverFlowCardBodyTextHeights.lcfMediaAuthor, containerReferenceAsClass]),
             new LcfItemWrapper('p', 'lcfMediaItemCallNumber', 'lcfCardBody', ['card-text', 'text-muted', 'text-truncate', 'font-weight-light', 'mb-0', config.coverFlowCardBodyTextHeights.lcfMediaItemCallNumber, containerReferenceAsClass]),
@@ -839,6 +864,208 @@
     }
     /* end of build() */
 
+    class Config {
+        constructor(configuration) {
+            this.c = configuration;
+            this.coverImageFallbackHeight = this.c.coverImageFallbackHeight || 210;
+            this.coverFlowTooltips = this.c.coverFlowTooltips || false;
+            this.coverFlowAutoScroll = this.c.coverFlowAutoScroll || false;
+            this.coverFlowAutoScrollInterval = this.c.coverFlowAutoScrollInterval || 8000;
+            this.coverFlowCardBody = this.c.coverFlowCardBody || {
+                lcfMediaAuthor: true,
+                lcfMediaTitle: true,
+                lcfMediaItemCallNumber: false,
+            };
+            this.coverFlowCardBodyTextHeights = this.c.coverFlowCardBodyTextHeights || {
+                lcfMediaAuthor: 'text-custom-12',
+                lcfMediaTitle: 'text-custom-12',
+                lcfMediaItemCallNumber: 'text-custom-12',
+            };
+            this.coverImageFallbackUrl = this.c.coverImageFallbackUrl || 'http://placekitten.com/g/200/300';
+            this.coverImageExternalSources = this.c.coverImageExternalSources || false;
+            this.coverFlowContext = this.c.coverFlowContext || 'default';
+            this.coverFlowShelfBrowser = this.c.coverFlowShelfBrowser || false;
+            this.coverFlowContainerWidth = this.c.coverFlowContainerWidth || '100%';
+            this.coverFlowContainerMargin = this.c.coverFlowContainerMargin || '0%';
+            this.coverFlowContainerPadding = this.c.coverFlowContainerPadding || '2rem 1px 2rem 1px';
+            this.coverFlowButtonsBehaviour = this.c.coverFlowButtonsBehaviour || 'stay';
+            this.coverFlowButtonsCallback = this.c.coverFlowButtonsCallback;
+            this.coverFlowFlippableCards = this.c.coverFlowFlippableCards || false;
+            this.coverFlowHighlightingStyle = this.c.coverFlowHighlightingStyle || 'default';
+            this.gridCoverFlowBreakpoints = this.c.gridCoverFlowBreakpoints || {
+                xl: 1367,
+                l: 1025,
+                m: 769,
+                s: 481,
+                xs: 320,
+            };
+            this.shelfBrowserExtendedCoverFlow = this.c.shelfBrowserExtendedCoverFlow || false;
+            this.shelfBrowserButtonDirection = this.c.shelfBrowserButtonDirection || null;
+            this.shelfBrowserCurrentEventListeners = this.c.shelfBrowserCurrentEventListeners || null;
+        }
+    }
+
+    class Container {
+        reference;
+        scrollable;
+        lcfNavigationButtonLeft;
+        lcfNavigationButtonRight;
+        config;
+        constructor(element, config) {
+            this.config = config;
+            this.reference = document.getElementById(element);
+            this.scrollable = false;
+            this.lcfNavigationButtonLeft = null;
+            this.lcfNavigationButtonRight = null;
+        }
+        isScrollable() {
+            if (this.reference.scrollWidth > this.reference.clientWidth
+                || this.config.coverFlowShelfBrowser) {
+                this.scrollable = true;
+            }
+        }
+        static scrollSmoothly(container, position, time) {
+            const CONTAINER = container;
+            let POSITION = position;
+            let TIME = time;
+            const currentPosition = position !== 0
+                ? CONTAINER.reference.scrollLeft
+                : CONTAINER.reference.scrollWidth;
+            let start = null;
+            if (TIME === null) {
+                TIME = 500;
+            }
+            if (position === 0) {
+                TIME = 2000;
+            }
+            POSITION = +POSITION;
+            TIME = +TIME;
+            window.requestAnimationFrame(function step(currentTime) {
+                start = !start ? currentTime : start;
+                const progress = currentTime - start;
+                if (currentPosition < POSITION) {
+                    CONTAINER.reference.scrollLeft = ((((POSITION - currentPosition) * progress) / TIME) + currentPosition);
+                }
+                else {
+                    CONTAINER.reference.scrollLeft = ((currentPosition - ((currentPosition - POSITION) * progress) / TIME));
+                }
+                if (progress < TIME) {
+                    window.requestAnimationFrame(step);
+                }
+                else {
+                    CONTAINER.reference.scrollLeft = POSITION;
+                }
+            });
+        }
+        updateNavigationButtonReferences() {
+            const containerReferenceAsClass = this.reference.id;
+            this.lcfNavigationButtonLeft = document.querySelector(`.lcfNavigationButtonLeft.${containerReferenceAsClass}`);
+            this.lcfNavigationButtonRight = document.querySelector(`.lcfNavigationButtonRight.${containerReferenceAsClass}`);
+        }
+        hideOrShowButton() {
+            if (this.config.coverFlowShelfBrowser) {
+                if (this.config.shelfBrowserCurrentEventListeners.getLeft() === false) {
+                    this.config.shelfBrowserCurrentEventListeners.setHandler(this.handleShelfBrowserScrollingLeft, 'left');
+                    this.reference.addEventListener('scroll', this.handleShelfBrowserScrollingLeft);
+                    this.config.shelfBrowserCurrentEventListeners.setLeftToTrue();
+                }
+                if (this.config.shelfBrowserCurrentEventListeners.getRight() === false) {
+                    this.config.shelfBrowserCurrentEventListeners.setHandler(this.handleShelfBrowserScrollingRight, 'right');
+                    this.reference.addEventListener('scroll', this.handleShelfBrowserScrollingRight);
+                    this.config.shelfBrowserCurrentEventListeners.setRightToTrue();
+                }
+            }
+            else {
+                this.reference.addEventListener('scroll', this.handleDefaultScrolling);
+            }
+        }
+        handleShelfBrowserScrollingLeft = () => {
+            const container = this.reference;
+            if (this.config.coverFlowShelfBrowser) {
+                if (container.scrollLeft === 0) {
+                    this.handleScrollToEdge(this.lcfNavigationButtonLeft);
+                }
+            }
+        };
+        handleShelfBrowserScrollingRight = () => {
+            const container = this.reference;
+            const scrollRight = (container.scrollWidth - container.clientWidth - container.scrollLeft);
+            if (this.config.coverFlowShelfBrowser) {
+                if (scrollRight === 0) {
+                    this.handleScrollToEdge(this.lcfNavigationButtonRight);
+                }
+            }
+        };
+        handleScrollToEdge = (buttonReference) => {
+            if (buttonReference) {
+                const scrollDirection = buttonReference.classList.contains('lcfNavigationButtonLeft') ? 'left' : 'right';
+                const { loadNewShelfBrowserItems, nearbyItems } = this.config.coverFlowButtonsCallback;
+                loadNewShelfBrowserItems(nearbyItems, scrollDirection);
+                if (scrollDirection === 'left') {
+                    this.reference.removeEventListener('scroll', this.handleShelfBrowserScrollingLeft);
+                    this.config.shelfBrowserCurrentEventListeners.setLeftToFalse();
+                }
+                else {
+                    this.reference.removeEventListener('scroll', this.handleShelfBrowserScrollingRight);
+                    this.config.shelfBrowserCurrentEventListeners.setRightToFalse();
+                }
+            }
+        };
+        handleDefaultScrolling = () => {
+            const scrollRight = (this.reference.scrollWidth
+                - this.reference.clientWidth
+                - this.reference.scrollLeft);
+            if (this.config.coverFlowButtonsBehaviour === 'disable') {
+                if (this.reference.scrollLeft > 50) {
+                    this.lcfNavigationButtonLeft.disabled = false;
+                }
+                else {
+                    this.lcfNavigationButtonLeft.disabled = true;
+                }
+                if (scrollRight < 50) {
+                    this.lcfNavigationButtonRight.disabled = true;
+                }
+                else {
+                    this.lcfNavigationButtonRight.disabled = false;
+                }
+            }
+            if (this.config.coverFlowButtonsBehaviour === 'hide') {
+                if (this.reference.scrollLeft > 50) {
+                    this.lcfNavigationButtonLeft.classList.remove('d-none');
+                }
+                else {
+                    this.lcfNavigationButtonLeft.classList.add('d-none');
+                }
+                if (scrollRight < 50) {
+                    this.lcfNavigationButtonRight.classList.add('d-none');
+                }
+                else {
+                    this.lcfNavigationButtonRight.classList.remove('d-none');
+                }
+            }
+        };
+        autoScrollContainer() {
+            const scrollRight = () => (this.reference.scrollWidth
+                - this.reference.clientWidth
+                - this.reference.scrollLeft);
+            const scrollContainer = (scrollRightResult) => {
+                if (scrollRightResult === 0) {
+                    Container.scrollSmoothly(this, 0, 500);
+                    return;
+                }
+                Container.scrollSmoothly(this, (this.reference.scrollLeft + this.reference.clientWidth / 4), 500);
+            };
+            const runAutoScroll = () => {
+                const scrollRightValue = scrollRight();
+                scrollContainer(scrollRightValue);
+            };
+            const autoScrollId = setInterval(() => {
+                runAutoScroll();
+            }, this.config.coverFlowAutoScrollInterval);
+            return autoScrollId;
+        }
+    }
+
     function generateId() {
         const randomValues = new Uint8Array(16);
         return `_${crypto.getRandomValues(randomValues)
@@ -847,17 +1074,100 @@
         .substring(2, 9)}`;
     }
 
-    function getLcfItemId(domNode) {
-        return domNode.classList[1];
+    class Data {
+        config;
+        constructor(config) {
+            this.config = config;
+        }
+        formatted = {};
+        static isValidUrl(urlInQuestion) {
+            let url;
+            try {
+                url = new URL(urlInQuestion);
+            }
+            catch (_) {
+                return false;
+            }
+            return url.protocol === 'http:' || url.protocol === 'https:';
+        }
+        async checkIfFileExists(resourceInQuestion) {
+            try {
+                const response = await fetch(resourceInQuestion, {
+                    method: 'GET',
+                    mode: 'cors',
+                });
+                return response.ok;
+            }
+            catch (error) {
+                console.trace(`Looks like a request failed in ${this.checkIfFileExists.name} ->`, error);
+                return error;
+            }
+        }
+        checkForUnresolvableResources(localData) {
+            const LOCAL_DATA = localData.map(async (entry) => {
+                const newEntry = entry;
+                if (entry.coverhtml && !entry.coverurl) {
+                    return newEntry;
+                }
+                if (entry.coverurl === '') {
+                    return { ...newEntry, coverurl: this.config.coverImageFallbackUrl };
+                }
+                if (entry.coverurl === undefined) {
+                    return { ...newEntry, coverurl: this.config.coverImageFallbackUrl };
+                }
+                const fileExists = await this.checkIfFileExists(entry.coverurl);
+                if (!fileExists) {
+                    return { ...newEntry, coverurl: this.config.coverImageFallbackUrl };
+                }
+                return newEntry;
+            });
+            return LOCAL_DATA;
+        }
+        async format(localData) {
+            this.formatted = Object.fromEntries(Object.entries(localData).map(([, v]) => [generateId(), v]));
+        }
     }
 
-    function processHeights(lcfCoverImageHeights, config) {
-        const coverImageHeights = lcfCoverImageHeights.map((item) => item.imageHeight);
-        const coverImagesMaximumHeight = Math.max(...coverImageHeights);
-        return coverImagesMaximumHeight <= config.coverImageFallbackHeight
-            ? coverImagesMaximumHeight : config.coverImageFallbackHeight;
+    function populateTagAttributes(node, formattedData) {
+        const TAG = node;
+        const [itemClassReference, itemClassIndex] = TAG.classList;
+        const itemCurrent = formattedData[itemClassIndex];
+        switch (itemClassReference) {
+            case 'lcfItemContainer':
+                if (itemCurrent.additionalProperties) {
+                    Array.from(Object.entries(itemCurrent.additionalProperties)).forEach((entry) => {
+                        const [key, value] = entry;
+                        TAG.setAttribute(`data-${key}`, value);
+                    });
+                }
+                break;
+            case 'lcfAnchor':
+                TAG.href = itemCurrent.referenceToDetailsView;
+                break;
+            case 'lcfCoverImage':
+                TAG.src = itemCurrent?.coverurl;
+                break;
+            case 'lcfCoverHtmlWrapper':
+                TAG.innerHTML = itemCurrent?.coverhtml ? itemCurrent.coverhtml : '';
+                break;
+            case 'lcfMediaTitle':
+                TAG.textContent = itemCurrent.title;
+                TAG.dataset.text = itemCurrent.title;
+                break;
+            case 'lcfMediaAuthor':
+                TAG.textContent = itemCurrent.author;
+                break;
+            case 'lcfMediaItemCallNumber':
+                TAG.textContent = itemCurrent.itemCallNumber;
+                break;
+            case 'lcfMediaISBD':
+                TAG.textContent = `${itemCurrent.author}: ${itemCurrent.title}`;
+                break;
+            case 'lcfFlipCardButton':
+                TAG.textContent = '⏎';
+                break;
+        }
     }
-    /* end of processHeights() */
 
     class LcfCoverImage {
         coverUrl;
@@ -873,490 +1183,407 @@
         }
     }
 
-    async function prepare(data, config, container, currentItemContainers) {
-        // TODO: Enable feeding additional metadata to LcfEntity constructor.
-        class LcfEntity {
-            constructor(entityData) {
-                this.id = entityData.id;
-                this.title = entityData.title;
-                this.author = entityData.author;
-                this.biblionumber = entityData.biblionumber;
-                this.referenceToDetailsView = entityData.referenceToDetailsView;
-                this.itemCallNumber = entityData.itemCallNumber;
-            }
-            addCoverImageMetadata(height, width) {
+    class LcfEntity {
+        constructor(entityData, coverImageFallbackHeight) {
+            this.id = entityData.id;
+            this.title = entityData.title;
+            this.author = entityData.author;
+            this.coverhtml = entityData.coverhtml;
+            this.biblionumber = entityData.biblionumber;
+            this.referenceToDetailsView = entityData.referenceToDetailsView;
+            this.itemCallNumber = entityData.itemCallNumber;
+            this.coverImageFallbackHeight = coverImageFallbackHeight;
+            this.kohaImageMaxHeight = 250;
+            this.maxHeight = 0;
+        }
+        addCoverImageMetadata(height, width) {
+            if (height <= this.kohaImageMaxHeight) {
                 this.imageHeight = height;
                 this.imageWidth = width;
-                this.imageAspectRatio = this.calculateCoverImageAspectRatio();
-                this.imageComputedWidth = config.coverImageFallbackHeight / this.imageAspectRatio;
             }
-            calculateCoverImageAspectRatio() {
-                return this.imageHeight / this.imageWidth;
+            else {
+                const aspectRatio = height / width;
+                this.imageHeight = this.kohaImageMaxHeight;
+                this.imageWidth = this.kohaImageMaxHeight / aspectRatio;
             }
+            this.imageAspectRatio = this.calculateCoverImageAspectRatio();
+            this.imageComputedWidth = this.imageHeight / this.imageAspectRatio;
         }
-        const flattenPromiseResults = (resultsArray) => {
-            const flattenedResults = [];
-            Object.keys(resultsArray).forEach((index) => {
-                flattenedResults.push(resultsArray[index].value);
-            });
-            return flattenedResults;
-        };
-        const entityToCoverFlow = (currentId, currentEntry, promisedEntity, promisedCoverFlowEntities) => {
-            try {
-                const newLcfEntity = new LcfEntity({
-                    id: currentId,
-                    title: currentEntry.title,
-                    author: currentEntry.author,
-                    biblionumber: currentEntry.biblionumber,
-                    coverurl: currentEntry.coverurl,
-                    referenceToDetailsView: currentEntry.referenceToDetailsView,
-                    itemCallNumber: currentEntry.itemCallNumber,
-                });
+        calculateCoverImageAspectRatio() {
+            return this.imageHeight / this.imageWidth;
+        }
+        updateMaxHeight(height) {
+            this.maxHeight = height;
+        }
+        updateDimensions() {
+            this.imageHeight = this.maxHeight;
+            this.imageWidth = this.imageHeight / this.imageAspectRatio;
+            this.imageComputedWidth = this.imageHeight / this.imageAspectRatio;
+        }
+    }
+
+    function entityToCoverFlow(config, currentId, currentEntry, promisedEntity, promisedCoverFlowEntities) {
+        try {
+            const newLcfEntity = new LcfEntity({
+                id: currentId,
+                title: currentEntry.title,
+                author: currentEntry.author,
+                biblionumber: currentEntry.biblionumber,
+                coverurl: currentEntry.coverurl,
+                coverhtml: currentEntry.coverhtml,
+                referenceToDetailsView: currentEntry.referenceToDetailsView,
+                itemCallNumber: currentEntry.itemCallNumber,
+            }, config.coverImageFallbackHeight);
+            if (promisedEntity) {
                 const coverImage = promisedEntity;
                 newLcfEntity.addCoverImageMetadata(coverImage.naturalHeight, coverImage.naturalWidth);
-                return promisedCoverFlowEntities.push(new Promise((resolve) => {
-                    resolve(newLcfEntity);
-                }));
             }
-            catch (error) {
-                console.trace(`Looks like something went wrong in ${entityToCoverFlow.name} ->`, error);
-                return null;
-            }
-        };
-        /* This promise chain is the main block for displaying covers. The global coverFlowEntities
-         * Object gets flattened to promise level. The mapped imageHeights are used to set a universal
-         * height for all images. Then the card widths are adjusted to the corresponding image widths.
-         * Before the cards are displayed, a loading animation renders to bridge the gap between
-         * awaiting all images and the depending methods for image sizing and so on. */
-        const settlePromises = async (promisedEntities) => {
-            try {
-                const containerReferenceAsClass = container.reference.id;
-                const result = await Promise.allSettled(promisedEntities);
-                const flattenedResults = flattenPromiseResults(result);
-                const lcfCoverImageHeights = flattenedResults.map((lcfEntity) => lcfEntity.imageHeight);
-                addGlobalStyle(`.lcfCoverImage.${containerReferenceAsClass}`, `height: ${processHeights(lcfCoverImageHeights, config)}px`, container);
-                let lcfItemContainers = Array.from(document.querySelectorAll(`.lcfItemContainer.${containerReferenceAsClass}`));
+            return promisedCoverFlowEntities.push(new Promise((resolve) => {
+                resolve(newLcfEntity);
+            }));
+        }
+        catch (error) {
+            console.trace(`Looks like something went wrong in ${entityToCoverFlow.name} ->`, error);
+            return null;
+        }
+    }
+
+    function getLcfItemId(domNode) {
+        return domNode.classList[1];
+    }
+
+    function processHeights(lcfCoverImageHeights, config) {
+        //   const coverImageHeights = lcfCoverImageHeights.map((item) => item.imageHeight);
+        const coverImagesMaximumHeight = Math.max(...lcfCoverImageHeights);
+        return coverImagesMaximumHeight <= config.coverImageFallbackHeight
+            ? coverImagesMaximumHeight : config.coverImageFallbackHeight;
+    }
+
+    function flattenPromiseResults(resultsArray) {
+        const flattenedResults = [];
+        Object.keys(resultsArray).forEach((index) => {
+            flattenedResults.push(resultsArray[index].value);
+        });
+        return flattenedResults;
+    }
+
+    // TODO: Enable feeding additional metadata to LcfEntity constructor.
+    /* This promise chain is the main block for displaying covers. The global coverFlowEntities
+       * Object gets flattened to promise level. The mapped imageHeights are used to set a universal
+       * height for all images. Then the card widths are adjusted to the corresponding image widths.
+       * Before the cards are displayed, a loading animation renders to bridge the gap between
+       * awaiting all images and the depending methods for image sizing and so on. */
+    async function settlePromises(config, container, currentItemContainers, promisedEntities) {
+        try {
+            const containerReferenceAsClass = container.reference.id;
+            const result = await Promise.allSettled(promisedEntities);
+            const flattenedResults = flattenPromiseResults(result);
+            const lcfCoverImageHeights = flattenedResults.map((lcfEntity) => (lcfEntity.imageHeight ? lcfEntity.imageHeight : null));
+            let lcfItemContainers = Array.from(document.querySelectorAll(`.lcfItemContainer.${containerReferenceAsClass}`));
+            /** We determine whether all images have a height of null which may be the case when
+             * external sources provide them. */
+            const imageArrayExistent = !lcfCoverImageHeights.every((height) => height === null);
+            /** This handles the default case with images served via their urls. */
+            if (imageArrayExistent) {
+                const imagesMaxHeight = processHeights(lcfCoverImageHeights, config);
+                addGlobalStyle(`.lcfCoverImage.${containerReferenceAsClass}`, `height: ${imagesMaxHeight}px`, container);
                 const localCurrentItemContainers = Array.from(currentItemContainers);
                 lcfItemContainers = lcfItemContainers.filter((lcfItemContainer) => !localCurrentItemContainers.includes(lcfItemContainer));
                 lcfItemContainers.forEach((lcfCardBody) => {
                     const lcfItemId = getLcfItemId(lcfCardBody);
                     const lcfItemCurrent = flattenedResults.filter((lcfEntity) => lcfEntity.id === lcfItemId)[0];
+                    /** Updates the imageComputedWid†h property when the tallest image is still
+                     * shorter than the coverImageFallbackHeight.   */
+                    lcfItemCurrent.updateMaxHeight(imagesMaxHeight);
+                    lcfItemCurrent.updateDimensions();
+                    /** Sets width of the whole card. */
                     addInlineStyle(`lcfItemContainer.${lcfItemCurrent.id}`, `flex-basis: ${lcfItemCurrent.imageComputedWidth + 2}px;`, container);
                 });
-                const lcfLoadingAnimation = document.querySelector(`.lcfLoadingAnimation.${containerReferenceAsClass}`);
-                lcfLoadingAnimation.classList.add('d-none');
-                lcfItemContainers.forEach((lcfItemContainer) => {
-                    lcfItemContainer.classList.remove('d-none');
-                });
-                container.isScrollable();
-                if (config.coverFlowContext === 'default' && window.screen.width >= config.gridCoverFlowBreakpoints.s) {
-                    const lcfNavigationButtonRight = document.querySelector(`.lcfNavigationButtonRight.${containerReferenceAsClass}`);
-                    const lcfNavigationButtonLeft = document.querySelector(`.lcfNavigationButtonLeft.${containerReferenceAsClass}`);
-                    if (container.scrollable) {
-                        lcfNavigationButtonRight.classList.remove('d-none');
-                        lcfNavigationButtonLeft.classList.remove('d-none');
-                    }
-                }
-                container.updateNavigationButtonReferences();
+            }
+            /** This handles images served via external sources. */
+            if (!imageArrayExistent) {
+                const lcfCoverImages = document.querySelectorAll(`.lcfCoverImage.${containerReferenceAsClass}`);
+                lcfCoverImages.forEach((lcfCoverImage) => lcfCoverImage.classList.add('d-none'));
+            }
+            /** Hides the loading animation. */
+            const lcfLoadingAnimation = document.querySelector(`.lcfLoadingAnimation.${containerReferenceAsClass}`);
+            lcfLoadingAnimation.classList.add('d-none');
+            /** Removes d-none from all item containers and shows the content. */
+            lcfItemContainers.forEach((lcfItemContainer) => {
+                lcfItemContainer.classList.remove('d-none');
+            });
+            container.isScrollable();
+            if (config.coverFlowContext === 'default' && window.screen.width >= config.gridCoverFlowBreakpoints.s) {
+                const lcfNavigationButtonRight = document.querySelector(`.lcfNavigationButtonRight.${containerReferenceAsClass}`);
+                const lcfNavigationButtonLeft = document.querySelector(`.lcfNavigationButtonLeft.${containerReferenceAsClass}`);
                 if (container.scrollable) {
-                    container.hideOrShowButton();
+                    lcfNavigationButtonRight.classList.remove('d-none');
+                    lcfNavigationButtonLeft.classList.remove('d-none');
                 }
-                return flattenedResults;
             }
-            catch (error) {
-                return console.trace(`Looks like something went wrong in ${settlePromises.name} ->`, error);
+            container.updateNavigationButtonReferences();
+            if (container.scrollable) {
+                container.hideOrShowButton();
             }
-        };
+            return flattenedResults;
+        }
+        catch (error) {
+            return console.trace(`Looks like something went wrong in ${settlePromises.name} ->`, error);
+        }
+    }
+
+    async function prepare(data, config, container, currentItemContainers) {
         const promisedCoverFlowEntities = [];
         let lcfCoverImages = [];
         const lcfCoverFlowEntities = [];
         const externalData = Object.entries(data);
         Array.from(externalData).forEach((entry) => {
             lcfCoverFlowEntities.push({ id: entry[0], entry: entry[1], image: null });
-            lcfCoverImages.push(new LcfCoverImage(entry[1].coverurl).fetch());
+            if (entry[1].coverurl) {
+                lcfCoverImages.push(new LcfCoverImage(entry[1].coverurl).fetch());
+            }
         });
         lcfCoverImages = await Promise.all(lcfCoverImages);
         Array.from(lcfCoverImages.entries()).forEach((entry) => {
             const [index, image] = entry;
             lcfCoverFlowEntities[index].image = image;
         });
-        lcfCoverFlowEntities.forEach((entity) => entityToCoverFlow(entity.id, entity.entry, entity.image, promisedCoverFlowEntities));
-        return settlePromises(promisedCoverFlowEntities);
+        lcfCoverFlowEntities.forEach((entity) => entityToCoverFlow(config, entity.id, entity.entry, entity.image, promisedCoverFlowEntities));
+        return settlePromises(config, container, currentItemContainers, promisedCoverFlowEntities);
     }
 
-    function LMSCoverFlow(element, configuration, data) {
-        const self = {
-            data: {
-                formatted: {},
-                isValidUrl(urlInQuestion) {
-                    let url;
-                    try {
-                        url = new URL(urlInQuestion);
-                    }
-                    catch (_) {
-                        return false;
-                    }
-                    return url.protocol === 'http:' || url.protocol === 'https:';
-                },
-                async checkIfFileExists(resourceInQuestion) {
-                    try {
-                        const response = await fetch(resourceInQuestion, {
-                            method: 'GET',
-                            mode: 'cors',
-                        });
-                        return response.ok;
-                    }
-                    catch (error) {
-                        console.trace(`Looks like a request failed in ${this.checkIfFileExists.name} ->`, error);
-                        return error;
-                    }
-                },
-                checkForUnresolvableResources(localData) {
-                    const LOCAL_DATA = localData.map(async (entry) => {
-                        const newEntry = entry;
-                        if (entry.coverurl === '') {
-                            return { ...newEntry, coverurl: self.config.coverImageFallbackUrl };
-                        }
-                        if (entry.coverurl === undefined) {
-                            return { ...newEntry, coverurl: self.config.coverImageFallbackUrl };
-                        }
-                        const fileExists = await this.checkIfFileExists(entry.coverurl);
-                        if (!fileExists) {
-                            return { ...newEntry, coverurl: self.config.coverImageFallbackUrl };
-                        }
-                        return newEntry;
-                    });
-                    return LOCAL_DATA;
-                },
-                async format(localData) {
-                    this.formatted = Object.fromEntries(Object.entries(localData).map(([, v]) => [generateId(), v]));
-                },
-            },
-            config: {
-                coverImageFallbackHeight: configuration.coverImageFallbackHeight || 210,
-                coverFlowTooltips: configuration.coverFlowTooltips || false,
-                coverFlowAutoScroll: configuration.coverFlowAutoScroll || false,
-                coverFlowAutoScrollInterval: configuration.coverFlowAutoScrollInterval || 8000,
-                coverFlowCardBody: configuration.coverFlowCardBody || {
-                    lcfMediaAuthor: true,
-                    lcfMediaTitle: true,
-                    lcfMediaItemCallNumber: false,
-                },
-                coverFlowCardBodyTextHeights: configuration.coverFlowCardBodyTextHeights || {
-                    lcfMediaAuthor: 'text-custom-12',
-                    lcfMediaTitle: 'text-custom-12',
-                    lcfMediaItemCallNumber: 'text-custom-12',
-                },
-                coverImageFallbackUrl: configuration.coverImageFallbackUrl || 'http://placekitten.com/g/200/300',
-                coverFlowContext: configuration.coverFlowContext || 'default',
-                coverFlowShelfBrowser: configuration.coverFlowShelfBrowser || false,
-                coverFlowContainerWidth: configuration.coverFlowContainerWidth || '100%',
-                coverFlowContainerMargin: configuration.coverFlowContainerMargin || '0%',
-                coverFlowContainerPadding: configuration.coverFlowContainerPadding || '2rem 1px 2rem 1px',
-                coverFlowButtonsBehaviour: configuration.coverFlowButtonsBehaviour || 'stay',
-                coverFlowButtonsCallback: configuration.coverFlowButtonsCallback,
-                coverFlowFlippableCards: configuration.coverFlowFlippableCards || false,
-                coverFlowHighlightingStyle: configuration.coverFlowHighlightingStyle || 'default',
-                gridCoverFlowBreakpoints: configuration.gridCoverFlowBreakpoints || {
-                    xl: 1367,
-                    l: 1025,
-                    m: 769,
-                    s: 481,
-                    xs: 320,
-                },
-                shelfBrowserExtendedCoverFlow: configuration.shelfBrowserExtendedCoverFlow || false,
-                shelfBrowserButtonDirection: configuration.shelfBrowserButtonDirection || null,
-                shelfBrowserCurrentEventListeners: configuration.shelfBrowserCurrentEventListeners || null,
-            },
-            /* The selector doesn't have to be .lmscoverflow, but I'd strongly encourage it.
-                 Also it should be a div. */
-            container: {
-                reference: document.getElementById(element),
-                scrollable: false,
-                lcfNavigationButtonLeft: null,
-                lcfNavigationButtonRight: null,
-                isScrollable() {
-                    if (this.reference.scrollWidth > this.reference.clientWidth
-                        || self.config.coverFlowShelfBrowser) {
-                        this.scrollable = true;
-                    }
-                },
-                scrollSmoothly(container, position, time) {
-                    const CONTAINER = container;
-                    let POSITION = position;
-                    let TIME = time;
-                    const currentPosition = position !== 0
-                        ? CONTAINER.reference.scrollLeft
-                        : CONTAINER.reference.scrollWidth;
-                    let start = null;
-                    if (TIME === null) {
-                        TIME = 500;
-                    }
-                    if (position === 0) {
-                        TIME = 2000;
-                    }
-                    POSITION = +POSITION;
-                    TIME = +TIME;
-                    window.requestAnimationFrame(function step(currentTime) {
-                        start = !start ? currentTime : start;
-                        const progress = currentTime - start;
-                        if (currentPosition < POSITION) {
-                            CONTAINER.reference.scrollLeft = ((((POSITION - currentPosition) * progress) / TIME) + currentPosition);
-                        }
-                        else {
-                            CONTAINER.reference.scrollLeft = ((currentPosition - ((currentPosition - POSITION) * progress) / TIME));
-                        }
-                        if (progress < TIME) {
-                            window.requestAnimationFrame(step);
-                        }
-                        else {
-                            CONTAINER.reference.scrollLeft = POSITION;
-                        }
-                    });
-                },
-                updateNavigationButtonReferences() {
-                    const containerReferenceAsClass = self.container.reference.id;
-                    this.lcfNavigationButtonLeft = document.querySelector(`.lcfNavigationButtonLeft.${containerReferenceAsClass}`);
-                    this.lcfNavigationButtonRight = document.querySelector(`.lcfNavigationButtonRight.${containerReferenceAsClass}`);
-                },
-                hideOrShowButton() {
-                    if (self.config.coverFlowShelfBrowser) {
-                        if (self.config.shelfBrowserCurrentEventListeners.getLeft() === false) {
-                            self.config.shelfBrowserCurrentEventListeners.setHandler(this.handleShelfBrowserScrollingLeft, 'left');
-                            this.reference.addEventListener('scroll', this.handleShelfBrowserScrollingLeft);
-                            self.config.shelfBrowserCurrentEventListeners.setLeftToTrue();
-                        }
-                        if (self.config.shelfBrowserCurrentEventListeners.getRight() === false) {
-                            self.config.shelfBrowserCurrentEventListeners.setHandler(this.handleShelfBrowserScrollingRight, 'right');
-                            this.reference.addEventListener('scroll', this.handleShelfBrowserScrollingRight);
-                            self.config.shelfBrowserCurrentEventListeners.setRightToTrue();
-                        }
-                    }
-                    else {
-                        this.reference.addEventListener('scroll', this.handleDefaultScrolling);
-                    }
-                },
-                handleShelfBrowserScrollingLeft() {
-                    const container = self.container.reference;
-                    if (self.config.coverFlowShelfBrowser) {
-                        if (container.scrollLeft === 0) {
-                            self.container.handleScrollToEdge(self.container.lcfNavigationButtonLeft, container);
-                        }
-                    }
-                },
-                handleShelfBrowserScrollingRight() {
-                    const container = self.container.reference;
-                    const scrollRight = (container.scrollWidth - container.clientWidth - container.scrollLeft);
-                    if (self.config.coverFlowShelfBrowser) {
-                        if (scrollRight === 0) {
-                            self.container.handleScrollToEdge(self.container.lcfNavigationButtonRight, container);
-                        }
-                    }
-                },
-                handleScrollToEdge(buttonReference) {
-                    if (buttonReference) {
-                        const scrollDirection = buttonReference.classList.contains('lcfNavigationButtonLeft') ? 'left' : 'right';
-                        const { loadNewShelfBrowserItems, nearbyItems } = self.config.coverFlowButtonsCallback;
-                        loadNewShelfBrowserItems(nearbyItems, scrollDirection);
-                        if (scrollDirection === 'left') {
-                            self.container.reference.removeEventListener('scroll', self.container.handleShelfBrowserScrollingLeft);
-                            self.config.shelfBrowserCurrentEventListeners.setLeftToFalse();
-                        }
-                        else {
-                            self.container.reference.removeEventListener('scroll', self.container.handleShelfBrowserScrollingRight);
-                            self.config.shelfBrowserCurrentEventListeners.setRightToFalse();
-                        }
-                    }
-                },
-                handleDefaultScrolling() {
-                    const { container } = self;
-                    const scrollRight = (container.reference.scrollWidth
-                        - container.reference.clientWidth
-                        - container.reference.scrollLeft);
-                    if (self.config.coverFlowButtonsBehaviour === 'disable') {
-                        if (container.reference.scrollLeft > 50) {
-                            container.lcfNavigationButtonLeft.disabled = false;
-                        }
-                        else {
-                            container.lcfNavigationButtonLeft.disabled = true;
-                        }
-                        if (scrollRight < 50) {
-                            container.lcfNavigationButtonRight.disabled = true;
-                        }
-                        else {
-                            container.lcfNavigationButtonRight.disabled = false;
-                        }
-                    }
-                    if (self.config.coverFlowButtonsBehaviour === 'hide') {
-                        if (container.reference.scrollLeft > 50) {
-                            container.lcfNavigationButtonLeft.classList.remove('d-none');
-                        }
-                        else {
-                            container.lcfNavigationButtonLeft.classList.add('d-none');
-                        }
-                        if (scrollRight < 50) {
-                            container.lcfNavigationButtonRight.classList.add('d-none');
-                        }
-                        else {
-                            container.lcfNavigationButtonRight.classList.remove('d-none');
-                        }
-                    }
-                },
-                autoScrollContainer() {
-                    const { container } = self;
-                    const scrollRight = () => (container.reference.scrollWidth
-                        - container.reference.clientWidth
-                        - container.reference.scrollLeft);
-                    const scrollContainer = (scrollRightResult) => {
-                        if (scrollRightResult === 0) {
-                            this.scrollSmoothly(container, 0, 500);
+    async function urlHarvester(formattedData, containerReference) {
+        try {
+            const dataArray = Array.from(Object.entries(formattedData));
+            const harvester = document.createElement('div');
+            harvester.classList.add('urlHarvester', 'd-none');
+            dataArray.forEach((entry) => {
+                const [id, { coverhtml }] = entry;
+                const harvesterElement = document.createElement('div');
+                harvesterElement.classList.add('harvesterElement', id);
+                harvesterElement.innerHTML = coverhtml;
+                harvester.appendChild(harvesterElement);
+            });
+            containerReference.appendChild(harvester);
+            return true;
+        }
+        catch (error) {
+            console.log(error);
+            return false;
+        }
+    }
+
+    function clearHarvester() {
+        const harvester = document.querySelector('.urlHarvester');
+        if (harvester) {
+            harvester.remove();
+        }
+    }
+
+    function resyncExecution(ms) {
+        return new Promise((resolve) => {
+            setTimeout(resolve, ms);
+        });
+    }
+
+    async function harvestUrls(formattedData, loaded, container) {
+        const data = formattedData;
+        const l = loaded;
+        const containerReference = container;
+        const harvesterBuilt = await urlHarvester(data, containerReference);
+        if (harvesterBuilt) {
+            let harvesterElements = document.querySelectorAll('.harvesterElement');
+            const harvesterResults = [];
+            if (l) {
+                const harvesterObservers = {};
+                harvesterElements.forEach((node) => {
+                    const nodeId = getLcfItemId(node);
+                    harvesterObservers[nodeId] = new Observable(node.innerHTML);
+                    harvesterObservers[nodeId].subscribe((coverurl) => {
+                        //   console.log(coverurl);
+                        //   const aHrefRe = /a href="(.+?)"/g;
+                        //   const hrefs = coverurl.match(aHrefRe);
+                        //   if (hrefs) {
+                        //     const [src] = hrefs;
+                        //     const [, srcString] = src.split('"');
+                        //     harvesterResults.push([nodeId, srcString]);
+                        //     return;
+                        //   }
+                        const srcRe = /src="(.+?)"/g;
+                        const sources = coverurl.match(srcRe);
+                        if (sources) {
+                            const [src] = sources;
+                            let [, srcString] = src.split('"');
+                            /** Google specific url parameters. Somehow the idenatifier &amp; ends up
+                             * in the resulting string when it should be just & instead. */
+                            srcString = `${srcString.replaceAll('amp;', '').replace(/zoom=./g, 'zoom=1')}&gbs_api`;
+                            harvesterResults.push([nodeId, srcString]);
                             return;
                         }
-                        this.scrollSmoothly(container, (container.reference.scrollLeft + container.reference.clientWidth / 4), 500);
-                    };
-                    const runAutoScroll = () => {
-                        const scrollRightValue = scrollRight();
-                        scrollContainer(scrollRightValue);
-                    };
-                    const autoScrollId = setInterval(() => {
-                        runAutoScroll();
-                    }, self.config.coverFlowAutoScrollInterval);
-                    return autoScrollId;
-                },
-            },
-            async render(coverFlowContext) {
-                try {
-                    const dataToRender = await Promise.all(self.data.checkForUnresolvableResources(data));
-                    self.data.format(dataToRender);
-                    const formattedData = self.data.formatted;
-                    const containerReferenceAsClass = self.container.reference.id;
-                    /** The check for the current card bodies is necessary, to filter
-                     * the existing ones out for extension of the coverflow-component
-                     * in the shelfbrowser context. */
-                    const currentItemContainers = document.querySelectorAll(`.lcfItemContainer.${containerReferenceAsClass}`);
-                    build(formattedData, coverFlowContext || self.config.coverFlowContext, self.container, self.config);
-                    const coverFlowEntities = await prepare(formattedData, self.config, self.container, currentItemContainers);
-                    class LcfDocumentNodes {
-                        nodeList;
-                        constructor(nodeList) {
-                            this.nodeList = nodeList;
-                            this.nodeList = nodeList;
-                        }
-                        static populateTagAttributes(node) {
-                            const TAG = node;
-                            const itemClassReference = TAG.classList[0];
-                            const itemClassIndex = TAG.classList[1];
-                            const itemCurrent = formattedData[itemClassIndex];
-                            switch (itemClassReference) {
-                                case 'lcfItemContainer':
-                                    if (itemCurrent.additionalProperties) {
-                                        Array.from(Object.entries(itemCurrent.additionalProperties)).forEach((entry) => {
-                                            const [key, value] = entry;
-                                            TAG.setAttribute(`data-${key}`, value);
-                                        });
-                                    }
-                                    break;
-                                case 'lcfAnchor':
-                                    TAG.href = itemCurrent.referenceToDetailsView;
-                                    break;
-                                case 'lcfCoverImage':
-                                    TAG.src = itemCurrent?.coverurl;
-                                    TAG.alt = `The media cover for ${itemCurrent.title} from ${itemCurrent.author}.`;
-                                    break;
-                                case 'lcfMediaTitle':
-                                    TAG.textContent = itemCurrent.title;
-                                    TAG.dataset.text = itemCurrent.title;
-                                    break;
-                                case 'lcfMediaAuthor':
-                                    TAG.textContent = itemCurrent.author;
-                                    break;
-                                case 'lcfMediaItemCallNumber':
-                                    TAG.textContent = itemCurrent.itemCallNumber;
-                                    break;
-                                case 'lcfMediaISBD':
-                                    TAG.textContent = `${itemCurrent.author}: ${itemCurrent.title}`;
-                                    break;
-                                case 'lcfFlipCardButton':
-                                    TAG.textContent = '⏎';
-                                    break;
-                                default:
-                                    break;
-                            }
-                        }
-                        fillTagsWithData() {
-                            return this.nodeList.forEach((node) => {
-                                LcfDocumentNodes.populateTagAttributes(node);
-                            });
-                        }
+                        harvesterResults.push([nodeId, undefined]);
+                    });
+                });
+                /** Notify the observant to execute the callback. */
+                l.value = true;
+                /** Reset to false. */
+                l.value = false;
+                setTimeout(() => {
+                    harvesterElements = document.querySelectorAll('.harvesterElement');
+                    harvesterElements.forEach((node) => {
+                        const nodeId = getLcfItemId(node);
+                        harvesterObservers[nodeId].value = node.innerHTML;
+                    });
+                }, 500);
+                setTimeout(() => {
+                    harvesterResults.forEach((entry) => {
+                        const [id, coverurl] = entry;
+                        data[id].coverurl = coverurl;
+                    });
+                }, 500);
+                await resyncExecution(500);
+                clearHarvester();
+            }
+            else {
+                harvesterElements.forEach((node) => {
+                    const nodeId = getLcfItemId(node);
+                    const srcRe = /src="(.+?)"/g;
+                    const sources = node.innerHTML.match(srcRe);
+                    if (sources) {
+                        const [src] = sources;
+                        const [, srcString] = src.split('"');
+                        harvesterResults.push([nodeId, srcString]);
                     }
-                    const newOffsetWidth = [];
-                    const computedFontSize = parseInt(window.getComputedStyle(document.getElementById(element)).fontSize.split('px')[0], 10);
-                    const calculateCoverFlowPlusGaps = (offsetWidthArray) => offsetWidthArray.reduce((accumulator, currentValue) => accumulator + currentValue + computedFontSize) + computedFontSize;
-                    coverFlowEntities.forEach((entry) => {
-                        const lcfNodesOfSingleCoverImageWrapper = document.querySelectorAll(`.${entry.id}.${containerReferenceAsClass}`);
-                        const lcfItemList = new LcfDocumentNodes(lcfNodesOfSingleCoverImageWrapper);
-                        const addDataTooltip = (lcfItemContainer, coverFlowEntity) => {
-                            const itemContainer = lcfItemContainer;
-                            itemContainer.dataset.tooltip = `${coverFlowEntity.author ? coverFlowEntity.author : ''} ${coverFlowEntity.itemCallNumber ? coverFlowEntity.itemCallNumber : ''} ${coverFlowEntity.title ? coverFlowEntity.title : ''}`;
-                        };
-                        const currentLcfItemContainer = document.querySelector(`.lcfItemContainer.${entry.id}`);
-                        addDataTooltip(currentLcfItemContainer, entry);
-                        lcfItemList.fillTagsWithData();
-                        if (self.config.shelfBrowserExtendedCoverFlow && self.config.shelfBrowserButtonDirection === 'left') {
-                            const lcfItemContainer = lcfItemList.nodeList[0];
-                            newOffsetWidth.push(lcfItemContainer.offsetWidth);
-                        }
-                        const lcfFlipCardButton = document.querySelector(`.lcfFlipCardButton.${entry.id}.${containerReferenceAsClass}`);
-                        if (self.config.coverFlowFlippableCards) {
-                            lcfFlipCardButton.addEventListener('click', () => {
-                                const innerFlipCard = document.querySelector(`.flipCardInner.${entry.id}.${containerReferenceAsClass}`);
-                                innerFlipCard.classList.toggle('cardIsFlipped');
-                                lcfFlipCardButton.classList.toggle('buttonIsFlipped');
-                            });
-                        }
+                    harvesterResults.forEach((entry) => {
+                        const [id, coverurl] = entry;
+                        data[id].coverurl = coverurl;
                     });
-                    if (self.config.shelfBrowserExtendedCoverFlow && self.config.shelfBrowserButtonDirection === 'left') {
-                        self.container.reference.scrollLeft += calculateCoverFlowPlusGaps(newOffsetWidth);
+                    clearHarvester();
+                });
+            }
+        }
+    }
+
+    function LmsCoverFlow() {
+        this.setGlobals = (configuration, data, element, loaded) => {
+            this.callerConfiguration = configuration;
+            this.callerData = data;
+            this.callerContainer = element;
+            this.loaded = loaded;
+            this.updateGlobals();
+        };
+        this.setConfig = (configuration) => {
+            this.callerConfiguration = configuration;
+        };
+        this.setData = (data) => {
+            this.callerData = data;
+        };
+        this.setContainer = (element) => {
+            this.callerContainer = element;
+        };
+        this.updateGlobals = () => {
+            this.config = new Config(this.callerConfiguration);
+            this.data = new Data(this.config);
+            this.container = new Container(this.callerContainer, this.config);
+        };
+        this.render = async (coverFlowContext) => {
+            try {
+                const dataToRender = await Promise.all(this.data.checkForUnresolvableResources(this.callerData));
+                this.data.format(dataToRender);
+                const formattedData = this.data.formatted;
+                if (this.loaded || this.config.coverImageExternalSources) {
+                    await harvestUrls(formattedData, this.loaded, this.container.reference);
+                }
+                Array.from(Object.entries(formattedData)).forEach((entry) => {
+                    const [id, data] = entry;
+                    formattedData[id] = {
+                        ...data, coverurl: data.coverurl || this.config.coverImageFallbackUrl,
+                    };
+                });
+                const containerReferenceAsClass = this.container.reference.id;
+                /** The check for the current card bodies is necessary, to filter
+                   * the existing ones out for extension of the coverflow-component
+                   * in the shelfbrowser context. */
+                const currentItemContainers = document.querySelectorAll(`.lcfItemContainer.${containerReferenceAsClass}`);
+                build(formattedData, coverFlowContext || this.config.coverFlowContext, this.container, this.config);
+                const coverFlowEntities = await prepare(formattedData, this.config, this.container, currentItemContainers);
+                /** Shelfbrowser offset calculations. */
+                const newOffsetWidth = [];
+                const computedFontSize = parseInt(window.getComputedStyle(document.getElementById(this.callerContainer)).fontSize.split('px')[0], 10);
+                const calculateCoverFlowPlusGaps = (offsetWidthArray) => offsetWidthArray.reduce((accumulator, currentValue) => accumulator + currentValue + computedFontSize) + computedFontSize;
+                /** Tooltip logic. */
+                coverFlowEntities.forEach((entry) => {
+                    const lcfNodesOfSingleCoverImageWrapper = document.querySelectorAll(`.${entry.id}.${containerReferenceAsClass}`);
+                    const addDataTooltip = (lcfItemContainer, coverFlowEntity) => {
+                        const itemContainer = lcfItemContainer;
+                        itemContainer.dataset.tooltip = `${coverFlowEntity.author ? coverFlowEntity.author : ''} ${coverFlowEntity.itemCallNumber ? coverFlowEntity.itemCallNumber : ''} ${coverFlowEntity.title ? coverFlowEntity.title : ''}`;
+                    };
+                    const currentLcfItemContainer = document.querySelector(`.lcfItemContainer.${entry.id}`);
+                    addDataTooltip(currentLcfItemContainer, entry);
+                    /** Data population. */
+                    lcfNodesOfSingleCoverImageWrapper.forEach((node) => {
+                        populateTagAttributes(node, formattedData);
+                    });
+                    /** Shelfbrowser offset array population. */
+                    if (this.config.shelfBrowserExtendedCoverFlow && this.config.shelfBrowserButtonDirection === 'left') {
+                        const lcfItemContainer = lcfNodesOfSingleCoverImageWrapper[0];
+                        newOffsetWidth.push(lcfItemContainer.offsetWidth);
                     }
-                }
-                catch (error) {
-                    // console.log(error);
-                }
-                if (self.config.coverFlowAutoScroll && !self.config.coverFlowShelfBrowser) {
-                    let autoScrollId = self.container.autoScrollContainer();
-                    self.container.reference.addEventListener('mouseover', () => {
-                        clearInterval(autoScrollId);
-                    });
-                    self.container.reference.addEventListener('mouseout', () => {
-                        autoScrollId = self.container.autoScrollContainer();
-                    });
-                }
-                const containerReferenceAsClass = self.container.reference.id;
-                /** The following two blocks determine the visibility of card body aspects or the visibility
-                 * of the card body alltogether.
-                 */
-                if (Object.values(self.config.coverFlowCardBody).every((setting) => setting === false)) {
-                    const cardBodies = document.querySelectorAll(`.lcfCardBody.${containerReferenceAsClass}`);
-                    cardBodies.forEach((cardBody) => {
-                        cardBody.classList.add('d-none');
-                    });
-                }
-                Object.entries(self.config.coverFlowCardBody).forEach((itemCardBodyAspect) => {
-                    const [cardBodyClass, setting] = itemCardBodyAspect;
-                    if (!setting) {
-                        const aspectToHide = document.querySelectorAll(`.${cardBodyClass}.${containerReferenceAsClass}`);
-                        aspectToHide.forEach((item) => {
-                            item.classList.add('d-none');
+                    /** Flipcard logic. */
+                    const lcfFlipCardButton = document.querySelector(`.lcfFlipCardButton.${entry.id}.${containerReferenceAsClass}`);
+                    if (this.config.coverFlowFlippableCards) {
+                        lcfFlipCardButton.addEventListener('click', () => {
+                            const innerFlipCard = document.querySelector(`.flipCardInner.${entry.id}.${containerReferenceAsClass}`);
+                            innerFlipCard.classList.toggle('cardIsFlipped');
+                            lcfFlipCardButton.classList.toggle('buttonIsFlipped');
                         });
                     }
                 });
-            },
-            /* end of render() */
+                /** Shelfbrowser offset execution. */
+                if (this.config.shelfBrowserExtendedCoverFlow && this.config.shelfBrowserButtonDirection === 'left') {
+                    this.container.reference.scrollLeft += calculateCoverFlowPlusGaps(newOffsetWidth);
+                }
+            }
+            catch (error) {
+                console.log(error);
+            }
+            /** Autoscroll logic. */
+            if (this.config.coverFlowAutoScroll && !this.config.coverFlowShelfBrowser) {
+                let autoScrollId = this.container.autoScrollContainer();
+                this.container.reference.addEventListener('mouseover', () => {
+                    clearInterval(autoScrollId);
+                });
+                this.container.reference.addEventListener('mouseout', () => {
+                    autoScrollId = this.container.autoScrollContainer();
+                });
+            }
+            const containerReferenceAsClass = this.container.reference.id;
+            /** The following two blocks determine the visibility of card body aspects or the visibility
+               * of the card body alltogether.
+               */
+            if (Object.values(this.config.coverFlowCardBody).every((setting) => setting === false)) {
+                const cardBodies = document.querySelectorAll(`.lcfCardBody.${containerReferenceAsClass}`);
+                cardBodies.forEach((cardBody) => {
+                    cardBody.classList.add('d-none');
+                });
+            }
+            Object.entries(this.config.coverFlowCardBody).forEach((itemCardBodyAspect) => {
+                const [cardBodyClass, setting] = itemCardBodyAspect;
+                if (!setting) {
+                    const aspectToHide = document.querySelectorAll(`.${cardBodyClass}.${containerReferenceAsClass}`);
+                    aspectToHide.forEach((item) => {
+                        item.classList.add('d-none');
+                    });
+                }
+            });
         };
-        return self;
+    }
+    function createLcfInstance() {
+        return new LmsCoverFlow();
     }
 
-    exports.LMSCoverFlow = LMSCoverFlow;
+    exports.LmsCoverFlow = LmsCoverFlow;
+    exports.Observable = Observable;
+    exports.createLcfInstance = createLcfInstance;
     exports.removeChildNodes = removeChildNodes;
 
     Object.defineProperty(exports, '__esModule', { value: true });

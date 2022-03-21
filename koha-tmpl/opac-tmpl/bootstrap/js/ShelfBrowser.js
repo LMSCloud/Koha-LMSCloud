@@ -1,11 +1,16 @@
 var ShelfBrowser = (function () {
   'use strict';
 
-  function ShelfBrowser(LMSCoverFlow, removeChildNodes, header = {
-    header_browsing: 'Browsing {starting_homebranch} shelves',
-    header_location: 'Shelving location: {starting_location}',
-    header_collection: 'Collection: {starting_ccode}',
-    header_close: 'Close shelf',
+  function ShelfBrowser({
+    createLcfInstance,
+    removeChildNodes,
+    loaded,
+    header = {
+      header_browsing: 'Browsing {starting_homebranch} shelves',
+      header_location: 'Shelving location: {starting_location}',
+      header_collection: 'Collection: {starting_ccode}',
+      header_close: 'Close shelf',
+    },
   }) {
     class CurrentEventListeners {
       constructor() {
@@ -84,10 +89,10 @@ var ShelfBrowser = (function () {
       buttonDirection = null,
     ) => {
       const shelfBrowserItems = newlyLoadedItems.items.map((item) => ({
-        author: item.author,
         biblionumber: item.biblionumber,
         title: item.title,
         coverurl: item.coverurl,
+        coverhtml: item.coverhtml,
         itemCallNumber: item.itemcallnumber,
         referenceToDetailsView: `/cgi-bin/koha/opac-detail.pl?biblionumber=${item.biblionumber}`,
       }));
@@ -96,9 +101,8 @@ var ShelfBrowser = (function () {
         previousItemNumber: newlyLoadedItems.shelfbrowser_prev_item.itemnumber,
         nextItemNumber: newlyLoadedItems.shelfbrowser_next_item.itemnumber,
       };
-
-      const lmscoverflow = LMSCoverFlow(
-        coverFlowId,
+      const lmscoverflow = createLcfInstance();
+      lmscoverflow.setGlobals(
         {
           coverImageFallbackHeight: 210, // #shelfbrowser img { max-height: 250px } is koha's default.
           coverFlowTooltips: false,
@@ -116,9 +120,12 @@ var ShelfBrowser = (function () {
           shelfBrowserCurrentEventListeners: instance,
         },
         shelfBrowserItems,
+        coverFlowId,
+        loaded,
       );
 
       lmscoverflow.render();
+      return true;
     };
 
     const loadNewShelfBrowserItems = async (nearbyItems, buttonDirection) => {
@@ -178,8 +185,9 @@ var ShelfBrowser = (function () {
                   ${header.header_collection.replace('{starting_ccode}', result.starting_ccode.description)}
                   `;
             shelfBrowserHeading.appendChild(shelfBrowserClose);
-            extendCurrentCoverFlow(result);
+            const shelfBrowserLoaded = extendCurrentCoverFlow(result);
             setTimeout(() => shelfBrowser.scrollIntoView(), 250);
+            return shelfBrowserLoaded;
           });
         });
       });
