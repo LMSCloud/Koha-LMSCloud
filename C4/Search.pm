@@ -1784,19 +1784,6 @@ sub searchResults {
                     $oldbiblio->{'contentsample'} = { 'link' => $tag->subfield('u'), 'type' => $marcrecord->field('337')->subfield('a') };
                 }
             }
-            if ( $coverfound == 0 && C4::Context->preference("EKZCoverGenerate") ) {
-                my $field = $marcrecord->field('245');
-                my $title = "";
-                my $author = "";
-                if ( $field ) {
-                    $title = $field->subfield('a');
-                    $author = $field->subfield('c');
-                    $title =~ s/[\x{0098}\x{009c}]//g;
-                    $author =~ s/[\x{0098}\x{009c}]//g;
-                }
-                my $coverurl = 'https://cover.lmscloud.net/gencover?ti=' . uri_escape_utf8($title) .'&au=' . uri_escape_utf8($author);
-                push @titlecoverurls, $coverurl;
-            }
             $oldbiblio->{'titlecoverurls'} = \@titlecoverurls;
         }
         
