@@ -2411,7 +2411,7 @@ CREATE TABLE `creator_layouts` (
   `units` char(20) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'POINT',
   `callnum_split` int(1) DEFAULT 0,
   `text_justify` char(1) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'L',
-  `format_string` varchar(210) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'barcode',
+  `format_string` varchar(1024) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'barcode',
   `layout_xml` mediumtext COLLATE utf8mb4_unicode_ci NOT NULL,
   `creator` char(15) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'Labels',
   `line_height` decimal(4,2) NOT NULL DEFAULT '1.00',
