@@ -68,7 +68,11 @@
 
 [% Asset.js("js/LMSCoverFlow.js") | $raw %]
 <script>
-        const LMSCOVERFLOW = LMSCoverFlow.LMSCoverFlow;
+        const CREATE_LCF_INSTANCE = LMSCoverFlow.createLcfInstance;
+        const Observable = LMSCoverFlow.Observable;
+        const loaded = new Observable(false);
+
+        const lmscoverflow = CREATE_LCF_INSTANCE();
         const fetchItemData = async (endpoint) => {
             const url = endpoint;
             let options = {
@@ -86,26 +90,59 @@
             return response.json();
         }
 
-        const renderRecommendations = (result) => {
+        const renderRecommendations = ({ result, loaded }) => {
             if ( result.items.length === 0 ) {
                 document.getElementById('nothingFound').classList.toggle("d-none");
                 return;
             }
-            for(var i=0;i<result.items.length;i++) {
-                result.items[i].referenceToDetailsView = '/cgi-bin/koha/opac-detail.pl?biblionumber=' + result.items[i].biblionumber;
-            }
-            const lmscoverflow = LMSCOVERFLOW(
-                'lmscoverflow',
+
+            result.items = result.items.map((item) => {
+                return { ...item, referenceToDetailsView: `/cgi-bin/koha/opac-detail.pl?biblionumber=${item.biblionumber}` }
+            });
+
+            lmscoverflow.setGlobals(
                 {
                     coverImageFallbackHeight: 210,
                     coverFlowContext: 'grid',
                 },
-                result.items
+                result.items,
+                'lmscoverflow',
+                loaded || undefined
             );
             lmscoverflow.render();
         }
 
         const recommendations = fetchItemData('/cgi-bin/koha/svc/user-recommendations?count=20');
-        recommendations.then(result => renderRecommendations(result));
+        [% IF ( Koha.Preference('OpacCoce') && Koha.Preference('CoceProviders') ) %]
+            loaded.subscribe((isLoaded) => {
+                if (isLoaded) {
+                    KOHA.coce.getURL('[% Koha.Preference('CoceHost') | html %]', '[% Koha.Preference('CoceProviders') | html %]',[% covernewwindow | html %]);
+                }
+            });
+
+            recommendations.then(result => renderRecommendations({result, loaded}));
+
+        [% ELSIF OpenLibraryCovers %]
+            loaded.subscribe((isLoaded) => {
+                if (isLoaded) {
+                    KOHA.OpenLibrary.GetCoverFromIsbn();
+                }
+            });
+
+            recommendations.then(result => renderRecommendations({result, loaded}));
+
+        [% ELSIF ( GoogleJackets ) %]
+            loaded.subscribe((isLoaded) => {
+                if (isLoaded) {
+                    KOHA.Google.GetCoverFromIsbn([% covernewwindow | html %]); 
+                }
+            });
+
+            recommendations.then(result => renderRecommendations({result, loaded}));
+
+        [% ELSE %]
+            recommendations.then(result => renderRecommendations({result}));
+            
+        [% END %]
 </script>
 [% END %]
