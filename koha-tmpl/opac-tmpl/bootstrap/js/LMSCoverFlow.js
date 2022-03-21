@@ -1109,6 +1109,11 @@
                 if (entry.coverhtml && !entry.coverurl) {
                     return newEntry;
                 }
+                if (entry.coverurl.startsWith('/')) {
+                    const response = await fetch(entry.coverurl);
+                    const result = await response.text();
+                    return { ...newEntry, coverurl: result };
+                }
                 if (entry.coverurl === '') {
                     return { ...newEntry, coverurl: this.config.coverImageFallbackUrl };
                 }

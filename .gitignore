@@ -5,3 +5,4 @@
 node_modules/
 koha-tmpl/opac-tmpl/bootstrap/css/maps/
 koha-tmpl/intranet-tmpl/prog/css/maps/
+reset_env.sh
