@@ -209,6 +209,7 @@ sub archive_illrequests {
                     biblio_id => $selectedIllRequest->biblio_id(),
                     branchcode => $selectedIllRequest->{_column_data}->{branchcode},
                     status => $selectedIllRequest->status(),
+                    status_alias => $selectedIllRequest->status_alias(),
                     placed => $selectedIllRequest->placed(),
                     replied => $selectedIllRequest->replied(),
                     updated => $selectedIllRequest->updated(),
@@ -216,6 +217,7 @@ sub archive_illrequests {
                     medium => $selectedIllRequest->medium(),
                     accessurl => $selectedIllRequest->accessurl(),
                     cost => $selectedIllRequest->cost(),
+                    price_paid => $selectedIllRequest->price_paid(),
                     notesopac => $selectedIllRequest->notesopac(),
                     notesstaff => $selectedIllRequest->notesstaff(),
                     orderid => $selectedIllRequest->orderid(),
@@ -278,12 +280,13 @@ sub archive_illrequests {
                         illrequest_id => $selectedIllRequestattribute->illrequest_id(),
                         type => $selectedIllRequestattribute->type(),
                         value => $selectedIllRequestattribute->value(),
+                        readonly => $selectedIllRequestattribute->readonly(),
                     };
                     warn dt_from_string . " archive_illrequests() next old_illrequestattributesRecord:" . Dumper($old_illrequestattributesRecord) if $debug;
 
                     try {
                         # insert copied record into old_illrequestattributes
-                        warn dt_from_string . " archive_illrequests() old_illrequestattributes record now will be inserted. (illrequest_id:" . $old_illrequestattributesRecord->{illrequest_id} . ": type:" . $old_illrequestattributesRecord->{type} . ": value:" . $old_illrequestattributesRecord->{value} . ":)" if ($verbose || $debug);
+                        warn dt_from_string . " archive_illrequests() old_illrequestattributes record now will be inserted. (illrequest_id:" . $old_illrequestattributesRecord->{illrequest_id} . ": type:" . $old_illrequestattributesRecord->{type} . ": value:" . $old_illrequestattributesRecord->{value} . ": readonly:" . $old_illrequestattributesRecord->{readonly} . ":)" if ($verbose || $debug);
                         $old_illrequestattributes_rs = $old_illrequestattributes->create($old_illrequestattributesRecord);
                     }
                     catch {
