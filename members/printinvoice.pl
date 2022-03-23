@@ -25,6 +25,7 @@ use C4::Output;
 use CGI qw ( -utf8 );
 use C4::Letters;
 use Koha::Account::Lines;
+use C4::Languages;
 
 my $input = CGI->new;
 
@@ -60,7 +61,7 @@ my $letter = C4::Letters::GetPreparedLetter(
     letter_code            => 'ACCOUNT_DEBIT',
     branchcode             => C4::Context::mybranch,
     message_transport_type => 'print',
-    lang                   => $patron->lang,
+    lang                   => C4::Languages::getlanguage($input),
     tables                 => {
         debits    => $debit_id,
         borrowers => $patron->borrowernumber
