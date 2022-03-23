@@ -48,6 +48,8 @@ updateReports();
 &migrate_epayment_to_2105('LMSC');
 &migrate_epayment_to_2105('KohaPayPal');
 
+&migrateIllbackends();
+
 
 
 ############################################################################
@@ -1821,6 +1823,94 @@ sub migrate_epayment_to_2105 {
 
     }
 
+}
+
+# migrateIllbackends also is called individually for each Koha instance of the current host, although one call per host would be adequate.
+sub migrateIllbackends {
+
+    sub traceILL {
+        my ( $logline ) = @_;
+        my $debug = $ENV{'DEBUG_MIGRATE_ILLBACKENDS'};
+
+        print $logline if $debug;
+    }
+
+
+    # In version 21.05 koha-conf.xml has to contain non-empty XML elements <branch> and <prefix> within XML element <interlibrary_loans>, even if not used.
+    # Otherwise the staff interface will not display the hit list of illrequests.
+    my $kohaConfFileName = Koha::Config->guess_koha_conf;
+    &traceILL("migrateIllbackends START kohaConfFileName:$kohaConfFileName:\n");
+
+    my $s1 = `grep 'At least one <branch> block is required' $kohaConfFileName`;
+    my $s2 = `grep '    <branch>' $kohaConfFileName`;
+    my $s3 = `grep '    <prefix>' $kohaConfFileName`;
+    &traceILL("migrateIllbackends s1:$s1: s2:$s2: s3:$s3:\n");
+
+    if ( ! (length($s1) && length($s2) && length($s3)) ) {
+        my $sedcommand = "sed -i.bak -e 's|    <!-- How should we treat staff comments|    <!-- At least one <branch> block is required. -->\\
+     <branch>\\
+         <!-- The code of this branch -->\\
+         <code>DummyCode</code>\\
+         <!-- An optional prefix for all ILL request IDs for this branch -->\\
+         <prefix>ILL</prefix>\\
+     </branch>\\
+     <!-- How should we treat staff comments|g' $kohaConfFileName";
+
+        &traceILL("migrateIllbackends is now calling sedcommand:$sedcommand:\n");
+        my ($stdoutRes, $stderrRes) = Capture::Tiny::capture { system ( $sedcommand ); };
+
+        &traceILL("migrateIllbackends after calling sedcommand; stdoutRes:$stdoutRes: stderrRes:$stderrRes:\n");
+        if ( $stderrRes ) {
+            print "migrateIllbackends called sedcommand:$sedcommand: and got stdoutRes:$stdoutRes: stderrRes:$stderrRes:\n";
+        }
+    }
+
+
+    # Replacing the locally existing LMSCloud ILL backend directory trees by current version from 'master' branch.
+    my $shellcommand = '
+        ILLBACKENDSDIR="/usr/share/koha/lib/Koha/Illbackends"
+
+        if [ -d $ILLBACKENDSDIR ]
+        then
+          cd $ILLBACKENDSDIR
+
+          for ILLBACKENDANDGITSOURCE in \
+           ILLSLNPKoha_https://github.com/LMSCloud/ILLSLNPKoha.git \
+           ILLALV_git@github.com:LMSCloud/ILLALV.git \
+           ILLZKSHActive_git@github.com:LMSCloud/ILLZKSHActive.git \
+           ILLZKSHPassive_git@github.com:LMSCloud/ILLZKSHPassive.git
+          do
+            echo ==============================================
+            echo ILLBACKENDANDGITSOURCE:$ILLBACKENDANDGITSOURCE:
+            ILLBACKEND=`echo $ILLBACKENDANDGITSOURCE | cut -s -d _ -f 1 -`
+            GITSOURCE=`echo $ILLBACKENDANDGITSOURCE | cut -s -d _ -f 2 -`
+            echo ILLBACKEND:$ILLBACKEND: GITSOURCE:$GITSOURCE:
+            if [ -d $ILLBACKEND ]
+            then
+              echo ls -l $ILLBACKEND $ILLBACKEND/* old
+              ls -l $ILLBACKEND $ILLBACKEND/*
+              rm -r $ILLBACKEND
+
+              echo "/usr/bin/ssh-add ~/.ssh/git_pub && git clone $GITSOURCE" > /tmp/x_wh
+              chmod 777 /tmp/x_wh
+              ssh-agent /tmp/x_wh
+              rm /tmp/x_wh
+
+              echo ls -l $ILLBACKEND $ILLBACKEND/* new
+              ls -l $ILLBACKEND $ILLBACKEND/*
+            fi
+          done
+        fi
+    ';
+
+    &traceILL("migrateIllbackends is now calling shellcommand:$shellcommand:\n");
+    my ($stdoutRes, $stderrRes) = Capture::Tiny::capture { system ( $shellcommand ); };
+
+    &traceILL("migrateIllbackends after calling shellcommand; stdoutRes:$stdoutRes: stderrRes:$stderrRes:\n");
+    if ( $stderrRes ) {
+        print "migrateIllbackends called shellcommand:$shellcommand: and got stdoutRes:$stdoutRes: stderrRes:$stderrRes:\n";
+    }
+    &traceILL("migrateIllbackends END\n");
 }
 
 sub createSIPEnabledFile {
