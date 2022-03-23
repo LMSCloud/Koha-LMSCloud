@@ -84,7 +84,11 @@
     </td>
     <td class="actions">
     [% IF ( line.amountoutstanding > 0 ) %]
-        <button type="submit" class="btn btn-default btn-xs" name="pay_indiv_[% line.accountlines_id | html %]" value="Pay">Pay</button>
+        [% IF (checkCashRegisterFailed) %] 
+            <button type="submit" class="btn btn-default btn-xs" name="pay_indiv_[% line.accountlines_id | html %]" value="Pay" disabled="disabled">Pay</button>
+        [% ELSE %]
+            <button type="submit" class="btn btn-default btn-xs" name="pay_indiv_[% line.accountlines_id | html %]" value="Pay">Pay</button>
+        [% END %]
         [% IF CAN_user_updatecharges_writeoff %]
             <button type="submit" class="btn btn-default btn-xs" name="wo_indiv_[% line.accountlines_id | html %]" value="Write off">Write off</button>
         [% END %]
