@@ -32,6 +32,7 @@ use CGI qw ( -utf8 );
 use C4::Members;
 use C4::Accounts;
 use C4::Items;
+use C4::CashRegisterManagement qw(passCashRegisterCheck);
 use Koha::Token;
 
 use Koha::Patrons;
@@ -76,6 +77,7 @@ output_and_exit_if_error(
 );
 
 my $library_id = C4::Context->userenv->{'branch'};
+my $checkCashRegisterOk = passCashRegisterCheck($library_id,$loggedinuser);
 my $desc       = $input->param('desc');
 my $amount     = $input->param('amount');
 my $note       = $input->param('note');
@@ -86,7 +88,8 @@ $template->param(
     amount  => $amount,
     note    => $note,
     type    => $debit_type,
-    barcode => $barcode
+    barcode => $barcode,
+    checkCashRegisterFailed   => (! $checkCashRegisterOk),
 );
 
 my $add = $input->param('add');

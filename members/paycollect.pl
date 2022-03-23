@@ -27,6 +27,7 @@ use C4::Output;
 use C4::Members;
 use C4::Accounts;
 use C4::Koha;
+use C4::CashRegisterManagement qw(passCashRegisterCheck);
 
 use Koha::Cash::Registers;
 use Koha::Patrons;
@@ -78,6 +79,7 @@ my $selected_accts   = $input->param('selected_accts'); # comes from paycollect.
 my $payment_note = uri_unescape scalar $input->param('payment_note');
 my $payment_type = scalar $input->param('payment_type');
 my $accountlines_id;
+my $checkCashRegisterOk = passCashRegisterCheck($library_id,$loggedinuser);
 
 my $cash_register_id = $input->param('cash_register');
 if ( $pay_individual || $writeoff_individual || $cancel_individual) {
@@ -165,7 +167,7 @@ if ( $total_paid and $total_paid ne '0.00' ) {
 
         my $url;
         my $pay_result;
-        if ($pay_individual || $writeoff_individual || $cancel_individual) {
+        if ( ($pay_individual && $checkCashRegisterOk) || $writeoff_individual || $cancel_individual) {
             my $line = Koha::Account::Lines->find($accountlines_id);
             $type = 'PAYMENT';
             if ( $writeoff_individual ) {
@@ -265,12 +267,12 @@ if ( $input->param('error_over') ) {
 
 $template->param(
     payment_id => $payment_id,
-
+    checkCashRegisterFailed   => (! $checkCashRegisterOk),
     type           => $type,
     borrowernumber => $borrowernumber,    # some templates require global
     patron         => $patron,
     total          => $total_due,
-
+    finesview      => 1,
     csrf_token => Koha::Token->new->generate_csrf( { session_id => scalar $input->cookie('CGISESSID') } ),
 );
 

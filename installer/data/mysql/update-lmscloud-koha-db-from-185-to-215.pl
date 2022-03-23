@@ -1935,31 +1935,30 @@ q{[% USE Price %]
 <table>
 [% IF ( LibraryName ) %]
  <tr>
-    <th colspan="4" class="centerednames">
+    <th colspan="3" class="centerednames">
         <h3>[% LibraryName | html %]</h3>
     </th>
  </tr>
 [% END %]
  <tr>
-    <th colspan="4" class="centerednames">
+    <th colspan="3" class="centerednames">
         <h2><u>Gebührenquittung</u></h2>
     </th>
  </tr>
  <tr>
-    <th colspan="4" class="centerednames">
+    <th colspan="3" class="centerednames">
         <h2>[% Branches.GetName( credit.patron.branchcode ) | html %]</h2>
     </th>
  </tr>
  <tr>
-    <th colspan="4">
+    <th colspan="3">
        Bezahlt von  [% credit.patron.firstname | html %] [% credit.patron.surname | html %]<br />
-        Ausweisnummer: [% credit.patron.cardnumber | html %]<br />
+        Ausweisnummer: [% credit.patron.cardnumber | html %]
     </th>
  </tr>
   <tr>
     <th>Datum</th>
     <th>Gebührenbeschreibung</th>
-    <th>Hinweis</th>
     <th>Betrag</th>
  </tr>
 
@@ -1967,17 +1966,40 @@ q{[% USE Price %]
     <td>[% credit.date | $KohaDates %]</td>
     <td>
       [% PROCESS account_type_description account=credit %]
-      [%- IF credit.description %], [% credit.description | html %][% END %]
+      [%- IF credit.description%], [% credit.description | html %][% END %]
+      [%- IF credit.note.trim %]<br><span class="credit_note">Hinweis: [% credit.note | html %]</span>[% END %]
     </td>
-    <td>[% credit.note | html %]</td>
     <td class="credit">[% credit.amount | $Price %]</td>
  </tr>
 
+ <tr>
+    <th colspan="3">
+       Beglichene Gebühren:
+    </th>
+ </tr>
+[% FOREACH debit IN credit.credit_offsets %]
+[% NEXT IF ! debit.debit_id %]
+ <tr class="highlight">
+    <td>[% debit.debit.date | $KohaDates %]</td>
+    <td>
+      [% PROCESS account_type_description account=debit.debit %]
+      [%- IF debit.debit.description%], [% debit.debit.description | html %][% END %]
+      [%- IF debit.debit.note.trim %]<br><span class="debit_note">Hinweis: [% debit.debit.note | html %]</span>[% END %]
+    </td>
+    <td class="debit">[% debit.amount | $Price %]</td>
+ </tr>
+[% END %]
+
 <tfoot>
   <tr>
-    <td colspan="3">Total der Ausstände am: </td>
+    <td colspan="2">Total der Ausstände am: [% credit.date | $KohaDates %] </td>
     [% IF ( credit.patron.account.balance >= 0 ) %]<td class="credit">[% ELSE %]<td class="debit">[% END %][% credit.patron.account.balance | $Price %]</td>
   </tr>
+[% IF (credit.credit_number) %]
+<tr>
+<td colspan="3">Quittungsnummer: [% credit.credit_number %]</td>
+</tr>
+[% END %]
 </tfoot>
 </table>
 };

@@ -110,7 +110,7 @@
     </div>
 [% END %]
 
-[% IF ( pay_individual ) %]
+[% IF ( pay_individual && !checkCashRegisterFailed) %]
     [% IF Koha.Preference('UseCashRegisters') && ( registers.size == 0 ) %]
         [% PROCESS 'cash_register_required' %]
     [% ELSE %]
@@ -197,7 +197,9 @@
     [% END %]
 [% ELSIF ( writeoff_individual ) %]
     <ul class="nav nav-pills">
+        [% IF (!checkCashRegisterFailed) %]
         <li role="presentation"><a href="/cgi-bin/koha/members/paycollect.pl?pay_individual=1&borrowernumber=[% patron.borrowernumber | uri %]&debit_type_code=[% debit_type_code | uri %]&amount=[% amount | uri %]&amountoutstanding=[% amountoutstanding | uri %]&description=[% individual_description | uri %]&itemnumber=[% itemnumber | uri %]&accountlines_id=[% accountlines_id | uri %]&payment_note=[% payment_note | uri %]">Pay</a></li>
+        [% END %]
         <li role="presentation" class="active"><a>Write off</a></li>
         <li role="presentation"><a href="/cgi-bin/koha/members/paycollect.pl?cancel_individual=1&borrowernumber=[% patron.borrowernumber | uri %]&debit_type_code=[% debit_type_code | uri %]&amount=[% amount | uri %]&amountoutstanding=[% amountoutstanding | uri %]&description=[% individual_description | uri %]&itemnumber=[% itemnumber | uri %]&accountlines_id=[% accountlines_id | uri %]&payment_note=[% payment_note | uri %]">Cancel fee</a></li>
     </ul>
@@ -253,7 +255,9 @@
     </form>
 [% ELSIF ( cancel_individual ) %]
     <ul class="nav nav-pills">
+        [% IF (!checkCashRegisterFailed) %]
         <li role="presentation"><a href="/cgi-bin/koha/members/paycollect.pl?pay_individual=1&borrowernumber=[% patron.borrowernumber | uri %]&debit_type_code=[% debit_type_code | uri %]&amount=[% amount | uri %]&amountoutstanding=[% amountoutstanding | uri %]&description=[% individual_description | uri %]&itemnumber=[% itemnumber | uri %]&accountlines_id=[% accountlines_id | uri %]&payment_note=[% payment_note | uri %]">Pay</a></li>
+        [% END %]
         <li role="presentation"><a href="/cgi-bin/koha/members/paycollect.pl?writeoff_individual=1&borrowernumber=[% patron.borrowernumber | uri %]&debit_type_code=[% debit_type_code | uri %]&amount=[% amount | uri %]&amountoutstanding=[% amountoutstanding | uri %]&description=[% individual_description | uri %]&itemnumber=[% itemnumber | uri %]&accountlines_id=[% accountlines_id | uri %]&payment_note=[% payment_note | uri %]">Write off</a></li>
         <li role="presentation" class="active"><a>Cancel fee</a></li>
     </ul>
@@ -307,14 +311,18 @@
     [% IF selected_accts %]
         <ul class="nav nav-pills">
             [% IF type == 'WRITEOFF' %]
+                [% IF (!checkCashRegisterFailed) %]
                 <li role="presentation"><a href="/cgi-bin/koha/members/paycollect.pl?borrowernumber=[% patron.borrowernumber | uri %]&type=PAYMENT&amt=[% amt | uri %]&selected=[% selected_accts | uri %]&notes=[% selected_accts_notes | uri %]">Pay</a></li>
+                [% END %]
                 <li role="presentation" class="active"><a>Write off</a></li>
                 <li role="presentation"><a href="/cgi-bin/koha/members/paycollect.pl?borrowernumber=[% patron.borrowernumber | uri %]&type=CANCELLATION&amt=[% amt | uri %]&selected=[% selected_accts | uri %]&notes=[% selected_accts_notes | uri %]">Cancel</a></li>
             [% ELSIF type == 'CANCELLATION' %]
+                [% IF (!checkCashRegisterFailed) %]
                 <li role="presentation"><a href="/cgi-bin/koha/members/paycollect.pl?borrowernumber=[% patron.borrowernumber | uri %]&type=PAYMENT&amt=[% amt | uri %]&selected=[% selected_accts | uri %]&notes=[% selected_accts_notes | uri %]">Pay</a></li>
+                [% END %]
                 <li role="presentation"><a href="/cgi-bin/koha/members/paycollect.pl?borrowernumber=[% patron.borrowernumber | uri %]&type=WRITEOFF&amt=[% amt | uri %]&selected=[% selected_accts | uri %]&notes=[% selected_accts_notes | uri %]">Write off</a></li>
                 <li role="presentation" class="active"><a>Cancel fee</a></li>
-            [% ELSE %]
+            [% ELSIF (!checkCashRegisterFailed) %]
                 <li role="presentation" class="active"><a>Pay</a></li>
                 <li role="presentation"><a href="/cgi-bin/koha/members/paycollect.pl?borrowernumber=[% patron.borrowernumber | uri %]&type=WRITEOFF&amt=[% amt | uri %]&selected=[% selected_accts | uri %]&notes=[% selected_accts_notes | uri %]">Write off</a></li>
                 <li role="presentation"><a href="/cgi-bin/koha/members/paycollect.pl?borrowernumber=[% patron.borrowernumber | uri %]&type=CANCELLATION&amt=[% amt | uri %]&selected=[% selected_accts | uri %]&notes=[% selected_accts_notes | uri %]">Cancel</a></li>

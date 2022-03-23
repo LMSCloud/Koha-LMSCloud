@@ -273,7 +273,6 @@ sub checkin {
                 return $circ;
             }
         }
-        $circ->do_checkin( $current_loc, $return_date, $account );
         $data = $circ->do_checkin( $current_loc, $return_date, $account );
     }
     else {
