@@ -299,7 +299,7 @@ td.debit {
 	border : 0;
 	font-size : 1em;
 	font-weight : normal;
-	padding : 1px;
+	padding : 3px;
 	border-bottom : 1px solid #000000;
 	border-left : 1px solid #000000;
 	border-right : 1px solid #000000;
@@ -350,4 +350,9 @@ fieldset {
 }
 #cataloguing_additem_itemlist {
 	overflow : visible !important;
+}
+
+#pat_printfeercpt > #receipt * { 
+   font-size: small; 
+   font-family: sans-serif;
 }
