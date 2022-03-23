@@ -84,7 +84,9 @@
                     </fieldset>
                     <fieldset class="action">
                         <button type="submit" name="add" value="save">Save</button>
+                        [% IF (!checkCashRegisterFailed) %]
                         <button type="submit" name="add" value="save and pay">Save and pay</button>
+                        [% END %]
                         <a class="cancel" href="/cgi-bin/koha/members/boraccount.pl?borrowernumber=[% patron.borrowernumber | html %]">Cancel</a>
                     </fieldset>
                 </form>
