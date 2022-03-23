@@ -31,11 +31,11 @@ or, in crontab:
 =head1 DESCRIPTION
 
 This script shifts database records that represent an completed ILL request
-from the current tables illrequests and illrequestattributes
-to the archive tables old_illrequests and old_illrequestattributes.
+from the current tables illrequests, illrequestattributes and illcomments
+to the archive tables old_illrequests, old_illrequestattributes and old_illcomments.
 The reason for this is to keep the current tables free of ballast
 that slows down display of lists without giving any advantage.
-The tables old_illrequests and old_illrequestattributes may be
+The tables old_illrequests, old_illrequestattributes and old_illcomments may be
 evaluated using special Koha reports, if required by customers.
 
 The argument -m specifies an age in days; all illrequests
@@ -110,8 +110,10 @@ use Koha::Checkouts;
 use Koha::DateUtils;
 use Koha::Illrequests;
 use Koha::Illrequestattributes;
+use Koha::Illcomments;
 use Koha::Schema::Result::OldIllrequest;
 use Koha::Schema::Result::OldIllrequestattribute;
+use Koha::Schema::Result::OldIllcomment;
 
 
 
@@ -226,12 +228,27 @@ sub archive_illrequests {
                 warn dt_from_string . " archive_illrequests() next old_illrequestsRecord:" . Dumper($old_illrequestsRecord) if $debug;
 
                 my $old_illrequests = $schema->resultset('OldIllrequest');
-
                 my $old_illrequests_rs;
+
                 my $old_illrequestattributes = $schema->resultset('OldIllrequestattribute');
                 my $old_illrequestattributes_rs;
 
+                my $old_illcomments = $schema->resultset('OldIllcomment');
+                my $old_illcomments_rs;
+
+
+                # Being cautious, we try to delete from old_illcomments, old_illrequestattributes, old_illrequests before inserting.
+                # Although it should not be necessary if all went well in the past.
                 try {
+                    # delete from table old_illcomments the correlated records if already existing
+                    $old_illcomments_rs = $old_illcomments->search( { illrequest_id => $selectedIllRequest->illrequest_id() } );
+                    warn dt_from_string . " archive_illrequests() old_illcomments_rs->count:" . $old_illcomments_rs->count() if $debug;
+
+                    if ( $old_illcomments_rs->count() > 0 ) {
+                        warn dt_from_string . " archive_illrequests() old_illcomments_rs now will be deleted." if $debug;
+                        $old_illcomments_rs->delete();
+                    }
+
                     # delete from table old_illrequestattributes the correlated records if already existing
                     $old_illrequestattributes_rs = $old_illrequestattributes->search( { illrequest_id => $selectedIllRequest->illrequest_id() } );
                     warn dt_from_string . " archive_illrequests() old_illrequestattributes_rs->count:" . $old_illrequestattributes_rs->count() if $debug;
@@ -240,6 +257,7 @@ sub archive_illrequests {
                         warn dt_from_string . " archive_illrequests() old_illrequestattributes_rs now will be deleted." if $debug;
                         $old_illrequestattributes_rs->delete();
                     }
+
                     # delete from table old_illrequests the copy of the record if already existing
                     $old_illrequests_rs = $old_illrequests->search( { illrequest_id => $selectedIllRequest->illrequest_id() } );
                     warn dt_from_string . " archive_illrequests() old_illrequests_rs->count:" . $old_illrequests_rs->count() if $debug;
@@ -264,6 +282,42 @@ sub archive_illrequests {
                     }
                 };
 
+
+                # archive all correlated illcomments records
+                my $illcomments = Koha::Illcomments->new();
+                my $illcomments_rs = $illcomments->_resultset()->search( { illrequest_id => $selectedIllRequest->illrequest_id() } );
+
+                if ( $illcomments_rs ) {
+                    my @selectedIllcomments = $illcomments_rs->all();
+                    foreach my $selectedIllcomment (@selectedIllcomments) {
+
+                        my $old_illcommentsRecord = {
+                            illcomment_id => $selectedIllcomment->illcomment_id(),
+                            illrequest_id => $selectedIllcomment->illrequest_id(),
+                            borrowernumber => $selectedIllcomment->{_column_data}->{borrowernumber},
+                            comment => $selectedIllcomment->comment(),
+                            timestamp => $selectedIllcomment->timestamp(),
+                        };
+                        warn dt_from_string . " archive_illrequests() next old_illcommentsRecord:" . Dumper($old_illcommentsRecord) if $debug;
+
+                        try {
+                            # insert copied record into old_illcomments
+                            warn dt_from_string . " archive_illrequests() old_illcomments record now will be inserted. (illrequest_id:" . $old_illcommentsRecord->{illrequest_id} . ": illcomment_id:" . $old_illcommentsRecord->{illcomment_id} . ": borrowernumber:" . $old_illcommentsRecord->{borrowernumber} . ": comment:" . $old_illcommentsRecord->{comment} . ": timestamp:" . $old_illcommentsRecord->{timestamp} . ":)" if ($verbose || $debug);
+                            $old_illcomments_rs = $old_illcomments->create($old_illcommentsRecord);
+                        }
+                        catch {
+                            my $exception = $_;
+                            warn dt_from_string . " archive_illrequests() trying to create old_illcomments record, catched exception:" . Dumper($exception);
+                            if (ref($exception) eq 'DBIx::Class::Exception') {
+                                # 'Copy'-action failed, so we do not delete illrequests record and correlated illrequestattributes and illcomments records.
+                                # trying our luck with next illrequest
+                                next ILLREQUEST;
+                            } else {
+                                $exception->rethrow();
+                            }
+                        };
+                    }
+                }
 
                 # archive all correlated illrequestattributes records
                 my $illrequestattributes = Koha::Illrequestattributes->new();
@@ -301,17 +355,30 @@ sub archive_illrequests {
                         }
                     };
                 }
-                $countCopiedIllRequests += 1;
-                # Successfully copied the illrequests record to database table old_illrequests, 
-                # and the correlated illrequestattributes records to database table old_illrequestattributes.
 
-                # So now the correlated illrequestattributes records and the illrequests record itself can be deleted.
+                # So far no exception has been thrown during handling the current $selectedIllRequest.
+                # Successfully copied the illrequests record to database table old_illrequests, 
+                # the correlated illrequestattributes records to database table old_illrequestattributes, 
+                # and the correlated illcomments records to database table old_illcomments.
+                $countCopiedIllRequests += 1;
+
+
+                # So now the correlated illcomments records, the correlated illrequestattributes records and the current illrequests record itself can be deleted.
                 $schema->storage->txn_begin;
                 try {
+                    # delete correlated records from illcomments
+                    $illcomments_rs = $illcomments->_resultset()->search( { illrequest_id => $selectedIllRequest->illrequest_id() } );
+                    warn dt_from_string . " archive_illrequests() trying to delete illcomments records (illrequest_id:" . $selectedIllRequest->illrequest_id() . "); count:" . $illcomments_rs->count() if ($verbose || $debug);
+                    if ( $illcomments_rs->count() > 0 ) {
+                        $illcomments_rs->delete();
+                    }
+
                     # delete correlated records from illrequestattributes
                     $illrequestattributes_rs = $illrequestattributes->_resultset()->search( { illrequest_id => $selectedIllRequest->illrequest_id() } );
                     warn dt_from_string . " archive_illrequests() trying to delete illrequestattributes records (illrequest_id:" . $selectedIllRequest->illrequest_id() . "); count:" . $illrequestattributes_rs->count() if ($verbose || $debug);
-                    $illrequestattributes_rs->delete();
+                    if ( $illrequestattributes_rs->count() > 0 ) {
+                        $illrequestattributes_rs->delete();
+                    }
                     
                     # delete the record from illrequests
                     $illrequests_rs = $illrequests->_resultset()->search( { illrequest_id => $selectedIllRequest->illrequest_id() } );

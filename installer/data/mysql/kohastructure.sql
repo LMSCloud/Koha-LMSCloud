@@ -4091,32 +4091,24 @@ CREATE TABLE `oauth_access_tokens` (
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
--- Table structure for table `old_illrequests`
+-- Table structure for table `old_illcomments`
 --
 
-DROP TABLE IF EXISTS `old_illrequests`;
+DROP TABLE IF EXISTS `old_illcomments`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
-CREATE TABLE old_illrequests (
-    `illrequest_id` bigint(20) unsigned NOT NULL PRIMARY KEY COMMENT 'ILL request number',
-    `borrowernumber` integer DEFAULT NULL COMMENT 'Patron associated with request',
-    `biblio_id` integer DEFAULT NULL COMMENT 'Potential bib linked to request',
-    `branchcode` varchar(10) DEFAULT NULL COMMENT 'The branch associated with the request',
-    `status` varchar(50) DEFAULT NULL COMMENT 'Current Koha status of request',
-    `placed` date DEFAULT NULL COMMENT 'Date the request was placed',
-    `replied` date DEFAULT NULL COMMENT 'Last API response',
-    `updated` timestamp DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT 'Last modification to request',
-    `completed` date DEFAULT NULL COMMENT 'Date the request was completed',
-    `medium` varchar(30) DEFAULT NULL COMMENT 'The Koha request type',
-    `accessurl` varchar(500) DEFAULT NULL COMMENT 'Potential URL for accessing item',
-    `cost` varchar(20) DEFAULT NULL COMMENT 'Cost of request',
-    `notesopac` MEDIUMTEXT DEFAULT NULL COMMENT 'Patron notes attached to request',
-    `notesstaff` MEDIUMTEXT DEFAULT NULL COMMENT 'Staff notes attached to request',
-    `orderid` varchar(50) DEFAULT NULL COMMENT 'Backend id attached to request',
-    `backend` varchar(20) DEFAULT NULL COMMENT 'the backend used to create request',
-    CONSTRAINT `old_illrequests_bnfk` FOREIGN KEY (`borrowernumber`) REFERENCES `borrowers` (`borrowernumber`) ON DELETE SET NULL ON UPDATE SET NULL,
-    CONSTRAINT `old_illrequests_bcfk2` FOREIGN KEY (`branchcode`) REFERENCES `branches` (`branchcode`) ON UPDATE SET NULL ON DELETE SET NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT 'lists ILL request that have been completed and after a delay deleted to keep illrequests table small';
+CREATE TABLE `old_illcomments` (
+  `illcomment_id` int(11) NOT NULL COMMENT 'Unique ID of the comment',
+  `illrequest_id` bigint(20) unsigned NOT NULL COMMENT 'ILL request number',
+  `borrowernumber` int(11) DEFAULT NULL COMMENT 'Link to the user who made the comment (could be librarian, patron or ILL partner library)',
+  `comment` text COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT 'The text of the comment',
+  `timestamp` timestamp NOT NULL DEFAULT current_timestamp() COMMENT 'Date and time when the comment was made',
+  PRIMARY KEY (`illcomment_id`),
+  KEY `old_illcomments_bnfk` (`borrowernumber`),
+  KEY `old_illcomments_ifk` (`illrequest_id`),
+  CONSTRAINT `old_illcomments_bnfk` FOREIGN KEY (`borrowernumber`) REFERENCES `borrowers` (`borrowernumber`) ON UPDATE SET NULL ON DELETE SET NULL,
+  CONSTRAINT `old_illcomments_ifk` FOREIGN KEY (`illrequest_id`) REFERENCES `old_illrequests` (`illrequest_id`) ON DELETE CASCADE ON UPDATE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -4128,11 +4120,44 @@ DROP TABLE IF EXISTS `old_illrequestattributes`;
 /*!40101 SET character_set_client = utf8 */;
 CREATE TABLE old_illrequestattributes (
     `illrequest_id` bigint(20) unsigned NOT NULL COMMENT 'ILL request number',
-    `type` varchar(200) NOT NULL COMMENT 'API ILL property name',
-    `value` MEDIUMTEXT NOT NULL COMMENT 'API ILL property value',
+    `type` varchar(200) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT 'API ILL property name',
+    `value` mediumtext COLLATE utf8mb4_unicode_ci NOT NULL COMMENT 'API ILL property value',
+    `readonly` tinyint(1) NOT NULL DEFAULT 1 COMMENT 'Is this attribute read only',
     PRIMARY KEY  (`illrequest_id`, `type` (191)),
     CONSTRAINT `old_illrequestattributes_ifk` FOREIGN KEY (illrequest_id) REFERENCES `old_illrequests` (`illrequest_id`) ON UPDATE CASCADE ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `old_illrequests`
+--
+
+DROP TABLE IF EXISTS `old_illrequests`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE old_illrequests (
+    `illrequest_id` bigint(20) unsigned NOT NULL PRIMARY KEY COMMENT 'ILL request number',
+    `borrowernumber` int(11) DEFAULT NULL COMMENT 'Patron associated with request',
+    `biblio_id` int(11) DEFAULT NULL COMMENT 'Potential bib linked to request',
+    `branchcode` varchar(50) COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT 'The branch associated with the request',
+    `status` varchar(50) COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT 'Current Koha status of request',
+    `status_alias` varchar(80) COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT 'Foreign key to relevant authorised_values.authorised_value',
+    `placed` date DEFAULT NULL COMMENT 'Date the request was placed',
+    `replied` date DEFAULT NULL COMMENT 'Last API response',
+    `updated` timestamp DEFAULT current_timestamp() ON UPDATE current_timestamp() COMMENT 'Last modification to request',
+    `completed` date DEFAULT NULL COMMENT 'Date the request was completed',
+    `medium` varchar(30) COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT 'The Koha request type',
+    `accessurl` varchar(500) COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT 'Potential URL for accessing item',
+    `cost` varchar(20) COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT 'Quotes cost of request',
+    `price_paid` varchar(20) COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT 'Final cost of request',
+    `notesopac` mediumtext COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT 'Patron notes attached to request',
+    `notesstaff` mediumtext COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT 'Staff notes attached to request',
+    `orderid` varchar(50) COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT 'Backend id attached to request',
+    `backend` varchar(20) COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT 'The backend used to create request',
+    CONSTRAINT `old_illrequests_bnfk` FOREIGN KEY (`borrowernumber`) REFERENCES `borrowers` (`borrowernumber`) ON DELETE SET NULL ON UPDATE SET NULL,
+    CONSTRAINT `old_illrequests_bcfk2` FOREIGN KEY (`branchcode`) REFERENCES `branches` (`branchcode`) ON UPDATE SET NULL ON DELETE SET NULL
+    CONSTRAINT `old_illrequests_safk` FOREIGN KEY (`status_alias`) REFERENCES `authorised_values` (`authorised_value`) ON UPDATE SET NULL ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT 'stores ILL requests that have been completed and after a delay deleted from table illrequests for performance reasons';
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --

@@ -26407,6 +26407,50 @@ if( CheckVersion( $DBversion ) ) {
     NewVersion( $DBversion, "", "Koha 21.05.12 release" );
 }
 
+$DBversion = '21.05.12.001';
+if( CheckVersion( $DBversion ) ) {
+
+    $dbh->do( "ALTER TABLE old_illrequests MODIFY `branchcode` varchar(50) COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL" );
+    if ( foreign_key_exists( 'old_illrequests', 'illrequests_safk' ) ) {
+        $dbh->do( "ALTER TABLE old_illrequests DROP FOREIGN KEY illrequests_safk" );
+    }
+    if ( foreign_key_exists( 'old_illrequests', 'old_illrequests_safk' ) ) {
+        $dbh->do( "ALTER TABLE old_illrequests DROP FOREIGN KEY old_illrequests_safk" );
+    }
+    if ( index_exists( 'old_illrequests', 'illrequests_safk' ) ) {
+        $dbh->do( "DROP INDEX illrequests_safk ON old_illrequests" );
+    }
+    if ( index_exists( 'old_illrequests', 'old_illrequests_safk' ) ) {
+        $dbh->do( "DROP INDEX old_illrequests_safk ON old_illrequests" );
+    }
+    if ( !foreign_key_exists( 'old_illrequests', 'old_illrequests_safk' ) ) {
+        $dbh->do( "ALTER TABLE old_illrequests ADD CONSTRAINT old_illrequests_safk FOREIGN KEY (status_alias) REFERENCES authorised_values(authorised_value) ON UPDATE SET NULL ON DELETE SET NULL" );
+    }
+    unless (TableExists('old_illcomments')) {
+        $dbh->do(q{
+            CREATE TABLE old_illcomments (
+                illcomment_id int(11) NOT NULL,                -- Unique ID of the comment
+                illrequest_id bigint(20) unsigned NOT NULL,    -- ILL request number (joining old_illrequests)
+                borrowernumber integer DEFAULT NULL,           -- Link to the user who made the comment (could be librarian, patron or ILL partner library)
+                comment text DEFAULT NULL,                     -- The text of the comment
+                timestamp timestamp DEFAULT CURRENT_TIMESTAMP, -- Date and time when the comment was made
+                PRIMARY KEY  ( illcomment_id ),
+                CONSTRAINT old_illcomments_bnfk
+                  FOREIGN KEY ( borrowernumber )
+                  REFERENCES  borrowers  ( borrowernumber )
+                  ON UPDATE SET NULL ON DELETE SET NULL,
+                CONSTRAINT old_illcomments_ifk
+                  FOREIGN KEY (illrequest_id)
+                  REFERENCES old_illrequests ( illrequest_id )
+                  ON UPDATE CASCADE ON DELETE CASCADE
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+        });
+    }
+
+    SetVersion( $DBversion );
+    print "Upgrade to $DBversion done (migration of ill request archiving to 21.05)\n";
+}
+
 # SEE bug 13068
 # if there is anything in the atomicupdate, read and execute it.
 my $update_dir = C4::Context->config('intranetdir') . '/installer/data/mysql/atomicupdate/';

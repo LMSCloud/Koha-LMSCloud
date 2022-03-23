@@ -30,22 +30,30 @@ __PACKAGE__->table("old_illrequestattributes");
   is_foreign_key: 1
   is_nullable: 0
 
+ILL request number
+
 =head2 type
 
   data_type: 'varchar'
   is_nullable: 0
   size: 200
 
+API ILL property name
+
 =head2 value
 
   data_type: 'mediumtext'
   is_nullable: 0
+
+API ILL property value
 
 =head2 readonly
 
   data_type: 'tinyint'
   default_value: 1
   is_nullable: 0
+
+Is this attribute read only
 
 =cut
 
@@ -97,8 +105,8 @@ __PACKAGE__->belongs_to(
 );
 
 
-# Created by DBIx::Class::Schema::Loader v0.07049 @ 2022-03-22 13:03:22
-# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:7pJqiqN+z9L+z/vyv99R2Q
+# Created by DBIx::Class::Schema::Loader v0.07049 @ 2022-03-23 15:33:19
+# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:E/uJScg04F36OQOz/fu0/A
 
 
 # You can replace this text with custom code or comments, and it will be preserved on regeneration

@@ -45,7 +45,7 @@ __PACKAGE__->table("old_illrequests");
   data_type: 'varchar'
   is_foreign_key: 1
   is_nullable: 1
-  size: 10
+  size: 50
 
 =head2 status
 
@@ -56,6 +56,7 @@ __PACKAGE__->table("old_illrequests");
 =head2 status_alias
 
   data_type: 'varchar'
+  is_foreign_key: 1
   is_nullable: 1
   size: 80
 
@@ -140,11 +141,11 @@ __PACKAGE__->add_columns(
   "biblio_id",
   { data_type => "integer", is_nullable => 1 },
   "branchcode",
-  { data_type => "varchar", is_foreign_key => 1, is_nullable => 1, size => 10 },
+  { data_type => "varchar", is_foreign_key => 1, is_nullable => 1, size => 50 },
   "status",
   { data_type => "varchar", is_nullable => 1, size => 50 },
   "status_alias",
-  { data_type => "varchar", is_nullable => 1, size => 80 },
+  { data_type => "varchar", is_foreign_key => 1, is_nullable => 1, size => 80 },
   "placed",
   { data_type => "date", datetime_undef_if_invalid => 1, is_nullable => 1 },
   "replied",
@@ -230,6 +231,21 @@ __PACKAGE__->belongs_to(
   },
 );
 
+=head2 old_illcomments
+
+Type: has_many
+
+Related object: L<Koha::Schema::Result::OldIllcomment>
+
+=cut
+
+__PACKAGE__->has_many(
+  "old_illcomments",
+  "Koha::Schema::Result::OldIllcomment",
+  { "foreign.illrequest_id" => "self.illrequest_id" },
+  { cascade_copy => 0, cascade_delete => 0 },
+);
+
 =head2 old_illrequestattributes
 
 Type: has_many
@@ -245,9 +261,29 @@ __PACKAGE__->has_many(
   { cascade_copy => 0, cascade_delete => 0 },
 );
 
+=head2 status_alias
 
-# Created by DBIx::Class::Schema::Loader v0.07049 @ 2022-03-22 13:03:22
-# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:3CW1x80iOnKSCW7k/g66/A
+Type: belongs_to
+
+Related object: L<Koha::Schema::Result::AuthorisedValue>
+
+=cut
+
+__PACKAGE__->belongs_to(
+  "status_alias",
+  "Koha::Schema::Result::AuthorisedValue",
+  { authorised_value => "status_alias" },
+  {
+    is_deferrable => 1,
+    join_type     => "LEFT",
+    on_delete     => "SET NULL",
+    on_update     => "SET NULL",
+  },
+);
+
+
+# Created by DBIx::Class::Schema::Loader v0.07049 @ 2022-03-23 15:33:19
+# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:54UGKVKyYXEaHJjSyhUlqA
 
 
 # You can replace this text with custom code or comments, and it will be preserved on regeneration
