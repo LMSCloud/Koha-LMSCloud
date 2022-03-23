@@ -1,7 +1,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: Koha 21.05\n"
-"POT-Creation-Date: 2022-03-21 18:26+0100\n"
+"POT-Creation-Date: 2022-03-23 19:32+0100\n"
 "PO-Revision-Date: 2022-03-20 19:08+0100\n"
 "Last-Translator: Katrin Fischer <katrin.fischer@bsz-bw.de>\n"
 "Language-Team: \n"
@@ -3953,7 +3953,7 @@ msgstr "%s %s für "
 
 #. %1$s:  patron.firstname | html 
 #. %2$s:  patron.surname | html 
-#: koha-tmpl/intranet-tmpl/prog/en/modules/members/pay.tt:182
+#: koha-tmpl/intranet-tmpl/prog/en/modules/members/pay.tt:186
 #, c-format
 msgid "%s %s has no outstanding fines."
 msgstr "%s %s hat keine offenen Gebühren."
@@ -11858,7 +11858,7 @@ msgstr "-- Keine --"
 #: koha-tmpl/intranet-tmpl/prog/en/modules/members/boraccount.tt:240
 #: koha-tmpl/intranet-tmpl/prog/en/modules/members/boraccount.tt:297
 #: koha-tmpl/intranet-tmpl/prog/en/modules/members/paycollect.tt:184
-#: koha-tmpl/intranet-tmpl/prog/en/modules/members/paycollect.tt:385
+#: koha-tmpl/intranet-tmpl/prog/en/modules/members/paycollect.tt:393
 #: koha-tmpl/intranet-tmpl/prog/en/modules/pos/pay.tt:143
 #, c-format
 msgid "-- Select an option--"
@@ -13011,8 +13011,8 @@ msgstr "Kontodaten: %s %s (%s)"
 #: koha-tmpl/intranet-tmpl/prog/en/modules/members/boraccount.tt:66
 #: koha-tmpl/intranet-tmpl/prog/en/modules/members/pay.tt:63
 #: koha-tmpl/intranet-tmpl/prog/en/modules/members/paycollect.tt:148
-#: koha-tmpl/intranet-tmpl/prog/en/modules/members/paycollect.tt:227
-#: koha-tmpl/intranet-tmpl/prog/en/modules/members/paycollect.tt:282
+#: koha-tmpl/intranet-tmpl/prog/en/modules/members/paycollect.tt:229
+#: koha-tmpl/intranet-tmpl/prog/en/modules/members/paycollect.tt:286
 #, c-format
 msgid "Account type"
 msgstr "Kontenart"
@@ -13315,6 +13315,7 @@ msgid "Actions"
 msgstr "Aktionen"
 
 #: koha-tmpl/intranet-tmpl/prog/en/modules/acqui/invoices.tt:95
+#: koha-tmpl/intranet-tmpl/prog/en/modules/authorities/searchresultlist.tt:72
 #: koha-tmpl/intranet-tmpl/prog/en/modules/admin/aqbudgetperiods.tt:8
 #: koha-tmpl/intranet-tmpl/prog/en/modules/admin/aqbudgets.tt:215
 #: koha-tmpl/intranet-tmpl/prog/en/modules/admin/auth_tag_structure.tt:319
@@ -13325,7 +13326,6 @@ msgstr "Aktionen"
 #: koha-tmpl/intranet-tmpl/prog/en/modules/admin/marctagstructure.tt:293
 #: koha-tmpl/intranet-tmpl/prog/en/modules/admin/oai_sets.tt:133
 #: koha-tmpl/intranet-tmpl/prog/en/modules/admin/z3950servers.tt:220
-#: koha-tmpl/intranet-tmpl/prog/en/modules/authorities/searchresultlist.tt:72
 #: koha-tmpl/intranet-tmpl/prog/en/modules/cataloguing/addbooks.tt:162
 #: koha-tmpl/intranet-tmpl/prog/en/modules/cataloguing/addbooks.tt:221
 #: koha-tmpl/intranet-tmpl/prog/en/modules/cataloguing/additem.tt:104
@@ -13938,7 +13938,7 @@ msgstr "Neue Gruppe"
 msgid "Add new holiday"
 msgstr "Neuer Schließtag"
 
-#: koha-tmpl/intranet-tmpl/prog/en/modules/members/pay.tt:139
+#: koha-tmpl/intranet-tmpl/prog/en/modules/members/pay.tt:143
 #, c-format
 msgid "Add note"
 msgstr "Notiz hinzufügen"
@@ -15590,15 +15590,15 @@ msgstr "American Numismatic Society, USA"
 #: koha-tmpl/intranet-tmpl/prog/en/modules/acqui/invoice.tt:162
 #: koha-tmpl/intranet-tmpl/prog/en/modules/circ/managecashregister.tt:367
 #: koha-tmpl/intranet-tmpl/prog/en/modules/circ/offline.tt:202
+#: koha-tmpl/intranet-tmpl/prog/en/modules/offline_circ/list.tt:51
 #: koha-tmpl/intranet-tmpl/prog/en/modules/members/accountline-details.tt:78
 #: koha-tmpl/intranet-tmpl/prog/en/modules/members/accountline-details.tt:149
 #: koha-tmpl/intranet-tmpl/prog/en/modules/members/boraccount.tt:75
 #: koha-tmpl/intranet-tmpl/prog/en/modules/members/moremember-print.tt:106
 #: koha-tmpl/intranet-tmpl/prog/en/modules/members/pay.tt:72
 #: koha-tmpl/intranet-tmpl/prog/en/modules/members/paycollect.tt:149
-#: koha-tmpl/intranet-tmpl/prog/en/modules/members/paycollect.tt:228
-#: koha-tmpl/intranet-tmpl/prog/en/modules/members/paycollect.tt:283
-#: koha-tmpl/intranet-tmpl/prog/en/modules/offline_circ/list.tt:51
+#: koha-tmpl/intranet-tmpl/prog/en/modules/members/paycollect.tt:230
+#: koha-tmpl/intranet-tmpl/prog/en/modules/members/paycollect.tt:287
 #: koha-tmpl/intranet-tmpl/prog/en/modules/pos/register.tt:251
 #: koha-tmpl/intranet-tmpl/prog/en/modules/reports/cash_register_stats.tt:167
 #: koha-tmpl/intranet-tmpl/prog/en/modules/tools/overduerules.tt:239
@@ -15636,8 +15636,8 @@ msgstr "Höhe der Änderung"
 #: koha-tmpl/intranet-tmpl/prog/en/modules/members/accountline-details.tt:150
 #: koha-tmpl/intranet-tmpl/prog/en/modules/members/pay.tt:73
 #: koha-tmpl/intranet-tmpl/prog/en/modules/members/paycollect.tt:150
-#: koha-tmpl/intranet-tmpl/prog/en/modules/members/paycollect.tt:229
-#: koha-tmpl/intranet-tmpl/prog/en/modules/members/paycollect.tt:284
+#: koha-tmpl/intranet-tmpl/prog/en/modules/members/paycollect.tt:231
+#: koha-tmpl/intranet-tmpl/prog/en/modules/members/paycollect.tt:288
 #, c-format
 msgid "Amount outstanding"
 msgstr "Offener Betrag"
@@ -16198,7 +16198,7 @@ msgstr ""
 msgid "Apply"
 msgstr "Anwenden"
 
-#: koha-tmpl/intranet-tmpl/prog/en/modules/members/pay.tt:156
+#: koha-tmpl/intranet-tmpl/prog/en/modules/members/pay.tt:160
 #, c-format
 msgid "Apply "
 msgstr "Anwenden "
@@ -16846,7 +16846,7 @@ msgid "Are you sure you want to void this credit?"
 msgstr "Sind Sie sicher, dass Sie diese Transaktion stornieren möchten?"
 
 #. SCRIPT
-#: koha-tmpl/intranet-tmpl/prog/en/modules/members/pay.tt:206
+#: koha-tmpl/intranet-tmpl/prog/en/modules/members/pay.tt:210
 msgid ""
 "Are you sure you want to write off %s in outstanding fines? This cannot be "
 "undone!"
@@ -17352,11 +17352,11 @@ msgid "Authorised values category: "
 msgstr "Kategorie für normierte Werte: "
 
 #: koha-tmpl/intranet-tmpl/prog/en/modules/intranet-main.tt:86
-#: koha-tmpl/intranet-tmpl/prog/en/modules/admin/columns_settings.tt:217
 #: koha-tmpl/intranet-tmpl/prog/en/modules/authorities/authorities.tt:194
 #: koha-tmpl/intranet-tmpl/prog/en/modules/authorities/detail.tt:26
 #: koha-tmpl/intranet-tmpl/prog/en/modules/authorities/merge.tt:25
 #: koha-tmpl/intranet-tmpl/prog/en/modules/authorities/searchresultlist.tt:19
+#: koha-tmpl/intranet-tmpl/prog/en/modules/admin/columns_settings.tt:217
 #: koha-tmpl/intranet-tmpl/prog/en/modules/admin/searchengine/elasticsearch/mappings.tt:124
 #: koha-tmpl/intranet-tmpl/prog/en/includes/header.inc:42
 #: koha-tmpl/intranet-tmpl/prog/en/includes/prefs-menu.inc:34
@@ -17386,9 +17386,11 @@ msgstr "Normdatentabellen"
 msgid "Authorities: "
 msgstr "Normdaten: "
 
+#. For the first occurrence,
+#. SCRIPT
+#: koha-tmpl/intranet-tmpl/prog/en/modules/authorities/searchresultlist-auth.tt:116
 #: koha-tmpl/intranet-tmpl/prog/en/modules/admin/z3950servers.tt:163
 #: koha-tmpl/intranet-tmpl/prog/en/modules/admin/z3950servers.tt:214
-#: koha-tmpl/intranet-tmpl/prog/en/modules/authorities/searchresultlist-auth.tt:116
 #: koha-tmpl/intranet-tmpl/prog/en/modules/catalogue/search-history.tt:40
 #: koha-tmpl/intranet-tmpl/prog/en/modules/tools/stage-marc-import.tt:157
 #, c-format
@@ -17941,6 +17943,7 @@ msgstr "Balkendiagramm"
 #: koha-tmpl/intranet-tmpl/prog/en/modules/labels/result.tt:70
 #: koha-tmpl/intranet-tmpl/prog/en/modules/labels/search.tt:60
 #: koha-tmpl/intranet-tmpl/prog/en/modules/labels/search.tt:61
+#: koha-tmpl/intranet-tmpl/prog/en/modules/offline_circ/list.tt:49
 #: koha-tmpl/intranet-tmpl/prog/en/modules/members/accountline-details.tt:74
 #: koha-tmpl/intranet-tmpl/prog/en/modules/members/boraccount.tt:68
 #: koha-tmpl/intranet-tmpl/prog/en/modules/members/holdshistory.tt:59
@@ -17948,7 +17951,6 @@ msgstr "Balkendiagramm"
 #: koha-tmpl/intranet-tmpl/prog/en/modules/members/moremember.tt:883
 #: koha-tmpl/intranet-tmpl/prog/en/modules/members/pay.tt:66
 #: koha-tmpl/intranet-tmpl/prog/en/modules/members/readingrec.tt:71
-#: koha-tmpl/intranet-tmpl/prog/en/modules/offline_circ/list.tt:49
 #: koha-tmpl/intranet-tmpl/prog/en/modules/patroncards/edit-layout.tt:296
 #: koha-tmpl/intranet-tmpl/prog/en/modules/reports/cash_register_stats.tt:169
 #: koha-tmpl/intranet-tmpl/prog/en/modules/reports/catalogue_out.tt:78
@@ -19230,6 +19232,11 @@ msgstr "Einschränkung auf Bibliotheken"
 #: koha-tmpl/intranet-tmpl/prog/en/modules/acqui/supplier.tt:100
 #: koha-tmpl/intranet-tmpl/prog/en/modules/acqui/uncertainprice.tt:15
 #: koha-tmpl/intranet-tmpl/prog/en/modules/acqui/z3950_search.tt:20
+#: koha-tmpl/intranet-tmpl/prog/en/modules/authorities/authorities-home.tt:11
+#: koha-tmpl/intranet-tmpl/prog/en/modules/authorities/authorities.tt:188
+#: koha-tmpl/intranet-tmpl/prog/en/modules/authorities/detail.tt:20
+#: koha-tmpl/intranet-tmpl/prog/en/modules/authorities/merge.tt:19
+#: koha-tmpl/intranet-tmpl/prog/en/modules/authorities/searchresultlist.tt:13
 #: koha-tmpl/intranet-tmpl/prog/en/modules/admin/additional-fields.tt:20
 #: koha-tmpl/intranet-tmpl/prog/en/modules/admin/admin-home.tt:11
 #: koha-tmpl/intranet-tmpl/prog/en/modules/admin/adveditorshortcuts.tt:14
@@ -19283,11 +19290,6 @@ msgstr "Einschränkung auf Bibliotheken"
 #: koha-tmpl/intranet-tmpl/prog/en/modules/admin/transport-cost-matrix.tt:19
 #: koha-tmpl/intranet-tmpl/prog/en/modules/admin/usage_statistics.tt:17
 #: koha-tmpl/intranet-tmpl/prog/en/modules/admin/z3950servers.tt:30
-#: koha-tmpl/intranet-tmpl/prog/en/modules/authorities/authorities-home.tt:11
-#: koha-tmpl/intranet-tmpl/prog/en/modules/authorities/authorities.tt:188
-#: koha-tmpl/intranet-tmpl/prog/en/modules/authorities/detail.tt:20
-#: koha-tmpl/intranet-tmpl/prog/en/modules/authorities/merge.tt:19
-#: koha-tmpl/intranet-tmpl/prog/en/modules/authorities/searchresultlist.tt:13
 #: koha-tmpl/intranet-tmpl/prog/en/modules/catalogue/ISBDdetail.tt:20
 #: koha-tmpl/intranet-tmpl/prog/en/modules/catalogue/MARCdetail.tt:21
 #: koha-tmpl/intranet-tmpl/prog/en/modules/catalogue/advsearch.tt:32
@@ -19350,6 +19352,9 @@ msgstr "Einschränkung auf Bibliotheken"
 #: koha-tmpl/intranet-tmpl/prog/en/modules/labels/label-home.tt:12
 #: koha-tmpl/intranet-tmpl/prog/en/modules/labels/label-manage.tt:25
 #: koha-tmpl/intranet-tmpl/prog/en/modules/labels/spinelabel-home.tt:12
+#: koha-tmpl/intranet-tmpl/prog/en/modules/offline_circ/enqueue_koc.tt:9
+#: koha-tmpl/intranet-tmpl/prog/en/modules/offline_circ/list.tt:13
+#: koha-tmpl/intranet-tmpl/prog/en/modules/offline_circ/process_koc.tt:13
 #: koha-tmpl/intranet-tmpl/prog/en/modules/members/accountline-details.tt:18
 #: koha-tmpl/intranet-tmpl/prog/en/modules/members/apikeys.tt:13
 #: koha-tmpl/intranet-tmpl/prog/en/modules/members/boraccount.tt:25
@@ -19376,9 +19381,6 @@ msgstr "Einschränkung auf Bibliotheken"
 #: koha-tmpl/intranet-tmpl/prog/en/modules/members/readingrec.tt:18
 #: koha-tmpl/intranet-tmpl/prog/en/modules/members/routing-lists.tt:16
 #: koha-tmpl/intranet-tmpl/prog/en/modules/members/statistics.tt:20
-#: koha-tmpl/intranet-tmpl/prog/en/modules/offline_circ/enqueue_koc.tt:9
-#: koha-tmpl/intranet-tmpl/prog/en/modules/offline_circ/list.tt:13
-#: koha-tmpl/intranet-tmpl/prog/en/modules/offline_circ/process_koc.tt:13
 #: koha-tmpl/intranet-tmpl/prog/en/modules/patron_lists/add-modify.tt:19
 #: koha-tmpl/intranet-tmpl/prog/en/modules/patron_lists/list.tt:31
 #: koha-tmpl/intranet-tmpl/prog/en/modules/patron_lists/lists.tt:14
@@ -20246,6 +20248,10 @@ msgstr ""
 #: koha-tmpl/intranet-tmpl/prog/en/modules/acqui/supplier.tt:156
 #: koha-tmpl/intranet-tmpl/prog/en/modules/acqui/transferorder.tt:123
 #: koha-tmpl/intranet-tmpl/prog/en/modules/acqui/z3950_search.tt:122
+#: koha-tmpl/intranet-tmpl/prog/en/modules/authorities/authorities.tt:260
+#: koha-tmpl/intranet-tmpl/prog/en/modules/authorities/authorities.tt:262
+#: koha-tmpl/intranet-tmpl/prog/en/modules/authorities/authorities.tt:267
+#: koha-tmpl/intranet-tmpl/prog/en/modules/authorities/authorities.tt:269
 #: koha-tmpl/intranet-tmpl/prog/en/modules/admin/additional-fields.tt:202
 #: koha-tmpl/intranet-tmpl/prog/en/modules/admin/aqbudgetperiods.tt:237
 #: koha-tmpl/intranet-tmpl/prog/en/modules/admin/aqbudgetperiods.tt:312
@@ -20304,10 +20310,6 @@ msgstr ""
 #: koha-tmpl/intranet-tmpl/prog/en/modules/admin/transport-cost-matrix.tt:99
 #: koha-tmpl/intranet-tmpl/prog/en/modules/admin/usage_statistics.tt:249
 #: koha-tmpl/intranet-tmpl/prog/en/modules/admin/z3950servers.tt:187
-#: koha-tmpl/intranet-tmpl/prog/en/modules/authorities/authorities.tt:260
-#: koha-tmpl/intranet-tmpl/prog/en/modules/authorities/authorities.tt:262
-#: koha-tmpl/intranet-tmpl/prog/en/modules/authorities/authorities.tt:267
-#: koha-tmpl/intranet-tmpl/prog/en/modules/authorities/authorities.tt:269
 #: koha-tmpl/intranet-tmpl/prog/en/modules/basket/downloadcart.tt:28
 #: koha-tmpl/intranet-tmpl/prog/en/modules/basket/sendbasketform.tt:34
 #: koha-tmpl/intranet-tmpl/prog/en/modules/cataloguing/addbiblio.tt:868
@@ -20352,18 +20354,18 @@ msgstr ""
 #: koha-tmpl/intranet-tmpl/prog/en/modules/members/boraccount.tt:309
 #: koha-tmpl/intranet-tmpl/prog/en/modules/members/boraccount.tt:348
 #: koha-tmpl/intranet-tmpl/prog/en/modules/members/mancredit.tt:73
-#: koha-tmpl/intranet-tmpl/prog/en/modules/members/maninvoice.tt:88
+#: koha-tmpl/intranet-tmpl/prog/en/modules/members/maninvoice.tt:90
 #: koha-tmpl/intranet-tmpl/prog/en/modules/members/member-flags.tt:49
 #: koha-tmpl/intranet-tmpl/prog/en/modules/members/member-password.tt:107
 #: koha-tmpl/intranet-tmpl/prog/en/modules/members/memberentrygen.tt:1322
 #: koha-tmpl/intranet-tmpl/prog/en/modules/members/moremember.tt:366
-#: koha-tmpl/intranet-tmpl/prog/en/modules/members/pay.tt:178
+#: koha-tmpl/intranet-tmpl/prog/en/modules/members/pay.tt:182
 #: koha-tmpl/intranet-tmpl/prog/en/modules/members/paycollect.tt:194
-#: koha-tmpl/intranet-tmpl/prog/en/modules/members/paycollect.tt:251
-#: koha-tmpl/intranet-tmpl/prog/en/modules/members/paycollect.tt:298
-#: koha-tmpl/intranet-tmpl/prog/en/modules/members/paycollect.tt:312
-#: koha-tmpl/intranet-tmpl/prog/en/modules/members/paycollect.tt:320
-#: koha-tmpl/intranet-tmpl/prog/en/modules/members/paycollect.tt:400
+#: koha-tmpl/intranet-tmpl/prog/en/modules/members/paycollect.tt:253
+#: koha-tmpl/intranet-tmpl/prog/en/modules/members/paycollect.tt:302
+#: koha-tmpl/intranet-tmpl/prog/en/modules/members/paycollect.tt:318
+#: koha-tmpl/intranet-tmpl/prog/en/modules/members/paycollect.tt:328
+#: koha-tmpl/intranet-tmpl/prog/en/modules/members/paycollect.tt:408
 #: koha-tmpl/intranet-tmpl/prog/en/modules/members/update-child.tt:44
 #: koha-tmpl/intranet-tmpl/prog/en/modules/patron_lists/add-modify.tt:90
 #: koha-tmpl/intranet-tmpl/prog/en/modules/patron_lists/list.tt:121
@@ -20460,21 +20462,21 @@ msgstr "Eine bestätigte Bestellung stornieren"
 
 #. INPUT type=submit
 #: koha-tmpl/intranet-tmpl/prog/en/modules/circ/waitingreserves.tt:102
-#: koha-tmpl/intranet-tmpl/prog/en/modules/members/pay.tt:176
+#: koha-tmpl/intranet-tmpl/prog/en/modules/members/pay.tt:180
 msgid "Cancel all"
 msgstr "Alle stornieren"
 
-#: koha-tmpl/intranet-tmpl/prog/en/modules/members/paycollect.tt:364
+#: koha-tmpl/intranet-tmpl/prog/en/modules/members/paycollect.tt:372
 #, c-format
 msgid "Cancel amount: "
 msgstr "Zu stornierender Betrag: "
 
-#: koha-tmpl/intranet-tmpl/prog/en/modules/members/paycollect.tt:344
+#: koha-tmpl/intranet-tmpl/prog/en/modules/members/paycollect.tt:352
 #, c-format
 msgid "Cancel an amount toward selected fines"
 msgstr "Storniere einen Teil der ausgewählten Gebühren"
 
-#: koha-tmpl/intranet-tmpl/prog/en/modules/members/paycollect.tt:264
+#: koha-tmpl/intranet-tmpl/prog/en/modules/members/paycollect.tt:268
 #, c-format
 msgid "Cancel an individual fine"
 msgstr "Ausgewählte stornieren"
@@ -20510,11 +20512,11 @@ msgstr "Ausleihe abbrechen und Vormerkung erstellen für %s"
 msgid "Cancel enrollment "
 msgstr "Mitgliedschaft stornieren "
 
-#: koha-tmpl/intranet-tmpl/prog/en/modules/members/pay.tt:92
+#: koha-tmpl/intranet-tmpl/prog/en/modules/members/pay.tt:96
 #: koha-tmpl/intranet-tmpl/prog/en/modules/members/paycollect.tt:121
-#: koha-tmpl/intranet-tmpl/prog/en/modules/members/paycollect.tt:202
-#: koha-tmpl/intranet-tmpl/prog/en/modules/members/paycollect.tt:258
-#: koha-tmpl/intranet-tmpl/prog/en/modules/members/paycollect.tt:316
+#: koha-tmpl/intranet-tmpl/prog/en/modules/members/paycollect.tt:204
+#: koha-tmpl/intranet-tmpl/prog/en/modules/members/paycollect.tt:262
+#: koha-tmpl/intranet-tmpl/prog/en/modules/members/paycollect.tt:324
 #, c-format
 msgid "Cancel fee"
 msgstr "Stornieren"
@@ -20622,12 +20624,12 @@ msgid "Cancel reservation and then attempt transfer:"
 msgstr "Vormerkung stornieren und Transport versuchen:"
 
 #. INPUT type=submit name=cancel_selected
-#: koha-tmpl/intranet-tmpl/prog/en/modules/members/pay.tt:177
+#: koha-tmpl/intranet-tmpl/prog/en/modules/members/pay.tt:181
 msgid "Cancel selected"
 msgstr "Ausgewählte stornieren"
 
 #. INPUT type=submit
-#: koha-tmpl/intranet-tmpl/prog/en/modules/members/paycollect.tt:297
+#: koha-tmpl/intranet-tmpl/prog/en/modules/members/paycollect.tt:301
 msgid "Cancel this charge"
 msgstr "Gebühr stornieren"
 
@@ -21314,7 +21316,7 @@ msgstr "Kasse:"
 #: koha-tmpl/intranet-tmpl/prog/en/modules/members/boraccount.tt:238
 #: koha-tmpl/intranet-tmpl/prog/en/modules/members/boraccount.tt:295
 #: koha-tmpl/intranet-tmpl/prog/en/modules/members/paycollect.tt:182
-#: koha-tmpl/intranet-tmpl/prog/en/modules/members/paycollect.tt:383
+#: koha-tmpl/intranet-tmpl/prog/en/modules/members/paycollect.tt:391
 #: koha-tmpl/intranet-tmpl/prog/en/modules/pos/pay.tt:141
 #: koha-tmpl/intranet-tmpl/prog/en/modules/reports/cash_register_stats.tt:123
 #: koha-tmpl/intranet-tmpl/prog/en/includes/modals/cashup_summary.inc:11
@@ -23525,9 +23527,9 @@ msgstr "Client-ID: "
 msgid "Clipboard"
 msgstr "Zwischenablage"
 
-#. INPUT type=submit
-#: koha-tmpl/intranet-tmpl/prog/en/modules/admin/smart-rules.tt:96
+#. IMG
 #: koha-tmpl/intranet-tmpl/prog/en/modules/authorities/authorities.tt:469
+#: koha-tmpl/intranet-tmpl/prog/en/modules/admin/smart-rules.tt:96
 #: koha-tmpl/intranet-tmpl/prog/en/modules/cataloguing/addbiblio.tt:1115
 #: koha-tmpl/intranet-tmpl/prog/en/modules/cataloguing/additem.tt:231
 #: koha-tmpl/intranet-tmpl/prog/en/modules/serials/serials-edit.tt:270
@@ -23592,13 +23594,13 @@ msgstr "Klonen der Ausleihregeln fehlgeschlagen!"
 #: koha-tmpl/intranet-tmpl/prog/en/modules/acqui/lateorders.tt:269
 #: koha-tmpl/intranet-tmpl/prog/en/modules/acqui/parcel.tt:313
 #: koha-tmpl/intranet-tmpl/prog/en/modules/acqui/z3950_search.tt:212
+#: koha-tmpl/intranet-tmpl/prog/en/modules/authorities/searchresultlist-auth.tt:97
+#: koha-tmpl/intranet-tmpl/prog/en/modules/authorities/searchresultlist-auth.tt:104
 #: koha-tmpl/intranet-tmpl/prog/en/modules/admin/aqbudgetperiods.tt:28
 #: koha-tmpl/intranet-tmpl/prog/en/modules/admin/biblio_framework.tt:230
 #: koha-tmpl/intranet-tmpl/prog/en/modules/admin/biblio_framework.tt:300
 #: koha-tmpl/intranet-tmpl/prog/en/modules/admin/preferences.tt:220
 #: koha-tmpl/intranet-tmpl/prog/en/modules/admin/smtp_servers.tt:277
-#: koha-tmpl/intranet-tmpl/prog/en/modules/authorities/searchresultlist-auth.tt:97
-#: koha-tmpl/intranet-tmpl/prog/en/modules/authorities/searchresultlist-auth.tt:104
 #: koha-tmpl/intranet-tmpl/prog/en/modules/catalogue/detail.tt:1013
 #: koha-tmpl/intranet-tmpl/prog/en/modules/cataloguing/addbooks.tt:253
 #: koha-tmpl/intranet-tmpl/prog/en/modules/cataloguing/editor.tt:300
@@ -23621,8 +23623,8 @@ msgstr "Klonen der Ausleihregeln fehlgeschlagen!"
 #: koha-tmpl/intranet-tmpl/prog/en/modules/members/boraccount.tt:325
 #: koha-tmpl/intranet-tmpl/prog/en/modules/members/merge-patrons.tt:211
 #: koha-tmpl/intranet-tmpl/prog/en/modules/members/merge-patrons.tt:287
-#: koha-tmpl/intranet-tmpl/prog/en/modules/members/paycollect.tt:422
-#: koha-tmpl/intranet-tmpl/prog/en/modules/members/paycollect.tt:427
+#: koha-tmpl/intranet-tmpl/prog/en/modules/members/paycollect.tt:430
+#: koha-tmpl/intranet-tmpl/prog/en/modules/members/paycollect.tt:435
 #: koha-tmpl/intranet-tmpl/prog/en/modules/pos/register.tt:271
 #: koha-tmpl/intranet-tmpl/prog/en/modules/pos/register.tt:292
 #: koha-tmpl/intranet-tmpl/prog/en/modules/pos/registers.tt:157
@@ -23916,7 +23918,7 @@ msgid "Collapsed"
 msgstr "Eingeklappt"
 
 #: koha-tmpl/intranet-tmpl/prog/en/modules/members/paycollect.tt:168
-#: koha-tmpl/intranet-tmpl/prog/en/modules/members/paycollect.tt:369
+#: koha-tmpl/intranet-tmpl/prog/en/modules/members/paycollect.tt:377
 #, c-format
 msgid "Collect from patron: "
 msgstr "Einzahlung: "
@@ -24376,7 +24378,7 @@ msgstr ""
 #: koha-tmpl/intranet-tmpl/prog/en/modules/members/boraccount.tt:308
 #: koha-tmpl/intranet-tmpl/prog/en/modules/members/boraccount.tt:347
 #: koha-tmpl/intranet-tmpl/prog/en/modules/members/paycollect.tt:193
-#: koha-tmpl/intranet-tmpl/prog/en/modules/members/paycollect.tt:399
+#: koha-tmpl/intranet-tmpl/prog/en/modules/members/paycollect.tt:407
 #: koha-tmpl/intranet-tmpl/prog/en/modules/pos/pay.tt:153
 #: koha-tmpl/intranet-tmpl/prog/en/modules/pos/register.tt:278
 #: koha-tmpl/intranet-tmpl/prog/en/modules/pos/register.tt:316
@@ -26429,12 +26431,12 @@ msgstr "Dataly Tech, Griechenland"
 #: koha-tmpl/intranet-tmpl/prog/en/modules/circ/request-article.tt:243
 #: koha-tmpl/intranet-tmpl/prog/en/modules/circ/view_holdsqueue.tt:85
 #: koha-tmpl/intranet-tmpl/prog/en/modules/circ/view_holdsqueue.tt:136
+#: koha-tmpl/intranet-tmpl/prog/en/modules/offline_circ/list.tt:47
 #: koha-tmpl/intranet-tmpl/prog/en/modules/members/accountline-details.tt:72
 #: koha-tmpl/intranet-tmpl/prog/en/modules/members/housebound.tt:393
 #: koha-tmpl/intranet-tmpl/prog/en/modules/members/moremember-print.tt:103
 #: koha-tmpl/intranet-tmpl/prog/en/modules/members/pay.tt:65
 #: koha-tmpl/intranet-tmpl/prog/en/modules/members/readingrec.tt:67
-#: koha-tmpl/intranet-tmpl/prog/en/modules/offline_circ/list.tt:47
 #: koha-tmpl/intranet-tmpl/prog/en/modules/pos/register.tt:249
 #: koha-tmpl/intranet-tmpl/prog/en/modules/reports/guided_reports_start.tt:1392
 #: koha-tmpl/intranet-tmpl/prog/en/modules/reports/guided_reports_start.tt:2291
@@ -27281,6 +27283,8 @@ msgstr ""
 #: koha-tmpl/intranet-tmpl/prog/en/modules/acqui/invoice.tt:253
 #: koha-tmpl/intranet-tmpl/prog/en/modules/acqui/invoices.tt:111
 #: koha-tmpl/intranet-tmpl/prog/en/modules/acqui/supplier.tt:410
+#: koha-tmpl/intranet-tmpl/prog/en/modules/authorities/authorities.tt:472
+#: koha-tmpl/intranet-tmpl/prog/en/modules/authorities/searchresultlist.tt:78
 #: koha-tmpl/intranet-tmpl/prog/en/modules/admin/additional-fields.tt:149
 #: koha-tmpl/intranet-tmpl/prog/en/modules/admin/aqbudgetperiods.tt:17
 #: koha-tmpl/intranet-tmpl/prog/en/modules/admin/aqbudgetperiods.tt:21
@@ -27323,8 +27327,6 @@ msgstr ""
 #: koha-tmpl/intranet-tmpl/prog/en/modules/admin/smtp_servers.tt:297
 #: koha-tmpl/intranet-tmpl/prog/en/modules/admin/systempreferences.tt:450
 #: koha-tmpl/intranet-tmpl/prog/en/modules/admin/z3950servers.tt:226
-#: koha-tmpl/intranet-tmpl/prog/en/modules/authorities/authorities.tt:472
-#: koha-tmpl/intranet-tmpl/prog/en/modules/authorities/searchresultlist.tt:78
 #: koha-tmpl/intranet-tmpl/prog/en/modules/catalogue/search-history.tt:53
 #: koha-tmpl/intranet-tmpl/prog/en/modules/catalogue/search-history.tt:94
 #: koha-tmpl/intranet-tmpl/prog/en/modules/catalogue/search-history.tt:137
@@ -27337,12 +27339,12 @@ msgstr ""
 #: koha-tmpl/intranet-tmpl/prog/en/modules/circ/overdue.tt:212
 #: koha-tmpl/intranet-tmpl/prog/en/modules/labels/label-edit-batch.tt:168
 #: koha-tmpl/intranet-tmpl/prog/en/modules/labels/label-manage.tt:101
+#: koha-tmpl/intranet-tmpl/prog/en/modules/offline_circ/list.tt:97
 #: koha-tmpl/intranet-tmpl/prog/en/modules/members/apikeys.tt:102
 #: koha-tmpl/intranet-tmpl/prog/en/modules/members/files.tt:67
 #: koha-tmpl/intranet-tmpl/prog/en/modules/members/housebound.tt:411
 #: koha-tmpl/intranet-tmpl/prog/en/modules/members/moremember.tt:124
 #: koha-tmpl/intranet-tmpl/prog/en/modules/members/moremember.tt:364
-#: koha-tmpl/intranet-tmpl/prog/en/modules/offline_circ/list.tt:97
 #: koha-tmpl/intranet-tmpl/prog/en/modules/patroncards/edit-batch.tt:112
 #: koha-tmpl/intranet-tmpl/prog/en/modules/patroncards/image-manage.tt:97
 #: koha-tmpl/intranet-tmpl/prog/en/modules/patroncards/image-manage.tt:108
@@ -28100,8 +28102,8 @@ msgstr "Abt."
 #: koha-tmpl/intranet-tmpl/prog/en/modules/members/files.tt:54
 #: koha-tmpl/intranet-tmpl/prog/en/modules/members/pay.tt:64
 #: koha-tmpl/intranet-tmpl/prog/en/modules/members/paycollect.tt:147
-#: koha-tmpl/intranet-tmpl/prog/en/modules/members/paycollect.tt:226
-#: koha-tmpl/intranet-tmpl/prog/en/modules/members/paycollect.tt:281
+#: koha-tmpl/intranet-tmpl/prog/en/modules/members/paycollect.tt:228
+#: koha-tmpl/intranet-tmpl/prog/en/modules/members/paycollect.tt:285
 #: koha-tmpl/intranet-tmpl/prog/en/modules/members/update-child.tt:24
 #: koha-tmpl/intranet-tmpl/prog/en/modules/patroncards/manage.tt:77
 #: koha-tmpl/intranet-tmpl/prog/en/modules/plugins/plugins-home.tt:78
@@ -29544,6 +29546,7 @@ msgstr "Frühestes Vormerkungsdatum"
 #: koha-tmpl/intranet-tmpl/prog/en/modules/acqui/basketgroup.tt:362
 #: koha-tmpl/intranet-tmpl/prog/en/modules/acqui/orderreceive.tt:248
 #: koha-tmpl/intranet-tmpl/prog/en/modules/acqui/supplier.tt:409
+#: koha-tmpl/intranet-tmpl/prog/en/modules/authorities/searchresultlist.tt:75
 #: koha-tmpl/intranet-tmpl/prog/en/modules/admin/additional-fields.tt:148
 #: koha-tmpl/intranet-tmpl/prog/en/modules/admin/aqbudgetperiods.tt:13
 #: koha-tmpl/intranet-tmpl/prog/en/modules/admin/aqbudgets.tt:219
@@ -29578,7 +29581,6 @@ msgstr "Frühestes Vormerkungsdatum"
 #: koha-tmpl/intranet-tmpl/prog/en/modules/admin/smtp_servers.tt:297
 #: koha-tmpl/intranet-tmpl/prog/en/modules/admin/systempreferences.tt:450
 #: koha-tmpl/intranet-tmpl/prog/en/modules/admin/z3950servers.tt:224
-#: koha-tmpl/intranet-tmpl/prog/en/modules/authorities/searchresultlist.tt:75
 #: koha-tmpl/intranet-tmpl/prog/en/modules/catalogue/detail.tt:601
 #: koha-tmpl/intranet-tmpl/prog/en/modules/catalogue/detail.tt:607
 #: koha-tmpl/intranet-tmpl/prog/en/modules/cataloguing/additem.tt:112
@@ -34670,6 +34672,11 @@ msgstr "Jährlich wiederholter Schließzeitraum"
 #: koha-tmpl/intranet-tmpl/prog/en/modules/acqui/supplier.tt:103
 #: koha-tmpl/intranet-tmpl/prog/en/modules/acqui/uncertainprice.tt:18
 #: koha-tmpl/intranet-tmpl/prog/en/modules/acqui/z3950_search.tt:23
+#: koha-tmpl/intranet-tmpl/prog/en/modules/authorities/authorities-home.tt:14
+#: koha-tmpl/intranet-tmpl/prog/en/modules/authorities/authorities.tt:191
+#: koha-tmpl/intranet-tmpl/prog/en/modules/authorities/detail.tt:23
+#: koha-tmpl/intranet-tmpl/prog/en/modules/authorities/merge.tt:22
+#: koha-tmpl/intranet-tmpl/prog/en/modules/authorities/searchresultlist.tt:16
 #: koha-tmpl/intranet-tmpl/prog/en/modules/admin/additional-fields.tt:23
 #: koha-tmpl/intranet-tmpl/prog/en/modules/admin/admin-home.tt:14
 #: koha-tmpl/intranet-tmpl/prog/en/modules/admin/adveditorshortcuts.tt:17
@@ -34723,11 +34730,6 @@ msgstr "Jährlich wiederholter Schließzeitraum"
 #: koha-tmpl/intranet-tmpl/prog/en/modules/admin/transport-cost-matrix.tt:22
 #: koha-tmpl/intranet-tmpl/prog/en/modules/admin/usage_statistics.tt:20
 #: koha-tmpl/intranet-tmpl/prog/en/modules/admin/z3950servers.tt:33
-#: koha-tmpl/intranet-tmpl/prog/en/modules/authorities/authorities-home.tt:14
-#: koha-tmpl/intranet-tmpl/prog/en/modules/authorities/authorities.tt:191
-#: koha-tmpl/intranet-tmpl/prog/en/modules/authorities/detail.tt:23
-#: koha-tmpl/intranet-tmpl/prog/en/modules/authorities/merge.tt:22
-#: koha-tmpl/intranet-tmpl/prog/en/modules/authorities/searchresultlist.tt:16
 #: koha-tmpl/intranet-tmpl/prog/en/modules/catalogue/ISBDdetail.tt:23
 #: koha-tmpl/intranet-tmpl/prog/en/modules/catalogue/MARCdetail.tt:24
 #: koha-tmpl/intranet-tmpl/prog/en/modules/catalogue/advsearch.tt:35
@@ -34791,6 +34793,9 @@ msgstr "Jährlich wiederholter Schließzeitraum"
 #: koha-tmpl/intranet-tmpl/prog/en/modules/labels/label-home.tt:15
 #: koha-tmpl/intranet-tmpl/prog/en/modules/labels/label-manage.tt:28
 #: koha-tmpl/intranet-tmpl/prog/en/modules/labels/spinelabel-home.tt:15
+#: koha-tmpl/intranet-tmpl/prog/en/modules/offline_circ/enqueue_koc.tt:12
+#: koha-tmpl/intranet-tmpl/prog/en/modules/offline_circ/list.tt:16
+#: koha-tmpl/intranet-tmpl/prog/en/modules/offline_circ/process_koc.tt:16
 #: koha-tmpl/intranet-tmpl/prog/en/modules/members/accountline-details.tt:21
 #: koha-tmpl/intranet-tmpl/prog/en/modules/members/apikeys.tt:16
 #: koha-tmpl/intranet-tmpl/prog/en/modules/members/boraccount.tt:28
@@ -34817,9 +34822,6 @@ msgstr "Jährlich wiederholter Schließzeitraum"
 #: koha-tmpl/intranet-tmpl/prog/en/modules/members/readingrec.tt:21
 #: koha-tmpl/intranet-tmpl/prog/en/modules/members/routing-lists.tt:19
 #: koha-tmpl/intranet-tmpl/prog/en/modules/members/statistics.tt:23
-#: koha-tmpl/intranet-tmpl/prog/en/modules/offline_circ/enqueue_koc.tt:12
-#: koha-tmpl/intranet-tmpl/prog/en/modules/offline_circ/list.tt:16
-#: koha-tmpl/intranet-tmpl/prog/en/modules/offline_circ/process_koc.tt:16
 #: koha-tmpl/intranet-tmpl/prog/en/modules/patron_lists/add-modify.tt:22
 #: koha-tmpl/intranet-tmpl/prog/en/modules/patron_lists/list.tt:34
 #: koha-tmpl/intranet-tmpl/prog/en/modules/patron_lists/lists.tt:17
@@ -45950,7 +45952,7 @@ msgstr "Hinweis:"
 #: koha-tmpl/intranet-tmpl/prog/en/modules/admin/smart-rules.tt:910
 #: koha-tmpl/intranet-tmpl/prog/en/modules/members/mancredit.tt:68
 #: koha-tmpl/intranet-tmpl/prog/en/modules/members/maninvoice.tt:81
-#: koha-tmpl/intranet-tmpl/prog/en/modules/members/paycollect.tt:392
+#: koha-tmpl/intranet-tmpl/prog/en/modules/members/paycollect.tt:400
 #, c-format
 msgid "Note: "
 msgstr "Hinweis: "
@@ -47885,7 +47887,7 @@ msgstr "Unbezahlt"
 msgid "Outstanding credit: "
 msgstr "Bestehendes Guthaben: "
 
-#: koha-tmpl/intranet-tmpl/prog/en/modules/members/pay.tt:155
+#: koha-tmpl/intranet-tmpl/prog/en/modules/members/pay.tt:159
 #, c-format
 msgid "Outstanding credits could be applied: "
 msgstr "Guthaben könnte verwendet werden: "
@@ -49518,13 +49520,14 @@ msgstr "Name des Musters:"
 
 #: koha-tmpl/intranet-tmpl/prog/en/modules/members/boraccount.tt:115
 #: koha-tmpl/intranet-tmpl/prog/en/modules/members/boraccount.tt:117
-#: koha-tmpl/intranet-tmpl/prog/en/modules/members/pay.tt:87
+#: koha-tmpl/intranet-tmpl/prog/en/modules/members/pay.tt:88
+#: koha-tmpl/intranet-tmpl/prog/en/modules/members/pay.tt:90
 #: koha-tmpl/intranet-tmpl/prog/en/modules/members/paycollect.tt:119
-#: koha-tmpl/intranet-tmpl/prog/en/modules/members/paycollect.tt:200
-#: koha-tmpl/intranet-tmpl/prog/en/modules/members/paycollect.tt:256
-#: koha-tmpl/intranet-tmpl/prog/en/modules/members/paycollect.tt:310
-#: koha-tmpl/intranet-tmpl/prog/en/modules/members/paycollect.tt:314
-#: koha-tmpl/intranet-tmpl/prog/en/modules/members/paycollect.tt:318
+#: koha-tmpl/intranet-tmpl/prog/en/modules/members/paycollect.tt:201
+#: koha-tmpl/intranet-tmpl/prog/en/modules/members/paycollect.tt:259
+#: koha-tmpl/intranet-tmpl/prog/en/modules/members/paycollect.tt:315
+#: koha-tmpl/intranet-tmpl/prog/en/modules/members/paycollect.tt:321
+#: koha-tmpl/intranet-tmpl/prog/en/modules/members/paycollect.tt:326
 #, c-format
 msgid "Pay"
 msgstr "Bezahlen"
@@ -49536,17 +49539,17 @@ msgid "Pay all charges"
 msgstr "Alle Gebühren zahlen"
 
 #. INPUT type=submit name=paycollect
-#: koha-tmpl/intranet-tmpl/prog/en/modules/members/pay.tt:168
-#: koha-tmpl/intranet-tmpl/prog/en/modules/members/pay.tt:171
+#: koha-tmpl/intranet-tmpl/prog/en/modules/members/pay.tt:172
+#: koha-tmpl/intranet-tmpl/prog/en/modules/members/pay.tt:175
 msgid "Pay amount"
 msgstr "Betrag bezahlen"
 
-#: koha-tmpl/intranet-tmpl/prog/en/modules/members/paycollect.tt:349
+#: koha-tmpl/intranet-tmpl/prog/en/modules/members/paycollect.tt:357
 #, c-format
 msgid "Pay an amount toward all fines"
 msgstr "Gebühr gegen alle Gebührenposten bezahlen"
 
-#: koha-tmpl/intranet-tmpl/prog/en/modules/members/paycollect.tt:346
+#: koha-tmpl/intranet-tmpl/prog/en/modules/members/paycollect.tt:354
 #, c-format
 msgid "Pay an amount toward selected fines"
 msgstr "ausgewählte Gebühr bezahlen"
@@ -49574,8 +49577,8 @@ msgid "Pay fines"
 msgstr "Gebühren zahlen"
 
 #. INPUT type=submit name=payselected
-#: koha-tmpl/intranet-tmpl/prog/en/modules/members/pay.tt:169
-#: koha-tmpl/intranet-tmpl/prog/en/modules/members/pay.tt:172
+#: koha-tmpl/intranet-tmpl/prog/en/modules/members/pay.tt:173
+#: koha-tmpl/intranet-tmpl/prog/en/modules/members/pay.tt:176
 msgid "Pay selected"
 msgstr "Ausgewählte bezahlen"
 
@@ -50687,7 +50690,7 @@ msgstr "Bitte verwenden Sie nur Buchstaben und Zahlen."
 msgid "Please only enter letters."
 msgstr "Bitte verwenden Sie nur Buchstaben."
 
-#: koha-tmpl/intranet-tmpl/prog/en/modules/members/pay.tt:185
+#: koha-tmpl/intranet-tmpl/prog/en/modules/members/pay.tt:189
 #: koha-tmpl/intranet-tmpl/prog/en/includes/blocked-fines.inc:13
 #, c-format
 msgid "Please open a cash register to enable cash payments. "
@@ -54151,6 +54154,7 @@ msgstr "Require.js JS module system"
 #: koha-tmpl/intranet-tmpl/prog/en/modules/acqui/neworderempty.tt:395
 #: koha-tmpl/intranet-tmpl/prog/en/modules/acqui/neworderempty.tt:760
 #: koha-tmpl/intranet-tmpl/prog/en/modules/acqui/supplier.tt:163
+#: koha-tmpl/intranet-tmpl/prog/en/modules/authorities/authorities.tt:453
 #: koha-tmpl/intranet-tmpl/prog/en/modules/admin/additional-fields.tt:170
 #: koha-tmpl/intranet-tmpl/prog/en/modules/admin/aqbudgetperiods.tt:193
 #: koha-tmpl/intranet-tmpl/prog/en/modules/admin/aqbudgetperiods.tt:200
@@ -54219,7 +54223,6 @@ msgstr "Require.js JS module system"
 #: koha-tmpl/intranet-tmpl/prog/en/modules/admin/z3950servers.tt:101
 #: koha-tmpl/intranet-tmpl/prog/en/modules/admin/z3950servers.tt:106
 #: koha-tmpl/intranet-tmpl/prog/en/modules/admin/z3950servers.tt:108
-#: koha-tmpl/intranet-tmpl/prog/en/modules/authorities/authorities.tt:453
 #: koha-tmpl/intranet-tmpl/prog/en/modules/cataloguing/addbiblio.tt:1089
 #: koha-tmpl/intranet-tmpl/prog/en/modules/cataloguing/additem.tt:234
 #: koha-tmpl/intranet-tmpl/prog/en/modules/clubs/clubs-add-modify.tt:66
@@ -54230,6 +54233,7 @@ msgstr "Require.js JS module system"
 #: koha-tmpl/intranet-tmpl/prog/en/modules/ill/ill-requests.tt:780
 #: koha-tmpl/intranet-tmpl/prog/en/modules/installer/step1.tt:63
 #: koha-tmpl/intranet-tmpl/prog/en/modules/installer/step1.tt:75
+#: koha-tmpl/intranet-tmpl/prog/en/modules/offline_circ/process_koc.tt:68
 #: koha-tmpl/intranet-tmpl/prog/en/modules/members/boraccount.tt:231
 #: koha-tmpl/intranet-tmpl/prog/en/modules/members/boraccount.tt:288
 #: koha-tmpl/intranet-tmpl/prog/en/modules/members/boraccount.tt:340
@@ -54271,7 +54275,6 @@ msgstr "Require.js JS module system"
 #: koha-tmpl/intranet-tmpl/prog/en/modules/members/memberentrygen.tt:1154
 #: koha-tmpl/intranet-tmpl/prog/en/modules/members/memberentrygen.tt:1211
 #: koha-tmpl/intranet-tmpl/prog/en/modules/members/memberentrygen.tt:1420
-#: koha-tmpl/intranet-tmpl/prog/en/modules/offline_circ/process_koc.tt:68
 #: koha-tmpl/intranet-tmpl/prog/en/modules/onboarding/onboardingstep1.tt:24
 #: koha-tmpl/intranet-tmpl/prog/en/modules/onboarding/onboardingstep1.tt:29
 #: koha-tmpl/intranet-tmpl/prog/en/modules/onboarding/onboardingstep2.tt:36
@@ -54785,7 +54788,7 @@ msgid "Return to patron detail"
 msgstr "Zurück zu den Benutzerdetails"
 
 #: koha-tmpl/intranet-tmpl/prog/en/modules/members/paycollect.tt:173
-#: koha-tmpl/intranet-tmpl/prog/en/modules/members/paycollect.tt:374
+#: koha-tmpl/intranet-tmpl/prog/en/modules/members/paycollect.tt:382
 #, c-format
 msgid "Return to patron: "
 msgstr "Rückgeld: "
@@ -55533,6 +55536,7 @@ msgstr "Samstags"
 #: koha-tmpl/intranet-tmpl/prog/en/modules/acqui/supplier.tt:151
 #: koha-tmpl/intranet-tmpl/prog/en/modules/acqui/supplier.tt:309
 #: koha-tmpl/intranet-tmpl/prog/en/modules/acqui/uncertainprice.tt:153
+#: koha-tmpl/intranet-tmpl/prog/en/modules/authorities/authorities.tt:250
 #: koha-tmpl/intranet-tmpl/prog/en/modules/admin/additional-fields.tt:201
 #: koha-tmpl/intranet-tmpl/prog/en/modules/admin/aqbudgetperiods.tt:236
 #: koha-tmpl/intranet-tmpl/prog/en/modules/admin/aqbudgetperiods.tt:310
@@ -55566,7 +55570,6 @@ msgstr "Samstags"
 #: koha-tmpl/intranet-tmpl/prog/en/modules/admin/systempreferences.tt:446
 #: koha-tmpl/intranet-tmpl/prog/en/modules/admin/transport-cost-matrix.tt:99
 #: koha-tmpl/intranet-tmpl/prog/en/modules/admin/z3950servers.tt:187
-#: koha-tmpl/intranet-tmpl/prog/en/modules/authorities/authorities.tt:250
 #: koha-tmpl/intranet-tmpl/prog/en/modules/basket/downloadcart.tt:28
 #: koha-tmpl/intranet-tmpl/prog/en/modules/cataloguing/addbiblio.tt:795
 #: koha-tmpl/intranet-tmpl/prog/en/modules/cataloguing/addbiblio.tt:799
@@ -55657,7 +55660,7 @@ msgstr "Speichern und fortfahren"
 msgid "Save and edit items"
 msgstr "Speichern und Exemplare bearbeiten"
 
-#: koha-tmpl/intranet-tmpl/prog/en/modules/members/maninvoice.tt:87
+#: koha-tmpl/intranet-tmpl/prog/en/modules/members/maninvoice.tt:88
 #, c-format
 msgid "Save and pay"
 msgstr "Speichern und bezahlen"
@@ -60711,9 +60714,9 @@ msgstr "Summe"
 #: koha-tmpl/intranet-tmpl/prog/en/modules/acqui/parcel.tt:123
 #: koha-tmpl/intranet-tmpl/prog/en/modules/acqui/parcel.tt:157
 #: koha-tmpl/intranet-tmpl/prog/en/modules/acqui/transferorder.tt:70
-#: koha-tmpl/intranet-tmpl/prog/en/modules/admin/authtypes.tt:174
 #: koha-tmpl/intranet-tmpl/prog/en/modules/authorities/searchresultlist-auth.tt:45
 #: koha-tmpl/intranet-tmpl/prog/en/modules/authorities/searchresultlist.tt:47
+#: koha-tmpl/intranet-tmpl/prog/en/modules/admin/authtypes.tt:174
 #: koha-tmpl/intranet-tmpl/prog/en/modules/labels/label-edit-batch.tt:147
 #: koha-tmpl/intranet-tmpl/prog/en/modules/members/purchase-suggestions.tt:49
 #: koha-tmpl/intranet-tmpl/prog/en/modules/pos/register.tt:73
@@ -61844,7 +61847,7 @@ msgid "The amount collected is more than the outstanding charge"
 msgstr "Der vom Benutzer erhaltene Betrag ist höher als der zu zahlende Betrag"
 
 #. SCRIPT
-#: koha-tmpl/intranet-tmpl/prog/en/modules/members/paycollect.tt:437
+#: koha-tmpl/intranet-tmpl/prog/en/modules/members/paycollect.tt:445
 msgid "The amount to writeoff must be greater than 0.00."
 msgstr "Der zu erlassende Betrag muss größer als 0.00 sein."
 
@@ -65168,12 +65171,12 @@ msgstr "Total + Anpassungen + Versandkosten (%s)"
 msgid "Total RRP"
 msgstr "Total Listenpreise"
 
-#: koha-tmpl/intranet-tmpl/prog/en/modules/members/paycollect.tt:231
+#: koha-tmpl/intranet-tmpl/prog/en/modules/members/paycollect.tt:233
 #, c-format
 msgid "Total amount outstanding:"
 msgstr "Offener Betrag: "
 
-#: koha-tmpl/intranet-tmpl/prog/en/modules/members/paycollect.tt:354
+#: koha-tmpl/intranet-tmpl/prog/en/modules/members/paycollect.tt:362
 #, c-format
 msgid "Total amount outstanding: "
 msgstr "Offener Betrag: "
@@ -65183,7 +65186,7 @@ msgstr "Offener Betrag: "
 msgid "Total amount payable:"
 msgstr "Zu bezahlen:"
 
-#: koha-tmpl/intranet-tmpl/prog/en/modules/members/paycollect.tt:286
+#: koha-tmpl/intranet-tmpl/prog/en/modules/members/paycollect.tt:290
 #, c-format
 msgid "Total amount to be cancelled:"
 msgstr "Zu stornieren:"
@@ -65250,12 +65253,12 @@ msgstr "Anzahl erlaubter Vor-Ort-Ausleihen gesamt"
 msgid "Total due"
 msgstr "Gebühren insgesamt"
 
-#: koha-tmpl/intranet-tmpl/prog/en/modules/members/pay.tt:159
+#: koha-tmpl/intranet-tmpl/prog/en/modules/members/pay.tt:163
 #, c-format
 msgid "Total due if credit applied:"
 msgstr "Gesamtbetrag mit eingerechnetem Guthaben:"
 
-#: koha-tmpl/intranet-tmpl/prog/en/modules/members/pay.tt:150
+#: koha-tmpl/intranet-tmpl/prog/en/modules/members/pay.tt:154
 #, c-format
 msgid "Total due:"
 msgstr "Gebühren insgesamt:"
@@ -66616,8 +66619,8 @@ msgstr "Upload-Verzeichnis: "
 
 #. INPUT type=submit name=upload
 #: koha-tmpl/intranet-tmpl/prog/en/modules/acqui/invoice-files.tt:96
-#: koha-tmpl/intranet-tmpl/prog/en/modules/members/files.tt:92
 #: koha-tmpl/intranet-tmpl/prog/en/modules/offline_circ/process_koc.tt:70
+#: koha-tmpl/intranet-tmpl/prog/en/modules/members/files.tt:92
 #: koha-tmpl/intranet-tmpl/prog/en/modules/tools/stage-marc-import.tt:109
 #: koha-tmpl/intranet-tmpl/prog/en/modules/tools/upload-images.tt:124
 #, c-format
@@ -68024,7 +68027,7 @@ msgstr "Warnung"
 #: koha-tmpl/intranet-tmpl/prog/en/modules/about.tt:467
 #: koha-tmpl/intranet-tmpl/prog/en/modules/about.tt:475
 #: koha-tmpl/intranet-tmpl/prog/en/modules/about.tt:491
-#: koha-tmpl/intranet-tmpl/prog/en/modules/members/paycollect.tt:437
+#: koha-tmpl/intranet-tmpl/prog/en/modules/members/paycollect.tt:445
 #: koha-tmpl/intranet-tmpl/prog/en/modules/tools/cleanborrowers.tt:185
 #, c-format
 msgid "Warning"
@@ -68600,13 +68603,13 @@ msgstr "News für den OPAC und das Personal schreiben"
 msgid "Write news for the OPAC and staff interfaces "
 msgstr "Nachrichteneinträge für den OPAC und die Dienstoberfläche schreiben "
 
-#: koha-tmpl/intranet-tmpl/prog/en/modules/members/pay.tt:89
+#: koha-tmpl/intranet-tmpl/prog/en/modules/members/pay.tt:93
 #: koha-tmpl/intranet-tmpl/prog/en/modules/members/paycollect.tt:120
-#: koha-tmpl/intranet-tmpl/prog/en/modules/members/paycollect.tt:201
-#: koha-tmpl/intranet-tmpl/prog/en/modules/members/paycollect.tt:257
-#: koha-tmpl/intranet-tmpl/prog/en/modules/members/paycollect.tt:311
-#: koha-tmpl/intranet-tmpl/prog/en/modules/members/paycollect.tt:315
-#: koha-tmpl/intranet-tmpl/prog/en/modules/members/paycollect.tt:319
+#: koha-tmpl/intranet-tmpl/prog/en/modules/members/paycollect.tt:203
+#: koha-tmpl/intranet-tmpl/prog/en/modules/members/paycollect.tt:261
+#: koha-tmpl/intranet-tmpl/prog/en/modules/members/paycollect.tt:317
+#: koha-tmpl/intranet-tmpl/prog/en/modules/members/paycollect.tt:323
+#: koha-tmpl/intranet-tmpl/prog/en/modules/members/paycollect.tt:327
 #: koha-tmpl/intranet-tmpl/prog/en/modules/reports/cash_register_stats.tt:86
 #: koha-tmpl/intranet-tmpl/prog/en/modules/reports/cash_register_stats.tt:88
 #, c-format
@@ -68614,16 +68617,16 @@ msgid "Write off"
 msgstr "Erlassen"
 
 #. INPUT type=submit name=woall
-#: koha-tmpl/intranet-tmpl/prog/en/modules/members/pay.tt:174
+#: koha-tmpl/intranet-tmpl/prog/en/modules/members/pay.tt:178
 msgid "Write off all"
 msgstr "Alles erlassen"
 
-#: koha-tmpl/intranet-tmpl/prog/en/modules/members/paycollect.tt:342
+#: koha-tmpl/intranet-tmpl/prog/en/modules/members/paycollect.tt:350
 #, c-format
 msgid "Write off an amount toward selected fines"
 msgstr "Erlasse einen Teil der ausgewählten Gebühren"
 
-#: koha-tmpl/intranet-tmpl/prog/en/modules/members/paycollect.tt:208
+#: koha-tmpl/intranet-tmpl/prog/en/modules/members/paycollect.tt:210
 #, c-format
 msgid "Write off an individual fine"
 msgstr "Einzelne Gebühr erlassen"
@@ -68634,12 +68637,12 @@ msgid "Write off fines and fees "
 msgstr "Gebühren und Entgelte erlassen "
 
 #. INPUT type=submit name=writeoff_selected
-#: koha-tmpl/intranet-tmpl/prog/en/modules/members/pay.tt:175
+#: koha-tmpl/intranet-tmpl/prog/en/modules/members/pay.tt:179
 msgid "Write off selected"
 msgstr "Ausgewählte erlassen"
 
 #. INPUT type=submit
-#: koha-tmpl/intranet-tmpl/prog/en/modules/members/paycollect.tt:250
+#: koha-tmpl/intranet-tmpl/prog/en/modules/members/paycollect.tt:252
 msgid "Write off this charge"
 msgstr "Gebühr erlassen"
 
@@ -68648,8 +68651,8 @@ msgstr "Gebühr erlassen"
 msgid "Writeoff"
 msgstr "Erlassen"
 
-#: koha-tmpl/intranet-tmpl/prog/en/modules/members/paycollect.tt:243
-#: koha-tmpl/intranet-tmpl/prog/en/modules/members/paycollect.tt:359
+#: koha-tmpl/intranet-tmpl/prog/en/modules/members/paycollect.tt:245
+#: koha-tmpl/intranet-tmpl/prog/en/modules/members/paycollect.tt:367
 #, c-format
 msgid "Writeoff amount: "
 msgstr "Betrag erlassen: "
@@ -69030,7 +69033,7 @@ msgid "You are about to install Koha."
 msgstr "Sie sind dabei Koha zu installieren"
 
 #. SCRIPT
-#: koha-tmpl/intranet-tmpl/prog/en/modules/members/paycollect.tt:437
+#: koha-tmpl/intranet-tmpl/prog/en/modules/members/paycollect.tt:445
 msgid "You are attemping to writeoff more than the value of the fee."
 msgstr "Sie versuchen mehr als die Höhe der Gebühr zu erlassen."
 
