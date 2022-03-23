@@ -1636,6 +1636,12 @@ sub AddIssue {
 
             # Record if item was lost
             my $was_lost = $item_object->itemlost;
+            
+            # if it's configured that an item is always moved to the holding library, 
+            # than the homebranch is changed to the holding branch
+            if ( C4::Context->preference("IssuingBranchBecomesHomeBranch") ) {
+                $item_object->homebranch(Koha::Libraries->get_effective_branch(C4::Context->userenv->{'branch'}));
+            }
 
             $item_object->issues( ( $item_object->issues || 0 ) + 1);
             $item_object->holdingbranch(C4::Context->userenv->{'branch'});
@@ -1644,12 +1650,6 @@ sub AddIssue {
             $item_object->datelastborrowed( dt_from_string()->ymd() );
             $item_object->datelastseen( dt_from_string()->ymd() );
             $item_object->store({log_action => 0});
-            
-            # if it's configured that an item is always moved to the holding library, 
-            # than the homebranch is changed to the holding branch
-            if ( C4::Context->preference("IssuingBranchBecomesHomeBranch") ) {
-                $item_object->homebranch(Koha::Libraries->get_effective_branch(C4::Context->userenv->{'branch'}));
-            }
 
             # If the item was lost, it has now been found, charge the overdue if necessary
             if ($was_lost) {
@@ -3186,7 +3186,10 @@ sub AddRenewal {
     my $patron = Koha::Patrons->find( $borrowernumber ) or return; # FIXME Should do more than just return
     my $patron_unblessed = $patron->unblessed;
 
-    my $circ_library = Koha::Libraries->find( _GetCircControlBranch($item_unblessed, $patron_unblessed) );
+    my $branchcode = $issue->branchcode;
+    $branchcode = _GetCircControlBranch($item_unblessed, $patron_unblessed)
+            if (! C4::Context->preference('UseIssuingBranchConditionsForRenewals') );
+    my $circ_library = Koha::Libraries->find( $branchcode );
 
     my $schema = Koha::Database->schema;
     $schema->txn_do(sub{
