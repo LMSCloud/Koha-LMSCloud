@@ -119,6 +119,7 @@ BEGIN {
         &MoveReserve
 
         &CheckReserves
+        &CalculatePriority
         &CanBookBeReserved
         &CanItemBeReserved
         &CanReserveBeCanceledFromOpac
