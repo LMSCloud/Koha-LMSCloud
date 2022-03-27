@@ -731,7 +731,7 @@ $(document).ready(function() {
                             title += "</a></span>";
 
                             if ( oObj.author ) {
-                                title += " " + BY.replace( "_AUTHOR_", " " + oObj.author );
+                                title += " " + __("by _AUTHOR_").replace( "_AUTHOR_", " " + oObj.author.escapeHtml() );
                             }
 
                             if ( oObj.itemnotes ) {
