@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Koha 21.05\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2022-03-20 18:50+0100\n"
+"POT-Creation-Date: 2022-03-27 18:57+0200\n"
 "PO-Revision-Date: 2022-02-23 11:54+0100\n"
 "Last-Translator: Katrin Fischer <katrin.fischer@bsz-bw.de>\n"
 "Language-Team: none\n"
@@ -1373,6 +1373,7 @@ msgid "at %s"
 msgstr "in %s"
 
 #: koha-tmpl/intranet-tmpl/prog/js/checkouts.js:346
+#: koha-tmpl/intranet-tmpl/prog/js/checkouts.js:734
 #: koha-tmpl/intranet-tmpl/prog/js/checkouts.js:840
 #: koha-tmpl/intranet-tmpl/prog/js/holds.js:42
 msgid "by _AUTHOR_"
