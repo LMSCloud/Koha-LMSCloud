@@ -132,6 +132,7 @@ our %index_field_convert = (
     'hi' => 'host-item-number',
     'itu' => 'index-term-uncontrolled',
     'itg' => 'index-term-genre',
+    'cn' => 'control-number',
     'cna' => 'control-number-agency',
     'sbg' => 'subject-genre-form',
     'ocn' => 'other-classification-number', # replaces lcn on 084 values with asb|kab|ssd|sfb values
