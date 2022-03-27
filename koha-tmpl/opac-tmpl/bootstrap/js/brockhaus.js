@@ -143,7 +143,11 @@ function showBrockhausResult(facetID) {
     
     $('.encyclopediaprovider').html(' <a href="' + brockhausData.results[facetID].searchAtBrockhaus + '" target="_blank">' + 'Brockhaus</a> ' );
     $('.encyclopediasearchhitcount').html(' ' + brockhausData.results[facetID].numFound + ' ');
-    $('#numresults').html($('#encyclopedianumresults').html());
+    
+    if ( $('.onlyAdditionalOfferFacets').length > 0 )
+        $('#numresultsAdditionalOffers').html($('#encyclopedianumresults').html());
+    else
+        $('#numresults').html($('#encyclopedianumresults').html());
     $('#showCatalogHitList').attr("href", "javascript:showCatalogHitListBrockhaus()");
 }
 function getBrockhausPagination(facetID, maxHitCount) {

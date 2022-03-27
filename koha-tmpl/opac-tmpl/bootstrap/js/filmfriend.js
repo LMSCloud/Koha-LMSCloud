@@ -158,7 +158,10 @@ function showFilmfriendResult(facetID) {
     
     $('.encyclopediaprovider').html(' <a href="' + filmfriendData.results[facetID].searchAtFilmFriend + '"  target="' + targetLinkFilmfriend + '">' + 'filmfriend</a> ' );
     $('.encyclopediasearchhitcount').html(' ' + filmfriendData.results[facetID].numFound + ' ');
-    $('#numresults').html($('#encyclopedianumresults').html());
+    if ( $('.onlyAdditionalOfferFacets').length > 0 )
+        $('#numresultsAdditionalOffers').html($('#encyclopedianumresults').html());
+    else
+        $('#numresults').html($('#encyclopedianumresults').html());
     $('#showCatalogHitList').attr("href", "javascript:showCatalogHitListFilmfriend()");
     
     truncate_text("#encyclopediahits");

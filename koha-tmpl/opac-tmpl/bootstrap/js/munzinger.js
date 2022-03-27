@@ -113,7 +113,10 @@ function showMunzingerResult(facetID, callOpt) {
     }
     $('.encyclopediaprovider').html(' <a href="' + munzingerData.searchmunzinger + '" target="_blank">' + 'Munzinger</a> ' );
     $('.encyclopediasearchhitcount').html(' ' + munzingerData.categories[facetID].count + ' ');
-    $('#numresults').html($('#encyclopedianumresults').html());
+    if ( $('.onlyAdditionalOfferFacets').length > 0 )
+        $('#numresultsAdditionalOffers').html($('#encyclopedianumresults').html());
+    else
+        $('#numresults').html($('#encyclopedianumresults').html());
     $('#showCatalogHitList').attr("href", "javascript:showCatalogHitListMunzinger()");
     
     if ( callOpt != 1 && munzingerData.categories[facetID].hits.length < munzingerData.categories[facetID].count ) {

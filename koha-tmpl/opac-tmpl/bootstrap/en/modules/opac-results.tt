@@ -64,7 +64,7 @@
             <div class="container-fluid">
                 <div class="row">
                     <div class="col">
-                        <h1 id="numresults">No results found!</h1>
+                        <h1 id="numresults">The local catalog search returned no results!</h1>
                         <p>
                             [% IF ( searchdesc ) %]
                                 No results found for that in [% LibraryName | html %] catalog.
@@ -96,13 +96,22 @@
                     <div class="col-lg-3">
                         <div id="facetcontainer">
                             <!-- FACETS START -->
+                            [% INCLUDE 'additional-offer-facets.inc' %]
                             [% INCLUDE 'opac-facets.inc' %]
+                            <!-- FACETS END -->
+                        </div>
+                    </div>
+                [% ELSIF ( opacfacets && ( Koha.Preference( 'MunzingerEncyclopediaSearchEnabled' ) || Koha.Preference( 'BrockhausSearchActive' ) || Koha.Preference( 'FilmFriendSearchActive' ) ) ) %]
+                    <div class="col-lg-3">
+                        <div id="facetcontainer" class="onlyAdditionalOfferFacets">
+                            <!-- FACETS START -->
+                            [% INCLUDE 'additional-offer-facets.inc' %]
                             <!-- FACETS END -->
                         </div>
                     </div>
                 [% END %]
 
-                [% IF ( total ) %]
+                [% IF ( total || ( Koha.Preference( 'MunzingerEncyclopediaSearchEnabled' ) || Koha.Preference( 'BrockhausSearchActive' ) || Koha.Preference( 'FilmFriendSearchActive' ) ) ) %]
                     [% IF ( opacfacets ) %]
                         <div class="col-lg-9 order-lg-2 maincontent">
                     [% ELSE %]
@@ -127,12 +136,16 @@
                         [% IF ( related ) %]
                             <p>(related searches:[% FOREACH relate IN related %] [% relate.related_search | html %][% END %]).</p>
                         [% END %]
+                    [% ELSE %]
+                        [% IF ( Koha.Preference( 'MunzingerEncyclopediaSearchEnabled' ) || Koha.Preference( 'BrockhausSearchActive' ) || Koha.Preference( 'FilmfriendSearchActive' ) ) %]
+                        <h1 id="numresultsAdditionalOffers"></h1>
+                        [% END %]
                     [% END # / IF total %]
                 [% END # / IF searchdesc %]
 
                 [% IF ( Koha.Preference( 'MunzingerEncyclopediaSearchEnabled' ) || Koha.Preference( 'BrockhausSearchActive' ) || Koha.Preference( 'FilmfriendSearchActive' ) ) %]
                     <div id="encyclopediaresults">
-                        <div id="encyclopedianumresults"><strong>The search at <span class="encyclopediaprovider"></span> in collection <span class="encyclopediasource"></span> returned <span class="encyclopediasearchhitcount"></span> hits - <a id="showCatalogHitList" href="javascript:showCatalogHitList()">Back to cataloge result list</a></strong></div>
+                        <div id="encyclopedianumresults"><strong>The search at <span class="encyclopediaprovider"></span> in collection <span class="encyclopediasource"></span> returned <span class="encyclopediasearchhitcount"></span> hits [% IF ( total ) %]<a id="showCatalogHitList" href="javascript:showCatalogHitList()"> - Back to cataloge result list</a>[% END %]</strong></div>
                         <div id="encyclopediaheader" class="toolbar clearfix">
                             <strong><span class="encyclopediasource"></span></strong>
                         </div>
