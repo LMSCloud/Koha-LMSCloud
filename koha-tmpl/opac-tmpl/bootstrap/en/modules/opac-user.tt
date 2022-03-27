@@ -623,7 +623,7 @@
                                                 [% IF ( Koha.Preference('OPACMySummaryLibrary') ) %]
                                                     <td class="branch">
                                                         <span class="tdlabel">Library:</span>
-                                                        [% ISSUE.branchname_displayed %]
+                                                        [% Branches.GetName('eBib') %]
                                                     </td>
                                                 [% END %]
 
@@ -658,7 +658,7 @@
 
                                                 [% IF ( OpacRenewalAllowed && !( borrower.is_expired && borrower.BlockExpiredPatronOpacActions ) ) %]
                                                     <td class="renew">
-                                                        Not renewable
+                                                        Not renewable here
                                                     </td>
                                                 [% END %]
 
@@ -747,15 +747,13 @@
                                             [% IF ( Koha.Preference('OPACMySummaryCallNumber') ) %]
                                                 <th>Call number</th>
                                             [% END %]
-                                            <th>Barcode</th>
-                                            <th>Call number</th>
                                             <th class="psort">Relative</th>
                                         </tr>
                                     </thead>
 
                                     <tbody>
                                         [% FOREACH r IN relatives %]
-                                            [% FOREACH c IN r.checkouts %]
+                                            [% FOREACH i IN r.checkouts %]
                                                 <tr>
                                                     <td class="itype">
                                                         [% itypelookup = i.item.itype %][% IF (! item_level_itypes ) %][% itypelookup = i.item.bilioitem.itemtype %][% END %]
@@ -772,8 +770,8 @@
                                                         [% END %]
                                                     </td>
                                                     <td>
-                                                        <a href="/cgi-bin/koha/opac-detail.pl?biblionumber=[% c.item.biblio.biblionumber | uri %]">
-                                                            [% c.item.biblio.title | html %][% IF ( c.item.enumchron ) %] [% c.item.enumchron | html %][% END %]
+                                                        <a href="/cgi-bin/koha/opac-detail.pl?biblionumber=[% i.item.biblio.biblionumber | uri %]">
+                                                            [% i.item.biblio.title | html %][% IF ( i.item.enumchron ) %] [% i.item.enumchron | html %][% END %]
                                                         </a>
                                                     </td>
                                                     <td>
