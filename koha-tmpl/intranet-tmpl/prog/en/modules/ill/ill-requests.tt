@@ -582,6 +582,7 @@
                                 </a>
                             [% END %]
                         [% END %]
+                        <!-- Standard Koha's arbitrary ILL notice print is deactivated by LMSCloud, because it would disturb/counteract the 'status graph' of the LMSCloud backends.
                         <div class="dropdown btn-group">
                             <button class="btn btn-default dropdown-toggle" type="button" id="ill-notice-dropdown" data-toggle="dropdown" aria-haspopup="true" aria-expanded="true">
                                 <i class="fa fa-envelope"></i> Send notice to patron <span class="caret"></span>
@@ -592,6 +593,7 @@
                                 [% END %]
                             </ul>
                         </div>
+                        end of deactivation of standard Koha's arbitrary ILL notice print by LMSCloud -->
                         <a title="Display supplier metadata" id="ill-request-display-metadata" class="btn btn-default pull-right" href="#">
                             <span class="fa fa-eye"></span>
                             Display supplier metadata

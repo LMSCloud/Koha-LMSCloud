@@ -603,7 +603,7 @@
                                 [% SET default_messaging = category.default_messaging %]
                                 [% IF default_messaging.size %]
                                     [% FOREACH prefs IN default_messaging %]
-                                        [% NEXT IF !Koha.Preference( 'ILLModule' ) && prefs.message_name.match('^Ill_') %]
+                                        [% NEXT IF (!Koha.Preference( 'ILLModule' ) || ('ILL_messaging_preferences' != 'are_hidden_by_LMSCloud')) && prefs.message_name.match('^Ill_') %]
                                         [% FOREACH transport IN prefs.transports %]
                                             [% IF ( transport.transport ) %]
                                                 [% IF ( prefs.Item_Due ) %]Item due
