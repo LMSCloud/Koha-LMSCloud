@@ -1323,7 +1323,7 @@ sub updateEntryPages {
 sub updateOverwrittenOPACBrowserTemplates {
     my $instance = shift;
     
-    my $directory = "/var/lib/koha/$instance/opac-tmpl-custom/bootstrap_upd/*/modules/opac-browser*.tt";
+    my $directory = "/var/lib/koha/$instance/opac-tmpl-custom/bootstrap/*/modules/opac-browser*.tt";
     my @files = glob $directory;
     
     foreach my $filename(@files) {
@@ -1369,6 +1369,8 @@ sub updateVariablesInNewsTexts {
 sub replaceEntryPageContent {
     my $value = shift;
     
+    $value =~ s/(<div[^>]*class\s*=\s*")(([^"]*)(span(10))([^"]*))("[^>]*>)/"$1".updateClass($2,$4,"col-lg-8 entry-page-col")."$7"/eg;
+    $value =~ s/(<div[^>]*class\s*=\s*")(([^"]*)(span(2))([^"]*))("[^>]*>)/"$1".updateClass($2,$4,"col-lg-4 entry-page-col")."$7"/eg;
     $value =~ s/(<div[^>]*class\s*=\s*")(([^"]*)(span([1-9][0-2]?))([^"]*))("[^>]*>)/"$1".updateClass($2,$4,"col-lg-$5 entry-page-col")."$7"/eg;
     $value =~ s/(<div[^>]*class\s*=\s*")(([^"]*)(row-fluid)([^"]*))("[^>]*>)/"$1".updateClass($2,$4,"row entry-page-row")."$6"/eg;
 
@@ -1543,6 +1545,9 @@ sub getElementAttributeValues {
     elsif ( $value =~ s/^'([^']*)'$/$1/ ) {
         $singlequotes = 1;
     }
+    elsif ( $value =~ s/^([^\s]+)(['"]?)$/$1/ ) {
+        $singlequotes = 1 if ($2 && $2 eq "'");
+    }
     
     my $ret = { origvalue => $origvalue, value => $value, singlequotes => $singlequotes };
     foreach my $val(split(/\s+/,$value)) {
@@ -1559,7 +1564,7 @@ sub addElementToDocumentTree {
     my $retElem = $elementTree;
     
     my $attrnum = 0;
-    while ( $attrtext =~ s/^\s*([\w\-_]+)\s*=\s*("[^"]*"|'[^']*')\s*// ) {
+    while ( $attrtext =~ s/^\s*([\w\-_]+)\s*=\s*("[^"]*"|'[^']*'|[^\s]+['"]?)\s*// ) {
         $attributes->{$1} = getElementAttributeValues($2); 
         $attributes->{$1}->{attrnumber} = ++$attrnum;
     }
