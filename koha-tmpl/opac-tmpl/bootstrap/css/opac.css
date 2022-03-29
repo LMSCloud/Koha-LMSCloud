@@ -117,6 +117,9 @@ th {
     #encyclopedia-facets, #menu {
 	    margin-top: 30px;
     }
+    .ekzcover {
+        width: 170px;    
+    }
 }
 
 @media only screen and (max-width:767px) {
@@ -128,6 +131,12 @@ th {
     }
     #search-facets {
         margin-bottom: 30px;
+    }
+    .ekzcover {
+        width: 150px;    
+    }
+    #bottom-pages nav .pagination {
+        margin-right: 15px;
     }
 }
 #encyclopedia-facets, #munzinger-facet, #encyclopediaresults, #encyclopedianumresults {
@@ -429,3 +438,7 @@ img {
 #header-region .navbar i {
     color: white;
 }
+#opac-detail #tab_descriptions {
+    display: none;
+}
+
