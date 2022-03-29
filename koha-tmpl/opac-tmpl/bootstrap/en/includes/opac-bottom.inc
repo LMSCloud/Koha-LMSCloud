@@ -350,7 +350,11 @@ $(document).ready(function() {
             });
         },
         minLength: 3,
-        delay: 300
+        delay: 300,
+        select: function( event, ui ) {
+            $('#translControl1').val(ui.item.value);
+            $("#searchform").submit();    
+        }
     });
     [% END %]
 });
