@@ -1767,6 +1767,8 @@ sub getDocumentFromTree {
 sub migrate_epayment_to_2105 {
     my ( $migType ) = @_;    # 'LMSC': migrate the LMSC e-payment solutions (GiroSolution, Epay21, PmPayment, EPayBL)   'KohaPayPal': migrate the standard Koha e-payment solution for PayPal
 
+    print "migrate_epayment_to_2105 START\n";
+
     sub trace {
         my ( $logline ) = @_;
         my $debug = $ENV{'DEBUG_MIGRATE_EPAYMENT'};
@@ -2012,7 +2014,7 @@ sub migrate_epayment_to_2105 {
 
         &trace("migrate_epayment_to_2105::setUserAndGroup() tried to chown -R $kohaUserName:$kohaUserName $dirName; stdoutRes:$stdoutRes: stderrRes:$stderrRes:\n");
         if ( $stderrRes ) {
-            print "migrate_epayment_to_2105::setUserAndGroup() tried to chown -R $kohaUserName:$kohaUserName $dirName; stdoutRes:$stdoutRes: stderrRes:$stderrRes:\n";
+            print STDERR "migrate_epayment_to_2105::setUserAndGroup() tried to chown -R $kohaUserName:$kohaUserName $dirName; stdoutRes:$stdoutRes: stderrRes:$stderrRes:\n";
         }
     }
 
@@ -2337,12 +2339,15 @@ sub migrate_epayment_to_2105 {
         &trace("migrate_epayment_to_2105 End paypalPrefCount:$paypalPrefCount: paypalPrefRead:$paypalPrefRead: paypalPrefUpdated:$paypalPrefUpdated: paypalPrefToDelete:$paypalPrefToDelete: paypalPrefDeleted:$paypalPrefDeleted: res:$res:\n");
         print "migrate_epayment_to_2105 End paypalPrefCount:$paypalPrefCount: paypalPrefRead:$paypalPrefRead: paypalPrefUpdated:$paypalPrefUpdated: paypalPrefToDelete:$paypalPrefToDelete: paypalPrefDeleted:$paypalPrefDeleted: res:$res:\n";
 
+        print "migrate_epayment_to_2105 END\n";
     }
 
 }
 
 # migrateIllbackends also is called individually for each Koha instance of the current host, although one call per host would be adequate.
 sub migrateIllbackends {
+
+    print "migrateIllbackends START\n";
 
     sub traceILL {
         my ( $logline ) = @_;
@@ -2377,7 +2382,7 @@ sub migrateIllbackends {
 
         &traceILL("migrateIllbackends after calling sedcommand; stdoutRes:$stdoutRes: stderrRes:$stderrRes:\n");
         if ( $stderrRes ) {
-            print "migrateIllbackends called sedcommand:$sedcommand: and got stdoutRes:$stdoutRes: stderrRes:$stderrRes:\n";
+            print STDERR "migrateIllbackends called sedcommand:$sedcommand: and got stdoutRes:$stdoutRes: stderrRes:$stderrRes:\n";
         }
     }
 
@@ -2389,24 +2394,47 @@ sub migrateIllbackends {
         if [ -d $ILLBACKENDSDIR ]
         then
           cd $ILLBACKENDSDIR
-
           for ILLBACKENDANDGITSOURCE in \
-           ILLSLNPKoha_https://github.com/LMSCloud/ILLSLNPKoha.git \
-           ILLALV_git@github.com:LMSCloud/ILLALV.git \
-           ILLZKSHActive_git@github.com:LMSCloud/ILLZKSHActive.git \
-           ILLZKSHPassive_git@github.com:LMSCloud/ILLZKSHPassive.git
+           ILLSLNPKoha_NOLINK_https://github.com/LMSCloud/ILLSLNPKoha.git \
+           ILLALV_NOLINK_git@github.com:LMSCloud/ILLALV.git \
+           ILLZKSHActive_ILLZKSHA_git@github.com:LMSCloud/ILLZKSHActive.git \
+           ILLZKSHPassive_ILLZKSHP_git@github.com:LMSCloud/ILLZKSHPassive.git
           do
             echo ==============================================
             echo ILLBACKENDANDGITSOURCE:$ILLBACKENDANDGITSOURCE:
             ILLBACKEND=`echo $ILLBACKENDANDGITSOURCE | cut -s -d _ -f 1 -`
-            GITSOURCE=`echo $ILLBACKENDANDGITSOURCE | cut -s -d _ -f 2 -`
-            echo ILLBACKEND:$ILLBACKEND: GITSOURCE:$GITSOURCE:
+            ILLBACKENDLINK=`echo $ILLBACKENDANDGITSOURCE | cut -s -d _ -f 2 -`
+            GITSOURCE=`echo $ILLBACKENDANDGITSOURCE | cut -s -d _ -f 3 -`
+            echo ILLBACKEND:$ILLBACKEND: ILLBACKENDLINK:$ILLBACKENDLINK: GITSOURCE:$GITSOURCE:
+            CLONE_FROM_GIT="false"
+
+            if [ -n "$ILLBACKENDLINK" -a "$ILLBACKENDLINK" != "NOLINK" -a -e "$ILLBACKENDLINK" ]
+            then
+              if [ -d $ILLBACKENDLINK ]
+              then
+                # old manually done installation
+                echo ls -l $ILLBACKENDLINK old dir instead of link
+                ls -l $ILLBACKENDLINK
+                rm -r $ILLBACKENDLINK
+                CLONE_FROM_GIT="true"
+              else
+                echo ls -l $ILLBACKENDLINK old link
+                ls -l $ILLBACKENDLINK
+                rm $ILLBACKENDLINK
+              fi
+            fi
+
             if [ -d $ILLBACKEND ]
             then
               echo ls -l $ILLBACKEND $ILLBACKEND/* old
               ls -l $ILLBACKEND $ILLBACKEND/*
               rm -r $ILLBACKEND
+              CLONE_FROM_GIT="true"
+            fi
 
+            if [ "$CLONE_FROM_GIT" = "true" ]
+            then
+              echo now trying to clone $ILLBACKEND from git
               echo "/usr/bin/ssh-add ~/.ssh/git_pub && git clone $GITSOURCE" > /tmp/x_wh
               chmod 777 /tmp/x_wh
               ssh-agent /tmp/x_wh
@@ -2414,6 +2442,15 @@ sub migrateIllbackends {
 
               echo ls -l $ILLBACKEND $ILLBACKEND/* new
               ls -l $ILLBACKEND $ILLBACKEND/*
+
+              if [ -n "$ILLBACKENDLINK" -a "$ILLBACKENDLINK" != "NOLINK" ]
+              then
+                echo ln -s $ILLBACKEND $ILLBACKENDLINK
+                ln -s $ILLBACKEND $ILLBACKENDLINK
+
+                echo ls -l $ILLBACKENDLINK $ILLBACKENDLINK/* new
+                ls -l $ILLBACKENDLINK $ILLBACKENDLINK/*
+              fi
             fi
           done
         fi
@@ -2424,9 +2461,11 @@ sub migrateIllbackends {
 
     &traceILL("migrateIllbackends after calling shellcommand; stdoutRes:$stdoutRes: stderrRes:$stderrRes:\n");
     if ( $stderrRes ) {
-        print "migrateIllbackends called shellcommand:$shellcommand: and got stdoutRes:$stdoutRes: stderrRes:$stderrRes:\n";
+        print STDERR "migrateIllbackends called shellcommand:$shellcommand: and got stdoutRes:$stdoutRes: stderrRes:$stderrRes:\n";
     }
     &traceILL("migrateIllbackends END\n");
+
+    print "migrateIllbackends END\n";
 }
 
 sub createSIPEnabledFile {
