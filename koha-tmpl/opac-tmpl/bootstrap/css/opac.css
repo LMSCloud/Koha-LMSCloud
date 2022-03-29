@@ -420,3 +420,12 @@ img {
 #overdrive-results-list .thumbnail {
     max-width: 100px;
 }
+#usermessaging td.selectcol {
+    width: unset;
+}
+#login{
+    max-width: unset;
+}
+#header-region .navbar i {
+    color: white;
+}

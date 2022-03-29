@@ -77,14 +77,22 @@
 
                     [% IF ( borrower.warndeparture ) %]
                         <div class="alert alert-warning" id="warndeparture">
+                            [% IF ( borrower.opaccardrenewalpermitted ) %]
+                            <strong>Please note:</strong><span> Your card will expire on <span id="warndeparture_date">[% borrower.warndeparture | $KohaDates %]</span>. You may contact the library for more information or <a href="/cgi-bin/koha/opac-renewcard.pl">renew your card yourself</a>.</span>
+                            [% ELSE %]
                             <strong>Please note:</strong><span> Your card will expire on <span id="warndeparture_date">[% borrower.warndeparture | $KohaDates %]</span>. Please contact the library for more information.</span>
+                            [% END %]
                                 [% IF ( borrower.returnbeforeexpiry ) %]<span id="warndeparture_returnbeforeexpiry"> Also note that you must return all checked out items before your card expires.</span>[% END %]
                         </div>
                     [% END %]
 
                     [% IF ( borrower.warnexpired ) %]
                         <div class="alert alert-warning" id="warnexpired">
+                            [% IF ( borrower.opaccardrenewalpermitted ) %]
+                            <strong>Please note: </strong><span>Your account has expired as of [% borrower.warnexpired | $KohaDates %]. In order to renew your account you may contact the library or <a href="/cgi-bin/koha/opac-renewcard.pl">renew it yourself</a>.</span>
+                            [% ELSE %]
                             <strong>Please note: </strong><span>Your account has expired as of [% borrower.warnexpired | $KohaDates %]. Please contact the library if you wish to renew your account.</span>
+                            [% END %]
                         </div>
                     [% END %]
 
@@ -473,7 +481,7 @@
                                                     </td>
                                                 [% END %]
                                             </tr>
-                                        [% END # /FOREACH ISSUES %]
+                                        [% END # /FOREACH KOHA_ISSUES %]
                                     </tbody>
                                 </table>
                                 [% IF ( canrenew && !userdebarred && OpacRenewalAllowed && !( logged_in_user.is_expired && logged_in_user.category.effective_BlockExpiredPatronOpacActions ) ) %]
@@ -487,7 +495,7 @@
                                         <legend class="sr-only">Renew</legend>
                                         <input type="hidden" name="from" value="opac_user" />
                                         <input type="hidden" name="borrowernumber" value="[% borrowernumber | html %]" />
-                                        [% FOREACH ISSUE IN ISSUES %]
+                                        [% FOREACH ISSUE IN KOHA_ISSUES %]
                                             [% IF ISSUE.status %]
                                                 <input type="hidden" name="item" value="[% ISSUE.itemnumber | html %]" />
                                             [% END %]

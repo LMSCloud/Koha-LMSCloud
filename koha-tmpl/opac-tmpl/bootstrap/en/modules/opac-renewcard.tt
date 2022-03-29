@@ -12,26 +12,34 @@
 [% INCLUDE 'masthead.inc' %]
 
 <div class="main">
-    <ul class="breadcrumb">
-        <li><a href="/cgi-bin/koha/opac-main.pl">Home</a> <span class="divider">&rsaquo;</span></li>
-        <li><a href="/cgi-bin/koha/opac-user.pl">[% BORROWER_INFO.firstname %] [% BORROWER_INFO.surname %]</a> <span class="divider">&rsaquo;</span></li>
-        <li><a href="#">Renew your card</a></li>
-    </ul>
+    <nav aria-label="breadcrumb">
+        <ul class="breadcrumb">
+            <li class="breadcrumb-item">
+                <a href="/cgi-bin/koha/opac-main.pl">Home</a>
+            </li>
+            <li class="breadcrumb-item">
+                <a href="/cgi-bin/koha/opac-user.pl">[% INCLUDE 'patron-title.inc' patron = logged_in_user %]</a>
+            </li>
+            <li class="breadcrumb-item" aria-current="page">
+                <a href="#">Renew your card</a>
+            </li>
+        </ul>
+    </nav>
 
     <div class="container-fluid">
-        <div class="row-fluid">
-            <div class="span2">
+        <div class="row">
+            <div class="col col-lg-2 order-2 order-lg-1">
                 <div id="navigation">
                     [% INCLUDE 'navigation.inc' IsPatronPage=1 %]
                 </div>
             </div>
-            <div class="span10">
-                <!-- <div id="userrenewcard"> -->
+            <div class="col-md-12 col-lg-10 order-1">
+                <div id="userrenewcard" class="maincontent">
                     <h3>Renew your library card</h3>
 
                     [% IF ( errors.0 ) %]
                         <div class="alert">
-                            <h3>There was a problem with your card renewal</h3>
+                            <h1>There was a problem with your card renewal</h1>
                             <p>
                                 [% IF ( errors.0 == 'patron_category_not_enabled' ) %]
                                     Library card renewal is not enabled for your patron category (code: [% BORROWER_INFO.categorycode %]).
@@ -102,7 +110,7 @@
 
                                 <fieldset class="action">
                                     <input type="hidden" name="submitState" id="submitState" value="submitNotYet" />
-                                    <input type="submit" name="submit_renew_card" id="submit_renew_card" value="Renew card" class="btn" disabled onclick="submitState.value='submitted'" /> 
+                                    <input type="submit" name="submit_renew_card" id="submit_renew_card" value="Renew card" class="btn btn-primary" disabled onclick="submitState.value='submitted'" /> 
                                     <a href="/cgi-bin/koha/opac-user.pl" class="cancel">Cancel</a>
                                 </fieldset>
                             [% END # /IF opacRenewCardPermitted %]
@@ -112,7 +120,7 @@
                         [% END # /IF opacRenewCardDisplay %]
                     [% END # /IF card_renewed %]
 
-                <!-- </div> < !-- / #userrenewcard -->
+                </div> <!-- / #userrenewcard -->
             </div> <!-- / .span10 -->
         </div> <!-- / .row-fluid -->
     </div> <!-- / .container-fluid -->
