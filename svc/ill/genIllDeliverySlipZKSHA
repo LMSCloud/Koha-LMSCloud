@@ -1,6 +1,6 @@
 #!/usr/bin/perl
 
-# Copyright 2019 LMSCloud GmbH
+# Copyright 2019-22 LMSCloud GmbH
 #
 # This file is part of Koha
 #
@@ -25,22 +25,15 @@ $CGI::LIST_CONTEXT_WARN = 0;
 use C4::Auth qw( get_template_and_user haspermission get_user_subpermissions );
 use C4::Output qw( output_with_http_headers );
 use C4::Letters;
-use C4::Members;
-#use C4::Overdues;
-#use C4::Context;
-#use Koha::Acquisition::Currencies;
 use Koha::Libraries;
 use Koha::DateUtils qw( output_pref dt_from_string );
-#use C4::NoticeFees;
-#use Locale::Currency::Format 1.28;
-#use Koha::DateUtils;
-#use File::Spec;
-#use C4::NewsChannels; #get slip news
 
+my $logger = Koha::Logger->get({ interface => 'Koha.Illbackends.ILLZKSHA', category => 'Koha::Illbackends::ILLZKSHA'});
 my $input = new CGI;
 
 my $selectslipprint = scalar $input->param('selectslipprint');
 
+$logger->debug("svc/ill/genIllDeliverySlipZKSHA.pl START  selectslipprint:$selectslipprint:");
 my ($template, $user, $cookie) = get_template_and_user({
     template_name   => "members/tables/sendnotice.tt",
     query           => $input,
@@ -77,12 +70,14 @@ if ( $selectslipprint == 1 ) {
     # create one batch output file for each slip
     # and the summary print file containing an iframe for each slip
     my @illrequestsOrdered = $input->param('illrequestsOrdered[]');
+    $logger->debug("svc/ill/genIllDeliverySlipZKSHA.pl illrequestsOrdered:" . Dumper(\@illrequestsOrdered) . ":");
     my @generatedSlips = ();
     my $filenr = 0;
     foreach my $illrequestIdOrdered ( @illrequestsOrdered ) {
         # create a batch output file containing one slip
         $filenr += 1;
         my $filenameid = sprintf("_%s_%03d", $user, $filenr);
+        $logger->debug("svc/ill/genIllDeliverySlipZKSHA.pl in loop; current illrequestIdOrdered:$illrequestIdOrdered: filenameid:$filenameid:");
         my $params = {
             lettercode      => scalar $input->param('use_letter'),
             illrequestid    => $illrequestIdOrdered,
@@ -99,7 +94,7 @@ if ( $selectslipprint == 1 ) {
     my $replacefunction = sub {
         my ($str) = @_;
         if ( $$str ) {
-            $$str =~ s/body{display:none !important;}/body{display:initial !important;}/g;
+            $$str =~ s/body\{display:none !important;\}/body\{display:initial !important;\}/g;
         } else {
             $$str = '';
         }
@@ -125,6 +120,7 @@ if ( $selectslipprint == 1 ) {
         printedfile    => $result->{printedfile}
     );
 
+    $logger->debug("svc/ill/genIllDeliverySlipZKSHA.pl End; now calling output_with_http_headers with  printfilename:$printfilename:");
     # return the response for the ajax call
     output_with_http_headers $input, $cookie, $template->output, 'json';
 }
@@ -141,6 +137,7 @@ sub genIllDeliverySlipZKSHA {
     $illrequestid    = $params->{illrequestid} if ( $params->{illrequestid} );
     $filenameid      = $params->{filenameid} if ( $params->{filenameid} );
     $templatename    = $params->{templatename} if ( $params->{templatename} );
+    $logger->debug("svc/ill/genIllDeliverySlipZKSHA::genIllDeliverySlipZKSHA() START  lettercode:$lettercode: illrequestid:$illrequestid: filenameid:$filenameid: templatename:$templatename:");
 
     my $letters = [];
     my $letter_created = 0;
@@ -178,6 +175,7 @@ sub genIllDeliverySlipZKSHA {
         $lettertemplates->{'email'} = $lettertemplates->{'print'} if ( !exists($lettertemplates->{'email'}) && exists($lettertemplates->{'print'} ) );
         
 
+        $logger->debug("svc/ill/genIllDeliverySlipZKSHA::genIllDeliverySlipZKSHA() searching illrequest via illrequestid:$illrequestid:");
         my $illrequest = Koha::Illrequests->find({ illrequest_id => $illrequestid });
         if ( $illrequest ) {
             my $transport_type = 'print';
@@ -220,6 +218,7 @@ sub genIllDeliverySlipZKSHA {
                 push(@emailmessages,$message_id) if ( $transport_type eq 'email' );
                 push @$letters, { borrowernumber => $borrowernumber, lettertype => $transport_type, message_id => $message_id };
                 $letter_created++;
+                $logger->debug("svc/ill/genIllDeliverySlipZKSHA::genIllDeliverySlipZKSHA() in loop; current letter_created:$letter_created:");
             }
         }
     }
@@ -234,13 +233,16 @@ sub genIllDeliverySlipZKSHA {
         SendMailMessages( { lettercode => $lettercode, emailmessages => \@emailmessages } );
     }
 
-    return  {
+    my $retHash = {
         letters        => $letters,
         letter_created => $letter_created,
         letter_printed => $letter_printed,
         letter_mailed  => $letter_mailed,
         printedfile    => $printfilename
     };
+    $logger->debug("svc/ill/genIllDeliverySlipZKSHA::genIllDeliverySlipZKSHA() END returning  retHash:" . Dumper($retHash) . "::");
+
+    return $retHash;
 }
 
 
@@ -267,6 +269,7 @@ sub CreatePrintOutput {
     @generatedSlips = @{$params->{generatedSlips}} if ( $params->{generatedSlips} );
     my $lettercode = $params->{lettercode} if ( $params->{lettercode} );
     my $modtemplateoutput = $params->{modtemplateoutput} if ( $params->{modtemplateoutput} );
+    $logger->debug("svc/ill/genIllDeliverySlipZKSHA::CreatePrintOutput() START  lettercode:$lettercode: scalar messageIDs:" . scalar @messageIDs . ": scalar generatedSlips:" . scalar @generatedSlips . ":");
     
     my @messages = ();
     if ( @messageIDs ) {
@@ -289,6 +292,7 @@ sub CreatePrintOutput {
     my $outputdir = C4::Context->config('outputdownloaddir');
     $outputdir = File::Spec->catpath( "", $outputdir, "batchprint" );
     my $generatefilename = File::Spec->catdir( $outputdir, $printfilename );
+    $logger->debug("svc/ill/genIllDeliverySlipZKSHA::CreatePrintOutput() generatefilename:$generatefilename:");
     
     Generate_html(
         {   messages => \@messages,
@@ -308,6 +312,7 @@ sub CreatePrintOutput {
         );
     }
 
+    $logger->debug("svc/ill/genIllDeliverySlipZKSHA::CreatePrintOutput() returns printfilename:$printfilename:");
     return $printfilename;
 }
 
@@ -318,6 +323,7 @@ sub Generate_html {
     my $filepath = $params->{filepath};
     my $templatename = $params->{templatename};
     my $modtemplateoutput = $params->{modtemplateoutput};
+    $logger->debug("svc/ill/genIllDeliverySlipZKSHA::Generate_html() START  filepath:$filepath: templatename:$templatename:");
 
     my $template =
       C4::Templates::gettemplate( $templatename, 'intranet',
@@ -332,14 +338,18 @@ sub Generate_html {
         generatedSlips => $generatedSlips,     # set in case of summary print
     );
     my $template_output = $template->output;
+    $logger->debug("svc/ill/genIllDeliverySlipZKSHA::Generate_html() template_output:$template_output:");
     if ( $modtemplateoutput ) {
         &$modtemplateoutput(\$template_output);
+    $logger->debug("svc/ill/genIllDeliverySlipZKSHA::Generate_html() modified template_output:$template_output:");
     }
 
     open my $OUTPUT, '>encoding(utf-8)', $filepath
         or die "Could not open $filepath: $!";
     print $OUTPUT $template_output;
     close $OUTPUT;
+
+    $logger->debug("svc/ill/genIllDeliverySlipZKSHA::Generate_html() END");
 }
 
 __END__

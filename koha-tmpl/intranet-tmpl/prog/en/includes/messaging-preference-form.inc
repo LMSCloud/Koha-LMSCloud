@@ -13,7 +13,7 @@
         <!-- <th>RSS</th> -->
     </tr>
     [% FOREACH messaging_preference IN messaging_preferences %]
-    [% NEXT IF !Koha.Preference( 'ILLModule' ) && messaging_preference.message_name.match('^Ill_') %]
+    [% NEXT IF (!Koha.Preference( 'ILLModule' ) || ('ILL_messaging_preferences' != 'are_hidden_by_LMSCloud')) && messaging_preference.message_name.match('^Ill_') %]
     [% NEXT IF messaging_preference.Auto_Renewals && Koha.Preference('AutoRenewalNotices') != 'preferences' %]
     <tr>
       <td>[% IF ( messaging_preference.Item_Due ) %]Item due
