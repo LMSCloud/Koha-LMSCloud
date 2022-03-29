@@ -3,25 +3,13 @@
     <title>Print notices for [% today | html %]</title>
 
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-    <style>
-        <!-- 
-        .message { page-break-after: always }
-        pre { font-family: monospace }
-        pre {white-space: pre-wrap;}
-        pre {white-space: -moz-pre-wrap;}
-        pre {white-space: -o-pre-wrap;}
-        pre {word-wrap: break-work;}
-        -->
-    </style>
     [% IF ( stylesheet ) %]
     <link rel="stylesheet" type="text/css" href="[% stylesheet | url %]">
     [% END %]
 </head>
 <body id="batch_print-notices" class="batch">
-    [% FOREACH message IN messages %]
-    <div class="dialog message">
-        <pre>[% message.content | $raw %]</pre>
-    </div>
-    [% END %]
+[% FOREACH message IN messages %]
+[% message.content | $raw %]
+[% END %]
 </body>
 </html>
