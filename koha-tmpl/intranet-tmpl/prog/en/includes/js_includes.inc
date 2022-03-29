@@ -161,7 +161,11 @@
                 });
             },
             minLength: 3,
-            delay: 300
+            delay: 300,
+            select: function( event, ui ) {
+                $('#catalog_search #search-form').val(ui.item.value);
+                $("#cat-search-block").submit();    
+            }
         });
     });
     </script>
