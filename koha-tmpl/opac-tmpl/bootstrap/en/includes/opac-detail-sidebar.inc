@@ -65,17 +65,9 @@
                                 <div class="dropdown-menu dropdown-menu-right" aria-labelledby="format">
                 [% END # / AntolinLinks == 1 %]
                     [% IF ( OPACURLOpenInNewWindow ) %]
-                        [% IF trackclicks == 'track' || trackclicks == 'anonymous' %]
-                            <a class="dropdown-item" href="/cgi-bin/koha/tracklinks.pl?uri=[% MARCurl.MARCURL |url%]&amp;biblionumber=[% biblionumber | url %]" title="[% MARCurl.MARCURL %]" target="_blank">
-                        [% ELSE %]
-                            <a class="dropdown-item" href="[% MARCurl.MARCURL %]" title="[% MARCurl.MARCURL %]" target="_blank">
-                        [% END %]
+                        <a class="dropdown-item" href="[% MARCurl.MARCURL %]" title="[% MARCurl.MARCURL %]" target="_blank">
                     [% ELSE %]
-                        [% IF trackclicks == 'track' || trackclicks == 'anonymous' %]
-                            <a class="dropdown-item" href="/cgi-bin/koha/tracklinks.pl?uri=[% MARCurl.MARCURL |url%]&amp;biblionumber=[% biblionumber | url %]" title="[% MARCurl.MARCURL %]">
-                        [% ELSE %]
-                            <a class="dropdown-item" href="[% MARCurl.MARCURL %]" title="[% MARCurl.MARCURL %]">
-                        [% END %]
+                        <a class="dropdown-item" href="[% MARCurl.MARCURL %]" title="[% MARCurl.MARCURL %]">
                     [% END %]
                     [% MARCurl.linktext %]</a>
             [% END # / IF MARCurl.linktext.match('^Antolin') %]
@@ -101,20 +93,12 @@
                                 <a id="format" class="btn btn-link btn-lg dropdown-toggle" data-toggle="dropdown" href="#"><i class="fa fa-fw fa-wikipedia-w" aria-hidden="true"></i> Wikipedia-Article <b class="caret"></b></a>
                                 <div class="dropdown-menu dropdown-menu-right" aria-labelledby="format">
                 [% END # / WikipediaLinks == 1 %]
-                    [% IF ( OPACURLOpenInNewWindow ) %]
-                        [% IF trackclicks == 'track' || trackclicks == 'anonymous' %]
-                            <a class="dropdown-item" href="/cgi-bin/koha/tracklinks.pl?uri=[% MARCurl.MARCURL |url%]&amp;biblionumber=[% biblionumber | url %]" title="[% MARCurl.MARCURL %]" target="_blank">
-                        [% ELSE %]
-                            <a class="dropdown-item" href="[% MARCurl.MARCURL %]" title="[% MARCurl.MARCURL %]" target="_blank">
-                        [% END %]
-                    [% ELSE %]
-                        [% IF trackclicks == 'track' || trackclicks == 'anonymous' %]
-                            <a class="dropdown-item" href="/cgi-bin/koha/tracklinks.pl?uri=[% MARCurl.MARCURL |url%]&amp;biblionumber=[% biblionumber | url %]" title="[% MARCurl.MARCURL %]">
-                        [% ELSE %]
-                            <a class="dropdown-item" href="[% MARCurl.MARCURL %]" title="[% MARCurl.MARCURL %]">
-                        [% END %]
-                    [% END %]
-                    [% MARCurl.linktext %]</a>
+                [% IF ( OPACURLOpenInNewWindow ) %]
+                    <a class="dropdown-item" href="[% MARCurl.MARCURL | replace('Ä', '%C3%84') | replace('Ö', '%C3%96') | replace('Ü', '%C3%9C') | replace('ä', '%C3%A4') | replace('ö', '%C3%B6') | replace('ü', '%C3%BC') | replace('ß', '%C3%9F') | replace('ẞ', '%E1%BA%9E') | url %]" title="[% MARCurl.MARCURL %]" target="_blank">
+                [% ELSE %]
+                    <a class="dropdown-item" href="[% MARCurl.MARCURL | replace('Ä', '%C3%84') | replace('Ö', '%C3%96') | replace('Ü', '%C3%9C') | replace('ä', '%C3%A4') | replace('ö', '%C3%B6') | replace('ü', '%C3%BC') | replace('ß', '%C3%9F') | replace('ẞ', '%E1%BA%9E') | url %]" title="[% MARCurl.MARCURL %]">
+                [% END %]
+                [% MARCurl.linktext %]</a>
                 
             [% END # / IF MARCurl.MARCURL.match('wikipedia') %]
         [% END # / FOREACH MARCURLS %]
