@@ -340,14 +340,35 @@
             );
 
             $(document).ready(function() {
+                var txtActivefilter = _("Show only News");
+                var txtInactivefilter = _("Show News and OPAC display variables");
                 var newst = $("#newst").DataTable($.extend(true, {}, dataTablesDefaults, {
                     "order": [[ 4, "desc" ]],
                     "aoColumnDefs": [
                         { "sortable": false, "searchable": false, 'targets': [ 'NoSort' ] },
                         { "type": "anti-the", "targets": [ "anti-the" ] }
                     ],
-                    "sPaginationType": "full_numbers"
+                    "sPaginationType": "full_numbers",
+                    "sDom": 'C<"top pager"ilpfB><"#filter_s">tr<"bottom pager"ip>'
                 }));
+                
+                $("#filter_s").html('<p><a href="#" id="filter_system"><i class="fa fa-filter"></i> '+txtActivefilter+'</a>');
+                $('#filter_system').click(function(e) {
+                    e.preventDefault();
+                    if ($(this).hasClass('filtered')) {
+                        var filteredValue = '';
+                        $(this).html('<i class="fa fa-filter"></i> '+txtActivefilter);
+                    } else { //Not filtered. Let's do it!
+                        var filteredValue = '.[_].';
+                        $(this).html('<i class="fa fa-filter"></i> '+txtInactivefilter);
+                    }
+                    console.log(newst);
+                    newst.column(1).search(filteredValue).draw();
+                    $(this).toggleClass('filtered');
+                });
+
+                //Start filtered
+                $('#filter_system').click();
 
                 $(".delete_news").on("click", function(){
                     return confirmDelete( _("Are you sure you want to delete this news item? This cannot be undone.") );
