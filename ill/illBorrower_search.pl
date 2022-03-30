@@ -34,8 +34,6 @@ my $searchmember = $input->param('searchmember');
 
 my ( $template, $loggedinuser, $cookie, $staff_flags ) = get_template_and_user(
     {   template_name   => "ill/illBorrower_search.tt",
-#    {   template_name   => "common/patron_search.tt",
-#    {   template_name   => "ill/illLibrary_search.tt",
         query           => $input,
         type            => "intranet",
         authnotrequired => 0,
@@ -43,14 +41,12 @@ my ( $template, $loggedinuser, $cookie, $staff_flags ) = get_template_and_user(
     }
 );
 
-my $patron_categories = Koha::Patron::Categories->search_limited;
+my $patron_categories = Koha::Patron::Categories->search_with_library_limits;
 $template->param(
     view => ( $input->request_method() eq "GET" ) ? "show_form" : "show_results",
     #columns => ['cardnumber', 'name', 'dateofbirth', 'address', 'action' ],    # based on guarantor_search.tt
     columns => ['cardnumber', 'name', 'dateofbirth', 'branch', 'category', 'action' ],    # based on members_results.tt
     json_template => 'members/tables/illBorrower_results.tt',
-#    json_template => 'members/tables/guarantor_search.tt',
-#    json_template => 'members/tables/illLibrary_results.tt',
     selection_type => 'select',
     alphabet        => ( C4::Context->preference('alphabet') || join ' ', 'A' .. 'Z' ),
     categories      => $patron_categories,
