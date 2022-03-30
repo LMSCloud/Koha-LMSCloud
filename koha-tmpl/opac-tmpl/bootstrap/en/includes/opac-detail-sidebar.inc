@@ -94,9 +94,9 @@
                                 <div class="dropdown-menu dropdown-menu-right" aria-labelledby="format">
                 [% END # / WikipediaLinks == 1 %]
                 [% IF ( OPACURLOpenInNewWindow ) %]
-                    <a class="dropdown-item" href="[% MARCurl.MARCURL | replace('Ä', '%C3%84') | replace('Ö', '%C3%96') | replace('Ü', '%C3%9C') | replace('ä', '%C3%A4') | replace('ö', '%C3%B6') | replace('ü', '%C3%BC') | replace('ß', '%C3%9F') | replace('ẞ', '%E1%BA%9E') | url %]" title="[% MARCurl.MARCURL %]" target="_blank">
+                    <a class="dropdown-item" href="[% MARCurl.MARCURL | replace('Ä', '%C3%84') | replace('Ö', '%C3%96') | replace('Ü', '%C3%9C') | replace('ä', '%C3%A4') | replace('ö', '%C3%B6') | replace('ü', '%C3%BC') | replace('ß', '%C3%9F') | replace('ẞ', '%E1%BA%9E') %]" title="[% MARCurl.MARCURL %]" target="_blank">
                 [% ELSE %]
-                    <a class="dropdown-item" href="[% MARCurl.MARCURL | replace('Ä', '%C3%84') | replace('Ö', '%C3%96') | replace('Ü', '%C3%9C') | replace('ä', '%C3%A4') | replace('ö', '%C3%B6') | replace('ü', '%C3%BC') | replace('ß', '%C3%9F') | replace('ẞ', '%E1%BA%9E') | url %]" title="[% MARCurl.MARCURL %]">
+                    <a class="dropdown-item" href="[% MARCurl.MARCURL | replace('Ä', '%C3%84') | replace('Ö', '%C3%96') | replace('Ü', '%C3%9C') | replace('ä', '%C3%A4') | replace('ö', '%C3%B6') | replace('ü', '%C3%BC') | replace('ß', '%C3%9F') | replace('ẞ', '%E1%BA%9E') %]" title="[% MARCurl.MARCURL %]">
                 [% END %]
                 [% MARCurl.linktext %]</a>
                 
