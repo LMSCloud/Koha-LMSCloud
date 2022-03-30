@@ -29,7 +29,7 @@ use C4::Koha;
 use C4::Context;
 use C4::Output;
 use C4::NewsChannels;
-use C4::Languages qw(getTranslatedLanguages);
+use C4::Languages qw(getTranslatedLanguages getlanguage);
 use Date::Calc qw/Date_to_Days Today/;
 use Koha::DateUtils;
 
@@ -101,6 +101,7 @@ if ( $op eq 'add_form' ) {
             id => $new_detail->{'idnew'}
         );
         $template->{VARS}->{'new_detail'} = $new_detail;
+        $wysiwyg = 0 if ( $new_detail->{lang} =~ /.[_]./ );
     }
     else {
         $template->param( op => 'add' );
@@ -164,6 +165,9 @@ else {
         opac_news_count => $opac_news_count,
 		);
 }
+
+$lang = getlanguage($cgi) if (! $lang);
+
 $template->param(
     lang => $lang,
     wysiwyg => $wysiwyg,

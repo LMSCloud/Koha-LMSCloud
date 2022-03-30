@@ -563,23 +563,25 @@
         
         <xsl:if test="marc:datafield[@tag=024]/marc:subfield[@code='a']">
           <span class="results_summary ean">
-            <span class="label"> 
-              <xsl:choose>
-                <xsl:when test="@ind1 = '0'"><xsl:text>ISRC: </xsl:text></xsl:when>
-                <xsl:when test="@ind1 = '1'"><xsl:text>UPC: </xsl:text></xsl:when>
-                <xsl:when test="@ind1 = '2'"><xsl:text>ISMN: </xsl:text></xsl:when>
-                <xsl:when test="@ind1 = '3'"><xsl:text>EAN: </xsl:text></xsl:when>
-                <xsl:when test="@ind1 = '4'"><xsl:text>SICI: </xsl:text></xsl:when>
-                <xsl:when test="marc:subfield[@code='2']"><xsl:value-of select="marc:subfield[@code='2']"/></xsl:when>
-                <xsl:otherwise><xsl:text>EAN: </xsl:text></xsl:otherwise>
-              </xsl:choose>
-            </span>
-            <xsl:for-each select="marc:datafield[@tag=020]/marc:subfield[@code='a']">
-              <span property="ean">
-                <xsl:value-of select="."/>
-                <xsl:choose><xsl:when test="position()=last()"><xsl:text></xsl:text></xsl:when><xsl:otherwise><xsl:text>; </xsl:text></xsl:otherwise></xsl:choose>
+            <xsl:for-each select="marc:datafield[@tag=024]">
+              <span class="label"> 
+                <xsl:choose>
+                  <xsl:when test="@ind1 = '0'"><xsl:text>ISRC: </xsl:text></xsl:when>
+                  <xsl:when test="@ind1 = '1'"><xsl:text>UPC: </xsl:text></xsl:when>
+                  <xsl:when test="@ind1 = '2'"><xsl:text>ISMN: </xsl:text></xsl:when>
+                  <xsl:when test="@ind1 = '3'"><xsl:text>EAN: </xsl:text></xsl:when>
+                  <xsl:when test="@ind1 = '4'"><xsl:text>SICI: </xsl:text></xsl:when>
+                  <xsl:when test="marc:subfield[@code='2']"><xsl:value-of select="marc:subfield[@code='2']"/></xsl:when>
+                  <xsl:otherwise><xsl:text>EAN: </xsl:text></xsl:otherwise>
+                </xsl:choose>
               </span>
-            </xsl:for-each>
+              <xsl:for-each select="marc:subfield[@code='a']">
+                <span property="ean">
+                  <xsl:value-of select="."/>
+                  <xsl:choose><xsl:when test="position()=last()"><xsl:text></xsl:text></xsl:when><xsl:otherwise><xsl:text>; </xsl:text></xsl:otherwise></xsl:choose>
+                </span>
+              </xsl:for-each>
+            </xsl:if>
           </span>
         </xsl:if>
 

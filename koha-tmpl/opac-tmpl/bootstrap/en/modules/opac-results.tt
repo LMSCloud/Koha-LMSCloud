@@ -406,7 +406,7 @@
 
                                                         [% IF ( SEARCH_RESULT.url && Koha.Preference('EKZCover') ) %]
                                                             [% FOREACH myurl IN SEARCH_RESULT.titlecoverurls %] 
-                                                                <img src="[% myurl %]" width="170" title="[% SEARCH_RESULT.biblionumber |url %]"></img>[% LAST %]
+                                                                <img src="[% myurl %]" class="ekzcover" title="[% SEARCH_RESULT.biblionumber |url %]"></img>[% LAST %]
                                                             [% END # /FOREACH  %]
                                                         [% END # / IF url %]
 
