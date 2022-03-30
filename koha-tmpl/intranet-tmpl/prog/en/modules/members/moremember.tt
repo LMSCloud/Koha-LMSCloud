@@ -121,7 +121,7 @@
                                                 <em>"[% patron_message.message | html %]"</em>
                                             </span>
                                             [% IF patron_message.branchcode == patron.branchcode OR Koha.Preference('AllowAllMessageDeletion') %]
-                                                <a class="btn btn-link" href="/cgi-bin/koha/circ/del_message.pl?message_id=[% patron_message.message_id | html %]&amp;borrowernumber=[% patron_message.borrowernumber | html %]&amp;from=moremember" class="deletemessagelink"><i class="fa fa-trash"></i> Delete</a>
+                                                <a class="deletemessagelink btn btn-link" href="/cgi-bin/koha/circ/del_message.pl?message_id=[% patron_message.message_id | html %]&amp;borrowernumber=[% patron_message.borrowernumber | html %]&amp;from=moremember"><i class="fa fa-trash"></i> Delete</a>
                                             [% END %]
                                         </li>
                                     [% END %]
