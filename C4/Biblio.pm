@@ -1752,7 +1752,7 @@ sub GetMarcUrls {
 
                         #  properly, this should be if ind1=4,
                         #  however we will assume http protocol since we're building a link.
-                        $url = 'http://' . $url;
+                        $url = 'https://' . $url;
                     }
                 }
 
