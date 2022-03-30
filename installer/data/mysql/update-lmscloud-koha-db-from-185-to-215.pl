@@ -1564,7 +1564,7 @@ sub addElementToDocumentTree {
     my $retElem = $elementTree;
     
     my $attrnum = 0;
-    while ( $attrtext =~ s/^\s*([\w\-_]+)\s*=\s*("[^"]*"|'[^']*'|[^\s]+['"]?)\s*// ) {
+    while ( $attrtext =~ s/^\s*([\w\-_]+)\s*=?\s*("[^"]*"|'[^']*'|[^\s]+['"]?)\s*// ) {
         $attributes->{$1} = getElementAttributeValues($2); 
         $attributes->{$1}->{attrnumber} = ++$attrnum;
     }
@@ -1618,7 +1618,7 @@ sub getDocumentTree {
     
     my $elementTree = { parent => undef, type => 'root', tree => [] };
     my $root = $elementTree;
-    while ( $text =~ s/(<(\/?)(\w+)((\s*[\w\-_]+\s*=\s*("[^"]*"|'[^']*'))*)([^<]+))// ) {
+    while ( $text =~ s/(<(\/?)(\w+)((\s*[\w\-_]+\s*=?\s*("[^"]*"|'[^']*'))*)([^<]+))// ) {
         push @{$elementTree->{tree}}, { type => 'text', content => $` } if ( $` );
         $text = $';
         $elementTree = addElementToDocumentTree($elementTree,$2,$3,$4,$7,$1);
@@ -1660,6 +1660,15 @@ sub getElementsByName {
 sub getElementByName {
     my ($subtree,$name) = @_;
     return getElementsByName($subtree,$name,undef,1);
+}
+
+sub renameH3Element {
+    my ($element) = @_;
+
+    if ( exists($element->{name}) && $element->{name} =~ /h3/i ) {
+        $element->{name} = 'h2';
+    }
+    return 0;
 }
 
 sub addImageAltAttributeFromLegend {
