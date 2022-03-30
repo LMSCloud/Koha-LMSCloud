@@ -1549,9 +1549,11 @@ sub getElementAttributeValues {
         $singlequotes = 1 if ($2 && $2 eq "'");
     }
     
-    my $ret = { origvalue => $origvalue, value => $value, singlequotes => $singlequotes };
-    foreach my $val(split(/\s+/,$value)) {
-        $ret->{values}->{$val} = 1 if ($val);
+    my $ret = { origvalue => $origvalue, value => $value, singlequotes => $singlequotes, values => {} };
+    if ( $value ) {
+        foreach my $val(split(/\s+/,$value)) {
+            $ret->{values}->{$val} = 1 if ($val);
+        }
     }
     
     return $ret;
@@ -1721,10 +1723,21 @@ sub getDocumentFromTree {
     if ( exists($subtree->{type}) && $subtree->{type} =~ /^(root|elem)$/ && exists($subtree->{name})) {
         my $txt = '<' . $subtree->{name};
         if ( $subtree->{attrcount} ) {
-            foreach my $attr( sort { $subtree->{attributes}->{$a}->{attrnumber} <=> $subtree->{attributes}->{$b}->{attrnumber} } keys %{$subtree->{attributes}} ) {
+            foreach my $attr( sort { 
+                                        if ( defined($subtree->{attributes}->{$a}->{attrnumber}) && defined($subtree->{attributes}->{$b}->{attrnumber}) ) {
+                                            return $subtree->{attributes}->{$a}->{attrnumber} <=> $subtree->{attributes}->{$b}->{attrnumber};
+                                        }
+                                        elsif ( defined($subtree->{attributes}->{$b}->{attrnumber}) ) {
+                                            return -1;
+                                        }
+                                        elsif ( defined($subtree->{attributes}->{$a}->{attrnumber}) ) {
+                                            return 1;
+                                        }
+                                        return 0;
+                                    } keys %{$subtree->{attributes}} ) {
                 my $attrquote = '"';
-                $attrquote = "'" if ( $subtree->{attributes}->{$attr}->{value} =~ /"/ || $subtree->{attributes}->{$attr}->{singlequotes} );
-                $txt .= " $attr=$attrquote" . $subtree->{attributes}->{$attr}->{value} . "$attrquote";
+                $attrquote = "'" if ( ( defined($subtree->{attributes}->{$attr}->{value}) && $subtree->{attributes}->{$attr}->{value} =~ /"/ ) || $subtree->{attributes}->{$attr}->{singlequotes} );
+                $txt .= " $attr=$attrquote" . ( defined($subtree->{attributes}->{$attr}->{value}) ? $subtree->{attributes}->{$attr}->{value} : '') . "$attrquote";
             }
         }
         if ( $subtree->{attradd} ) {
