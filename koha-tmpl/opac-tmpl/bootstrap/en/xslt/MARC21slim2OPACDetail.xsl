@@ -581,7 +581,7 @@
                   <xsl:choose><xsl:when test="position()=last()"><xsl:text></xsl:text></xsl:when><xsl:otherwise><xsl:text>; </xsl:text></xsl:otherwise></xsl:choose>
                 </span>
               </xsl:for-each>
-            </xsl:if>
+            </xsl:for-each>
           </span>
         </xsl:if>
 
