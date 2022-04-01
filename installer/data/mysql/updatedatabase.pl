@@ -26350,7 +26350,12 @@ if( CheckVersion( $DBversion ) ) {
     NewVersion( $DBversion, "", "Koha 21.05.11 release" );
 }
 
-$DBversion = '21.05.11.001';
+$DBversion = '21.05.12.000';
+if( CheckVersion( $DBversion ) ) {
+    NewVersion( $DBversion, "", "Koha 21.05.12 release" );
+}
+
+$DBversion = '21.05.12.001';
 if( CheckVersion( $DBversion ) ) {
     $dbh->do(q{
             INSERT IGNORE INTO language_subtag_registry( subtag, type, description, added)
@@ -26394,20 +26399,7 @@ if( CheckVersion( $DBversion ) ) {
     NewVersion( $DBversion, "29596", "Add Yiddish language" );
 }
 
-$DBversion = '21.05.11.002';
-if( CheckVersion( $DBversion ) ) {
-    $dbh->do(q{
-              ALTER TABLE creator_layouts MODIFY `format_string` varchar(1024) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'barcode'
-           });
-    NewVersion( $DBversion, "", "Extend field creator_layouts.format_string to 1024 characters." );
-}
-
-$DBversion = '21.05.12.000';
-if( CheckVersion( $DBversion ) ) {
-    NewVersion( $DBversion, "", "Koha 21.05.12 release" );
-}
-
-$DBversion = '21.05.12.001';
+$DBversion = '21.05.12.002';
 if( CheckVersion( $DBversion ) ) {
 
     $dbh->do( "ALTER TABLE old_illrequests MODIFY `branchcode` varchar(50) COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL" );
@@ -26447,8 +26439,20 @@ if( CheckVersion( $DBversion ) ) {
         });
     }
 
-    SetVersion( $DBversion );
-    print "Upgrade to $DBversion done (migration of ill request archiving to 21.05)\n";
+    NewVersion( $DBversion, "", "Upgrade to $DBversion done (migration of ill request archiving to 21.05)" );
+}
+
+$DBversion = '21.05.12.003';
+if( CheckVersion( $DBversion ) ) {
+    $dbh->do(q{
+              ALTER TABLE creator_layouts MODIFY `format_string` varchar(1024) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'barcode'
+           });
+    NewVersion( $DBversion, "", "Extend field creator_layouts.format_string to 1024 characters." );
+}
+
+$DBversion = '21.05.13.000';
+if( CheckVersion( $DBversion ) ) {
+    NewVersion( $DBversion, "", "Koha 21.05.13 release" );
 }
 
 # SEE bug 13068
