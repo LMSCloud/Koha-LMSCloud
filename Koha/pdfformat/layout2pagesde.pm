@@ -95,8 +95,6 @@ sub printorders {
             push( @$arrbasket,
                 $basket->{basketno}.'-'.$line->{ordernumber},
                 $titleinfo. ($line->{order_vendornote} ? "\n----------------\nLieferantennotiz : ". $line->{order_vendornote} : '' ),
-                $basket->{basketno}.'-'.$line->{ordernumber},
-                $titleinfo. ($line->{order_vendornote} ? "\n----------------\nLieferantennotiz : ". $line->{order_vendornote} : '' ),
                 ### JOIN-TODO ### Check the next line whether it works (it was commented out with the LMSCloud-Koha 18.05
                 $line->{quantity},
                 Koha::Number::Price->new( $line->{rrp_tax_included} )->format,
