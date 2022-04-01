@@ -1531,6 +1531,7 @@ sub updateOPACUserJS {
 sub rebuildElasticSearchIndex {
     # Loading Elasticsearch index configuration
     system "/usr/share/koha/bin/search_tools/rebuild_elasticsearch.pl --reset --biblios --verbose --commit 5000 --processes 4";
+    system "/usr/share/koha/bin/search_tools/rebuild_elasticsearch.pl --reset --authorities --verbose --commit 5000 --processes 4";
 }
 
 
