@@ -27,12 +27,6 @@ use CGI;
 use HTTP::Request::Common;
 use LWP::UserAgent;
 use URI;
-use Digest;
-use Digest::MD5 qw(md5 md5_hex md5_base64);
-use JSON;
-use Encode;
-use CGI::Carp;
-use SOAP::Lite;
 
 use C4::Auth;
 use C4::Output;
@@ -40,10 +34,7 @@ use C4::Context;
 use Koha::Acquisition::Currencies;
 use Koha::Database;
 use Koha::Plugins::Handler;
-use Koha::Patrons;
-use C4::Epayment::GiroSolution;
-use C4::Epayment::PmPaymentPaypage;
-use C4::Epayment::EPayBLPaypage;
+use Koha::Logger;
 
 my $cgi = CGI->new;
 my $payment_method = $cgi->param('payment_method');
@@ -61,16 +52,6 @@ unless ( $use_plugin ) {
     exit;
 }
 
-my $key = 'dsTFshg5678DGHMO';    # dummy for wrong HMAC digest
-sub genHmacMd5 {
-    my ($key, $str) = @_;
-    my $hmac_md5 = Digest->HMAC_MD5($key);
-    $hmac_md5->add($str);
-    my $hashval = $hmac_md5->hexdigest();
-
-    return $hashval;
-}
-
 my ( $template, $borrowernumber, $cookie ) = get_template_and_user(
     {
         template_name   => "opac-account-pay-error.tt",
@@ -82,9 +63,6 @@ my ( $template, $borrowernumber, $cookie ) = get_template_and_user(
 
 my $logger = Koha::Logger->get({ interface => 'epayment' });    # logger common to all e-payment methods
 $logger->debug("opac-account-pay.pl: START payment_method:$payment_method: borrowernumber:$borrowernumber: accountlines:" . Dumper(@accountlines) . ":");
-
-# get borrower information
-my $patron = Koha::Patrons->find( $borrowernumber );
 
 my $amount_to_pay =
   Koha::Database->new()->schema()->resultset('Accountline')->search( { accountlines_id => { -in => \@accountlines } } )
