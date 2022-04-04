@@ -120,6 +120,9 @@ th {
     .ekzcover {
         width: 170px;    
     }
+    #opac-detail #a_listResults {
+        padding: 8px 18px;
+    }
 }
 
 @media only screen and (max-width:767px) {
@@ -441,4 +444,6 @@ img {
 #opac-detail #tab_descriptions {
     display: none;
 }
-
+#opac-main #notloggedin > .row > div:last-child,#opac-main #loggedin > .row > div:last-child {
+    padding-top: 2.2em;
+}
