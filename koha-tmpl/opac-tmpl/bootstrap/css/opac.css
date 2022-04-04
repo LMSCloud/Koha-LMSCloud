@@ -348,9 +348,6 @@ label.hotlink-entry {
     margin-top: 7px !important;
     margin-bottom: 5px !important;
 }
-#bibtip_reclist {
-    clear :left;
-}
 .kids-link-separator {
     border: none;
     display: inline-block;
@@ -444,6 +441,13 @@ img {
 #opac-detail #tab_descriptions {
     display: none;
 }
-#opac-main #notloggedin > .row > div:last-child,#opac-main #loggedin > .row > div:last-child {
+#opac-main #notloggedin > .row > div:last-child, #opac-main #loggedin > .row > div:last-child {
     padding-top: 2.2em;
+}
+#bibtip_reclist #detailedRecommendationTitle {
+    padding: 1rem 1px;    
+}
+#bibtip_reclist {
+    margin-top: 1rem;
+    clear :left;
 }
