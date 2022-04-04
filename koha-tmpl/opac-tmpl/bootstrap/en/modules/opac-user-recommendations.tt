@@ -68,81 +68,79 @@
 
 [% Asset.js("js/LMSCoverFlow.js") | $raw %]
 <script>
-        const CREATE_LCF_INSTANCE = LMSCoverFlow.createLcfInstance;
-        const Observable = LMSCoverFlow.Observable;
-        const loaded = new Observable(false);
-
-        const lmscoverflow = CREATE_LCF_INSTANCE();
-        const fetchItemData = async (endpoint) => {
-            const url = endpoint;
-            let options = {
-                method: 'GET',
-                mode: 'cors',
-                cache: 'no-cache',
-                credentials: 'same-origin',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                redirect: 'follow'
-            }
-
-            const response = await fetch(url, options);
-            return response.json();
+    const { createLcfInstance, ShelfBrowser, externalSources } = LMSCoverFlow;
+    const lmscoverflow = createLcfInstance();
+    
+    const fetchItemData = async (endpoint) => {
+        const url = endpoint;
+        let options = {
+            method: 'GET',
+            mode: 'cors',
+            cache: 'no-cache',
+            credentials: 'same-origin',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            redirect: 'follow'
         }
 
-        const renderRecommendations = ({ result, loaded }) => {
-            if ( result.items.length === 0 ) {
-                document.getElementById('nothingFound').classList.toggle("d-none");
-                return;
-            }
+        const response = await fetch(url, options);
+        return response.json();
+    }
 
-            result.items = result.items.map((item) => {
-                return { ...item, referenceToDetailsView: `/cgi-bin/koha/opac-detail.pl?biblionumber=${item.biblionumber}` }
-            });
-
-            lmscoverflow.setGlobals(
-                {
-                    coverImageFallbackHeight: 210,
-                    coverFlowContext: 'grid',
-                },
-                result.items,
-                'lmscoverflow',
-                loaded || undefined
-            );
-            lmscoverflow.render();
+    const renderRecommendations = ({ result, externalSources }) => {
+        if ( result.items.length === 0 ) {
+            document.getElementById('nothingFound').classList.toggle("d-none");
+            return;
         }
 
-        const recommendations = fetchItemData('/cgi-bin/koha/svc/user-recommendations?count=20');
-        [% IF ( Koha.Preference('OpacCoce') && Koha.Preference('CoceProviders') ) %]
-            loaded.subscribe((isLoaded) => {
-                if (isLoaded) {
-                    KOHA.coce.getURL('[% Koha.Preference('CoceHost') | html %]', '[% Koha.Preference('CoceProviders') | html %]',[% covernewwindow | html %]);
-                }
-            });
+        result.items = result.items.map((item) => {
+            return { ...item, referenceToDetailsView: `/cgi-bin/koha/opac-detail.pl?biblionumber=${item.biblionumber}` }
+        });
 
-            recommendations.then(result => renderRecommendations({result, loaded}));
+        lmscoverflow.setGlobals(
+            {
+                coverImageFallbackHeight: 210,
+                coverFlowContext: 'grid',
+            },
+            result.items,
+            'lmscoverflow',
+            externalSources || undefined
+        );
+        lmscoverflow.render();
+    }
 
-        [% ELSIF OpenLibraryCovers %]
-            loaded.subscribe((isLoaded) => {
-                if (isLoaded) {
-                    KOHA.OpenLibrary.GetCoverFromIsbn();
-                }
-            });
+    const recommendations = fetchItemData('/cgi-bin/koha/svc/user-recommendations?count=20');
+    [% IF ( Koha.Preference('OpacCoce') && Koha.Preference('CoceProviders') ) %]
+        externalSources.subscribe((isLoaded) => {
+            if (isLoaded) {
+                KOHA.coce.getURL('[% Koha.Preference('CoceHost') | html %]', '[% Koha.Preference('CoceProviders') | html %]',[% covernewwindow | html %]);
+            }
+        });
 
-            recommendations.then(result => renderRecommendations({result, loaded}));
+        recommendations.then(result => renderRecommendations({result, externalSources}));
 
-        [% ELSIF ( GoogleJackets ) %]
-            loaded.subscribe((isLoaded) => {
-                if (isLoaded) {
-                    KOHA.Google.GetCoverFromIsbn([% covernewwindow | html %]); 
-                }
-            });
+    [% ELSIF OpenLibraryCovers %]
+        externalSources.subscribe((isLoaded) => {
+            if (isLoaded) {
+                KOHA.OpenLibrary.GetCoverFromIsbn();
+            }
+        });
 
-            recommendations.then(result => renderRecommendations({result, loaded}));
+        recommendations.then(result => renderRecommendations({result, externalSources}));
 
-        [% ELSE %]
-            recommendations.then(result => renderRecommendations({result}));
-            
-        [% END %]
+    [% ELSIF ( GoogleJackets ) %]
+        externalSources.subscribe((isLoaded) => {
+            if (isLoaded) {
+                KOHA.Google.GetCoverFromIsbn([% covernewwindow | html %]); 
+            }
+        });
+
+        recommendations.then(result => renderRecommendations({result, externalSources}));
+
+    [% ELSE %]
+        recommendations.then(result => renderRecommendations({result}));
+        
+    [% END %]
 </script>
 [% END %]

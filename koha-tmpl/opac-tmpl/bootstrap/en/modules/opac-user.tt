@@ -208,7 +208,7 @@
 
                     <div id="opac-user-views" class="toptabs">
                         <ul>
-                            <li><a href="#opac-user-checkouts">Checked out ([% issues_count | html %])</a></li>
+                            <li><a href="#opac-user-checkouts">Checked out ([% koha_issues_count | html %])</a></li>
                             [% IF relatives %]<li><a href="#opac-user-relative-issues">Relatives' checkouts</a></li>[% END %]
                             [% IF ( overdues_count ) %]<li><a href="#opac-user-overdues">Overdue ([% overdues_count | html %])</a></li>[% END %]
                             [% IF ( divibib_issues_count ) %]<li><a href="#opac-user-divibibcheckouts">Onleihen ([% divibib_issues_count %])</a></li>[% END %]
@@ -247,7 +247,7 @@
                                     <input type="hidden" name="borrowernumber" value="[% borrowernumber | html %]">
                                     <input type="hidden" name="from" value="opac_user" />
                                     <table id="checkoutst" class="table table-bordered table-striped">
-                                        <caption>[% issues_count | html %] Item(s) checked out</caption>
+                                        <caption>[% koha_issues_count | html %] Item(s) checked out</caption>
                                         <thead>
                                             <tr>
                                                 <th>Item type</th>

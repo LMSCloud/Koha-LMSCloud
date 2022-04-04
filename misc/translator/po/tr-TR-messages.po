@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Koha 21.05\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2022-02-15 08:26-0300\n"
+"POT-Creation-Date: 2022-03-16 21:40-0300\n"
 "PO-Revision-Date: 2021-06-11 11:03+0000\n"
 "Last-Translator: Onur Erdem <onurerdem@sdu.edu.tr>\n"
 "Language-Team: none\n"
@@ -152,7 +152,7 @@ msgctxt "verb"
 msgid "Order"
 msgstr "Sipariş"
 
-#: koha-tmpl/intranet-tmpl/prog/en/modules/catalogue/detail.tt:825
+#: koha-tmpl/intranet-tmpl/prog/en/modules/catalogue/detail.tt:823
 #, perl-brace-format, fuzzy
 msgctxt "pluralization"
 msgid "There is one archived suggestion."

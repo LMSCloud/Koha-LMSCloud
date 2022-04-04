@@ -348,7 +348,7 @@ sub printorders {
             column_props => [
                 { justify => 'left',  },     # One of left|right ,
                 { min_w => 65/mm,            # Minimum column width.
-                  max_w => 65/mm,            # Maximum column width.
+                  # max_w => 65/mm,            # Maximum column width.
                   justify => 'left',         # One of left|right ,
                 },
                 { justify => 'right', }, # One of left|right ,

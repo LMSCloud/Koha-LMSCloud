@@ -359,11 +359,11 @@
                         var filteredValue = '';
                         $(this).html('<i class="fa fa-filter"></i> '+txtActivefilter);
                     } else { //Not filtered. Let's do it!
-                        var filteredValue = '.[_].';
+                        var filteredValue = '^[^_]*$';
                         $(this).html('<i class="fa fa-filter"></i> '+txtInactivefilter);
                     }
                     console.log(newst);
-                    newst.column(1).search(filteredValue).draw();
+                    newst.column(1).search(filteredValue,true).draw();
                     $(this).toggleClass('filtered');
                 });
 

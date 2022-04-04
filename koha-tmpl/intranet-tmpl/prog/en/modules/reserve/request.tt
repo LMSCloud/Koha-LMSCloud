@@ -1215,6 +1215,10 @@
                             if(match && ERROR_MAP[match[1]]) {
                                 message = '<div><strong>'+_("Cannot place hold")+'</strong></div><div>'+ERROR_MAP[match[1]]+'</div>'
                             }
+                            else if ( err.responseJSON.error == 'Cannot place a hold on a club without patrons.' ) {
+                                message = '<div><strong>' + _("Cannot place hold")
+                                           +'</strong></div><div>' + _("Cannot place a hold on a club without patrons.") + '</div>'
+                            }
                             $('.clubalert, .holdalert').removeClass('hide').html(message);
                         });
                     }
