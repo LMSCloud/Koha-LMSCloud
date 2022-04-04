@@ -4,32 +4,90 @@
     (global = typeof globalThis !== 'undefined' ? globalThis : global || self, factory(global.LMSCoverFlow = {}));
 })(this, (function (exports) { 'use strict';
 
-    class Observable {
-        _listeners;
-        _value;
-        constructor(value) {
-            this._listeners = [];
-            this._value = value;
+    function domParserSupport() {
+        if (!window.DOMParser)
+            return false;
+        const domParser = new DOMParser();
+        try {
+            domParser.parseFromString('x', 'text/html');
         }
-        notify() {
-            this._listeners.forEach((listener) => listener(this._value));
+        catch (error) {
+            return false;
         }
-        subscribe(listener) {
-            this._listeners.push(listener);
+        return true;
+    }
+    function stringToHtml(coverhtml) {
+        const sanitizedCoverhtml = coverhtml.replace(/>\s+|\s+</g, (m) => m.trim());
+        if (domParserSupport) {
+            const domParser = new DOMParser();
+            const parsedHtml = domParser.parseFromString(sanitizedCoverhtml, 'text/html');
+            return parsedHtml.body;
         }
-        get value() {
-            return this._value;
+        const generatedDom = document.createElement('div');
+        generatedDom.innerHTML = sanitizedCoverhtml;
+        return generatedDom;
+    }
+    function recursiveArrayPopulation(arrayOfDomNodes) {
+        if (arrayOfDomNodes[0].childElementCount === 0) {
+            return arrayOfDomNodes[0];
         }
-        set value(val) {
-            if (val !== this._value) {
-                this._value = val;
-                this.notify();
+        arrayOfDomNodes.push(arrayOfDomNodes[0].firstChild);
+        return recursiveArrayPopulation(arrayOfDomNodes[0].childNodes);
+    }
+    function removeChildNodes(parent) {
+        while (parent.firstElementChild) {
+            parent.removeChild(parent.lastElementChild);
+        }
+        return parent;
+    }
+
+    class EventListeners {
+        static instance;
+        data;
+        constructor() {
+            if (!EventListeners.instance) {
+                this.data = {
+                    left: false, right: false, leftHandler: null, rightHandler: null,
+                };
+                EventListeners.instance = this;
             }
+            // return EventListeners.instance;
+        }
+        setLeftToTrue() {
+            this.data.left = true;
+        }
+        setLeftToFalse() {
+            this.data.left = false;
+        }
+        setRightToTrue() {
+            this.data.right = true;
+        }
+        setRightToFalse() {
+            this.data.right = false;
+        }
+        setHandler(handler, direction) {
+            if (direction === 'left') {
+                this.data.leftHandler = handler;
+            }
+            else {
+                this.data.rightHandler = handler;
+            }
+        }
+        get() {
+            return this.data;
+        }
+        getLeft() {
+            return this.data.left;
+        }
+        getRight() {
+            return this.data.right;
         }
     }
 
+    const instance = new EventListeners();
+    Object.freeze(instance);
+
     /* This method can be used to create a global style tag inside the head */
-    // TODO: Check if style tag already exists and use a unique name for style.
     function createStyleTag() {
         const lcfStyleReference = document.getElementById('lcfStyle');
         if (!lcfStyleReference) {
@@ -39,11 +97,9 @@
             document.head.appendChild(lcfStyle);
         }
     }
-    /* end of createStyleTag() */
 
     /* This method can be used to append a compositedStyle to the globalStyleTag */
     function addGlobalStyle(selector, newStyle, container) {
-        const containerReferenceAsClass = container.reference.id;
         const lcfStyle = document.getElementById('lcfStyle');
         if (selector.includes('#') || selector.includes(':root')) {
             const compositedStyle = `${selector} {${newStyle}}`;
@@ -52,7 +108,7 @@
         else {
             const compositedStyle = selector.includes('@') || selector.startsWith('[')
                 ? `${selector} {${newStyle}}`
-                : `${selector}.${containerReferenceAsClass} {${newStyle}}`;
+                : `${selector}.${container.coverFlowId} {${newStyle}}`;
             lcfStyle.sheet.insertRule(compositedStyle);
         }
     }
@@ -267,7 +323,6 @@
                 `
                 0% {width: 0; height: 0;}
                 100% {width: 2rem; height: 2rem; font-size: medium; visibility: visible;}
-
                 `,
             ],
             [
@@ -354,18 +409,18 @@
     }
 
     function addInlineStyle(selector, newStyle, container) {
-        const containerReferenceAsClass = container.reference.id;
-        const targetElement = document.querySelector(`.${selector}.${containerReferenceAsClass}`);
+        const targetElement = document.querySelector(`.${selector}.${container.coverFlowId}`);
         targetElement.setAttribute('style', newStyle);
     }
 
-    function appendToDom(newTagWithClasses, container, buttonDirection, currentIndex) {
+    function appendToDom(newTagWithClasses, 
+    // eslint-disable-next-line max-len
+    container, buttonDirection, currentIndex) {
         /* If the aspect.parent references the main container (lmscoverflow), it appends the
           current item to that handle. Otherwise it looks up the parent in the LcfItemWrapperClass
           and appends to that element based on the context that the index provides. */
-        const containerReferenceAsClass = container.reference.id;
-        const lcfNavigationButtonRight = document.querySelector(`.lcfNavigationButtonRight.${containerReferenceAsClass}`);
-        const lcfItemContainers = document.querySelectorAll(`.lcfItemContainer.${containerReferenceAsClass}`);
+        const lcfNavigationButtonRight = document.querySelector(`.lcfNavigationButtonRight.${container.coverFlowId}`);
+        const lcfItemContainers = document.querySelectorAll(`.lcfItemContainer.${container.coverFlowId}`);
         /** If the new tag gets created in the shelfbrowser context, the element needs
            * to be inserted into the dom depending on the button direction that triggered
            * the loading of new titles. The new content gets inserted before the previously
@@ -433,52 +488,14 @@
         };
     }
 
-    function domParserSupport() {
-        if (!window.DOMParser)
-            return false;
-        const domParser = new DOMParser();
-        try {
-            domParser.parseFromString('x', 'text/html');
-        }
-        catch (error) {
-            return false;
-        }
-        return true;
-    }
-    function stringToHtml(coverhtml) {
-        const sanitizedCoverhtml = coverhtml.replace(/>\s+|\s+</g, (m) => m.trim());
-        if (domParserSupport) {
-            const domParser = new DOMParser();
-            const parsedHtml = domParser.parseFromString(sanitizedCoverhtml, 'text/html');
-            return parsedHtml.body;
-        }
-        const generatedDom = document.createElement('div');
-        generatedDom.innerHTML = sanitizedCoverhtml;
-        return generatedDom;
-    }
-    function recursiveArrayPopulation(arrayOfDomNodes) {
-        if (arrayOfDomNodes[0].childElementCount === 0) {
-            return arrayOfDomNodes[0];
-        }
-        arrayOfDomNodes.push(arrayOfDomNodes[0].firstChild);
-        return recursiveArrayPopulation(arrayOfDomNodes[0].childNodes);
-    }
-    function removeChildNodes(parent) {
-        while (parent.firstElementChild) {
-            parent.removeChild(parent.lastElementChild);
-        }
-        return parent;
-    }
-
     class DefaultContext {
-        constructor(config, container, data, lcfLoadingAspects, lcfItemWrapperAspects, lcfNavigationAspects, containerReferenceAsClass) {
+        constructor(config, container, data, lcfLoadingAspects, lcfItemWrapperAspects, lcfNavigationAspects) {
             this.config = config;
             this.container = container;
             this.data = data;
             this.lcfLoadingAspects = lcfLoadingAspects;
             this.lcfItemWrapperAspects = lcfItemWrapperAspects;
             this.lcfNavigationAspects = lcfNavigationAspects;
-            this.containerReferenceAsClass = containerReferenceAsClass;
             this.defaultContext = [
                 [
                     `#${container.reference.id}`,
@@ -492,7 +509,6 @@
                 overflow-y: hidden;
                 padding: ${config.coverFlowContainerPadding};
                 margin: ${config.coverFlowContainerMargin};
-
                 position: relative;
                 `,
                 ],
@@ -547,7 +563,6 @@
     -ms-flex-item-align: center;
     -ms-grid-row-align: center;
     align-self: center;
-
     background: #343a40;
     color: #fff;
     border-radius: 50%;
@@ -577,10 +592,10 @@
                     });
                     this.lcfItemWrapperAspects.forEach((aspect) => {
                         if (aspect.reference === 'lcfAnchor' && newElementsArray[0].tagName === 'A') {
-                            appendToDom(createTagAndSetClasses(new LcfItemWrapper(newElementsArray[0], 'lcfAnchor', 'lcfCoverImageWrapper', [this.containerReferenceAsClass]), key, '', true), this.container);
+                            appendToDom(createTagAndSetClasses(new LcfItemWrapper(newElementsArray[0], 'lcfAnchor', 'lcfCoverImageWrapper', [this.container.coverFlowId]), key, '', true), this.container);
                         }
                         else if (aspect.reference === 'lcfCoverImage' && newElementsArray[1].tagName === 'DIV') {
-                            appendToDom(createTagAndSetClasses(new LcfItemWrapper(newElementsArray[1], 'lcfCoverImage', 'lcfAnchor', [this.containerReferenceAsClass]), key, '', true), this.container);
+                            appendToDom(createTagAndSetClasses(new LcfItemWrapper(newElementsArray[1], 'lcfCoverImage', 'lcfAnchor', [this.container.coverFlowId]), key, '', true), this.container);
                         }
                         else {
                             appendToDom(createTagAndSetClasses(aspect, key), this.container);
@@ -741,36 +756,35 @@
         }
     }
 
-    function build(data, coverFlowContext, container, config) {
-        const containerReferenceAsClass = container.reference.id;
-        // TODO: Add possibility to add additional custom classes to elements.
+    // eslint-disable-next-line max-len
+    function build(data, coverFlowContext, container, config, customClasses) {
         const lcfLoadingAspects = [
-            new LcfItemWrapper('div', 'lcfLoadingAnimation', container.reference, [containerReferenceAsClass]),
+            new LcfItemWrapper('div', 'lcfLoadingAnimation', container.reference, [container.coverFlowId, ...customClasses]),
         ];
         const lcfNavigationAspects = [
-            new LcfItemWrapper('button', 'lcfNavigationButtonLeft', container.reference, ['btn', 'd-none', containerReferenceAsClass]),
-            new LcfItemWrapper('button', 'lcfNavigationButtonRight', container.reference, ['btn', 'd-none', containerReferenceAsClass]),
+            new LcfItemWrapper('button', 'lcfNavigationButtonLeft', container.reference, ['btn', 'd-none', container.coverFlowId, ...customClasses]),
+            new LcfItemWrapper('button', 'lcfNavigationButtonRight', container.reference, ['btn', 'd-none', container.coverFlowId, ...customClasses]),
         ];
         const lcfItemWrapperAspects = [
-            new LcfItemWrapper('div', 'lcfItemContainer', container.reference, ['d-none', 'card', 'border-0', 'flipCard', containerReferenceAsClass]),
-            new LcfItemWrapper('div', 'lcfFlipCard', 'lcfItemContainer', ['border', 'rounded', 'flipCardInner', containerReferenceAsClass]),
+            new LcfItemWrapper('div', 'lcfItemContainer', container.reference, ['d-none', 'card', 'border-0', 'flipCard', container.coverFlowId, ...customClasses]),
+            new LcfItemWrapper('div', 'lcfFlipCard', 'lcfItemContainer', ['border', 'rounded', 'flipCardInner', container.coverFlowId, ...customClasses]),
             /** Below are tags on the front of the flipCard. */
-            new LcfItemWrapper('div', 'lcfFlipCardFront', 'lcfFlipCard', ['flipCardFront', containerReferenceAsClass]),
-            new LcfItemWrapper('div', 'lcfCoverImageWrapper', 'lcfFlipCardFront', ['card-img-top', containerReferenceAsClass]),
-            new LcfItemWrapper('a', 'lcfAnchor', 'lcfCoverImageWrapper', [containerReferenceAsClass]),
-            new LcfItemWrapper('img', 'lcfCoverImage', 'lcfAnchor', [containerReferenceAsClass]),
-            // new LcfItemWrapper('div', 'lcfCoverHtmlWrapper', 'lcfAnchor', [containerReferenceAsClass]),
-            new LcfItemWrapper('div', 'lcfCardBody', 'lcfFlipCardFront', ['card-body', 'p-2', 'text-center', containerReferenceAsClass]),
-            new LcfItemWrapper('p', 'lcfMediaAuthor', 'lcfCardBody', ['card-text', 'text-muted', 'text-truncate', 'font-weight-light', 'mb-0', config.coverFlowCardBodyTextHeights.lcfMediaAuthor, containerReferenceAsClass]),
-            new LcfItemWrapper('p', 'lcfMediaItemCallNumber', 'lcfCardBody', ['card-text', 'text-muted', 'text-truncate', 'font-weight-light', 'mb-0', config.coverFlowCardBodyTextHeights.lcfMediaItemCallNumber, containerReferenceAsClass]),
-            new LcfItemWrapper('p', 'lcfMediaTitle', 'lcfCardBody', ['card-text', 'text-truncate', 'font-weight-lighter', 'mb-0', config.coverFlowCardBodyTextHeights.lcfMediaTitle, containerReferenceAsClass]),
+            new LcfItemWrapper('div', 'lcfFlipCardFront', 'lcfFlipCard', ['flipCardFront', container.coverFlowId, ...customClasses]),
+            new LcfItemWrapper('div', 'lcfCoverImageWrapper', 'lcfFlipCardFront', ['card-img-top', container.coverFlowId, ...customClasses]),
+            new LcfItemWrapper('a', 'lcfAnchor', 'lcfCoverImageWrapper', [container.coverFlowId, ...customClasses]),
+            new LcfItemWrapper('img', 'lcfCoverImage', 'lcfAnchor', [container.coverFlowId, ...customClasses]),
+            // new LcfItemWrapper('div', 'lcfCoverHtmlWrapper', 'lcfAnchor', [container.coverFlowId]),
+            new LcfItemWrapper('div', 'lcfCardBody', 'lcfFlipCardFront', ['card-body', 'p-2', 'text-center', container.coverFlowId, ...customClasses]),
+            new LcfItemWrapper('p', 'lcfMediaAuthor', 'lcfCardBody', ['card-text', 'text-muted', 'text-truncate', 'font-weight-light', 'mb-0', config.coverFlowCardBodyTextHeights.lcfMediaAuthor, container.coverFlowId, ...customClasses]),
+            new LcfItemWrapper('p', 'lcfMediaItemCallNumber', 'lcfCardBody', ['card-text', 'text-muted', 'text-truncate', 'font-weight-light', 'mb-0', config.coverFlowCardBodyTextHeights.lcfMediaItemCallNumber, container.coverFlowId, ...customClasses]),
+            new LcfItemWrapper('p', 'lcfMediaTitle', 'lcfCardBody', ['card-text', 'text-truncate', 'font-weight-lighter', 'mb-0', config.coverFlowCardBodyTextHeights.lcfMediaTitle, container.coverFlowId, ...customClasses]),
         ];
         if (config.coverFlowFlippableCards) {
             lcfItemWrapperAspects.push(...[
                 /** These tags are on the back of the flipCard. */
-                new LcfItemWrapper('div', 'lcfFlipCardBack', 'lcfFlipCard', ['flipCardBack', containerReferenceAsClass]),
-                new LcfItemWrapper('p', 'lcfMediaISBD', 'lcfFlipCardBack', [containerReferenceAsClass]),
-                new LcfItemWrapper('button', 'lcfFlipCardButton', 'lcfItemContainer', ['shadow', containerReferenceAsClass]),
+                new LcfItemWrapper('div', 'lcfFlipCardBack', 'lcfFlipCard', ['flipCardBack', container.coverFlowId]),
+                new LcfItemWrapper('p', 'lcfMediaISBD', 'lcfFlipCardBack', [container.coverFlowId]),
+                new LcfItemWrapper('button', 'lcfFlipCardButton', 'lcfItemContainer', ['shadow', container.coverFlowId]),
             ]);
         }
         const strategyManager = new StrategyManager();
@@ -800,7 +814,7 @@
             setGlobalStyles(config, container);
             setLoadingAnimation(config, container);
             evaluateConfiguration();
-            const defaultContext = new DefaultContext(config, container, data, lcfLoadingAspects, lcfItemWrapperAspects, lcfNavigationAspects, containerReferenceAsClass);
+            const defaultContext = new DefaultContext(config, container, data, lcfLoadingAspects, lcfItemWrapperAspects, lcfNavigationAspects);
             defaultContext.setStyles();
             defaultContext.buildLoadingAnimation();
             defaultContext.buildLeftNavigationButton();
@@ -819,7 +833,7 @@
             gridContext.buildCoverFlow();
         }));
         strategyManager.addStrategy(new Strategy('shelfBrowserExtensionStrategy', () => {
-            const defaultContext = new DefaultContext(config, container, data, lcfLoadingAspects, lcfItemWrapperAspects, lcfNavigationAspects, containerReferenceAsClass);
+            const defaultContext = new DefaultContext(config, container, data, lcfLoadingAspects, lcfItemWrapperAspects, lcfNavigationAspects);
             defaultContext.buildCoverFlow();
         }));
         strategyManager.addStrategy(new Strategy('shelfBrowserMobileStrategy', () => {
@@ -831,7 +845,7 @@
             setGlobalStyles(config, container);
             setLoadingAnimation(config, container);
             evaluateConfiguration();
-            const defaultContext = new DefaultContext(config, container, data, lcfLoadingAspects, lcfItemWrapperAspects, lcfNavigationAspects, containerReferenceAsClass);
+            const defaultContext = new DefaultContext(config, container, data, lcfLoadingAspects, lcfItemWrapperAspects, lcfNavigationAspects);
             defaultContext.setStyles();
             // defaultContext.setShelfBrowserMobile();
             defaultContext.buildLoadingAnimation();
@@ -840,7 +854,7 @@
             defaultContext.buildRightNavigationButton();
             defaultContext.setNavigationButtonStyles();
             // eslint-disable-next-line max-len
-            // const lcfItemContainers = document.querySelectorAll(`.lcfItemContainer.${containerReferenceAsClass}`);
+            // const lcfItemContainers = document.querySelectorAll(`.lcfItemContainer.${container.coverFlowId}`);
             // lcfItemContainers.forEach((itemContainer) => {
             //   observer.observe(itemContainer);
             // });
@@ -862,46 +876,48 @@
             strategyManager.getStrategy('gridContextStrategy').makePlay();
         }
     }
-    /* end of build() */
 
     class Config {
         constructor(configuration) {
-            this.c = configuration;
-            this.coverImageFallbackHeight = this.c.coverImageFallbackHeight || 210;
-            this.coverFlowTooltips = this.c.coverFlowTooltips || false;
-            this.coverFlowAutoScroll = this.c.coverFlowAutoScroll || false;
-            this.coverFlowAutoScrollInterval = this.c.coverFlowAutoScrollInterval || 8000;
-            this.coverFlowCardBody = this.c.coverFlowCardBody || {
+            this.config = configuration;
+            this.coverImageFallbackHeight = this.config.coverImageFallbackHeight || 210;
+            this.coverImageFallbackUrl = this.config.coverImageFallbackUrl || 'http://placekitten.com/g/200/300';
+            this.coverFlowTooltips = this.config.coverFlowTooltips || false;
+            this.coverFlowAutoScroll = this.config.coverFlowAutoScroll || false;
+            this.coverFlowAutoScrollInterval = this.config.coverFlowAutoScrollInterval || 8000;
+            this.coverFlowCardBody = this.config.coverFlowCardBody || {
                 lcfMediaAuthor: true,
                 lcfMediaTitle: true,
                 lcfMediaItemCallNumber: false,
             };
-            this.coverFlowCardBodyTextHeights = this.c.coverFlowCardBodyTextHeights || {
+            this.coverFlowCardBodyTextHeights = this.config.coverFlowCardBodyTextHeights || {
                 lcfMediaAuthor: 'text-custom-12',
                 lcfMediaTitle: 'text-custom-12',
                 lcfMediaItemCallNumber: 'text-custom-12',
             };
-            this.coverImageFallbackUrl = this.c.coverImageFallbackUrl || 'http://placekitten.com/g/200/300';
-            this.coverImageExternalSources = this.c.coverImageExternalSources || false;
-            this.coverFlowContext = this.c.coverFlowContext || 'default';
-            this.coverFlowShelfBrowser = this.c.coverFlowShelfBrowser || false;
-            this.coverFlowContainerWidth = this.c.coverFlowContainerWidth || '100%';
-            this.coverFlowContainerMargin = this.c.coverFlowContainerMargin || '0%';
-            this.coverFlowContainerPadding = this.c.coverFlowContainerPadding || '2rem 1px 2rem 1px';
-            this.coverFlowButtonsBehaviour = this.c.coverFlowButtonsBehaviour || 'stay';
-            this.coverFlowButtonsCallback = this.c.coverFlowButtonsCallback;
-            this.coverFlowFlippableCards = this.c.coverFlowFlippableCards || false;
-            this.coverFlowHighlightingStyle = this.c.coverFlowHighlightingStyle || 'default';
-            this.gridCoverFlowBreakpoints = this.c.gridCoverFlowBreakpoints || {
+            this.coverFlowCustomClasses = this.config.coverFlowCustomClasses || ''; // TODO: Enable selection of aspects.
+            this.coverImageExternalSources = this.config.coverImageExternalSources || false;
+            this.coverImageCallbackTimeout = this.config.coverImageCallbackTimeout || 500;
+            this.coverFlowContext = this.config.coverFlowContext || 'default';
+            this.coverFlowShelfBrowser = this.config.coverFlowShelfBrowser || false;
+            this.coverFlowContainerWidth = this.config.coverFlowContainerWidth || '100%';
+            this.coverFlowContainerMargin = this.config.coverFlowContainerMargin || '0%';
+            this.coverFlowContainerPadding = this.config.coverFlowContainerPadding || '2rem 1px 2rem 1px';
+            this.coverFlowButtonsBehaviour = this.config.coverFlowButtonsBehaviour || 'stay';
+            this.coverFlowButtonsCallback = this.config.coverFlowButtonsCallback;
+            this.coverFlowFlippableCards = this.config.coverFlowFlippableCards || false;
+            this.coverFlowHighlightingStyle = this.config.coverFlowHighlightingStyle || 'default';
+            this.gridCoverFlowBreakpoints = this.config.gridCoverFlowBreakpoints || {
                 xl: 1367,
                 l: 1025,
                 m: 769,
                 s: 481,
                 xs: 320,
             };
-            this.shelfBrowserExtendedCoverFlow = this.c.shelfBrowserExtendedCoverFlow || false;
-            this.shelfBrowserButtonDirection = this.c.shelfBrowserButtonDirection || null;
-            this.shelfBrowserCurrentEventListeners = this.c.shelfBrowserCurrentEventListeners || null;
+            this.shelfBrowserExtendedCoverFlow = this.config.shelfBrowserExtendedCoverFlow || false;
+            this.shelfBrowserButtonDirection = this.config.shelfBrowserButtonDirection || null;
+            this.shelfBrowserCurrentEventListeners = this.config.shelfBrowserCurrentEventListeners || null;
+            this.debug = this.config.debug || false;
         }
     }
 
@@ -911,12 +927,14 @@
         lcfNavigationButtonLeft;
         lcfNavigationButtonRight;
         config;
+        referenceAsClass;
         constructor(element, config) {
             this.config = config;
             this.reference = document.getElementById(element);
             this.scrollable = false;
             this.lcfNavigationButtonLeft = null;
             this.lcfNavigationButtonRight = null;
+            this.referenceAsClass = this.reference.id;
         }
         isScrollable() {
             if (this.reference.scrollWidth > this.reference.clientWidth
@@ -957,10 +975,12 @@
                 }
             });
         }
+        get coverFlowId() {
+            return this.referenceAsClass;
+        }
         updateNavigationButtonReferences() {
-            const containerReferenceAsClass = this.reference.id;
-            this.lcfNavigationButtonLeft = document.querySelector(`.lcfNavigationButtonLeft.${containerReferenceAsClass}`);
-            this.lcfNavigationButtonRight = document.querySelector(`.lcfNavigationButtonRight.${containerReferenceAsClass}`);
+            this.lcfNavigationButtonLeft = document.querySelector(`.lcfNavigationButtonLeft.${this.coverFlowId}`);
+            this.lcfNavigationButtonRight = document.querySelector(`.lcfNavigationButtonRight.${this.coverFlowId}`);
         }
         hideOrShowButton() {
             if (this.config.coverFlowShelfBrowser) {
@@ -991,7 +1011,7 @@
             const container = this.reference;
             const scrollRight = (container.scrollWidth - container.clientWidth - container.scrollLeft);
             if (this.config.coverFlowShelfBrowser) {
-                if (scrollRight === 0) {
+                if (scrollRight <= 0) {
                     this.handleScrollToEdge(this.lcfNavigationButtonRight);
                 }
             }
@@ -1094,7 +1114,6 @@
         checkUrls(localData) {
             // eslint-disable-next-line max-len
             const checkedUrls = localData.map(async (entry) => {
-                console.log(entry)
                 const { coverurl, coverhtml } = entry;
                 if (coverhtml && !coverurl)
                     return entry;
@@ -1120,44 +1139,358 @@
         return Array.from(Object.entries(object));
     }
 
-    function populateTagAttributes(node, formattedData) {
-        const TAG = node;
-        const [itemClassReference, itemClassIndex] = TAG.classList;
-        const itemCurrent = formattedData[itemClassIndex];
-        switch (itemClassReference) {
-            case 'lcfItemContainer':
-                if (itemCurrent.additionalProperties) {
-                    arrFromObjEntries(itemCurrent.additionalProperties).forEach((entry) => {
-                        const [key, value] = entry;
-                        TAG.setAttribute(`data-${key}`, value);
-                    });
+    function additionalProperties(currentItem) {
+        if (currentItem.additionalProperties) {
+            const result = [];
+            arrFromObjEntries(currentItem?.additionalProperties).forEach((property) => {
+                const [key, value] = property;
+                result.push([`data-${key}`, value]);
+            });
+            return result;
+        }
+        return undefined;
+    }
+
+    function caseMap(item) {
+        return new Map([
+            [
+                'lcfItemContainer',
+                additionalProperties(item),
+            ],
+            [
+                'lcfAnchor',
+                ['href', item.referenceToDetailsView],
+            ],
+            [
+                'lcfCoverImage',
+                ['src', item?.coverurl],
+            ],
+            [
+                'lcfCoverHtmlWrapper',
+                ['innerHtml', item?.coverhtml || ''],
+            ],
+            [
+                'lcfMediaTitle',
+                [['textContent', 'data-text'], item.title],
+            ],
+            [
+                'lcfMediaAuthor',
+                ['textContent', item.author],
+            ],
+            [
+                'lcfMediaItemCallNumber',
+                ['textContent', item.itemCallNumber],
+            ],
+            [
+                'lcfMediaISBD',
+                ['textContent', `${item.author}: ${item.title}`],
+            ],
+            [
+                'lcfFlipCardButton',
+                ['textContent', '←'],
+            ],
+        ]);
+    }
+
+    function determineStructure(attribute, data) {
+        return [Array.isArray(attribute), Array.isArray(data)];
+    }
+    function getInstructions(lcfClass, map) { return map.get(lcfClass); }
+    function isTextContent(attribute) { return attribute === 'textContent'; }
+
+    function runInstructions(currentTag, currentInstructions) {
+        const aspect = currentTag;
+        const [attribute, data] = currentInstructions;
+        const [attrBool, dBool] = determineStructure(attribute, data);
+        const textContentBool = isTextContent(attribute);
+        if (attrBool && dBool) {
+            currentInstructions.forEach((instr) => {
+                const [attr, d] = instr;
+                if (isTextContent(attr)) {
+                    aspect.textContent = d;
+                    return;
                 }
-                break;
-            case 'lcfAnchor':
-                TAG.href = itemCurrent.referenceToDetailsView;
-                break;
-            case 'lcfCoverImage':
-                TAG.src = itemCurrent?.coverurl;
-                break;
-            case 'lcfCoverHtmlWrapper':
-                TAG.innerHTML = itemCurrent?.coverhtml ? itemCurrent.coverhtml : '';
-                break;
-            case 'lcfMediaTitle':
-                TAG.textContent = itemCurrent.title;
-                TAG.dataset.text = itemCurrent.title;
-                break;
-            case 'lcfMediaAuthor':
-                TAG.textContent = itemCurrent.author;
-                break;
-            case 'lcfMediaItemCallNumber':
-                TAG.textContent = itemCurrent.itemCallNumber;
-                break;
-            case 'lcfMediaISBD':
-                TAG.textContent = `${itemCurrent.author}: ${itemCurrent.title}`;
-                break;
-            case 'lcfFlipCardButton':
-                TAG.textContent = '⏎';
-                break;
+                aspect.setAttribute(attr, d);
+            });
+        }
+        if (attrBool) {
+            attribute.forEach((attr) => {
+                if (isTextContent(attr)) {
+                    aspect.textContent = data;
+                    return;
+                }
+                aspect.setAttribute(attr, data);
+            });
+            return;
+        }
+        if (dBool) {
+            data.forEach((d) => { aspect.setAttribute(attribute, d); });
+            return;
+        }
+        if (textContentBool) {
+            aspect.textContent = data;
+            return;
+        }
+        aspect.setAttribute(attribute, data);
+    }
+
+    function populateTagAttributes(node, formattedData) {
+        try {
+            const tag = node;
+            const [reference, index] = tag.classList;
+            const item = formattedData[index];
+            const cases = caseMap(item);
+            const instructions = getInstructions(reference, cases);
+            // console.log(instructions);
+            if (instructions) {
+                runInstructions(tag, instructions);
+            }
+        }
+        catch (error) {
+            console.log(error);
+        }
+    }
+
+    async function urlHarvester(formattedData, containerReference) {
+        try {
+            const dataArray = arrFromObjEntries(formattedData);
+            const harvester = document.createElement('div');
+            harvester.classList.add('urlHarvester', 'd-none');
+            dataArray.forEach((entry) => {
+                const [id, { coverhtml }] = entry;
+                const harvesterElement = document.createElement('div');
+                harvesterElement.classList.add('harvesterElement', id);
+                harvesterElement.innerHTML = coverhtml;
+                harvester.appendChild(harvesterElement);
+            });
+            containerReference.appendChild(harvester);
+            return true;
+        }
+        catch (error) {
+            console.log(error);
+            return false;
+        }
+    }
+
+    function getLcfItemId(domNode) {
+        const id = domNode?.classList[1];
+        if (!/_[0-9]{7}/.test(id))
+            throw new Error("Id doesn't match pattern.");
+        return id;
+    }
+
+    /* eslint-disable no-underscore-dangle */
+    class Observable {
+        _listeners;
+        _value;
+        constructor(value) {
+            this._listeners = [];
+            this._value = value;
+        }
+        notify() {
+            this._listeners.forEach((listener) => listener(this._value));
+        }
+        subscribe(listener) {
+            this._listeners.push(listener);
+        }
+        get value() {
+            return this._value;
+        }
+        set value(val) {
+            if (val !== this._value) {
+                this._value = val;
+                this.notify();
+            }
+        }
+    }
+
+    function clearHarvester() {
+        const harvester = document.querySelector('.urlHarvester');
+        if (harvester) {
+            harvester.remove();
+        }
+    }
+
+    function resyncExecution(ms) {
+        return new Promise((resolve) => {
+            setTimeout(resolve, ms);
+        });
+    }
+
+    const externalSources = new Observable(false);
+
+    async function harvestUrls(formattedData, container, config) {
+        const dataReference = formattedData;
+        const containerReference = container;
+        const harvesterBuilt = await urlHarvester(dataReference, containerReference);
+        if (harvesterBuilt) {
+            let harvesterElements = document.querySelectorAll('.harvesterElement');
+            const harvesterResults = [];
+            if (externalSources) {
+                const harvesterObservers = {};
+                harvesterElements.forEach((node) => {
+                    const nodeId = getLcfItemId(node);
+                    harvesterObservers[nodeId] = new Observable(node.innerHTML);
+                    harvesterObservers[nodeId].subscribe((coverurl) => {
+                        //   console.log(coverurl);
+                        //   const aHrefRe = /a href="(.+?)"/g;
+                        //   const hrefs = coverurl.match(aHrefRe);
+                        //   if (hrefs) {
+                        //     const [src] = hrefs;
+                        //     const [, srcString] = src.split('"');
+                        //     harvesterResults.push([nodeId, srcString]);
+                        //     return;
+                        //   }
+                        const srcRe = /src="(.+?)"/g;
+                        const sources = coverurl.match(srcRe);
+                        if (sources) {
+                            const [src] = sources;
+                            let [, srcString] = src.split('"');
+                            /** Google specific url parameters. Somehow the idenatifier &amp; ends up
+                             * in the resulting string when it should be just & instead. */
+                            srcString = `${srcString.replaceAll('amp;', '').replace(/zoom=./g, 'zoom=1')}&gbs_api`;
+                            harvesterResults.push([nodeId, srcString]);
+                            return;
+                        }
+                        harvesterResults.push([nodeId, undefined]);
+                    });
+                });
+                /** Notify the observant to execute the callback. */
+                externalSources.value = true;
+                /** Reset to false. */
+                externalSources.value = false;
+                setTimeout(() => {
+                    harvesterElements = document.querySelectorAll('.harvesterElement');
+                    harvesterElements.forEach((node) => {
+                        const nodeId = getLcfItemId(node);
+                        harvesterObservers[nodeId].value = node.innerHTML;
+                    });
+                }, config.coverImageCallbackTimeout);
+                setTimeout(() => {
+                    harvesterResults.forEach((entry) => {
+                        const [id, coverurl] = entry;
+                        dataReference[id].coverurl = coverurl;
+                    });
+                }, config.coverImageCallbackTimeout);
+                await resyncExecution(config.coverImageCallbackTimeout);
+                clearHarvester();
+            }
+            else {
+                harvesterElements.forEach((node) => {
+                    const nodeId = getLcfItemId(node);
+                    const srcRe = /src="(.+?)"/g;
+                    const sources = node.innerHTML.match(srcRe);
+                    if (sources) {
+                        const [src] = sources;
+                        const [, srcString] = src.split('"');
+                        harvesterResults.push([nodeId, srcString]);
+                    }
+                    harvesterResults.forEach((entry) => {
+                        const [id, coverurl] = entry;
+                        dataReference[id].coverurl = coverurl;
+                    });
+                    clearHarvester();
+                });
+            }
+        }
+    }
+
+    function calculateComputedFontSize(container) {
+        return parseInt(window.getComputedStyle(document.getElementById(container)).fontSize.split('px')[0], 10);
+    }
+
+    function calculateCoverFlowPlusGaps(offsetWidthArray, computedFontSize) {
+        return offsetWidthArray
+            .reduce((accumulator, currentValue) => accumulator + currentValue + computedFontSize)
+            + computedFontSize;
+    }
+
+    function changeAspectVisibility({ config, containerReference }) {
+        if (Object.values(config.coverFlowCardBody).every((setting) => setting === false)) {
+            const cardBodies = document.querySelectorAll(`.lcfCardBody.${containerReference}`);
+            cardBodies.forEach((cardBody) => {
+                cardBody.classList.add('d-none');
+            });
+        }
+        Object.entries(config.coverFlowCardBody).forEach((itemCardBodyAspect) => {
+            const [cardBodyClass, setting] = itemCardBodyAspect;
+            if (!setting) {
+                const aspectToHide = document.querySelectorAll(`.${cardBodyClass}.${containerReference}`);
+                aspectToHide.forEach((item) => {
+                    item.classList.add('d-none');
+                });
+            }
+        });
+    }
+
+    function cleanupUrls(config, formattedData) {
+        const cleanedData = formattedData;
+        arrFromObjEntries(formattedData).forEach((entry) => {
+            const [id, data] = entry;
+            cleanedData[id] = {
+                ...data, coverurl: data.coverurl || config.coverImageFallbackUrl,
+            };
+        });
+        return cleanedData;
+    }
+
+    class ErrorLogger {
+        messages;
+        constructor() {
+            this.messages = [];
+        }
+        log(message, containerReference) {
+            const date = new Date();
+            const datePrefix = `${date.getDate()}/${date.getMonth() + 1}/${date.getFullYear()}@${date.getHours()}:${date.getMinutes()}:${date.getSeconds()}`;
+            this.messages.push(`${datePrefix}\t[${containerReference}]\t${message}`);
+        }
+        show() {
+            let output = '';
+            this.messages.forEach((message) => {
+                output += message;
+            });
+            console.log(output);
+        }
+    }
+
+    function generateId() {
+        const randomValues = new Uint8Array(16);
+        return `_${window.crypto.getRandomValues(randomValues)
+        .join('')
+        .toString()
+        .substring(2, 9)}`;
+    }
+
+    function format(localData) {
+        return Object.fromEntries(Object.entries(localData).map(([, v]) => [generateId(), v]));
+    }
+
+    function addAutoScroll({ config, container }) {
+        if (config.coverFlowAutoScroll && !config.coverFlowShelfBrowser) {
+            let autoScrollId = container.autoScrollContainer();
+            container.reference.addEventListener('mouseover', () => {
+                clearInterval(autoScrollId);
+            });
+            container.reference.addEventListener('mouseout', () => {
+                autoScrollId = container.autoScrollContainer();
+            });
+        }
+    }
+
+    // eslint-disable-next-line max-len
+    function addDataTooltip(lcfItemContainer, coverFlowEntity) {
+        const itemContainer = lcfItemContainer;
+        itemContainer.dataset.tooltip = `${coverFlowEntity.author ? coverFlowEntity.author : ''} ${coverFlowEntity.itemCallNumber ? coverFlowEntity.itemCallNumber : ''} ${coverFlowEntity.title ? coverFlowEntity.title : ''}`;
+    }
+
+    function addFlipCards({ id, config, containerReference }) {
+        if (config.coverFlowFlippableCards) {
+            const lcfFlipCardButton = document.querySelector(`.lcfFlipCardButton.${id}.${containerReference}`);
+            lcfFlipCardButton.addEventListener('click', () => {
+                const innerFlipCard = document.querySelector(`.flipCardInner.${id}.${containerReference}`);
+                innerFlipCard.classList.toggle('cardIsFlipped');
+                lcfFlipCardButton.classList.toggle('buttonIsFlipped');
+            });
         }
     }
 
@@ -1240,13 +1573,6 @@
         }
     }
 
-    function getLcfItemId(domNode) {
-        const id = domNode?.classList[1];
-        if (!/_[0-9]{7}/.test(id))
-            throw new Error("Id doesn't match pattern.");
-        return id;
-    }
-
     function processHeights(lcfCoverImageHeights, config) {
         const heights = lcfCoverImageHeights
             .map((height) => height || 0)
@@ -1264,26 +1590,34 @@
         return flattenedResults;
     }
 
-    // TODO: Enable feeding additional metadata to LcfEntity constructor.
+    /* eslint-disable max-len */
     /* This promise chain is the main block for displaying covers. The global coverFlowEntities
        * Object gets flattened to promise level. The mapped imageHeights are used to set a universal
        * height for all images. Then the card widths are adjusted to the corresponding image widths.
        * Before the cards are displayed, a loading animation renders to bridge the gap between
        * awaiting all images and the depending methods for image sizing and so on. */
-    async function settlePromises(config, container, currentItemContainers, promisedEntities) {
+    async function settlePromises(config, 
+    // eslint-disable-next-line max-len
+    container, currentItemContainers, promisedEntities) {
         try {
-            const containerReferenceAsClass = container.reference.id;
             const result = await Promise.allSettled(promisedEntities);
             const flattenedResults = flattenPromiseResults(result);
             const lcfCoverImageHeights = flattenedResults.map((lcfEntity) => (lcfEntity.imageHeight ? lcfEntity.imageHeight : null));
-            let lcfItemContainers = Array.from(document.querySelectorAll(`.lcfItemContainer.${containerReferenceAsClass}`));
+            let lcfItemContainers = Array.from(document.querySelectorAll(`.lcfItemContainer.${container.coverFlowId}`));
             /** We determine whether all images have a height of null which may be the case when
              * external sources provide them. */
             const imageArrayExistent = !lcfCoverImageHeights.every((height) => height === null);
+            const lcfCoverImages = document.querySelectorAll(`.lcfCoverImage.${container.coverFlowId}`);
+            const initialPopulation = Array.from(Object.values(lcfCoverImages)).every((image) => image.height === 0);
+            let initialSetImageHeight;
+            if (!initialPopulation) {
+                const centralImage = lcfCoverImages[Math.floor(lcfCoverImages.length / 2)];
+                initialSetImageHeight = centralImage.height;
+            }
             /** This handles the default case with images served via their urls. */
             if (imageArrayExistent) {
                 const imagesMaxHeight = processHeights(lcfCoverImageHeights, config);
-                addGlobalStyle(`.lcfCoverImage.${containerReferenceAsClass}`, `height: ${imagesMaxHeight}px`, container);
+                addGlobalStyle(`.lcfCoverImage.${container.coverFlowId}`, `height: ${imagesMaxHeight}px`, container);
                 const localCurrentItemContainers = Array.from(currentItemContainers);
                 lcfItemContainers = lcfItemContainers.filter((lcfItemContainer) => !localCurrentItemContainers.includes(lcfItemContainer));
                 lcfItemContainers.forEach((lcfCardBody) => {
@@ -1291,7 +1625,7 @@
                     const lcfItemCurrent = flattenedResults.filter((lcfEntity) => lcfEntity.id === lcfItemId)[0];
                     /** Updates the imageComputedWid†h property when the tallest image is still
                      * shorter than the coverImageFallbackHeight.   */
-                    lcfItemCurrent.updateMaxHeight(imagesMaxHeight);
+                    lcfItemCurrent.updateMaxHeight(initialSetImageHeight || imagesMaxHeight);
                     lcfItemCurrent.updateDimensions();
                     /** Sets width of the whole card. */
                     addInlineStyle(`lcfItemContainer.${lcfItemCurrent.id}`, `flex-basis: ${lcfItemCurrent.imageComputedWidth + 2}px;`, container);
@@ -1299,20 +1633,23 @@
             }
             /** This handles images served via external sources. */
             if (!imageArrayExistent) {
-                const lcfCoverImages = document.querySelectorAll(`.lcfCoverImage.${containerReferenceAsClass}`);
                 lcfCoverImages.forEach((lcfCoverImage) => lcfCoverImage.classList.add('d-none'));
             }
             /** Hides the loading animation. */
-            const lcfLoadingAnimation = document.querySelector(`.lcfLoadingAnimation.${containerReferenceAsClass}`);
+            const lcfLoadingAnimation = document.querySelector(`.lcfLoadingAnimation.${container.coverFlowId}`);
             lcfLoadingAnimation.classList.add('d-none');
             /** Removes d-none from all item containers and shows the content. */
             lcfItemContainers.forEach((lcfItemContainer) => {
                 lcfItemContainer.classList.remove('d-none');
             });
+            const shelfBrowserReference = document.getElementById('shelfbrowser');
+            if (shelfBrowserReference) {
+                setTimeout(() => shelfBrowserReference.scrollIntoView(), 100);
+            }
             container.isScrollable();
             if (config.coverFlowContext === 'default' && window.screen.width >= config.gridCoverFlowBreakpoints.s) {
-                const lcfNavigationButtonRight = document.querySelector(`.lcfNavigationButtonRight.${containerReferenceAsClass}`);
-                const lcfNavigationButtonLeft = document.querySelector(`.lcfNavigationButtonLeft.${containerReferenceAsClass}`);
+                const lcfNavigationButtonRight = document.querySelector(`.lcfNavigationButtonRight.${container.coverFlowId}`);
+                const lcfNavigationButtonLeft = document.querySelector(`.lcfNavigationButtonLeft.${container.coverFlowId}`);
                 if (container.scrollable) {
                     lcfNavigationButtonRight.classList.remove('d-none');
                     lcfNavigationButtonLeft.classList.remove('d-none');
@@ -1349,209 +1686,20 @@
         return settlePromises(config, container, currentItemContainers, promisedCoverFlowEntities);
     }
 
-    async function urlHarvester(formattedData, containerReference) {
-        try {
-            const dataArray = Array.from(Object.entries(formattedData));
-            const harvester = document.createElement('div');
-            harvester.classList.add('urlHarvester', 'd-none');
-            dataArray.forEach((entry) => {
-                const [id, { coverhtml }] = entry;
-                const harvesterElement = document.createElement('div');
-                harvesterElement.classList.add('harvesterElement', id);
-                harvesterElement.innerHTML = coverhtml;
-                harvester.appendChild(harvesterElement);
-            });
-            containerReference.appendChild(harvester);
-            return true;
-        }
-        catch (error) {
-            console.log(error);
-            return false;
-        }
-    }
-
-    function clearHarvester() {
-        const harvester = document.querySelector('.urlHarvester');
-        if (harvester) {
-            harvester.remove();
-        }
-    }
-
-    function resyncExecution(ms) {
-        return new Promise((resolve) => {
-            setTimeout(resolve, ms);
-        });
-    }
-
-    async function harvestUrls(formattedData, loaded, container) {
-        const dataReference = formattedData;
-        const loadedReference = loaded;
-        const containerReference = container;
-        const harvesterBuilt = await urlHarvester(dataReference, containerReference);
-        if (harvesterBuilt) {
-            let harvesterElements = document.querySelectorAll('.harvesterElement');
-            const harvesterResults = [];
-            if (loadedReference) {
-                const harvesterObservers = {};
-                harvesterElements.forEach((node) => {
-                    const nodeId = getLcfItemId(node);
-                    harvesterObservers[nodeId] = new Observable(node.innerHTML);
-                    harvesterObservers[nodeId].subscribe((coverurl) => {
-                        //   console.log(coverurl);
-                        //   const aHrefRe = /a href="(.+?)"/g;
-                        //   const hrefs = coverurl.match(aHrefRe);
-                        //   if (hrefs) {
-                        //     const [src] = hrefs;
-                        //     const [, srcString] = src.split('"');
-                        //     harvesterResults.push([nodeId, srcString]);
-                        //     return;
-                        //   }
-                        const srcRe = /src="(.+?)"/g;
-                        const sources = coverurl.match(srcRe);
-                        if (sources) {
-                            const [src] = sources;
-                            let [, srcString] = src.split('"');
-                            /** Google specific url parameters. Somehow the idenatifier &amp; ends up
-                             * in the resulting string when it should be just & instead. */
-                            srcString = `${srcString.replaceAll('amp;', '').replace(/zoom=./g, 'zoom=1')}&gbs_api`;
-                            harvesterResults.push([nodeId, srcString]);
-                            return;
-                        }
-                        harvesterResults.push([nodeId, undefined]);
-                    });
-                });
-                /** Notify the observant to execute the callback. */
-                loadedReference.value = true;
-                /** Reset to false. */
-                loadedReference.value = false;
-                setTimeout(() => {
-                    harvesterElements = document.querySelectorAll('.harvesterElement');
-                    harvesterElements.forEach((node) => {
-                        const nodeId = getLcfItemId(node);
-                        harvesterObservers[nodeId].value = node.innerHTML;
-                    });
-                }, 500);
-                setTimeout(() => {
-                    harvesterResults.forEach((entry) => {
-                        const [id, coverurl] = entry;
-                        dataReference[id].coverurl = coverurl;
-                    });
-                }, 500);
-                await resyncExecution(500);
-                clearHarvester();
-            }
-            else {
-                harvesterElements.forEach((node) => {
-                    const nodeId = getLcfItemId(node);
-                    const srcRe = /src="(.+?)"/g;
-                    const sources = node.innerHTML.match(srcRe);
-                    if (sources) {
-                        const [src] = sources;
-                        const [, srcString] = src.split('"');
-                        harvesterResults.push([nodeId, srcString]);
-                    }
-                    harvesterResults.forEach((entry) => {
-                        const [id, coverurl] = entry;
-                        dataReference[id].coverurl = coverurl;
-                    });
-                    clearHarvester();
-                });
-            }
-        }
-    }
-
-    function generateId() {
-        const randomValues = new Uint8Array(16);
-        return `_${window.crypto.getRandomValues(randomValues)
-        .join('')
-        .toString()
-        .substring(2, 9)}`;
-    }
-
-    function format(localData) {
-        return Object.fromEntries(Object.entries(localData).map(([, v]) => [generateId(), v]));
-    }
-
-    // eslint-disable-next-line max-len
-    function addDataTooltip(lcfItemContainer, coverFlowEntity) {
-        const itemContainer = lcfItemContainer;
-        itemContainer.dataset.tooltip = `${coverFlowEntity.author ? coverFlowEntity.author : ''} ${coverFlowEntity.itemCallNumber ? coverFlowEntity.itemCallNumber : ''} ${coverFlowEntity.title ? coverFlowEntity.title : ''}`;
-    }
-
-    function calculateComputedFontSize(container) {
-        return parseInt(window.getComputedStyle(document.getElementById(container)).fontSize.split('px')[0], 10);
-    }
-
-    function calculateCoverFlowPlusGaps(offsetWidthArray, computedFontSize) {
-        return offsetWidthArray
-            .reduce((accumulator, currentValue) => accumulator + currentValue + computedFontSize)
-            + computedFontSize;
-    }
-
-    function addFlipCards({ id, config, containerReference }) {
-        if (config.coverFlowFlippableCards) {
-            const lcfFlipCardButton = document.querySelector(`.lcfFlipCardButton.${id}.${containerReference}`);
-            lcfFlipCardButton.addEventListener('click', () => {
-                const innerFlipCard = document.querySelector(`.flipCardInner.${id}.${containerReference}`);
-                innerFlipCard.classList.toggle('cardIsFlipped');
-                lcfFlipCardButton.classList.toggle('buttonIsFlipped');
-            });
-        }
-    }
-
-    function cleanupUrls(config, formattedData) {
-        const cleanedData = formattedData;
-        arrFromObjEntries(formattedData).forEach((entry) => {
-            const [id, data] = entry;
-            cleanedData[id] = {
-                ...data, coverurl: data.coverurl || config.coverImageFallbackUrl,
-            };
-        });
-        return cleanedData;
-    }
-
-    function addAutoScroll({ config, container }) {
-        if (config.coverFlowAutoScroll && !config.coverFlowShelfBrowser) {
-            let autoScrollId = container.autoScrollContainer();
-            container.reference.addEventListener('mouseover', () => {
-                clearInterval(autoScrollId);
-            });
-            container.reference.addEventListener('mouseout', () => {
-                autoScrollId = container.autoScrollContainer();
-            });
-        }
-    }
-
-    function changeAspectVisibility({ config, containerReference }) {
-        if (Object.values(config.coverFlowCardBody).every((setting) => setting === false)) {
-            const cardBodies = document.querySelectorAll(`.lcfCardBody.${containerReference}`);
-            cardBodies.forEach((cardBody) => {
-                cardBody.classList.add('d-none');
-            });
-        }
-        Object.entries(config.coverFlowCardBody).forEach((itemCardBodyAspect) => {
-            const [cardBodyClass, setting] = itemCardBodyAspect;
-            if (!setting) {
-                const aspectToHide = document.querySelectorAll(`.${cardBodyClass}.${containerReference}`);
-                aspectToHide.forEach((item) => {
-                    item.classList.add('d-none');
-                });
-            }
-        });
-    }
-
+    /* eslint-disable max-len */
     function LmsCoverFlow() {
-        this.setGlobals = (configuration, data, element, loaded) => {
+        this.setGlobals = (configuration, data, element) => {
             this.callerConfiguration = configuration;
             this.callerData = data;
             this.callerContainer = element;
-            this.loaded = loaded;
+            this.logger = new ErrorLogger();
             this.updateGlobals();
         };
         this.setConfig = (configuration) => {
             this.callerConfiguration = configuration;
             this.updateGlobals();
         };
+        this.getConfig = () => this.callerConfiguration;
         this.setData = (data) => {
             this.callerData = data;
             this.updateGlobals();
@@ -1567,25 +1715,24 @@
         };
         this.render = async (coverFlowContext) => {
             try {
-                const containerReferenceAsClass = this.container.reference.id;
                 const checkedData = await Promise.all(this.data.checkUrls(this.callerData));
                 let formattedData = format(checkedData);
-                if (this.loaded || this.config.coverImageExternalSources) {
-                    await harvestUrls(formattedData, this.loaded, this.container.reference);
+                if (externalSources || this.config.coverImageExternalSources) {
+                    await harvestUrls(formattedData, this.container.reference, this.config);
                 }
                 formattedData = cleanupUrls(this.config, formattedData);
                 /** The check for the current card bodies is necessary, to filter
-                   * the existing ones out for extension of the coverflow-component
-                   * in the shelfbrowser context. */
-                const currentItemContainers = document.querySelectorAll(`.lcfItemContainer.${containerReferenceAsClass}`);
-                build(formattedData, coverFlowContext || this.config.coverFlowContext, this.container, this.config);
+                     * the existing ones out for extension of the coverflow-component
+                     * in the shelfbrowser context. */
+                const currentItemContainers = document.querySelectorAll(`.lcfItemContainer.${this.container.coverFlowId}`);
+                build(formattedData, coverFlowContext || this.config.coverFlowContext, this.container, this.config, this.config.coverFlowCustomClasses);
                 const coverFlowEntities = await prepare(formattedData, this.config, this.container, currentItemContainers);
                 /** Shelfbrowser offset calculations. */
                 const newOffsetWidth = [];
                 const computedFontSize = calculateComputedFontSize(this.callerContainer);
                 /** Tooltip logic. */
                 coverFlowEntities.forEach((entry) => {
-                    const lcfNodesOfSingleCoverImageWrapper = document.querySelectorAll(`.${entry.id}.${containerReferenceAsClass}`);
+                    const lcfNodesOfSingleCoverImageWrapper = document.querySelectorAll(`.${entry.id}.${this.container.coverFlowId}`);
                     const currentLcfItemContainer = document.querySelector(`.lcfItemContainer.${entry.id}`);
                     addDataTooltip(currentLcfItemContainer, entry);
                     /** Data population. */
@@ -1597,34 +1744,176 @@
                         newOffsetWidth.push(lcfItemContainer.offsetWidth);
                     }
                     /** Flipcard logic. */
-                    // eslint-disable-next-line max-len
-                    addFlipCards({ id: entry.id, config: this.config, containerReference: containerReferenceAsClass });
+                    addFlipCards({ id: entry.id, config: this.config, containerReference: this.container.coverFlowId });
                 });
                 /** Shelfbrowser offset execution. */
                 if (this.config.shelfBrowserExtendedCoverFlow && this.config.shelfBrowserButtonDirection === 'left') {
-                    // eslint-disable-next-line max-len
                     this.container.reference.scrollLeft += calculateCoverFlowPlusGaps(newOffsetWidth, computedFontSize);
                 }
             }
             catch (error) {
-                console.log(error);
+                if (this.config.debug) {
+                    this.logger.log(error, this.container.coverFlowId);
+                    this.loggger.show();
+                }
             }
             /** Autoscroll logic. */
             addAutoScroll({ config: this.config, container: this.container });
-            /** The following two blocks determine the visibility of card body aspects or the visibility
-             * of the card body alltogether. */
-            const containerReferenceAsClass = this.container.reference.id;
-            changeAspectVisibility({ config: this.config, containerReference: containerReferenceAsClass });
+            /** Conditionally hide or show aspects of card bodies. */
+            changeAspectVisibility({ config: this.config, containerReference: this.container.coverFlowId });
         };
     }
-    function createLcfInstance() {
-        return new LmsCoverFlow();
+
+    // eslint-disable-next-line import/no-cycle
+    function createLcfInstance() { return new LmsCoverFlow(); }
+
+    function overrideConfig(configuration, changes) {
+        const modifiedConfiguration = configuration;
+        arrFromObjEntries(changes).forEach((change) => {
+            const [option, value] = change;
+            modifiedConfiguration[option] = value;
+        });
+        return modifiedConfiguration;
     }
 
-    exports.LmsCoverFlow = LmsCoverFlow;
-    exports.Observable = Observable;
+    const shelfBrowserConfig = new Observable({});
+
+    // eslint-disable-next-line max-len
+    function extendCurrentCoverFlow({ newlyLoadedItems, extendedCoverFlow = false, buttonDirection = null, loadNewShelfBrowserItems, coverFlowId, }) {
+        const shelfBrowserItems = newlyLoadedItems.items.map((item) => ({
+            biblionumber: item.biblionumber,
+            title: item.title,
+            coverurl: item.coverurl,
+            coverhtml: item.coverhtml,
+            itemCallNumber: item.itemcallnumber,
+            referenceToDetailsView: `/cgi-bin/koha/opac-detail.pl?biblionumber=${item.biblionumber}`,
+        }));
+        const nearbyItems = {
+            previousItemNumber: newlyLoadedItems.shelfbrowser_prev_item.itemnumber,
+            nextItemNumber: newlyLoadedItems.shelfbrowser_next_item.itemnumber,
+        };
+        const lmscoverflow = createLcfInstance();
+        let shelfBrowserCoverFlowConfig = {
+            coverImageFallbackHeight: 210,
+            coverFlowTooltips: false,
+            coverFlowCardBody: {
+                lcfMediaAuthor: false,
+                lcfMediaTitle: true,
+                lcfMediaItemCallNumber: true,
+            },
+            coverFlowContext: 'default',
+            coverFlowFlippableCards: false,
+            coverFlowShelfBrowser: true,
+            coverFlowButtonsCallback: { loadNewShelfBrowserItems, nearbyItems },
+            shelfBrowserExtendedCoverFlow: extendedCoverFlow,
+            shelfBrowserButtonDirection: buttonDirection,
+            shelfBrowserCurrentEventListeners: instance,
+        };
+        // eslint-disable-next-line max-len
+        shelfBrowserCoverFlowConfig = overrideConfig(shelfBrowserCoverFlowConfig, shelfBrowserConfig.value);
+        lmscoverflow.setGlobals(shelfBrowserCoverFlowConfig, shelfBrowserItems, coverFlowId);
+        lmscoverflow.render();
+    }
+
+    async function fetchItemData(endpoint, itemnumber, countItems) {
+        const url = `${endpoint}${itemnumber}&shelfbrowse_count_items=${countItems}`;
+        const options = {
+            method: 'GET',
+            mode: 'cors',
+            cache: 'no-cache',
+            credentials: 'same-origin',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            redirect: 'follow',
+        };
+        const response = await fetch(url, options);
+        return response.json();
+    }
+
+    async function loadNewShelfBrowserItems(nearbyItems, buttonDirection) {
+        const { previousItemNumber, nextItemNumber } = nearbyItems;
+        const coverFlowId = 'lmscoverflow';
+        const args = {
+            extendedCoverFlow: true,
+            buttonDirection,
+            loadNewShelfBrowserItems,
+            instance,
+            coverFlowId,
+        };
+        if (buttonDirection === 'left') {
+            const resultPrevious = fetchItemData('/cgi-bin/koha/svc/coverflowbyshelfitem?shelfbrowse_itemnumber=', previousItemNumber, 1);
+            resultPrevious.then((result) => extendCurrentCoverFlow({ newlyLoadedItems: result, ...args }));
+        }
+        else if (buttonDirection === 'right') {
+            const resultNext = fetchItemData('/cgi-bin/koha/svc/coverflowbyshelfitem?shelfbrowse_itemnumber=', nextItemNumber, 1);
+            resultNext.then((result) => extendCurrentCoverFlow({ newlyLoadedItems: result, ...args }));
+        }
+        else {
+            console.trace(`Looks like something went wrong in ${loadNewShelfBrowserItems.name}`);
+        }
+    }
+
+    function shelfBrowser({ header = {
+        header_browsing: 'Browsing {starting_homebranch} shelves',
+        header_location: 'Shelving location: {starting_location}',
+        header_collection: 'Collection: {starting_ccode}',
+        header_close: 'Close shelf',
+    }, configuration, }) {
+        if (configuration) {
+            shelfBrowserConfig.value = configuration;
+        }
+        const lmsCoverFlowShelfBrowser = document.querySelectorAll('.lmscoverflow-shelfbrowser');
+        const coverFlowId = 'lmscoverflow';
+        const shelfBrowserReference = document.getElementById('shelfbrowser');
+        const shelfBrowserHeading = document.createElement('h5');
+        shelfBrowserHeading.id = 'shelfBrowserHeading';
+        const shelfBrowserClose = document.createElement('a');
+        shelfBrowserClose.textContent = header.header_close;
+        shelfBrowserClose.setAttribute('role', 'button');
+        shelfBrowserClose.style.fontSize = '.9rem';
+        shelfBrowserClose.classList.add('font-weight-light', 'p-2', 'shelfBrowserClose');
+        shelfBrowserClose.addEventListener('click', () => {
+            shelfBrowserReference.classList.add('d-none');
+        });
+        const main = () => {
+            lmsCoverFlowShelfBrowser.forEach((node) => {
+                node.addEventListener('click', async (e) => {
+                    const target = e.target;
+                    /** If new shelves are opened, the event listeners for the
+                         * previous shelf have to be removed. The instance properties
+                         * of left and right have to be reset to false again, so the
+                         * new event listeners are properly populated with data. */
+                    shelfBrowserReference.classList.remove('d-none');
+                    const container = document.getElementById(coverFlowId);
+                    container.replaceWith(container.cloneNode(true));
+                    if (!document.getElementById('shelfBrowserHeading')) {
+                        shelfBrowserReference.insertBefore(shelfBrowserHeading, shelfBrowserReference.firstChild);
+                    }
+                    instance.setLeftToFalse();
+                    instance.setRightToFalse();
+                    const { /* biblionumber, */ itemnumber } = target.dataset;
+                    removeChildNodes(document.getElementById(coverFlowId));
+                    const result = await fetchItemData('/cgi-bin/koha/svc/coverflowbyshelfitem?shelfbrowse_itemnumber=', itemnumber, 7);
+                    shelfBrowserHeading.classList.add('border', 'border-secondary', 'rounded', 'p-3', 'w-75', 'centered', 'mx-auto', 'shadow-sm', 'text-center');
+                    shelfBrowserHeading.textContent = `
+                    ${header.header_browsing.replace('{starting_homebranch}', result.starting_homebranch.description)}${result.starting_location.description ? ',' : ''}
+                    ${header.header_location.replace('{starting_location}', result.starting_location.description)}${result.starting_ccode.description ? ',' : ''}
+                    ${header.header_collection.replace('{starting_ccode}', result.starting_ccode.description)}
+                    `;
+                    shelfBrowserHeading.appendChild(shelfBrowserClose);
+                    extendCurrentCoverFlow({
+                        newlyLoadedItems: result, loadNewShelfBrowserItems, coverFlowId,
+                    });
+                });
+            });
+        };
+        main();
+    }
+
+    exports.ShelfBrowser = shelfBrowser;
     exports.createLcfInstance = createLcfInstance;
-    exports.removeChildNodes = removeChildNodes;
+    exports.externalSources = externalSources;
 
     Object.defineProperty(exports, '__esModule', { value: true });
 

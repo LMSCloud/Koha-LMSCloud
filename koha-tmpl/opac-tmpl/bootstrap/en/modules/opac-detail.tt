@@ -1750,56 +1750,38 @@
     </script>
 
     [% Asset.js("js/LMSCoverFlow.js") | $raw %]
-    [% Asset.js("js/ShelfBrowser.js") | $raw %]
 
     <script>
-        const REMOVE_CHILD_NODES = LMSCoverFlow.removeChildNodes;
-        const CREATE_LCF_INSTANCE = LMSCoverFlow.createLcfInstance;
-        const Observable = LMSCoverFlow.Observable;
-        const loaded = new Observable(false);
-        const defaultSourcesArgs = {
-            createLcfInstance: CREATE_LCF_INSTANCE, 
-            removeChildNodes: REMOVE_CHILD_NODES,
+        const { createLcfInstance, ShelfBrowser, externalSources } = LMSCoverFlow;
+        const args = {
             header: {
                 header_browsing : _("Browsing {starting_homebranch} shelves"),
                 header_location : _("Shelving location: {starting_location}"),
                 header_collection : _("Collection: {starting_ccode}"),
                 header_close : _("Close shelf"),
-            }
+            },
         };
-        const externalSourcesArgs = {...defaultSourcesArgs, loaded };
 
         [% IF ( Koha.Preference('OpacCoce') && Koha.Preference('CoceProviders') ) %]
-            loaded.subscribe((isLoaded) => {
+            externalSources.subscribe((isLoaded) => {
                 if (isLoaded) {
                     KOHA.coce.getURL('[% Koha.Preference('CoceHost') | html %]', '[% Koha.Preference('CoceProviders') | html %]',[% covernewwindow | html %]);
                 }
             });
-
-            ShelfBrowser(externalSourcesArgs);
-
         [% ELSIF OpenLibraryCovers %]
-            loaded.subscribe((isLoaded) => {
+            externalSources.subscribe((isLoaded) => {
                 if (isLoaded) {
                     KOHA.OpenLibrary.GetCoverFromIsbn();
                 }
             });
-
-            ShelfBrowser(externalSourcesArgs);
-
         [% ELSIF ( GoogleJackets ) %]
-            loaded.subscribe((isLoaded) => {
+            externalSources.subscribe((isLoaded) => {
                 if (isLoaded) {
                     KOHA.Google.GetCoverFromIsbn([% covernewwindow | html %]); 
                 }
             });
-
-            ShelfBrowser(externalSourcesArgs);     
-
-        [% ELSE %]
-            ShelfBrowser(defaultSourcesArgs);
-            
         [% END %]
+        ShelfBrowser(args);
     </script>
     
     [% IF ( Koha.Preference('BibtipEnabled') ) %]
