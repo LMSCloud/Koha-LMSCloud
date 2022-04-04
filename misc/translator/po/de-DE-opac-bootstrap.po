@@ -1,7 +1,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: Koha 21.05\n"
-"POT-Creation-Date: 2022-03-30 16:37+0200\n"
+"POT-Creation-Date: 2022-04-04 12:22+0200\n"
 "PO-Revision-Date: 2022-03-29 17:47+0200\n"
 "Last-Translator: Katrin Fischer <katrin.fischer@bsz-bw.de>\n"
 "Language-Team: \n"
@@ -872,7 +872,7 @@ msgid "%s Item waiting at "
 msgstr "%s Exemplar abholbereit in "
 
 #. For the first occurrence,
-#. %1$s:  issues_count | html 
+#. %1$s:  koha_issues_count | html 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-user.tt:250
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-user.tt:517
 #, c-format
@@ -4200,7 +4200,7 @@ msgid "Browse shelf"
 msgstr "Regal durchstöbern"
 
 #. SCRIPT
-#: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-detail.tt:1755
+#: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-detail.tt:1754
 msgid "Browsing {starting_homebranch} shelves"
 msgstr "Regale von {starting_homebranch} durchstöbern"
 
@@ -4552,7 +4552,7 @@ msgstr "Zurückgegeben"
 msgid "Checked out"
 msgstr "Ausgeliehen"
 
-#. %1$s:  issues_count | html 
+#. %1$s:  koha_issues_count | html 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-user.tt:211
 #, c-format
 msgid "Checked out (%s)"
@@ -4758,7 +4758,7 @@ msgid "Close"
 msgstr "Schließen"
 
 #. SCRIPT
-#: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-detail.tt:1755
+#: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-detail.tt:1754
 msgid "Close shelf"
 msgstr "Regalbrowser ausblenden"
 
@@ -4838,7 +4838,7 @@ msgid "Collection: %s "
 msgstr "Sammlung: %s "
 
 #. SCRIPT
-#: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-detail.tt:1755
+#: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-detail.tt:1754
 msgid "Collection: {starting_ccode}"
 msgstr "Sammlung: {starting_ccode}"
 
@@ -11313,7 +11313,7 @@ msgid "Shelving location"
 msgstr "Standort"
 
 #. SCRIPT
-#: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-detail.tt:1755
+#: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-detail.tt:1754
 msgid "Shelving location: {starting_location}"
 msgstr "Standort: {starting_location}"
 
