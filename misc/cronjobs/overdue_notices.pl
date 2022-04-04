@@ -545,8 +545,8 @@ foreach my $branchcode (@branches) {
     }
     
     my $sql2 = <<"END_SQL";
-SELECT biblio.*, items.*, issues.*, biblioitems.itemtype, branchname, IFNULL(claim_level,0) as claim_level, IFNULL(DATE(claim_time),'0000-00-00') as claim_date, issues.branchcode as issuebranch
-  FROM items, biblio, biblioitems, branches b, issues
+SELECT biblio.*, items.*, issues.*, biblioitems.itemtype, itemtypes.description AS itemtypename, branchname, IFNULL(claim_level,0) as claim_level, IFNULL(DATE(claim_time),'0000-00-00') as claim_date, issues.branchcode as issuebranch
+  FROM items LEFT JOIN itemtypes ON items.itype = itemtypes.itemtype, biblio, biblioitems, branches b, issues
   LEFT JOIN ( SELECT issue_id, MAX(claim_level) AS claim_level, MAX(claim_time) as claim_time FROM overdue_issues GROUP BY issue_id) oi ON (issues.issue_id=oi.issue_id)
   WHERE items.itemnumber=issues.itemnumber
     AND biblio.biblionumber   = items.biblionumber
