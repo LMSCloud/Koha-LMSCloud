@@ -149,10 +149,10 @@
                                         <tr>
                                             <td>[% request.id | html %]</td>
                                             <td>
-                                                [% IF request.metadata.Author %][% request.metadata.Author | html %][% ELSE %]<span>N/A</span>[% END %]
+                                                [% IF request.metadata.author %][% request.metadata.author | html %][% ELSE %]<span>N/A</span>[% END %]
                                             </td>
                                             <td>
-                                                [% IF request.metadata.Title %][% request.metadata.Title | html %][% ELSE %]<span>N/A</span>[% END %]
+                                                [% IF request.metadata.title %][% request.metadata.title | html %][% ELSE %]<span>N/A</span>[% END %]
                                             </td>
                                             <td>[% request.backend | html %]</td>
                                             <td>
