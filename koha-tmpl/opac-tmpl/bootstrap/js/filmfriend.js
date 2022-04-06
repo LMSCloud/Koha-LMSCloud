@@ -163,8 +163,16 @@ function showFilmfriendResult(facetID) {
     else
         $('#numresults').html($('#encyclopedianumresults').html());
     $('#showCatalogHitList').attr("href", "javascript:showCatalogHitListFilmfriend()");
-    
-    truncate_text("#encyclopediahits");
+
+    // calls LMSEllipsis in global namespace
+    const lmse = new LMSEllipsis({
+        identifier: 'truncable-txt',
+        ellipsis: ' ... ',
+        watch: false,
+        lines: 2,
+        explanations: { collapsed: _("Read More »"), expanded: _("« Read Less")}
+    })
+    lmse.truncate();
 }
 function getFilmfriendPagination(facetID, maxHitCount) {
     var paginationText = '';
