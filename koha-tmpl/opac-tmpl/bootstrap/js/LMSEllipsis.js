@@ -49,6 +49,7 @@
           ruler.style.position = 'absolute';
           ruler.style.whiteSpace = 'nowrap';
           ruler.style.fontFamily = props.fontFamily;
+          ruler.style.fontSize = props.fontSize;
           ruler.innerText = `${substring}${String.fromCharCode(0X1F)}`;
           element.appendChild(ruler);
           const substringWidth = ruler.clientWidth;
@@ -79,18 +80,35 @@
         return isCollapsed;
       }
   
-      static trimSubstrings(substringWidthsArr, elementWidth) {
+      static trimSubstrings({ substringWidthsArr, elementWidth, explanationWidth = 0 }) {
         let accumulator = 0;
         let indexOfLastSubstring = 0;
-        const leftoverStringSpaces = 3;
+        const lineWidthExcludingExplanation = elementWidth - explanationWidth;
         for (let idx = 0; idx < substringWidthsArr.length; idx += 1) {
-          if (accumulator > elementWidth) {
-            indexOfLastSubstring = idx - leftoverStringSpaces;
+          console.log(accumulator, lineWidthExcludingExplanation);
+          if (accumulator > lineWidthExcludingExplanation) {
+            indexOfLastSubstring = idx - 1;
             break;
           }
           accumulator += substringWidthsArr[idx];
         }
         return indexOfLastSubstring;
+      }
+  
+      static calculateExplanationWidth(element, explanation, fontFamily) {
+        const ruler = document.createElement('span');
+        ruler.style.width = 'auto';
+        ruler.style.position = 'absolute';
+        ruler.style.whiteSpace = 'nowrap';
+        ruler.style.fontFamily = fontFamily;
+        ruler.innerText = `${this.ellipsis}${explanation}`;
+  
+        element.appendChild(ruler);
+        const substringWidth = ruler.clientWidth;
+  
+        element.removeChild(ruler);
+  
+        return substringWidth;
       }
   
       truncate() {
@@ -105,19 +123,30 @@
   
           if (this.lines >= lineQuantity) return;
   
+          const expanded = LMSEllipsis.calculateExplanationWidth(element, this.explanations.expanded, fontFamily);
+          const collapsed = LMSEllipsis.calculateExplanationWidth(element, this.explanations.collapsed, fontFamily);
+          const explanationWidth = collapsed >= expanded ? collapsed : expanded;
+  
           const [substrings, substringWidths] = LMSEllipsis.generateSubstringArray(element, placeholder, {
             elementHeight, elementWidth, lineHeight, lineQuantity, fontFamily, fontSize,
           });
   
           let indexOfLastSubstring = 0;
           for (let idx = 0; idx < this.lines; idx += 1) {
-            indexOfLastSubstring += LMSEllipsis.trimSubstrings(substringWidths, elementWidth);
+            if (idx === (this.lines - 1)) {
+              indexOfLastSubstring += LMSEllipsis.trimSubstrings({
+                substringWidthsArr: substringWidths.slice(indexOfLastSubstring), elementWidth, explanationWidth,
+              });
+              break; // include space after non-last lines 
+            }
+            indexOfLastSubstring += LMSEllipsis.trimSubstrings({ substringWidthsArr: substringWidths.slice(indexOfLastSubstring), elementWidth });
           }
   
           const shownSubstringsArr = substrings.slice(0, indexOfLastSubstring);
           const wholeSubstringArr = substrings;
   
           modifiedElement.innerText = LMSEllipsis.buildStringFromArr(shownSubstringsArr);
+          modifiedElement.style.wordWrap = 'break-word';
   
           const postfix = document.createElement('span');
           postfix.classList.add('lmsellipsis-postfix');
@@ -131,7 +160,6 @@
           trigger.style.color = '#0174AD';
           trigger.style.textDecoration = 'underline';
           modifiedElement.appendChild(trigger);
-          // modifiedElement.insertAdjacentElement('afterend', trigger);
   
           trigger.addEventListener('click', () => {
             if (LMSEllipsis.isCollapsed(modifiedElement)) {
