@@ -57,9 +57,62 @@
         [% INCLUDE 'columns_settings.inc' %]
         [% INCLUDE 'calendar.inc' %]
         <script>
+            // introducing JS variables to make the filter parameters accessible for js/ill-list-table.js
             var prefilters = '[% prefilters | html %]';
+
             // Set column settings
             var columns_settings = [% TablesSettings.GetColumns( 'illrequests', 'ill-requests', 'ill-requests', 'json' ) %];
+
+            function backendNameToDesignation (backend_name) {
+                var backend_designation = '';
+                if ( backend_name ) {
+                    switch( backend_name ) {
+                        case "ILLALV":
+                            backend_designation =  ill_backend.ILLALV;
+                        break;
+                        case "ILLSLNPKoha":
+                            backend_designation =  ill_backend.ILLSLNPKoha;
+                        break;
+                        case "ILLZKSHA":
+                            backend_designation =  ill_backend.ILLZKSHA;
+                        break;
+                        case "ILLZKSHP":
+                            backend_designation =  ill_backend.ILLZKSHP;
+                        break;
+                        default:
+                            backend_designation = backend_name;
+                    }
+                }
+                return backend_designation;
+            };
+
+            function mediumTypeToDesignation (medium, metadata_type) {
+                var mediumType_designation = '';
+                var mediumtype = metadata_type;
+                if ( ! mediumtype ) {
+                    mediumtype = medium;
+                }
+                if ( mediumtype ) {
+                    switch( mediumtype ) {
+                        case "Book":
+                            mediumType_designation =  ill_medium.Book;
+                        break;
+                        case "Article":
+                            mediumType_designation =  ill_medium.Article;
+                        break;
+                        case "Journal":
+                            mediumType_designation =  ill_medium.Journal;
+                        break;
+                        case "Other":
+                            mediumType_designation =  ill_medium.Other;
+                        break;
+                        default:
+                            mediumType_designation = mediumtype;
+                    }
+                }
+                return mediumType_designation;
+            };
+
         </script>
         [% INCLUDE 'ill-list-table-strings.inc' %]
         [% Asset.js("js/ill-list-table.js") | $raw %]

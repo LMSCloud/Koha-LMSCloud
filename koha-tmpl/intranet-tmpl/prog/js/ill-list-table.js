@@ -12,7 +12,7 @@ $(document).ready(function() {
     // Filters that are active
     var activeFilters = {};
 
-    // Get any prefilters, e.g. "backend=ILLALV"
+    // Get any prefilters, e.g. "backend=ILLALV" (or e.g. "borrowernumber=1215")
     var prefilters = $('table#ill-requests').data('prefilters');
     // Get any infilter, e.g. "status,-not_in,COMP,QUEUED"
     var infilter = $('table#ill-requests').data('infilter');
@@ -154,7 +154,6 @@ $(document).ready(function() {
             }
         }
 
-// XXXWH TODO add LMSCLoud's new columns here if filterable
     }; //END Filterable columns
 
     // Expand any fields we're expanding
@@ -449,12 +448,12 @@ $(document).ready(function() {
     var filterParam = prefilters ? '&' + prefilters : '';
     filterParam += infilter ? '&infilter=' + infilter : '';
 
-    if ( query_type_js === 'illlist' ) {    // call ajax only if method = illlist, the ajax result is not required in other cases
     // Only fire the request if we're on an appropriate page
     if (
         (
             // ILL list requests page
-            window.location.href.match(/ill\/ill-requests\.pl/)
+            window.location.href.match(/ill\/ill-requests\.pl/) &&
+            query_type_js === 'illlist'    // LMSCloud: call ajax only if method = illlist (the ajax search is not required in other cases but speed is extremly slowed down)
         ) ||
         // Patron profile page
         window.location.href.match(/members\/ill-requests\.pl/)
@@ -634,7 +633,6 @@ $(document).ready(function() {
 
         });
     } //END if window.location.search.length == 0
-    } // End of if ( query_type_js === 'illlist' ) {
 
     var clearSearch = function() {
         table.api().search('').columns().search('');

@@ -87,7 +87,11 @@ sub list {
     my $fetchadd = {};
     my @tablesToPrefetch = [];
     push @tablesToPrefetch, 'illrequestattributes' if ($embed{metadata});
-    push @tablesToPrefetch, 'illcomments' if ($embed{comments});
+    if ( $embed{comments} && ! defined($filter->{borrowernumber}) ) {
+        # otherwise the "DBI Exception: DBD::mysql::st execute failed: Column 'borrowernumber' in where clause is ambiguous" is thrown,
+        # because field borrowernumber exists both in table illrequests and illcomments. May be regarded as kind of bug in DBIx.
+        push @tablesToPrefetch, 'illcomments';
+    }
     $fetchadd = { prefetch => \@tablesToPrefetch } if (scalar @tablesToPrefetch);
     
     # Get all requests
