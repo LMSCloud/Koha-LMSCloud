@@ -1129,65 +1129,21 @@
                 stickTo: ".searchresults",
                 stickyClass: "floating"
             });
-
-            truncate_text(".searchresults");
-
         });
         
-        function truncate_text(where) {
-            $(where + " .truncable-txt").dotdotdot({
-                ellipsis    : ' ... ',
-                wrap        : 'word',
-                after       : "a.truncable-txt-readmore",
-                watch       : true,
-                height      : 50,
-                callback : function( isTruncated, orgContent ) {
-                    var self = $( this );
-                    self.find(".truncable-txt-readmore").click(function(){
-                        toggleRead($(this));
-                    });
-            
-                    //if no more text to show hide read more link
-                    if(!isTruncated){                        
-                        self.find("a.truncable-txt-readmore").css("display","none");
-                    }
-            
-                }
-            });
-        }
-
-        // Toggle truncation
-        function toggleRead(caller) {
-            var callerText = $(caller).text();
-            var parent = $(caller).closest(".truncable-txt");
-            var isTruncated = $(parent).triggerHandler("isTruncated");
-            if (isTruncated) {        
-                // Remove ellipsis
-                $(parent).trigger("destroy.dot");
-                // Update text - have to be clever about it, since destroy overwrites after element text values apparently
-                $(parent).find("a").html( _(" &laquo; Read less") );
-                // Re-add click function since I guess destroy also removes this
-                $(parent).find("a").click(function () {
-                    toggleRead(this);
-                });
-            } else {       
-                // Update text
-                $(parent).find("a").html( _("Read more &raquo;") );
-            
-                // Re-add ellipsis
-                $(parent).dotdotdot({
-                    ellipsis    : ' ... ',
-                    wrap        : 'word',
-                    after       : "a.truncable-txt-readmore",
-                    watch       : true,
-                    height      : 50
-                });
-          
-                // Have to re-add click function again, not totally sure why
-                $(parent).find("a").click(function () {
-                    toggleRead(this);
-                });
-            }
-        }
+        [% Asset.js("js/LMSEllipsis.js") | $raw %]
+        <script>
+            // init LMSEllipis
+            document.addEventListener('DOMContentLoaded', () => {
+                const lmse = new LMSEllipsis({
+                    identifier: 'truncable-txt',
+                    ellipsis: ' ... ',
+                    watch: false,
+                    lines: 2,
+                    explanations: { collapsed: _("Read More »"), expanded: _("« Read Less")}
+                })
+                lmse.truncate();
+            })
+        </script>
     </script>
 [% END %]

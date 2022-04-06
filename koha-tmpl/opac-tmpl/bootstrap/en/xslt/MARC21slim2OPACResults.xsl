@@ -1308,7 +1308,6 @@
                             <xsl:call-template name="subfieldSelect">
                                 <xsl:with-param name="codes">a</xsl:with-param>
                             </xsl:call-template>
-                            <a href="javascript:void(0)" class="truncable-txt-readmore">Read more &#187;</a>
                         </span>
                     </xsl:if> 
                 </xsl:for-each>
@@ -1322,7 +1321,6 @@
                             <xsl:call-template name="subfieldSelect">
                                 <xsl:with-param name="codes">a</xsl:with-param>
                             </xsl:call-template>
-                            <a href="javascript:void(0)" class="truncable-txt-readmore">Read more &#187;</a>
                         </span>
                     </xsl:if> 
                 </xsl:for-each>
