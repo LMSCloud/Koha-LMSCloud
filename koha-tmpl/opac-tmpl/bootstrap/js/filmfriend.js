@@ -163,8 +163,16 @@ function showFilmfriendResult(facetID) {
     else
         $('#numresults').html($('#encyclopedianumresults').html());
     $('#showCatalogHitList').attr("href", "javascript:showCatalogHitListFilmfriend()");
-    
-    truncate_text("#encyclopediahits");
+
+    // calls LMSEllipsis in global namespace
+    const lmse = new LMSEllipsis({
+        identifier: 'truncable-txt',
+        ellipsis: ' ... ',
+        watch: false,
+        lines: 2,
+        explanations: { collapsed: _("Read More »"), expanded: _("« Read Less")}
+    })
+    lmse.truncate();
 }
 function getFilmfriendPagination(facetID, maxHitCount) {
     var paginationText = '';
@@ -466,7 +474,7 @@ function generateFilmfriendEntryMovie(facetID,entryID) {
         txtElement = document.createElement("span");
         txtElement.setAttribute('class','results_summary summary truncable-txt');
         txtElement.setAttribute('style','font-size: 100%');
-        txtElement.innerHTML = filmfriendData.results[facetID].hitList[entryID].synopsis.replace(/(?:\r\n|\r|\n)+/g, '<br>') + '<a href="javascript:void(0)" class="truncable-txt-readmore">' + readMoreFilmfriend + '</a>';
+        txtElement.innerHTML = filmfriendData.results[facetID].hitList[entryID].synopsis.replace(/(?:\r\n|\r|\n)+/g, '<br>') + '<a href="javascript:void(0)" class="truncable-txt-readmore"></a>';
         colElement.appendChild(txtElement);
         
     }
