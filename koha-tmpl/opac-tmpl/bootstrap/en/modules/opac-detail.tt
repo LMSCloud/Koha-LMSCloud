@@ -1792,7 +1792,7 @@
     //]]>
     </script>
     [% END %]
-    <script src="https://static.lmscloud.net/js/bibtip_lmscloud.js" type="text/javascript"></script>
+    <script src="https://static.lmscloud.net/js/bibtip_lmscloud_v215.js" type="text/javascript"></script>
     [% END %]
 
     <script src="/opac-tmpl/bootstrap/js/jquery.dotdotdot.min.js" type="text/javascript"></script>
