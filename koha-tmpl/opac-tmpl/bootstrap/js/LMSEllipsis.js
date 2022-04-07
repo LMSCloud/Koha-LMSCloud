@@ -40,8 +40,10 @@
   
       static generateSubstringArray(element, placeholder, props) {
         const ruler = placeholder;
+        element.setAttribute('lang', 'de-DE');
+        element.setAttribute('style', 'hyphens: auto;');
         const string = element.innerText;
-        const substrings = string.split(' ');
+        const substrings = string.replaceAll('"', '').replaceAll('\n', '\n ').split(' ');
         const substringWidths = [];
   
         substrings.forEach((substring) => {
@@ -80,17 +82,32 @@
         return isCollapsed;
       }
   
-      static trimSubstrings({ substringWidthsArr, elementWidth, explanationWidth = 0 }) {
+      trimSubstrings(substrings, substringWidthsArr, elementWidth, explanationWidth) {
+        const substringWidths = substringWidthsArr;
+        const elementWidthExcludingExplanation = elementWidth - explanationWidth;
+        let linesToProcess = this.lines;
         let accumulator = 0;
         let indexOfLastSubstring = 0;
-        const lineWidthExcludingExplanation = elementWidth - explanationWidth;
-        for (let idx = 0; idx < substringWidthsArr.length; idx += 1) {
-          console.log(accumulator, lineWidthExcludingExplanation);
-          if (accumulator > lineWidthExcludingExplanation) {
-            indexOfLastSubstring = idx - 1;
-            break;
+        let removedSubstring = 0;
+  
+        while (substringWidths.length > 0) {
+          if (linesToProcess === 1) {
+            if (accumulator >= elementWidthExcludingExplanation) {
+              break;
+            }
+            if (substrings[indexOfLastSubstring].includes('\n')) {
+              break;
+            }
+          } else if (accumulator >= elementWidth) {
+            linesToProcess -= 1;
+            accumulator = 0;
           }
-          accumulator += substringWidthsArr[idx];
+          removedSubstring = substringWidths.shift();
+          accumulator += removedSubstring;
+          indexOfLastSubstring += 1;
+          if (substrings[indexOfLastSubstring - 1].includes('\n')) {
+            linesToProcess -= 1;
+          }
         }
         return indexOfLastSubstring;
       }
@@ -101,7 +118,9 @@
         ruler.style.position = 'absolute';
         ruler.style.whiteSpace = 'nowrap';
         ruler.style.fontFamily = fontFamily;
-        ruler.innerText = `${this.ellipsis}${explanation}`;
+        ruler.setAttribute('lang', 'de-DE');
+        ruler.style.hyphens = 'auto';
+        ruler.innerText = `${this.ellipsis}`;
   
         element.appendChild(ruler);
         const substringWidth = ruler.clientWidth;
@@ -131,44 +150,39 @@
             elementHeight, elementWidth, lineHeight, lineQuantity, fontFamily, fontSize,
           });
   
-          let indexOfLastSubstring = 0;
-          for (let idx = 0; idx < this.lines; idx += 1) {
-            if (idx === (this.lines - 1)) {
-              indexOfLastSubstring += LMSEllipsis.trimSubstrings({
-                substringWidthsArr: substringWidths.slice(indexOfLastSubstring), elementWidth, explanationWidth,
-              });
-              break; // include space after non-last lines 
-            }
-            indexOfLastSubstring += LMSEllipsis.trimSubstrings({ substringWidthsArr: substringWidths.slice(indexOfLastSubstring), elementWidth });
-          }
+          const indexOfLastSubstring = this.trimSubstrings(substrings, substringWidths, elementWidth, explanationWidth);
   
           const shownSubstringsArr = substrings.slice(0, indexOfLastSubstring);
           const wholeSubstringArr = substrings;
   
           modifiedElement.innerText = LMSEllipsis.buildStringFromArr(shownSubstringsArr);
-          modifiedElement.style.wordWrap = 'break-word';
+  
+          const linebreak = document.createElement('br');
   
           const postfix = document.createElement('span');
           postfix.classList.add('lmsellipsis-postfix');
           postfix.innerText = this.ellipsis;
           modifiedElement.appendChild(postfix);
   
-          const trigger = document.createElement('nobr');
+          const trigger = document.createElement('div');
           trigger.classList.add('lmsellipsis-trigger');
           trigger.innerText = this.explanations.collapsed;
           trigger.style.cursor = 'pointer';
           trigger.style.color = '#0174AD';
           trigger.style.textDecoration = 'underline';
+          modifiedElement.appendChild(linebreak);
           modifiedElement.appendChild(trigger);
   
           trigger.addEventListener('click', () => {
             if (LMSEllipsis.isCollapsed(modifiedElement)) {
               modifiedElement.innerText = LMSEllipsis.buildStringFromArr(wholeSubstringArr);
+              modifiedElement.appendChild(linebreak);
               trigger.innerText = this.explanations.expanded;
               modifiedElement.appendChild(trigger);
             } else if (!LMSEllipsis.isCollapsed(modifiedElement)) {
               modifiedElement.innerText = LMSEllipsis.buildStringFromArr(shownSubstringsArr);
               modifiedElement.appendChild(postfix);
+              modifiedElement.appendChild(linebreak);
               trigger.innerText = this.explanations.collapsed;
               modifiedElement.appendChild(trigger);
             }
