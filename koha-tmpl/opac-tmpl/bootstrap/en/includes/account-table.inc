@@ -99,8 +99,9 @@
                     [% IF ENABLE_OPAC_PAYMENTS %]<th>&nbsp;</th>[% END %]
                     <th>Created</th>
                     <th>Updated</th>
+                    <th>Type</th>
                     <th>Description</th>
-                    <th>Fine amount</th>
+                    <th>Amount</th>
                     <th>Amount outstanding</th>
                 </tr>
             </thead>
@@ -123,7 +124,9 @@
                         <td data-order="[% a.timestamp | html %]">[% a.timestamp | $KohaDates with_hours = 1 %]</td>
                         <td>
                             [% PROCESS account_type_description account=a %]
-                            [%- IF a.payment_type %], [% AuthorisedValues.GetByCode('PAYMENT_TYPE', a.payment_type, 1) | html %][% END %]
+                        </td>
+                        <td>
+                            [%- IF a.payment_type %][% AuthorisedValues.GetByCode('PAYMENT_TYPE', a.payment_type, 1) | html %][% END %]
                             [%- IF a.description %], [% a.description | html %][% END %]
                             [% IF a.itemnumber %]([% a.item.biblio.title | html %])[% END %]
                         </td>
@@ -135,7 +138,12 @@
 
             <tfoot>
                 <tr>
-                    <th class="sum" colspan="4">Total due</th>
+                    [%- IF ENABLE_OPAC_PAYMENTS -%]
+                        [%- SET COLSPAN = 6 -%]
+                    [%- ELSE -%]
+                        [%- SET COLSPAN = 5 -%]
+                    [%- END -%]
+                    <th class="sum" colspan="[% COLSPAN | html %]">Total due</th>
                     <td class="sum">[% account_sum | $Price %]</td>
                 </tr>
             </tfoot>

@@ -93,6 +93,17 @@ $( document ).ready(function() {
          [% END %]
          "dom": '<"#filter_p">',
     } ));
+    
+    [% FOREACH r IN relatives %]
+    var fines_table_[% r.id | html %] = $("#finestable-[% r.id | html %]").dataTable($.extend(true, {}, dataTablesDefaults, {
+         [% IF ENABLE_OPAC_PAYMENTS %]
+         "order": [[ 1, "desc" ]],
+         [% ELSE %]
+         "order": [[ 0, "desc" ]],
+         [% END %]
+         "dom": '<"#filter_p">',
+    } ));
+    [% END %]
 
     $("#filter_p").html('<p><a href="#" id="filter_paid"><i class="fa fa-filter" aria-hidden="true"></i> '+txtActivefilter+'</a>');
     $('#filter_paid').click(function(e) {
@@ -105,6 +116,9 @@ $( document ).ready(function() {
             $(this).html('<i class="fa fa-filter" aria-hidden="true"></i> '+txtInactivefilter);
         }
         fines_table.fnFilter(filteredValue, -1, true, false);
+        [% FOREACH r IN relatives %]
+        fines_table_[% r.id | html %].fnFilter(filteredValue, -1, true, false);
+        [% END %]
         $(this).toggleClass('filtered');
     });
 
