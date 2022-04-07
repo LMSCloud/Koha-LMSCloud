@@ -127,7 +127,7 @@
                         </td>
                         <td>
                             [%- IF a.payment_type %][% AuthorisedValues.GetByCode('PAYMENT_TYPE', a.payment_type, 1) | html %][% END %]
-                            [%- IF a.description %], [% a.description | html %][% END %]
+                            [%- IF a.description %][% a.description | html %][% END %]
                             [% IF a.itemnumber %]([% a.item.biblio.title | html %])[% END %]
                         </td>
                         [% IF ( a.amount < 0 ) %]<td class="credit">[% ELSE %]<td class="debit">[% END %][% a.amount | $Price %]</td>
