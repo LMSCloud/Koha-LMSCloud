@@ -68,7 +68,7 @@
 
 [% Asset.js("js/LMSCoverFlow.js") | $raw %]
 <script>
-    const { createLcfInstance, ShelfBrowser, externalSources } = LMSCoverFlow;
+    const { createLcfInstance } = LMSCoverFlow;
     const lmscoverflow = createLcfInstance();
     
     const fetchItemData = async (endpoint) => {

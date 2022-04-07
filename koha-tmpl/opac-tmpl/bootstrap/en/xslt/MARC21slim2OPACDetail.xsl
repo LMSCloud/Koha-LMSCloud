@@ -1410,7 +1410,6 @@
                             </xsl:call-template>
                         </xsl:otherwise>
                     </xsl:choose>
-                    <a href="javascript:void(0)" class="truncable-txt-readmore">Read more &#187;</a>
                     </span>
                 </xsl:if>
             </xsl:for-each>
@@ -1442,7 +1441,6 @@
                             </xsl:call-template>
                         </xsl:otherwise>
                     </xsl:choose>
-                    <a href="javascript:void(0)" class="truncable-txt-readmore">Read more &#187;</a>
                     </xsl:element>
                 </xsl:if>
             </xsl:for-each>
@@ -1464,7 +1462,6 @@
                             </xsl:call-template>
                         </xsl:otherwise>
                     </xsl:choose>
-                    <a href="javascript:void(0)" class="truncable-txt-readmore">Read more &#187;</a>
                     </span>
                 </xsl:if>
             </xsl:for-each>
@@ -1486,7 +1483,6 @@
                             </xsl:call-template>
                         </xsl:otherwise>
                     </xsl:choose>
-                    <a href="javascript:void(0)" class="truncable-txt-readmore">Read more &#187;</a>
                     </span>
                 </xsl:if>
             </xsl:for-each>
