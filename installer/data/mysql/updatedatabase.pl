@@ -26169,8 +26169,8 @@ if( CheckVersion( $DBversion ) ) {
                         ['N','NEW_CARD'],
                         ['F','OVERDUE'],
                         ['FU','OVERDUE'],
-                        ['Rent','RENT'],
-                        ['A','ACCOUNT'],
+                        ['Rent','RENT','RENT_RENEW'],
+                        ['A','ACCOUNT','ACCOUNT_RENEW'],
                         ['LR','LOST'],
                         ['CR','LOST'],
                         ['L','LOST'],
@@ -26198,7 +26198,10 @@ if( CheckVersion( $DBversion ) ) {
     }
     my $maptype = {};
     foreach my $acctype(@$accounttypes) {
-        $maptype->{$acctype->[0]} = [$acctype->[1],($acctypenames->{$acctype->[1]} || '')];
+        $maptype->{std_code}->{$acctype->[0]} = [$acctype->[1],($acctypenames->{$acctype->[1]} || '')];
+        if ( defined($acctype->[2]) && length($acctype->[2]) ) {
+            $maptype->{additional_code}->{$acctype->[0]} = [$acctype->[2],($acctypenames->{$acctype->[2]} || '')];
+        }
     }
     
     # Update the mapping of SIP2 fee debit types to Koha debit types 
@@ -26211,8 +26214,8 @@ if( CheckVersion( $DBversion ) ) {
 
     if ( $authvals ) {
         foreach my $authval(@$authvals) {
-            if ( $authval->{lib} && exists( $maptype->{$authval->{lib}} ) ) {
-                $upd->execute($maptype->{$authval->{lib}}->[0],$maptype->{$authval->{lib}}->[1],$authval->{authorised_value},$authval->{lib});
+            if ( $authval->{lib} && exists( $maptype->{std_code}->{$authval->{lib}} ) ) {
+                $upd->execute($maptype->{std_code}->{$authval->{lib}}->[0],$maptype->{std_code}->{$authval->{lib}}->[1],$authval->{authorised_value},$authval->{lib});
             }
         }
     }
@@ -26226,8 +26229,12 @@ if( CheckVersion( $DBversion ) ) {
         my @values = split('\|',$value);
         for (my $i=0; $i <= $#values; $i++ ) {
             $values[$i] =~ s/(^\s+|\s+$)//;
-            if ( exists( $maptype->{$values[$i]} ) ) {
-                $values[$i] = $maptype->{$values[$i]}->[0];
+            if ( exists( $maptype->{std_code}->{$values[$i]} ) ) {
+                if ( exists( $maptype->{additional_code}->{$values[$i]} ) ) {
+                    $values[$i] = $maptype->{std_code}->{$values[$i]}->[0] . '|' . $maptype->{additional_code}->{$values[$i]}->[0];
+                } else {
+                    $values[$i] = $maptype->{std_code}->{$values[$i]}->[0];
+                }
             }
         }
         my $updvalue = join('|',@values);
@@ -26235,27 +26242,34 @@ if( CheckVersion( $DBversion ) ) {
     }
     
     $upd = C4::Context->dbh->prepare(q{ UPDATE authorised_values SET authorised_value = ? WHERE category = 'PaymentAccounttypeEpaybl' AND authorised_value = ? });
-    $sth = C4::Context->dbh->prepare(q{ SELECT authorised_value FROM authorised_values WHERE category = 'PaymentAccounttypeEpaybl' });
+    my $ins = C4::Context->dbh->prepare(q{ INSERT INTO authorised_values ( category, authorised_value, lib, lib_opac, imageurl) VALUES( ?, ?, ?, ?, ?) });
+    $sth = C4::Context->dbh->prepare(q{ SELECT category, authorised_value, lib, lib_opac, imageurl FROM authorised_values WHERE category = 'PaymentAccounttypeEpaybl' });
     $sth->execute;
     $authvals = $sth->fetchall_arrayref( {} );
 
     if ( $authvals ) {
         foreach my $authval(@$authvals) {
-            if ( $authval->{authorised_value} && exists( $maptype->{$authval->{authorised_value}} ) ) {
-                $upd->execute($maptype->{$authval->{authorised_value}}->[0],$authval->{authorised_value});
+            if ( $authval->{authorised_value} && exists( $maptype->{std_code}->{$authval->{authorised_value}} ) ) {
+                $upd->execute($maptype->{std_code}->{$authval->{authorised_value}}->[0],$authval->{authorised_value});
+            }
+            if ( $authval->{authorised_value} && exists( $maptype->{additional_code}->{$authval->{authorised_value}} ) ) {
+                $ins->execute( $authval->{category}, $maptype->{additional_code}->{$authval->{authorised_value}}->[0], $authval->{lib}, $authval->{lib_opac}, $authval->{imageurl} );
             }
         }
     }
     
     $upd = C4::Context->dbh->prepare(q{ UPDATE authorised_values SET authorised_value = ? WHERE category = 'ACCOUNT_TYPE_MAPPING' AND authorised_value = ? });
-    $sth = C4::Context->dbh->prepare(q{ SELECT authorised_value FROM authorised_values WHERE category = 'ACCOUNT_TYPE_MAPPING' });
+    $sth = C4::Context->dbh->prepare(q{ SELECT category, authorised_value, lib, lib_opac, imageurl FROM authorised_values WHERE category = 'ACCOUNT_TYPE_MAPPING' });
     $sth->execute;
     $authvals = $sth->fetchall_arrayref( {} );
 
     if ( $authvals ) {
         foreach my $authval(@$authvals) {
-            if ( $authval->{authorised_value} && exists( $maptype->{$authval->{authorised_value}} ) ) {
-                $upd->execute($maptype->{$authval->{authorised_value}}->[0],$authval->{authorised_value});
+            if ( $authval->{authorised_value} && exists( $maptype->{std_code}->{$authval->{authorised_value}} ) ) {
+                $upd->execute($maptype->{std_code}->{$authval->{authorised_value}}->[0],$authval->{authorised_value});
+            }
+            if ( $authval->{authorised_value} && exists( $maptype->{additional_code}->{$authval->{authorised_value}} ) ) {
+                $ins->execute( $authval->{category}, $maptype->{additional_code}->{$authval->{authorised_value}}->[0], $authval->{lib}, $authval->{lib_opac}, $authval->{imageurl} );
             }
         }
     }
