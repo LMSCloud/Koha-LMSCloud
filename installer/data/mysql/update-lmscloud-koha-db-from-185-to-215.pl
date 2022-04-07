@@ -10,6 +10,10 @@ use Getopt::Long;
 use C4::Context;
 use Koha::Config;
 use Koha::SearchEngine::Elasticsearch;
+use Koha::Database;
+use Koha::BiblioFrameworks;
+use Koha::MarcSubfieldStructures;
+
 use Text::Diff qw(diff);
 
 # additional for epayment migration
@@ -44,6 +48,7 @@ createSIPEnabledFile($instance);
 updateIntranetMainUserBlock();
 updateGermanLetterTemplates();
 updateReports();
+updateMarcMappings();
 
 &migrate_epayment_to_2105('LMSC');
 &migrate_epayment_to_2105('KohaPayPal');
@@ -1060,6 +1065,15 @@ sub updateSimpleVariables {
     $dbh->do("UPDATE systempreferences SET value='dsc' WHERE variable='defaultSortOrder'");
     $dbh->do("UPDATE systempreferences SET value='NOT homebranch:eBib' WHERE variable='ElasticsearchAdditionalAvailabilitySearch'");
     $dbh->do("UPDATE systempreferences SET value='title,author,subject,title-series,local-classification,publyear,subject-genre-form' WHERE variable='ElasticsearchDefaultAutoCompleteIndexFields'");
+    $dbh->do(q{UPDATE systempreferences SET value='245$b, 260$ab, 264$ab, 300$a' WHERE variable='AdditionalFieldsInZ3950ResultSearch'});
+    $dbh->do(q{UPDATE systempreferences SET value='https://koha-community.org/manual' WHERE variable='KohaManualBaseURL'});
+    $dbh->do(q{UPDATE systempreferences SET value='1' WHERE variable='OPACFineNoRenewalsIncludeCredits'});
+    $dbh->do(q{UPDATE systempreferences SET value='0' WHERE variable='OPACReportProblem'});
+    $dbh->do(q{UPDATE systempreferences SET value='address,zipcode,city,email,phone' WHERE variable='PrefillGuaranteeField'});
+    $dbh->do(q{UPDATE systempreferences SET value='0' WHERE variable='PreserveSerialNotes'});
+    $dbh->do(q{UPDATE systempreferences SET value='0.07|0.19|0.00' WHERE variable='TaxRates'});
+    $dbh->do(q{UPDATE systempreferences SET value='1' WHERE variable='TrapHoldsOnOrder'});
+    $dbh->do(q{UPDATE systempreferences SET value='no_charge' WHERE variable='ClaimReturnedChargeFee'});
     $dbh->do(q{UPDATE systempreferences SET value='[{ "name": "ElasticsearchSuggester", "enabled": 1}, { "name": "AuthorityFile"}, { "name": "ExplodedTerms"}, { "name": "LibrisSpellcheck"}]' WHERE variable='OPACdidyoumean'});
     $dbh->do(q{INSERT IGNORE INTO authorised_value_categories(category_name) VALUES ('MARC-FIELD-336-SELECT')});
     $dbh->do(q{INSERT IGNORE INTO authorised_value_categories(category_name) VALUES ('MARC-FIELD-337-SELECT')});
@@ -3632,5 +3646,64 @@ ORDER BY Zugangsdatum
     
     foreach my $update (@$updates) {
         $sth1->execute($update->[1], $update->[0]);
+    }
+}
+
+sub updateMarcMappings {
+    my $schema = Koha::Database->new->schema;
+    my $dbix_map = {
+        # Koha to MARC mappings are found in only three tables
+        biblio => 'Biblio',
+        biblioitems => 'Biblioitem',
+        items => 'Item',
+    };
+    my @cols;
+    foreach my $tbl ( sort keys %{$dbix_map} ) {
+        push @cols,
+            map { "$tbl.$_" } $schema->source( $dbix_map->{$tbl} )->columns;
+    }
+    my $kohafields = Koha::MarcSubfieldStructures->search({
+        frameworkcode => q{},
+        kohafield => { '>', '' },
+    });
+    my @loop_data;
+    my $checkmapping = {};
+    foreach my $col ( @cols ) {
+        my $found;
+        my $readonly = $col =~ /\.(biblio|biblioitem|item)number$/;
+        foreach my $row ( $kohafields->search({ kohafield => $col }) ) {
+            $found = 1;
+            push @loop_data, {
+                kohafield    => $col,
+                tagfield     => $row->tagfield,
+                tagsubfield  => $row->tagsubfield,
+                liblibrarian => $row->liblibrarian,
+                readonly     => $readonly,
+            };
+            $checkmapping->{$row->tagfield .'#'.$row->tagsubfield}->{$col} = 1;
+        }
+        push @loop_data, {
+                kohafield    => $col,
+                readonly     => $readonly,
+        } if !$found;
+    }
+
+    my $addmappings = [
+                           [ "024", "a", "biblioitems.ean" ],
+                           [ "245", "b", "biblio.subtitle" ],
+                           [ "245", "h", "biblio.medium" ],
+                           [ "245", "n", "biblio.part_number" ],
+                           [ "245", "p", "biblio.part_name" ],
+                           [ "264", "a", "biblioitems.place" ],
+                           [ "264", "c", "biblio.copyrightdate" ],
+                      ];
+    foreach my $addmapping ( @$addmappings ) {
+        if ( ! exists( $checkmapping->{$addmapping->[0] .'#'.$addmapping->[1]} ) ) {
+            my $rs = Koha::MarcSubfieldStructures->search({ tagfield => $addmapping->[0], tagsubfield => $addmapping->[1] });
+            if( $rs->count ) {
+                print "Add Koha-Marc-Mapping: ", $addmapping->[0], '$', $addmapping->[1], ' => ', $addmapping->[2], "\n";
+                $rs->update({ kohafield => $addmapping->[2] });
+            }
+        }
     }
 }
