@@ -40,7 +40,7 @@
   
       static generateSubstringArray(element, placeholder, props) {
         const ruler = placeholder;
-        element.setAttribute('lang', 'de-DE');
+        element.setAttribute('lang', window.navigator.language);
         element.setAttribute('style', 'hyphens: auto;');
         const string = element.innerText;
         const substrings = string.replaceAll('"', '').replaceAll('\n', '\n ').split(' ');
@@ -118,7 +118,7 @@
         ruler.style.position = 'absolute';
         ruler.style.whiteSpace = 'nowrap';
         ruler.style.fontFamily = fontFamily;
-        ruler.setAttribute('lang', 'de-DE');
+        ruler.setAttribute('lang', window.navigator.language);
         ruler.style.hyphens = 'auto';
         ruler.innerText = `${this.ellipsis}`;
   
