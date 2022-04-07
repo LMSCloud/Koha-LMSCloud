@@ -13,6 +13,27 @@
         this.lines = args.lines;
         this.explanations = args.explanations;
         this.elements = document.querySelectorAll(`.${this.identifier}`);
+        this.init = () => {
+          const style = document.createElement('style');
+          const triggerCSS = '.lmsellipsis-trigger { cursor: pointer; color: #0174AD; } .lmsellipsis-trigger:hover { text-decoration: underline; }';
+          if (style.styleSheet) {
+            style.styleSheet.cssText = triggerCSS;
+          } else {
+            style.appendChild(document.createTextNode(triggerCSS));
+          }
+          document.getElementsByTagName('head')[0].appendChild(style);
+  
+          const postfix = document.createElement('span');
+          postfix.classList.add('lmsellipsis-postfix');
+          postfix.innerText = this.ellipsis;
+  
+          const trigger = document.createElement('nobr');
+          trigger.classList.add('lmsellipsis-trigger');
+          trigger.innerText = this.explanations.collapsed;
+          trigger.setAttribute('tabindex', '0');
+  
+          return [postfix, trigger];
+        };
       }
   
       static calculateElementDimensions(element) {
@@ -130,7 +151,7 @@
       }
   
       truncate() {
-        const truncate = (element) => {
+        const truncate = (element, tags) => {
           const modifiedElement = element;
           const elementType = element.tagName;
           const placeholder = document.createElement(elementType);
@@ -155,19 +176,9 @@
           const wholeSubstringArr = substrings;
   
           modifiedElement.innerText = LMSEllipsis.buildStringFromArr(shownSubstringsArr);
-  
-          const postfix = document.createElement('span');
-          postfix.classList.add('lmsellipsis-postfix');
-          postfix.innerText = this.ellipsis;
+          const postfix = tags.postfix.cloneNode(true);
+          const trigger = tags.trigger.cloneNode(true);
           modifiedElement.appendChild(postfix);
-  
-          const trigger = document.createElement('nobr');
-          trigger.classList.add('lmsellipsis-trigger');
-          trigger.innerText = this.explanations.collapsed;
-          trigger.style.cursor = 'pointer';
-          trigger.style.color = '#0174AD';
-          trigger.style.textDecoration = 'underline';
-          trigger.setAttribute('tabindex', '0');
           modifiedElement.appendChild(trigger);
   
           const handleInteraction = () => {
@@ -187,8 +198,9 @@
           trigger.addEventListener('keypress', (e) => { if (e.code === 'Enter' || e.code === 'Space') { handleInteraction(); } });
         };
   
+        const [postfix, trigger] = this.init();
         this.elements.forEach((element) => {
-          truncate(element);
+          truncate(element, { postfix, trigger });
           //   if (this.watch) {
           //     window.addEventListener('resize', () => {
           //       truncate(element); // TODO: Trigger event on resize (this.watch)
