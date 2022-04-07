@@ -84,7 +84,6 @@
   
       trimSubstrings(substrings, substringWidthsArr, elementWidth, explanationWidth) {
         const substringWidths = substringWidthsArr;
-        const elementWidthExcludingExplanation = elementWidth - explanationWidth;
         let linesToProcess = this.lines;
         let accumulator = 0;
         let indexOfLastSubstring = 0;
@@ -92,7 +91,7 @@
   
         while (substringWidths.length > 0) {
           if (linesToProcess === 1) {
-            if (accumulator >= elementWidthExcludingExplanation) {
+            if ((elementWidth - accumulator) < explanationWidth) {
               break;
             }
             if (substrings[indexOfLastSubstring].includes('\n')) {
@@ -113,14 +112,14 @@
       }
   
       static calculateExplanationWidth(element, explanation, fontFamily) {
-        const ruler = document.createElement('span');
+        const ruler = document.createElement('nobr');
         ruler.style.width = 'auto';
         ruler.style.position = 'absolute';
         ruler.style.whiteSpace = 'nowrap';
         ruler.style.fontFamily = fontFamily;
         ruler.setAttribute('lang', window.navigator.language);
         ruler.style.hyphens = 'auto';
-        ruler.innerText = `${this.ellipsis}`;
+        ruler.innerText = `${this.ellipsis}${explanation}`;
   
         element.appendChild(ruler);
         const substringWidth = ruler.clientWidth;
@@ -131,7 +130,7 @@
       }
   
       truncate() {
-        this.elements.forEach((element) => {
+        const truncate = (element) => {
           const modifiedElement = element;
           const elementType = element.tagName;
           const placeholder = document.createElement(elementType);
@@ -157,36 +156,44 @@
   
           modifiedElement.innerText = LMSEllipsis.buildStringFromArr(shownSubstringsArr);
   
-          const linebreak = document.createElement('br');
-  
           const postfix = document.createElement('span');
           postfix.classList.add('lmsellipsis-postfix');
           postfix.innerText = this.ellipsis;
           modifiedElement.appendChild(postfix);
   
-          const trigger = document.createElement('div');
+          const trigger = document.createElement('nobr');
           trigger.classList.add('lmsellipsis-trigger');
           trigger.innerText = this.explanations.collapsed;
           trigger.style.cursor = 'pointer';
           trigger.style.color = '#0174AD';
           trigger.style.textDecoration = 'underline';
-          modifiedElement.appendChild(linebreak);
+          trigger.setAttribute('tabindex', '0');
           modifiedElement.appendChild(trigger);
   
-          trigger.addEventListener('click', () => {
+          const handleInteraction = () => {
             if (LMSEllipsis.isCollapsed(modifiedElement)) {
               modifiedElement.innerText = LMSEllipsis.buildStringFromArr(wholeSubstringArr);
-              modifiedElement.appendChild(linebreak);
               trigger.innerText = this.explanations.expanded;
               modifiedElement.appendChild(trigger);
             } else if (!LMSEllipsis.isCollapsed(modifiedElement)) {
               modifiedElement.innerText = LMSEllipsis.buildStringFromArr(shownSubstringsArr);
               modifiedElement.appendChild(postfix);
-              modifiedElement.appendChild(linebreak);
               trigger.innerText = this.explanations.collapsed;
               modifiedElement.appendChild(trigger);
             }
-          });
+          };
+  
+          trigger.addEventListener('click', handleInteraction);
+          trigger.addEventListener('keypress', (e) => { if (e.code === 'Enter' || e.code === 'Space') { handleInteraction(); } });
+        };
+  
+        this.elements.forEach((element) => {
+          truncate(element);
+          //   if (this.watch) {
+          //     window.addEventListener('resize', () => {
+          //       truncate(element); // TODO: Trigger event on resize (this.watch)
+          //     });
+          //   }
         });
       }
     }

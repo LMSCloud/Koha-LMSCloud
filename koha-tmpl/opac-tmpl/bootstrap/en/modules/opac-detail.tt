@@ -1691,7 +1691,7 @@
 
         }
     </script>
-    
+
     [% Asset.js("js/LMSEllipsis.js") | $raw %]
     <script>
         // init LMSEllipis
