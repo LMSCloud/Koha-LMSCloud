@@ -102,6 +102,10 @@ Optional parameter to use another lettercode than the standard configured in sys
 
 =head1 CONFIGURATION
 
+When setting system preferences be aware that many (but not all) entries in the payment instruction XML file
+are restricted to the SEPA character set, i.e.: a-z A-Z 0-9 ' : ? , . + - ( ) / and blank.
+So try to use other characters only if there are good reasons for it. Probably your XML file then will be rejected by the bank. 
+ 
 Relevant system preferences:
 
 'SepaDirectDebitCreditorBic': BIC of the library's bank account used in XML file containing SEPA direct debits.
@@ -114,9 +118,9 @@ Relevant system preferences:
 
 'SepaDirectDebitInitiatingPartyName': Name of the library used in XML file containing SEPA direct debits for XML-element <GrpHdr><InitgPty><Nm> (usually uppercase).
 
-'SepaDirectDebitMessageIdHeader': Text that, after appending the current date, will be used in XML file containing SEPA direct debits for XML-element <GrpHdr><MsgId>.
+'SepaDirectDebitMessageIdHeader': Text that, after appending the current date, will be used in XML file containing SEPA direct debits for XML-element <GrpHdr><MsgId>. Max. length: 27 (+8 for the date)
 
-'SepaDirectDebitRemittanceInfo': Text used in XML file containing SEPA direct debits for XML-element <PmtInf><DrctDbtTxInf><RmtInf><Ustrd>.
+'SepaDirectDebitRemittanceInfo': Text used in XML file containing SEPA direct debits for XML-element <PmtInf><DrctDbtTxInf><RmtInf><Ustrd>. By many banks only the first 27 characters are used.
 
 'SepaDirectDebitBorrowerNoticeLettercode': Default lettercode of note sent to patron informing about the upcoming SEPA direct debit for the membership fee or other fines.
 
@@ -233,8 +237,8 @@ GetOptions(
 pod2usage( -verbose => 2 ) if $man;
 pod2usage(1) if $help || !$confirm;
 
-warn 'membership_renewal.pl: Trying to renew upcoming membership expiries and/or create SEPA direct debits for patrons with activated SEPA direct debit.' if $verbose;
-warn "membership_renewal.pl" . 
+warn 'membership_renewal_SEPA.pl: Trying to renew upcoming membership expiries and/or create SEPA direct debits for patrons with activated SEPA direct debit.' if $verbose;
+warn "membership_renewal_SEPA.pl" . 
     ": action:" . (defined($action)?$action:'undef') . 
     ": expiryAfterDays:" . (defined($expiryAfterDays)?$expiryAfterDays:'undef') . 
     ": expiryBeforeDays:" . (defined($expiryBeforeDays)?$expiryBeforeDays:'undef') . 
@@ -251,13 +255,13 @@ my $sepaPayment = Koha::SEPAPayment->new( $debug?2:($verbose?1:0), $lettercode, 
 my $configError = $sepaPayment->getErrorMsg();
 if( $configError ) {
     #If at least one essential system preference for SEPA direct debit is not set, we will exit.
-    warn "Exiting membership_renewal.pl. Error: $configError\n";
+    warn "Exiting membership_renewal_SEPA.pl. Error: $configError\n";
     exit;
 }
 
 if ( index($action, 'renewal') >= 0 ) {
     # action: renew membership and insert enrolment fee as required
-    warn "membership_renewal.pl: Trying to renew membership for patrons with SEPA direct debit." if $verbose;
+    warn "membership_renewal_SEPA.pl: Trying to renew membership for patrons with SEPA direct debit." if $verbose;
     my ( $renewMembershipCount, $renewedMembershipCount ) = $sepaPayment->renewMembershipForSepaDirectDebitPatrons(
         {
             ( $branch ? ( 'me.branchcode' => $branch ) : () ),
@@ -265,19 +269,19 @@ if ( index($action, 'renewal') >= 0 ) {
             expiryBeforeDays => $expiryBeforeDays,
         }
     );
-    warn 'membership_renewal.pl: sepaPayment->renewMembershipForSepaDirectDebitPatrons() tried to renew ' . $renewMembershipCount . ' soon expiring memberships, renewed ' . $renewedMembershipCount . '.' if $verbose;
+    warn 'membership_renewal_SEPA.pl: sepaPayment->renewMembershipForSepaDirectDebitPatrons() tried to renew ' . $renewMembershipCount . ' soon expiring memberships, renewed ' . $renewedMembershipCount . '.' if $verbose;
 }
 
 if ( index($action, 'sepaDirectDebit') >= 0 ) {
     # action: 'pay' enrolment fee via SEPA direct debit and create the corresponding XML file that can be transferred manually to the library's bank.
-    warn 'membership_renewal.pl: Trying to pay open fees for membership renewals for patrons with activated SEPA direct debit.' if $verbose;
+    warn 'membership_renewal_SEPA.pl: Trying to pay open fees for membership renewals for patrons with activated SEPA direct debit.' if $verbose;
     my $success = $sepaPayment->paySelectedFeesForSepaDirectDebitPatrons(
         {
             ( $branch ? ( 'branchcode' => $branch ) : () ),
             sepaDirectDebitDelayDays => $sepaDirectDebitDelayDays,
         }
     );
-    warn "membership_renewal.pl: sepaPayment->paySelectedFeesForSepaDirectDebitPatrons() success:$success:" if $verbose;
+    warn "membership_renewal_SEPA.pl: sepaPayment->paySelectedFeesForSepaDirectDebitPatrons() success:$success:" if $verbose;
 }
 
 
