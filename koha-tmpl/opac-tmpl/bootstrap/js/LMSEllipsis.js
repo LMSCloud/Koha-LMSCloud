@@ -59,29 +59,14 @@
         };
       }
   
-      static generateSubstringArray(element, placeholder, props) {
-        const ruler = placeholder;
-        element.setAttribute('lang', window.navigator.language);
-        element.setAttribute('style', 'hyphens: auto;');
-        const string = element.innerText;
-        const substrings = string.replaceAll('"', '').replaceAll('\n', '\n ').split(' ');
-        const substringWidths = [];
+      static generateSubstringArray(element) {
+        const elementClone = element.cloneNode(true);
+        elementClone.setAttribute('lang', window.navigator.language);
+        elementClone.setAttribute('style', 'hyphens: auto; width: auto; position: absolute; white-space: wrap;');
+        const string = elementClone.innerText;
+        const substrings = string.replaceAll('"', '').replaceAll('\n', ' ').split(' ');
   
-        substrings.forEach((substring) => {
-          ruler.style.width = 'auto';
-          ruler.style.position = 'absolute';
-          ruler.style.whiteSpace = 'nowrap';
-          ruler.style.fontFamily = props.fontFamily;
-          ruler.style.fontSize = props.fontSize;
-          ruler.innerText = `${substring}${String.fromCharCode(0X1F)}`;
-          element.appendChild(ruler);
-          const substringWidth = ruler.clientWidth;
-          substringWidths.push(substringWidth);
-  
-          element.removeChild(ruler);
-        });
-  
-        return [substrings, substringWidths];
+        return substrings;
       }
   
       static buildStringFromArr(substringArr) {
@@ -103,91 +88,77 @@
         return isCollapsed;
       }
   
-      trimSubstrings(substrings, substringWidthsArr, elementWidth, explanationWidth) {
-        const substringWidths = substringWidthsArr;
+      fitSubstrings(args) {
+        const {
+          substrings, element, elementWidth, explanations,
+        } = args;
+  
+        const ruler = document.createElement('div');
         let linesToProcess = this.lines;
-        let accumulator = 0;
-        let indexOfLastSubstring = 0;
-        let removedSubstring = 0;
-  
-        while (substringWidths.length > 0) {
-          if (linesToProcess === 1) {
-            if ((elementWidth - accumulator) < explanationWidth) {
-              break;
-            }
-            if (substrings[indexOfLastSubstring].includes('\n')) {
-              break;
-            }
-          } else if (accumulator >= elementWidth) {
-            linesToProcess -= 1;
-            accumulator = 0;
-          }
-          removedSubstring = substringWidths.shift();
-          accumulator += removedSubstring;
-          indexOfLastSubstring += 1;
-          if (substrings[indexOfLastSubstring - 1].includes('\n')) {
-            linesToProcess -= 1;
-          }
-        }
-        return indexOfLastSubstring;
-      }
-  
-      static calculateExplanationWidth(element, explanation, fontFamily) {
-        const ruler = document.createElement('nobr');
+        let previousLineLeftSpace = 0;
+        let fittedString = '';
+        let previousLineLastIdx = 0;
         ruler.style.width = 'auto';
         ruler.style.position = 'absolute';
-        ruler.style.whiteSpace = 'nowrap';
-        ruler.style.fontFamily = fontFamily;
+        ruler.style.whiteSpace = 'wrap';
         ruler.setAttribute('lang', window.navigator.language);
         ruler.style.hyphens = 'auto';
-        ruler.innerText = `${this.ellipsis}${explanation}`;
   
         element.appendChild(ruler);
-        const substringWidth = ruler.clientWidth;
-  
+        for (let idx = 0; idx < substrings.length; idx += 1) {
+          if (linesToProcess > 1) {
+            ruler.innerHTML = LMSEllipsis.buildStringFromArr(substrings.slice(previousLineLastIdx, idx));
+          }
+          if (linesToProcess === 1) {
+            ruler.innerHTML = LMSEllipsis.buildStringFromArr(substrings.slice(previousLineLastIdx, idx));
+            ruler.appendChild(explanations.postfix);
+            ruler.appendChild(explanations.trigger);
+          }
+          if (linesToProcess === 0) {
+            fittedString = LMSEllipsis.buildStringFromArr(substrings.slice(0, idx - 1));
+            break;
+          }
+          if ((ruler.scrollWidth + previousLineLeftSpace) > elementWidth) {
+            while ((ruler.scrollWidth + previousLineLeftSpace) > elementWidth) {
+              ruler.innerHTML = LMSEllipsis.buildStringFromArr(substrings.slice(previousLineLastIdx, idx -= 1));
+            }
+            linesToProcess -= 1;
+            previousLineLastIdx = idx;
+            previousLineLeftSpace = elementWidth - ruler.scrollWidth;
+          }
+          ruler.innerHTML = '';
+        }
         element.removeChild(ruler);
-  
-        return substringWidth;
+        return fittedString;
       }
   
       truncate() {
         const truncate = (element, tags) => {
           const modifiedElement = element;
-          const elementType = element.tagName;
-          const placeholder = document.createElement(elementType);
+          const originalContent = element.innerText;
   
-          const {
-            elementHeight, elementWidth, lineHeight, lineQuantity, fontFamily, fontSize,
-          } = LMSEllipsis.calculateElementProperties(element);
+          const { elementWidth, lineQuantity } = LMSEllipsis.calculateElementProperties(element);
   
           if (this.lines >= lineQuantity) return;
   
-          const expanded = LMSEllipsis.calculateExplanationWidth(element, this.explanations.expanded, fontFamily);
-          const collapsed = LMSEllipsis.calculateExplanationWidth(element, this.explanations.collapsed, fontFamily);
-          const explanationWidth = collapsed >= expanded ? collapsed : expanded;
+          const substrings = LMSEllipsis.generateSubstringArray(element);
   
-          const [substrings, substringWidths] = LMSEllipsis.generateSubstringArray(element, placeholder, {
-            elementHeight, elementWidth, lineHeight, lineQuantity, fontFamily, fontSize,
-          });
-  
-          const indexOfLastSubstring = this.trimSubstrings(substrings, substringWidths, elementWidth, explanationWidth);
-  
-          const shownSubstringsArr = substrings.slice(0, indexOfLastSubstring);
-          const wholeSubstringArr = substrings;
-  
-          modifiedElement.innerText = LMSEllipsis.buildStringFromArr(shownSubstringsArr);
           const postfix = tags.postfix.cloneNode(true);
           const trigger = tags.trigger.cloneNode(true);
+          const shownSubstrings = this.fitSubstrings({
+            substrings, element, elementWidth, explanations: { postfix, trigger },
+          });
+          modifiedElement.innerText = shownSubstrings;
           modifiedElement.appendChild(postfix);
           modifiedElement.appendChild(trigger);
   
           const handleInteraction = () => {
             if (LMSEllipsis.isCollapsed(modifiedElement)) {
-              modifiedElement.innerText = LMSEllipsis.buildStringFromArr(wholeSubstringArr);
+              modifiedElement.innerText = `${originalContent} `;
               trigger.innerText = this.explanations.expanded;
               modifiedElement.appendChild(trigger);
             } else if (!LMSEllipsis.isCollapsed(modifiedElement)) {
-              modifiedElement.innerText = LMSEllipsis.buildStringFromArr(shownSubstringsArr);
+              modifiedElement.innerText = shownSubstrings;
               modifiedElement.appendChild(postfix);
               trigger.innerText = this.explanations.collapsed;
               modifiedElement.appendChild(trigger);
