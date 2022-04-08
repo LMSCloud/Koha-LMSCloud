@@ -12,14 +12,26 @@
         this.watch = args.watch;
         this.lines = args.lines;
         this.explanations = args.explanations;
+        this.approach = args.approach;
         this.elements = document.querySelectorAll(`.${this.identifier}`);
         this.init = () => {
           const style = document.createElement('style');
           const triggerCSS = '.lmsellipsis-trigger { cursor: pointer; color: #0174AD; } .lmsellipsis-trigger:hover { text-decoration: underline; }';
+          const togglerCSS = `.lmsellipsis-toggler {
+          cursor: pointer;
+          text-align: center;
+          font-size: small;
+          color: #0174AD;
+        }
+        .lmsellipsis-toggler-text:hover {
+          text-decoration: underline;
+        } 
+        `;
+          const CSS = `${triggerCSS} ${togglerCSS}`;
           if (style.styleSheet) {
-            style.styleSheet.cssText = triggerCSS;
+            style.styleSheet.cssText = CSS;
           } else {
-            style.appendChild(document.createTextNode(triggerCSS));
+            style.appendChild(document.createTextNode(CSS));
           }
           document.getElementsByTagName('head')[0].appendChild(style);
   
@@ -32,7 +44,21 @@
           trigger.innerText = this.explanations.collapsed;
           trigger.setAttribute('tabindex', '0');
   
-          return [postfix, trigger];
+          const toggler = document.createElement('div');
+          toggler.classList.add('lmsellipsis-toggler');
+          toggler.setAttribute('tabindex', '0');
+  
+          const togglerText = document.createElement('span');
+          togglerText.classList.add('lmsellipsis-toggler-text');
+          togglerText.innerText = this.explanations.collapsed.replace(' »', '');
+  
+          const togglerSymbol = document.createElement('div');
+          togglerSymbol.classList.add('lmsellipsis-toggler-symbol');
+          togglerSymbol.innerText = '⇩';
+  
+          toggler.append(togglerText, togglerSymbol);
+  
+          return { postfix, trigger, toggler };
         };
       }
   
@@ -136,7 +162,6 @@
         const truncate = (element, tags) => {
           const modifiedElement = element;
           const originalContent = element.innerText;
-  
           const { elementWidth, lineQuantity } = LMSEllipsis.calculateElementProperties(element);
   
           if (this.lines >= lineQuantity) return;
@@ -169,7 +194,49 @@
           trigger.addEventListener('keypress', (e) => { if (e.code === 'Enter' || e.code === 'Space') { handleInteraction(); } });
         };
   
-        const [postfix, trigger] = this.init();
+        const hide = (element, tags) => {
+          const modifiedElement = element;
+          const {
+            lineHeight, lineQuantity,
+          } = LMSEllipsis.calculateElementProperties(element);
+  
+          if (this.lines >= lineQuantity) return;
+  
+          modifiedElement.style.overflow = 'hidden';
+          console.log(lineHeight * this.lines);
+          modifiedElement.style.height = Math.floor(lineHeight * this.lines);
+
+  
+          const toggler = tags.toggler.cloneNode(true);
+          modifiedElement.insertAdjacentElement('afterend', toggler);
+  
+          const handleInteraction = () => {
+            const [text, symbol] = toggler.childNodes;
+            if (modifiedElement.style.overflow === 'hidden') {
+              modifiedElement.style.height = 'unset';
+              modifiedElement.style.overflow = 'visible';
+              text.innerText = this.explanations.expanded.replace('« ', '');
+              symbol.innerText = '⇧';
+            } else if (modifiedElement.style.overflow === 'visible') {
+              modifiedElement.style.height = lineHeight * this.lines;
+              modifiedElement.style.overflow = 'hidden';
+              text.innerText = this.explanations.collapsed.replace(' »', '');
+              symbol.innerText = '⇩';
+            }
+          };
+  
+          toggler.addEventListener('click', handleInteraction);
+          toggler.addEventListener('keypress', (e) => { if (e.code === 'Enter' || e.code === 'Space') { handleInteraction(); } });
+        };
+  
+        const { postfix, trigger, toggler } = this.init();
+  
+        if (this.approach === 'hide') {
+          this.elements.forEach((element) => {
+            hide(element, { toggler });
+          });
+          return;
+        }
         this.elements.forEach((element) => {
           truncate(element, { postfix, trigger });
           //   if (this.watch) {

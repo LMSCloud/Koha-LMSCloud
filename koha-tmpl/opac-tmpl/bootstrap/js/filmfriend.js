@@ -476,7 +476,7 @@ function generateFilmfriendEntryMovie(facetID,entryID) {
         txtElement = document.createElement("span");
         txtElement.setAttribute('class','results_summary summary truncable-txt');
         txtElement.setAttribute('style','font-size: 100%');
-        txtElement.innerHTML = filmfriendData.results[facetID].hitList[entryID].synopsis.replace(/(?:\r\n|\r|\n)+/g, '<br>') + '<a href="javascript:void(0)" class="truncable-txt-readmore"></a>';
+        txtElement.innerHTML = filmfriendData.results[facetID].hitList[entryID].synopsis.replace(/(?:\r\n|\r|\n)+/g, '<br>');
         colElement.appendChild(txtElement);
         
     }
