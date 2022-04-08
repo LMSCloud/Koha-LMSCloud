@@ -203,9 +203,7 @@
           if (this.lines >= lineQuantity) return;
   
           modifiedElement.style.overflow = 'hidden';
-          console.log(lineHeight * this.lines);
-          modifiedElement.style.height = Math.floor(lineHeight * this.lines);
-
+          modifiedElement.style.height = `${Math.floor(lineHeight * this.lines)}px`;
   
           const toggler = tags.toggler.cloneNode(true);
           modifiedElement.insertAdjacentElement('afterend', toggler);
@@ -218,7 +216,7 @@
               text.innerText = this.explanations.expanded.replace('« ', '');
               symbol.innerText = '⇧';
             } else if (modifiedElement.style.overflow === 'visible') {
-              modifiedElement.style.height = lineHeight * this.lines;
+              modifiedElement.style.height = `${Math.floor(lineHeight * this.lines)}px`;
               modifiedElement.style.overflow = 'hidden';
               text.innerText = this.explanations.collapsed.replace(' »', '');
               symbol.innerText = '⇩';
