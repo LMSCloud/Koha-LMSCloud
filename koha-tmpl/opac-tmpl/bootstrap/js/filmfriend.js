@@ -21,15 +21,17 @@ var prevPageTextFilmfriend;
 var nextPageTextFilmfriend;
 var maxHitCountFilmfriend;
 var targetLinkFilmfriend = "_blank";
-var readMoreFilmfriend = "Read more &raquo;";
+var readMoreFilmfriend = "Read more »";
+var readLessFilmfriend = "« Read less";
 
-function getFilmfriendFacet(query_desc,maxHitCount,prevPageText,nextPageText,readMore) {
+function getFilmfriendFacet(query_desc,maxHitCount,prevPageText,nextPageText,readMore,readLess) {
     if (!origResultHeaderFilmfriend) {
         origResultHeaderFilmfriend = $('#numresults').html();
     }
     prevPageTextFilmfriend = prevPageText;
     nextPageTextFilmfriend = nextPageText;
     readMoreFilmfriend     = readMore;
+    readLessFilmfriend     = readLess;
     maxHitCountFilmfriend  = maxHitCount;
     $.ajax({
     url: "/cgi-bin/koha/opac-filmfriend.pl",
@@ -170,7 +172,7 @@ function showFilmfriendResult(facetID) {
         ellipsis: ' ... ',
         watch: false,
         lines: 2,
-        explanations: { collapsed: _("Read More »"), expanded: _("« Read Less")}
+        explanations: { collapsed: readMoreFilmfriend, expanded: readLessFilmfriend }
     })
     lmse.truncate();
 }
