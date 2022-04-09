@@ -2509,12 +2509,16 @@ sub createSIPEnabledFile {
     my $instance = shift;
     my $libfile = "/var/lib/koha/$instance/sip.enabled" ;
     
-    if ( -f "/etc/koha/sites/$instance/SIPconfig.xml" && ! -f $libfile )  {
-        open(my $fh, "<", $libfile);
-        close($fh);
-        my ($login,$pass,$uid,$gid) = getpwnam("$instance-koha");
-        chown $uid, $gid, $libfile;
-        chmod 0644, $libfile;
+    if ( -f "/etc/koha/sites/$instance/SIPconfig.xml" ) {
+		print "Found SIP config file for instance $instance.\n";
+		if ( ! -f $libfile )  {
+			open(my $fh, ">", $libfile);
+			close($fh);
+			my ($login,$pass,$uid,$gid) = getpwnam("$instance-koha");
+			chown $uid, $gid, $libfile;
+			chmod 0644, $libfile;
+			print "Enabled SIP creating the file $libfile.\n";
+		}
     }
 }
 
