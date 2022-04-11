@@ -22,11 +22,14 @@ use Modern::Perl;
 use Carp;
 use URI::Escape;
 
-use C4::Biblio qw( GetAuthorisedValueDesc GetMarcBiblio );
+use C4::Biblio qw( GetAuthorisedValueDesc GetMarcBiblio TransformMarcToKoha );
 use C4::Context;
 use C4::Koha qw( GetNormalizedUPC GetNormalizedOCLCNumber GetNormalizedISBN GetNormalizedEAN );
+use C4::Search;
 use Koha::Biblios;
 use Koha::Libraries;
+use Koha::SearchEngine;
+use Koha::SearchEngine::Search;
 
 our (@ISA, @EXPORT_OK);
 BEGIN {
@@ -35,6 +38,7 @@ BEGIN {
     @EXPORT_OK = qw(
       GetCoverFlowDataOfNearbyItemsByItemNumber
       GetCoverFlowDataByBiblionumber
+      GetCoverFlowDataByQueryString
     );
 }
 
@@ -227,6 +231,44 @@ sub GetCoverFlowDataByBiblionumber {
     return {
         items  => \@biblist,
         count  => scalar(@biblist),
+    };
+}
+
+sub GetCoverFlowDataByQueryString {
+    my ($query,$offset,$maxcount) = @_;
+    $offset = 0 if (! $offset);
+    $maxcount = 20 if (! $maxcount);
+
+    my $searcher = Koha::SearchEngine::Search->new({index => $Koha::SearchEngine::BIBLIOS_INDEX});
+    my ( $error, $searchresults, $totalcount ) = $searcher->simple_search_compat($query,$offset,$maxcount);
+    my @results;
+    my @biblist;
+    if (!defined $error) {
+        foreach my $resultrecord (@{$searchresults}) {
+            my $marcrecord = C4::Search::new_record_from_zebra('biblioserver',$resultrecord);
+            my $bibdata = TransformMarcToKoha( $marcrecord, '' );
+
+            if ($bibdata) {
+                push @results, { biblionumber => $bibdata->{'biblionumber'} };
+            }
+        }
+        # populate catalogue record data
+        @biblist = GetCatalogueData( @results );
+    
+        return {
+            items  => \@biblist,
+            count  => scalar(@biblist),
+            totalcount => $totalcount,
+            offset => $offset,
+            query => $query
+        };
+    }
+    return {
+        items  => \@biblist,
+        count  => 0,
+        totalcount => 0,
+        offset => $offset,
+        query => $query
     };
 }
 

@@ -1,0 +1,12 @@
+{
+  "countItems": [% count | html %],
+  "totalCount": [% totalcount | html %],
+  "offset": [% offset | html %],
+  "query": "[% FILTER escape_quotes = replace('"', '\"') ~%][% FILTER remove_special_character = replace('([\t\r\n\f\b]|\s{3,})','') ~%][% query %][%~ END %][%~ END %]",
+  "items": [
+  [%- FOREACH item IN items %]
+    [%- INCLUDE 'coverflow-item.json.inc' item = item -%]
+    [%- UNLESS loop.last -%],[%- END -%]
+  [% END %]
+  ]
+}
