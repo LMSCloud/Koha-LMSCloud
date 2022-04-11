@@ -1176,6 +1176,9 @@ sub updateSimpleVariables {
     $dbh->do(q{UPDATE marc_subfield_structure SET hidden='0' WHERE tagfield IN ('336','337','338') AND tagsubfield='2' AND frameworkcode = ''});
     $dbh->do(q{UPDATE marc_subfield_structure SET hidden='0' WHERE tagfield IN ('336','337','338') AND tagsubfield='a' AND frameworkcode = ''});
     $dbh->do(q{UPDATE marc_subfield_structure SET hidden='0' WHERE tagfield IN ('336','337','338') AND tagsubfield='b' AND frameworkcode = ''});
+    
+    $dbh->do(q{UPDATE z3950servers SET host='https://services.dnb.de', port=443 WHERE host = 'services.dnb.de' AND port=80});
+    $dbh->do(q{UPDATE z3950servers SET host='https://services.dnb.de', port=443 WHERE host = 'dnbsearch.lmscloud.net' AND port=80});
 }
 
 sub updateSidebarLinks {
