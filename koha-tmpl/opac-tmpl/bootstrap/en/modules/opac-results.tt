@@ -886,7 +886,7 @@
                 getMunzingerFacet(query_desc);
             [% END %]
             [% IF ( Koha.Preference( 'FilmfriendSearchActive' ) ) %]
-                getFilmfriendFacet(query_desc,[% Koha.Preference('FilmfriendNumSearchResults') %], _("Prev &laquo;"), _("Next &raquo;"), _("Read more &raquo;") );
+                getFilmfriendFacet(query_desc,[% Koha.Preference('FilmfriendNumSearchResults') %], _("Prev &laquo;"), _("Next &raquo;"), _("Read more »"), _("« Read less") );
             [% END %]
 
             $(".moretoggle").click(function(e){
