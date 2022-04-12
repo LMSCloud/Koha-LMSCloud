@@ -1108,7 +1108,7 @@
             }
             catch (error) {
                 console.trace(`Looks like a request failed in ${this.checkIfFileExists.name} ->`, error);
-                return error;
+                return false;
             }
         }
         checkUrls(localData) {
@@ -1120,10 +1120,18 @@
                 if (coverurl.startsWith('/'))
                     return { ...entry, coverurl: await Data.processDataUrl(coverurl) };
                 if (!coverurl)
-                    return { ...entry, coverurl: await Data.processDataUrl(`${this.config.coverImageFallbackUrl}?title=${window.encodeURIComponent(entry.title)}`)};
+                return {
+                    ...entry, coverurl: this.config.coverImageFallbackUrl !== '/cgi-bin/koha/svc/covergen' ?
+                    this.config.coverImageFallbackUrl :
+                    await Data.processDataUrl(`${this.config.coverImageFallbackUrl}?title=${window.encodeURIComponent(entry.title)}`)
+                };
                 const fileExists = await this.checkIfFileExists(coverurl);
                 if (!fileExists)
-                    return { ...entry, coverurl: await Data.processDataUrl(`${this.config.coverImageFallbackUrl}?title=${window.encodeURIComponent(entry.title)}`)};
+                    return {
+                        ...entry, coverurl: this.config.coverImageFallbackUrl !== '/cgi-bin/koha/svc/covergen' ?
+                        this.config.coverImageFallbackUrl :
+                        await Data.processDataUrl(`${this.config.coverImageFallbackUrl}?title=${window.encodeURIComponent(entry.title)}`)
+                    };
                 return entry;
             });
             return checkedUrls;
