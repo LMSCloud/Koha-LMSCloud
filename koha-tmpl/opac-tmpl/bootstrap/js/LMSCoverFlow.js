@@ -881,7 +881,7 @@
         constructor(configuration) {
             this.config = configuration;
             this.coverImageFallbackHeight = this.config.coverImageFallbackHeight || 210;
-            this.coverImageFallbackUrl = this.config.coverImageFallbackUrl || 'http://placekitten.com/g/200/300';
+            this.coverImageFallbackUrl = this.config.coverImageFallbackUrl || '/cgi-bin/koha/svc/covergen';
             this.coverFlowTooltips = this.config.coverFlowTooltips || false;
             this.coverFlowAutoScroll = this.config.coverFlowAutoScroll || false;
             this.coverFlowAutoScrollInterval = this.config.coverFlowAutoScrollInterval || 8000;
@@ -1120,10 +1120,10 @@
                 if (coverurl.startsWith('/'))
                     return { ...entry, coverurl: await Data.processDataUrl(coverurl) };
                 if (!coverurl)
-                    return { ...entry, coverurl: this.config.coverImageFallbackUrl };
+                    return { ...entry, coverurl: await Data.processDataUrl(`${this.config.coverImageFallbackUrl}?title=${window.encodeURIComponent(entry.title)}`)};
                 const fileExists = await this.checkIfFileExists(coverurl);
                 if (!fileExists)
-                    return { ...entry, coverurl: this.config.coverImageFallbackUrl };
+                    return { ...entry, coverurl: await Data.processDataUrl(`${this.config.coverImageFallbackUrl}?title=${window.encodeURIComponent(entry.title)}`)};
                 return entry;
             });
             return checkedUrls;
