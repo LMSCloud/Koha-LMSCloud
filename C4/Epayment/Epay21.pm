@@ -219,9 +219,21 @@ sub initPayment {
     my $retErrorTemplate = '';
     my $retEpay21RedirectUrl = '';
     my $epay21msg = '';
-    my $purpose = substr($self->{patron}->cardnumber() . ' ' . $self->{epay21AccountingSystemInfo}, 0, 27);   # This field accepts only characters conforming to SEPA : a-z A-Z 0-9 ' : ? , - ( + . ) /
+    my $purpose;   # Text for remittance info (Verwendungszweck). Since 2022-04-14 it may contain placeholder '<<borrowers.cardnumber>>'. This field accepts only characters conforming to SEPA : a-z A-Z 0-9 ' : ? , - ( + . ) /
 
-    $self->{logger}->debug("initPayment() START epay21Mandant:$self->{epay21Mandant}: epay21App:$self->{epay21App}: purpose:$purpose:");
+    $self->{logger}->debug("initPayment() START epay21Mandant:$self->{epay21Mandant}: epay21App:$self->{epay21App}: epay21AccountingSystemInfo:$self->{epay21AccountingSystemInfo}:");
+
+    my $epay21AccountingSystemInfo = $self->{epay21AccountingSystemInfo};
+    if ( ! defined($epay21AccountingSystemInfo) ) {
+        $epay21AccountingSystemInfo = '';
+    }
+    if ( $epay21AccountingSystemInfo =~ /<<borrowers.cardnumber>>/ ) {
+        $purpose = $self->createRemittanceInfoText( $epay21AccountingSystemInfo, $self->{patron}->cardnumber() );
+    } else {
+        # old method, prior to 2022-04-14
+        $purpose = substr($self->{patron}->cardnumber() . ' ' . $epay21AccountingSystemInfo, 0, 27);
+    }
+    $self->{logger}->debug("initPayment() remittance info purpose:$purpose:");
 
     my $returnUrl = URI->new( $self->{opacBaseUrl} . "/cgi-bin/koha/opac-account-pay-epay21-return.pl" );    # $returnUrl is used to update accountlines corresponding to the payment
     # set URL query arguments
@@ -257,10 +269,6 @@ sub initPayment {
     #my $iniPay_OP_PageReferrerURL = '';    # not required
 
     # InitPayment Query parameters
-    my $epay21AccountingSystemInfo = $self->{epay21AccountingSystemInfo};
-    if ( ! defined($epay21AccountingSystemInfo) ) {
-        $epay21AccountingSystemInfo = '';
-    }
     my $iniPay_Query_CallerPayID = $self->{merchantTxId};    # mandatory, unique merchant transaction identifier
     my $iniPay_Query_Purpose = $purpose;   # mandatory; remittance info ('Verwendungszweck') This field accepts only characters conforming to SEPA ( i.e.: a-z A-Z 0-9 ' : ? , - ( + . ) /  );
     my $iniPay_Query_OrderDesc = C4::Context->preference('Epay21OrderDesc');    # order description; will be displayed on paypage
