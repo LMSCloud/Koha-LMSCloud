@@ -617,13 +617,13 @@ $(document).ready(function() {
                 if (placedStart && rowPlaced && rowPlaced < placedStart) {
                     placedPassed = false
                 };
-                if (placedEnd && rowPlaced && rowPlaced > placedEnd) {
+                if (placedEnd && rowPlaced && rowPlaced.getTime() > placedEnd.getTime() + 86399999) {    // adding 24h-0.001s ~ 24*60*60*1000-1 = 86399999 to placedEnd date 00:00:00.000
                     placedPassed = false;
                 }
                 if (modifiedStart && rowModified && rowModified < modifiedStart) {
                     modifiedPassed = false
                 };
-                if (modifiedEnd && rowModified && rowModified > modifiedEnd) {
+                if (modifiedEnd && rowModified && rowModified.getTime() > modifiedEnd.getTime() + 86399999) {    // adding 24h-0.001s ~ 24*60*60*1000-1 = 86399999 to modifiedEnd date 00:00:00.000
                     modifiedPassed = false;
                 }
 
