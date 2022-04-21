@@ -57,11 +57,11 @@ my (@ElectronicMedia,@ClassificationTopLevelEntries);
 
 
 sub getCurrentDateMinusXMonth {
-	my ($minusmonth) = @_;
-	
-	my $dt = DateTime->now;
-	$dt->add( months => -$minusmonth );
-	return $dt->ymd;
+    my ($minusmonth) = @_;
+    
+    my $dt = DateTime->now;
+    $dt->add( months => -$minusmonth );
+    return $dt->ymd;
 }
 
 my $foundEEntries = 0;
@@ -90,28 +90,28 @@ if ( defined($query->param('shownews')) ) {
     my $shownews = $query->param('shownews');
     
     if ( $shownews eq '1' || lc($shownews) eq 'y' ) {
-	    
-	my $homebranch;
-	if (C4::Context->userenv) {
-	    $homebranch = C4::Context->userenv->{'branch'};
-	}
-	if (defined $query->param('branch') and length $query->param('branch')) {
-	    $homebranch = $query->param('branch');
-	}
-	elsif (C4::Context->userenv and defined $query->param('branch') and length $query->param('branch') == 0 ){
-	    $homebranch = "";
-	}
-   
-	# Display news
-	# use cookie setting for language, bug default to syspref if it's not set
-	my ($theme, $news_lang, $availablethemes) = C4::Templates::themelanguage(C4::Context->config('opachtdocs'),$templatename,'opac',$query);
-	my $all_koha_news   = &GetNewsToDisplay($news_lang,$homebranch);
-	my $koha_news_count = scalar @$all_koha_news;
+        
+        my $homebranch;
+        if (C4::Context->userenv) {
+            $homebranch = C4::Context->userenv->{'branch'};
+        }
+        if (defined $query->param('branch') and length $query->param('branch')) {
+            $homebranch = $query->param('branch');
+        }
+        elsif (C4::Context->userenv and defined $query->param('branch') and length $query->param('branch') == 0 ){
+            $homebranch = "";
+        }
+       
+        # Display news
+        # use cookie setting for language, bug default to syspref if it's not set
+        my ($theme, $news_lang, $availablethemes) = C4::Templates::themelanguage(C4::Context->config('opachtdocs'),$templatename,'opac',$query);
+        my $all_koha_news   = &GetNewsToDisplay($news_lang,$homebranch);
+        my $koha_news_count = scalar @$all_koha_news;
 
-	$template->param(
-	    koha_news           => $all_koha_news,
-	    koha_news_count     => $koha_news_count
-	);
+        $template->param(
+            koha_news           => $all_koha_news,
+            koha_news_count     => $koha_news_count
+        );
     }
 }
 
@@ -123,16 +123,16 @@ if ( $enduser eq 'A' ) {
     $mlevel = $medialevel if ( $medialevel );
     
     if ( $mediafilter ) {
-	$sth = $dbh->prepare("SELECT * FROM browser WHERE level=? AND classification rlike ? ORDER BY classification");
-	$sth->execute($mlevel,$mediafilter);
+        $sth = $dbh->prepare("SELECT * FROM browser WHERE level=? AND classification rlike ? ORDER BY classification");
+        $sth->execute($mlevel,$mediafilter);
     }
     else {
-	$sth = $dbh->prepare("SELECT * FROM browser WHERE level=? AND classification IN (?,?,?) ORDER BY classification");
-	$sth->execute($mlevel,'CD','DVD','BD');
+        $sth = $dbh->prepare("SELECT * FROM browser WHERE level=? AND classification IN (?,?,?) ORDER BY classification");
+        $sth->execute($mlevel,'CD','DVD','BD');
     }
     while (my $line = $sth->fetchrow_hashref)
     {
-	$line->{'browse_classification'} = $line->{'classification'};
+        $line->{'browse_classification'} = $line->{'classification'};
         $line->{'classification'} =~ s/^[MCZYS]:\s*// if ( defined($line->{'classification'}) );
         push @ElectronicMedia, $line;
         $foundEEntries++;
@@ -147,17 +147,17 @@ if ( $enduser eq 'A' ) {
     
     my $sth;
     if ( $filter ) {
-	$sth = $dbh->prepare("SELECT * FROM browser WHERE level=? AND classification rlike ? ORDER BY classification");
-	$sth->execute($level,$filter);
+        $sth = $dbh->prepare("SELECT * FROM browser WHERE level=? AND classification rlike ? ORDER BY classification");
+        $sth->execute($level,$filter);
     }
     else {
-	$sth = $dbh->prepare("SELECT * FROM browser WHERE level=? AND classification IN ('A','B','C','D','E','F','G','H','I','J','K','L','M','N','O','P','Q','R','S','T','U','V','W','X','Y','Z') ORDER BY description");
-	$sth->execute($level);
+        $sth = $dbh->prepare("SELECT * FROM browser WHERE level=? AND classification IN ('A','B','C','D','E','F','G','H','I','J','K','L','M','N','O','P','Q','R','S','T','U','V','W','X','Y','Z') ORDER BY description");
+        $sth->execute($level);
     }
     
     while (my $line = $sth->fetchrow_hashref)
     {
-	$line->{'browse_classification'} = $line->{'classification'};
+        $line->{'browse_classification'} = $line->{'classification'};
         $line->{'classification'} =~ s/^[MCZYS]:\s*// if ( defined($line->{'classification'}) );
         push @ClassificationTopLevelEntries, $line;
     }
@@ -168,10 +168,10 @@ if ( $enduser eq 'A' ) {
         $sth->execute($level);
         while (my $line = $sth->fetchrow_hashref)
         {
-	    $line->{'browse_classification'} = $line->{'classification'};
+            $line->{'browse_classification'} = $line->{'classification'};
             $line->{'classification'} =~ s/^[MCZYS]:\s*// if ( defined($line->{'classification'}) );
             push @ClassificationTopLevelEntries, $line;
-	}
+        }
     }
 }
 
@@ -181,30 +181,34 @@ if ( $enduser eq '9' ) {
     $level = $classlevel if ( $classlevel );
 
     my $sth;
-	
+    
     if ( $filter ) {
-	$sth = $dbh->prepare("SELECT * FROM browser WHERE level=? AND classification rlike ? ORDER BY classification");
-	$sth->execute($level,$filter);
+        $sth = $dbh->prepare("SELECT * FROM browser WHERE level=? AND classification rlike ? ORDER BY classification");
+        $sth->execute($level,$filter);
     }
     else {
-	$sth = $dbh->prepare("SELECT * FROM browser WHERE level=? AND (classification like ? or classification like ?) ORDER BY description");
-	$sth->execute($level,"4.3/%","4.3 %");
+        $sth = $dbh->prepare("SELECT * FROM browser WHERE level=? AND (classification like ? or classification like ?) ORDER BY description");
+        $sth->execute($level,"4.3/%","4.3 %");
     }
     
     while (my $line = $sth->fetchrow_hashref)
     {
-	$line->{'browse_classification'} = $line->{'classification'};
+    $line->{'browse_classification'} = $line->{'classification'};
         $line->{'classification'} =~ s/^[MCZYS]:\s*// if ( defined($line->{'classification'}) );
         $line->{description} =~ s/^Kindersach[^\s\\]+: //;
         push @ClassificationTopLevelEntries, $line;
     }
     $sth->finish;
-	
+    
     if (! scalar(@ClassificationTopLevelEntries) ) {
-        $sth->execute($level-1,"4.3%");
+        if ( $filter ) {
+            $sth->execute($level-1,"4.3%");
+        } else {
+            $sth->execute($level-1,"4.3/%","4.3 %");
+        }
         while (my $line = $sth->fetchrow_hashref)
         {
-	    $line->{'browse_classification'} = $line->{'classification'};
+        $line->{'browse_classification'} = $line->{'classification'};
             $line->{'classification'} =~ s/^[MCZYS]:\s*// if ( defined($line->{'classification'}) );
             push @ClassificationTopLevelEntries, $line;
         }
@@ -219,17 +223,17 @@ if ( $enduser eq 'T' ) {
     my $sth;
     
     if ( $filter ) {
-	$sth = $dbh->prepare("SELECT * FROM browser WHERE level=? AND classification rlike ? ORDER BY classification");
-	$sth->execute($level,$filter);
+    $sth = $dbh->prepare("SELECT * FROM browser WHERE level=? AND classification rlike ? ORDER BY classification");
+    $sth->execute($level,$filter);
     }
     else {
-	$sth = $dbh->prepare("SELECT * FROM browser WHERE level=? AND classification like ? ORDER BY description");
-	$sth->execute($level,"6.%");
+    $sth = $dbh->prepare("SELECT * FROM browser WHERE level=? AND classification like ? ORDER BY description");
+    $sth->execute($level,"6.%");
     }
     
     while (my $line = $sth->fetchrow_hashref)
     {
-	$line->{'browse_classification'} = $line->{'classification'};
+    $line->{'browse_classification'} = $line->{'classification'};
         $line->{'classification'} =~ s/^[MCZYS]:\s*// if ( defined($line->{'classification'}) );
         $line->{description} =~ s/^Kindersach[^\s\\]+: //;
         push @ClassificationTopLevelEntries, $line;
@@ -239,7 +243,7 @@ if ( $enduser eq 'T' ) {
         $sth->execute($level,"4.3%");
         while (my $line = $sth->fetchrow_hashref)
         {
-	    $line->{'browse_classification'} = $line->{'classification'};
+        $line->{'browse_classification'} = $line->{'classification'};
             $line->{'classification'} =~ s/^[MCZYS]:\s*// if ( defined($line->{'classification'}) );
             push @ClassificationTopLevelEntries, $line;
         }
@@ -247,12 +251,12 @@ if ( $enduser eq 'T' ) {
 }
 
 $template->param(
-	end_user => $enduser,
-	electronic_media => \@ElectronicMedia,
-	classification_top_level_entries => \@ClassificationTopLevelEntries,
-	count_eentries => $foundEEntries,
-	first_date_of_new => $firstDateOfNew,
-	pagename => $pagename                   # required for template opac-entrypages.tt only
+    end_user => $enduser,
+    electronic_media => \@ElectronicMedia,
+    classification_top_level_entries => \@ClassificationTopLevelEntries,
+    count_eentries => $foundEEntries,
+    first_date_of_new => $firstDateOfNew,
+    pagename => $pagename                   # required for template opac-entrypages.tt only
 );
 
 output_html_with_http_headers $query, $cookie, $template->output, undef, { force_no_caching => 1 };
