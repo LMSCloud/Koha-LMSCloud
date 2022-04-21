@@ -270,6 +270,20 @@ legend.entrypage-legend {
 label.classifcation-entry {
 	text-indent: -7px;
 	padding-left: 15px;
+	display: block;
+}
+.link-collection-collapse-entries > label.link-page-entry {
+        text-indent: 0px;
+}
+#kidsinternet > div {
+    padding-bottom: 20px;
+    padding-left: 7px;
+    padding-right: 7px;
+}
+.ui-tabs-panel legend {
+    border-bottom: 1px solid #e5e5e5;
+    margin-bottom: 20px;
+    padding-bottom: 10px;
 }
 label.link-page-entry {
 	text-indent: -7px;
