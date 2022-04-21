@@ -230,19 +230,19 @@ sub createSearchString {
     my $search = '';
     
     if ( $class->{classification} =~ /^I$/ && $class->{prefix} eq 'ADULT' ) {
-        $search .= 'sys.phrase:"I 0*"';
-        $search .= ' or sys.phrase:"I 1*"';
-        $search .= ' or sys.phrase:"I 2*"';
-        $search .= ' or sys.phrase:"I 3*"';
-        $search .= ' or sys.phrase:"I 4*"';
-        $search .= ' or sys.phrase:"I 5*"';
-        $search .= ' or sys.phrase:"I 6*"';
-        $search .= ' or sys.phrase:"I 7*"';
-        $search .= ' or sys.phrase:"I 8*"';
-        $search .= ' or sys.phrase:"I 9*"';
+        $search .= 'sys.phrase:I\\ 0*';
+        $search .= ' OR sys.phrase:I\\ 1*';
+        $search .= ' OR sys.phrase:I\\ 2*';
+        $search .= ' OR sys.phrase:I\\ 3*';
+        $search .= ' OR sys.phrase:I\\ 4*';
+        $search .= ' OR sys.phrase:I\\ 5*';
+        $search .= ' OR sys.phrase:I\\ 6*"';
+        $search .= ' OR sys.phrase:I\\ 7*';
+        $search .= ' OR sys.phrase:I\\ 8*';
+        $search .= ' OR sys.phrase:I\\ 9*';
     }
     elsif ( $class->{classification} ) {
-        $search .= 'sys.phrase:"' . $class->{classification} . '*"';
+        $search .= 'sys.phrase:(' . $class->{classification} . '*)';
     }
 
     return $search;
