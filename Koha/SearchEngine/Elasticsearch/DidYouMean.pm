@@ -85,14 +85,19 @@ sub find {
                 if ( $suggestion =~ /_phrase$/ ) {
                     my $options = $results->{suggest}{$suggestion}[0]{options};
                     foreach my $option(@$options) {
-                        push @result, $option->{text} if ( ++$uniqResult{$option->{text}} == 1 && $option->{collate_match} );
+                        if ( $option->{collate_match} ) {
+                            my $suggtext = $option->{text};
+                            if (! ( exists($uniqResult{$suggtext}) && $uniqResult{$suggtext} > $option->{score} ) ) {
+                                $uniqResult{$suggtext} = $option->{score};
+                            }
+                        }
                     }
                 }
             }
         }
-        @result = sort { lc(NFD($a)) cmp lc(NFD($b)) } @result;
-        if ( scalar(@result) > $count ) {
-            splice @result, $count;
+        foreach my $option(reverse sort { $uniqResult{$a} <=> $uniqResult{$b} } keys(%uniqResult)) {
+            push @result, $option;
+            last if scalar(@result) >= $count;
         }
     }
 
@@ -121,7 +126,7 @@ sub _build_query {
     my $searchstring = $request->{text};
     return undef if (! defined $searchstring);
     
-    my $count = 3;
+    my $count = 4;
     
     if ( defined $request->{count} && $request->{count} =~ /^[0-9]+$/ && $request->{count} > 0 && $request->{count} < 20 ) {
         $count = $request->{count};
@@ -166,7 +171,7 @@ sub _build_query {
             {
                 phrase => {
                     field => "${field}.trigram",
-                    size  => $count,
+                    size  => 5,
                     gram_size => 3,
                     direct_generator => [ 
                         {
@@ -190,7 +195,7 @@ sub _build_query {
                         query => { 
                             source => {
                                 match_phrase => {
-                                    title => '{{suggestion}}'
+                                    "${field}" => '{{suggestion}}'
                                 }
                             }
                         },
