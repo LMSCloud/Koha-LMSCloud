@@ -38,14 +38,15 @@ sub get_suggestions {
         my @resultlist  = $didyoumean->find(
             {
                 'text' => $query->{'search'},
-                'count' => '5'
+                'count' => 4
             }
         );
+        my $scoresub = 0;
         foreach my $label(@resultlist) {
             push @results,
             {
                 'search'  => $label,
-                relevance => 100,
+                relevance => 100 + $scoresub++,
                 label => $label
             };
         }
