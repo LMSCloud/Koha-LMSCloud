@@ -25,6 +25,7 @@ use Capture::Tiny;
 use Koha::Plugins;
 use Text::Diff qw(diff);
 use URI::Escape;
+use Try::Tiny;
 
 BEGIN{ $| = 1; }
 
@@ -1229,7 +1230,7 @@ sub replaceModifierList {
     
     my %modifier;
     
-    print "Index ($index), modifier ($modifierlist), search ($searchstring) $quotionMark\n";
+    # print "Index ($index), modifier ($modifierlist), search ($searchstring) $quotionMark\n";
     # print "Modifier: \n";
     foreach my $mod( grep { $_ =~ s/(^\s+|\s+$)//; $_ ne '' } split(/(,|%2C)/,$modifierlist) ) {
         $modifier{$mod}=1;
@@ -1447,6 +1448,7 @@ sub replaceEntryPageContent {
     
     my $documentTree = getDocumentTree($value);
     my $changes = getElementsByName($documentTree, "img", \&addImageAltAttributeFromLegend);
+    my $addedCols = addMissingColOfRowElement($documentTree);
     $value = getDocumentFromTree($documentTree);
     
     return ($value,$changes);
@@ -1636,7 +1638,7 @@ sub addElementToDocumentTree {
     elsif (! $isEnd ) {
         my $newElement = { name => $tagname, type => 'elem', tree => [], parent => $elementTree, attributes => $attributes, attrcount => $attrnum, ended => 0, attradd => $attrtext, endfound => 0, spaceend => '' };
         push @{$elementTree->{tree}}, $newElement;
-        $follows =~ s/^[>]//;
+        $follows =~ s/^\s*[>]//;
         if ( $follows ) {
             push @{$newElement->{tree}}, { type => 'text', content => $follows };
         }
@@ -1661,7 +1663,7 @@ sub addElementToDocumentTree {
         if ( $found==0 && $tagname =~ /^head$/i ) {
             push @{$retElem->{tree}}, { type => 'text', content => $fullcontent };
         } else {
-            $follows =~ s/^[>]//;
+            $follows =~ s/^\s*[>]//;
             if ( defined($follows) ) {
                 push @{$retElem->{tree}}, { type => 'text', content => $follows };
             }
@@ -1726,6 +1728,63 @@ sub renameH3Element {
         $element->{name} = 'h2';
     }
     return 0;
+}
+
+sub addMissingColOfRowElement {
+    my ($element,$level) = @_;
+    
+    $level = 0 if (!$level);
+
+    my $added = 0;
+    if (    exists($element->{type}) && $element->{type} =~ /^(elem)$/ 
+         && exists($element->{name}) && $element->{name} =~ /^(div)$/i
+         && exists($element->{attributes}) 
+         && exists($element->{attributes}->{class}->{values}->{'row'})
+       ) 
+    {
+        my $hasCol = 0;
+        if ( exists($element->{tree}) && scalar($element->{tree}) > 0 ) {
+            foreach my $subentry (@{$element->{tree}}) {
+                if (    exists($subentry->{type}) && $element->{type} =~ /^(elem)$/ 
+                     && exists($subentry->{name}) && $element->{name} =~ /^(div)$/i
+                     && exists($subentry->{attributes})
+                   ) 
+                {
+                    foreach my $class( keys( %{$subentry->{attributes}->{class}->{values}} ) ) {
+                        $hasCol = 1 if ( $class =~ /^\s*col-/ || $class =~ /^\s*entry-page-col/ );
+                    }
+                }
+            }
+            if (! $hasCol ) {
+                my $newElement = { name => 'div', 
+                                   type => 'elem', 
+                                   tree => $element->{tree}, 
+                                   parent => $element, 
+                                   attributes => {}, 
+                                   attrcount => 0, 
+                                   ended => 0, 
+                                   attradd => '', 
+                                   endfound => 1, 
+                                   spaceend => '' };
+                $newElement->{attributes}->{class}->{values}->{'col-lg-12'} = 1;
+                $newElement->{attributes}->{class}->{values}->{'entry-page-col'} = 1;
+                $newElement->{attributes}->{class}->{value} = "col-lg-12 entry-page-col";
+                $newElement->{attrcount} += 1;
+                $newElement->{attributes}->{class}->{attrnumber} = $newElement->{attrcount};
+                $newElement->{attributes}->{class}->{singlequotes} = 0;
+                $newElement->{attributes}->{class}->{origvalue} = "col-lg-12 entry-page-col";
+                $element->{tree} = [$newElement];
+                $added++;
+            }
+        }
+    }
+    if ( exists($element->{tree}) && scalar($element->{tree}) > 0 ) {
+        $level++;
+        foreach my $subentry (@{$element->{tree}}) {
+            $added += addMissingColOfRowElement($subentry, $level);
+        }
+    }
+    return $added;
 }
 
 sub addImageAltAttributeFromLegend {
