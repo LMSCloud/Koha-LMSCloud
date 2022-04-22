@@ -189,8 +189,24 @@ th {
 .detail_linked_record_bibdata .title { 
     font-size: 100%; 
 }
+#news {
+    padding: 0em;
+}
+.newsheader {
+    background-color: #e2e2e2;
+    padding-left: 0.5em;
+    border-radius: 5px;
+    -moz-border-radius: 5px;
+    -webkit-border-radius: 5px;
+}
+.newsfooter {
+    color: #727272;
+    font-size: 75%;
+}
 .newsitem { 
     margin-bottom: 20px; 
+    padding: 1em;
+    overflow-x: scroll;
 }
 .newscontainer { 
     border: none; 
@@ -401,23 +417,6 @@ label.hotlink-entry {
 #results #didyoumean {
     display: none;
 }
-#news {
-    padding: 0em;
-}
-.newsitem {
-    padding: 0.8em;
-}
-.newsheader {
-    background-color: #e2e2e2;
-    text-indent: 0.5em;
-    border-radius: 5px;
-    -moz-border-radius: 5px;
-    -webkit-border-radius: 5px;
-}
-.newsfooter {
-    color: #727272;
-    font-size: 75%;
-}
 #bookcover img {
     max-height: 300px;
     max-width: 250px;
@@ -464,8 +463,4 @@ img {
 #bibtip_reclist {
     margin-top: 1rem;
     clear :left;
-}
-.newsitem {
-    padding: 1em;
-    overflow-x: scroll;
 }
