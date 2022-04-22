@@ -465,3 +465,7 @@ img {
     margin-top: 1rem;
     clear :left;
 }
+.newsitem {
+    padding: 1em;
+    overflow-x: scroll;
+}
