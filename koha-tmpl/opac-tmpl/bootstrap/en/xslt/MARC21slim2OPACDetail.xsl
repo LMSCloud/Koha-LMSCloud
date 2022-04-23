@@ -1067,7 +1067,7 @@
                 <xsl:for-each select="marc:subfield[@code='a' and text()]">
                     <xsl:variable name="wupidupi"><xsl:call-template name="url-encode"><xsl:with-param name="str" select="text()"/></xsl:call-template></xsl:variable>
                     <a>
-                        <xsl:attribute name="href">/cgi-bin/koha/opac-search.pl?q=sys.phrase:"<xsl:value-of select="$wupidupi"/>"</xsl:attribute>
+                        <xsl:attribute name="href">/cgi-bin/koha/opac-search.pl?q=sys.phrase:("<xsl:value-of select="$wupidupi"/>)"</xsl:attribute>
                         <xsl:call-template name="chopPunctuation">
                             <xsl:with-param name="chopString">
                                 <xsl:value-of select="text()"/>
