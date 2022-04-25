@@ -9,10 +9,10 @@
         "summary": "Get nearby items from itemnumber",
         "parameters": [
           {
-            "$ref": "../swagger.json#/parameters/item_id_pp"
+            "$ref": "../parameters.json#/item_id_pp"
           },
           {
-            "$ref": "../swagger.json#/parameters/nearby_items_quantity"
+            "$ref": "../parameters.json#/nearby_items_quantity"
           }
         ],
         "consumes": [
@@ -27,26 +27,26 @@
             "schema": {
               "type": "object",
               "items": {
-                "$ref": "../swagger.json#/definitions/nearby_items"
+                "$ref": "../definitions.json#/nearby_items"
               }
             }
           },
           "403": {
             "description": "Access forbidden",
             "schema": {
-              "$ref": "../swagger.json#/definitions/error"
+              "$ref": "../definitions.json#/error"
             }
           },
           "500": {
             "description": "Internal server error. Possible `error_code` attribute values:\n\n* `internal_server_error`\n",
             "schema": {
-              "$ref": "../swagger.json#/definitions/error"
+              "$ref": "../definitions.json#/error"
             }
           },
           "503": {
             "description": "Under maintenance",
             "schema": {
-              "$ref": "../swagger.json#/definitions/error"
+              "$ref": "../definitions.json#/error"
             }
           }
         },

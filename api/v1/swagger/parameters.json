@@ -73,7 +73,7 @@
     "description": "The number of items to be returned for each direction of itemcallnumers",
     "in": "query",
     "name": "quantity",
-    "required": "false",
+    "required": false,
     "type": "integer"
   },
   "order_by": {

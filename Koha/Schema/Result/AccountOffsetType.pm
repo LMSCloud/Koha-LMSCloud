@@ -29,8 +29,6 @@ __PACKAGE__->table("account_offset_types");
   is_nullable: 0
   size: 16
 
-The type of offset this is
-
 =cut
 
 __PACKAGE__->add_columns(
@@ -68,8 +66,8 @@ __PACKAGE__->has_many(
 );
 
 
-# Created by DBIx::Class::Schema::Loader v0.07049 @ 2021-01-21 13:39:29
-# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:HGUopAaOUF8FcmqQjIrRiw
+# Created by DBIx::Class::Schema::Loader v0.07049 @ 2022-04-19 10:45:36
+# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:HmjrfkQaWIaNqKxkG7U7Dg
 
 
 # You can replace this text with custom code or comments, and it will be preserved on regeneration
