@@ -1117,9 +1117,7 @@
         }
         async checkIfFileExists(resourceInQuestion) {
             try {
-                console.log('fetching..');
                 const response = await Data.fetchWithTimeout(resourceInQuestion, { method: 'GET', mode: 'cors'});
-                console.log(response);
                 return response.ok;
             }
             catch (error) {
