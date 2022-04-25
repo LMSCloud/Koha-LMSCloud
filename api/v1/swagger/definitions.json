@@ -74,6 +74,9 @@
   "item": {
     "$ref": "definitions/item.json"
   },
+  "nearby_items": {
+    "$ref": "definitions/nearby_items.json"
+  },
   "order": {
     "$ref": "definitions/order.json"
   },

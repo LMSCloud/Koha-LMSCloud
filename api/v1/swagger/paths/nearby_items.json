@@ -1,0 +1,60 @@
+{
+    "/nearby_items/{item_id}": {
+      "get": {
+        "x-mojo-to": "NearbyItems#get",
+        "operationId": "getNearbyItems",
+        "tags": [
+          "nearby_items"
+        ],
+        "summary": "Get nearby items from itemnumber",
+        "parameters": [
+          {
+            "$ref": "../swagger.json#/parameters/item_id_pp"
+          },
+          {
+            "$ref": "../swagger.json#/parameters/nearby_items_quantity"
+          }
+        ],
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {
+            "description": "An object that contains nearby items and additional metadata about the selection",
+            "schema": {
+              "type": "object",
+              "items": {
+                "$ref": "../swagger.json#/definitions/nearby_items"
+              }
+            }
+          },
+          "403": {
+            "description": "Access forbidden",
+            "schema": {
+              "$ref": "../swagger.json#/definitions/error"
+            }
+          },
+          "500": {
+            "description": "Internal server error. Possible `error_code` attribute values:\n\n* `internal_server_error`\n",
+            "schema": {
+              "$ref": "../swagger.json#/definitions/error"
+            }
+          },
+          "503": {
+            "description": "Under maintenance",
+            "schema": {
+              "$ref": "../swagger.json#/definitions/error"
+            }
+          }
+        },
+        "x-koha-authorization": {
+          "permissions": {
+            "catalogue": "1"
+          }
+        }
+      }
+    }
+  }

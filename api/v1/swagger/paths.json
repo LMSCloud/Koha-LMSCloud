@@ -122,6 +122,9 @@
   "/advanced_editor/macros/shared/{advancededitormacro_id}": {
     "$ref": "paths/advancededitormacros.json#/~1advanced_editor~1macros~1shared~1{advancededitormacro_id}"
   },
+  "/nearby_items/{item_id}": {
+    "$ref": "paths/nearby_items.json#/~nearby_items~1{item_id}"
+  },
   "/patrons": {
     "$ref": "paths/patrons.json#/~1patrons"
   },
