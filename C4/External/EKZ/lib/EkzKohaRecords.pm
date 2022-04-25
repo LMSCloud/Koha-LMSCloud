@@ -1864,7 +1864,7 @@ sub checkAqbudget {
 
     my $query_period = "SELECT * FROM aqbudgetperiods p ";
     $query_period .= " WHERE p.budget_period_active = 1 ";
-    $query_period .= " AND p.budget_period_locked = 0 ";
+    $query_period .= " AND (p.budget_period_locked = 0 OR p.budget_period_locked IS NULL) ";    # The Koha staff interface creates new aqbudgetperiods records with budget_period_locked NULL, also meaning 'not locked'.
     if ( $ret_budget_period_description ) {
         $query_period .= " AND p.budget_period_description = '$ret_budget_period_description' ";
     } else {
