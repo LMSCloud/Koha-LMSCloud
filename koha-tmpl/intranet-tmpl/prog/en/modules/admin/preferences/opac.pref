@@ -669,7 +669,13 @@ OPAC:
             - "<br>Examples:"
             - "<br>&lt;a class=&quot;dropdown-item&quot; href=&quot;http://www.buch.de/shop/home/suche/?sq={EAN}&quot; title=&quot;Buy the book at Buch.de shop&quot;&gt;Buch.de&lt;/a&gt;"
             - "<br>&lt;a class=&quot;dropdown-item&quot; href=&quot;http://www.amazon.de/gp/search?k={EAN}&quot; title=&quot;Buy the book at Amazon shop&quot;&gt;Amazon&lt;/a&gt;"
-            
+        -
+            - 'Provide "Did you mean?" suggestions only for OPAC searches with less than '
+            - pref: DidYouMeanMaxResultCount
+              class: integer
+            - " search results. If a search result count reaches the limit, it's assumed that a OPAC user got sufficient qualified results and does not need alternativ search suggestions."
+            - '<br />Leave the value empty or set to 0 to look always for suggestions of activated "Did you mean?" sources.'
+            - '<br />Configure <a href="/cgi-bin/koha/admin/didyoumean.pl">"Did you mean?" sources here</a>.'
     OpenURL:
         -
             - 'Complete URL of OpenURL resolver (starting with <code>http://</code> or <code>https://</code>):'

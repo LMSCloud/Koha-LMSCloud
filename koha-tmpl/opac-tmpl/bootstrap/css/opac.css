@@ -189,8 +189,24 @@ th {
 .detail_linked_record_bibdata .title { 
     font-size: 100%; 
 }
+#news {
+    padding: 0em;
+}
+.newsheader {
+    background-color: #e2e2e2;
+    padding-left: 0.5em;
+    border-radius: 5px;
+    -moz-border-radius: 5px;
+    -webkit-border-radius: 5px;
+}
+.newsfooter {
+    color: #727272;
+    font-size: 75%;
+}
 .newsitem { 
     margin-bottom: 20px; 
+    padding: 1em;
+    overflow-x: scroll;
 }
 .newscontainer { 
     border: none; 
@@ -270,6 +286,20 @@ legend.entrypage-legend {
 label.classifcation-entry {
 	text-indent: -7px;
 	padding-left: 15px;
+	display: block;
+}
+.link-collection-collapse-entries > label.link-page-entry {
+        text-indent: 0px;
+}
+#kidsinternet > div {
+    padding-bottom: 20px;
+    padding-left: 7px;
+    padding-right: 7px;
+}
+.ui-tabs-panel legend {
+    border-bottom: 1px solid #e5e5e5;
+    margin-bottom: 20px;
+    padding-bottom: 10px;
 }
 label.link-page-entry {
 	text-indent: -7px;
@@ -386,23 +416,6 @@ label.hotlink-entry {
 }
 #results #didyoumean {
     display: none;
-}
-#news {
-    padding: 0em;
-}
-.newsitem {
-    padding: 0.8em;
-}
-.newsheader {
-    background-color: #e2e2e2;
-    text-indent: 0.5em;
-    border-radius: 5px;
-    -moz-border-radius: 5px;
-    -webkit-border-radius: 5px;
-}
-.newsfooter {
-    color: #727272;
-    font-size: 75%;
 }
 #bookcover img {
     max-height: 300px;

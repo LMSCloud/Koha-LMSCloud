@@ -24,7 +24,8 @@ use File::Temp;
 use Capture::Tiny;
 use Koha::Plugins;
 use Text::Diff qw(diff);
-
+use URI::Escape;
+use Try::Tiny;
 
 BEGIN{ $| = 1; }
 
@@ -39,10 +40,12 @@ updateHiddenColumnsSettings();
 updateSimpleVariables();
 updateMoreSearchesContent();
 updateEntryPages();
+updateSystematikBrowserExcludes();
 updateOverwrittenOPACBrowserTemplates($instance);
 updateVariablesInNewsTexts();
 updateSidebarLinks();
 updateOPACUserJS();
+fixCatalogRecordsWithControlCharacters();
 rebuildElasticSearchIndex();
 createSIPEnabledFile($instance);
 updateIntranetMainUserBlock();
@@ -1176,6 +1179,9 @@ sub updateSimpleVariables {
     $dbh->do(q{UPDATE marc_subfield_structure SET hidden='0' WHERE tagfield IN ('336','337','338') AND tagsubfield='2' AND frameworkcode = ''});
     $dbh->do(q{UPDATE marc_subfield_structure SET hidden='0' WHERE tagfield IN ('336','337','338') AND tagsubfield='a' AND frameworkcode = ''});
     $dbh->do(q{UPDATE marc_subfield_structure SET hidden='0' WHERE tagfield IN ('336','337','338') AND tagsubfield='b' AND frameworkcode = ''});
+    
+    $dbh->do(q{UPDATE z3950servers SET host='https://services.dnb.de', port=443 WHERE host = 'services.dnb.de' AND port=80});
+    $dbh->do(q{UPDATE z3950servers SET host='https://services.dnb.de', port=443 WHERE host = 'dnbsearch.lmscloud.net' AND port=80});
 }
 
 sub updateSidebarLinks {
@@ -1225,6 +1231,7 @@ sub replaceModifierList {
     my %modifier;
     
     # print "Index ($index), modifier ($modifierlist), search ($searchstring) $quotionMark\n";
+    # print "Modifier: \n";
     foreach my $mod( grep { $_ =~ s/(^\s+|\s+$)//; $_ ne '' } split(/(,|%2C)/,$modifierlist) ) {
         $modifier{$mod}=1;
     }
@@ -1233,30 +1240,39 @@ sub replaceModifierList {
     
     if ( ((defined $modifier{ltrn} && defined $modifier{rtrn}) || defined $modifier{lrtrn} ) && (defined $modifier{phr} || defined $modifier{'first-in-subfield'}) && defined $modifier{ext} ) {
         $searchstring = replaceWhitespaceInPhraseSearchKeepingTTSyntax($searchstring);
-        $searchstring = '*' . $searchstring . '*';
+        $searchstring = '(*' . $searchstring . '*)';
         $index .= '.phrase';
     }
     elsif ( defined $modifier{rtrn} && (defined $modifier{phr} || defined $modifier{'first-in-subfield'}) ) {
-        $searchstring = replaceWhitespaceInPhraseSearchKeepingTTSyntax($searchstring);
-        $searchstring .= '*';
+        $searchstring = '(' . replaceWhitespaceInPhraseSearchKeepingTTSyntax($searchstring) . '*)';
         $index .= '.phrase';
     }
     elsif ( defined $modifier{ltrn} && (defined $modifier{phr} || defined $modifier{'first-in-subfield'}) ) {
         $searchstring =~ replaceWhitespaceInPhraseSearchKeepingTTSyntax($searchstring);
-        $searchstring = '*' . $searchstring;
+        $searchstring = '(*' . $searchstring . ')';
         $index .= '.phrase';
     }
     elsif ( (defined $modifier{phr} || defined $modifier{'first-in-subfield'}) && defined $modifier{ext} ) {
-        $searchstring = "$quotionMark$searchstring$quotionMark";
+        $searchstring = "($searchstring)";
         $index .= '.phrase';
     }
     elsif ( defined $modifier{'first-in-subfield'} ) {
         $searchstring = replaceWhitespaceInPhraseSearchKeepingTTSyntax($searchstring);
-        $searchstring = '*' . $searchstring . '*';
+        $searchstring = '(*' . $searchstring . '*)';
         $index .= '.phrase';
     }
     elsif ( defined $modifier{phr} ) {
         $searchstring = "($searchstring)";
+        $index .= '.phrase';
+    }
+    elsif ( defined $modifier{lrtrn} || (defined $modifier{rtrn} && defined $modifier{ltrn}) ) {
+        $searchstring = "(*$searchstring*)";
+    }
+    elsif ( defined $modifier{rtrn} ) {
+        $searchstring = "($searchstring*)";
+    }
+    elsif ( defined $modifier{ltrn} ) {
+        $searchstring = "(*$searchstring)";
     }
     elsif ( (defined $modifier{'st-numeric'} || defined $modifier{'st-date-normalized'} || defined $modifier{'st-date'}) || defined $modifier{ge} || defined $modifier{gt} || defined $modifier{le} || defined $modifier{lt} ) {
         if ( defined $modifier{ge} ) {
@@ -1275,19 +1291,25 @@ sub replaceModifierList {
             $searchstring = "($searchstring)";
         }
     }
-    elsif( $quotionMark && $searchstring =~ /\s/ ) {
+    elsif( $quotionMark || $searchstring =~ /\s/ ) {
         $searchstring = "($searchstring)";
     }
     
+    if ($index eq 'kw') {
+        return "$searchstring";
+    }
+    $searchstring =~ s/^\(kw/( kw/;
     return "$index:$searchstring";
 }
 
 sub updateQuery {
     my $query = shift;
     
+    $query = uri_unescape($query);
     $query =~ s/(\s+(and|or|not)\s+)/uc($1)/seg;
     $query =~ s/=/:/sg;
-    $query =~ s/(^|\W|\()([a-zA-Z][a-z0-9A-Z-]*)(((\,|%2[Cc])(wrdl|ext|phr|rtrn|ltrn|st-numeric|gt|ge|lt|le|eq|st-date-normalized|st-date|startswithnt|first-in-subfield))*)([:=]|%3[Aa])\s*(["][^"]+["]|&quot;(?:(?!("|&quot;)).)*&quot;|['][^']+[']|[^\s\(\)]+)/$1.replaceModifierList($2,$3,$8)/eg;
+   #$query =~ s/(^|\W|\()([a-zA-Z][a-z0-9A-Z-]*)(((\,|%2[Cc])(wrdl|ext|phr|rtrn|lrtrn|ltrn|st-numeric|gt|ge|lt|le|eq|st-date-normalized|st-date|startswithnt|first-in-subfield))*)([:=]|%3[Aa])\s*(["][^"]+["]|&quot;(?:(?!("|&quot;)).)*&quot;|['][^']+[']|[^\s\(\)]+)/$1.replaceModifierList($2,$3,$8)/eg;
+    $query =~ s/(^|\W|\()([a-zA-Z][a-z0-9A-Z-]*)(((\,|%2[Cc])(wrdl|ext|phr|rtrn|lrtrn|ltrn|st-numeric|gt|ge|lt|le|eq|st-date-normalized|st-date|startswithnt|first-in-subfield))*)([:=]|%3[Aa])\s*(["][^"]+["]|&quot;(?:(?!("|&quot;)).)*&quot;|['][^']+[']|([^\s\(\)]+(\s+(?:(?!("|&quot;|AND|OR|NOT|\)|\s)).)+)*))/$1.replaceModifierList($2,$3,$8)/eg;
     
     # rtrn : right truncation
     # ltrn : left truncation
@@ -1299,6 +1321,24 @@ sub updateQuery {
     # startswithnt : subfield starts with
 
     return $query;
+}
+
+sub updateSystematikBrowserExcludes {
+    my $updatedSystematikBrowserExcludes = 0;
+	my $updateExcludes = {};
+    my $dbh = C4::Context->dbh;
+    my $sth = $dbh->prepare(q{SELECT classification, exclude FROM browser WHERE exclude <> ''});
+    $sth->execute;
+    while ( my ($classification,$exclude) = $sth->fetchrow ) {
+        if ( ! exists($updateExcludes->{$exclude}) ) {
+            $updateExcludes->{$exclude} = updateQuery($exclude);
+        }
+        if ( $exclude ne $updateExcludes->{$exclude} ) {
+            $dbh->do("UPDATE browser SET exclude=? WHERE classification=? AND exclude=?", undef, $updateExcludes->{$exclude}, $classification, $exclude);
+            $updatedSystematikBrowserExcludes++;
+        }
+    }
+    print "$updatedSystematikBrowserExcludes taxonomy browser exclude values updated.\n" if ($updatedSystematikBrowserExcludes);
 }
 
 sub updateEntryPages {
@@ -1408,6 +1448,7 @@ sub replaceEntryPageContent {
     
     my $documentTree = getDocumentTree($value);
     my $changes = getElementsByName($documentTree, "img", \&addImageAltAttributeFromLegend);
+    my $addedCols = addMissingColOfRowElement($documentTree);
     $value = getDocumentFromTree($documentTree);
     
     return ($value,$changes);
@@ -1534,6 +1575,7 @@ sub updateOPACUserJS {
         $value =~ s/\.brand/'.navbar-brand'/esg;
         $value =~ s/\.navbar-inner/'#cart-list-nav'/esg;
         $value =~ s/\.mastheadsearch/'#opac-main-search'/esg;
+        $value =~ s/((\#translControl1|\.transl1)[^{]+\{.*\s+width:\s*)([0-9]+)%/"${1}100%"/esg;
 
         if ( $origvalue ne $value ) {
             $dbh->do("UPDATE systempreferences SET value=? WHERE variable=?", undef, $value, $variable);
@@ -1596,7 +1638,7 @@ sub addElementToDocumentTree {
     elsif (! $isEnd ) {
         my $newElement = { name => $tagname, type => 'elem', tree => [], parent => $elementTree, attributes => $attributes, attrcount => $attrnum, ended => 0, attradd => $attrtext, endfound => 0, spaceend => '' };
         push @{$elementTree->{tree}}, $newElement;
-        $follows =~ s/^[>]//;
+        $follows =~ s/^\s*[>]//;
         if ( $follows ) {
             push @{$newElement->{tree}}, { type => 'text', content => $follows };
         }
@@ -1621,7 +1663,7 @@ sub addElementToDocumentTree {
         if ( $found==0 && $tagname =~ /^head$/i ) {
             push @{$retElem->{tree}}, { type => 'text', content => $fullcontent };
         } else {
-            $follows =~ s/^[>]//;
+            $follows =~ s/^\s*[>]//;
             if ( defined($follows) ) {
                 push @{$retElem->{tree}}, { type => 'text', content => $follows };
             }
@@ -1686,6 +1728,63 @@ sub renameH3Element {
         $element->{name} = 'h2';
     }
     return 0;
+}
+
+sub addMissingColOfRowElement {
+    my ($element,$level) = @_;
+    
+    $level = 0 if (!$level);
+
+    my $added = 0;
+    if (    exists($element->{type}) && $element->{type} =~ /^(elem)$/ 
+         && exists($element->{name}) && $element->{name} =~ /^(div)$/i
+         && exists($element->{attributes}) 
+         && exists($element->{attributes}->{class}->{values}->{'row'})
+       ) 
+    {
+        my $hasCol = 0;
+        if ( exists($element->{tree}) && scalar($element->{tree}) > 0 ) {
+            foreach my $subentry (@{$element->{tree}}) {
+                if (    exists($subentry->{type}) && $element->{type} =~ /^(elem)$/ 
+                     && exists($subentry->{name}) && $element->{name} =~ /^(div)$/i
+                     && exists($subentry->{attributes})
+                   ) 
+                {
+                    foreach my $class( keys( %{$subentry->{attributes}->{class}->{values}} ) ) {
+                        $hasCol = 1 if ( $class =~ /^\s*col-/ || $class =~ /^\s*entry-page-col/ );
+                    }
+                }
+            }
+            if (! $hasCol ) {
+                my $newElement = { name => 'div', 
+                                   type => 'elem', 
+                                   tree => $element->{tree}, 
+                                   parent => $element, 
+                                   attributes => {}, 
+                                   attrcount => 0, 
+                                   ended => 0, 
+                                   attradd => '', 
+                                   endfound => 1, 
+                                   spaceend => '' };
+                $newElement->{attributes}->{class}->{values}->{'col-lg-12'} = 1;
+                $newElement->{attributes}->{class}->{values}->{'entry-page-col'} = 1;
+                $newElement->{attributes}->{class}->{value} = "col-lg-12 entry-page-col";
+                $newElement->{attrcount} += 1;
+                $newElement->{attributes}->{class}->{attrnumber} = $newElement->{attrcount};
+                $newElement->{attributes}->{class}->{singlequotes} = 0;
+                $newElement->{attributes}->{class}->{origvalue} = "col-lg-12 entry-page-col";
+                $element->{tree} = [$newElement];
+                $added++;
+            }
+        }
+    }
+    if ( exists($element->{tree}) && scalar($element->{tree}) > 0 ) {
+        $level++;
+        foreach my $subentry (@{$element->{tree}}) {
+            $added += addMissingColOfRowElement($subentry, $level);
+        }
+    }
+    return $added;
 }
 
 sub addImageAltAttributeFromLegend {
@@ -2509,12 +2608,16 @@ sub createSIPEnabledFile {
     my $instance = shift;
     my $libfile = "/var/lib/koha/$instance/sip.enabled" ;
     
-    if ( -f "/etc/koha/sites/$instance/SIPconfig.xml" && ! -f $libfile )  {
-        open(my $fh, "<", $libfile);
-        close($fh);
-        my ($login,$pass,$uid,$gid) = getpwnam("$instance-koha");
-        chown $uid, $gid, $libfile;
-        chmod 0644, $libfile;
+    if ( -f "/etc/koha/sites/$instance/SIPconfig.xml" ) {
+		print "Found SIP config file for instance $instance.\n";
+		if ( ! -f $libfile )  {
+			open(my $fh, ">", $libfile);
+			close($fh);
+			my ($login,$pass,$uid,$gid) = getpwnam("$instance-koha");
+			chown $uid, $gid, $libfile;
+			chmod 0644, $libfile;
+			print "Enabled SIP creating the file $libfile.\n";
+		}
     }
 }
 
@@ -3706,4 +3809,37 @@ sub updateMarcMappings {
             }
         }
     }
+}
+
+sub fixCatalogRecordsWithControlCharacters {
+    print "Fix catalog record data containing control characters.\n";
+    my $metadata = Koha::Biblio::Metadatas->search( { }, { order_by => { -asc => 'biblionumber' } } );
+    while ( my $bibrecord = $metadata->next() ) {
+        try {
+            my $record = $bibrecord->record;
+        }
+        catch {
+            if ( $_->isa('Koha::Exceptions::Metadata::Invalid') ) {
+                my $xmlstring = $bibrecord->metadata;
+                
+                my $fixed = 0;
+                if ( $xmlstring ) {
+                    $xmlstring =~ tr/\x00-\x08\x0B\x0C\x0E-\x19//d;
+                    if ( $xmlstring ne $bibrecord->metadata ) {
+                        my $replcnt = length($bibrecord->metadata)-length($xmlstring);
+                        if ( $replcnt > 0 ) {
+                            $bibrecord->metadata($xmlstring)->store();
+                            print "Updated catalog record ", $bibrecord->biblionumber, ". $replcnt control charcaters removed.\n";
+                            $fixed = 1;
+                        }
+                    }
+                }
+                if ( ! $fixed ) {
+                    print $bibrecord->biblionumber,"\n";
+                    print "Error loading metadata record ", $_->full_message, "\n";
+                }
+            }
+        }
+    }
+    print "Finished: fix catalog record data containing control characters.\n";
 }

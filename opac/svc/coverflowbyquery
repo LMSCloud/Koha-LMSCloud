@@ -1,0 +1,62 @@
+#!/usr/bin/perl
+
+# Copyright 2022 LMSCloud GmbH
+#
+# This file is part of Koha.
+#
+# Koha is free software; you can redistribute it and/or modify it
+# under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 3 of the License, or
+# (at your option) any later version.
+#
+# Koha is distributed in the hope that it will be useful, but
+# WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with Koha; if not, see <http://www.gnu.org/licenses>.
+
+=head1 DESCRIPTION
+
+Return catalogue data that is needed to support coverflows in Koha.
+
+=cut
+
+use Modern::Perl;
+
+use CGI qw ( -utf8 );
+
+use C4::Context;
+use C4::Auth;
+use C4::Output;
+use C4::CoverFlowData qw(GetCoverFlowDataByQueryString);
+
+
+my @bibids;
+
+my $cgi = CGI->new;
+my $query = $cgi->param('query');
+my $offset = $cgi->param('offset');
+my $maxcount = $cgi->param('maxcount');
+
+my ( $template, $borrowernumber, $cookie ) = get_template_and_user(
+    {
+        template_name   => "svc/coverflowbyquery.tt",
+        query           => $cgi,
+        type            => "opac",
+        authnotrequired => ( C4::Context->preference("OpacPublic") ? 1 : 0 ),
+    }
+);
+
+my $coverdata = GetCoverFlowDataByQueryString($query,$offset,$maxcount);
+
+$template->param(
+    count => (exists($coverdata->{count}) ? $coverdata->{count} : 0),
+    totalcount => (exists($coverdata->{totalcount}) ? $coverdata->{totalcount} : 0),
+    offset => (exists($coverdata->{totalcount}) ? $coverdata->{offset} : 0),
+    query => (exists($coverdata->{totalcount}) ? $coverdata->{query} : 0),
+    items => (exists($coverdata->{items}) ? $coverdata->{items} : ()),
+);
+
+output_with_http_headers $cgi, $cookie, $template->output, 'json';

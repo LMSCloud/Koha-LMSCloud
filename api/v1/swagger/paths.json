@@ -20,7 +20,7 @@
   "/authorised_values": {
     "$ref": "paths/authorised_values.json#/~1authorised_values"
   },
-  "/acquisitions/funds": {
+  "/acquisitions/funds": { 
     "$ref": "paths/acquisitions_funds.json#/~1acquisitions~1funds"
   },
   "/biblios/{biblio_id}": {
@@ -121,6 +121,9 @@
   },
   "/advanced_editor/macros/shared/{advancededitormacro_id}": {
     "$ref": "paths/advancededitormacros.json#/~1advanced_editor~1macros~1shared~1{advancededitormacro_id}"
+  },
+  "/nearby_items/{item_id}": {
+    "$ref": "paths/nearby_items.json#/~1nearby_items~1{item_id}"
   },
   "/patrons": {
     "$ref": "paths/patrons.json#/~1patrons"

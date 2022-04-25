@@ -21786,6 +21786,7 @@ if( CheckVersion( $DBversion ) ) {
         FROM library_groups
         WHERE title IN ('__SUCHGRUPPEN__','__KONFIGURATIONSGRUPPEN__') AND parent_id IS NULL
     |, { Slice => {} });
+
     foreach my $parent_group ( @$parent_groups ) {
         $dbh->do(q|
             UPDATE library_groups
@@ -21796,8 +21797,32 @@ if( CheckVersion( $DBversion ) ) {
             DELETE FROM library_groups WHERE id = ?
         |, undef, $parent_group->{id});
     }
+    
+    if ( scalar(@$parent_groups) != 2 ) {
+        $parent_groups = $dbh->selectall_arrayref(q|
+            SELECT lg1.id, lg1.ft_search_groups_opac, lg1.ft_search_groups_staff
+            FROM library_groups lg1, library_groups lg2, library_groups lg3, branches br
+            WHERE lg1.parent_id IS NULL 
+              AND lg1.branchcode IS NULL
+              AND lg2.parent_id = lg1.id
+              AND lg2.branchcode IS NULL
+              AND lg3.parent_id = lg2.id 
+              AND lg3.branchcode = br.branchcode
+            GROUP BY lg1.id, lg1.ft_search_groups_opac, lg1.ft_search_groups_staff
+        |, { Slice => {} });
+        foreach my $parent_group ( @$parent_groups ) {
+            $dbh->do(q|
+                UPDATE library_groups
+                SET parent_id = NULL, ft_search_groups_opac = ?, ft_search_groups_staff = ?
+                WHERE parent_id = ?
+            |, undef, $parent_group->{ft_search_groups_opac}, $parent_group->{ft_search_groups_staff}, $parent_group->{id});
+            $dbh->do(q|
+                DELETE FROM library_groups WHERE id = ?
+            |, undef, $parent_group->{id});
+        }
+    }
 
-    NewVersion( $DBversion, 22284, 'Add ft_local_hold_group column to library_groups' );
+    NewVersion( $DBversion, 22284, 'Add ft_local_hold_group column to library_groups and remove top level groups.' );
 }
 
 $DBversion = '19.12.00.004';
@@ -26467,6 +26492,16 @@ if( CheckVersion( $DBversion ) ) {
 $DBversion = '21.05.13.000';
 if( CheckVersion( $DBversion ) ) {
     NewVersion( $DBversion, "", "Koha 21.05.13 release" );
+}
+
+$DBversion = '21.05.13.001';
+if( CheckVersion( $DBversion ) ) {
+    $dbh->do(q{ 
+        INSERT IGNORE INTO `systempreferences` VALUES 
+                ('DidYouMeanMaxResultCount','20',NULL,'Maximum number of opac search result records to display a DidYouMean suggestions. Leave empty or set to 0 to look always for suggestions of activated DidYouMean sources.','Integer')
+        });
+    
+    NewVersion( $DBversion, "", "Add system preference DidYouMeanMaxResultCount.");
 }
 
 # SEE bug 13068

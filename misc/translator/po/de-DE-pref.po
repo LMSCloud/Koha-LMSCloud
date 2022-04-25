@@ -3,7 +3,7 @@ msgstr ""
 "Project-Id-Version: Koha 21.05\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2013-05-16 03:26+0200\n"
-"PO-Revision-Date: 2022-03-10 13:23+0100\n"
+"PO-Revision-Date: 2022-04-23 19:15+0200\n"
 "Last-Translator: Katrin Fischer <katrin.fischer@bsz-bw.de>\n"
 "Language-Team: \n"
 "Language: de\n"
@@ -10407,6 +10407,41 @@ msgstr "Deaktiviere"
 # OPAC > Appearance
 msgid "opac.pref#COinSinOPACResults# Include"
 msgstr "Aktiviere"
+
+# OPAC > Features > DidYouMeanMaxResultCount
+msgid ""
+"opac.pref#DidYouMeanMaxResultCount#  search results. If a search result "
+"count reaches the limit, it's assumed that a OPAC user got sufficient "
+"qualified results and does not need alternativ search suggestions."
+msgstr ""
+" ist. Liegt die Trefferanzahl über diesem Wert, wird angenommen, dass der "
+"OPAC-Benutzer ausreichend qualifizierte Treffer erhalten hat und daher keine "
+"alternativen Vorschläge benötigt."
+
+# OPAC > Features > DidYouMeanMaxResultCount
+msgid ""
+"opac.pref#DidYouMeanMaxResultCount# <br />Configure <a href=\"/cgi-bin/koha/"
+"admin/didyoumean.pl\">\"Did you mean?\" sources here</a>."
+msgstr ""
+"<br />Konfiguriere <a href=\"/cgi-bin/koha/admin/didyoumean.pl\">\"Meinten "
+"Sie?\"-Plugins hier</a>."
+
+# OPAC > Features > DidYouMeanMaxResultCount
+msgid ""
+"opac.pref#DidYouMeanMaxResultCount# <br />Leave the value empty or set to 0 "
+"to look always for suggestions of activated \"Did you mean?\" sources."
+msgstr ""
+"<br />Um aktivierte \"Meinten Sie?\"-Plugins immer auf alternative "
+"Suchvorschläge zu prüfen, lassen Sie das Feld leer oder setzen Sie den Wert "
+"auf 0."
+
+# OPAC > Features > DidYouMeanMaxResultCount
+msgid ""
+"opac.pref#DidYouMeanMaxResultCount# Provide \"Did you mean?\" suggestions "
+"only for OPAC searches with less than "
+msgstr ""
+"Erzeuge \"Meinten Sie?\"-Vorschläge nur, wenn die Anzahl der Treffer einer "
+"Suche im OPAC kleiner oder gleich "
 
 # OPAC > Appearance
 msgid "opac.pref#DisplayOPACiconsXSLT# Don't show"

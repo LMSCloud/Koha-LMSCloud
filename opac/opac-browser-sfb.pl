@@ -279,10 +279,10 @@ sub createSearchString {
     
     if ( $class->{prefix} && $class->{prefix} eq 'JUGMUS' ) {
         if ( $class->{level} && $class->{level} == 1 ) {
-            $search .= 'su:"Jugend Musiziert" and su:"Grad*"';
+            $search .= 'su:(Jugend Musiziert) and su:(Grad*)';
         }
         elsif ( $class->{level} && $class->{level} =~ /^(3|4)$/ && $class->{classval} ) {
-            $search .= 'su:"Jugend Musiziert ' . $class->{classval} . '"';
+            $search .= 'su:(Jugend Musiziert ' . $class->{classval} . ')';
         }
         return $search;
     }
@@ -290,35 +290,35 @@ sub createSearchString {
     if ( $class->{prefix} && $class->{prefix} eq 'NOTEN' && $class->{classification} ) {
         my $sval = $class->{classification};
         $sval =~ s/^(NOTEN \/ [A-Y])([^O]?)/$1.'O'.($2 ? $2 : '')/e;
-        $search .= 'sys.phrase:"' . $class->{classification} . '*"';
-        $search .= ' or sys.phrase:"' . $sval . '*"' if ( $sval ne $class->{classification});
+        $search .= 'sys.phrase:(' . $class->{classification} . '*)';
+        $search .= ' OR sys.phrase:(' . $sval . '*)' if ( $sval ne $class->{classification});
         return $search;
     }
     if ( $class->{prefix} && $class->{prefix} eq 'MUSIK' && $class->{classification} ) {
-        $search .= 'sys.phrase:"' . $class->{classification} . '*"';
+        $search .= 'sys.phrase:(' . $class->{classification} . '*)';
         return $search;
     }
     
     if ( $class->{classification} =~ /,[0-9]$/ ) {
-        $search .= 'sys.phrase:"' . $class->{classification} . '*"';
+        $search .= 'sys.phrase:(' . $class->{classification} . '*)';
         return $search;
     }
     if ( $class->{prefix} ) {
-        $search .= ' and ' if ( $search ne '' );
-        $search .= 'sys.phrase:"' . $class->{prefix} . '*"';
+        $search .= ' AND ' if ( $search ne '' );
+        $search .= 'sys.phrase:(' . $class->{prefix} . '*)';
     }
     
     if ( $class->{classval} ) {
-        $search .= ' and ' if ( $search ne '' );
-        $search .= 'sysc:"' . $class->{classval} . '"';
+        $search .= ' AND ' if ( $search ne '' );
+        $search .= 'sysc:(' . $class->{classval} . ')';
     }
     
     if ( $class->{startrange} && $class->{endrange} ) {
-        $search .= ' and ' if ( $search ne '' );
-        $search .= 'sysn:(>=' . $class->{startrange} . ') and sysn:(<=' . $class->{endrange}. ')';
+        $search .= ' AND ' if ( $search ne '' );
+        $search .= 'sysn:(>=' . $class->{startrange} . ') AND sysn:(<=' . $class->{endrange}. ')';
     }
     elsif ( $class->{startrange} ) {
-        $search .= ' and ' if ( $search ne '' );
+        $search .= ' AND ' if ( $search ne '' );
         $search .= 'sysn:(' . $class->{startrange}. ')';
     }
     if ( $class->{exclude} ) {
