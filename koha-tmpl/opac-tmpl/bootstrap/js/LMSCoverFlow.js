@@ -323,6 +323,7 @@
                 `
                 0% {width: 0; height: 0;}
                 100% {width: 2rem; height: 2rem; font-size: medium; visibility: visible;}
+
                 `,
             ],
             [
@@ -342,7 +343,7 @@
     function setRaiseShadowOnHover(container) {
         const RAISE_SHADOW_ONHOVER = [
             [
-                '.lcfItemContainer:hover',
+                '.lcfFlipCard:hover',
                 `
               -webkit-box-shadow: 0px 5px 15px 3px rgba(0,0,0,0.1);
               box-shadow: 0px 5px 15px 3px rgba(0,0,0,0.1);
@@ -509,6 +510,7 @@
                 overflow-y: hidden;
                 padding: ${config.coverFlowContainerPadding};
                 margin: ${config.coverFlowContainerMargin};
+
                 position: relative;
                 `,
                 ],
@@ -563,6 +565,7 @@
     -ms-flex-item-align: center;
     -ms-grid-row-align: center;
     align-self: center;
+
     background: #343a40;
     color: #fff;
     border-radius: 50%;
@@ -1101,9 +1104,20 @@
             }
             return url.protocol === 'http:' || url.protocol === 'https:';
         }
+        static async fetchWithTimeout(resource, options = {}) {
+            const { timeout = 5000 } = options;
+            const controller = new AbortController();
+            const id = setTimeout(() => controller.abort(), timeout);
+            const response = await fetch(resource, {
+                ...options,
+                signal: controller.signal,
+            });
+            clearTimeout(id);
+            return response;
+        }
         async checkIfFileExists(resourceInQuestion) {
             try {
-                const response = await fetch(resourceInQuestion, { method: 'GET', mode: 'cors' });
+                const response = await Data.fetchWithTimeout(resourceInQuestion, { method: 'GET', mode: 'cors'});
                 return response.ok;
             }
             catch (error) {
@@ -1119,19 +1133,23 @@
                     return entry;
                 if (coverurl.startsWith('/'))
                     return { ...entry, coverurl: await Data.processDataUrl(coverurl) };
-                if (!coverurl)
-                return {
-                    ...entry, coverurl: this.config.coverImageFallbackUrl !== '/cgi-bin/koha/svc/covergen' ?
-                    this.config.coverImageFallbackUrl :
-                    await Data.processDataUrl(`${this.config.coverImageFallbackUrl}?title=${window.encodeURIComponent(entry.title)}`)
-                };
-                const fileExists = await this.checkIfFileExists(coverurl);
-                if (!fileExists)
+                if (!coverurl) {
                     return {
-                        ...entry, coverurl: this.config.coverImageFallbackUrl !== '/cgi-bin/koha/svc/covergen' ?
-                        this.config.coverImageFallbackUrl :
-                        await Data.processDataUrl(`${this.config.coverImageFallbackUrl}?title=${window.encodeURIComponent(entry.title)}`)
+                        ...entry,
+                        coverurl: this.config.coverImageFallbackUrl !== '/cgi-bin/koha/svc/covergen'
+                            ? this.config.coverImageFallbackUrl
+                            : await Data.processDataUrl(`${this.config.coverImageFallbackUrl}?title=${window.encodeURIComponent(entry.title)}`),
                     };
+                }
+                const fileExists = await this.checkIfFileExists(coverurl);
+                if (!fileExists) {
+                    return {
+                        ...entry,
+                        coverurl: this.config.coverImageFallbackUrl !== '/cgi-bin/koha/svc/covergen'
+                            ? this.config.coverImageFallbackUrl
+                            : await Data.processDataUrl(`${this.config.coverImageFallbackUrl}?title=${window.encodeURIComponent(entry.title)}`),
+                    };
+                }
                 return entry;
             });
             return checkedUrls;
