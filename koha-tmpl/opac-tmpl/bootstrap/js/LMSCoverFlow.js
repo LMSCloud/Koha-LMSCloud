@@ -1104,8 +1104,9 @@
             }
             return url.protocol === 'http:' || url.protocol === 'https:';
         }
-        static async fetchWithTimeout(resource, options = {}) {
-            const { timeout = 5000 } = options;
+        // eslint-disable-next-line max-len
+        async fetchWithTimeout(resource, options = {}) {
+            const { timeout = 1000  } = options;
             const controller = new AbortController();
             const id = setTimeout(() => controller.abort(), timeout);
             const response = await fetch(resource, {
@@ -1117,7 +1118,7 @@
         }
         async checkIfFileExists(resourceInQuestion) {
             try {
-                const response = await Data.fetchWithTimeout(resourceInQuestion, { method: 'GET', mode: 'cors'});
+                const response = await this.fetchWithTimeout(resourceInQuestion, { method: 'GET', mode: 'cors' });
                 return response.ok;
             }
             catch (error) {
@@ -1129,10 +1130,12 @@
             // eslint-disable-next-line max-len
             const checkedUrls = localData.map(async (entry) => {
                 const { coverurl, coverhtml } = entry;
-                if (coverhtml && !coverurl)
+                if (coverhtml && !coverurl) {
                     return entry;
-                if (coverurl.startsWith('/'))
+                }
+                if (coverurl.startsWith('/')) {
                     return { ...entry, coverurl: await Data.processDataUrl(coverurl) };
+                }
                 if (!coverurl) {
                     return {
                         ...entry,

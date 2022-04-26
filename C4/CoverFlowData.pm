@@ -116,12 +116,12 @@ sub GetCoverFlowDataOfNearbyItemsByItemNumber {
     my ( $itemnumber, $num_each_side, $gap) = @_;
     $num_each_side ||= 3;
     $gap ||= (2 * $num_each_side)+1; # Should be > $num_each_side
-    croak "BAD CALL in C4::ShelfBrowser::GetNearbyItems, gap should be > num_each_side"
+    croak 'BAD CALL in C4::ShelfBrowser::GetNearbyItems, gap should be > num_each_side'
         if $gap <= $num_each_side;
 
     my $dbh         = C4::Context->dbh;
 
-    my $sth_get_item_details = $dbh->prepare("SELECT cn_sort,homebranch,location,ccode from items where itemnumber=?");
+    my $sth_get_item_details = $dbh->prepare('SELECT cn_sort,homebranch,location,ccode FROM items WHERE itemnumber=?');
     $sth_get_item_details->execute($itemnumber);
     my $item_details_result = $sth_get_item_details->fetchrow_hashref();
     croak "Unable to find item '$itemnumber' for shelf browser" if (!$sth_get_item_details);
@@ -136,25 +136,27 @@ sub GetCoverFlowDataOfNearbyItemsByItemNumber {
     if (C4::Context->preference('ShelfBrowserUsesLocation') && 
     	defined($item_details_result->{'location'})) {
         $start_location->{code} = $item_details_result->{'location'};
-        $start_location->{description} = GetAuthorisedValueDesc('','',$item_details_result->{'location'},'','','LOC','opac');
+        $start_location->{description} = GetAuthorisedValueDesc(q{}, q{}, $item_details_result->{'location'}, q{}, q{}, 'LOC', 'opac');
     }
     if (C4::Context->preference('ShelfBrowserUsesCcode') && 
     	defined($item_details_result->{'ccode'})) {
         $start_ccode->{code} = $item_details_result->{'ccode'};
-        $start_ccode->{description} = GetAuthorisedValueDesc('', '', $item_details_result->{'ccode'}, '', '', 'CCODE', 'opac');
+        $start_ccode->{description} = GetAuthorisedValueDesc(q{}, q{}, $item_details_result->{'ccode'}, q{}, q{}, 'CCODE', 'opac');
     }
 
     # Build the query for previous and next items
-    my $prev_query ='
+    my $prev_query = q{
         SELECT itemnumber, biblionumber, cn_sort, itemcallnumber
         FROM items
         WHERE
-            ((cn_sort = ? AND itemnumber < ?) OR cn_sort < ?) ';
-    my $next_query ='
+            ((cn_sort = ? AND itemnumber < ?) OR cn_sort < ?)
+    };
+    my $next_query = q{
         SELECT itemnumber, biblionumber, cn_sort, itemcallnumber
         FROM items
         WHERE
-            ((cn_sort = ? AND itemnumber >= ?) OR cn_sort > ?) ';
+            ((cn_sort = ? AND itemnumber >= ?) OR cn_sort > ?)
+    };
     my @params;
     my $query_cond;
     push @params, ($start_cn_sort, $itemnumber, $start_cn_sort);
@@ -188,8 +190,8 @@ sub GetCoverFlowDataOfNearbyItemsByItemNumber {
 
     my $prev_item = $prev_items[-1];
     my $next_item = $next_items[-1];
-    @next_items = splice( @next_items, 0, $num_each_side + 1 );
-    @prev_items = reverse splice( @prev_items, 0, $num_each_side );
+    @next_items = splice @next_items, 0, $num_each_side + 1;
+    @prev_items = reverse splice @prev_items, 0, $num_each_side;
     my @items = ( @prev_items, @next_items );
 
     $next_item = undef
