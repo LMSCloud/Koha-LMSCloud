@@ -1989,9 +1989,9 @@
                     const result = await fetchItemData('/cgi-bin/koha/svc/coverflowbyshelfitem?shelfbrowse_itemnumber=', itemnumber, 7);
                     shelfBrowserHeading.classList.add('border', 'border-secondary', 'rounded', 'p-3', 'w-75', 'centered', 'mx-auto', 'shadow-sm', 'text-center');
                     shelfBrowserHeading.textContent = `
-                    ${header.header_browsing.replace('{starting_homebranch}', result.starting_homebranch.description)}${result.starting_location.description ? ',' : ''}
-                    ${header.header_location.replace('{starting_location}', result.starting_location.description)}${result.starting_ccode.description ? ',' : ''}
-                    ${header.header_collection.replace('{starting_ccode}', result.starting_ccode.description)}
+                    ${result.starting_homebranch.description ? header.header_browsing.replace('{starting_homebranch}', result.starting_homebranch.description) : ''}${result.starting_location.description ? ',' : ''}
+                    ${result.starting_location.description ? header.header_location.replace('{starting_location}', result.starting_location.description) : ''}${result.starting_ccode.description ? ',' : ''}
+                    ${result.starting_ccode.description ? header.header_collection.replace('{starting_ccode}', result.starting_ccode.description) : ''}
                     `;
                     shelfBrowserHeading.appendChild(shelfBrowserClose);
                     extendCurrentCoverFlow({
