@@ -327,23 +327,72 @@ foreach my $tag  (keys %{$soapEnvelopeBody->{'ns2:BestellInfoElement'}}) {
                 $ekzArtikelNrNotValid = 1;    # this is our pessimistic assumption
                 # handle title block only if title info is not empty
                 if ( $titel && defined($titel->{'titelInfo'}) && ref($titel->{'titelInfo'}) eq 'HASH' ) {
-                    if ( defined($titel->{'titelInfo'}->{'isbn13'}) && $titel->{'titelInfo'}->{'isbn13'} && length($titel->{'titelInfo'}->{'isbn13'}) >= 13 ) {
-                        $titel->{'ekzArtikelNr'} = $titel->{'titelInfo'}->{'isbn13'};
-                        $titel->{'ekzArtikelNr'} =~ s/\s//g;
-                        $titel->{'ekzArtikelNr'} =~ tr/-//d;
-                        $ekzArtikelNrNotValid = 0;
-                    } elsif ( defined($titel->{'titelInfo'}->{'ean'}) && $titel->{'titelInfo'}->{'ean'} && length($titel->{'titelInfo'}->{'ean'}) >= 13 ) {
-                        $titel->{'ekzArtikelNr'} = $titel->{'titelInfo'}->{'ean'};
-                        $titel->{'ekzArtikelNr'} =~ s/\s//g;
-                        $titel->{'ekzArtikelNr'} += 0;    # ensure to use only the number part
-                        $ekzArtikelNrNotValid = 0;
-                    } elsif ( defined($titel->{'titelInfo'}->{'isbn'}) && $titel->{'titelInfo'}->{'isbn'} && length($titel->{'titelInfo'}->{'isbn'}) >= 10 ) {
-                        $titel->{'ekzArtikelNr'} = $titel->{'titelInfo'}->{'isbn'};    # the ISBN may end with 'X', we evaluate the number before this 'X'
-                        $titel->{'ekzArtikelNr'} =~ s/\s//g;
-                        $titel->{'ekzArtikelNr'} =~ tr/-//d;
-                        $titel->{'ekzArtikelNr'} += 0;    # remove the trailing X, if there is one
-                        $ekzArtikelNrNotValid = 0;
+
+                    # trying to use entry in field isbn13 as pseudo ekzArtikelNr
+                    if ( $ekzArtikelNrNotValid == 1 && defined($titel->{'titelInfo'}->{'isbn13'}) && $titel->{'titelInfo'}->{'isbn13'} && !ref($titel->{'titelInfo'}->{'isbn13'}) ) {
+                        my $isbn13;
+                        if ( length($titel->{'titelInfo'}->{'isbn13'}) >= 1 ) {
+                            $isbn13 = $titel->{'titelInfo'}->{'isbn13'};
+                            $isbn13 =~ s/\s//g;
+                            $isbn13 =~ tr/-//d;
+                        }
+                        if ( defined($isbn13) && $isbn13 ) {
+                            my $isbn13Length = length($isbn13);
+                            if ( $isbn13Length >= 13 ) {
+                                $titel->{'ekzArtikelNr'} = $isbn13;
+                                $ekzArtikelNrNotValid = 0;
+                            } elsif ( $isbn13Length >= 1 && $reqLmsBestellCode ) {    # it is a BestellInfo triggered by a call of ekz webservice Bestellung -> add lacking 0 to isbn13
+                                $titel->{'ekzArtikelNr'} = ( '0' x (13 - $isbn13Length) ) . $isbn13;    # we know already that $isbn13Length < 13 from the comparision above
+                                $ekzArtikelNrNotValid = 0;
+                            }
+                        }
                     }
+
+                    # trying to use entry in field ean as pseudo ekzArtikelNr
+                    if ( $ekzArtikelNrNotValid == 1 && defined($titel->{'titelInfo'}->{'ean'}) && $titel->{'titelInfo'}->{'ean'} && !ref($titel->{'titelInfo'}->{'ean'}) ) {
+                        my $ean;
+                        if ( length($titel->{'titelInfo'}->{'ean'}) >= 1 ) {
+                            $ean = $titel->{'titelInfo'}->{'ean'};
+                            $ean =~ s/\s//g;
+                            $ean += 0;    # ensure to use only the number part
+                        }
+                        if ( defined($ean) && $ean ) {
+                            my $eanLength = length($ean);
+                            if ( $eanLength >= 13 ) {
+                                $titel->{'ekzArtikelNr'} = $ean;
+                                $ekzArtikelNrNotValid = 0;
+                            } elsif ( $eanLength >= 1 && $reqLmsBestellCode ) {    # it is a BestellInfo triggered by a call of ekz webservice Bestellung -> add lacking 0 to ean
+                                $titel->{'ekzArtikelNr'} = ( '0' x (13 - $eanLength) ) . $ean;    # we know already that $eanLength < 13 from the comparision above
+                                $ekzArtikelNrNotValid = 0;
+                            }
+                        }
+                    }
+
+                    # trying to use entry in field isbn as pseudo ekzArtikelNr
+                    if ( $ekzArtikelNrNotValid == 1 && defined($titel->{'titelInfo'}->{'isbn'}) && $titel->{'titelInfo'}->{'isbn'} && !ref($titel->{'titelInfo'}->{'isbn'}) ) {
+                        my $isbn;
+                        my $isbnPreferredLen = 10;
+                        if ( length($titel->{'titelInfo'}->{'isbn'}) >= 1 ) {
+                            $isbn = $titel->{'titelInfo'}->{'isbn'};    # the ISBN may end with 'X', we evaluate the number before this 'X'
+                            $isbn =~ s/\s//g;
+                            $isbn =~ tr/-//d;
+                            if ( index($isbn, 'X') == 9 ) {
+                                $isbnPreferredLen = 9;
+                            }
+                            $isbn += 0;    # remove the trailing X, if there is one
+                        }
+                        if ( defined($isbn) && $isbn ) {
+                            my $isbnLength = length($isbn);
+                            if ( $isbnLength >= $isbnPreferredLen ) {
+                                $titel->{'ekzArtikelNr'} = $isbn;
+                                $ekzArtikelNrNotValid = 0;
+                            } elsif ( $isbnLength >= 1 && $reqLmsBestellCode ) {    # it is a BestellInfo triggered by a call of ekz webservice Bestellung -> add lacking 0 to isbn
+                                $titel->{'ekzArtikelNr'} = ( '0' x ($isbnPreferredLen - $isbnLength) ) . $isbn;    # we know already that $isbnLength < $isbnPreferredLen from the comparision above
+                                $ekzArtikelNrNotValid = 0;
+                            }
+                        }
+                    }
+
                 }
                 $self->{logger}->debug("process() title check-loop i:$i: now titel->{'ekzArtikelNr'}:" . $titel->{'ekzArtikelNr'} . ":");
                 if ( !$ekzArtikelNrNotValid && $titel->{'ekzArtikelNr'} > 0 && length($titel->{'ekzArtikelNr'}) >= 9 ) {
@@ -594,9 +643,9 @@ foreach my $tag  (keys %{$soapEnvelopeBody->{'ns2:BestellInfoElement'}}) {
     $self->{logger}->info("process() ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^");
 
 
-    if ( $exceptionThrown ) {
-        $self->{logger}->error("process() roll back based on thrown exception");
-        $schema->storage->txn_rollback;    # roll back the complete BestellInfo, based on thrown exception
+    if ( $respStatusCode eq 'ERROR' ) {
+        $self->{logger}->error("process() roll back based on thrown exception or other error");
+        $schema->storage->txn_rollback;    # roll back the complete BestellInfo, based on thrown exception or other error
     } else {
         $self->{logger}->info("process() commit");
         # commit the complete BestellInfo (only as a single transaction)

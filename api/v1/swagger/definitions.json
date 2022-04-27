@@ -74,6 +74,12 @@
   "item": {
     "$ref": "definitions/item.json"
   },
+  "coverflow_data_nearby_items": {
+    "$ref": "definitions/coverflow_data_nearby_items.json"
+  },
+  "coverflow_data_biblionumber": {
+    "$ref": "definitions/coverflow_data_biblionumber.json"
+  },
   "order": {
     "$ref": "definitions/order.json"
   },

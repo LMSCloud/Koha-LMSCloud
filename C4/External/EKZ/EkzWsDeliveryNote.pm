@@ -260,14 +260,22 @@ sub genKohaRecords {
             # if not found enough acquisition_import records of rec_type 'item' and processingstate 'ordered': 'invent' the underlying order and store it
 
             # we try maximal 4 methods for identifying an order, or 'inventing' one, if required:
+            #
             # method1: searching for ekzExemplarid identity
             #          (which is preferable; typical for an item that was ordered in the ekz Medienshop or via webservice 'Bestellung')
+            #
             # method2: searching for ekzArtikelNr and referenznummer identity if ekzArtikelNr > 0 and referenznummer > 0
-            #          (typical for an item of a running standing order (since 2020-09-14) or of a running serial order (since 2021-01-14))
+            #          (Typical for an item of a running standing order (since 2020-09-14) or of a running serial order (since 2021-01-14),
+            #           when referenznummer for standing order item and serial order item was introduced by ekz.)
+            #
             # method3: searching for ekzArtikelNr identity if ekzArtikelNr > 0
-            #          (typical for an item of a running standing order (until 2020-09-13))
+            #          (Typical for an item of a running standing order (but only until 2020-09-13, before referenznummer for standing order item was introduced by ekz).)
+            #          Method 3 is deactivated since april 2022 (from version 21.05 on) for two reasons:
+            #          - It is quite shure that all standing order items that have been inserted without referenznummer before 2020-09-14 have already been delivered and invoiced before april 2022.
+            #          - A item of a title of a current serial order that is also a title of a current standing order would incorrectly be identified as item of the standing order title.
+            #
             # method4 is for all items for which no acquisition_import record representing the order title could be found
-            #          (typical for an item of a running continuation/serial order (until 2021-01-13))
+            #          (Typical for an item of a running continuation/serial order (but only until 2021-01-13, before referenznummer for serial order item was introduced by ekz).)
 
 
             # method1: searching for ekzExemplarid identity (which is preferable; typical for an item that was ordered in the ekz Medienshop or via webservice 'Bestellung')
@@ -318,6 +326,7 @@ sub genKohaRecords {
                             if ( $selBiblionumber != $biblionumber ) {
                                 $titleHits = { 'count' => 0, 'records' => [] };
                                 $biblionumber = 0;
+                                $biblioExisting = 0;
                                 $lsEkzArtikelNr = '';
                                 my $record = C4::Biblio::GetMarcBiblio( { biblionumber => $selBiblionumber, embed_items => 0 } );
                                 if ( defined($record) ) {
@@ -334,6 +343,7 @@ sub genKohaRecords {
                                     } else {
                                         $lsEkzArtikelNr = $tmp_cna . '-' . $tmp_cn;
                                     }
+                                    $biblioExisting = 1;    # this flag may be required in method 4
                                     # positive message for log email
                                     $emaillog->{'importresult'} = 2;
                                     $emaillog->{'importedTitlesCount'} += 0;
@@ -351,9 +361,12 @@ sub genKohaRecords {
                     }    # end defined($acquisitionImportTitleHit)
                 }    # end foreach acquisitionImportEkzExemplarIdHits->all()
             }    # end method1
+            $logger->debug("genKohaRecords() after method 1 deliveredItemsCount:$deliveredItemsCount: updOrInsItemsCount:$updOrInsItemsCount: titleHits->{'count'}:$titleHits->{'count'}: biblionumber:$biblionumber: lsEkzArtikelNr:$lsEkzArtikelNr:");
 
 
-            # method2: searching for ekzArtikelNr and referenznummer identity if ekzArtikelNr > 0 and referenznummer > 0 (typical for an item of a running standing order (since 2020-09-14))
+            # method2: searching for ekzArtikelNr and referenznummer identity if ekzArtikelNr > 0 and referenznummer > 0
+            #          (Typical for an item of a running standing order since 2020-09-14 or of a running serial order since 2021-01-14,
+            #           when referenznummer for standing order item and serial order item was introduced by ekz.)
             if (defined($auftragsPosition->{'artikelNummer'}) && $auftragsPosition->{'artikelNummer'} > 0 && 
                 defined($auftragsPosition->{'referenznummer'}) && length($auftragsPosition->{'referenznummer'}) > 0 && 
                 $updOrInsItemsCount < $deliveredItemsCount ) {
@@ -431,6 +444,7 @@ sub genKohaRecords {
                             if ( $selBiblionumber != $biblionumber ) {
                                 $titleHits = { 'count' => 0, 'records' => [] };
                                 $biblionumber = 0;
+                                $biblioExisting = 0;
                                 $lsEkzArtikelNr = '';
                                 my $record = C4::Biblio::GetMarcBiblio( { biblionumber => $selBiblionumber, embed_items => 0 } );
                                 if ( defined($record) ) {
@@ -447,6 +461,7 @@ sub genKohaRecords {
                                     } else {
                                         $lsEkzArtikelNr = $tmp_cna . '-' . $tmp_cn;
                                     }
+                                    $biblioExisting = 1;    # this flag may be required in method 4
                                     # positive message for log email
                                     $emaillog->{'importresult'} = 2;
                                     $emaillog->{'importedTitlesCount'} += 0;
@@ -465,97 +480,105 @@ sub genKohaRecords {
                     }    # end defined($acquisitionImportTitleHit)
                 }    # end foreach acquisitionImportEkzExemplarIdHits->all()
             }    # end method2
+            $logger->debug("genKohaRecords() after method 2 deliveredItemsCount:$deliveredItemsCount: updOrInsItemsCount:$updOrInsItemsCount: titleHits->{'count'}:$titleHits->{'count'}: biblionumber:$biblionumber: lsEkzArtikelNr:$lsEkzArtikelNr:");
 
 
-            # method3: searching for ekzArtikelNr identity if ekzArtikelNr > 0 (typical for an item of a running standing order (until 2020-09-13))
-            if (defined($auftragsPosition->{'artikelNummer'}) && $auftragsPosition->{'artikelNummer'} > 0 && $updOrInsItemsCount < $deliveredItemsCount ) {
-            #if (defined($auftragsPosition->{'artikelNummer'})  && $updOrInsItemsCount < $deliveredItemsCount ) {    # XXXWH maybe there is an standing order that matches the auftragsPosition by ISBN or EAN even if $auftragsPosition->{'artikelNummer'} == 0
+            # method3: searching for ekzArtikelNr identity if ekzArtikelNr > 0
+            #          (Typical for an item of a running standing order (but only until 2020-09-13, before referenznummer for standing order item was introduced by ekz).)
+            # This method is deactivated since april 2022 (from version 21.05 on) for two reasons:
+            # - It is quite shure that all standing order items that have been inserted without referenznummer before 2020-09-14 have already been delivered and invoiced before april 2022.
+            # - A item of a title of a current serial order that is also a title of a current standing order would incorrectly be identified as item of the standing order title.
+#            if (defined($auftragsPosition->{'artikelNummer'}) && $auftragsPosition->{'artikelNummer'} > 0 && $updOrInsItemsCount < $deliveredItemsCount ) {
+#            #if (defined($auftragsPosition->{'artikelNummer'})  && $updOrInsItemsCount < $deliveredItemsCount ) {    # XXXWH maybe there is an standing order that matches the auftragsPosition by ISBN or EAN even if $auftragsPosition->{'artikelNummer'} == 0
+#
+#                # search in acquisition_import for records representing ordered orders with the same ekzArtikelNr
+#                my $selParam = {
+#                    vendor_id => "ekz",
+#                    object_type => "order",
+#                    object_number => { 'like' => 'sto.' . $ekzCustomerNumber . '.ID%' },
+#                    object_item_number => $auftragsPosition->{'artikelNummer'},
+#                    rec_type => "title"
+#                };
+#                $logger->trace("genKohaRecords() method3: search title order record in acquisition_import selParam:" . Dumper($selParam) . ":");
+#                my $acquisitionImportTitleHits = Koha::AcquisitionImport::AcquisitionImports->new()->_resultset()->search($selParam);
+#                $logger->trace("genKohaRecords() method2: scalar acquisitionImportTitleHits:" . scalar $acquisitionImportTitleHits . ":");
+#
+#                # Search corresponding 'ordered' order items and set them to 'delivered' (in table 'acquisition_import' and in 'items' via system preference ekzWsItemSetSubfieldsWhenReceived).
+#                # Insert records in table acquisition_import for the title and items.
+#                foreach my $acquisitionImportTitleHit ($acquisitionImportTitleHits->all()) {
+#                    if ( $updOrInsItemsCount >= $deliveredItemsCount ) {
+#                        last;
+#                    }
+#                    $logger->trace("genKohaRecords() method2: acquisitionImportTitleHit->{_column_data}:" . Dumper($acquisitionImportTitleHit->{_column_data}) . ":");
+#
+#                    if ( $titleHits->{'count'} == 0 || !defined $titleHits->{'records'}->[0] || !defined($titleHits->{'records'}->[0]->field("001")) || $titleHits->{'records'}->[0]->field("001")->data() != $auftragsPosition->{'artikelNummer'} || !defined($titleHits->{'records'}->[0]->field("003")) || $titleHits->{'records'}->[0]->field("003")->data() ne "DE-Rt5" ) {
+#                        # search the biblio record; if not found, create the biblio record in the '$updOrInsItemsCount < $deliveredItemsCount' block below (= method4)
+#                        my $reqParamTitelInfo = ();
+#                        $reqParamTitelInfo->{'ekzArtikelNr'} = $auftragsPosition->{'artikelNummer'};
+#                        my $isbn = $auftragsPosition->{'isbn'};
+#                        if ( length($isbn) == 10 ) {
+#                            $reqParamTitelInfo->{'isbn'} = $isbn;
+#                        } else {
+#                            $reqParamTitelInfo->{'isbn13'} = $isbn;
+#                        }
+#                        $reqParamTitelInfo->{'ean'} = $auftragsPosition->{'ean'};
+#
+#                        $titleHits = { 'count' => 0, 'records' => [] };
+#                        $biblionumber = 0;
+#                        $biblioExisting = 0;
+#                        $lsEkzArtikelNr = '';
+#                        # Search title in local database by ekzArtikelNr or ISBN or ISSN/ISMN/EAN
+#                        $titleHits = $ekzKohaRecord->readTitleInLocalDB($reqParamTitelInfo, 1);
+#                        $logger->trace("genKohaRecords() method2: from local DB titleHits->{'count'}:" . $titleHits->{'count'} . ":");
+#                        if ( $titleHits->{'count'} > 0 && defined $titleHits->{'records'}->[0] ) {
+#                            $biblionumber = $titleHits->{'records'}->[0]->subfield("999","c");
+#                            my $tmp_cn = defined($titleHits->{'records'}->[0]->field("001")) ? $titleHits->{'records'}->[0]->field("001")->data() : $biblionumber;
+#                            my $tmp_cna = defined($titleHits->{'records'}->[0]->field("003")) ? $titleHits->{'records'}->[0]->field("003")->data() : "undef";
+#                            if ( $tmp_cna eq "DE-Rt5" ) {
+#                                $lsEkzArtikelNr = $tmp_cn;
+#                            } else {
+#                                $lsEkzArtikelNr = $tmp_cna . '-' . $tmp_cn;
+#                            }
+#                            $biblioExisting = 1;    # this flag may be required in method 4
+#                            # positive message for log email
+#                            $emaillog->{'importresult'} = 2;
+#                            $emaillog->{'importedTitlesCount'} += 0;
+#
+#                            # add result of finding biblio to log email
+#                            ($titeldata, $isbnean) = $ekzKohaRecord->getShortISBD($titleHits->{'records'}->[0]);
+#                            push @{$emaillog->{'records'}}, [$reqParamTitelInfo->{'ekzArtikelNr'}, defined $biblionumber ? $biblionumber : "no biblionumber", $emaillog->{'importresult'}, $titeldata, $isbnean, $emaillog->{'problems'}, $emaillog->{'importerror'}, 1, undef, undef];
+#                            $logger->trace("genKohaRecords() method3: emaillog->{'records'}->[0]:" . Dumper($emaillog->{'records'}->[0]) . ":");
+#                        } else {
+#                            last;   # create the biblio record in the '$updOrInsItemsCount < $deliveredItemsCount' block below (= method4)
+#                        }
+#                    }
+#
+#                    # for this title: search all records in acquisition_import representing its items that are 'ordered' (i.e. can still be delivered)
+#                    my $selParam = {
+#                        vendor_id => "ekz",
+#                        object_type => "order",
+#                        object_reference => $acquisitionImportTitleHit->get_column('id'),
+#                        rec_type => "item",
+#                        processingstate => 'ordered'
+#                    };
+#                    my $acquisitionImportTitleItemHits = Koha::AcquisitionImport::AcquisitionImports->new()->_resultset()->search($selParam);
+#                    $logger->trace("genKohaRecords() method2: scalar acquisitionImportTitleItemHits:" . scalar $acquisitionImportTitleItemHits . ":");
+#
+#                    foreach my $acquisitionImportTitleItemHit ($acquisitionImportTitleItemHits->all()) {
+#                        $logger->trace("genKohaRecords() method2: acquisitionImportTitleItemHit->{_column_data}:" . Dumper($acquisitionImportTitleItemHit->{_column_data}) . ":");
+#                        if ( $updOrInsItemsCount >= $deliveredItemsCount ) {
+#                            last;    # now all $deliveredItemsCount delivered items have been handled 
+#                        }
+#
+#                        &processItemHit($lieferscheinNummer, $lieferscheinDatum, $dateTimeNow, $ekzWebServicesSetItemSubfieldsWhenReceived, $lsEkzArtikelNr, '', $auftragsPosition, $acquisitionImportTitleHit, $titleHits, $biblionumber, $acquisitionImportTitleItemHit, $emaillog, \$updOrInsItemsCount, $ekzAqbooksellersId, $logger);
+#                    }
+#                }
+#            }    # end method3
+#            $logger->debug("genKohaRecords() after method 3 deliveredItemsCount:$deliveredItemsCount: updOrInsItemsCount:$updOrInsItemsCount: titleHits->{'count'}:$titleHits->{'count'}: biblionumber:$biblionumber: lsEkzArtikelNr:$lsEkzArtikelNr:");
 
-                # search in acquisition_import for records representing ordered orders with the same ekzArtikelNr
-                my $selParam = {
-                    vendor_id => "ekz",
-                    object_type => "order",
-                    object_item_number => $auftragsPosition->{'artikelNummer'},
-                    rec_type => "title"
-                };
-                my $acquisitionImportTitleHits = Koha::AcquisitionImport::AcquisitionImports->new()->_resultset()->search($selParam);
-                $logger->trace("genKohaRecords() method2: scalar acquisitionImportTitleHits:" . scalar $acquisitionImportTitleHits . ":");
-
-                # Search corresponding 'ordered' order items and set them to 'delivered' (in table 'acquisition_import' and in 'items' via system preference ekzWsItemSetSubfieldsWhenReceived).
-                # Insert records in table acquisition_import for the title and items.
-                foreach my $acquisitionImportTitleHit ($acquisitionImportTitleHits->all()) {
-                    if ( $updOrInsItemsCount >= $deliveredItemsCount ) {
-                        last;
-                    }
-                    $logger->trace("genKohaRecords() method2: acquisitionImportTitleHit->{_column_data}:" . Dumper($acquisitionImportTitleHit->{_column_data}) . ":");
-                    
-                    if ( $titleHits->{'count'} == 0 || !defined $titleHits->{'records'}->[0] || !defined($titleHits->{'records'}->[0]->field("001")) || $titleHits->{'records'}->[0]->field("001")->data() != $auftragsPosition->{'artikelNummer'} || !defined($titleHits->{'records'}->[0]->field("003")) || $titleHits->{'records'}->[0]->field("003")->data() ne "DE-Rt5" ) {
-                        # search the biblio record; if not found, create the biblio record in the '$updOrInsItemsCount < $deliveredItemsCount' block below (= method4)
-                        my $reqParamTitelInfo = ();
-                        $reqParamTitelInfo->{'ekzArtikelNr'} = $auftragsPosition->{'artikelNummer'};
-                        my $isbn = $auftragsPosition->{'isbn'};
-                        if ( length($isbn) == 10 ) {
-                            $reqParamTitelInfo->{'isbn'} = $isbn;
-                        } else {
-                            $reqParamTitelInfo->{'isbn13'} = $isbn;
-                        }
-                        $reqParamTitelInfo->{'ean'} = $auftragsPosition->{'ean'};
-
-                        $titleHits = { 'count' => 0, 'records' => [] };
-                        $biblionumber = 0;
-                        $lsEkzArtikelNr = '';
-                        # Search title in local database by ekzArtikelNr or ISBN or ISSN/ISMN/EAN
-                        $titleHits = $ekzKohaRecord->readTitleInLocalDB($reqParamTitelInfo, 1);
-                        $logger->trace("genKohaRecords() method2: from local DB titleHits->{'count'}:" . $titleHits->{'count'} . ":");
-                        if ( $titleHits->{'count'} > 0 && defined $titleHits->{'records'}->[0] ) {
-                            $biblionumber = $titleHits->{'records'}->[0]->subfield("999","c");
-                            my $tmp_cn = defined($titleHits->{'records'}->[0]->field("001")) ? $titleHits->{'records'}->[0]->field("001")->data() : $biblionumber;
-                            my $tmp_cna = defined($titleHits->{'records'}->[0]->field("003")) ? $titleHits->{'records'}->[0]->field("003")->data() : "undef";
-                            if ( $tmp_cna eq "DE-Rt5" ) {
-                                $lsEkzArtikelNr = $tmp_cn;
-                            } else {
-                                $lsEkzArtikelNr = $tmp_cna . '-' . $tmp_cn;
-                            }
-                            $biblioExisting = 1;
-                            # positive message for log email
-                            $emaillog->{'importresult'} = 2;
-                            $emaillog->{'importedTitlesCount'} += 0;
-
-                            # add result of finding biblio to log email
-                            ($titeldata, $isbnean) = $ekzKohaRecord->getShortISBD($titleHits->{'records'}->[0]);
-                            push @{$emaillog->{'records'}}, [$reqParamTitelInfo->{'ekzArtikelNr'}, defined $biblionumber ? $biblionumber : "no biblionumber", $emaillog->{'importresult'}, $titeldata, $isbnean, $emaillog->{'problems'}, $emaillog->{'importerror'}, 1, undef, undef];
-                        } else {
-                            last;   # create the biblio record in the '$updOrInsItemsCount < $deliveredItemsCount' block below (= method4)
-                        }
-                    }
-                    
-                    # for this title: search all records in acquisition_import representing its items that are 'ordered' (i.e. can still be delivered)
-                    my $selParam = {
-                        vendor_id => "ekz",
-                        object_type => "order",
-                        object_reference => $acquisitionImportTitleHit->get_column('id'),
-                        rec_type => "item",
-                        processingstate => 'ordered'
-                    };
-                    my $acquisitionImportTitleItemHits = Koha::AcquisitionImport::AcquisitionImports->new()->_resultset()->search($selParam);
-                    $logger->trace("genKohaRecords() method2: scalar acquisitionImportTitleItemHits:" . scalar $acquisitionImportTitleItemHits . ":");
-
-                    foreach my $acquisitionImportTitleItemHit ($acquisitionImportTitleItemHits->all()) {
-                        $logger->trace("genKohaRecords() method2: acquisitionImportTitleItemHit->{_column_data}:" . Dumper($acquisitionImportTitleItemHit->{_column_data}) . ":");
-                        if ( $updOrInsItemsCount >= $deliveredItemsCount ) {
-                            last;    # now all $deliveredItemsCount delivered items have been handled 
-                        }
-
-                        &processItemHit($lieferscheinNummer, $lieferscheinDatum, $dateTimeNow, $ekzWebServicesSetItemSubfieldsWhenReceived, $lsEkzArtikelNr, '', $auftragsPosition, $acquisitionImportTitleHit, $titleHits, $biblionumber, $acquisitionImportTitleItemHit, $emaillog, \$updOrInsItemsCount, $ekzAqbooksellersId, $logger);
-                    }
-                }
-            }    # end method3
-
-
-            $logger->trace("genKohaRecords() deliveredItemsCount:$deliveredItemsCount: updOrInsItemsCount:$updOrInsItemsCount: titleHits->{'count'}:$titleHits->{'count'}: biblionumber:$biblionumber: lsEkzArtikelNr:$lsEkzArtikelNr:");
 
             # method4 is for all items for which no acquisition_import record representing the order title could be found
-            # if not enough matching items could be found: we suppose a 'normal' order and create the corresponding entries for the remaining items
+            # If not enough matching items could be found, then we suppose a 'monograph' order (i.e. not standing, not serial) and create the corresponding entries for the remaining items.
             if ( $updOrInsItemsCount < $deliveredItemsCount) {
                 $logger->trace("genKohaRecords() method4: create item for ekzArtikelNr:$auftragsPosition->{'artikelNummer'}:");
 
@@ -583,6 +606,7 @@ sub genKohaRecords {
 
                     $titleHits = { 'count' => 0, 'records' => [] };
                     $biblionumber = 0;
+                    $biblioExisting = 0;
                     $lsEkzArtikelNr = '';
                     # Search title in local database by ekzArtikelNr or ISBN or ISSN/ISMN/EAN
                     my $titleSelHashkey =
@@ -969,7 +993,8 @@ sub genKohaRecords {
                             if ( $biblioExisting && $emaillog->{'foundTitlesCount'} == 0 ) {
                                 $emaillog->{'foundTitlesCount'} = 1;
                             }
-                            # positive message for log
+                            $updOrInsItemsCount += 1;
+                            # positive message for log email
                             $emaillog->{'importresult'} = 1;
                             $emaillog->{'importedItemsCount'} += 1;
                         } else {
@@ -992,6 +1017,7 @@ sub genKohaRecords {
                     } # foreach remainig delivered items: create koha item record
                 } # koha biblio data have been found or created
             } # end method4: "if ( $updOrInsItemsCount < $deliveredItemsCount)"
+            $logger->debug("genKohaRecords() after method 4 deliveredItemsCount:$deliveredItemsCount: updOrInsItemsCount:$updOrInsItemsCount: titleHits->{'count'}:$titleHits->{'count'}: biblionumber:$biblionumber: lsEkzArtikelNr:$lsEkzArtikelNr:");
 
 
 
