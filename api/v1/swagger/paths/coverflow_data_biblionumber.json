@@ -1,19 +1,16 @@
 {
-    "/nearby_items/{item_id}": {
+    "/coverflow_data_biblionumber/{biblio_ids}": {
       "get": {
-        "x-mojo-to": "NearbyItems#get",
-        "operationId": "getNearbyItems",
+        "x-mojo-to": "CoverflowDataBiblionumber#get",
+        "operationId": "getCoverflowDataBiblionumber",
         "tags": [
-          "nearby_items"
+          "coverflow_data_biblionumber"
         ],
-        "summary": "Get nearby items from itemnumber",
+        "summary": "Get coverflow data by biblionumber",
         "parameters": [
-          {
-            "$ref": "../parameters.json#/item_id_pp"
-          },
-          {
-            "$ref": "../parameters.json#/nearby_items_quantity"
-          }
+            {
+                "$ref": "../parameters.json#/biblio_ids_pp"
+            }
         ],
         "consumes": [
           "application/json"
@@ -23,11 +20,11 @@
         ],
         "responses": {
           "200": {
-            "description": "An object that contains nearby items and additional metadata about the selection",
+            "description": "An object that contains coverflow data in a list of biblios by biblionumber",
             "schema": {
               "type": "object",
               "items": {
-                "$ref": "../definitions.json#/nearby_items"
+                "$ref": "../definitions.json#/coverflow_data_biblionumber"
               }
             }
           },

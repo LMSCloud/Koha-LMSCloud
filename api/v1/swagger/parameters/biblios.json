@@ -1,0 +1,13 @@
+{
+    "biblio_ids_pp": {
+      "name": "biblio_ids",
+      "in": "path",
+      "description": "Record internal identifiers",
+      "required": true,
+      "type": "array",
+      "collectionFormat": "csv",
+      "items": {
+          "type": "integer"
+      }
+    }
+}
