@@ -761,122 +761,129 @@
 
     // eslint-disable-next-line max-len
     function build(data, coverFlowContext, container, config, customClasses) {
-        const lcfLoadingAspects = [
-            new LcfItemWrapper('div', 'lcfLoadingAnimation', container.reference, [container.coverFlowId, ...customClasses]),
-        ];
-        const lcfNavigationAspects = [
-            new LcfItemWrapper('button', 'lcfNavigationButtonLeft', container.reference, ['btn', 'd-none', container.coverFlowId, ...customClasses]),
-            new LcfItemWrapper('button', 'lcfNavigationButtonRight', container.reference, ['btn', 'd-none', container.coverFlowId, ...customClasses]),
-        ];
-        const lcfItemWrapperAspects = [
-            new LcfItemWrapper('div', 'lcfItemContainer', container.reference, ['d-none', 'card', 'border-0', 'flipCard', container.coverFlowId, ...customClasses]),
-            new LcfItemWrapper('div', 'lcfFlipCard', 'lcfItemContainer', ['border', 'rounded', 'flipCardInner', container.coverFlowId, ...customClasses]),
-            /** Below are tags on the front of the flipCard. */
-            new LcfItemWrapper('div', 'lcfFlipCardFront', 'lcfFlipCard', ['flipCardFront', container.coverFlowId, ...customClasses]),
-            new LcfItemWrapper('div', 'lcfCoverImageWrapper', 'lcfFlipCardFront', ['card-img-top', container.coverFlowId, ...customClasses]),
-            new LcfItemWrapper('a', 'lcfAnchor', 'lcfCoverImageWrapper', [container.coverFlowId, ...customClasses]),
-            new LcfItemWrapper('img', 'lcfCoverImage', 'lcfAnchor', [container.coverFlowId, ...customClasses]),
-            // new LcfItemWrapper('div', 'lcfCoverHtmlWrapper', 'lcfAnchor', [container.coverFlowId]),
-            new LcfItemWrapper('div', 'lcfCardBody', 'lcfFlipCardFront', ['card-body', 'p-2', 'text-center', container.coverFlowId, ...customClasses]),
-            new LcfItemWrapper('p', 'lcfMediaAuthor', 'lcfCardBody', ['card-text', 'text-muted', 'text-truncate', 'font-weight-light', 'mb-0', config.coverFlowCardBodyTextHeights.lcfMediaAuthor, container.coverFlowId, ...customClasses]),
-            new LcfItemWrapper('p', 'lcfMediaItemCallNumber', 'lcfCardBody', ['card-text', 'text-muted', 'text-truncate', 'font-weight-light', 'mb-0', config.coverFlowCardBodyTextHeights.lcfMediaItemCallNumber, container.coverFlowId, ...customClasses]),
-            new LcfItemWrapper('p', 'lcfMediaTitle', 'lcfCardBody', ['card-text', 'text-truncate', 'font-weight-lighter', 'mb-0', config.coverFlowCardBodyTextHeights.lcfMediaTitle, container.coverFlowId, ...customClasses]),
-        ];
-        if (config.coverFlowFlippableCards) {
-            lcfItemWrapperAspects.push(...[
-                /** These tags are on the back of the flipCard. */
-                new LcfItemWrapper('div', 'lcfFlipCardBack', 'lcfFlipCard', ['flipCardBack', container.coverFlowId]),
-                new LcfItemWrapper('p', 'lcfMediaISBD', 'lcfFlipCardBack', [container.coverFlowId]),
-                new LcfItemWrapper('button', 'lcfFlipCardButton', 'lcfItemContainer', ['shadow', container.coverFlowId]),
-            ]);
-        }
-        const strategyManager = new StrategyManager();
-        const evaluateConfiguration = () => {
+        try {
+            const lcfLoadingAspects = [
+                new LcfItemWrapper('div', 'lcfLoadingAnimation', container.reference, [container.coverFlowId, ...customClasses]),
+            ];
+            const lcfNavigationAspects = [
+                new LcfItemWrapper('button', 'lcfNavigationButtonLeft', container.reference, ['btn', 'd-none', container.coverFlowId, ...customClasses]),
+                new LcfItemWrapper('button', 'lcfNavigationButtonRight', container.reference, ['btn', 'd-none', container.coverFlowId, ...customClasses]),
+            ];
+            const lcfItemWrapperAspects = [
+                new LcfItemWrapper('div', 'lcfItemContainer', container.reference, ['d-none', 'card', 'border-0', 'flipCard', container.coverFlowId, ...customClasses]),
+                new LcfItemWrapper('div', 'lcfFlipCard', 'lcfItemContainer', ['border', 'rounded', 'flipCardInner', container.coverFlowId, ...customClasses]),
+                /** Below are tags on the front of the flipCard. */
+                new LcfItemWrapper('div', 'lcfFlipCardFront', 'lcfFlipCard', ['flipCardFront', container.coverFlowId, ...customClasses]),
+                new LcfItemWrapper('div', 'lcfCoverImageWrapper', 'lcfFlipCardFront', ['card-img-top', container.coverFlowId, ...customClasses]),
+                new LcfItemWrapper('a', 'lcfAnchor', 'lcfCoverImageWrapper', [container.coverFlowId, ...customClasses]),
+                new LcfItemWrapper('img', 'lcfCoverImage', 'lcfAnchor', [container.coverFlowId, ...customClasses]),
+                // new LcfItemWrapper('div', 'lcfCoverHtmlWrapper', 'lcfAnchor', [container.coverFlowId]),
+                new LcfItemWrapper('div', 'lcfCardBody', 'lcfFlipCardFront', ['card-body', 'p-2', 'text-center', container.coverFlowId, ...customClasses]),
+                new LcfItemWrapper('p', 'lcfMediaAuthor', 'lcfCardBody', ['card-text', 'text-muted', 'text-truncate', 'font-weight-light', 'mb-0', config.coverFlowCardBodyTextHeights.lcfMediaAuthor, container.coverFlowId, ...customClasses]),
+                new LcfItemWrapper('p', 'lcfMediaItemCallNumber', 'lcfCardBody', ['card-text', 'text-muted', 'text-truncate', 'font-weight-light', 'mb-0', config.coverFlowCardBodyTextHeights.lcfMediaItemCallNumber, container.coverFlowId, ...customClasses]),
+                new LcfItemWrapper('p', 'lcfMediaTitle', 'lcfCardBody', ['card-text', 'text-truncate', 'font-weight-lighter', 'mb-0', config.coverFlowCardBodyTextHeights.lcfMediaTitle, container.coverFlowId, ...customClasses]),
+            ];
             if (config.coverFlowFlippableCards) {
-                setFlipCards(container);
-                setHighlightOnHover(container);
+                lcfItemWrapperAspects.push(...[
+                    /** These tags are on the back of the flipCard. */
+                    new LcfItemWrapper('div', 'lcfFlipCardBack', 'lcfFlipCard', ['flipCardBack', container.coverFlowId]),
+                    new LcfItemWrapper('p', 'lcfMediaISBD', 'lcfFlipCardBack', [container.coverFlowId]),
+                    new LcfItemWrapper('button', 'lcfFlipCardButton', 'lcfItemContainer', ['shadow', container.coverFlowId]),
+                ]);
+            }
+            const strategyManager = new StrategyManager();
+            const evaluateConfiguration = () => {
+                if (config.coverFlowFlippableCards) {
+                    setFlipCards(container);
+                    setHighlightOnHover(container);
+                    return;
+                }
+                if (config.coverFlowHighlightingStyle === 'default') {
+                    setRaiseShadowOnHover(container);
+                    return;
+                }
+                if (config.coverFlowHighlightingStyle === 'coloredFrame') {
+                    setHighlightOnHover(container);
+                }
+            };
+            //   const onEntry = (entry) => {
+            //     entry.forEach((change) => {
+            //       if (change.isIntersecting) {
+            //         change.target.style.width = window.screen.availWidth;
+            //       }
+            //     });
+            //   };
+            strategyManager.addStrategy(new Strategy('defaultContextStrategy', () => {
+                createStyleTag();
+                setGlobalStyles(config, container);
+                setLoadingAnimation(config, container);
+                evaluateConfiguration();
+                const defaultContext = new DefaultContext(config, container, data, lcfLoadingAspects, lcfItemWrapperAspects, lcfNavigationAspects);
+                defaultContext.setStyles();
+                defaultContext.buildLoadingAnimation();
+                defaultContext.buildLeftNavigationButton();
+                defaultContext.buildCoverFlow();
+                defaultContext.buildRightNavigationButton();
+                defaultContext.setNavigationButtonStyles();
+            }));
+            strategyManager.addStrategy(new Strategy('gridContextStrategy', () => {
+                createStyleTag();
+                setGlobalStyles(config, container);
+                setLoadingAnimation(config, container);
+                evaluateConfiguration();
+                const gridContext = new GridContext(config, container, data, lcfLoadingAspects, lcfItemWrapperAspects);
+                gridContext.setStyles();
+                gridContext.buildLoadingAnimation();
+                gridContext.buildCoverFlow();
+            }));
+            strategyManager.addStrategy(new Strategy('shelfBrowserExtensionStrategy', () => {
+                const defaultContext = new DefaultContext(config, container, data, lcfLoadingAspects, lcfItemWrapperAspects, lcfNavigationAspects);
+                defaultContext.buildCoverFlow();
+            }));
+            strategyManager.addStrategy(new Strategy('shelfBrowserMobileStrategy', () => {
+                // const options = {
+                //   threshold: [1.0],
+                // };
+                // const observer = new IntersectionObserver(onEntry, options);
+                createStyleTag();
+                setGlobalStyles(config, container);
+                setLoadingAnimation(config, container);
+                evaluateConfiguration();
+                const defaultContext = new DefaultContext(config, container, data, lcfLoadingAspects, lcfItemWrapperAspects, lcfNavigationAspects);
+                defaultContext.setStyles();
+                // defaultContext.setShelfBrowserMobile();
+                defaultContext.buildLoadingAnimation();
+                defaultContext.buildLeftNavigationButton();
+                defaultContext.buildCoverFlow();
+                defaultContext.buildRightNavigationButton();
+                defaultContext.setNavigationButtonStyles();
+                // eslint-disable-next-line max-len
+                // const lcfItemContainers = document.querySelectorAll(`.lcfItemContainer.${container.coverFlowId}`);
+                // lcfItemContainers.forEach((itemContainer) => {
+                //   observer.observe(itemContainer);
+                // });
+            }));
+            if (config.shelfBrowserExtendedCoverFlow) {
+                strategyManager.getStrategy('shelfBrowserExtensionStrategy').makePlay();
                 return;
             }
-            if (config.coverFlowHighlightingStyle === 'default') {
-                setRaiseShadowOnHover(container);
-                return;
-            }
-            if (config.coverFlowHighlightingStyle === 'coloredFrame') {
-                setHighlightOnHover(container);
-            }
-        };
-        //   const onEntry = (entry) => {
-        //     entry.forEach((change) => {
-        //       if (change.isIntersecting) {
-        //         change.target.style.width = window.screen.availWidth;
-        //       }
-        //     });
-        //   };
-        strategyManager.addStrategy(new Strategy('defaultContextStrategy', () => {
-            createStyleTag();
-            setGlobalStyles(config, container);
-            setLoadingAnimation(config, container);
-            evaluateConfiguration();
-            const defaultContext = new DefaultContext(config, container, data, lcfLoadingAspects, lcfItemWrapperAspects, lcfNavigationAspects);
-            defaultContext.setStyles();
-            defaultContext.buildLoadingAnimation();
-            defaultContext.buildLeftNavigationButton();
-            defaultContext.buildCoverFlow();
-            defaultContext.buildRightNavigationButton();
-            defaultContext.setNavigationButtonStyles();
-        }));
-        strategyManager.addStrategy(new Strategy('gridContextStrategy', () => {
-            createStyleTag();
-            setGlobalStyles(config, container);
-            setLoadingAnimation(config, container);
-            evaluateConfiguration();
-            const gridContext = new GridContext(config, container, data, lcfLoadingAspects, lcfItemWrapperAspects);
-            gridContext.setStyles();
-            gridContext.buildLoadingAnimation();
-            gridContext.buildCoverFlow();
-        }));
-        strategyManager.addStrategy(new Strategy('shelfBrowserExtensionStrategy', () => {
-            const defaultContext = new DefaultContext(config, container, data, lcfLoadingAspects, lcfItemWrapperAspects, lcfNavigationAspects);
-            defaultContext.buildCoverFlow();
-        }));
-        strategyManager.addStrategy(new Strategy('shelfBrowserMobileStrategy', () => {
-            // const options = {
-            //   threshold: [1.0],
-            // };
-            // const observer = new IntersectionObserver(onEntry, options);
-            createStyleTag();
-            setGlobalStyles(config, container);
-            setLoadingAnimation(config, container);
-            evaluateConfiguration();
-            const defaultContext = new DefaultContext(config, container, data, lcfLoadingAspects, lcfItemWrapperAspects, lcfNavigationAspects);
-            defaultContext.setStyles();
-            // defaultContext.setShelfBrowserMobile();
-            defaultContext.buildLoadingAnimation();
-            defaultContext.buildLeftNavigationButton();
-            defaultContext.buildCoverFlow();
-            defaultContext.buildRightNavigationButton();
-            defaultContext.setNavigationButtonStyles();
             // eslint-disable-next-line max-len
-            // const lcfItemContainers = document.querySelectorAll(`.lcfItemContainer.${container.coverFlowId}`);
-            // lcfItemContainers.forEach((itemContainer) => {
-            //   observer.observe(itemContainer);
-            // });
-        }));
-        if (config.shelfBrowserExtendedCoverFlow) {
-            strategyManager.getStrategy('shelfBrowserExtensionStrategy').makePlay();
-            return;
+            if (config.coverFlowShelfBrowser && window.screen.width <= (config.gridCoverFlowBreakpoints.s - 1)) {
+                strategyManager.getStrategy('shelfBrowserMobileStrategy').makePlay();
+                return;
+            }
+            if (coverFlowContext === 'default' && window.screen.width >= config.gridCoverFlowBreakpoints.s) {
+                strategyManager.getStrategy('defaultContextStrategy').makePlay();
+                return;
+            }
+            if (coverFlowContext === 'grid' || window.screen.width <= (config.gridCoverFlowBreakpoints.s - 1)) {
+                strategyManager.getStrategy('gridContextStrategy').makePlay();
+            }
         }
-        // eslint-disable-next-line max-len
-        if (config.coverFlowShelfBrowser && window.screen.width <= (config.gridCoverFlowBreakpoints.s - 1)) {
-            strategyManager.getStrategy('shelfBrowserMobileStrategy').makePlay();
-            return;
-        }
-        if (coverFlowContext === 'default' && window.screen.width >= config.gridCoverFlowBreakpoints.s) {
-            strategyManager.getStrategy('defaultContextStrategy').makePlay();
-            return;
-        }
-        if (coverFlowContext === 'grid' || window.screen.width <= (config.gridCoverFlowBreakpoints.s - 1)) {
-            strategyManager.getStrategy('gridContextStrategy').makePlay();
+        catch (error) {
+            console.trace(`Looks like something went wrong in ${this.build.name} ->`, error);
+            // eslint-disable-next-line consistent-return
+            return error;
         }
     }
 
@@ -885,6 +892,7 @@
             this.config = configuration;
             this.coverImageFallbackHeight = this.config.coverImageFallbackHeight || 210;
             this.coverImageFallbackUrl = this.config.coverImageFallbackUrl || '/cgi-bin/koha/svc/covergen';
+            this.coverImageFetchTimeout = this.config.coverImageFetchTimeout || 1000;
             this.coverFlowTooltips = this.config.coverFlowTooltips || false;
             this.coverFlowAutoScroll = this.config.coverFlowAutoScroll || false;
             this.coverFlowAutoScrollInterval = this.config.coverFlowAutoScrollInterval || 8000;
@@ -1104,8 +1112,9 @@
             }
             return url.protocol === 'http:' || url.protocol === 'https:';
         }
-        static async fetchWithTimeout(resource, options = {}) {
-            const { timeout = 5000 } = options;
+        // eslint-disable-next-line max-len
+        async fetchWithTimeout(resource, options = {}) {
+            const { timeout = 1000  } = options;
             const controller = new AbortController();
             const id = setTimeout(() => controller.abort(), timeout);
             const response = await fetch(resource, {
@@ -1117,7 +1126,7 @@
         }
         async checkIfFileExists(resourceInQuestion) {
             try {
-                const response = await Data.fetchWithTimeout(resourceInQuestion, { method: 'GET', mode: 'cors'});
+                const response = await this.fetchWithTimeout(resourceInQuestion, { method: 'GET', mode: 'cors' });
                 return response.ok;
             }
             catch (error) {
@@ -1126,33 +1135,41 @@
             }
         }
         checkUrls(localData) {
-            // eslint-disable-next-line max-len
-            const checkedUrls = localData.map(async (entry) => {
-                const { coverurl, coverhtml } = entry;
-                if (coverhtml && !coverurl)
+            try {
+                // eslint-disable-next-line max-len
+                const checkedUrls = localData.map(async (entry) => {
+                    const { coverurl, coverhtml } = entry;
+                    if (coverhtml && !coverurl) {
+                        return entry;
+                    }
+                    if (coverurl.startsWith('/')) {
+                        return { ...entry, coverurl: await Data.processDataUrl(coverurl) };
+                    }
+                    if (!coverurl) {
+                        return {
+                            ...entry,
+                            coverurl: this.config.coverImageFallbackUrl !== '/cgi-bin/koha/svc/covergen'
+                                ? this.config.coverImageFallbackUrl
+                                : await Data.processDataUrl(`${this.config.coverImageFallbackUrl}?title=${window.encodeURIComponent(entry.title)}`),
+                        };
+                    }
+                    const fileExists = await this.checkIfFileExists(coverurl);
+                    if (!fileExists) {
+                        return {
+                            ...entry,
+                            coverurl: this.config.coverImageFallbackUrl !== '/cgi-bin/koha/svc/covergen'
+                                ? this.config.coverImageFallbackUrl
+                                : await Data.processDataUrl(`${this.config.coverImageFallbackUrl}?title=${window.encodeURIComponent(entry.title)}`),
+                        };
+                    }
                     return entry;
-                if (coverurl.startsWith('/'))
-                    return { ...entry, coverurl: await Data.processDataUrl(coverurl) };
-                if (!coverurl) {
-                    return {
-                        ...entry,
-                        coverurl: this.config.coverImageFallbackUrl !== '/cgi-bin/koha/svc/covergen'
-                            ? this.config.coverImageFallbackUrl
-                            : await Data.processDataUrl(`${this.config.coverImageFallbackUrl}?title=${window.encodeURIComponent(entry.title)}`),
-                    };
-                }
-                const fileExists = await this.checkIfFileExists(coverurl);
-                if (!fileExists) {
-                    return {
-                        ...entry,
-                        coverurl: this.config.coverImageFallbackUrl !== '/cgi-bin/koha/svc/covergen'
-                            ? this.config.coverImageFallbackUrl
-                            : await Data.processDataUrl(`${this.config.coverImageFallbackUrl}?title=${window.encodeURIComponent(entry.title)}`),
-                    };
-                }
-                return entry;
-            });
-            return checkedUrls;
+                });
+                return checkedUrls;
+            }
+            catch (error) {
+                console.trace(`Looks like a something went wrong in ${this.checkUrls.name} ->`, error);
+                return error;
+            }
         }
         static async processDataUrl(url) {
             const response = await fetch(url);
@@ -1273,7 +1290,7 @@
             }
         }
         catch (error) {
-            console.log(error);
+            console.trace(`Looks like something went wrong in ${this.populateTagAttributes.name} ->`, error);
         }
     }
 
@@ -1346,89 +1363,108 @@
     const externalSources = new Observable(false);
 
     async function harvestUrls(formattedData, container, config) {
-        const dataReference = formattedData;
-        const containerReference = container;
-        const harvesterBuilt = await urlHarvester(dataReference, containerReference);
-        if (harvesterBuilt) {
-            let harvesterElements = document.querySelectorAll('.harvesterElement');
-            const harvesterResults = [];
-            if (externalSources) {
-                const harvesterObservers = {};
-                harvesterElements.forEach((node) => {
-                    const nodeId = getLcfItemId(node);
-                    harvesterObservers[nodeId] = new Observable(node.innerHTML);
-                    harvesterObservers[nodeId].subscribe((coverurl) => {
-                        //   console.log(coverurl);
-                        //   const aHrefRe = /a href="(.+?)"/g;
-                        //   const hrefs = coverurl.match(aHrefRe);
-                        //   if (hrefs) {
-                        //     const [src] = hrefs;
-                        //     const [, srcString] = src.split('"');
-                        //     harvesterResults.push([nodeId, srcString]);
-                        //     return;
-                        //   }
-                        const srcRe = /src="(.+?)"/g;
-                        const sources = coverurl.match(srcRe);
-                        if (sources) {
-                            const [src] = sources;
-                            let [, srcString] = src.split('"');
-                            /** Google specific url parameters. Somehow the idenatifier &amp; ends up
-                             * in the resulting string when it should be just & instead. */
-                            srcString = `${srcString.replaceAll('amp;', '').replace(/zoom=./g, 'zoom=1')}&gbs_api`;
-                            harvesterResults.push([nodeId, srcString]);
-                            return;
-                        }
-                        harvesterResults.push([nodeId, undefined]);
-                    });
-                });
-                /** Notify the observant to execute the callback. */
-                externalSources.value = true;
-                /** Reset to false. */
-                externalSources.value = false;
-                setTimeout(() => {
-                    harvesterElements = document.querySelectorAll('.harvesterElement');
+        try {
+            const dataReference = formattedData;
+            const containerReference = container;
+            const harvesterBuilt = await urlHarvester(dataReference, containerReference);
+            if (harvesterBuilt) {
+                let harvesterElements = document.querySelectorAll('.harvesterElement');
+                const harvesterResults = [];
+                if (externalSources) {
+                    const harvesterObservers = {};
                     harvesterElements.forEach((node) => {
                         const nodeId = getLcfItemId(node);
-                        harvesterObservers[nodeId].value = node.innerHTML;
+                        harvesterObservers[nodeId] = new Observable(node.innerHTML);
+                        harvesterObservers[nodeId].subscribe((coverurl) => {
+                            //   console.log(coverurl);
+                            //   const aHrefRe = /a href="(.+?)"/g;
+                            //   const hrefs = coverurl.match(aHrefRe);
+                            //   if (hrefs) {
+                            //     const [src] = hrefs;
+                            //     const [, srcString] = src.split('"');
+                            //     harvesterResults.push([nodeId, srcString]);
+                            //     return;
+                            //   }
+                            const srcRe = /src="(.+?)"/g;
+                            const sources = coverurl.match(srcRe);
+                            if (sources) {
+                                const [src] = sources;
+                                let [, srcString] = src.split('"');
+                                /** Google specific url parameters. Somehow the idenatifier &amp; ends up
+                               * in the resulting string when it should be just & instead. */
+                                srcString = `${srcString.replaceAll('amp;', '').replace(/zoom=./g, 'zoom=1')}&gbs_api`;
+                                harvesterResults.push([nodeId, srcString]);
+                                return;
+                            }
+                            harvesterResults.push([nodeId, undefined]);
+                        });
                     });
-                }, config.coverImageCallbackTimeout);
-                setTimeout(() => {
-                    harvesterResults.forEach((entry) => {
-                        const [id, coverurl] = entry;
-                        dataReference[id].coverurl = coverurl;
-                    });
-                }, config.coverImageCallbackTimeout);
-                await resyncExecution(config.coverImageCallbackTimeout);
-                clearHarvester();
-            }
-            else {
-                harvesterElements.forEach((node) => {
-                    const nodeId = getLcfItemId(node);
-                    const srcRe = /src="(.+?)"/g;
-                    const sources = node.innerHTML.match(srcRe);
-                    if (sources) {
-                        const [src] = sources;
-                        const [, srcString] = src.split('"');
-                        harvesterResults.push([nodeId, srcString]);
-                    }
-                    harvesterResults.forEach((entry) => {
-                        const [id, coverurl] = entry;
-                        dataReference[id].coverurl = coverurl;
-                    });
+                    /** Notify the observant to execute the callback. */
+                    externalSources.value = true;
+                    /** Reset to false. */
+                    externalSources.value = false;
+                    setTimeout(() => {
+                        harvesterElements = document.querySelectorAll('.harvesterElement');
+                        harvesterElements.forEach((node) => {
+                            const nodeId = getLcfItemId(node);
+                            harvesterObservers[nodeId].value = node.innerHTML;
+                        });
+                    }, config.coverImageCallbackTimeout);
+                    setTimeout(() => {
+                        harvesterResults.forEach((entry) => {
+                            const [id, coverurl] = entry;
+                            dataReference[id].coverurl = coverurl;
+                        });
+                    }, config.coverImageCallbackTimeout);
+                    await resyncExecution(config.coverImageCallbackTimeout);
                     clearHarvester();
-                });
+                }
+                else {
+                    harvesterElements.forEach((node) => {
+                        const nodeId = getLcfItemId(node);
+                        const srcRe = /src="(.+?)"/g;
+                        const sources = node.innerHTML.match(srcRe);
+                        if (sources) {
+                            const [src] = sources;
+                            const [, srcString] = src.split('"');
+                            harvesterResults.push([nodeId, srcString]);
+                        }
+                        harvesterResults.forEach((entry) => {
+                            const [id, coverurl] = entry;
+                            dataReference[id].coverurl = coverurl;
+                        });
+                        clearHarvester();
+                    });
+                }
             }
         }
+        catch (error) {
+            console.trace(`Looks like harvesting failed in ${this.harvestUrls.name} ->`, error);
+            return error;
+        }
+        return 1;
     }
 
     function calculateComputedFontSize(container) {
-        return parseInt(window.getComputedStyle(document.getElementById(container)).fontSize.split('px')[0], 10);
+        try {
+            return parseInt(window.getComputedStyle(document.getElementById(container)).fontSize.split('px')[0], 10);
+        }
+        catch (error) {
+            console.trace(`Looks like somthing went wrong in ${this.calculateComputedFontSize.name} ->`, error);
+            return error;
+        }
     }
 
     function calculateCoverFlowPlusGaps(offsetWidthArray, computedFontSize) {
-        return offsetWidthArray
-            .reduce((accumulator, currentValue) => accumulator + currentValue + computedFontSize)
-            + computedFontSize;
+        try {
+            return offsetWidthArray
+                .reduce((accumulator, currentValue) => accumulator + currentValue + computedFontSize)
+                + computedFontSize;
+        }
+        catch (error) {
+            console.trace(`Looks like somthing went wrong in ${this.calculateCoverFlowPlusGaps.name} ->`, error);
+            return error;
+        }
     }
 
     function changeAspectVisibility({ config, containerReference }) {
@@ -1450,14 +1486,20 @@
     }
 
     function cleanupUrls(config, formattedData) {
-        const cleanedData = formattedData;
-        arrFromObjEntries(formattedData).forEach((entry) => {
-            const [id, data] = entry;
-            cleanedData[id] = {
-                ...data, coverurl: data.coverurl || config.coverImageFallbackUrl,
-            };
-        });
-        return cleanedData;
+        try {
+            const cleanedData = formattedData;
+            arrFromObjEntries(formattedData).forEach((entry) => {
+                const [id, data] = entry;
+                cleanedData[id] = {
+                    ...data, coverurl: data.coverurl || config.coverImageFallbackUrl,
+                };
+            });
+            return cleanedData;
+        }
+        catch (error) {
+            console.trace(`Looks like something went wrong in in ${this.checkIfFileExists.name} ->`, error);
+            return error;
+        }
     }
 
     class ErrorLogger {
@@ -1473,7 +1515,8 @@
         show() {
             let output = '';
             this.messages.forEach((message) => {
-                output += message;
+                output += `${message}
+      `;
             });
             console.log(output);
         }
@@ -1488,7 +1531,13 @@
     }
 
     function format(localData) {
-        return Object.fromEntries(Object.entries(localData).map(([, v]) => [generateId(), v]));
+        try {
+            return Object.fromEntries(Object.entries(localData).map(([, v]) => [generateId(), v]));
+        }
+        catch (error) {
+            console.trace(`Looks like something didn't map properly in ${this.format.name} ->`, error);
+            return error;
+        }
     }
 
     function addAutoScroll({ config, container }) {
@@ -1505,18 +1554,28 @@
 
     // eslint-disable-next-line max-len
     function addDataTooltip(lcfItemContainer, coverFlowEntity) {
-        const itemContainer = lcfItemContainer;
-        itemContainer.dataset.tooltip = `${coverFlowEntity.author ? coverFlowEntity.author : ''} ${coverFlowEntity.itemCallNumber ? coverFlowEntity.itemCallNumber : ''} ${coverFlowEntity.title ? coverFlowEntity.title : ''}`;
+        try {
+            const itemContainer = lcfItemContainer;
+            itemContainer.dataset.tooltip = `${coverFlowEntity.author ? coverFlowEntity.author : ''} ${coverFlowEntity.itemCallNumber ? coverFlowEntity.itemCallNumber : ''} ${coverFlowEntity.title ? coverFlowEntity.title : ''}`;
+        }
+        catch (error) {
+            console.trace(`Looks like something went wrong in ${this.addDataTooltip.name} ->`, error);
+        }
     }
 
     function addFlipCards({ id, config, containerReference }) {
         if (config.coverFlowFlippableCards) {
-            const lcfFlipCardButton = document.querySelector(`.lcfFlipCardButton.${id}.${containerReference}`);
-            lcfFlipCardButton.addEventListener('click', () => {
-                const innerFlipCard = document.querySelector(`.flipCardInner.${id}.${containerReference}`);
-                innerFlipCard.classList.toggle('cardIsFlipped');
-                lcfFlipCardButton.classList.toggle('buttonIsFlipped');
-            });
+            try {
+                const lcfFlipCardButton = document.querySelector(`.lcfFlipCardButton.${id}.${containerReference}`);
+                lcfFlipCardButton.addEventListener('click', () => {
+                    const innerFlipCard = document.querySelector(`.flipCardInner.${id}.${containerReference}`);
+                    innerFlipCard.classList.toggle('cardIsFlipped');
+                    lcfFlipCardButton.classList.toggle('buttonIsFlipped');
+                });
+            }
+            catch (error) {
+                console.trace(`Looks like somthing went wrong in ${this.addFlipCards.name} ->`, error);
+            }
         }
     }
 
@@ -1693,23 +1752,30 @@
     }
 
     async function prepare(data, config, container, currentItemContainers) {
-        const promisedCoverFlowEntities = [];
-        let lcfCoverImages = [];
-        const lcfCoverFlowEntities = [];
-        const externalData = Object.entries(data);
-        Array.from(externalData).forEach((entry) => {
-            lcfCoverFlowEntities.push({ id: entry[0], entry: entry[1], image: null });
-            if (entry[1].coverurl) {
-                lcfCoverImages.push(new LcfCoverImage(entry[1].coverurl).fetch());
-            }
-        });
-        lcfCoverImages = await Promise.all(lcfCoverImages);
-        Array.from(lcfCoverImages.entries()).forEach((entry) => {
-            const [index, image] = entry;
-            lcfCoverFlowEntities[index].image = image;
-        });
-        lcfCoverFlowEntities.forEach((entity) => entityToCoverFlow(config, entity.id, entity.entry, entity.image, promisedCoverFlowEntities));
-        return settlePromises(config, container, currentItemContainers, promisedCoverFlowEntities);
+        try {
+            const promisedCoverFlowEntities = [];
+            let lcfCoverImages = [];
+            const lcfCoverFlowEntities = [];
+            const externalData = Object.entries(data);
+            Array.from(externalData).forEach((entry) => {
+                lcfCoverFlowEntities.push({ id: entry[0], entry: entry[1], image: null });
+                if (entry[1].coverurl) {
+                    lcfCoverImages.push(new LcfCoverImage(entry[1].coverurl).fetch());
+                }
+            });
+            lcfCoverImages = await Promise.all(lcfCoverImages);
+            Array.from(lcfCoverImages.entries()).forEach((entry) => {
+                const [index, image] = entry;
+                lcfCoverFlowEntities[index].image = image;
+            });
+            lcfCoverFlowEntities.forEach((entity) => entityToCoverFlow(config, entity.id, entity.entry, entity.image, promisedCoverFlowEntities));
+            // eslint-disable-next-line max-len
+            return await settlePromises(config, container, currentItemContainers, promisedCoverFlowEntities);
+        }
+        catch (error) {
+            console.trace(`Looks like something went wrong in ${this.prepare.name} ->`, error);
+            return error;
+        }
     }
 
     /* eslint-disable max-len */
@@ -1780,7 +1846,7 @@
             catch (error) {
                 if (this.config.debug) {
                     this.logger.log(error, this.container.coverFlowId);
-                    this.loggger.show();
+                    this.logger.show();
                 }
             }
             /** Autoscroll logic. */
@@ -1923,9 +1989,9 @@
                     const result = await fetchItemData('/cgi-bin/koha/svc/coverflowbyshelfitem?shelfbrowse_itemnumber=', itemnumber, 7);
                     shelfBrowserHeading.classList.add('border', 'border-secondary', 'rounded', 'p-3', 'w-75', 'centered', 'mx-auto', 'shadow-sm', 'text-center');
                     shelfBrowserHeading.textContent = `
-                    ${header.header_browsing.replace('{starting_homebranch}', result.starting_homebranch.description)}${result.starting_location.description ? ',' : ''}
-                    ${header.header_location.replace('{starting_location}', result.starting_location.description)}${result.starting_ccode.description ? ',' : ''}
-                    ${header.header_collection.replace('{starting_ccode}', result.starting_ccode.description)}
+                    ${result.starting_homebranch.description ? header.header_browsing.replace('{starting_homebranch}', result.starting_homebranch.description) : ''}${result.starting_location.description ? ',' : ''}
+                    ${result.starting_location.description ? header.header_location.replace('{starting_location}', result.starting_location.description) : ''}${result.starting_ccode.description ? ',' : ''}
+                    ${result.starting_ccode.description ? header.header_collection.replace('{starting_ccode}', result.starting_ccode.description) : ''}
                     `;
                     shelfBrowserHeading.appendChild(shelfBrowserClose);
                     extendCurrentCoverFlow({
