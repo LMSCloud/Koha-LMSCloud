@@ -1,4 +1,4 @@
-package Koha::REST::V1::NearbyItems;
+package Koha::REST::V1::CoverflowDataBiblionumber;
 
 # This file is part of Koha.
 #
@@ -19,7 +19,6 @@ use Modern::Perl;
 
 use Mojo::Base 'Mojolicious::Controller';
 
-use Koha::Items;
 use C4::CoverFlowData;
 
 use Try::Tiny qw( catch try );
@@ -36,25 +35,30 @@ Koha::REST::V1::Items - Koha REST API for handling items (V1)
 
 =head3 get
 
-Controller function provides nearby items from given itemnumbers.
+Controller function provides coverflow data for given biblionumbers.
 
 =cut
 
 sub get {
+    
+    sub flat(@) {
+        return map { ref eq 'ARRAY' ? @$_ : $_ } @_;
+    }
+
     my $c = shift->openapi->valid_input or return;
-    my $item_id = $c->validation->param('item_id');
-    my $quantity = $c->validation->param('quantity');
+    my @params = $c->validation->output->{'biblio_ids'};
+    my @biblio_ids = flat(@params);
 
     try {
-        my @nearby_items = C4::CoverFlowData::GetCoverFlowDataOfNearbyItemsByItemNumber($item_id, $quantity || 3);
+        my @coverflow_data = C4::CoverFlowData::GetCoverFlowDataByBiblionumber(@biblio_ids);
 
-        unless ( @nearby_items ) {
+        unless ( @coverflow_data ) {
             return $c->render(
                 status => 404,
-                openapi => { error => "No nearby items could be found" }
+                openapi => { error => "No item(s) with specified biblionumber(s)" }
             );
         }
-        return $c->render( status => 200, openapi => @nearby_items );
+        return $c->render( status => 200, openapi => @coverflow_data );
     }
     catch {
         $c->unhandled_exception($_);

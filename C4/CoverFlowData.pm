@@ -221,12 +221,12 @@ sub GetCoverFlowDataOfNearbyItemsByItemNumber {
 
 sub GetCoverFlowDataByBiblionumber {
     my @biblios = @_;
-    
     my @biblist;
+
     foreach my $biblionumber (@biblios) {
         push @biblist, { biblionumber => $biblionumber }
     }
-    
+
     # populate catalogue record data
     @biblist = GetCatalogueData( @biblist );
     
@@ -248,7 +248,7 @@ sub GetCoverFlowDataByQueryString {
     if (!defined $error) {
         foreach my $resultrecord (@{$searchresults}) {
             my $marcrecord = C4::Search::new_record_from_zebra('biblioserver',$resultrecord);
-            my $bibdata = TransformMarcToKoha( $marcrecord, '' );
+            my $bibdata = TransformMarcToKoha( $marcrecord, q{} );
 
             if ($bibdata) {
                 push @results, { biblionumber => $bibdata->{'biblionumber'} };
@@ -277,7 +277,7 @@ sub GetCoverFlowDataByQueryString {
 # Populate an item list with titel data and upc, oclc and isbn normalized.
 sub GetCatalogueData {
     my @items = @_;
-    my $marcflavour = C4::Context->preference("marcflavour");
+    my $marcflavour = C4::Context->preference('marcflavour');
     my @valid_items;
     for my $item ( @items ) {
         my $biblio = Koha::Biblios->find( $item->{biblionumber} );
@@ -305,9 +305,9 @@ sub GetCatalogueData {
         $item->{'browser_normalized_ean'}  = GetNormalizedEAN($record,$marcflavour);
         
         my $field = $record->field('245');
-        my $titleblock = "";
-        my $title = "";
-        my $author = "";
+        my $titleblock = q{};
+        my $title = q{};
+        my $author = q{};
     
         if ( $field ) {
             $title = $field->subfield('a');
@@ -352,7 +352,7 @@ sub GetCatalogueData {
             $year = $field->subfield('c');
     
             my $publisherblock = $location;
-            if ( $publisherblock && ( defined($publisher) || defined($year) )) {
+            if ( $publisherblock && ( defined $publisher || defined $year )) {
                 $publisherblock .= ': ';
             }
             if ( $publisher ) {
@@ -376,19 +376,19 @@ sub GetCatalogueData {
         $titleblock =~ s/[\x{0098}\x{009c}]//g if ($titleblock);
 		
 		
-        my $identifier = '';
+        my $identifier = q{};
         $field = $record->field('020');
         if ( $field ) {
             my $isbn = $field->subfield('a');
             $identifier = $isbn if ( $isbn );
         }
         $field = $record->field('024');
-        if ( $field && $identifier eq '' ) {
+        if ( $field && $identifier eq q{} ) {
             my $ean = $field->subfield('a');
             $identifier = $ean if ( $ean );
         }
 		
-        my $coverurl = '';
+        my $coverurl = q{};
         foreach my $field ( $record->field('856') ) {
             if ( $field->subfield('q') && $field->subfield('q') =~ /^cover/ && $field->subfield('u') ) {
                 next if ($field->subfield('n') && $field->subfield('n') =~ /^(Wikipedia|Antolin)$/i );

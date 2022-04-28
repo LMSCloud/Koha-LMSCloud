@@ -122,8 +122,11 @@
   "/advanced_editor/macros/shared/{advancededitormacro_id}": {
     "$ref": "paths/advancededitormacros.json#/~1advanced_editor~1macros~1shared~1{advancededitormacro_id}"
   },
-  "/nearby_items/{item_id}": {
-    "$ref": "paths/nearby_items.json#/~1nearby_items~1{item_id}"
+  "/coverflow_data_nearby_items/{item_id}": {
+    "$ref": "paths/coverflow_data_nearby_items.json#/~1coverflow_data_nearby_items~1{item_id}"
+  },
+  "/coverflow_data_biblionumber/{biblio_ids}": {
+    "$ref": "paths/coverflow_data_biblionumber.json#/~1coverflow_data_biblionumber~1{biblio_ids}"
   },
   "/patrons": {
     "$ref": "paths/patrons.json#/~1patrons"
@@ -161,7 +164,7 @@
   "/patrons/{patron_id}/extended_attributes/{extended_attribute_id}": {
     "$ref": "paths/patrons_extended_attributes.json#/~1patrons~1{patron_id}~1extended_attributes~1{extended_attribute_id}"
   },
-   "/patrons/{patron_id}/holds": {
+  "/patrons/{patron_id}/holds": {
     "$ref": "paths/patrons_holds.json#/~1patrons~1{patron_id}~1holds"
   },
   "/patrons/{patron_id}/password": {
