@@ -895,7 +895,7 @@ sub writeSepaDirectDebitFile {
     #                            'xmlns' => 'urn:iso:std:iso:20022:tech:xsd:pain.008.003.02',
     #                            'xmlns:xsi' => 'http://www.w3.org/2001/XMLSchema-instance',
     #                            'xsi:schemaLocation' => 'urn:iso:std:iso:20022:tech:xsd:pain.008.003.02 pain.008.003.02.xsd');
-    
+
     # pain.008.001.02.xsd is valid from SEPA V3.0 on (since 20.11.2016). Is in use here since Koha-LMSCloud 21.05. (i. e. since april 2022)
     $xmlwriter->startTag(   'Document',                                                             # root element 'Document'
                                 'xmlns' => 'urn:iso:std:iso:20022:tech:xsd:pain.008.001.02',
