@@ -53,6 +53,7 @@ sub get {
 
     try {
         my $nearby_items = C4::CoverFlowData::GetCoverFlowDataOfNearbyItemsByItemNumber($item_id, $quantity || 3);
+        
         unless ( $nearby_items ) {
             return $c->render(
                 status => 404,
