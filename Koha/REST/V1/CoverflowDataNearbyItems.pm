@@ -16,10 +16,12 @@ package Koha::REST::V1::CoverflowDataNearbyItems;
 # along with Koha; if not, see <http://www.gnu.org/licenses>.
 
 use Modern::Perl;
+use utf8;
 
 use Mojo::Base 'Mojolicious::Controller';
 
-use Koha::Items;
+use Koha::Misc::Coverhtml;
+
 use C4::CoverFlowData;
 
 use Try::Tiny qw( catch try );
@@ -45,16 +47,26 @@ sub get {
     my $item_id = $c->validation->param('item_id');
     my $quantity = $c->validation->param('quantity');
 
-    try {
-        my @nearby_items = C4::CoverFlowData::GetCoverFlowDataOfNearbyItemsByItemNumber($item_id, $quantity || 3);
+    sub flat(@) {
+        return map { ref eq 'ARRAY' ? @$_ : $_ } @_;
+    }
 
-        unless ( @nearby_items ) {
+    try {
+        my $nearby_items = C4::CoverFlowData::GetCoverFlowDataOfNearbyItemsByItemNumber($item_id, $quantity || 3);
+        unless ( $nearby_items ) {
             return $c->render(
                 status => 404,
                 openapi => { error => "No nearby items could be found" }
             );
         }
-        return $c->render( status => 200, openapi => @nearby_items );
+
+        my @item_hashes = flat( $nearby_items->{'items'} );
+
+        @item_hashes = flat( Koha::Misc::Coverhtml::coverhtml(@item_hashes) );
+
+        $nearby_items->{'items'} = \@item_hashes;
+
+        return $c->render( status => 200, openapi => $nearby_items );
     }
     catch {
         $c->unhandled_exception($_);
