@@ -56,8 +56,9 @@ In order to make it more readable and usefull for the user,
 we added a cleartext output of the status and due date information
 as well as a permalink to the local title and item information.                                                   
 
-example request:
-http://wallenheim.lmscloud.net/opac-item-availability-BZSH.pl?sigel=634&TITEL=4072861&SRISBN=9783763026838&SRTIT=Mona%20Lisa%20forever&SRAUT=Thomas&SRKORP=&LANG=de
+example requests:
+https://wallenheim.lmscloud.net/item-avail-BZSH.pl?sigel=634&TITEL=4072861&SRISBN=9783763026838&SRTIT=Mona%20Lisa%20forever&SRAUT=Thomas&SRKORP=&LANG=de    (rewrite rule required)
+https://wallenheim.lmscloud.net/cgi-bin/koha/opac-item-availability-BZSH.pl?sigel=634&TITEL=4072861&SRISBN=9783763026838&SRTIT=Mona%20Lisa%20forever&SRAUT=Thomas&SRKORP=&LANG=de
 
 example response:
 <?xml version="1.0"?>
