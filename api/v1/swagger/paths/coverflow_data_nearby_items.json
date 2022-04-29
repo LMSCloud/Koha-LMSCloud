@@ -1,5 +1,5 @@
 {
-    "/coverflow_data_nearby_items/{item_id}": {
+    "/public/coverflow_data_nearby_items/{item_id}": {
       "get": {
         "x-mojo-to": "CoverflowDataNearbyItems#get",
         "operationId": "getCoverflowDataNearbyItems",
@@ -48,11 +48,6 @@
             "schema": {
               "$ref": "../definitions.json#/error"
             }
-          }
-        },
-        "x-koha-authorization": {
-          "permissions": {
-            "catalogue": "1"
           }
         }
       }

@@ -890,10 +890,17 @@ sub writeSepaDirectDebitFile {
     my $xmlwriter = XML::Writer->new(OUTPUT => 'self', NEWLINES => 0, DATA_MODE => 1, DATA_INDENT => 2, ENCODING => 'utf-8' );
 
     $xmlwriter->xmlDecl("UTF-8");
+    # pain.008.003.02.xsd is valid from SEPA V2.7 on (since 04.11.2013 until ??.11.2022). Was in use here until (including) Koha-LMSCloud 18.05.
+    #$xmlwriter->startTag(   'Document',                                                             # root element 'Document'
+    #                            'xmlns' => 'urn:iso:std:iso:20022:tech:xsd:pain.008.003.02',
+    #                            'xmlns:xsi' => 'http://www.w3.org/2001/XMLSchema-instance',
+    #                            'xsi:schemaLocation' => 'urn:iso:std:iso:20022:tech:xsd:pain.008.003.02 pain.008.003.02.xsd');
+
+    # pain.008.001.02.xsd is valid from SEPA V3.0 on (since 20.11.2016). Is in use here since Koha-LMSCloud 21.05. (i. e. since april 2022)
     $xmlwriter->startTag(   'Document',                                                             # root element 'Document'
-                                'xmlns' => 'urn:iso:std:iso:20022:tech:xsd:pain.008.003.02',
+                                'xmlns' => 'urn:iso:std:iso:20022:tech:xsd:pain.008.001.02',
                                 'xmlns:xsi' => 'http://www.w3.org/2001/XMLSchema-instance',
-                                'xsi:schemaLocation' => 'urn:iso:std:iso:20022:tech:xsd:pain.008.003.02 pain.008.003.02.xsd');
+                                'xsi:schemaLocation' => 'urn:iso:std:iso:20022:tech:xsd:pain.008.001.02 pain.008.001.02.xsd');
     $xmlwriter->startTag(     'CstmrDrctDbtInitn');                                                 # CustomerDirectDebitInitialization
 
     $xmlwriter->startTag(       'GrpHdr');                                                          # GroupHeader

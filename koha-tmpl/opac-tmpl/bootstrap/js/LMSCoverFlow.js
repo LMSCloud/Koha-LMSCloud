@@ -893,6 +893,8 @@
             this.coverImageFallbackHeight = this.config.coverImageFallbackHeight || 210;
             this.coverImageFallbackUrl = this.config.coverImageFallbackUrl || '/cgi-bin/koha/svc/covergen';
             this.coverImageFetchTimeout = this.config.coverImageFetchTimeout || 1000;
+            this.coverFlowDataBiblionumberEndpoint = this.config.coverFlowDataBiblionumberEndpoint || '/api/v1/public/coverflow_data_biblionumber/';
+            this.coverFlowNearbyItemsEndpoint = this.config.coverFlowNearbyItemsEndpoint || '/api/v1/public/coverflow_data_nearby_items/';
             this.coverFlowTooltips = this.config.coverFlowTooltips || false;
             this.coverFlowAutoScroll = this.config.coverFlowAutoScroll || false;
             this.coverFlowAutoScrollInterval = this.config.coverFlowAutoScrollInterval || 8000;
@@ -1881,8 +1883,8 @@
             referenceToDetailsView: `/cgi-bin/koha/opac-detail.pl?biblionumber=${item.biblionumber}`,
         }));
         const nearbyItems = {
-            previousItemNumber: newlyLoadedItems.shelfbrowser_prev_item.itemnumber,
-            nextItemNumber: newlyLoadedItems.shelfbrowser_next_item.itemnumber,
+            previousItemNumber: newlyLoadedItems.prev_item.itemnumber,
+            nextItemNumber: newlyLoadedItems.next_item.itemnumber,
         };
         const lmscoverflow = createLcfInstance();
         let shelfBrowserCoverFlowConfig = {
@@ -1908,7 +1910,7 @@
     }
 
     async function fetchItemData(endpoint, itemnumber, countItems) {
-        const url = `${endpoint}${itemnumber}&shelfbrowse_count_items=${countItems}`;
+        const url = `${endpoint}${itemnumber}?quantity=${countItems}`;
         const options = {
             method: 'GET',
             mode: 'cors',
@@ -1926,6 +1928,7 @@
     async function loadNewShelfBrowserItems(nearbyItems, buttonDirection) {
         const { previousItemNumber, nextItemNumber } = nearbyItems;
         const coverFlowId = 'lmscoverflow';
+        const shelfBrowserEndpoint = '/api/v1/public/coverflow_data_nearby_items/';
         const args = {
             extendedCoverFlow: true,
             buttonDirection,
@@ -1934,11 +1937,11 @@
             coverFlowId,
         };
         if (buttonDirection === 'left') {
-            const resultPrevious = fetchItemData('/cgi-bin/koha/svc/coverflowbyshelfitem?shelfbrowse_itemnumber=', previousItemNumber, 1);
+            const resultPrevious = fetchItemData(shelfBrowserEndpoint, previousItemNumber, 1);
             resultPrevious.then((result) => extendCurrentCoverFlow({ newlyLoadedItems: result, ...args }));
         }
         else if (buttonDirection === 'right') {
-            const resultNext = fetchItemData('/cgi-bin/koha/svc/coverflowbyshelfitem?shelfbrowse_itemnumber=', nextItemNumber, 1);
+            const resultNext = fetchItemData(shelfBrowserEndpoint, nextItemNumber, 1);
             resultNext.then((result) => extendCurrentCoverFlow({ newlyLoadedItems: result, ...args }));
         }
         else {
@@ -1972,6 +1975,7 @@
             lmsCoverFlowShelfBrowser.forEach((node) => {
                 node.addEventListener('click', async (e) => {
                     const target = e.target;
+                    const shelfBrowserEndpoint = '/api/v1/public/coverflow_data_nearby_items/';
                     /** If new shelves are opened, the event listeners for the
                          * previous shelf have to be removed. The instance properties
                          * of left and right have to be reset to false again, so the
@@ -1986,7 +1990,7 @@
                     instance.setRightToFalse();
                     const { /* biblionumber, */ itemnumber } = target.dataset;
                     removeChildNodes(document.getElementById(coverFlowId));
-                    const result = await fetchItemData('/cgi-bin/koha/svc/coverflowbyshelfitem?shelfbrowse_itemnumber=', itemnumber, 7);
+                    const result = await fetchItemData(shelfBrowserEndpoint, itemnumber, 7);
                     shelfBrowserHeading.classList.add('border', 'border-secondary', 'rounded', 'p-3', 'w-75', 'centered', 'mx-auto', 'shadow-sm', 'text-center');
                     shelfBrowserHeading.textContent = `
                     ${result.starting_homebranch.description ? header.header_browsing.replace('{starting_homebranch}', result.starting_homebranch.description) : ''}${result.starting_location.description ? ',' : ''}

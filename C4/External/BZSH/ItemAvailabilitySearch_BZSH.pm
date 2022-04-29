@@ -28,7 +28,7 @@ use MARC::Record;
 use MARC::File::XML ( BinaryEncoding => 'utf8', RecordFormat => 'MARC21' );    # required for MARC::File::XML->decode(...)
 use C4::Auth;
 use C4::Context;
-use C4::Search qw(SimpleSearch);
+use Koha::SearchEngine::Search;
 use Koha::Items;
 use Koha::DateUtils;
 
@@ -64,9 +64,9 @@ sub new {
     if ( $self->{selbranchcodecheck} ) {
         for (my $i = 0; $selbranchcodes[$i]; $i += 1 ) {
             if ( $i == 0 ) {
-                $self->{querybranchcodes} .= " and (branch:$selbranchcodes[$i]";
+                $self->{querybranchcodes} .= " and (branch.phrase:($selbranchcodes[$i])";
             } else {
-                $self->{querybranchcodes} .= " or branch:$selbranchcodes[$i]";
+                $self->{querybranchcodes} .= " or branch.phrase:($selbranchcodes[$i])";
             }
         }
         if ( length($self->{querybranchcodes}) > 0 ) {
@@ -78,6 +78,8 @@ sub new {
     foreach my $it (@illItemtypes) {
         $self->{illItemtypeCheck}->{$it} = $it;
     }
+
+    $self->{searcher} = Koha::SearchEngine::Search->new( { index => $Koha::SearchEngine::BIBLIOS_INDEX } );
     
     bless $self, $class;
     
@@ -97,7 +99,7 @@ sub search_title_with_best_item_status {
     my $sel_srisbn = shift;
 
     my ( $error, $marcresults, $total_hits ) = ( undef, [], 0 );
-    my $query = "cn:\"-1\"";                    # control number search, initial definition for no hit
+    my $query = "cn:(-1)";                      # control number search, initial definition for no hit
     my $best_biblionumber = 0;
     my $best_item_status = 0;                   # default: status 0 / Titel nicht vorhanden / title does not exist
     my $best_itemnumber = 0;
@@ -105,9 +107,14 @@ sub search_title_with_best_item_status {
 
     if (defined $sel_titel) {
         # search for catalog title record by MARC21 category 001 (control number)
-        $query = "zkshid:\"$sel_titel\"" . $self->{querybranchcodes};
+        $query = "zkshid:($sel_titel)" . $self->{querybranchcodes};
         ( $error, $marcresults, $total_hits ) = ( '', [], 0 );
-        ( $error, $marcresults, $total_hits ) = SimpleSearch($query);
+        eval {
+            ( $error, $marcresults, $total_hits ) = $self->{searcher}->simple_search_compat( $query, 0, 100000 );
+        };
+        if ($error || $@) {
+            warn "C4::External::BZSH::ItemAvailabilitySearch_BZSH::search_title_with_best_item_status() query:$query: error from simple_search_compat():$error $@";
+        }
 
         if (defined $error) {
             my $log_str = sprintf("ItemAvailabilitySearch_BZSH: search for sel_titel:%s: returned error:%d/%s:\n", $sel_titel,$error,$error);
@@ -132,16 +139,38 @@ sub search_title_with_best_item_status {
                 }
             };
             if ( ! defined($selISBN[0]) || length($selISBN[0]) == 0 ) {
-                my $log_str = sprintf("ItemAvailabilitySearch_BZSH: ISBN/EAN not valid -> not searching for ISBN/EAN %s.\n", $sel_srisbn);
+                my $log_str = sprintf("ItemAvailabilitySearch_BZSH: ISBN not valid -> not searching for ISBN, but trying EAN:%013d:.\n", $sel_srisbn);
                 carp $log_str;
+
+                # build search query for EAN search
+                # search for catalog title record by MARC21 category 024 (EAN)
+                $query = sprintf("identifier-other:(%013d)",$sel_srisbn);
+                $query .= $self->{querybranchcodes};
+                ( $error, $marcresults, $total_hits ) = ( '', [], 0 );
+                eval {
+                    ( $error, $marcresults, $total_hits ) = $self->{searcher}->simple_search_compat( $query, 0, 100000 );
+                };
+                if ($error || $@) {
+                    warn "C4::External::BZSH::ItemAvailabilitySearch_BZSH::search_title_with_best_item_status() query:$query: error from simple_search_compat:$error $@";
+                }
+
+                if (defined $error) {
+                    my $log_str = sprintf("ItemAvailabilitySearch_BZSH: search for EAN:%013d: returned error:%d/%s:\n", $sel_srisbn,$error,$error);
+                    carp $log_str;
+                }
             } else {
                 for ( my $i = 0; $i < 4; $i += 1 ) {
                     if ( defined($selISBN[$i]) && length($selISBN[$i]) > 0 ) {
                         # build search query for ISBN/EAN search
                         # search for catalog title record by MARC21 category 020/024 (ISBN/EAN)
-                        $query = '(nb:"' . $selISBN[$i] . '" or id-other:"' . $selISBN[$i] . '")' . $self->{querybranchcodes};
+                        $query = '(nb:(' . $selISBN[$i] . ') or identifier-other:(' . $selISBN[$i] . '))' . $self->{querybranchcodes};
                         ( $error, $marcresults, $total_hits ) = ( '', [], 0 );
-                        ( $error, $marcresults, $total_hits ) = SimpleSearch($query);
+                        eval {
+                            ( $error, $marcresults, $total_hits ) = $self->{searcher}->simple_search_compat( $query, 0, 100000 );
+                        };
+                        if ($error || $@) {
+                            warn "C4::External::BZSH::ItemAvailabilitySearch_BZSH::search_title_with_best_item_status() query:$query: error from simple_search_compat:$error $@";
+                        }
             
                         if (defined $error) {
                             my $log_str = sprintf("ItemAvailabilitySearch_BZSH: search for ISBN/EAN:%s: returned error:%d/%s:\n", $selISBN[$i],$error,$error);
@@ -168,7 +197,7 @@ sub search_title_with_best_item_status {
     {
         
         eval {
-            $marcrecord =  MARC::Record::new_from_xml( $marcresults->[$i], "utf8", 'MARC21' );
+            $marcrecord =  C4::Search::new_record_from_zebra( 'biblioserver', $marcresults->[$i] )
         };
         carp "ItemAvailabilitySearch_BZSH: error in MARC::Record::new_from_xml:$@:\n" if $@;
 

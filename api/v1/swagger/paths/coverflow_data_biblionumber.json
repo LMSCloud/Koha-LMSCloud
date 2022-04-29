@@ -1,5 +1,5 @@
 {
-    "/coverflow_data_biblionumber/{biblio_ids}": {
+    "/public/coverflow_data_biblionumber/{biblio_ids}": {
       "get": {
         "x-mojo-to": "CoverflowDataBiblionumber#get",
         "operationId": "getCoverflowDataBiblionumber",
@@ -45,11 +45,6 @@
             "schema": {
               "$ref": "../definitions.json#/error"
             }
-          }
-        },
-        "x-koha-authorization": {
-          "permissions": {
-            "catalogue": "1"
           }
         }
       }

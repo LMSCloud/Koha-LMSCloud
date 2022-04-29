@@ -122,12 +122,6 @@
   "/advanced_editor/macros/shared/{advancededitormacro_id}": {
     "$ref": "paths/advancededitormacros.json#/~1advanced_editor~1macros~1shared~1{advancededitormacro_id}"
   },
-  "/coverflow_data_nearby_items/{item_id}": {
-    "$ref": "paths/coverflow_data_nearby_items.json#/~1coverflow_data_nearby_items~1{item_id}"
-  },
-  "/coverflow_data_biblionumber/{biblio_ids}": {
-    "$ref": "paths/coverflow_data_biblionumber.json#/~1coverflow_data_biblionumber~1{biblio_ids}"
-  },
   "/patrons": {
     "$ref": "paths/patrons.json#/~1patrons"
   },
@@ -190,6 +184,12 @@
   },
   "/public/biblios/{biblio_id}": {
     "$ref": "paths/biblios.json#/~1public~1biblios~1{biblio_id}"
+  },
+  "/public/coverflow_data_nearby_items/{item_id}": {
+    "$ref": "paths/coverflow_data_nearby_items.json#/~1public~1coverflow_data_nearby_items~1{item_id}"
+  },
+  "/public/coverflow_data_biblionumber/{biblio_ids}": {
+    "$ref": "paths/coverflow_data_biblionumber.json#/~1public~1coverflow_data_biblionumber~1{biblio_ids}"
   },
   "/public/patrons/{patron_id}/password": {
     "$ref": "paths/public_patrons.json#/~1public~1patrons~1{patron_id}~1password"

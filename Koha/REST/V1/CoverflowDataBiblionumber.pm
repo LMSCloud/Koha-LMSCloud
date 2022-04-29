@@ -19,6 +19,8 @@ use Modern::Perl;
 
 use Mojo::Base 'Mojolicious::Controller';
 
+use Koha::Misc::Coverhtml;
+
 use C4::CoverFlowData;
 
 use Try::Tiny qw( catch try );
@@ -50,15 +52,23 @@ sub get {
     my @biblio_ids = flat(@params);
 
     try {
-        my @coverflow_data = C4::CoverFlowData::GetCoverFlowDataByBiblionumber(@biblio_ids);
+        my $coverflow_data = C4::CoverFlowData::GetCoverFlowDataByBiblionumber(@biblio_ids);
 
-        unless ( @coverflow_data ) {
+        unless ( $coverflow_data ) {
             return $c->render(
                 status => 404,
                 openapi => { error => "No item(s) with specified biblionumber(s)" }
             );
         }
-        return $c->render( status => 200, openapi => @coverflow_data );
+        
+
+        my @item_hashes = flat( $coverflow_data->{'items'} );
+
+        @item_hashes = flat( Koha::Misc::Coverhtml::coverhtml(@item_hashes) );
+
+        $coverflow_data->{'items'} = \@item_hashes;
+
+        return $c->render( status => 200, openapi => $coverflow_data );
     }
     catch {
         $c->unhandled_exception($_);
