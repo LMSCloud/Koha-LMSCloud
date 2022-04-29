@@ -665,18 +665,16 @@ sub GetBranchcodesWithOverdueRules {
     {
         $branchcodes = $dbh->selectcol_arrayref(q|
             SELECT DISTINCT(b.branchcode)
-            FROM overduerules o, branches b
+            FROM overduerules o LEFT JOIN branches b ON o.branchcode = b.branchcode
             WHERE o.delay1 IS NOT NULL
-            AND o.branchcode = b.branchcode
             AND (b.mobilebranch is NULL OR b.mobilebranch = '')
             ORDER BY b.branchcode
         |);
     } else {
         $branchcodes = $dbh->selectcol_arrayref(q|
             SELECT DISTINCT(b.branchcode)
-            FROM overduerules o, branches b
+            FROM overduerules o LEFT JOIN branches b ON o.branchcode = b.branchcode
             WHERE o.delay1 IS NOT NULL
-            AND o.branchcode = b.branchcode
             UNION
             SELECT DISTINCT(b.branchcode)
             FROM branches b
