@@ -1145,7 +1145,7 @@
                         return entry;
                     }
                     if (coverurl.startsWith('/')) {
-                        return { ...entry, coverurl: await Data.processDataUrl(coverurl) };
+                        return { ...entry, coverurl: await Data.processDataUrl(`/cgi-bin/koha/svc/covergen?title=${window.encodeURIComponent(entry.title)}`) };
                     }
                     if (!coverurl) {
                         return {
@@ -1286,7 +1286,6 @@
             const item = formattedData[index];
             const cases = caseMap(item);
             const instructions = getInstructions(reference, cases);
-            // console.log(instructions);
             if (instructions) {
                 runInstructions(tag, instructions);
             }
@@ -1413,9 +1412,15 @@
                         });
                     }, config.coverImageCallbackTimeout);
                     setTimeout(() => {
-                        harvesterResults.forEach((entry) => {
+                        harvesterResults.forEach(async (entry) => {
                             const [id, coverurl] = entry;
-                            dataReference[id].coverurl = coverurl;
+                            if (coverurl) {
+                                dataReference[id].coverurl = coverurl;
+                            }
+                            else {
+                                /** We can't await the result here because of setTimeout. */
+                                dataReference[id].coverurl = Data.processDataUrl(`/cgi-bin/koha/svc/covergen?title=${window.encodeURIComponent(dataReference[id].title)}`);
+                            }
                         });
                     }, config.coverImageCallbackTimeout);
                     await resyncExecution(config.coverImageCallbackTimeout);
@@ -1431,9 +1436,15 @@
                             const [, srcString] = src.split('"');
                             harvesterResults.push([nodeId, srcString]);
                         }
-                        harvesterResults.forEach((entry) => {
+                        harvesterResults.forEach(async (entry) => {
                             const [id, coverurl] = entry;
-                            dataReference[id].coverurl = coverurl;
+                            if (coverurl) {
+                                dataReference[id].coverurl = coverurl;
+                            }
+                            else {
+                                /** We can't await the result here because of setTimeout. */
+                                dataReference[id].coverurl = Data.processDataUrl(`/cgi-bin/koha/svc/covergen?title=${window.encodeURIComponent(dataReference[id].title)}`);
+                            }
                         });
                         clearHarvester();
                     });
@@ -1487,11 +1498,23 @@
         });
     }
 
+    function isPromise(p) {
+        if (typeof p === 'object' && typeof p.then === 'function') {
+            return true;
+        }
+        return false;
+    }
+
     function cleanupUrls(config, formattedData) {
         try {
             const cleanedData = formattedData;
-            arrFromObjEntries(formattedData).forEach((entry) => {
+            arrFromObjEntries(formattedData).forEach(async (entry) => {
                 const [id, data] = entry;
+                if (isPromise(data.coverurl)) {
+                    const result = await data.coverurl;
+                    cleanedData[id] = { ...data, coverurl: result };
+                    return;
+                }
                 cleanedData[id] = {
                     ...data, coverurl: data.coverurl || config.coverImageFallbackUrl,
                 };
@@ -1759,13 +1782,23 @@
             let lcfCoverImages = [];
             const lcfCoverFlowEntities = [];
             const externalData = Object.entries(data);
-            Array.from(externalData).forEach((entry) => {
+            Array.from(externalData).forEach(async (entry) => {
                 lcfCoverFlowEntities.push({ id: entry[0], entry: entry[1], image: null });
+                if (isPromise(entry[1].coverurl)) {
+                    lcfCoverImages.push(entry[1].coverurl);
+                    return;
+                }
                 if (entry[1].coverurl) {
                     lcfCoverImages.push(new LcfCoverImage(entry[1].coverurl).fetch());
                 }
             });
             lcfCoverImages = await Promise.all(lcfCoverImages);
+            const indicesOfImagesFromDataUrls = lcfCoverImages.map((element, index) => (typeof element !== 'object' ? index : '')).filter(String);
+            indicesOfImagesFromDataUrls.forEach((indexOfImageFromDataUrl) => {
+                const lcfCoverImage = document.createElement('img');
+                lcfCoverImage.src = lcfCoverImages[indexOfImageFromDataUrl];
+                lcfCoverImages[indexOfImageFromDataUrl] = lcfCoverImage;
+            });
             Array.from(lcfCoverImages.entries()).forEach((entry) => {
                 const [index, image] = entry;
                 lcfCoverFlowEntities[index].image = image;
