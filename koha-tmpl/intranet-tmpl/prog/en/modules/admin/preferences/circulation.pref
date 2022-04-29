@@ -844,10 +844,10 @@ Circulation:
             - "if the user is not allowed to select the pickup location (parameter: OPACAllowUserToChooseBranch not set).<br/>"
             - "The setting can be useful for libraries that do not support branch transfers and expect patrons to pick up items at the location of the item. The patron has to pick up the item at the selected location."
         -
-            - Patrons can only have
+            - Patrons can have a maximum of
             - pref: maxreserves
               class: integer
-            - holds at once.
+            - holds at once (leave blank or set to 0 to disable). Additional limits may apply based on circulation rules.
         -
             - pref: emailLibrarianWhenHoldIsPlaced
               choices:

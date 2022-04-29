@@ -15,7 +15,7 @@ use C4::Circulation;
 use C4::Debug;
 use Sys::Syslog qw(syslog);
 use C4::Items qw( ModItemTransfer );
-use C4::Reserves qw( ModReserveAffect );
+use C4::Reserves qw( ModReserveAffect CheckReserves );
 use Koha::DateUtils qw( dt_from_string );
 use Koha::Items;
 
@@ -89,7 +89,14 @@ sub do_checkin {
         $messages->{additional_materials} = 1;
     }
 
-    my $checkin_blocked_by_holds = $holds_block_checkin && $item->biblio->holds->count;
+    my $reserved;
+    my $lookahead = C4::Context->preference('ConfirmFutureHolds'); #number of days to look for future holds
+    my ($resfound) = $item->withdrawn ? q{} : C4::Reserves::CheckReserves( $item->itemnumber, undef, $lookahead );
+    if ( $resfound eq "Reserved") {
+        $reserved = 1;
+    }
+
+    my $checkin_blocked_by_holds = $holds_block_checkin && $reserved;
 
     $debug and warn "do_checkin() calling AddReturn($barcode, $branch)";
     ( $return, $messages, $issue, $borrower ) =
