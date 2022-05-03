@@ -88,19 +88,21 @@
     Object.freeze(instance);
 
     /* This method can be used to create a global style tag inside the head */
-    function createStyleTag() {
-        const lcfStyleReference = document.getElementById('lcfStyle');
+    function createStyleTag(container) {
+        const lcfStyleReference = document.querySelector(`#lcfStyle.${container.referenceAsClass}`);
         if (lcfStyleReference) {
             lcfStyleReference.remove();
             const lcfStyle = document.createElement('style');
             lcfStyle.textContent = '👋 Styles injected by LMSCoverFlow are obtainable through logging out lcfStyle.sheet';
             lcfStyle.id = 'lcfStyle';
+            lcfStyle.classList.add(container.referenceAsClass);
             document.head.appendChild(lcfStyle);
         }
         if (!lcfStyleReference) {
             const lcfStyle = document.createElement('style');
             lcfStyle.textContent = '👋 Styles injected by LMSCoverFlow are obtainable through logging out lcfStyle.sheet';
             lcfStyle.id = 'lcfStyle';
+            lcfStyle.classList.add(container.referenceAsClass);
             document.head.appendChild(lcfStyle);
         }
     }
@@ -821,7 +823,7 @@
             //     });
             //   };
             strategyManager.addStrategy(new Strategy('defaultContextStrategy', () => {
-                createStyleTag();
+                createStyleTag(container);
                 setGlobalStyles(config, container);
                 setLoadingAnimation(config, container);
                 evaluateConfiguration();
@@ -834,7 +836,7 @@
                 defaultContext.setNavigationButtonStyles();
             }));
             strategyManager.addStrategy(new Strategy('gridContextStrategy', () => {
-                createStyleTag();
+                createStyleTag(container);
                 setGlobalStyles(config, container);
                 setLoadingAnimation(config, container);
                 evaluateConfiguration();
@@ -852,7 +854,7 @@
                 //   threshold: [1.0],
                 // };
                 // const observer = new IntersectionObserver(onEntry, options);
-                createStyleTag();
+                createStyleTag(container);
                 setGlobalStyles(config, container);
                 setLoadingAnimation(config, container);
                 evaluateConfiguration();
@@ -1941,8 +1943,8 @@
             referenceToDetailsView: `/cgi-bin/koha/opac-detail.pl?biblionumber=${item.biblionumber}`,
         }));
         const nearbyItems = {
-            previousItemNumber: newlyLoadedItems.prev_item.itemnumber,
-            nextItemNumber: newlyLoadedItems.next_item.itemnumber,
+            previousItemNumber: newlyLoadedItems.prev_item ? newlyLoadedItems.prev_item.itemnumber : null,
+            nextItemNumber: newlyLoadedItems.next_item ? newlyLoadedItems.next_item.itemnumber : null,
         };
         const lmscoverflow = createLcfInstance();
         let shelfBrowserCoverFlowConfig = {
@@ -1994,11 +1996,11 @@
             instance,
             coverFlowId,
         };
-        if (buttonDirection === 'left') {
+        if (buttonDirection === 'left' && previousItemNumber) {
             const resultPrevious = fetchItemData(shelfBrowserEndpoint, previousItemNumber, 1);
             resultPrevious.then((result) => extendCurrentCoverFlow({ newlyLoadedItems: result, ...args }));
         }
-        else if (buttonDirection === 'right') {
+        else if (buttonDirection === 'right' && nextItemNumber) {
             const resultNext = fetchItemData(shelfBrowserEndpoint, nextItemNumber, 1);
             resultNext.then((result) => extendCurrentCoverFlow({ newlyLoadedItems: result, ...args }));
         }
@@ -2032,6 +2034,7 @@
         const main = () => {
             lmsCoverFlowShelfBrowser.forEach((node) => {
                 node.addEventListener('click', async (e) => {
+                    e.preventDefault();
                     const target = e.target;
                     const shelfBrowserEndpoint = '/api/v1/public/coverflow_data_nearby_items/';
                     /** If new shelves are opened, the event listeners for the
