@@ -90,6 +90,13 @@
     /* This method can be used to create a global style tag inside the head */
     function createStyleTag() {
         const lcfStyleReference = document.getElementById('lcfStyle');
+        if (lcfStyleReference) {
+            lcfStyleReference.remove();
+            const lcfStyle = document.createElement('style');
+            lcfStyle.textContent = '👋 Styles injected by LMSCoverFlow are obtainable through logging out lcfStyle.sheet';
+            lcfStyle.id = 'lcfStyle';
+            document.head.appendChild(lcfStyle);
+        }
         if (!lcfStyleReference) {
             const lcfStyle = document.createElement('style');
             lcfStyle.textContent = '👋 Styles injected by LMSCoverFlow are obtainable through logging out lcfStyle.sheet';
@@ -1391,7 +1398,7 @@
                             if (sources) {
                                 const [src] = sources;
                                 let [, srcString] = src.split('"');
-                                /** Google specific url parameters. Somehow the idenatifier &amp; ends up
+                                /** Google specific url parameters. Somehow the identifier &amp; ends up
                                * in the resulting string when it should be just & instead. */
                                 srcString = `${srcString.replaceAll('amp;', '').replace(/zoom=./g, 'zoom=1')}&gbs_api`;
                                 harvesterResults.push([nodeId, srcString]);
@@ -1412,15 +1419,23 @@
                         });
                     }, config.coverImageCallbackTimeout);
                     setTimeout(() => {
+                        const resultIds = [];
                         harvesterResults.forEach(async (entry) => {
                             const [id, coverurl] = entry;
                             if (coverurl) {
                                 dataReference[id].coverurl = coverurl;
+                                resultIds.push(id);
                             }
                             else {
                                 /** We can't await the result here because of setTimeout. */
                                 dataReference[id].coverurl = Data.processDataUrl(`/cgi-bin/koha/svc/covergen?title=${window.encodeURIComponent(dataReference[id].title)}`);
                             }
+                            harvesterElements.forEach((node) => {
+                                const nodeId = getLcfItemId(node);
+                                if (!resultIds.includes(nodeId)) {
+                                    dataReference[nodeId].coverurl = Data.processDataUrl(`/cgi-bin/koha/svc/covergen?title=${window.encodeURIComponent(dataReference[nodeId].title)}`);
+                                }
+                            });
                         });
                     }, config.coverImageCallbackTimeout);
                     await resyncExecution(config.coverImageCallbackTimeout);
@@ -1657,25 +1672,26 @@
         }
     }
 
-    function entityToCoverFlow(config, currentId, currentEntry, promisedEntity, promisedCoverFlowEntities) {
+    function entityToCoverFlow(config, lcfCoverFlowEntities) {
+        const promisedCoverFlowEntities = [];
         try {
-            const newLcfEntity = new LcfEntity({
-                id: currentId,
-                title: currentEntry.title,
-                author: currentEntry.author,
-                biblionumber: currentEntry.biblionumber,
-                coverurl: currentEntry.coverurl,
-                coverhtml: currentEntry.coverhtml,
-                referenceToDetailsView: currentEntry.referenceToDetailsView,
-                itemCallNumber: currentEntry.itemCallNumber,
-            }, config.coverImageFallbackHeight);
-            if (promisedEntity) {
-                const coverImage = promisedEntity;
-                newLcfEntity.addCoverImageMetadata(coverImage.naturalHeight, coverImage.naturalWidth);
-            }
-            return promisedCoverFlowEntities.push(new Promise((resolve) => {
-                resolve(newLcfEntity);
-            }));
+            lcfCoverFlowEntities.forEach(async (entity) => {
+                const newLcfEntity = new LcfEntity({
+                    id: entity.id,
+                    title: entity.entry.title,
+                    author: entity.entry.author,
+                    biblionumber: entity.entry.biblionumber,
+                    coverurl: entity.entry.coverurl,
+                    coverhtml: entity.entry.coverhtml,
+                    referenceToDetailsView: entity.entry.referenceToDetailsView,
+                    itemCallNumber: entity.entry.itemCallNumber,
+                }, config.coverImageFallbackHeight);
+                if (entity.image) {
+                    newLcfEntity.addCoverImageMetadata(entity.image.naturalHeight, entity.image.naturalWidth);
+                }
+                promisedCoverFlowEntities.push(new Promise((resolve) => { resolve(newLcfEntity); }));
+            });
+            return promisedCoverFlowEntities;
         }
         catch (error) {
             console.trace(`Looks like something went wrong in ${entityToCoverFlow.name} ->`, error);
@@ -1727,13 +1743,13 @@
             /** This handles the default case with images served via their urls. */
             if (imageArrayExistent) {
                 const imagesMaxHeight = processHeights(lcfCoverImageHeights, config);
-                addGlobalStyle(`.lcfCoverImage.${container.coverFlowId}`, `height: ${imagesMaxHeight}px`, container);
+                addGlobalStyle('.lcfCoverImage', `height: ${imagesMaxHeight}px`, container);
                 const localCurrentItemContainers = Array.from(currentItemContainers);
                 lcfItemContainers = lcfItemContainers.filter((lcfItemContainer) => !localCurrentItemContainers.includes(lcfItemContainer));
                 lcfItemContainers.forEach((lcfCardBody) => {
                     const lcfItemId = getLcfItemId(lcfCardBody);
                     const lcfItemCurrent = flattenedResults.filter((lcfEntity) => lcfEntity.id === lcfItemId)[0];
-                    /** Updates the imageComputedWid†h property when the tallest image is still
+                    /** Updates the imageComputedWid†h property if the tallest image is still
                      * shorter than the coverImageFallbackHeight.   */
                     lcfItemCurrent.updateMaxHeight(initialSetImageHeight || imagesMaxHeight);
                     lcfItemCurrent.updateDimensions();
@@ -1778,32 +1794,41 @@
 
     async function prepare(data, config, container, currentItemContainers) {
         try {
-            const promisedCoverFlowEntities = [];
             let lcfCoverImages = [];
             const lcfCoverFlowEntities = [];
             const externalData = Object.entries(data);
-            Array.from(externalData).forEach(async (entry) => {
-                lcfCoverFlowEntities.push({ id: entry[0], entry: entry[1], image: null });
-                if (isPromise(entry[1].coverurl)) {
-                    lcfCoverImages.push(entry[1].coverurl);
-                    return;
+            /** To work in the data urls that possibly come with the external data
+                     *  the promises in which these are wrapped need to be resolved for a
+                     *  uniform array, that the rest of the application understands. */
+            const cleanedData = [];
+            externalData.forEach((datum) => {
+                const [id] = datum;
+                cleanedData.push([id]);
+            });
+            const externalDataPromisedUrlsResolved = externalData.map(async (datum) => {
+                const [, entry] = datum;
+                let resolvedCoverurl;
+                if (isPromise(entry.coverurl)) {
+                    resolvedCoverurl = await entry.coverurl;
                 }
+                return { ...entry, coverurl: resolvedCoverurl || entry.coverurl };
+            });
+            const entries = await Promise.all(externalDataPromisedUrlsResolved);
+            cleanedData.forEach((id, idx) => {
+                id.push(entries[idx]);
+            });
+            Array.from(cleanedData).forEach((entry) => {
+                lcfCoverFlowEntities.push({ id: entry[0], entry: entry[1], image: null });
                 if (entry[1].coverurl) {
                     lcfCoverImages.push(new LcfCoverImage(entry[1].coverurl).fetch());
                 }
             });
             lcfCoverImages = await Promise.all(lcfCoverImages);
-            const indicesOfImagesFromDataUrls = lcfCoverImages.map((element, index) => (typeof element !== 'object' ? index : '')).filter(String);
-            indicesOfImagesFromDataUrls.forEach((indexOfImageFromDataUrl) => {
-                const lcfCoverImage = document.createElement('img');
-                lcfCoverImage.src = lcfCoverImages[indexOfImageFromDataUrl];
-                lcfCoverImages[indexOfImageFromDataUrl] = lcfCoverImage;
-            });
             Array.from(lcfCoverImages.entries()).forEach((entry) => {
                 const [index, image] = entry;
                 lcfCoverFlowEntities[index].image = image;
             });
-            lcfCoverFlowEntities.forEach((entity) => entityToCoverFlow(config, entity.id, entity.entry, entity.image, promisedCoverFlowEntities));
+            const promisedCoverFlowEntities = entityToCoverFlow(config, lcfCoverFlowEntities);
             // eslint-disable-next-line max-len
             return await settlePromises(config, container, currentItemContainers, promisedCoverFlowEntities);
         }
