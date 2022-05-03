@@ -1,7 +1,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: Koha 21.05\n"
-"POT-Creation-Date: 2022-05-03 14:44+0200\n"
+"POT-Creation-Date: 2022-05-03 15:46+0200\n"
 "PO-Revision-Date: 2022-04-29 14:51+0200\n"
 "Last-Translator: Katrin Fischer <katrin.fischer@bsz-bw.de>\n"
 "Language-Team: \n"
@@ -10243,7 +10243,7 @@ msgid "Remove"
 msgstr "Entfernen"
 
 #. A
-#: koha-tmpl/opac-tmpl/bootstrap/en/includes/opac-facets.inc:58
+#: koha-tmpl/opac-tmpl/bootstrap/en/includes/opac-facets.inc:59
 msgid "Remove facet %s"
 msgstr "Facette entfernen %s"
 
@@ -11359,7 +11359,7 @@ msgstr "Alle Transaktionen anzeigen"
 msgid "Show last 50 items"
 msgstr "Zeige letzte 50 Ausleihen"
 
-#: koha-tmpl/opac-tmpl/bootstrap/en/includes/opac-facets.inc:73
+#: koha-tmpl/opac-tmpl/bootstrap/en/includes/opac-facets.inc:74
 #, c-format
 msgid "Show less"
 msgstr "Weniger anzeigen"
@@ -11369,7 +11369,7 @@ msgstr "Weniger anzeigen"
 msgid "Show lists"
 msgstr "Zeige Listen"
 
-#: koha-tmpl/opac-tmpl/bootstrap/en/includes/opac-facets.inc:70
+#: koha-tmpl/opac-tmpl/bootstrap/en/includes/opac-facets.inc:71
 #, c-format
 msgid "Show more"
 msgstr "Mehr zeigen"
