@@ -1211,7 +1211,7 @@
                     [% IF ( ITEM_RESULT.itemcallnumber ) %]
                         [% ITEM_RESULT.itemcallnumber | html %]
                         [% IF ( OPACShelfBrowser ) %]
-                            (<a class="lmscoverflow-shelfbrowser" data-biblionumber="[% ITEM_RESULT.biblionumber %]" data-itemnumber="[% ITEM_RESULT.itemnumber %]">Browse shelf<span class="sr-only">(Opens below)</span></a>)
+                            (<a href="#" class="lmscoverflow-shelfbrowser" data-biblionumber="[% ITEM_RESULT.biblionumber %]" data-itemnumber="[% ITEM_RESULT.itemnumber %]">Browse shelf<span class="sr-only">(Opens below)</span></a>)
                         [% END %]
                     [% END %]
                     [% IF ( Koha.Preference('DivibibEnabled') ) %]
