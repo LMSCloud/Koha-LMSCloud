@@ -104,13 +104,12 @@ sub readSerialOrderFromEkzWsFortsetzungDetail {
 # generate title data and item data as required
 ###################################################################################################
 sub genKohaRecords {
-    my ($ekzCustomerNumber, $messageID, $fortsetzungDetailElement, $serWithNewState, $lastRunDate, $todayDate) = @_;
+    my ($ekzCustomerNumber, $messageID, $fortsetzungDetailElement, $serWithNewState, $lastRunDate, $todayDate, $createdTitleRecords) = @_;
     my $logger = Koha::Logger->get({ interface => 'C4::External::EKZ::EkzWsSerialOrder' });
     my $ekzKohaRecord = C4::External::EKZ::lib::EkzKohaRecords->new();
 
     my $ekzBestellNr = '';
     my $lastRunDateIsSet = 0;
-#XXXWH    my $dbh = C4::Context->dbh;
     my $acquisitionError = 0;
     my $basketno = -1;
     my $basketgroupid = undef;
@@ -159,7 +158,6 @@ sub genKohaRecords {
     if ( defined($lastRunDate) && $lastRunDate =~ /^\d\d\d\d-\d\d-\d\d$/ ) {    # format:yyyy-mm-dd
         $lastRunDateIsSet = 1;
     }
-    my $createdTitleRecords = {};
 
     # insert/update the order message if at least one item has got state 10 or 20 or 99 ( 99 only if lastRunDate is set)
     my $insOrUpd = 0;
