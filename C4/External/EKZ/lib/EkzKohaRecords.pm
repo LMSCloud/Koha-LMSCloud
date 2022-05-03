@@ -40,7 +40,7 @@ use C4::External::EKZ::lib::LMSPoolSRU;
 use C4::External::EKZ::lib::EkzWsConfig;
 use C4::External::EKZ::lib::EkzWebServices;
 #use C4::Letters qw( _wrap_html );    # C4::Letters::_wrap_html is required here, but it is not exported by C4::Letters, so we have to use it inofficially
-use C4::Search qw( SimpleSearch );
+use Koha::SearchEngine::Search qw( new simple_search_compat );
 use Koha::Biblios;
 use Koha::Database;
 use Koha::Email;
@@ -91,6 +91,8 @@ sub new {
              $self->{localCatalogSourceDelegateClass} = $src;
         } 
     }
+
+    $self->{searcher} = Koha::SearchEngine::Search->new( { index => $Koha::SearchEngine::BIBLIOS_INDEX } );
 
     return $self;
 }
@@ -451,10 +453,11 @@ sub mergeMarcresults {
     {
         my $marcRecordFromXml;
         eval {
-            $marcRecordFromXml =  MARC::Record::new_from_xml( $marcXmlResults->[$i], "utf8", 'MARC21' );
+            $marcRecordFromXml =  C4::Search::new_record_from_zebra( 'biblioserver', $marcXmlResults->[$i] )
+
         };
         if ( $@ ) {
-            my $mess = sprintf("mergeMarcresults: error in MARC::Record::new_from_xml:%s:", $@);
+            my $mess = sprintf("mergeMarcresults: error in C4::Search::new_record_from_zebra:%s:", $@);
             $self->{'logger'}->warn($mess);
             carp "EkzKohaRecords::" . $mess . "\n";
         }
@@ -499,7 +502,7 @@ sub readTitleDubletten {
         my $searchClass = $self->{localCatalogSourceDelegateClass};
         $allmarcresults = $searchClass->searchLocalRecords($selParam);
     } else {
-        my $query = "cn:\"-1\"";                    # control number search, initial definition for no hit
+        my $query = "cn:(-1)";                    # control number search, initial definition for no hit
         my $allinall_hits = 0;
         my $foundEkzArticleNumberHit = 0;
         my %biblionumbersfound = ();
@@ -520,14 +523,16 @@ sub readTitleDubletten {
             # If used for spotting the title the new item is assigned to (e.g. webservice BestellInfo), $strictMatch has to be set.
             # If also related titles have to be found (e.g. webservice DublettencheckElement), a wider hit set is recommended, so $strictMatch has to be 0.
             if ( $strictMatch ) {    # used for web service BestellInfo etc.
-                $query = "(cn:\"$selParam->{'ekzArtikelNr'}\" and cna:\"DE-Rt5\")";
+                $query = "(cn:($selParam->{'ekzArtikelNr'}) and cna:(DE-Rt5))";
             } else {    # used for web service DublettenCheckElement
-                $query = "(cn:\"$selParam->{'ekzArtikelNr'}\" and cna:\"DE-Rt5\") or (kw,phr:\"(DE-Rt5)$selParam->{'ekzArtikelNr'}\")";
+                $query = "(cn:($selParam->{'ekzArtikelNr'}) and cna:(DE-Rt5)) or (other-control-number:(\(DE-Rt5\)$selParam->{'ekzArtikelNr'}))";
             }
             $self->{'logger'}->debug("readTitleDubletten() query:$query:");
 
             my ( $error, $marcXmlResults, $total_hits ) = ( '', [], 0 );
-            ( $error, $marcXmlResults, $total_hits ) = C4::Search::SimpleSearch($query);
+            eval {
+                ( $error, $marcXmlResults, $total_hits ) = $self->{searcher}->simple_search_compat( $query, 0, 100000 );
+            };
             
             if (defined $error) {
                 my $mess = sprintf("readTitleDubletten(): search for ekzArtikelNr:%s: returned error:%d/%s:", $selParam->{'ekzArtikelNr'}, $error, $error);
@@ -574,10 +579,12 @@ sub readTitleDubletten {
                             if ( defined($selISBN[$i]) && length($selISBN[$i]) > 0 ) {
                                 # build search query for isbn/isbn13 search
                                 # search for catalog title record by MARC21 category 020/024 (ISBN/EAN)
-                                my $query = "nb:\"$selISBN[$i]\" or id-other:\"$selISBN[$i]\"";
+                                my $query = "nb:($selISBN[$i]) or identifier-other:($selISBN[$i])";
                                 $self->{'logger'}->debug("readTitleDubletten() query:$query:");
-                
-                                ( $error, $marcXmlResults, $total_hits ) = C4::Search::SimpleSearch($query);
+
+                                eval {
+                                    ( $error, $marcXmlResults, $total_hits ) = $self->{searcher}->simple_search_compat( $query, 0, 100000 );
+                                };
             
                                 if (defined $error) {
                                     my $mess = sprintf("readTitleDubletten(): search for %s:%s: returned error:%d/%s:", $isbnSelFields[$k], $selISBN[$i], $error,$error);
@@ -612,25 +619,27 @@ sub readTitleDubletten {
             my $query2 = '';
             my $query3 = '';
             if ( defined $selParam->{'issn'} && length($selParam->{'issn'}) > 0 ) {
-                $query1 .= "ident:\"$selParam->{'issn'}\"";
+                $query1 .= "ident:($selParam->{'issn'})";
             }
             if ( defined $selParam->{'ismn'} && length($selParam->{'ismn'}) > 0 ) {
                 if ( length($query1) > 0 ) {
                     $query1 .= ' or ';
                 }
-                $query1 .= "ident:\"$selParam->{'ismn'}\"";
+                $query1 .= "ident:($selParam->{'ismn'})";
             }
             if ( defined $selParam->{'ean'} && length($selParam->{'ean'}) > 0 ) {
                 if ( length($query1) > 0 ) {
                     $query2 .= ' or ';
                 }
-                $query2 .= "ident:\"$selParam->{'ean'}\"";
+                $query2 .= "ident:($selParam->{'ean'})";
             }
             $query = $query1 . $query2;
             $self->{'logger'}->debug("readTitleDubletten() query:$query:");
             
             my ( $error, $marcXmlResults, $total_hits ) = ( '', [], 0 );
-            ( $error, $marcXmlResults, $total_hits ) = C4::Search::SimpleSearch($query);
+            eval {
+                ( $error, $marcXmlResults, $total_hits ) = $self->{searcher}->simple_search_compat( $query, 0, 100000 );
+            };
         
             if (defined $error) {
                 my $mess = sprintf("readTitleDubletten(): search for issn:%s: or ismn:%s: or ean:%s: returned error:%d/%s:", $selParam->{'issn'}, $selParam->{'ismn'}, $selParam->{'ean'}, $error,$error);
@@ -647,12 +656,14 @@ sub readTitleDubletten {
                 if ( length($query1) > 0 ) {
                     $query3 .= ' or ';
                 }
-                $query3 .= sprintf("ident:\"%013d\"",$selParam->{'ean'});
+                $query3 .= sprintf("ident:(%013d)",$selParam->{'ean'});
                 $query = $query1 . $query3;
                 $self->{'logger'}->debug("readTitleDubletten() query:$query:");
                 
                 ( $error, $marcXmlResults, $total_hits ) = ( '', [], 0 );
-                ( $error, $marcXmlResults, $total_hits ) = C4::Search::SimpleSearch($query);
+                eval {
+                    ( $error, $marcXmlResults, $total_hits ) = $self->{searcher}->simple_search_compat( $query, 0, 100000 );
+                };
             
                 if (defined $error) {
                     my $mess = sprintf("readTitleDubletten(): search for issn:%s: or ismn:%s: or ean:%s: returned error:%d/%s:", $selParam->{'issn'}, $selParam->{'ismn'}, $selParam->{'ean'}, $error,$error);
@@ -674,11 +685,27 @@ sub readTitleDubletten {
         } else
         {
             # build search query for author and title and publication year search
-            $query = "au,phr:\"$selParam->{'author'}\" and ti,phr,ext:\"$selParam->{'titel'}\" and yr,st-year:\"$selParam->{'erscheinungsJahr'}\"";
+            my @words = split(/\s/, $selParam->{'titel'});
+            for (my $i = 0; $i < scalar @words; $i += 1) {
+                if ( $words[$i] =~ /^.*\?.*$/ ) {
+                    $words[$i]  =~ s/\?/\\\?/g;
+                }
+                if ( $words[$i] =~ /^.*\*.*$/ ) {
+                    $words[$i]  =~ s/\*/\\\*/g;
+                }
+                if ( length($words[$i]) == 1 ) {
+                    $words[$i] = '\\' . $words[$i];
+                }
+            }
+            my $titelForSearch = join ('\ ',@words);
+
+            $query = "au.phrase:($selParam->{'author'}) and ti.phrase:($titelForSearch) and publyear:($selParam->{'erscheinungsJahr'})";
             $self->{'logger'}->debug("readTitleDubletten() query:$query:");
             
             my ( $error, $marcXmlResults, $total_hits ) = ( '', [], 0 );
-            ( $error, $marcXmlResults, $total_hits ) = C4::Search::SimpleSearch($query);
+            eval {
+                ( $error, $marcXmlResults, $total_hits ) = $self->{searcher}->simple_search_compat( $query, 0, 100000 );
+            };
         
             if (defined $error) {
                 my $mess = sprintf("readTitleDubletten(): search for author:%s: or title:%s: publication year:%s: returned error:%d/%s:", $selParam->{'author'}, $selParam->{'titel'}, $selParam->{'erscheinungsJahr'}, $error, $error);
