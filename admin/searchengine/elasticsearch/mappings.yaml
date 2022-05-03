@@ -1214,6 +1214,11 @@ biblios:
         sort: ~
         suggestible: 1
       - facet: 1
+        marc_field: 900a
+        marc_type: marc21
+        sort: ~
+        suggestible: 1
+      - facet: 1
         marc_field: 200f
         marc_type: unimarc
         sort: ~
@@ -1299,6 +1304,11 @@ biblios:
         suggestible: ''
       - facet: ''
         marc_field: 811
+        marc_type: marc21
+        sort: ~
+        suggestible: ''
+      - facet: ''
+        marc_field: 910a
         marc_type: marc21
         sort: ~
         suggestible: ''
@@ -1728,6 +1738,11 @@ biblios:
         suggestible: ''
       - facet: ''
         marc_field: 810
+        marc_type: marc21
+        sort: ~
+        suggestible: ''
+      - facet: ''
+        marc_field: 910a
         marc_type: marc21
         sort: ~
         suggestible: ''
