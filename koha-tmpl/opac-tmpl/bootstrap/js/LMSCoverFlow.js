@@ -1110,6 +1110,7 @@
         }
     }
 
+    /* eslint-disable max-len */
     class Data {
         config;
         constructor(config) {
@@ -1156,23 +1157,23 @@
                         return entry;
                     }
                     if (coverurl.startsWith('/')) {
-                        return { ...entry, coverurl: await Data.processDataUrl(`${config.coverImageGeneratedCoverEndpoint}?title=${window.encodeURIComponent(entry.title)}`) };
+                        return { ...entry, coverurl: await Data.processDataUrl(`${this.config.coverImageGeneratedCoverEndpoint}?title=${window.encodeURIComponent(entry.title)}`) };
                     }
                     if (!coverurl) {
                         return {
                             ...entry,
-                            coverurl: this.config.coverImageFallbackUrl !== config.coverImageGeneratedCoverEndpoint
+                            coverurl: this.config.coverImageFallbackUrl !== this.config.coverImageGeneratedCoverEndpoint
                                 ? this.config.coverImageFallbackUrl
-                                : await Data.processDataUrl(`${this.config.coverImageFallbackUrl}?title=${window.encodeURIComponent(entry.title)}`),
+                                : await Data.processDataUrl(`${this.config.coverImageGeneratedCoverEndpoint}?title=${window.encodeURIComponent(entry.title)}`),
                         };
                     }
                     const fileExists = await this.checkIfFileExists(coverurl);
                     if (!fileExists) {
                         return {
                             ...entry,
-                            coverurl: this.config.coverImageFallbackUrl !== config.coverImageGeneratedCoverEndpoint
+                            coverurl: this.config.coverImageFallbackUrl !== this.config.coverImageGeneratedCoverEndpoint
                                 ? this.config.coverImageFallbackUrl
-                                : await Data.processDataUrl(`${this.config.coverImageFallbackUrl}?title=${window.encodeURIComponent(entry.title)}`),
+                                : await Data.processDataUrl(`${this.config.coverImageGeneratedCoverEndpoint}?title=${window.encodeURIComponent(entry.title)}`),
                         };
                     }
                     return entry;
@@ -1382,6 +1383,7 @@
             if (harvesterBuilt) {
                 let harvesterElements = document.querySelectorAll('.harvesterElement');
                 const harvesterResults = [];
+                // eslint-disable-next-line no-underscore-dangle
                 if (externalSources._listeners.length !== 0) {
                     const harvesterObservers = {};
                     harvesterElements.forEach((node) => {
@@ -1988,24 +1990,7 @@
         return response.json();
     }
 
-    function removeInfoModal(infoModalReference, timeout) {
-        setTimeout(() => {
-            infoModalReference.remove();
-        }, timeout);
-    }
-    function showInfoModal(infoText, timeout, position) {
-        const targetContainer = document.getElementById('lmscoverflow');
-        const infoModal = document.createElement('div');
-        infoModal.textContent = infoText;
-        /** Positioning of info modal. */
-        infoModal.style.position = 'absolute';
-        infoModal.style.bottom = '1em';
-        infoModal.style.left = '35%';
-        infoModal.classList.add('bg-white','border', 'border-danger', 'rounded', 'p-2');
-        targetContainer.appendChild(infoModal);
-        removeInfoModal(infoModal, 5000);
-    }
-
+    // import showInfoModal from './showInfoModal';
     async function loadNewShelfBrowserItems(nearbyItems, buttonDirection) {
         const { previousItemNumber, nextItemNumber } = nearbyItems;
         const coverFlowId = 'lmscoverflow';
@@ -2026,12 +2011,8 @@
             resultNext.then((result) => extendCurrentCoverFlow({ newlyLoadedItems: result, ...args }));
         }
         else {
-            // if (!previousItemNumber) {
-            //     showInfoModal('No previous items!', 1000, 'left');
-            // }
-            // if (!nextItemNumber) {
-            //     showInfoModal('No following items!', 1000, 'right');
-            // }
+            // if (!previousItemNumber) { showInfoModal('No previous items!', 1000, 'left'); }
+            // if (!nextItemNumber) { showInfoModal('No following items!', 1000, 'right'); }
             console.trace(`Looks like something went wrong in ${loadNewShelfBrowserItems.name}`);
         }
     }
@@ -2081,8 +2062,8 @@
                     const result = await fetchItemData(shelfBrowserEndpoint, itemnumber, 7);
                     shelfBrowserHeading.classList.add('border', 'border-secondary', 'rounded', 'p-3', 'w-75', 'centered', 'mx-auto', 'shadow-sm', 'text-center');
                     shelfBrowserHeading.textContent = `
-                    ${(result.starting_homebranch && result.starting_homebranch.description) ? header.header_browsing.replace('{starting_homebranch}', result.starting_homebranch.description) : ''}${( result.starting_location && result.starting_location.description ) ? ',' : ''}
-                    ${(result.starting_location && result.starting_location.description) ? header.header_location.replace('{starting_location}', result.starting_location.description) : ''}${ (result.starting_ccode && result.starting_ccode.description ) ? ',' : ''}
+                    ${(result.starting_homebranch && result.starting_homebranch.description) ? header.header_browsing.replace('{starting_homebranch}', result.starting_homebranch.description) : ''}${(result.starting_location && result.starting_location.description) ? ',' : ''}
+                    ${(result.starting_location && result.starting_location.description) ? header.header_location.replace('{starting_location}', result.starting_location.description) : ''}${(result.starting_ccode && result.starting_ccode.description) ? ',' : ''}
                     ${(result.starting_ccode && result.starting_ccode.description) ? header.header_collection.replace('{starting_ccode}', result.starting_ccode.description) : ''}
                     `;
                     shelfBrowserHeading.appendChild(shelfBrowserClose);
