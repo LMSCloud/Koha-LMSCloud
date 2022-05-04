@@ -191,6 +191,9 @@
   "/public/coverflow_data_biblionumber/{biblio_ids}": {
     "$ref": "paths/coverflow_data_biblionumber.json#/~1public~1coverflow_data_biblionumber~1{biblio_ids}"
   },
+  "/public/generated_cover": {
+    "$ref": "paths/generated_cover.json#/~1public~1generated_cover"
+  },
   "/public/patrons/{patron_id}/password": {
     "$ref": "paths/public_patrons.json#/~1public~1patrons~1{patron_id}~1password"
   },

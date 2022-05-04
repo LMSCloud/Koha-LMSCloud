@@ -28,7 +28,8 @@ use Try::Tiny qw( catch try );
 
 =head1 NAME
 
-Koha::REST::V1::Items - Koha REST API for handling items (V1)
+Koha::REST::V1::CoverflowDataNearbyItems - endpoint for getting nearby items
+coverflow metadata according to itemcallnumber by given itemnumbers.
 
 =head1 API
 
@@ -42,22 +43,24 @@ Controller function provides nearby items from given itemnumbers.
 
 =cut
 
+sub flat(@) {
+    return map { ref eq 'ARRAY' ? @$_ : $_ } @_;
+}
+
 sub get {
-    my $c = shift->openapi->valid_input or return;
-    my $item_id = $c->validation->param('item_id');
+    my $c        = shift->openapi->valid_input or return;
+    my $item_id  = $c->validation->param('item_id');
     my $quantity = $c->validation->param('quantity');
 
-    sub flat(@) {
-        return map { ref eq 'ARRAY' ? @$_ : $_ } @_;
-    }
-
     try {
-        my $nearby_items = C4::CoverFlowData::GetCoverFlowDataOfNearbyItemsByItemNumber($item_id, $quantity || 3);
-        
-        unless ( $nearby_items ) {
+        my $nearby_items
+            = C4::CoverFlowData::GetCoverFlowDataOfNearbyItemsByItemNumber(
+            $item_id, $quantity || 3 );
+
+        if ( !$nearby_items ) {
             return $c->render(
-                status => 404,
-                openapi => { error => "No nearby items could be found" }
+                status  => 404,
+                openapi => { error => 'No nearby items could be found' },
             );
         }
 
@@ -72,6 +75,8 @@ sub get {
     catch {
         $c->unhandled_exception($_);
     };
+
+    return;
 }
 
 1;

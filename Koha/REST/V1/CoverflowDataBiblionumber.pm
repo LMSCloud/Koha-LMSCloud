@@ -27,7 +27,8 @@ use Try::Tiny qw( catch try );
 
 =head1 NAME
 
-Koha::REST::V1::Items - Koha REST API for handling items (V1)
+Koha::REST::V1::CoverflowDataBiblionumber - endpoint for getting items
+coverflow metadata by given biblionumbers.
 
 =head1 API
 
@@ -41,26 +42,26 @@ Controller function provides coverflow data for given biblionumbers.
 
 =cut
 
-sub get {
-    
-    sub flat(@) {
-        return map { ref eq 'ARRAY' ? @$_ : $_ } @_;
-    }
+sub flat(@) {
+    return map { ref eq 'ARRAY' ? @$_ : $_ } @_;
+}
 
-    my $c = shift->openapi->valid_input or return;
-    my @params = $c->validation->output->{'biblio_ids'};
+sub get {
+    my $c          = shift->openapi->valid_input or return;
+    my @params     = $c->validation->output->{'biblio_ids'};
     my @biblio_ids = flat(@params);
 
     try {
-        my $coverflow_data = C4::CoverFlowData::GetCoverFlowDataByBiblionumber(@biblio_ids);
+        my $coverflow_data
+            = C4::CoverFlowData::GetCoverFlowDataByBiblionumber(@biblio_ids);
 
-        unless ( $coverflow_data ) {
+        if ( !$coverflow_data ) {
             return $c->render(
-                status => 404,
-                openapi => { error => "No item(s) with specified biblionumber(s)" }
+                status  => 404,
+                openapi =>
+                    { error => 'No item(s) with specified biblionumber(s)' },
             );
         }
-        
 
         my @item_hashes = flat( $coverflow_data->{'items'} );
 
@@ -73,6 +74,8 @@ sub get {
     catch {
         $c->unhandled_exception($_);
     };
+
+    return;
 }
 
 1;

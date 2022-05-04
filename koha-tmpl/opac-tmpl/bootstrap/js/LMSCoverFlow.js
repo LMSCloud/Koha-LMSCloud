@@ -900,7 +900,7 @@
         constructor(configuration) {
             this.config = configuration;
             this.coverImageFallbackHeight = this.config.coverImageFallbackHeight || 210;
-            this.coverImageFallbackUrl = this.config.coverImageFallbackUrl || '/cgi-bin/koha/svc/covergen';
+            this.coverImageFallbackUrl = this.config.coverImageFallbackUrl || '/api/v1/public/generated_cover';
             this.coverImageFetchTimeout = this.config.coverImageFetchTimeout || 1000;
             this.coverFlowDataBiblionumberEndpoint = this.config.coverFlowDataBiblionumberEndpoint || '/api/v1/public/coverflow_data_biblionumber/';
             this.coverFlowNearbyItemsEndpoint = this.config.coverFlowNearbyItemsEndpoint || '/api/v1/public/coverflow_data_nearby_items/';
@@ -1155,12 +1155,12 @@
                         return entry;
                     }
                     if (coverurl.startsWith('/')) {
-                        return { ...entry, coverurl: await Data.processDataUrl(`/cgi-bin/koha/svc/covergen?title=${window.encodeURIComponent(entry.title)}`) };
+                        return { ...entry, coverurl: await Data.processDataUrl(`/api/v1/public/generated_cover?title=${window.encodeURIComponent(entry.title)}`) };
                     }
                     if (!coverurl) {
                         return {
                             ...entry,
-                            coverurl: this.config.coverImageFallbackUrl !== '/cgi-bin/koha/svc/covergen'
+                            coverurl: this.config.coverImageFallbackUrl !== '/api/v1/public/generated_cover'
                                 ? this.config.coverImageFallbackUrl
                                 : await Data.processDataUrl(`${this.config.coverImageFallbackUrl}?title=${window.encodeURIComponent(entry.title)}`),
                         };
@@ -1169,7 +1169,7 @@
                     if (!fileExists) {
                         return {
                             ...entry,
-                            coverurl: this.config.coverImageFallbackUrl !== '/cgi-bin/koha/svc/covergen'
+                            coverurl: this.config.coverImageFallbackUrl !== '/api/v1/public/generated_cover'
                                 ? this.config.coverImageFallbackUrl
                                 : await Data.processDataUrl(`${this.config.coverImageFallbackUrl}?title=${window.encodeURIComponent(entry.title)}`),
                         };
@@ -1185,7 +1185,7 @@
         }
         static async processDataUrl(url) {
             const response = await fetch(url);
-            const result = await response.text();
+            const result = await response.json();
             return result;
         }
     }
@@ -1381,7 +1381,7 @@
             if (harvesterBuilt) {
                 let harvesterElements = document.querySelectorAll('.harvesterElement');
                 const harvesterResults = [];
-                if (externalSources) {
+                if (externalSources._listeners.length !== 0) {
                     const harvesterObservers = {};
                     harvesterElements.forEach((node) => {
                         const nodeId = getLcfItemId(node);
@@ -1431,12 +1431,12 @@
                             }
                             else {
                                 /** We can't await the result here because of setTimeout. */
-                                dataReference[id].coverurl = Data.processDataUrl(`/cgi-bin/koha/svc/covergen?title=${window.encodeURIComponent(dataReference[id].title)}`);
+                                dataReference[id].coverurl = Data.processDataUrl(`/api/v1/public/generated_cover?title=${window.encodeURIComponent(dataReference[id].title)}`);
                             }
                             harvesterElements.forEach((node) => {
                                 const nodeId = getLcfItemId(node);
                                 if (!resultIds.includes(nodeId)) {
-                                    dataReference[nodeId].coverurl = Data.processDataUrl(`/cgi-bin/koha/svc/covergen?title=${window.encodeURIComponent(dataReference[nodeId].title)}`);
+                                    dataReference[nodeId].coverurl = Data.processDataUrl(`/api/v1/public/generated_cover?title=${window.encodeURIComponent(dataReference[nodeId].title)}`);
                                 }
                             });
                         });
@@ -1461,7 +1461,7 @@
                             }
                             else {
                                 /** We can't await the result here because of setTimeout. */
-                                dataReference[id].coverurl = Data.processDataUrl(`/cgi-bin/koha/svc/covergen?title=${window.encodeURIComponent(dataReference[id].title)}`);
+                                dataReference[id].coverurl = Data.processDataUrl(`/api/v1/public/generated_cover?title=${window.encodeURIComponent(dataReference[id].title)}`);
                             }
                         });
                         clearHarvester();
@@ -1534,7 +1534,7 @@
                     return;
                 }
                 cleanedData[id] = {
-                    ...data, coverurl: data.coverurl || config.coverImageFallbackUrl,
+                    ...data, coverurl: data.coverurl || `${config.coverImageFallbackUrl}?title=${window.encodeURIComponent('🤔')}`,
                 };
             });
             return cleanedData;
