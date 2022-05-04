@@ -901,6 +901,7 @@
             this.config = configuration;
             this.coverImageFallbackHeight = this.config.coverImageFallbackHeight || 210;
             this.coverImageFallbackUrl = this.config.coverImageFallbackUrl || '/api/v1/public/generated_cover';
+            this.coverImageGeneratedCoverEndpoint = this.config.coverImageGeneratedCoverEndpoint || '/api/v1/public/generated_cover';
             this.coverImageFetchTimeout = this.config.coverImageFetchTimeout || 1000;
             this.coverFlowDataBiblionumberEndpoint = this.config.coverFlowDataBiblionumberEndpoint || '/api/v1/public/coverflow_data_biblionumber/';
             this.coverFlowNearbyItemsEndpoint = this.config.coverFlowNearbyItemsEndpoint || '/api/v1/public/coverflow_data_nearby_items/';
@@ -1155,12 +1156,12 @@
                         return entry;
                     }
                     if (coverurl.startsWith('/')) {
-                        return { ...entry, coverurl: await Data.processDataUrl(`/api/v1/public/generated_cover?title=${window.encodeURIComponent(entry.title)}`) };
+                        return { ...entry, coverurl: await Data.processDataUrl(`${config.coverImageGeneratedCoverEndpoint}?title=${window.encodeURIComponent(entry.title)}`) };
                     }
                     if (!coverurl) {
                         return {
                             ...entry,
-                            coverurl: this.config.coverImageFallbackUrl !== '/api/v1/public/generated_cover'
+                            coverurl: this.config.coverImageFallbackUrl !== config.coverImageGeneratedCoverEndpoint
                                 ? this.config.coverImageFallbackUrl
                                 : await Data.processDataUrl(`${this.config.coverImageFallbackUrl}?title=${window.encodeURIComponent(entry.title)}`),
                         };
@@ -1169,7 +1170,7 @@
                     if (!fileExists) {
                         return {
                             ...entry,
-                            coverurl: this.config.coverImageFallbackUrl !== '/api/v1/public/generated_cover'
+                            coverurl: this.config.coverImageFallbackUrl !== config.coverImageGeneratedCoverEndpoint
                                 ? this.config.coverImageFallbackUrl
                                 : await Data.processDataUrl(`${this.config.coverImageFallbackUrl}?title=${window.encodeURIComponent(entry.title)}`),
                         };
@@ -1431,12 +1432,12 @@
                             }
                             else {
                                 /** We can't await the result here because of setTimeout. */
-                                dataReference[id].coverurl = Data.processDataUrl(`/api/v1/public/generated_cover?title=${window.encodeURIComponent(dataReference[id].title)}`);
+                                dataReference[id].coverurl = Data.processDataUrl(`${config.coverImageGeneratedCoverEndpoint}?title=${window.encodeURIComponent(dataReference[id].title)}`);
                             }
                             harvesterElements.forEach((node) => {
                                 const nodeId = getLcfItemId(node);
                                 if (!resultIds.includes(nodeId)) {
-                                    dataReference[nodeId].coverurl = Data.processDataUrl(`/api/v1/public/generated_cover?title=${window.encodeURIComponent(dataReference[nodeId].title)}`);
+                                    dataReference[nodeId].coverurl = Data.processDataUrl(`${config.coverImageGeneratedCoverEndpoint}?title=${window.encodeURIComponent(dataReference[nodeId].title)}`);
                                 }
                             });
                         });
@@ -1461,7 +1462,7 @@
                             }
                             else {
                                 /** We can't await the result here because of setTimeout. */
-                                dataReference[id].coverurl = Data.processDataUrl(`/api/v1/public/generated_cover?title=${window.encodeURIComponent(dataReference[id].title)}`);
+                                dataReference[id].coverurl = Data.processDataUrl(`${config.coverImageGeneratedCoverEndpoint}?title=${window.encodeURIComponent(dataReference[id].title)}`);
                             }
                         });
                         clearHarvester();
@@ -1534,7 +1535,7 @@
                     return;
                 }
                 cleanedData[id] = {
-                    ...data, coverurl: data.coverurl || `${config.coverImageFallbackUrl}?title=${window.encodeURIComponent('🤔')}`,
+                    ...data, coverurl: data.coverurl || config.coverImageFallbackUrl,
                 };
             });
             return cleanedData;
