@@ -23,7 +23,7 @@
         ],
         "responses": {
           "200": {
-            "description": "An object that contains coverflow data of nearby items and additional metadata about the selection",
+            "description": "A base 64 encoded string containing image data",
             "schema": {
               "type": [
                   "string",

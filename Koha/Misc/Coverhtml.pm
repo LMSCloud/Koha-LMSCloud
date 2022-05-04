@@ -138,7 +138,7 @@ sub coverhtml {
                 if ( $item->{'browser_normalized_isbn'} ) {
                     $coverhtml
                         = qq{<div title="$image_title" class="$item->{'browser_normalized_isbn'}" id="gbs-thumbnail-preview$index"></div>}
-                        ;    # loop count has to be implemented
+                        ;
                 }
                 else {
                     $coverhtml
