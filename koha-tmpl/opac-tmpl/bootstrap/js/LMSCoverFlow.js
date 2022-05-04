@@ -939,6 +939,7 @@
             this.shelfBrowserExtendedCoverFlow = this.config.shelfBrowserExtendedCoverFlow || false;
             this.shelfBrowserButtonDirection = this.config.shelfBrowserButtonDirection || null;
             this.shelfBrowserCurrentEventListeners = this.config.shelfBrowserCurrentEventListeners || null;
+            this.shelfBrowserScrollIntoView = this.config.shelfBrowserScrollIntoView || false;
             this.debug = this.config.debug || false;
         }
     }
@@ -1771,7 +1772,7 @@
                 lcfItemContainer.classList.remove('d-none');
             });
             const shelfBrowserReference = document.getElementById('shelfbrowser');
-            if (shelfBrowserReference) {
+            if (shelfBrowserReference && config.shelfBrowserScrollIntoView) {
                 setTimeout(() => shelfBrowserReference.scrollIntoView(), 100);
             }
             container.isScrollable();
@@ -1962,6 +1963,7 @@
             shelfBrowserExtendedCoverFlow: extendedCoverFlow,
             shelfBrowserButtonDirection: buttonDirection,
             shelfBrowserCurrentEventListeners: instance,
+            shelfBrowserScrollIntoView: true,
         };
         // eslint-disable-next-line max-len
         shelfBrowserCoverFlowConfig = overrideConfig(shelfBrowserCoverFlowConfig, shelfBrowserConfig.value);
@@ -1985,6 +1987,24 @@
         return response.json();
     }
 
+    function removeInfoModal(infoModalReference, timeout) {
+        setTimeout(() => {
+            infoModalReference.remove();
+        }, timeout);
+    }
+    function showInfoModal(infoText, timeout, position) {
+        const targetContainer = document.getElementById('lmscoverflow');
+        const infoModal = document.createElement('div');
+        infoModal.textContent = infoText;
+        /** Positioning of info modal. */
+        infoModal.style.position = 'absolute';
+        infoModal.style.bottom = '1em';
+        infoModal.style.left = '35%';
+        infoModal.classList.add('bg-white','border', 'border-danger', 'rounded', 'p-2');
+        targetContainer.appendChild(infoModal);
+        removeInfoModal(infoModal, 5000);
+    }
+
     async function loadNewShelfBrowserItems(nearbyItems, buttonDirection) {
         const { previousItemNumber, nextItemNumber } = nearbyItems;
         const coverFlowId = 'lmscoverflow';
@@ -2005,6 +2025,12 @@
             resultNext.then((result) => extendCurrentCoverFlow({ newlyLoadedItems: result, ...args }));
         }
         else {
+            // if (!previousItemNumber) {
+            //     showInfoModal('No previous items!', 1000, 'left');
+            // }
+            // if (!nextItemNumber) {
+            //     showInfoModal('No following items!', 1000, 'right');
+            // }
             console.trace(`Looks like something went wrong in ${loadNewShelfBrowserItems.name}`);
         }
     }
@@ -2054,9 +2080,9 @@
                     const result = await fetchItemData(shelfBrowserEndpoint, itemnumber, 7);
                     shelfBrowserHeading.classList.add('border', 'border-secondary', 'rounded', 'p-3', 'w-75', 'centered', 'mx-auto', 'shadow-sm', 'text-center');
                     shelfBrowserHeading.textContent = `
-                    ${result.starting_homebranch.description ? header.header_browsing.replace('{starting_homebranch}', result.starting_homebranch.description) : ''}${result.starting_location.description ? ',' : ''}
-                    ${result.starting_location.description ? header.header_location.replace('{starting_location}', result.starting_location.description) : ''}${result.starting_ccode.description ? ',' : ''}
-                    ${result.starting_ccode.description ? header.header_collection.replace('{starting_ccode}', result.starting_ccode.description) : ''}
+                    ${(result.starting_homebranch && result.starting_homebranch.description) ? header.header_browsing.replace('{starting_homebranch}', result.starting_homebranch.description) : ''}${( result.starting_location && result.starting_location.description ) ? ',' : ''}
+                    ${(result.starting_location && result.starting_location.description) ? header.header_location.replace('{starting_location}', result.starting_location.description) : ''}${ (result.starting_ccode && result.starting_ccode.description ) ? ',' : ''}
+                    ${(result.starting_ccode && result.starting_ccode.description) ? header.header_collection.replace('{starting_ccode}', result.starting_ccode.description) : ''}
                     `;
                     shelfBrowserHeading.appendChild(shelfBrowserClose);
                     extendCurrentCoverFlow({
