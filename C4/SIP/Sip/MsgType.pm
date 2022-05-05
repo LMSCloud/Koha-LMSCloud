@@ -1374,8 +1374,8 @@ sub handle_item_information {
             $resp .= add_field( FID_FEE_AMT,  $i, $server );
         }
         if ( $server->{account}->{deliver_hold_shelf_patron_with_BG} && $item->sip_circulation_status eq '08' ) {
-            if ( $item->{hold_shelf} ) {
-                foreach my $hold ( @{ $item->{hold_shelf} } ) {
+            if ( $item->{hold_attached} ) {
+                foreach my $hold ( @{ $item->{hold_attached} } ) {
                     if ( $hold->{itemnumber} == $item->{itemnumber}  ) {
                         $resp .= maybe_add( FID_OWNER, $item->hold_patron_bcode($hold->{borrowernumber}), $server  );
                         last;
