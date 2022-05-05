@@ -3657,13 +3657,20 @@ GROUP BY c.branchcode, p.branchcode, c.debit_type_code, g.description
     push @$updates, ['G0100-zw Einnahmenverrechnung zwischen Zweigstellen',$sqltext];
     
     $sqltext = 
-q{SELECT accountlines_id AS 'Vorgangsnr.', DATE_FORMAT(date,'%d.%m.%Y') AS 'Datum', timestamp, FORMAT(amount,2,'de_DE') AS 'Betrag',FORMAT(amountoutstanding,2,'de_DE') AS 'Betrag offen', deb.description AS 'Beschreibung', 
-deb.code AS 'Vorgangsart',
-b1.cardnumber AS 'Ausweisnummer', CONCAT(b1.firstname, " ",b1.surname) AS 'Benutzername', note AS 'Bemerkung' , b2.surname AS 'Mitarbeitername' 
+q{SELECT accountlines_id AS 'Vorgangsnr.', 
+       DATE_FORMAT(date,'%d.%m.%Y') AS 'Datum', 
+       timestamp, FORMAT(amount,2,'de_DE') AS 'Betrag',
+       FORMAT(amountoutstanding,2,'de_DE') AS 'Betrag offen', 
+       accountlines.description AS 'Beschreibung',
+       IFNULL(account_debit_types.description,account_credit_types.description) AS 'Vorgangssart',
+       b1.cardnumber AS 'Ausweisnummer', CONCAT(b1.firstname, " ",b1.surname) AS 'Benutzername', 
+       note AS 'Bemerkung' , 
+       b2.surname AS 'Mitarbeitername'
 FROM accountlines
-LEFT JOIN borrowers b1 ON (accountlines.borrowernumber=b1.borrowernumber) 
-LEFT JOIN borrowers b2 ON (accountlines.manager_id=b2.borrowernumber) 
-LEFT JOIN account_debit_types deb ON deb.code=accountlines.debit_type_code
+LEFT JOIN borrowers b1 ON (accountlines.borrowernumber=b1.borrowernumber)
+LEFT JOIN borrowers b2 ON (accountlines.manager_id=b2.borrowernumber)
+LEFT JOIN account_debit_types ON (accountlines.debit_type_code = account_debit_types.code)
+LEFT JOIN account_credit_types ON (accountlines.credit_type_code = account_credit_types.code)
 WHERE date >= <<Von|date>> AND date <= <<bis|date>>
 ORDER BY date, accountlines_id
 };
@@ -3745,7 +3752,7 @@ ORDER BY Zugangsdatum
     push @$updates, ['K0030 Zugangsbuch',$sqltext];
     
     my $dbh = C4::Context->dbh;
-    my $sth1 = $dbh->prepare("UPDATE saved_sql SET savedsql = ? WHERE report_name = BINARY ?");
+    my $sth1 = $dbh->prepare("UPDATE saved_sql SET savedsql = ? WHERE TRIM(report_name) = BINARY ?");
     
     foreach my $update (@$updates) {
         $sth1->execute($update->[1], $update->[0]);
