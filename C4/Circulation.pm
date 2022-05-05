@@ -3114,8 +3114,8 @@ sub SetDueDateOfItems {
             
             # set the new due date of the issue
             $issue->date_due($newdate)->store();
-            # Update the renewal count on the item, and tell zebra to reindex
-            ModItem({ onloan => $newdate }, undef, $issue->get_column('itemnumber'));
+            # set the new due date of the item
+            $issue->item->onloan($newdate)->store;
         }
     }
     
