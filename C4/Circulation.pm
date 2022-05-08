@@ -3187,6 +3187,7 @@ sub AddRenewal {
     my $patron_unblessed = $patron->unblessed;
 
     my $branchcode = $issue->branchcode;
+    $branch = $issue->branchcode if (! $branch );
     $branchcode = _GetCircControlBranch($item_unblessed, $patron_unblessed)
             if (! C4::Context->preference('UseIssuingBranchConditionsForRenewals') );
     my $circ_library = Koha::Libraries->find( $branchcode );
