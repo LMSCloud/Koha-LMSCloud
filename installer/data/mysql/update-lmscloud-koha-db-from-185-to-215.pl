@@ -3671,7 +3671,7 @@ LEFT JOIN borrowers b1 ON (accountlines.borrowernumber=b1.borrowernumber)
 LEFT JOIN borrowers b2 ON (accountlines.manager_id=b2.borrowernumber)
 LEFT JOIN account_debit_types ON (accountlines.debit_type_code = account_debit_types.code)
 LEFT JOIN account_credit_types ON (accountlines.credit_type_code = account_credit_types.code)
-WHERE date >= <<Von|date>> AND date <= <<bis|date>>
+WHERE date >= TIMESTAMP(<<Von|date>>) AND date <= TIMESTAMP(<<bis|date>>,'23:59:59')
 ORDER BY date, accountlines_id
 };
     push @$updates, ['G0140 Gebührenvorgänge - Einzelauflistung für einen auswählbaren Zeitraum',$sqltext];
@@ -3690,7 +3690,7 @@ q{SELECT CONCAT('<a href=\"/cgi-bin/koha/members/boraccount.pl?borrowernumber=',
 FROM accountlines, borrowers
 WHERE borrowers.borrowernumber = accountlines.borrowernumber 
 AND credit_type_code IN ('WRITEOFF','CANCELLATION','DISCOUNT','FORGIVEN')
-AND date BETWEEN <<Von|date>> AND <<Bis|date>>
+AND date BETWEEN TIMESTAMP(<<Von|date>>) AND TIMESTAMP(<<bis|date>>,'23:59:59')
 ORDER BY accountlines.credit_type_code
 };
     push @$updates, ['G0200 Gebührenerlass / Storno mit Grund für einen wählbaren Zeitraum',$sqltext];
