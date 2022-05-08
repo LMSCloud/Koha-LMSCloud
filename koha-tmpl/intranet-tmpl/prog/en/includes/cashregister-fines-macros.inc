@@ -21,6 +21,7 @@
 [% MACRO resolveAccountOffsetActionTypeName(type) BLOCK -%]
 [%    SWITCH type %]
 [%        CASE 'Payment'         %]Payment
+[%        CASE 'Credit Applied'  %]Payment
 [%        CASE 'Reverse Payment' %]Reverse payment
 [%        CASE %][% type %]
 [%    END %]
