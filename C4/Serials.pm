@@ -1977,7 +1977,7 @@ sub addroutingmember {
 
     my $rank;
     my $dbh = C4::Context->dbh;
-    my $sth = $dbh->prepare( "SELECT max(ranking) rank FROM subscriptionroutinglist WHERE subscriptionid = ?" );
+    my $sth = $dbh->prepare( "SELECT max(ranking) AS `rank` FROM subscriptionroutinglist WHERE subscriptionid = ?" );
     $sth->execute($subscriptionid);
     while ( my $line = $sth->fetchrow_hashref ) {
         if ( $line->{'rank'} > 0 ) {
