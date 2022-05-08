@@ -24,10 +24,10 @@ use C4::Context;
 
 use Koha::CashRegister::CashRegisterDefinition;
 use Koha::CashRegister::CashRegisterDefinitions;
-use Koha::CashRegister::CashRegisterManager;
 use Koha::CashRegister::CashRegisterManagers;
-use Koha::CashRegister::CashRegisterAccount;
+use Koha::CashRegister::CashRegisterManager;
 use Koha::CashRegister::CashRegisterAccounts;
+use Koha::CashRegister::CashRegisterAccount;
 use Koha::Account::CreditTypes;
 use Koha::Account::DebitTypes;
 use DateTime;
@@ -784,16 +784,18 @@ sub saveCashRegister {
         });
         
         if ( $id ) {
-            my $cash_register_managers = Koha::CashRegister::CashRegisterManagers->search({ 
+            my @saved_managers = Koha::CashRegister::CashRegisterManagers->search({ 
                 cash_register_id => $id
-            });
+            })->as_list;
             
             my @new_cash_mans = @cash_register_manager;
             my @saved_manager;
-            while ( my $manager = $cash_register_managers->next() ) {
+            foreach my $manager( @saved_managers ) {
                 my $sman = $manager->manager_id();
                 if (! grep( /^$sman$/, @cash_register_manager ) ) {
-                    $manager->delete();
+                    # The following creates an error thats why we do it with DBI
+                    # $manager->delete;
+                    C4::Context->dbh->do("DELETE FROM cash_register_manager where id = ?", undef, $manager->id);
                 }
                 else {
                     @new_cash_mans = grep { $_ != $sman } @new_cash_mans;
@@ -1599,7 +1601,7 @@ sub getFinesOverview {
             WHERE      c.branchcode = br.branchcode
                    AND ao.debit_id = a.accountlines_id
                    AND ao.credit_id = c.accountlines_id
-                   AND ao.type = 'Payment'
+                   AND c.credit_type_code = 'PAYMENT'
                    AND $dateselect $branchselect
                    AND a.credit_type_code IS NULL
                    AND ao.amount <> 0.00
@@ -1617,7 +1619,7 @@ sub getFinesOverview {
             WHERE      c.branchcode = br.branchcode
                    AND ao.debit_id = a.accountlines_id
                    AND ao.credit_id = c.accountlines_id
-                   AND ao.type = 'Payment'
+                   AND c.credit_type_code = 'PAYMENT'
                    AND $dateselect $branchselect
                    AND a.credit_type_code IS NULL
                    AND ao.amount <> 0.00
@@ -1634,7 +1636,7 @@ sub getFinesOverview {
             WHERE      c.branchcode = br.branchcode
                    AND ao.debit_id = a.accountlines_id
                    AND ao.credit_id = c.accountlines_id
-                   AND ao.type = 'Payment'
+                   AND c.credit_type_code = 'PAYMENT'
                    AND $dateselect $branchselect
                    AND NOT EXISTS (SELECT 1 FROM items WHERE a.itemnumber = items.itemnumber)
                    AND NOT EXISTS (SELECT 1 FROM deleteditems WHERE a.itemnumber = deleteditems.itemnumber)
@@ -1659,7 +1661,6 @@ sub getFinesOverview {
                    AND ao.debit_id = o.credit_id
                    AND o.type = 'Payment'
                    AND o.debit_id = a.accountlines_id
-                   AND ao.type = 'Payment'
                    AND a.credit_type_code IS NULL
                    AND o.amount <> 0.00
                    AND ao.amount = u.amount
@@ -1682,7 +1683,6 @@ sub getFinesOverview {
                    AND ao.debit_id = o.credit_id
                    AND o.type = 'Payment'
                    AND o.debit_id = a.accountlines_id
-                   AND ao.type = 'Payment'
                    AND a.credit_type_code IS NULL
                    AND o.amount <> 0.00
                    AND ao.amount = u.amount
@@ -1704,7 +1704,6 @@ sub getFinesOverview {
                    AND ao.debit_id = o.credit_id
                    AND o.type = 'Payment'
                    AND o.debit_id = a.accountlines_id
-                   AND ao.type = 'Payment'
                    AND a.credit_type_code IS NULL
                    AND NOT EXISTS (SELECT 1 FROM items WHERE a.itemnumber = items.itemnumber)
                    AND NOT EXISTS (SELECT 1 FROM deleteditems WHERE a.itemnumber = deleteditems.itemnumber)
@@ -2041,7 +2040,7 @@ sub getFinesOverview {
                    i.itype AS itemtype
             FROM   accountlines a
                    JOIN items AS i USING (itemnumber)
-                   JOIN account_offsets ao ON (ao.debit_id = a.accountlines_id AND ao.type = 'Payment' AND ao.amount <> 0.00)
+                   JOIN account_offsets ao ON (ao.debit_id = a.accountlines_id AND ao.type IN ('Payment','Credit Applied') AND ao.amount <> 0.00)
                    JOIN account_offsets aovoid ON (aovoid.debit_id = ao.debit_id AND aovoid.type = 'VOID' AND aovoid.credit_id = ao.credit_id AND aovoid.amount = -ao.amount)
                    JOIN account_offsets aocredit ON (aocredit.credit_id = aovoid.credit_id AND aocredit.type = 'Credit Applied')
                    JOIN accountlines r ON (aocredit.debit_id = r.accountlines_id AND r.debit_type_code = 'VOID' AND r.status = 'REFUNDED')
@@ -2063,7 +2062,7 @@ sub getFinesOverview {
                    i.itype AS itemtype
             FROM   accountlines a
                    JOIN deleteditems AS i USING (itemnumber)
-                   JOIN account_offsets ao ON (ao.debit_id = a.accountlines_id AND ao.type = 'Payment' AND ao.amount <> 0.00)
+                   JOIN account_offsets ao ON (ao.debit_id = a.accountlines_id AND ao.type IN ('Payment','Credit Applied') AND ao.amount <> 0.00)
                    JOIN account_offsets aovoid ON (aovoid.debit_id = ao.debit_id AND aovoid.type = 'VOID' AND aovoid.credit_id = ao.credit_id AND aovoid.amount = -ao.amount)
                    JOIN account_offsets aocredit ON (aocredit.credit_id = aovoid.credit_id AND aocredit.type = 'Credit Applied')
                    JOIN accountlines r ON (aocredit.debit_id = r.accountlines_id AND r.debit_type_code = 'VOID' AND r.status = 'REFUNDED')
@@ -2084,7 +2083,7 @@ sub getFinesOverview {
                    COUNT(*) AS count,
                    '' AS itemtype
             FROM   accountlines a
-                   JOIN account_offsets ao ON (ao.debit_id = a.accountlines_id AND ao.type = 'Payment' AND ao.amount <> 0.00)
+                   JOIN account_offsets ao ON (ao.debit_id = a.accountlines_id AND ao.type IN ('Payment','Credit Applied') AND ao.amount <> 0.00)
                    JOIN account_offsets aovoid ON (aovoid.debit_id = ao.debit_id AND aovoid.type = 'VOID' AND aovoid.credit_id = ao.credit_id AND aovoid.amount = -ao.amount)
                    JOIN account_offsets aocredit ON (aocredit.credit_id = aovoid.credit_id AND aocredit.type = 'Credit Applied')
                    JOIN accountlines r ON (aocredit.debit_id = r.accountlines_id AND r.debit_type_code = 'VOID' AND r.status = 'REFUNDED')
@@ -2312,11 +2311,12 @@ sub getFinesOverview {
                    COUNT(*) AS count
             FROM   branches br, account_offsets ao, accountlines a
             WHERE      a.branchcode = br.branchcode
-                   AND ao.type = 'Payment'
+                   AND ao.type IN ('Payment','Credit Applied')
                    AND $dateselect $branchselect
                    AND ao.credit_id = a.accountlines_id
                    AND a.credit_type_code = 'PAYMENT'
                    AND ao.amount <> 0.00
+                   AND ao.debit_id IS NOT NULL
             GROUP BY 
                    payment_type
             UNION ALL
@@ -2331,6 +2331,7 @@ sub getFinesOverview {
                    AND ao.credit_id = a.accountlines_id
                    AND a.credit_type_code = 'PAYMENT'
                    AND ao.amount > 0.00
+                   AND ao.debit_id IS NOT NULL
             GROUP BY 
                    payment_type
             UNION ALL
@@ -2345,6 +2346,7 @@ sub getFinesOverview {
                    AND ao.credit_id = a.accountlines_id
                    AND a.credit_type_code = 'PAYMENT'
                    AND ao.amount < 0.00
+                   AND ao.debit_id IS NOT NULL
             GROUP BY 
                    payment_type
             UNION ALL
@@ -2360,6 +2362,7 @@ sub getFinesOverview {
                    AND ao.credit_id IS NULL
                    AND a.debit_type_code = 'PAYOUT'
                    AND ao.amount > 0.00
+                   AND ao.debit_id IS NOT NULL
             GROUP BY 
                    payment_type
             }; $query =~ s/^\s+/ /mg;
@@ -2367,7 +2370,7 @@ sub getFinesOverview {
         $sth = $dbh->prepare($query);
         $sth->execute();
         
-        my @ptypes = ('cash','card','unassigned');
+        my @ptypes = ('cash','card','online','sepa','unassigned');
 
         foreach my $type(@ptypes) {
             $result->{sum}->{cashtype}->{$type}->{payment} = {
@@ -2383,7 +2386,13 @@ sub getFinesOverview {
         
         while (my $row = $sth->fetchrow_hashref) {
             my $amount = $row->{'amount'} * -1;
-            my $paytype = $row->{'payment_type'};
+            my $paytype = lc($row->{'payment_type'});
+            if ( $paytype =~ /^sip/ ) {
+                $paytype = 'card';
+            }
+            if ( $paytype !~ /^(card|cash|online|sepa)/ ) {
+                $paytype = 'unassigned';
+            }
             my $what = 'payout';
             if ( $amount >= 0.00 ) {
                 # it's a payment
@@ -2427,7 +2436,7 @@ sub getFinesOverview {
                 WHERE      c.branchcode = br.branchcode
                        AND ao.debit_id = a.accountlines_id
                        AND ao.credit_id = c.accountlines_id
-                       AND ao.type = 'Payment'
+                       AND ao.type IN ('Payment','Credit Applied')
                        AND $dateselect $branchselect
                        AND a.debit_type_code IN ('ACCOUNT','ACCOUNT_RENEW')
                        AND ao.amount <> 0.00
@@ -2445,7 +2454,7 @@ sub getFinesOverview {
                 WHERE      c.branchcode = br.branchcode
                        AND ao.debit_id = a.accountlines_id
                        AND ao.credit_id = c.accountlines_id
-                       AND ao.type = 'Payment'
+                       AND ao.type IN ('Payment','Credit Applied')
                        AND $dateselect $branchselect
                        AND a.debit_type_code IN ('ACCOUNT','ACCOUNT_RENEW')
                        AND ao.amount <> 0.00
@@ -2464,10 +2473,10 @@ sub getFinesOverview {
                 WHERE      c.branchcode = br.branchcode
                        AND ao.debit_id = u.accountlines_id
                        AND ao.credit_id = c.accountlines_id
-                       AND ao.type = 'Payment'
+                       AND ao.type IN ('Payment','Credit Applied')
                        AND $dateselect $branchselect
                        AND ao.debit_id = o.credit_id
-                       AND o.type = 'Payment'
+                       AND o.type IN ('Payment','Credit Applied')
                        AND o.debit_id = a.accountlines_id
                        AND u.debit_type_code = 'PAYMENT'
                        AND a.debit_type_code IN ('ACCOUNT','ACCOUNT_RENEW')
@@ -2487,10 +2496,10 @@ sub getFinesOverview {
                 WHERE      c.branchcode = br.branchcode
                        AND ao.debit_id = u.accountlines_id
                        AND ao.credit_id = c.accountlines_id
-                       AND ao.type = 'Payment'
+                       AND ao.type IN ('Payment','Credit Applied')
                        AND $dateselect $branchselect
                        AND ao.debit_id = o.credit_id
-                       AND o.type = 'Payment'
+                       AND o.type IN ('Payment','Credit Applied')
                        AND o.debit_id = a.accountlines_id
                        AND u.debit_type_code = 'PAYMENT'
                        AND a.debit_type_code IN ('ACCOUNT','ACCOUNT_RENEW')
@@ -2513,7 +2522,7 @@ sub getFinesOverview {
                        AND ao.amount > 0.0
                        AND $dateselect $branchselect
                        AND ao.credit_id = o.credit_id
-                       AND o.type = 'Payment'
+                       AND o.type IN ('Payment','Credit Applied')
                        AND o.debit_id = a.accountlines_id
                        AND a.debit_type_code IN ('ACCOUNT','ACCOUNT_RENEW')
                        AND o.amount <> 0.00
@@ -2535,7 +2544,7 @@ sub getFinesOverview {
                        AND ao.amount > 0.0
                        AND $dateselect $branchselect
                        AND ao.credit_id = o.credit_id
-                       AND o.type = 'Payment'
+                       AND o.type IN ('Payment','Credit Applied')
                        AND o.debit_id = a.accountlines_id
                        AND a.debit_type_code IN ('ACCOUNT','ACCOUNT_RENEW')
                        AND o.amount <> 0.00
@@ -2558,7 +2567,7 @@ sub getFinesOverview {
                        AND ao.amount < 0.0
                        AND $dateselect $branchselect
                        AND ao.credit_id = o.credit_id
-                       AND o.type = 'Payment'
+                       AND o.type IN ('Payment','Credit Applied')
                        AND o.debit_id = a.accountlines_id
                        AND a.debit_type_code IN ('ACCOUNT','ACCOUNT_RENEW')
                        AND o.amount <> 0.00
@@ -2580,7 +2589,7 @@ sub getFinesOverview {
                        AND ao.amount < 0.0
                        AND $dateselect $branchselect
                        AND ao.credit_id = o.credit_id
-                       AND o.type = 'Payment'
+                       AND o.type IN ('Payment','Credit Applied')
                        AND o.debit_id = a.accountlines_id
                        AND a.debit_type_code IN ('ACCOUNT','ACCOUNT_RENEW')
                        AND o.amount <> 0.00
@@ -2596,7 +2605,7 @@ sub getFinesOverview {
                 FROM   accountlines a
                        JOIN borrowers AS b ON (b.borrowernumber = a.borrowernumber)
                        JOIN categories AS cat ON (b.categorycode = cat.categorycode)
-                       JOIN account_offsets ao ON (ao.debit_id = a.accountlines_id AND ao.type = 'Payment' AND ao.amount <> 0.00)
+                       JOIN account_offsets ao ON (ao.debit_id = a.accountlines_id AND ao.type IN ('Payment','Credit Applied') AND ao.amount <> 0.00)
                        JOIN account_offsets aovoid ON (aovoid.debit_id = ao.debit_id AND aovoid.type = 'VOID' AND aovoid.credit_id = ao.credit_id)
                        JOIN account_offsets aocredit ON (aocredit.credit_id = aovoid.credit_id AND aocredit.type = 'Credit Applied')
                        JOIN accountlines r ON (aocredit.debit_id = r.accountlines_id AND r.debit_type_code = 'VOID' AND r.status = 'REFUNDED')
@@ -2618,7 +2627,7 @@ sub getFinesOverview {
                 FROM   accountlines a
                        JOIN deletedborrowers AS b ON (b.borrowernumber = a.borrowernumber)
                        JOIN categories AS cat ON (b.categorycode = cat.categorycode)
-                       JOIN account_offsets ao ON (ao.debit_id = a.accountlines_id AND ao.type = 'Payment' AND ao.amount <> 0.00)
+                       JOIN account_offsets ao ON (ao.debit_id = a.accountlines_id AND ao.type IN ('Payment','Credit Applied') AND ao.amount <> 0.00)
                        JOIN account_offsets aovoid ON (aovoid.debit_id = ao.debit_id AND aovoid.type = 'VOID' AND aovoid.credit_id = ao.credit_id)
                        JOIN account_offsets aocredit ON (aocredit.credit_id = aovoid.credit_id AND aocredit.type = 'Credit Applied')
                        JOIN accountlines r ON (aocredit.debit_id = r.accountlines_id AND r.debit_type_code = 'VOID' AND r.status = 'REFUNDED')
@@ -2673,9 +2682,9 @@ sub getFinesOverview {
                    '' as reason
             FROM   branches br, account_offsets ao, accountlines a, accountlines c
             WHERE      c.branchcode = br.branchcode
-                   AND ao.debit_id = a.accountlines_id
+                   AND ao.debit_id  = a.accountlines_id
                    AND ao.credit_id = c.accountlines_id
-                   AND ao.type = 'Payment'
+                   AND c.credit_type_code = 'PAYMENT'
                    AND $dateselect $branchselect
                    AND a.credit_type_code IS NULL
                    AND ao.amount <> 0.00
@@ -2694,10 +2703,10 @@ sub getFinesOverview {
             WHERE      c.branchcode = br.branchcode
                    AND ao.debit_id = u.accountlines_id
                    AND ao.credit_id = c.accountlines_id
-                   AND ao.type = 'Payment'
+                   AND c.credit_type_code = 'PAYMENT'
                    AND $dateselect $branchselect
                    AND ao.debit_id = o.credit_id
-                   AND o.type = 'Payment'
+                   AND o.type IN ('Payment','Credit Applied')
                    AND o.debit_id = a.accountlines_id
                    AND u.credit_type_code = 'PAYMENT'
                    AND a.credit_type_code IS NULL
@@ -2720,7 +2729,7 @@ sub getFinesOverview {
                    AND ao.credit_id = c.accountlines_id
                    AND $dateselect $branchselect
                    AND ao.credit_id = o.credit_id
-                   AND o.type = 'Payment'
+                   AND o.type IN ('Payment','Credit Applied')
                    AND o.debit_id = a.accountlines_id
                    AND a.credit_type_code IS NULL
                    AND o.amount <> 0.00
@@ -2740,10 +2749,10 @@ sub getFinesOverview {
             WHERE      c.branchcode = br.branchcode
                    AND ao.debit_id = u.accountlines_id
                    AND ao.credit_id = c.accountlines_id
-                   AND ao.type = 'Payment'
+                   AND ao.type IN ('Payment','Credit Applied')
                    AND $dateselect $branchselect
                    AND ao.debit_id = o.credit_id
-                   AND o.type = 'Payment'
+                   AND o.type IN ('Payment','Credit Applied')
                    AND o.debit_id = a.accountlines_id
                    AND u.credit_type_code IS NOT NULL
                    AND a.credit_type_code IS NOT NULL
@@ -2763,14 +2772,14 @@ sub getFinesOverview {
             WHERE      c.branchcode = br.branchcode
                    AND ao.debit_id = u.accountlines_id
                    AND ao.credit_id = c.accountlines_id
-                   AND ao.type = 'Payment'
+                   AND ao.type IN ('Payment','Credit Applied')
                    AND $dateselect $branchselect
                    AND EXISTS (
                        SELECT 1
                        FROM account_offsets o, accountlines a
                        WHERE
                                ao.debit_id = o.credit_id
-                           AND o.type = 'Payment'
+                           AND o.type IN ('Payment','Credit Applied')
                            AND o.debit_id = a.accountlines_id
                            AND a.debit_type_code IS NOT NULL
                    )
@@ -2812,7 +2821,7 @@ sub getFinesOverview {
                    AND $dateselect $branchselect
                    AND ao.credit_id = o.credit_id
                    AND ao.credit_id = c.accountlines_id
-                   AND o.type = 'Payment'
+                   AND o.type IN ('Payment','Credit Applied')
                    AND o.debit_id = a.accountlines_id
                    AND a.credit_type_code = 'PAYMENT'
                    AND o.amount <> 0.00
@@ -2828,7 +2837,7 @@ sub getFinesOverview {
                    c.description as description,
                    '' as reason
             FROM   accountlines a
-                   JOIN account_offsets ao ON (ao.debit_id = a.accountlines_id AND ao.type = 'Payment' AND ao.amount <> 0.00)
+                   JOIN account_offsets ao ON (ao.debit_id = a.accountlines_id AND ao.type IN ('Payment','Credit Applied') AND ao.amount <> 0.00)
                    JOIN account_offsets aovoid ON (aovoid.debit_id = ao.debit_id AND aovoid.type = 'VOID' AND aovoid.credit_id = ao.credit_id AND aovoid.amount = -ao.amount)
                    JOIN account_offsets aocredit ON (aocredit.credit_id = aovoid.credit_id AND aocredit.type = 'Credit Applied')
                    JOIN accountlines r ON (aocredit.debit_id = r.accountlines_id AND r.debit_type_code = 'VOID' AND r.status = 'REFUNDED')
@@ -2962,7 +2971,7 @@ sub getFinesOverview {
                         2 as entrytype,
                         DATE(ao.created_on) as date,
                         a.credit_type_code as credit_type_code,
-                        IF(ao.type = 'Payment', SUM(ao.amount)* -1, SUM(ao.amount)) as amount,
+                        IF(ao.type IN ('Payment','Credit Applied'), SUM(ao.amount)* -1, SUM(ao.amount)) as amount,
                         a.borrowernumber as borrowernumber,
                         a.description as description,
                         a.manager_id as manager_id,
@@ -2972,8 +2981,9 @@ sub getFinesOverview {
                  FROM 
                         branches br, account_offsets ao 
                         JOIN accountlines a ON (a.accountlines_id = ao.credit_id)
+                        JOIN accountlines c ON (c.accountlines_id = ao.debit_id)
                  WHERE      a.branchcode = br.branchcode
-                        AND ao.type IN ('Payment','Reverse Payment','REFUND')
+                        AND ao.type IN ('Payment','Credit Applied','Reverse Payment','REFUND')
                         AND $dateselect $branchselect
                  GROUP BY
                         ao.type, ao.credit_id, ao.created_on, a.credit_type_code, a.borrowernumber,
