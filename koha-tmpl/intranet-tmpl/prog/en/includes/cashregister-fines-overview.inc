@@ -226,6 +226,7 @@
                 <td style="text-align:right;">[% finesstats.sum.paid.count %]</td>
                 <td style="text-align:right;">[% finesstats.sum.paid.fines_amount_formatted %]</td>
             </tr>
+            [% IF finesstats.sum.cashtype.card.payment.count %]
             <tr>
                 <td colspan="2">
                     ... paid by card
@@ -233,6 +234,25 @@
                 <td style="text-align:right;">[% finesstats.sum.cashtype.card.payment.count %]</td>
                 <td style="text-align:right;">[% finesstats.sum.cashtype.card.payment.payment_amount_formatted %]</td>
             </tr>
+            [% END %]
+            [% IF finesstats.sum.cashtype.online.payment.count %]
+            <tr>
+                <td colspan="2">
+                    ... paid online
+                </td>
+                <td style="text-align:right;">[% finesstats.sum.cashtype.online.payment.count %]</td>
+                <td style="text-align:right;">[% finesstats.sum.cashtype.online.payment.payment_amount_formatted %]</td>
+            </tr>
+            [% END %]
+            [% IF finesstats.sum.cashtype.sepa.payment.count %]
+            <tr>
+                <td colspan="2">
+                    ... paid by SEPA direct debit
+                </td>
+                <td style="text-align:right;">[% finesstats.sum.cashtype.sepa.payment.count %]</td>
+                <td style="text-align:right;">[% finesstats.sum.cashtype.sepa.payment.payment_amount_formatted %]</td>
+            </tr>
+            [% END %]
             <tr>
                 <td colspan="2">
                     ... paid cash
@@ -316,6 +336,7 @@
                 <td style="text-align:right;">[% finesstats.sum.paid.count %]</td>
                 <td style="text-align:right;">[% finesstats.sum.paid.fines_amount_formatted %]</td>
             </tr>
+            [% IF finesstats.sum.cashtype.card.payment.count %]
             <tr>
                 <td colspan="3">
                     ... paid by card
@@ -323,6 +344,25 @@
                 <td style="text-align:right;">[% finesstats.sum.cashtype.card.payment.count %]</td>
                 <td style="text-align:right;">[% finesstats.sum.cashtype.card.payment.payment_amount_formatted %]</td>
             </tr>
+            [% END %]
+            [% IF finesstats.sum.cashtype.online.payment.count %]
+            <tr>
+                <td colspan="3">
+                    ... paid online
+                </td>
+                <td style="text-align:right;">[% finesstats.sum.cashtype.online.payment.count %]</td>
+                <td style="text-align:right;">[% finesstats.sum.cashtype.online.payment.payment_amount_formatted %]</td>
+            </tr>
+            [% END %]
+            [% IF finesstats.sum.cashtype.sepa.payment.count %]
+            <tr>
+                <td colspan="3">
+                    ... paid by SEPA direct debit
+                </td>
+                <td style="text-align:right;">[% finesstats.sum.cashtype.sepa.payment.count %]</td>
+                <td style="text-align:right;">[% finesstats.sum.cashtype.sepa.payment.payment_amount_formatted %]</td>
+            </tr>
+            [% END %]
             <tr>
                 <td colspan="3">
                     ... paid cash
