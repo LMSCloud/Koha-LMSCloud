@@ -19,7 +19,11 @@ package Koha::CashRegister::CashRegisterManagers;
 
 
 use Modern::Perl;
+
 use Koha::Database;
+
+use Koha::CashRegister::CashRegisterManager;
+
 use base qw(Koha::Objects);
 
 =head1 NAME

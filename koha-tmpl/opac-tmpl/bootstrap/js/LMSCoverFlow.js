@@ -900,7 +900,8 @@
         constructor(configuration) {
             this.config = configuration;
             this.coverImageFallbackHeight = this.config.coverImageFallbackHeight || 210;
-            this.coverImageFallbackUrl = this.config.coverImageFallbackUrl || '/cgi-bin/koha/svc/covergen';
+            this.coverImageFallbackUrl = this.config.coverImageFallbackUrl || '/api/v1/public/generated_cover';
+            this.coverImageGeneratedCoverEndpoint = this.config.coverImageGeneratedCoverEndpoint || '/api/v1/public/generated_cover';
             this.coverImageFetchTimeout = this.config.coverImageFetchTimeout || 1000;
             this.coverFlowDataBiblionumberEndpoint = this.config.coverFlowDataBiblionumberEndpoint || '/api/v1/public/coverflow_data_biblionumber/';
             this.coverFlowNearbyItemsEndpoint = this.config.coverFlowNearbyItemsEndpoint || '/api/v1/public/coverflow_data_nearby_items/';
@@ -939,6 +940,7 @@
             this.shelfBrowserExtendedCoverFlow = this.config.shelfBrowserExtendedCoverFlow || false;
             this.shelfBrowserButtonDirection = this.config.shelfBrowserButtonDirection || null;
             this.shelfBrowserCurrentEventListeners = this.config.shelfBrowserCurrentEventListeners || null;
+            this.shelfBrowserScrollIntoView = this.config.shelfBrowserScrollIntoView || false;
             this.debug = this.config.debug || false;
         }
     }
@@ -1108,6 +1110,7 @@
         }
     }
 
+    /* eslint-disable max-len */
     class Data {
         config;
         constructor(config) {
@@ -1154,23 +1157,23 @@
                         return entry;
                     }
                     if (coverurl.startsWith('/')) {
-                        return { ...entry, coverurl: await Data.processDataUrl(`/cgi-bin/koha/svc/covergen?title=${window.encodeURIComponent(entry.title)}`) };
+                        return { ...entry, coverurl: await Data.processDataUrl(`${this.config.coverImageGeneratedCoverEndpoint}?title=${window.encodeURIComponent(entry.title)}`) };
                     }
                     if (!coverurl) {
                         return {
                             ...entry,
-                            coverurl: this.config.coverImageFallbackUrl !== '/cgi-bin/koha/svc/covergen'
+                            coverurl: this.config.coverImageFallbackUrl !== this.config.coverImageGeneratedCoverEndpoint
                                 ? this.config.coverImageFallbackUrl
-                                : await Data.processDataUrl(`${this.config.coverImageFallbackUrl}?title=${window.encodeURIComponent(entry.title)}`),
+                                : await Data.processDataUrl(`${this.config.coverImageGeneratedCoverEndpoint}?title=${window.encodeURIComponent(entry.title)}`),
                         };
                     }
                     const fileExists = await this.checkIfFileExists(coverurl);
                     if (!fileExists) {
                         return {
                             ...entry,
-                            coverurl: this.config.coverImageFallbackUrl !== '/cgi-bin/koha/svc/covergen'
+                            coverurl: this.config.coverImageFallbackUrl !== this.config.coverImageGeneratedCoverEndpoint
                                 ? this.config.coverImageFallbackUrl
-                                : await Data.processDataUrl(`${this.config.coverImageFallbackUrl}?title=${window.encodeURIComponent(entry.title)}`),
+                                : await Data.processDataUrl(`${this.config.coverImageGeneratedCoverEndpoint}?title=${window.encodeURIComponent(entry.title)}`),
                         };
                     }
                     return entry;
@@ -1184,7 +1187,7 @@
         }
         static async processDataUrl(url) {
             const response = await fetch(url);
-            const result = await response.text();
+            const result = await response.json();
             return result;
         }
     }
@@ -1380,7 +1383,8 @@
             if (harvesterBuilt) {
                 let harvesterElements = document.querySelectorAll('.harvesterElement');
                 const harvesterResults = [];
-                if (externalSources) {
+                // eslint-disable-next-line no-underscore-dangle
+                if (externalSources._listeners.length !== 0) {
                     const harvesterObservers = {};
                     harvesterElements.forEach((node) => {
                         const nodeId = getLcfItemId(node);
@@ -1430,12 +1434,12 @@
                             }
                             else {
                                 /** We can't await the result here because of setTimeout. */
-                                dataReference[id].coverurl = Data.processDataUrl(`/cgi-bin/koha/svc/covergen?title=${window.encodeURIComponent(dataReference[id].title)}`);
+                                dataReference[id].coverurl = Data.processDataUrl(`${config.coverImageGeneratedCoverEndpoint}?title=${window.encodeURIComponent(dataReference[id].title)}`);
                             }
                             harvesterElements.forEach((node) => {
                                 const nodeId = getLcfItemId(node);
                                 if (!resultIds.includes(nodeId)) {
-                                    dataReference[nodeId].coverurl = Data.processDataUrl(`/cgi-bin/koha/svc/covergen?title=${window.encodeURIComponent(dataReference[nodeId].title)}`);
+                                    dataReference[nodeId].coverurl = Data.processDataUrl(`${config.coverImageGeneratedCoverEndpoint}?title=${window.encodeURIComponent(dataReference[nodeId].title)}`);
                                 }
                             });
                         });
@@ -1460,7 +1464,7 @@
                             }
                             else {
                                 /** We can't await the result here because of setTimeout. */
-                                dataReference[id].coverurl = Data.processDataUrl(`/cgi-bin/koha/svc/covergen?title=${window.encodeURIComponent(dataReference[id].title)}`);
+                                dataReference[id].coverurl = Data.processDataUrl(`${config.coverImageGeneratedCoverEndpoint}?title=${window.encodeURIComponent(dataReference[id].title)}`);
                             }
                         });
                         clearHarvester();
@@ -1771,7 +1775,7 @@
                 lcfItemContainer.classList.remove('d-none');
             });
             const shelfBrowserReference = document.getElementById('shelfbrowser');
-            if (shelfBrowserReference) {
+            if (shelfBrowserReference && config.shelfBrowserScrollIntoView) {
                 setTimeout(() => shelfBrowserReference.scrollIntoView(), 100);
             }
             container.isScrollable();
@@ -1962,6 +1966,7 @@
             shelfBrowserExtendedCoverFlow: extendedCoverFlow,
             shelfBrowserButtonDirection: buttonDirection,
             shelfBrowserCurrentEventListeners: instance,
+            shelfBrowserScrollIntoView: true,
         };
         // eslint-disable-next-line max-len
         shelfBrowserCoverFlowConfig = overrideConfig(shelfBrowserCoverFlowConfig, shelfBrowserConfig.value);
@@ -1985,6 +1990,7 @@
         return response.json();
     }
 
+    // import showInfoModal from './showInfoModal';
     async function loadNewShelfBrowserItems(nearbyItems, buttonDirection) {
         const { previousItemNumber, nextItemNumber } = nearbyItems;
         const coverFlowId = 'lmscoverflow';
@@ -2005,6 +2011,8 @@
             resultNext.then((result) => extendCurrentCoverFlow({ newlyLoadedItems: result, ...args }));
         }
         else {
+            // if (!previousItemNumber) { showInfoModal('No previous items!', 1000, 'left'); }
+            // if (!nextItemNumber) { showInfoModal('No following items!', 1000, 'right'); }
             console.trace(`Looks like something went wrong in ${loadNewShelfBrowserItems.name}`);
         }
     }
@@ -2054,9 +2062,9 @@
                     const result = await fetchItemData(shelfBrowserEndpoint, itemnumber, 7);
                     shelfBrowserHeading.classList.add('border', 'border-secondary', 'rounded', 'p-3', 'w-75', 'centered', 'mx-auto', 'shadow-sm', 'text-center');
                     shelfBrowserHeading.textContent = `
-                    ${result.starting_homebranch.description ? header.header_browsing.replace('{starting_homebranch}', result.starting_homebranch.description) : ''}${result.starting_location.description ? ',' : ''}
-                    ${result.starting_location.description ? header.header_location.replace('{starting_location}', result.starting_location.description) : ''}${result.starting_ccode.description ? ',' : ''}
-                    ${result.starting_ccode.description ? header.header_collection.replace('{starting_ccode}', result.starting_ccode.description) : ''}
+                    ${(result.starting_homebranch && result.starting_homebranch.description) ? header.header_browsing.replace('{starting_homebranch}', result.starting_homebranch.description) : ''}${(result.starting_location && result.starting_location.description) ? ',' : ''}
+                    ${(result.starting_location && result.starting_location.description) ? header.header_location.replace('{starting_location}', result.starting_location.description) : ''}${(result.starting_ccode && result.starting_ccode.description) ? ',' : ''}
+                    ${(result.starting_ccode && result.starting_ccode.description) ? header.header_collection.replace('{starting_ccode}', result.starting_ccode.description) : ''}
                     `;
                     shelfBrowserHeading.appendChild(shelfBrowserClose);
                     extendCurrentCoverFlow({

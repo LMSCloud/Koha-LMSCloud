@@ -3114,8 +3114,8 @@ sub SetDueDateOfItems {
             
             # set the new due date of the issue
             $issue->date_due($newdate)->store();
-            # Update the renewal count on the item, and tell zebra to reindex
-            ModItem({ onloan => $newdate }, undef, $issue->get_column('itemnumber'));
+            # set the new due date of the item
+            $issue->item->onloan($newdate)->store;
         }
     }
     
@@ -3187,6 +3187,7 @@ sub AddRenewal {
     my $patron_unblessed = $patron->unblessed;
 
     my $branchcode = $issue->branchcode;
+    $branch = $issue->branchcode if (! $branch );
     $branchcode = _GetCircControlBranch($item_unblessed, $patron_unblessed)
             if (! C4::Context->preference('UseIssuingBranchConditionsForRenewals') );
     my $circ_library = Koha::Libraries->find( $branchcode );

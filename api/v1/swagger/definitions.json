@@ -80,6 +80,9 @@
   "coverflow_data_biblionumber": {
     "$ref": "definitions/coverflow_data_biblionumber.json"
   },
+  "generated_cover": {
+    "$ref": "definitions/generated_cover.json"
+  },
   "order": {
     "$ref": "definitions/order.json"
   },
