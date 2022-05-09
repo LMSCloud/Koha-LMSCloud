@@ -106,7 +106,7 @@ sub readLSFromEkzWsLieferscheinDetail {
 # generate title data and item data as required
 ###################################################################################################
 sub genKohaRecords {
-    my ($ekzCustomerNumber, $messageID, $lieferscheinDetailElement, $lieferscheinRecord) = @_;
+    my ($ekzCustomerNumber, $messageID, $lieferscheinDetailElement, $lieferscheinRecord, $createdTitleRecords) = @_;
     my $ekzKohaRecord = C4::External::EKZ::lib::EkzKohaRecords->new();
 
     my $lieferscheinNummerIsDuplicate = 0;
@@ -161,7 +161,6 @@ sub genKohaRecords {
     my $basketno = -1;
     my $basketgroupid = undef;
     my $authorisedby = undef;
-    my $createdTitleRecords = {};
 
     $lieferscheinNummer = $lieferscheinRecord->{'nummer'};
     $lieferscheinNummer =~ s/^\s+|\s+$//g;    # trim spaces
