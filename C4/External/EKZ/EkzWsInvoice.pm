@@ -118,7 +118,7 @@ sub readReFromEkzWsRechnungDetail {
 # generate title data and item data as required
 ###################################################################################################
 sub genKohaRecords {
-    my ($ekzCustomerNumber, $messageID, $rechnungDetailElement, $rechnungRecord) = @_;
+    my ($ekzCustomerNumber, $messageID, $rechnungDetailElement, $rechnungRecord, $createdTitleRecords) = @_;
     my $ekzKohaRecord = C4::External::EKZ::lib::EkzKohaRecords->new();
 
     my $rechnungNummerIsDuplicate = 0;
@@ -181,7 +181,6 @@ sub genKohaRecords {
     my $basketgroupid = undef;
     my $authorisedby = undef;
     my $acquisitionImportIdRechnung;
-    my $createdTitleRecords = {};
 
     $rechnungNummer = $rechnungRecord->{'nummer'};
     $rechnungNummer =~ s/^\s+|\s+$//g;    # trim spaces

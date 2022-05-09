@@ -42,6 +42,13 @@ my $genKohaRecords = 1;    # 0 or 1
 my $result;
 my $rechnungDetailElement = '';    # for storing the RechnungDetailElement of the SOAP response body
 
+# The hash %{$createdTitleRecords} stores the biblionumbers of all biblios locally inserted during this run of ekzWsInvoice.pl
+# by &C4::External::EKZ::ekzWsInvoice::genKohaRecords().
+# This is required because the repeated local title search for the identical title after its previous insert action may happen faster
+# than the Zebra or Elasticsearch index works, and therefore the local title search would (incorrectly) return no hit.
+# (As we do not catch thrown exceptions, there is no need to update $createdTitleRecords in case of database transaction rollbacks.)
+my $createdTitleRecords = {};
+
 my ($sec,$min,$hour,$mday,$mon,$year,$wday,$yday,$isdst) = localtime(time);
 my $startTime = sprintf("%04d-%02d-%02d at %02d:%02d:%02d",1900+$year,1+$mon,$mday,$hour,$min,$sec);
 my $logger = Koha::Logger->get({ interface => 'C4::External::EKZ' });
@@ -100,7 +107,7 @@ if ( $testMode == 2 ) {
             if ( $genKohaRecords ) {
             $logger->debug("ekzWsInvoice.pl Dumper(\$result->{'rechnungRecords'}->[0]):" . Dumper($result->{'rechnungRecords'}->[0]) . ":");
                 if ( $result->{'rechnungCount'} > 0 ) {
-                    if ( &genKohaRecords($ekzCustomerNumber, $result->{'messageID'}, $rechnungDetailElement,$result->{'rechnungRecords'}->[0]) ) {
+                    if ( &genKohaRecords($ekzCustomerNumber, $result->{'messageID'}, $rechnungDetailElement,$result->{'rechnungRecords'}->[0], $createdTitleRecords) ) {
                         $res = 1;
                     }
                 }
@@ -127,7 +134,7 @@ if ( $testMode == 0 ) {
             if ( $genKohaRecords ) {
                 $logger->debug("ekzWsInvoice.pl Dumper(\$result->{'rechnungRecords'}->[0]):" . Dumper($result->{'rechnungRecords'}->[0]) . ":");
                 if ( $result->{'rechnungCount'} > 0 ) {
-                    if ( &genKohaRecords($ekzCustomerNumber, $result->{'messageID'}, $rechnungDetailElement,$result->{'rechnungRecords'}->[0]) ) {
+                    if ( &genKohaRecords($ekzCustomerNumber, $result->{'messageID'}, $rechnungDetailElement,$result->{'rechnungRecords'}->[0], $createdTitleRecords) ) {
                         $res = 1;
                     }
                 }
