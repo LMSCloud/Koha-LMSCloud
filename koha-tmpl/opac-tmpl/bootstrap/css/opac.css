@@ -396,7 +396,7 @@ label.hotlink-entry {
 #shelfbrowser img {
     max-height: 250px;
 }
-.ui-tabs .ui-tabs-panel, #user_summary {
+.ui-tabs .ui-tabs-panel, #user_summary, #opac-main .newsitem {
     border: 1px solid #d8d8d8; 
     border-radius: 5px;
     -moz-border-radius: 5px;
