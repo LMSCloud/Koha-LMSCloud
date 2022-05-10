@@ -1263,7 +1263,7 @@ sub replaceModifierList {
     }
     elsif ( defined $modifier{phr} ) {
         $searchstring = "($searchstring)";
-        $index .= '.phrase';
+        #$index .= '.phrase';
     }
     elsif ( defined $modifier{lrtrn} || (defined $modifier{rtrn} && defined $modifier{ltrn}) ) {
         $searchstring = "(*$searchstring*)";
@@ -1423,8 +1423,8 @@ sub updateVariablesInNewsTexts {
 sub replaceEntryPageContent {
     my $value = shift;
     
-    $value =~ s/(<div[^>]*class\s*=\s*")(([^"]*)(span(10))([^"]*))("[^>]*>)/"$1".updateClass($2,$4,"col-lg-8 entry-page-col")."$7"/eg;
-    $value =~ s/(<div[^>]*class\s*=\s*")(([^"]*)(span(2))([^"]*))("[^>]*>)/"$1".updateClass($2,$4,"col-lg-4 entry-page-col")."$7"/eg;
+    # $value =~ s/(<div[^>]*class\s*=\s*")(([^"]*)(span(10))([^"]*))("[^>]*>)/"$1".updateClass($2,$4,"col-lg-8 entry-page-col")."$7"/eg;
+    # $value =~ s/(<div[^>]*class\s*=\s*")(([^"]*)(span(2))([^"]*))("[^>]*>)/"$1".updateClass($2,$4,"col-lg-4 entry-page-col")."$7"/eg;
     $value =~ s/(<div[^>]*class\s*=\s*")(([^"]*)(span([1-9][0-2]?))([^"]*))("[^>]*>)/"$1".updateClass($2,$4,"col-lg-$5 entry-page-col")."$7"/eg;
     $value =~ s/(<div[^>]*class\s*=\s*")(([^"]*)(row-fluid)([^"]*))("[^>]*>)/"$1".updateClass($2,$4,"row entry-page-row")."$6"/eg;
 
@@ -1433,16 +1433,16 @@ sub replaceEntryPageContent {
 
     # replace breadcrumb
     if ( $value !~ /<nav aria-label="breadcrumb">/ ) {
-        $value =~ s/\n\s*(<ul\s+class\s*=\s*"\s*breadcrumb\s*">.*<\/ul>)/"\n" . replaceBreadcrumb($1)/es;
+        $value =~ s/\n\s*(<ul\s+class\s*=\s*"\s*breadcrumb\s*">(?:(?!<\/ul>).)*<\/ul>)/"\n" . replaceBreadcrumb($1)/esi;
     }
 
     # replace rss feed image
     $value =~ s!<img src="[^"]*feed-icon-16x16.png">!<i class="fa fa-rss" aria-hidden="true"></i>!sg;
     
-    $value =~ s!(<a\s+href\s*=\s*\'opac-search\.pl\?q=)([^\']+)(\')!"$1".updateQuery($2)."$3"!seg;
-    $value =~ s!(<a\s+href\s*=\s*\"opac-search\.pl\?q=)([^\"]+)(\")!"$1".updateQuery($2)."$3"!seg;
-    $value =~ s!(<a\s+href\s*=\s*\'\/cgi-bin\/koha\/opac-search\.pl\?q=)([^\']+)(\')!"$1".updateQuery($2)."$3"!seg;
-    $value =~ s!(<a\s+href\s*=\s*\"\/cgi-bin\/koha\/opac-search\.pl\?q=)([^\"]+)(\")!"$1".updateQuery($2)."$3"!seg;
+    $value =~ s!(<a\s+href\s*=\s*)(\')(opac-search\.pl\?q=)([^\'\n]+)(\')!replaceQuery($1,$2,$3,$4,$5)!seg;
+    $value =~ s!(<a\s+href\s*=\s*)(\")(opac-search\.pl\?q=)([^\"\n]+)(\")!replaceQuery($1,$2,$3,$4,$5)!seg;
+    $value =~ s!(<a\s+href\s*=\s*)(\')(\/cgi-bin\/koha\/opac-search\.pl\?q=)([^\'\n]+)(\')!replaceQuery($1,$2,$3,$4,$5)!seg;
+    $value =~ s!(<a\s+href\s*=\s*)(\")(\/cgi-bin\/koha\/opac-search\.pl\?q=)([^\"\n]+)(\")!replaceQuery($1,$2,$3,$4,$5)!seg;
 
     $value =~ s!(onclick=\"(javascript:)?changeVisibility)!"class=\"toggleVisibility\" $1"!seg;
     
@@ -1452,6 +1452,16 @@ sub replaceEntryPageContent {
     $value = getDocumentFromTree($documentTree);
     
     return ($value,$changes);
+}
+
+sub replaceQuery {
+    my ($startref,$quotestart,$searchstart,$query,$quoteend) = @_;
+    
+    $query = $searchstart . updateQuery($query);
+    if ( $quotestart eq "'" && $quoteend eq "'" && $query !~ /\'/ ) {
+        return $startref.'"'.$query.'"';
+    }
+    return $startref.$quotestart.$query.$quoteend;
 }
 
 sub replaceBreadcrumb {
@@ -1575,7 +1585,7 @@ sub updateOPACUserJS {
         $value =~ s/\.brand/'.navbar-brand'/esg;
         $value =~ s/\.navbar-inner/'#cart-list-nav'/esg;
         $value =~ s/\.mastheadsearch/'#opac-main-search'/esg;
-        $value =~ s/((\#translControl1|\.transl1)[^{]+\{.*\s+width:\s*)([0-9]+)%/"${1}100%"/esg;
+        $value =~ s/((\#translControl1|\.transl1)[^{]+\{[^}]*\s+width:\s*)([0-9]+)%/"${1}100%"/esg;
 
         if ( $origvalue ne $value ) {
             $dbh->do("UPDATE systempreferences SET value=? WHERE variable=?", undef, $value, $variable);
@@ -1677,7 +1687,7 @@ sub getDocumentTree {
     
     my $elementTree = { parent => undef, type => 'root', tree => [] };
     my $root = $elementTree;
-    while ( $text =~ s/(<(\/?)(\w+)((\s*[\w\-_]+\s*=?\s*("[^"]*"|'[^']*'))*)([^<]+))// ) {
+    while ( $text =~ s/(<(\/?)(\w+)((\s*[\w\-_]+\s*=?\s*("[^"\n]*"|'[^'\n]*'))*)([^<]+))// ) {
         push @{$elementTree->{tree}}, { type => 'text', content => $` } if ( $` );
         $text = $';
         $elementTree = addElementToDocumentTree($elementTree,$2,$3,$4,$7,$1);
@@ -1744,6 +1754,7 @@ sub addMissingColOfRowElement {
     {
         my $hasCol = 0;
         if ( exists($element->{tree}) && scalar($element->{tree}) > 0 ) {
+            my ($col2,$col3,$col9,$col10,$colother)=([0,undef],[0,undef],[0,undef],[0,undef],0);
             foreach my $subentry (@{$element->{tree}}) {
                 if (    exists($subentry->{type}) && $element->{type} =~ /^(elem)$/ 
                      && exists($subentry->{name}) && $element->{name} =~ /^(div)$/i
@@ -1752,6 +1763,12 @@ sub addMissingColOfRowElement {
                 {
                     foreach my $class( keys( %{$subentry->{attributes}->{class}->{values}} ) ) {
                         $hasCol = 1 if ( $class =~ /^\s*col-/ || $class =~ /^\s*entry-page-col/ );
+                        if ( $class =~ /^\s*col-lg-(2|3|9|10)/ ) {
+                            eval "\$col${1}->[0] += 1; \$col${1}->[1] = \$subentry;";
+                        }
+                        elsif ( $class =~ /^\s*col-/ ) {
+                            $colother++;
+                        }
                     }
                 }
             }
@@ -1775,6 +1792,23 @@ sub addMissingColOfRowElement {
                 $newElement->{attributes}->{class}->{origvalue} = "col-lg-12 entry-page-col";
                 $element->{tree} = [$newElement];
                 $added++;
+            } else {
+                if ( $colother == 0 && $col2->[0] == 1 && $col10->[0] == 1 && $col3->[0] == 0 && $col9->[0] == 0 ) {
+                    $col2->[1]->{attributes}->{class}->{value} =~ s/col-lg-2/col-lg-4/;
+                    delete($col2->[1]->{attributes}->{class}->{values}->{'col-lg-2'});
+                    $col2->[1]->{attributes}->{class}->{values}->{'col-lg-4'} = 1;
+                    $col10->[1]->{attributes}->{class}->{value} =~ s/col-lg-10/col-lg-8/;
+                    delete($col10->[1]->{attributes}->{class}->{values}->{'col-lg-10'});
+                    $col10->[1]->{attributes}->{class}->{values}->{'col-lg-8'} = 1;
+                }
+                if ( $colother == 0 && $col2->[0] == 0 && $col10->[0] == 0 && $col3->[0] == 1 && $col9->[0] == 1 ) {
+                    $col3->[1]->{attributes}->{class}->{value} =~ s/col-lg-3/col-lg-5/;
+                    delete($col3->[1]->{attributes}->{class}->{values}->{'col-lg-3'});
+                    $col3->[1]->{attributes}->{class}->{values}->{'col-lg-5'} = 1;
+                    $col9->[1]->{attributes}->{class}->{value} =~ s/col-lg-9/col-lg-7/;
+                    delete($col9->[1]->{attributes}->{class}->{values}->{'col-lg-9'});
+                    $col9->[1]->{attributes}->{class}->{values}->{'col-lg-7'} = 1;
+                }
             }
         }
     }
