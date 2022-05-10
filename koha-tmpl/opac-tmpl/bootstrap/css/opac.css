@@ -368,11 +368,13 @@ label.hotlink-entry {
         display: none;
     }
 }
+/*
 @media all and (min-width: 768px)  {
     .link-collection-collapse-entries {
         display: inherit;
     }
 }
+*/
 .contentsamplelink > a > img {
     float: right;
     margin-top: 7px !important;
