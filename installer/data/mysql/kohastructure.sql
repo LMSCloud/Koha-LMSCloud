@@ -4155,7 +4155,7 @@ CREATE TABLE old_illrequests (
     `orderid` varchar(50) COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT 'Backend id attached to request',
     `backend` varchar(20) COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT 'The backend used to create request',
     CONSTRAINT `old_illrequests_bnfk` FOREIGN KEY (`borrowernumber`) REFERENCES `borrowers` (`borrowernumber`) ON DELETE SET NULL ON UPDATE SET NULL,
-    CONSTRAINT `old_illrequests_bcfk2` FOREIGN KEY (`branchcode`) REFERENCES `branches` (`branchcode`) ON UPDATE SET NULL ON DELETE SET NULL
+    CONSTRAINT `old_illrequests_bcfk2` FOREIGN KEY (`branchcode`) REFERENCES `branches` (`branchcode`) ON UPDATE SET NULL ON DELETE SET NULL,
     CONSTRAINT `old_illrequests_safk` FOREIGN KEY (`status_alias`) REFERENCES `authorised_values` (`authorised_value`) ON UPDATE SET NULL ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT 'stores ILL requests that have been completed and after a delay deleted from table illrequests for performance reasons';
 /*!40101 SET character_set_client = @saved_cs_client */;
@@ -4823,7 +4823,7 @@ CREATE TABLE `search_field` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `name` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT 'the name of the field as it will be stored in the search engine',
   `label` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT 'the human readable name of the field, for display',
-  `type` enum('','string','date','number','boolean','sum','isbn','stdno','string_plus','availability') COLLATE utf8mb4_unicode_ci NOT NULL COMMENT 'what type of data this holds, relevant when storing it in the search engine',
+  `type` enum('','string','date','year','number','boolean','sum','isbn','stdno','string_plus','availability') COLLATE utf8mb4_unicode_ci NOT NULL COMMENT 'what type of data this holds, relevant when storing it in the search engine',
   `weight` tinyint unsigned DEFAULT NULL,
   `facet_order` tinyint(4) DEFAULT NULL COMMENT 'the order place of the field in facet list if faceted',
   `staff_client` tinyint(1) NOT NULL DEFAULT 1,
