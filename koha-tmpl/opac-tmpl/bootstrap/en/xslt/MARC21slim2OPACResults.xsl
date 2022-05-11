@@ -1443,7 +1443,7 @@
 
             <xsl:choose>
                 <xsl:when test="$DivibibEnabled = 1 and marc:controlfield[@tag=003] = 'DE-Wi27'">
-                    <span class="availabilityCheckDivibib"><xsl:attribute name="id"><xsl:text>Onleihe-</xsl:text><xsl:value-of select="marc:controlfield[@tag=001]"/></xsl:attribute><xsl:text>Checking </xsl:text><img src="https://cover.lmscloud.net/images/progress.gif" /></span>
+                    <span class="availabilityCheckDivibib"><xsl:attribute name="id"><xsl:text>Onleihe-</xsl:text><xsl:value-of select="marc:controlfield[@tag=001]"/></xsl:attribute><xsl:text>Checking availability </xsl:text><img src="https://cover.lmscloud.net/images/progress.gif" alt="Checking availability" /></span>
                 </xsl:when>
                 <xsl:when test="$itemcount=0">
                         <xsl:choose>
