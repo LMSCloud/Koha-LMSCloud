@@ -1764,15 +1764,19 @@ sub searchResults {
 		$oldbiblio->{content_identifier_exists} = 1 if ($oldbiblio->{normalized_isbn} or $oldbiblio->{normalized_oclc} or $oldbiblio->{normalized_ean} or $oldbiblio->{normalized_upc});
 
         if ( C4::Context->preference("EKZCover") || C4::Context->preference("DivibibEnabled") ) {
-            my @titlecoverurls = ();
+            my $titlecoverurls = ();
             my $coverfound = 0;
             foreach my $tag( $marcrecord->field('856') ) {
                 if ( $tag->subfield('q') && $tag->subfield('u') && $tag->subfield('q') =~ /cover/ ) {
                     my $link = $tag->subfield('u');
                     $link =~ s#http:\/\/cover\.ekz\.de#https://cover.ekz.de#;
                     $link =~ s#http:\/\/www\.onleihe\.de#https://www.onleihe.de#;
-                    push @titlecoverurls,$link;
-                    $coverfound = 1;
+                    if (    ( C4::Context->preference("DivibibEnabled") && $link =~ /\.onleihe\.de/i ) 
+                         or ( C4::Context->preference("EKZCover") && $link =~ /\.cover\.ekz\.de/i ) ) 
+                    {
+                        push @$titlecoverurls,$link;
+                        $coverfound = 1;
+                    }
                 }
                 elsif ( C4::Context->preference("DivibibEnabled") 
                     && $tag->subfield('n') 
@@ -1784,7 +1788,7 @@ sub searchResults {
                     $oldbiblio->{'contentsample'} = { 'link' => $tag->subfield('u'), 'type' => $marcrecord->field('337')->subfield('a') };
                 }
             }
-            $oldbiblio->{'titlecoverurls'} = \@titlecoverurls;
+            $oldbiblio->{'titlecoverurls'} = $titlecoverurls;
         }
         
 		# edition information, if any
