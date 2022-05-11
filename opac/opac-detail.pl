@@ -1179,17 +1179,21 @@ if ( C4::Context->preference("Babeltheque") ) {
     );
 }
 
-# EKZ
+# EKZ and Onleihe Cover
 if ( C4::Context->preference("EKZCover") || C4::Context->preference("DivibibEnabled")) {
-    my @titlecoverurls = ();
+    my $titlecoverurls = [];
     my $coverfound = 0;
     foreach my $tag( $record->field('856') ) {
         if ( $tag->subfield('q') && $tag->subfield('u') && $tag->subfield('q') =~ /cover/ ) {
             my $link = $tag->subfield('u');
             $link =~ s#http:\/\/cover\.ekz\.de#https://cover.ekz.de#;
             $link =~ s#http:\/\/www\.onleihe\.de#https://www.onleihe.de#;
-            push @titlecoverurls,$link;
-            $coverfound = 1;
+            if (    ( C4::Context->preference("DivibibEnabled") && $link =~ /\.onleihe\.de/i ) 
+                 or ( C4::Context->preference("EKZCover") && $link =~ /\.cover\.ekz\.de/i ) ) 
+            {
+                push @$titlecoverurls,$link;
+                $coverfound = 1;
+            }
         }
         elsif ( C4::Context->preference("DivibibEnabled") 
                 && $tag->subfield('u') 
@@ -1203,20 +1207,7 @@ if ( C4::Context->preference("EKZCover") || C4::Context->preference("DivibibEnab
             $template->param('contentsample', { 'link' => $tag->subfield('u'), 'type' => $record->field('337')->subfield('a') });
         }
     }
-    if ( $coverfound == 0 && C4::Context->preference("EKZCoverGenerate") ) {
-        my $field = $record->field('245');
-        my $title = "";
-        my $author = "";
-        if ( $field ) {
-            $title = $field->subfield('a');
-            $author = $field->subfield('c');
-            $title =~ s/[\x{0098}\x{009c}]//g;
-            $author =~ s/[\x{0098}\x{009c}]//g;
-        }
-        my $coverurl = 'https://cover.lmscloud.net/gencover?ti=' . uri_escape_utf8($title) .'&au=' . uri_escape_utf8($author);
-        push @titlecoverurls, $coverurl;
-    }
-    $template->param(titlecoverurls => \@titlecoverurls ); 
+    $template->param(titlecoverurls => $titlecoverurls ); 
 }
 
 # Social Networks
