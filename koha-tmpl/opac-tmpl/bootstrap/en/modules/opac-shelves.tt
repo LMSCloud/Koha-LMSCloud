@@ -404,6 +404,11 @@
                                                                 [% IF ( AdlibrisEnabled && itemsloo.normalized_isbn ) %]
                                                                     <img src="[% AdlibrisURL | html %]?isbn=[% itemsloo.normalized_isbn | html %]" class="adlibris-cover" alt="Adlibris cover image" />
                                                                 [% END %]
+                                                                [% IF ( Koha.Preference('EKZCover') || Koha.Preference('DivibibEnabled') ) %]
+                                                                    [% FOREACH myurl IN itemsloo.titlecoverurls %] 
+                                                                        <img src="[% myurl %]" class="ekzcover" title="[% itemsloo.biblionumber | html %]" alt="[% img_title | html %]"></img>[% LAST %]
+                                                                    [% END # /FOREACH  %]
+                                                                [% END  %]
                                                                 [% IF ( OPACAmazonCoverImages ) %]
                                                                     [% IF ( itemsloo.normalized_isbn ) %]
                                                                         <span title="[% img_title | html %]" id="amazon-thumbnail[% loop.count | html %]"><img src="https://images-na.ssl-images-amazon.com/images/P/[% itemsloo.normalized_isbn | html %].01.TZZZZZZZ.jpg" alt="" /></span>

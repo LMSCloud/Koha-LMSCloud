@@ -368,11 +368,13 @@ label.hotlink-entry {
         display: none;
     }
 }
+/*
 @media all and (min-width: 768px)  {
     .link-collection-collapse-entries {
         display: inherit;
     }
 }
+*/
 .contentsamplelink > a > img {
     float: right;
     margin-top: 7px !important;
@@ -396,7 +398,7 @@ label.hotlink-entry {
 #shelfbrowser img {
     max-height: 250px;
 }
-.ui-tabs .ui-tabs-panel, #user_summary {
+.ui-tabs .ui-tabs-panel, #user_summary, #opac-main .newsitem {
     border: 1px solid #d8d8d8; 
     border-radius: 5px;
     -moz-border-radius: 5px;

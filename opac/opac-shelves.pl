@@ -354,6 +354,26 @@ if ( $op eq 'view' ) {
                 $this_item->{'normalized_isbn'} = GetNormalizedISBN( undef, $record, $marcflavour );
                 # BZ17530: 'Intelligent' guess if result can be article requested
                 $this_item->{artreqpossible} = ( $art_req_itypes->{ $this_item->{itemtype} // q{} } || $art_req_itypes->{ '*' } ) ? 1 : q{};
+                
+                # EKZ and Onleihe Cover
+                if ( C4::Context->preference("EKZCover") || C4::Context->preference("DivibibEnabled") ) {
+                    my $titlecoverurls = [];
+                    my $coverfound = 0;
+                    foreach my $tag( $record->field('856') ) {
+                        if ( $tag->subfield('q') && $tag->subfield('u') && $tag->subfield('q') =~ /cover/ ) {
+                            my $link = $tag->subfield('u');
+                            $link =~ s#http:\/\/cover\.ekz\.de#https://cover.ekz.de#;
+                            $link =~ s#http:\/\/www\.onleihe\.de#https://www.onleihe.de#;
+                            if (    ( C4::Context->preference("DivibibEnabled") && $link =~ /\.onleihe\.de/i ) 
+                                 or ( C4::Context->preference("EKZCover") && $link =~ /\.cover\.ekz\.de/i ) ) 
+                            {
+                                push @$titlecoverurls,$link;
+                                $coverfound = 1;
+                            }
+                        }
+                    }
+                    $this_item->{'titlecoverurls'} = $titlecoverurls; 
+                }
 
                 unless ( defined $this_item->{size} ) {
 
