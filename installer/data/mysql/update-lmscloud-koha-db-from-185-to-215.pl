@@ -1439,10 +1439,10 @@ sub replaceEntryPageContent {
     # replace rss feed image
     $value =~ s!<img src="[^"]*feed-icon-16x16.png">!<i class="fa fa-rss" aria-hidden="true"></i>!sg;
     
-    $value =~ s!(<a\s+href\s*=\s*)(\')(opac-search\.pl\?q=)([^\'\n]+)(\')!replaceQuery($1,$2,$3,$4,$5)!seg;
     $value =~ s!(<a\s+href\s*=\s*)(\")(opac-search\.pl\?q=)([^\"\n]+)(\")!replaceQuery($1,$2,$3,$4,$5)!seg;
-    $value =~ s!(<a\s+href\s*=\s*)(\')(\/cgi-bin\/koha\/opac-search\.pl\?q=)([^\'\n]+)(\')!replaceQuery($1,$2,$3,$4,$5)!seg;
+    $value =~ s!(<a\s+href\s*=\s*)(\')(opac-search\.pl\?q=)([^\'\n]+)(\')!replaceQuery($1,$2,$3,$4,$5)!seg;
     $value =~ s!(<a\s+href\s*=\s*)(\")(\/cgi-bin\/koha\/opac-search\.pl\?q=)([^\"\n]+)(\")!replaceQuery($1,$2,$3,$4,$5)!seg;
+    $value =~ s!(<a\s+href\s*=\s*)(\')(\/cgi-bin\/koha\/opac-search\.pl\?q=)([^\'\n]+)(\')!replaceQuery($1,$2,$3,$4,$5)!seg;
 
     $value =~ s!(onclick=\"(javascript:)?changeVisibility)!"class=\"toggleVisibility\" $1"!seg;
     
