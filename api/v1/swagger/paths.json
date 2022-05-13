@@ -191,6 +191,9 @@
   "/public/coverflow_data_biblionumber/{biblio_ids}": {
     "$ref": "paths/coverflow_data_biblionumber.json#/~1public~1coverflow_data_biblionumber~1{biblio_ids}"
   },
+  "/public/coverflow_data_query": {
+    "$ref": "paths/coverflow_data_query.json#/~1public~1coverflow_data_query"
+  },
   "/public/generated_cover": {
     "$ref": "paths/generated_cover.json#/~1public~1generated_cover"
   },
