@@ -1156,7 +1156,7 @@
                     if (coverhtml && !coverurl) {
                         return entry;
                     }
-                    if (coverurl.startsWith('/')) {
+                    if (coverurl && coverurl.startsWith('/')) {
                         return { ...entry, coverurl: await Data.processDataUrl(`${this.config.coverImageGeneratedCoverEndpoint}?title=${window.encodeURIComponent(entry.title)}`) };
                     }
                     if (!coverurl) {
@@ -2076,6 +2076,142 @@
         main();
     }
 
+    class CoverflowByQuery {
+        id;
+        query;
+        label;
+        endpoint;
+        offset;
+        maxcount;
+        data;
+        config;
+        externalSourceInUse;
+        constructor({ id, query, label, endpoint, offset, maxcount, externalSourcesInUse, }) {
+            const instance = new EventListeners();
+            instance.data = {
+                left: false, right: false, leftHandler: null, rightHandler: null,
+            };
+            const { coce, openLibrary, google } = externalSourcesInUse;
+            this.id = id;
+            this.query = query;
+            this.label = label;
+            this.endpoint = endpoint;
+            this.offset = offset;
+            this.maxcount = maxcount;
+            this.externalSourceInUse = coce || openLibrary || google;
+            this.data = {};
+            this.config = {
+                coverImageFallbackHeight: 210,
+                coverFlowCardBody: {
+                    lcfMediaAuthor: true,
+                    lcfMediaTitle: true,
+                    lcfMediaItemCallNumber: false,
+                },
+                coverFlowContext: 'default',
+                coverFlowShelfBrowser: true,
+                shelfBrowserCurrentEventListeners: instance,
+                coverFlowButtonsCallback: {
+                    loadNewShelfBrowserItems: this.loadPortion.bind(this),
+                    nearbyItems: {
+                        previousItemNumber: this.offset - this.maxcount,
+                        nextItemNumber: this.offset + this.maxcount,
+                    },
+                },
+            };
+            this.renderHeader();
+        }
+        async fetchItemData() {
+            const url = `${this.endpoint}?query=${this.query}&offset=${this.offset}&maxcount=${this.maxcount}`;
+            const options = {
+                method: 'GET',
+                mode: 'cors',
+                cache: 'no-cache',
+                credentials: 'same-origin',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                redirect: 'follow',
+            };
+            const response = await fetch(url, options);
+            this.data = await response.json();
+            /** Add referenceToDetailsView to the resulting object. */
+            this.data.referenceToDetailsView = `/cgi-bin/koha/opac-detail.pl?biblionumber=${this.data.biblionumber}`;
+        }
+        async loadPortion(nearbyItems, buttonDirection) {
+            const { previousItemNumber, nextItemNumber } = nearbyItems;
+            this.config = {
+                ...this.config,
+                shelfBrowserExtendedCoverFlow: true,
+                shelfBrowserButtonDirection: buttonDirection,
+            };
+            if (buttonDirection === 'left' && previousItemNumber > 0) {
+                this.offset -= this.maxcount;
+                await this.fetchItemData();
+                if (this.externalSourceInUse) {
+                    externalSources.subscribe((isLoaded) => {
+                        if (isLoaded) {
+                            if (this.externalSourceInUse.args) {
+                                this.externalSourceInUse.callback(...this.externalSourceInUse.args);
+                            }
+                            else {
+                                this.externalSourceInUse.callback();
+                            }
+                        }
+                    });
+                }
+                this.render();
+            }
+            else if (buttonDirection === 'right' && nextItemNumber) {
+                this.offset += this.maxcount;
+                await this.fetchItemData();
+                if (this.externalSourceInUse) {
+                    externalSources.subscribe((isLoaded) => {
+                        if (isLoaded) {
+                            if (this.externalSourceInUse.args) {
+                                this.externalSourceInUse.callback(...this.externalSourceInUse.args);
+                            }
+                            else {
+                                this.externalSourceInUse.callback();
+                            }
+                        }
+                    });
+                }
+                this.render();
+            }
+            else {
+                console.trace(`Looks like something went wrong in ${this.loadPortion.name}`);
+            }
+        }
+        renderHeader() {
+            const coverflowQueryContainer = document.getElementById(this.id);
+            const section = document.createElement('section');
+            const label = document.createElement('header');
+            label.textContent = this.label;
+            label.classList.add('h3', 'text-muted', 'pl-3');
+            coverflowQueryContainer.insertAdjacentElement('beforebegin', section);
+            section.appendChild(label);
+            section.appendChild(coverflowQueryContainer);
+        }
+        render() {
+            const lmscoverflow = createLcfInstance();
+            lmscoverflow.setGlobals(this.config, this.data.items, this.id);
+            if (this.externalSourceInUse) {
+                externalSources.subscribe((isLoaded) => {
+                    if (isLoaded) {
+                        if (this.externalSourceInUse.args) {
+                            this.externalSourceInUse.callback(...this.externalSourceInUse.args);
+                        }
+                        else {
+                            this.externalSourceInUse.callback();
+                        }
+                    }
+                });
+            }
+            lmscoverflow.render();
+        }
+    }
+
+    exports.CoverflowByQuery = CoverflowByQuery;
     exports.ShelfBrowser = shelfBrowser;
     exports.createLcfInstance = createLcfInstance;
     exports.externalSources = externalSources;
