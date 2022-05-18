@@ -153,14 +153,15 @@ sub trim_string {
     }
 
     # Check if the new line fits into the box.
-    my $new_string_width = image_width_based_on_params( $image, $font, $fontsize, $new_line );
+    my $new_string_width
+        = image_width_based_on_params( $image, $font, $fontsize, $new_line );
 
     # If it does, return the new line and handle the leftovers.
     if ( $new_string_width <= $content_width ) {
         return $new_line;
     }
 
-    # If a single word is bigger than the box, we have to prevent an infinite loop.
+# If a single word is bigger than the box, we have to prevent an infinite loop.
     if ( $new_string_width > $content_width && scalar @words == 1 ) {
         return $new_line;
     }
@@ -176,7 +177,8 @@ sub check_string_overflows_box {
 
     my $content_width = $args{box_width} - $args{padding};
 
-    my $string_width = image_width_based_on_params( $args{image}, $args{font}, $args{fontsize}, $args{string} );
+    my $string_width = image_width_based_on_params( $args{image}, $args{font},
+        $args{fontsize}, $args{string} );
 
     if ( $string_width <= $content_width ) {
         return $args{string};
@@ -185,7 +187,10 @@ sub check_string_overflows_box {
     my $return_value;
     my $formatted_string = $EMPTY;
 
-    $return_value = trim_string( $args{image}, $args{font}, $args{fontsize}, $args{string}, $content_width );
+    $return_value = trim_string(
+        $args{image},  $args{font}, $args{fontsize},
+        $args{string}, $content_width
+    );
     $formatted_string .= "$return_value\n";
 
     # reverse order of the leftovers before the until loop starts.
@@ -198,7 +203,10 @@ sub check_string_overflows_box {
 
     while ( !$leftover_words eq $EMPTY ) {
         $return_value = $EMPTY;
-        $return_value = trim_string( $args{image}, $args{font}, $args{fontsize}, $leftover_words, $content_width );
+        $return_value = trim_string(
+            $args{image},    $args{font}, $args{fontsize},
+            $leftover_words, $content_width
+        );
 
         $formatted_string .= "$return_value\n";
 
@@ -209,14 +217,18 @@ sub check_string_overflows_box {
             $leftover_words .= "$word ";
         }
 
-        my $new_string_width = image_width_based_on_params( $args{image}, $args{font}, $args{fontsize}, $leftover_words );
+        my $new_string_width
+            = image_width_based_on_params( $args{image}, $args{font},
+            $args{fontsize}, $leftover_words );
 
         if ( $new_string_width <= $content_width ) {
             $formatted_string .= "$leftover_words\n";
             $leftover_words = $EMPTY;
         }
 
-        if ( $new_string_width > $content_width && scalar @leftover_words == 1 ) {
+        if ( $new_string_width > $content_width
+            && scalar @leftover_words == 1 )
+        {
             $formatted_string .= "$leftover_words\n";
             $leftover_words = $EMPTY;
         }
@@ -243,7 +255,9 @@ sub draw_text {
 
     );
 
-    my $new_image_width = image_width_based_on_params( $args{image}, $args{font}, $args{fontsize}, $result_string );
+    my $new_image_width
+        = image_width_based_on_params( $args{image}, $args{font},
+        $args{fontsize}, $result_string );
 
     my $new_fontsize = 0;
 
@@ -252,7 +266,9 @@ sub draw_text {
             $new_fontsize = $args{fontsize} - 2;
         }
         $args{image}->set_font( $args{font}, $new_fontsize );
-        $new_image_width = image_width_based_on_params( $args{image}, $args{font}, $new_fontsize, $result_string );
+        $new_image_width
+            = image_width_based_on_params( $args{image}, $args{font},
+            $new_fontsize, $result_string );
         $new_fontsize -= 2;
     }
 
@@ -261,7 +277,12 @@ sub draw_text {
     my $index = 0;
     for my $line (@centered_result) {
         $args{image}->set_text($line);
-        $args{image}->draw( $args{horizontal_center}, $args{vertical_position} + $index * ( $args{fontsize} + ( $args{fontsize} / 2) ), 0);
+        $args{image}->draw(
+            $args{horizontal_center},
+            $args{vertical_position}
+                + $index * ( $args{fontsize} + ( $args{fontsize} / 2 ) ),
+            0
+        );
         $index++;
     }
 
@@ -289,34 +310,41 @@ sub render_image {
     my $vertical_top    = $args{height} / $SIX;
     my $vertical_bottom = $args{height} / $TWO;
 
-    draw_text(
-        (   image             => $align,
-            content_string    => $args{first_line},
-            font              => $args{font},
-            horizontal_center => $horizontal_center,
-            vertical_position => $vertical_top,
-            fontsize          => $args{fontsize},
-            width             => $args{width},
-            height            => $args{height},
-            padding           => $args{padding}
-        )
+    if ( $args{first_line} ) {
+        draw_text(
+            (   image             => $align,
+                content_string    => $args{first_line},
+                font              => $args{font},
+                horizontal_center => $horizontal_center,
+                vertical_position => $vertical_top,
+                fontsize          => $args{fontsize},
+                width             => $args{width},
+                height            => $args{height},
+                padding           => $args{padding}
+            )
 
-    );
-    draw_text(
-        (   image             => $align,
-            content_string    => $args{second_line},
-            font              => $args{font},
-            horizontal_center => $horizontal_center,
-            vertical_position => $vertical_bottom,
-            fontsize          => $args{fontsize},
-            width             => $args{width},
-            height            => $args{height},
-            padding           => $args{padding}
-        )
+        );
+    }
 
-    );
+    if ( $args{second_line} ) {
+        draw_text(
+            (   image             => $align,
+                content_string    => $args{second_line},
+                font              => $args{font},
+                horizontal_center => $horizontal_center,
+                vertical_position => !$args{first_line}
+                ? $vertical_top
+                : $vertical_bottom,
+                fontsize => $args{fontsize},
+                width    => $args{width},
+                height   => $args{height},
+                padding  => $args{padding}
+            )
 
-    return encode_base64($image->png);
+        );
+    }
+
+    return encode_base64( $image->png );
 
 }
 
