@@ -1220,7 +1220,7 @@
             ],
             [
                 'lcfCoverImage',
-                ['src', item?.coverurl],
+                ['src', item?.coverurl.replaceAll('&amp;', '&')],
             ],
             [
                 'lcfCoverHtmlWrapper',
@@ -1258,9 +1258,9 @@
     function runInstructions(currentTag, currentInstructions) {
         const aspect = currentTag;
         const [attribute, data] = currentInstructions;
-        const [attrBool, dBool] = determineStructure(attribute, data);
-        const textContentBool = isTextContent(attribute);
-        if (attrBool && dBool) {
+        const [hasAttribute, hasData] = determineStructure(attribute, data);
+        const hasTextContent = isTextContent(attribute);
+        if (hasAttribute && hasData) {
             currentInstructions.forEach((instr) => {
                 const [attr, d] = instr;
                 if (isTextContent(attr)) {
@@ -1270,7 +1270,7 @@
                 aspect.setAttribute(attr, d);
             });
         }
-        if (attrBool) {
+        if (hasAttribute) {
             attribute.forEach((attr) => {
                 if (isTextContent(attr)) {
                     aspect.textContent = data;
@@ -1280,11 +1280,11 @@
             });
             return;
         }
-        if (dBool) {
+        if (hasData) {
             data.forEach((d) => { aspect.setAttribute(attribute, d); });
             return;
         }
-        if (textContentBool) {
+        if (hasTextContent) {
             aspect.textContent = data;
             return;
         }
@@ -1634,7 +1634,7 @@
             return new Promise((resolve) => {
                 const coverImage = new Image();
                 coverImage.onload = () => resolve(coverImage);
-                coverImage.src = this.coverUrl;
+                coverImage.src = this.coverUrl.replaceAll('amp;', '');
             });
         }
     }
@@ -2135,7 +2135,10 @@
             const response = await fetch(url, options);
             this.data = await response.json();
             /** Add referenceToDetailsView to the resulting object. */
-            this.data.referenceToDetailsView = `/cgi-bin/koha/opac-detail.pl?biblionumber=${this.data.biblionumber}`;
+            this.data.items.forEach((item) => {
+                const record = item;
+                record.referenceToDetailsView = `/cgi-bin/koha/opac-detail.pl?biblionumber=${item.biblionumber}`;
+            });
         }
         async loadPortion(nearbyItems, buttonDirection) {
             const { previousItemNumber, nextItemNumber } = nearbyItems;
