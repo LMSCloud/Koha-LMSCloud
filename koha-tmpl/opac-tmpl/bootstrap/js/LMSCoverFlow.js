@@ -1457,6 +1457,13 @@
                             const [, srcString] = src.split('"');
                             harvesterResults.push([nodeId, srcString]);
                         }
+                        else {
+                            const nodesFirstChild = node.firstChild;
+                            const hasNoImage = nodesFirstChild.classList.contains('no-image');
+                            if (hasNoImage) {
+                                harvesterResults.push([nodeId, undefined]);
+                            }
+                        }
                         harvesterResults.forEach(async (entry) => {
                             const [id, coverurl] = entry;
                             if (coverurl) {
@@ -2084,6 +2091,7 @@
         offset;
         maxcount;
         data;
+        positions;
         config;
         externalSourceInUse;
         constructor({ id, query, label, endpoint, offset, maxcount, externalSourcesInUse, }) {
@@ -2100,6 +2108,10 @@
             this.maxcount = maxcount;
             this.externalSourceInUse = coce || openLibrary || google;
             this.data = {};
+            this.positions = {
+                left: this.offset,
+                right: this.offset + this.maxcount,
+            };
             this.config = {
                 coverImageFallbackHeight: 210,
                 coverFlowCardBody: {
@@ -2140,49 +2152,45 @@
                 record.referenceToDetailsView = `/cgi-bin/koha/opac-detail.pl?biblionumber=${item.biblionumber}`;
             });
         }
+        subscribeToLoadingState() {
+            externalSources.subscribe((isLoaded) => {
+                if (isLoaded) {
+                    if (this.externalSourceInUse.args) {
+                        this.externalSourceInUse.callback(...this.externalSourceInUse.args);
+                    }
+                    else {
+                        this.externalSourceInUse.callback();
+                    }
+                }
+            });
+        }
         async loadPortion(nearbyItems, buttonDirection) {
-            const { previousItemNumber, nextItemNumber } = nearbyItems;
             this.config = {
                 ...this.config,
                 shelfBrowserExtendedCoverFlow: true,
                 shelfBrowserButtonDirection: buttonDirection,
             };
-            if (buttonDirection === 'left' && previousItemNumber > 0) {
+            if (buttonDirection === 'left' && this.positions.left > 0) {
                 this.offset -= this.maxcount;
                 await this.fetchItemData();
                 if (this.externalSourceInUse) {
-                    externalSources.subscribe((isLoaded) => {
-                        if (isLoaded) {
-                            if (this.externalSourceInUse.args) {
-                                this.externalSourceInUse.callback(...this.externalSourceInUse.args);
-                            }
-                            else {
-                                this.externalSourceInUse.callback();
-                            }
-                        }
-                    });
+                    this.subscribeToLoadingState();
                 }
                 this.render();
+                this.positions.left -= this.data.count;
             }
-            else if (buttonDirection === 'right' && nextItemNumber) {
+            else if (buttonDirection === 'right' && this.positions.right < this.data.totalcount) {
                 this.offset += this.maxcount;
                 await this.fetchItemData();
                 if (this.externalSourceInUse) {
-                    externalSources.subscribe((isLoaded) => {
-                        if (isLoaded) {
-                            if (this.externalSourceInUse.args) {
-                                this.externalSourceInUse.callback(...this.externalSourceInUse.args);
-                            }
-                            else {
-                                this.externalSourceInUse.callback();
-                            }
-                        }
-                    });
+                    this.subscribeToLoadingState();
                 }
                 this.render();
+                this.positions.right += this.data.count;
             }
             else {
-                console.trace(`Looks like something went wrong in ${this.loadPortion.name}`);
+                throw new Error(`Nothing to load in this direction -> ${buttonDirection}`);
+                //   console.trace(`Looks like something went wrong in ${this.loadPortion.name}`);
             }
         }
         renderHeader() {
@@ -2199,16 +2207,7 @@
             const lmscoverflow = createLcfInstance();
             lmscoverflow.setGlobals(this.config, this.data.items, this.id);
             if (this.externalSourceInUse) {
-                externalSources.subscribe((isLoaded) => {
-                    if (isLoaded) {
-                        if (this.externalSourceInUse.args) {
-                            this.externalSourceInUse.callback(...this.externalSourceInUse.args);
-                        }
-                        else {
-                            this.externalSourceInUse.callback();
-                        }
-                    }
-                });
+                this.subscribeToLoadingState();
             }
             lmscoverflow.render();
         }
