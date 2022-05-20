@@ -19,6 +19,7 @@ package C4::CoverGen;
 
 use strict;
 use warnings;
+use Modern::Perl;
 
 our $VERSION = 1.0.0;
 
@@ -33,7 +34,6 @@ BEGIN {
 use GD::Image;
 use GD::Text::Align;
 use MIME::Base64;
-use Readonly;
 
 =head1 NAME
 
@@ -107,45 +107,46 @@ Padding of the text drawn to the canvas.
 
 =cut
 
-Readonly my $PI  => 4 * atan2 1, 1;
-Readonly my $TWO => 2;
-Readonly my $SIX => 6;
+use constant {
+    TWO => 2,
+    SIX => 6,
 
-Readonly my $RED   => 244;
-Readonly my $GREEN => 244;
-Readonly my $BLUE  => 244;
+    RED   => 244,
+    GREEN => 244,
+    BLUE  => 244,
+};
 
-Readonly my $SPACE => q{ };
-Readonly my $EMPTY => q{};
+use constant SPACE => q{ };
+use constant EMPTY => q{};
 
-my @leftover_words = $EMPTY;
-my $leftover_words = $EMPTY;
+my @leftover_words = EMPTY;
+my $leftover_words = EMPTY;
 
-sub image_width_based_on_params {
-    my ( $image, $font, $fontsize, $string ) = @_;
+sub get_image_width_based_on_parameters {
+    my ($args) = @_;
 
-    $image->set_font( $font, $fontsize );
-    $image->set_text($string);
+    $args->{'image'}->set_font( $args->{'font'}, $args->{'fontsize'} );
+    $args->{'image'}->set_text( $args->{'string'} );
 
-    return $image->get('width');
+    return $args->{'image'}->get('width');
 }
 
 sub trim_string {
-    my ( $image, $font, $fontsize, $string, $content_width ) = @_;
+    my ($args) = @_;
 
     # turning point for the trim_string function.
-    if ( $string eq $leftover_words ) {
-        $leftover_words = $EMPTY;
+    if ( $args->{'string'} eq $leftover_words ) {
+        $leftover_words = EMPTY;
     }
 
     # Break the string on spaces and assign to array.
-    my @words = split $SPACE, $string;
+    my @words = split SPACE, $args->{'string'};
 
     # Pop the last word and store in leftovers.
-    $leftover_words .= pop(@words) . $SPACE;
+    $leftover_words .= pop(@words) . SPACE;
 
     # Set the return value to empty string.
-    my $new_line = $EMPTY;
+    my $new_line = EMPTY;
 
     # Append the remaining words to the return value.
     for my $word (@words) {
@@ -153,84 +154,114 @@ sub trim_string {
     }
 
     # Check if the new line fits into the box.
-    my $new_string_width
-        = image_width_based_on_params( $image, $font, $fontsize, $new_line );
+    my $new_string_width = get_image_width_based_on_parameters(
+        {   image    => $args->{'image'},
+            font     => $args->{'font'},
+            fontsize => $args->{'fontsize'},
+            string   => $new_line
+        }
+    );
 
     # If it does, return the new line and handle the leftovers.
-    if ( $new_string_width <= $content_width ) {
+    if ( $new_string_width <= $args->{'content_width'} ) {
         return $new_line;
     }
 
 # If a single word is bigger than the box, we have to prevent an infinite loop.
-    if ( $new_string_width > $content_width && scalar @words == 1 ) {
+    if ( $new_string_width > $args->{'content_width'} && scalar @words == 1 )
+    {
         return $new_line;
     }
 
     # If it doesn't, repeat the process until it does.
-    return trim_string( $image, $font, $fontsize, $new_line, $content_width );
+    return trim_string(
+        {   image         => $args->{'image'},
+            font          => $args->{'font'},
+            fontsize      => $args->{'fontsize'},
+            string        => $new_line,
+            content_width => $args->{'content_width'}
+        }
+    );
 }
 
 sub check_string_overflows_box {
-    my (%args) = @_;
+    my ($args) = @_;
 
-    # my ( $box_width, $string, $image, $font, $fontsize, $padding ) = @_;
+    my $content_width = $args->{'box_width'} - $args->{'padding'};
 
-    my $content_width = $args{box_width} - $args{padding};
-
-    my $string_width = image_width_based_on_params( $args{image}, $args{font},
-        $args{fontsize}, $args{string} );
+    my $string_width = get_image_width_based_on_parameters(
+        {   image    => $args->{'image'},
+            font     => $args->{'font'},
+            fontsize => $args->{'fontsize'},
+            string   => $args->{'string'}
+        }
+    );
 
     if ( $string_width <= $content_width ) {
-        return $args{string};
+        return $args->{'string'};
     }
 
     my $return_value;
-    my $formatted_string = $EMPTY;
+    my $formatted_string = EMPTY;
 
     $return_value = trim_string(
-        $args{image},  $args{font}, $args{fontsize},
-        $args{string}, $content_width
+        {
+
+            image         => $args->{'image'},
+            font          => $args->{'font'},
+            fontsize      => $args->{'fontsize'},
+            string        => $args->{'string'},
+            content_width => $content_width
+        }
     );
     $formatted_string .= "$return_value\n";
 
     # reverse order of the leftovers before the until loop starts.
-    @leftover_words = reverse split $SPACE, $leftover_words;
-    $leftover_words = $EMPTY;
+    @leftover_words = reverse split SPACE, $leftover_words;
+    $leftover_words = EMPTY;
 
     for my $word (@leftover_words) {
         $leftover_words .= "$word ";
     }
 
-    while ( !$leftover_words eq $EMPTY ) {
-        $return_value = $EMPTY;
+    while ( !$leftover_words eq EMPTY ) {
+        $return_value = EMPTY;
         $return_value = trim_string(
-            $args{image},    $args{font}, $args{fontsize},
-            $leftover_words, $content_width
+            {   image         => $args->{'image'},
+                font          => $args->{'font'},
+                fontsize      => $args->{'fontsize'},
+                string        => $leftover_words,
+                content_width => $content_width
+            }
         );
 
         $formatted_string .= "$return_value\n";
 
-        @leftover_words = reverse split $SPACE, $leftover_words;
-        $leftover_words = $EMPTY;
+        @leftover_words = reverse split SPACE, $leftover_words;
+        $leftover_words = EMPTY;
 
         for my $word (@leftover_words) {
             $leftover_words .= "$word ";
         }
 
-        my $new_string_width
-            = image_width_based_on_params( $args{image}, $args{font},
-            $args{fontsize}, $leftover_words );
+        my $new_string_width = get_image_width_based_on_parameters(
+            {   image    => $args->{'image'},
+                font     => $args->{'font'},
+                fontsize => $args->{'fontsize'},
+                string   => $leftover_words
+            }
+        );
 
         if ( $new_string_width <= $content_width ) {
             $formatted_string .= "$leftover_words\n";
-            $leftover_words = $EMPTY;
+            $leftover_words = EMPTY;
         }
 
         if ( $new_string_width > $content_width
             && scalar @leftover_words == 1 )
         {
             $formatted_string .= "$leftover_words\n";
-            $leftover_words = $EMPTY;
+            $leftover_words = EMPTY;
         }
 
     }
@@ -240,35 +271,43 @@ sub check_string_overflows_box {
 }
 
 sub draw_text {
-    my (%args) = @_;
+    my ($args) = @_;
 
-    my $content_width = $args{width} - $args{padding};
+    my $content_width = $args->{'width'} - $args->{'padding'};
 
     my $result_string = check_string_overflows_box(
-        (   box_width => $args{width},
-            string    => $args{content_string},
-            image     => $args{image},
-            font      => $args{font},
-            fontsize  => $args{fontsize},
-            padding   => $args{padding}
-        )
+        {   box_width => $args->{'width'},
+            string    => $args->{'content_string'},
+            image     => $args->{'image'},
+            font      => $args->{'font'},
+            fontsize  => $args->{'fontsize'},
+            padding   => $args->{'padding'}
+        }
 
     );
 
-    my $new_image_width
-        = image_width_based_on_params( $args{image}, $args{font},
-        $args{fontsize}, $result_string );
+    my $new_image_width = get_image_width_based_on_parameters(
+        {   image    => $args->{'image'},
+            font     => $args->{'font'},
+            fontsize => $args->{'fontsize'},
+            string   => $result_string
+        }
+    );
 
     my $new_fontsize = 0;
 
     while ( $new_image_width > $content_width ) {
         if ( !$new_fontsize ) {
-            $new_fontsize = $args{fontsize} - 2;
+            $new_fontsize = $args->{'fontsize'} - 2;
         }
-        $args{image}->set_font( $args{font}, $new_fontsize );
-        $new_image_width
-            = image_width_based_on_params( $args{image}, $args{font},
-            $new_fontsize, $result_string );
+        $args->{'image'}->set_font( $args->{'font'}, $new_fontsize );
+        $new_image_width = get_image_width_based_on_parameters(
+            {   image    => $args->{'image'},
+                font     => $args->{'font'},
+                fontsize => $new_fontsize,
+                string   => $result_string
+            }
+        );
         $new_fontsize -= 2;
     }
 
@@ -276,11 +315,12 @@ sub draw_text {
 
     my $index = 0;
     for my $line (@centered_result) {
-        $args{image}->set_text($line);
-        $args{image}->draw(
-            $args{horizontal_center},
-            $args{vertical_position}
-                + $index * ( $args{fontsize} + ( $args{fontsize} / 2 ) ),
+        $args->{'image'}->set_text($line);
+        $args->{'image'}->draw(
+            $args->{'horizontal_center'},
+            $args->{'vertical_position'}
+                + $index
+                * ( $args->{'fontsize'} + ( $args->{'fontsize'} / 2 ) ),
             0
         );
         $index++;
@@ -290,10 +330,10 @@ sub draw_text {
 }
 
 sub render_image {
-    my (%args) = @_;
+    my ($args) = @_;
 
-    my $image = GD::Image->new( $args{width}, $args{height} );
-    $image->colorAllocate( $RED, $GREEN, $BLUE );
+    my $image = GD::Image->new( $args->{'width'}, $args->{'height'} );
+    $image->colorAllocate( RED, GREEN, BLUE );
     my $font_color = $image->colorAllocate( 0, 0, 0 );
 
     my $align = GD::Text::Align->new(
@@ -303,43 +343,43 @@ sub render_image {
         color  => $font_color,
     );
 
-    $align->font_path( $args{font_path} );
+    $align->font_path( $args->{'font_path'} );
 
-    my $horizontal_center = $args{width} / $TWO;
+    my $horizontal_center = $args->{'width'} / TWO;
 
-    my $vertical_top    = $args{height} / $SIX;
-    my $vertical_bottom = $args{height} / $TWO;
+    my $vertical_top    = $args->{'height'} / SIX;
+    my $vertical_bottom = $args->{'height'} / TWO;
 
-    if ( $args{first_line} ) {
+    if ( $args->{'first_line'} ) {
         draw_text(
-            (   image             => $align,
-                content_string    => $args{first_line},
-                font              => $args{font},
+            {   image             => $align,
+                content_string    => $args->{'first_line'},
+                font              => $args->{'font'},
                 horizontal_center => $horizontal_center,
                 vertical_position => $vertical_top,
-                fontsize          => $args{fontsize},
-                width             => $args{width},
-                height            => $args{height},
-                padding           => $args{padding}
-            )
+                fontsize          => $args->{'fontsize'},
+                width             => $args->{'width'},
+                height            => $args->{'height'},
+                padding           => $args->{'padding'}
+            }
 
         );
     }
 
-    if ( $args{second_line} ) {
+    if ( $args->{'second_line'} ) {
         draw_text(
-            (   image             => $align,
-                content_string    => $args{second_line},
-                font              => $args{font},
+            {   image             => $align,
+                content_string    => $args->{'second_line'},
+                font              => $args->{'font'},
                 horizontal_center => $horizontal_center,
-                vertical_position => !$args{first_line}
+                vertical_position => !$args->{'first_line'}
                 ? $vertical_top
                 : $vertical_bottom,
-                fontsize => $args{fontsize},
-                width    => $args{width},
-                height   => $args{height},
-                padding  => $args{padding}
-            )
+                fontsize => $args->{'fontsize'},
+                width    => $args->{'width'},
+                height   => $args->{'height'},
+                padding  => $args->{'padding'}
+            }
 
         );
     }
