@@ -1307,19 +1307,19 @@
         }
     }
 
-    async function urlHarvester(formattedData, containerReference) {
+    async function urlHarvester(formattedData, container) {
         try {
             const dataArray = arrFromObjEntries(formattedData);
             const harvester = document.createElement('div');
-            harvester.classList.add('urlHarvester', 'd-none');
+            harvester.classList.add('urlHarvester', 'd-none', container.referenceAsClass);
             dataArray.forEach((entry) => {
                 const [id, { coverhtml }] = entry;
                 const harvesterElement = document.createElement('div');
-                harvesterElement.classList.add('harvesterElement', id);
+                harvesterElement.classList.add('harvesterElement', id, container.referenceAsClass);
                 harvesterElement.innerHTML = coverhtml;
                 harvester.appendChild(harvesterElement);
             });
-            containerReference.appendChild(harvester);
+            container.reference.appendChild(harvester);
             return true;
         }
         catch (error) {
@@ -1360,8 +1360,8 @@
         }
     }
 
-    function clearHarvester() {
-        const harvester = document.querySelector('.urlHarvester');
+    function clearHarvester(container) {
+        const harvester = document.querySelector(`.urlHarvester.${container.referenceAsClass}`);
         if (harvester) {
             harvester.remove();
         }
@@ -1381,7 +1381,7 @@
             const containerReference = container;
             const harvesterBuilt = await urlHarvester(dataReference, containerReference);
             if (harvesterBuilt) {
-                let harvesterElements = document.querySelectorAll('.harvesterElement');
+                let harvesterElements = document.querySelectorAll(`.harvesterElement.${container.referenceAsClass}`);
                 const harvesterResults = [];
                 // eslint-disable-next-line no-underscore-dangle
                 if (externalSources._listeners.length !== 0) {
@@ -1418,7 +1418,7 @@
                     /** Reset to false. */
                     externalSources.value = false;
                     setTimeout(() => {
-                        harvesterElements = document.querySelectorAll('.harvesterElement');
+                        harvesterElements = document.querySelectorAll(`.harvesterElement.${container.referenceAsClass}`);
                         harvesterElements.forEach((node) => {
                             const nodeId = getLcfItemId(node);
                             harvesterObservers[nodeId].value = node.innerHTML;
@@ -1445,7 +1445,7 @@
                         });
                     }, config.coverImageCallbackTimeout);
                     await resyncExecution(config.coverImageCallbackTimeout);
-                    clearHarvester();
+                    clearHarvester(container);
                 }
                 else {
                     harvesterElements.forEach((node) => {
@@ -1474,7 +1474,7 @@
                                 dataReference[id].coverurl = Data.processDataUrl(`${config.coverImageGeneratedCoverEndpoint}?title=${window.encodeURIComponent(dataReference[id].title)}`);
                             }
                         });
-                        clearHarvester();
+                        clearHarvester(container);
                     });
                 }
             }
@@ -1883,7 +1883,7 @@
                 const checkedData = await Promise.all(this.data.checkUrls(this.callerData));
                 let formattedData = format(checkedData);
                 if (externalSources || this.config.coverImageExternalSources) {
-                    await harvestUrls(formattedData, this.container.reference, this.config);
+                    await harvestUrls(formattedData, this.container, this.config);
                 }
                 formattedData = cleanupUrls(this.config, formattedData);
                 /** The check for the current card bodies is necessary, to filter
