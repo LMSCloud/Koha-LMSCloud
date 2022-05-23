@@ -1182,6 +1182,8 @@ sub updateSimpleVariables {
     
     $dbh->do(q{UPDATE z3950servers SET host='https://services.dnb.de', port=443 WHERE host = 'services.dnb.de' AND port=80});
     $dbh->do(q{UPDATE z3950servers SET host='https://services.dnb.de', port=443 WHERE host = 'dnbsearch.lmscloud.net' AND port=80});
+    
+    $dbh->do(q{UPDATE systempreferences SET value = CONCAT_WS('|', IF(value = '', NULL, value), 'autorenew_checkouts') WHERE variable = 'BorrowerUnwantedField' AND value NOT LIKE '%autorenew_checkouts%'});
 }
 
 sub updateSidebarLinks {
@@ -3693,7 +3695,7 @@ GROUP BY c.branchcode, p.branchcode, c.debit_type_code, g.description
     $sqltext = 
 q{SELECT accountlines_id AS 'Vorgangsnr.', 
        DATE_FORMAT(date,'%d.%m.%Y') AS 'Datum', 
-       timestamp, FORMAT(amount,2,'de_DE') AS 'Betrag',
+       date, FORMAT(amount,2,'de_DE') AS 'Betrag',
        FORMAT(amountoutstanding,2,'de_DE') AS 'Betrag offen', 
        accountlines.description AS 'Beschreibung',
        IFNULL(account_debit_types.description,account_credit_types.description) AS 'Vorgangssart',
@@ -3711,16 +3713,38 @@ ORDER BY date, accountlines_id
     push @$updates, ['G0140 Gebührenvorgänge - Einzelauflistung für einen auswählbaren Zeitraum',$sqltext];
     
     $sqltext = 
+q{SELECT
+       adt.description AS "Kostenart",
+       act.description AS "Zahlungsart",
+       FORMAT(SUM(a.amount-a.amountoutstanding),2) AS 'Betrag in Euro',
+       IFNULL(ityp.description,IFNULL(i.itype,'')) AS Medientyp
+FROM  accountlines a
+      LEFT JOIN (SELECT itemnumber, itype FROM deleteditems
+                 UNION
+                 SELECT itemnumber, itype FROM items
+                ) AS i USING (itemnumber)
+      LEFT JOIN itemtypes ityp ON ityp.itemtype = i.itype
+      LEFT JOIN account_debit_types adt ON adt.code=a.debit_type_code
+      LEFT JOIN account_credit_types act ON act.code=a.credit_type_code
+WHERE branchcode=<<Auswahl Zweigstelle|branches>>
+  AND a.amountoutstanding <> a.amount
+  AND a.date >= TIMESTAMP(<<Von|date>>) AND a.date <= TIMESTAMP(<<bis|date>>,'23:59:59')
+GROUP BY a.debit_type_code, a.credit_type_code, i.itype, ityp.description
+ORDER BY 1,2,3
+};
+    push @$updates, ['G0150 Beglichene Gebühren in ausgewähltem Zeitraum summiert nach Gebührenart und Medientyp',$sqltext];
+    
+    $sqltext = 
 q{SELECT CONCAT('<a href=\"/cgi-bin/koha/members/boraccount.pl?borrowernumber=',borrowers.borrowernumber,'\" target="_blank">', borrowers.borrowernumber, '</a>') AS borrowernumber,
- borrowers.cardnumber AS Ausweisnummer,
- borrowers.firstname AS Vorname,
- borrowers.surname AS Nachname,
- borrowers.branchcode AS Heimatzweigstelle,
- FORMAT(accountlines.amount,2) AS Betrag,
- accountlines.date AS Datum, 
- accountlines.credit_type_code AS Typ,
- accountlines.note AS Grund,
- accountlines.manager_id
+    borrowers.cardnumber AS Ausweisnummer,
+    borrowers.firstname AS Vorname,
+    borrowers.surname AS Nachname,
+    borrowers.branchcode AS Heimatzweigstelle,
+    FORMAT(accountlines.amount,2,'de_DE') AS 'Betrag',
+    DATE_FORMAT(accountlines.date,'%d.%m.%Y') AS 'Datum',
+    accountlines.credit_type_code AS Typ,
+    accountlines.note AS Grund,
+    accountlines.manager_id
 FROM accountlines, borrowers
 WHERE borrowers.borrowernumber = accountlines.borrowernumber 
 AND credit_type_code IN ('WRITEOFF','CANCELLATION','DISCOUNT','FORGIVEN')
