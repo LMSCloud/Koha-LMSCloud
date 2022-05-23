@@ -319,8 +319,6 @@ alert them of items that have just become due.
 # These variables are set by command line options.
 # They are initially set to default values.
 my $dbh = C4::Context->dbh();
-$dbh->{AutoCommit} = 0;
-$dbh->{RaiseError} = 1;
 
 my $help    = 0;
 my $man     = 0;
@@ -1029,7 +1027,6 @@ END_SQL
                     unless ($letter && $letter->{content}) {
                         $verbose and warn qq|Message '$overdue_rules->{"letter$i"}' content not found|;
                         # this transport doesn't have a configured notice, so try another
-                        $dbh->rollback;
                         next;
                     }
 
@@ -1102,7 +1099,6 @@ END_SQL
                             $print_sent = 1 if $effective_mtt eq 'print';
                         }
                     }
-                    $dbh->commit() unless $test_mode;
                 }
             }
             $sth->finish;
@@ -1154,7 +1150,6 @@ END_SQL
                 branchcode             => $usebranch
             }
         ) unless $test_mode;
-        $dbh->commit() unless $test_mode;
     }
 
 }
@@ -1171,9 +1166,6 @@ if ( defined $htmlfilename ) {
 } elsif ( defined $text_filename ) {
   close $fh;
 }
-
-$dbh->{AutoCommit} = 1;
-$dbh->{RaiseError} = 0;
 
 =head1 INTERNAL METHODS
 
