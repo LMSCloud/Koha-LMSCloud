@@ -746,6 +746,3 @@ sub normalizeSearchRequest {
 
 1;
 
-
-my $filmfriendService = C4::External::FilmFriend->new();
-$filmfriendService->simpleSearch(1,"Maetzig",["Movie","Person"],10,0);
