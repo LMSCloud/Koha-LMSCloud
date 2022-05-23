@@ -403,7 +403,7 @@ sub GetCatalogueData {
             }
         }
             
-        my $generic_coverurl = '/cgi-bin/koha/svc/covergen?title=' . uri_escape_utf8($title) .'&author=' . uri_escape_utf8($author) ;
+        my $generic_coverurl = '/api/v1/public/generated_cover?title=' . uri_escape_utf8($title) .'&author=' . uri_escape_utf8($author) ;
 
         $item->{'titleblock'} = $titleblock;
         $item->{'coverurl'}   = $coverurl;

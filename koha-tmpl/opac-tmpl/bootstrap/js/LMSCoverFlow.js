@@ -1156,7 +1156,7 @@
                     if (coverhtml && !coverurl) {
                         return entry;
                     }
-                    if (coverurl.startsWith('/')) {
+                    if (coverurl && coverurl.startsWith('/')) {
                         return { ...entry, coverurl: await Data.processDataUrl(`${this.config.coverImageGeneratedCoverEndpoint}?title=${window.encodeURIComponent(entry.title)}`) };
                     }
                     if (!coverurl) {
@@ -1220,7 +1220,7 @@
             ],
             [
                 'lcfCoverImage',
-                ['src', item?.coverurl],
+                ['src', item?.coverurl.replaceAll('&amp;', '&')],
             ],
             [
                 'lcfCoverHtmlWrapper',
@@ -1258,9 +1258,9 @@
     function runInstructions(currentTag, currentInstructions) {
         const aspect = currentTag;
         const [attribute, data] = currentInstructions;
-        const [attrBool, dBool] = determineStructure(attribute, data);
-        const textContentBool = isTextContent(attribute);
-        if (attrBool && dBool) {
+        const [hasAttribute, hasData] = determineStructure(attribute, data);
+        const hasTextContent = isTextContent(attribute);
+        if (hasAttribute && hasData) {
             currentInstructions.forEach((instr) => {
                 const [attr, d] = instr;
                 if (isTextContent(attr)) {
@@ -1270,7 +1270,7 @@
                 aspect.setAttribute(attr, d);
             });
         }
-        if (attrBool) {
+        if (hasAttribute) {
             attribute.forEach((attr) => {
                 if (isTextContent(attr)) {
                     aspect.textContent = data;
@@ -1280,11 +1280,11 @@
             });
             return;
         }
-        if (dBool) {
+        if (hasData) {
             data.forEach((d) => { aspect.setAttribute(attribute, d); });
             return;
         }
-        if (textContentBool) {
+        if (hasTextContent) {
             aspect.textContent = data;
             return;
         }
@@ -1307,19 +1307,19 @@
         }
     }
 
-    async function urlHarvester(formattedData, containerReference) {
+    async function urlHarvester(formattedData, container) {
         try {
             const dataArray = arrFromObjEntries(formattedData);
             const harvester = document.createElement('div');
-            harvester.classList.add('urlHarvester', 'd-none');
+            harvester.classList.add('urlHarvester', 'd-none', container.referenceAsClass);
             dataArray.forEach((entry) => {
                 const [id, { coverhtml }] = entry;
                 const harvesterElement = document.createElement('div');
-                harvesterElement.classList.add('harvesterElement', id);
+                harvesterElement.classList.add('harvesterElement', id, container.referenceAsClass);
                 harvesterElement.innerHTML = coverhtml;
                 harvester.appendChild(harvesterElement);
             });
-            containerReference.appendChild(harvester);
+            container.reference.appendChild(harvester);
             return true;
         }
         catch (error) {
@@ -1360,8 +1360,8 @@
         }
     }
 
-    function clearHarvester() {
-        const harvester = document.querySelector('.urlHarvester');
+    function clearHarvester(container) {
+        const harvester = document.querySelector(`.urlHarvester.${container.referenceAsClass}`);
         if (harvester) {
             harvester.remove();
         }
@@ -1381,7 +1381,7 @@
             const containerReference = container;
             const harvesterBuilt = await urlHarvester(dataReference, containerReference);
             if (harvesterBuilt) {
-                let harvesterElements = document.querySelectorAll('.harvesterElement');
+                let harvesterElements = document.querySelectorAll(`.harvesterElement.${container.referenceAsClass}`);
                 const harvesterResults = [];
                 // eslint-disable-next-line no-underscore-dangle
                 if (externalSources._listeners.length !== 0) {
@@ -1418,7 +1418,7 @@
                     /** Reset to false. */
                     externalSources.value = false;
                     setTimeout(() => {
-                        harvesterElements = document.querySelectorAll('.harvesterElement');
+                        harvesterElements = document.querySelectorAll(`.harvesterElement.${container.referenceAsClass}`);
                         harvesterElements.forEach((node) => {
                             const nodeId = getLcfItemId(node);
                             harvesterObservers[nodeId].value = node.innerHTML;
@@ -1445,7 +1445,7 @@
                         });
                     }, config.coverImageCallbackTimeout);
                     await resyncExecution(config.coverImageCallbackTimeout);
-                    clearHarvester();
+                    clearHarvester(container);
                 }
                 else {
                     harvesterElements.forEach((node) => {
@@ -1457,6 +1457,13 @@
                             const [, srcString] = src.split('"');
                             harvesterResults.push([nodeId, srcString]);
                         }
+                        else {
+                            const nodesFirstChild = node.firstChild;
+                            const hasNoImage = nodesFirstChild.classList.contains('no-image');
+                            if (hasNoImage) {
+                                harvesterResults.push([nodeId, undefined]);
+                            }
+                        }
                         harvesterResults.forEach(async (entry) => {
                             const [id, coverurl] = entry;
                             if (coverurl) {
@@ -1467,7 +1474,7 @@
                                 dataReference[id].coverurl = Data.processDataUrl(`${config.coverImageGeneratedCoverEndpoint}?title=${window.encodeURIComponent(dataReference[id].title)}`);
                             }
                         });
-                        clearHarvester();
+                        clearHarvester(container);
                     });
                 }
             }
@@ -1634,7 +1641,7 @@
             return new Promise((resolve) => {
                 const coverImage = new Image();
                 coverImage.onload = () => resolve(coverImage);
-                coverImage.src = this.coverUrl;
+                coverImage.src = this.coverUrl.replaceAll('amp;', '');
             });
         }
     }
@@ -1876,7 +1883,7 @@
                 const checkedData = await Promise.all(this.data.checkUrls(this.callerData));
                 let formattedData = format(checkedData);
                 if (externalSources || this.config.coverImageExternalSources) {
-                    await harvestUrls(formattedData, this.container.reference, this.config);
+                    await harvestUrls(formattedData, this.container, this.config);
                 }
                 formattedData = cleanupUrls(this.config, formattedData);
                 /** The check for the current card bodies is necessary, to filter
@@ -2076,6 +2083,137 @@
         main();
     }
 
+    class CoverflowByQuery {
+        id;
+        query;
+        label;
+        endpoint;
+        offset;
+        maxcount;
+        data;
+        positions;
+        config;
+        externalSourceInUse;
+        constructor({ id, query, label, endpoint, offset, maxcount, externalSourcesInUse, }) {
+            const instance = new EventListeners();
+            instance.data = {
+                left: false, right: false, leftHandler: null, rightHandler: null,
+            };
+            const { coce, openLibrary, google } = externalSourcesInUse;
+            this.id = id;
+            this.query = query;
+            this.label = label;
+            this.endpoint = endpoint;
+            this.offset = offset;
+            this.maxcount = maxcount;
+            this.externalSourceInUse = coce || openLibrary || google;
+            this.data = {};
+            this.positions = {
+                left: this.offset,
+                right: this.offset + this.maxcount,
+            };
+            this.config = {
+                coverImageFallbackHeight: 210,
+                coverFlowCardBody: {
+                    lcfMediaAuthor: true,
+                    lcfMediaTitle: true,
+                    lcfMediaItemCallNumber: false,
+                },
+                coverFlowContext: 'default',
+                coverFlowShelfBrowser: true,
+                shelfBrowserCurrentEventListeners: instance,
+                coverFlowButtonsCallback: {
+                    loadNewShelfBrowserItems: this.loadPortion.bind(this),
+                    nearbyItems: {
+                        previousItemNumber: this.offset - this.maxcount,
+                        nextItemNumber: this.offset + this.maxcount,
+                    },
+                },
+            };
+            this.renderHeader();
+        }
+        async fetchItemData() {
+            const url = `${this.endpoint}?query=${this.query}&offset=${this.offset}&maxcount=${this.maxcount}`;
+            const options = {
+                method: 'GET',
+                mode: 'cors',
+                cache: 'no-cache',
+                credentials: 'same-origin',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                redirect: 'follow',
+            };
+            const response = await fetch(url, options);
+            this.data = await response.json();
+            /** Add referenceToDetailsView to the resulting object. */
+            this.data.items.forEach((item) => {
+                const record = item;
+                record.referenceToDetailsView = `/cgi-bin/koha/opac-detail.pl?biblionumber=${item.biblionumber}`;
+            });
+        }
+        subscribeToLoadingState() {
+            externalSources.subscribe((isLoaded) => {
+                if (isLoaded) {
+                    if (this.externalSourceInUse.args) {
+                        this.externalSourceInUse.callback(...this.externalSourceInUse.args);
+                    }
+                    else {
+                        this.externalSourceInUse.callback();
+                    }
+                }
+            });
+        }
+        async loadPortion(nearbyItems, buttonDirection) {
+            this.config = {
+                ...this.config,
+                shelfBrowserExtendedCoverFlow: true,
+                shelfBrowserButtonDirection: buttonDirection,
+            };
+            if (buttonDirection === 'left' && this.positions.left > 0) {
+                this.offset -= this.maxcount;
+                await this.fetchItemData();
+                if (this.externalSourceInUse) {
+                    this.subscribeToLoadingState();
+                }
+                this.render();
+                this.positions.left -= this.data.count;
+            }
+            else if (buttonDirection === 'right' && this.positions.right < this.data.totalcount) {
+                this.offset += this.maxcount;
+                await this.fetchItemData();
+                if (this.externalSourceInUse) {
+                    this.subscribeToLoadingState();
+                }
+                this.render();
+                this.positions.right += this.data.count;
+            }
+            else {
+                throw new Error(`Nothing to load in this direction -> ${buttonDirection}`);
+                //   console.trace(`Looks like something went wrong in ${this.loadPortion.name}`);
+            }
+        }
+        renderHeader() {
+            const coverflowQueryContainer = document.getElementById(this.id);
+            const section = document.createElement('section');
+            const label = document.createElement('header');
+            label.textContent = this.label;
+            label.classList.add('h3', 'text-muted', 'pl-3');
+            coverflowQueryContainer.insertAdjacentElement('beforebegin', section);
+            section.appendChild(label);
+            section.appendChild(coverflowQueryContainer);
+        }
+        render() {
+            const lmscoverflow = createLcfInstance();
+            lmscoverflow.setGlobals(this.config, this.data.items, this.id);
+            if (this.externalSourceInUse) {
+                this.subscribeToLoadingState();
+            }
+            lmscoverflow.render();
+        }
+    }
+
+    exports.CoverflowByQuery = CoverflowByQuery;
     exports.ShelfBrowser = shelfBrowser;
     exports.createLcfInstance = createLcfInstance;
     exports.externalSources = externalSources;

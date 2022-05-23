@@ -146,5 +146,26 @@
     "name": "title",
     "required": false,
     "type": "string"
+  },
+  "query_string": {
+    "description": "Query string used as search term",
+    "in": "query",
+    "name": "query",
+    "required": false,
+    "type": "string"
+  },
+  "query_offset": {
+    "description": "Query offset of biblio index",
+    "in": "query",
+    "name": "offset",
+    "required": false,
+    "type": "integer"
+  },
+  "query_maxcount": {
+    "description": "The number of items to be returned from query",
+    "in": "query",
+    "name": "maxcount",
+    "required": false,
+    "type": "integer"
   }
 }
