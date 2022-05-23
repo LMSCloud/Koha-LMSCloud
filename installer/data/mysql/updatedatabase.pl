@@ -23158,6 +23158,32 @@ if( CheckVersion( $DBversion ) ) {
             DELETE FROM authorised_values
             WHERE category="COUNTRY" AND authorised_value="CC" AND lib="Keeling"
         |);
+        $dbh->do(q|
+            DELETE FROM authorised_values WHERE id IN (
+            SELECT id 
+            FROM   authorised_values a
+            WHERE  a.category IN ('YES_NO','ACCOUNT_TYPE_MAPPING','Bsort1')
+              AND  id NOT IN (
+                               SELECT MAX(id) 
+                               FROM   authorised_values ab
+                               WHERE  ab.category = a.category
+                             GROUP BY authorised_value HAVING COUNT(*)>=2
+                   )
+            )
+        |);
+        $dbh->do(q|
+            UPDATE saved_sql, authorised_values 
+            SET    report_subgroup = CONCAT(report_subgroup,'_',report_group), authorised_value = CONCAT(report_subgroup,'_',report_group)
+            WHERE  category = 'REPORT_SUBGROUP'  
+               AND lib_opac = report_group 
+               AND report_subgroup = authorised_value
+               AND report_subgroup IN (
+                    SELECT a.authorised_value 
+                    FROM authorised_values a
+                    WHERE a.category = 'REPORT_SUBGROUP' 
+                    GROUP BY a.authorised_value 
+                    HAVING count(*) > 1)
+        |);
         my $duplicates = $dbh->selectall_arrayref(q|
             SELECT category, authorised_value, COUNT(concat(category, ':', authorised_value)) AS c
             FROM authorised_values
