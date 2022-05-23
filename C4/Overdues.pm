@@ -534,7 +534,8 @@ sub UpdateFine {
         {
             borrowernumber    => $borrowernumber,
             debit_type_code   => [ 'OVERDUE','CLAIM_LEVEL_1','CLAIM_LEVEL_2','CLAIM_LEVEL_3','CLAIM_LEVEL_4','CLAIM_LEVEL_5' ],
-        }
+        },
+        { order_by => { -desc => 'accountlines_id' } }
     );
 
     my $accountline;
@@ -545,7 +546,7 @@ sub UpdateFine {
     # - accumulate fines for other items
     # so we can update $itemnum fine taking in account fine caps
     while (my $overdue = $overdues->next) {
-        if ( defined $overdue->issue_id && $overdue->issue_id == $issue_id && $overdue->debit_type_code eq 'OVERDUE' && $overdue->status eq 'UNRETURNED' ) {
+        if ( defined $overdue->issue_id && $overdue->issue_id == $issue_id && $overdue->debit_type_code eq 'OVERDUE' && ( $overdue->status eq 'UNRETURNED' || $overdue->status eq 'LOST' ) ) {
             if ($accountline) {
                 $debug and warn "Not a unique accountlines record for issue_id $issue_id";
                 #FIXME Should we still count this one in total_amount ??
