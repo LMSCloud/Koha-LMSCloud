@@ -204,7 +204,7 @@
                       </li>
                       <li>
                         <label for="branchcode_filter">Library:</label>
-                        [% SET branches = Branches.all( selected => branchcode_filter, only_from_group => 1 ) %]
+                        [% SET branches = Branches.all( selected => branchcode_filter, only_from_group => 1, restrict => 'NoMobileStations' ) %]
                         <select id="branchcode_filter">
                           [% IF branches.size != 1 %]
                             <option value="">Any</option>
