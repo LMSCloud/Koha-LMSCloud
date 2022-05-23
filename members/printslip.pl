@@ -40,6 +40,7 @@ use C4::Output;
 use C4::Members;
 use C4::Koha;
 use Koha::DateUtils;
+use Koha::Database;
 
 #use Smart::Comments;
 #use Data::Dumper;
@@ -84,8 +85,26 @@ if ( $print eq 'checkinslip' ) {
     my $checkinslip_branch = $session->param('branch') ? $session->param('branch') : $branch;
 
     # get today's checkins
-    my @issue_ids = $patron->old_checkouts->search( { branchcode => $checkinslip_branch } )
-      ->filter_by_todays_checkins->get_column('issue_id');
+    my $dtf = Koha::Database->new->schema->storage->datetime_parser;
+    my $today = dt_from_string;
+    my $today_start = $today->clone->set( hour =>  0, minute =>  0, second =>  0 );
+    my $today_end   = $today->clone->set( hour => 23, minute => 59, second => 59 );
+    $today_start = $dtf->format_datetime( $today_start );
+    $today_end   = $dtf->format_datetime( $today_end );
+    my $stats     = Koha::Database->new->schema->resultset('Statistic');
+    my @issue_ids = $patron->old_checkouts->filter_by_todays_checkins->search(
+		{
+			itemnumber => { 
+							 'IN' => $stats->search( 
+								{ 
+									 itemnumber => { -ident => 'me.itemnumber' }, 
+									 branch => $checkinslip_branch,
+									 datetime => { '>=' => $today_start, '<=' => $today_end },
+									 type => 'return',
+									 borrowernumber => $borrowernumber,
+								},{ alias => 'stats' })->get_column('itemnumber')->as_query
+						  }
+		})->get_column('issue_id');
 
     my %loops = (
         old_issues => \@issue_ids,
