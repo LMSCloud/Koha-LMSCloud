@@ -287,7 +287,7 @@ if ( $query->param('place_reserve') ) {
             
             my $item = Koha::Items->find( $itemNum )->unblessed;
             
-            if ( C4::Context->preference('SetPickupLocationOfReservedItems') && C4::Context->preference("OPACAllowUserToChooseBranch") ) {
+            if ( C4::Context->preference('SetPickupLocationOfReservedItems') && !C4::Context->preference("OPACAllowUserToChooseBranch") ) {
                 my $pickUpBranch = C4::Context->preference('SetPickupLocationOfReservedItems');
                 if ( $pickUpBranch && exists($item->{$pickUpBranch}) ) {
                     $branch = $item->{$pickUpBranch};
