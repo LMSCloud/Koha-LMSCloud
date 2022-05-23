@@ -1003,7 +1003,7 @@ sub _parseletter {
                 if ( $letter->{ $letter_field } =~ $re_dateonly_filter ) {
                     # We overwrite $dateonly if the filter exists and we have a time in the datetime
                     $filter_string_used = $1 || q{};
-                    $dateonly = $1 unless $dateonly;
+                    $dateonly = 1 unless $dateonly;
                 }
                 my $replacedby_date = eval {
                     output_pref({ dt => dt_from_string( $replacedby ), dateonly => $dateonly });
