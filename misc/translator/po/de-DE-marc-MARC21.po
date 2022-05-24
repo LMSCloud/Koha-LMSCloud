@@ -1,8 +1,8 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: Koha 21.05\n"
-"POT-Creation-Date: 2022-05-11 18:32+0200\n"
-"PO-Revision-Date: 2022-05-11 18:33+0200\n"
+"POT-Creation-Date: 2022-05-24 16:16+0200\n"
+"PO-Revision-Date: 2022-05-24 16:18+0200\n"
 "Last-Translator: Katrin Fischer <katrin.fischer@bsz-bw.de>\n"
 "Language-Team: \n"
 "Language: de\n"
@@ -43,7 +43,6 @@ msgstr ""
 "&#233;&#242;&#243;&#246;&#252;"
 
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slimUtils.xsl:489
-#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slimUtils.xsl:497
 #, c-format
 msgid "\"&amp;q=au:\""
 msgstr "\"&amp;q=au:\""
@@ -189,6 +188,11 @@ msgid ""
 msgstr ""
 "(drei Zahlen, wenn nötig mit 0 ergänzt, <br />oder ||| für keinen "
 "Codierungsversuch)"
+
+#: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slimUtils.xsl:497
+#, c-format
+msgid ")&amp;q=au:\""
+msgstr ")&amp;q=au:\""
 
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slim2intranetDetail.xsl:234
 #: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slim2OPACDetail.xsl:326
@@ -2058,13 +2062,17 @@ msgstr "?q=rcn:"
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slimUtils.xsl:440
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slimUtils.xsl:489
 #: koha-tmpl/intranet-tmpl/prog/en/xslt/MARC21slimUtils.xsl:531
+#, c-format
+msgid "?q=se,phr:\""
+msgstr "?q=se,phr:\""
+
 #: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slimUtils.xsl:423
 #: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slimUtils.xsl:448
 #: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slimUtils.xsl:497
 #: koha-tmpl/opac-tmpl/bootstrap/en/xslt/MARC21slimUtils.xsl:539
 #, c-format
-msgid "?q=se,phr:\""
-msgstr "?q=se,phr:\""
+msgid "?q=se:("
+msgstr "?q=se:("
 
 #: koha-tmpl/intranet-tmpl/prog/en/data/marc21_field_008.xml:25
 #: koha-tmpl/intranet-tmpl/prog/en/data/marc21_field_008.xml:39
