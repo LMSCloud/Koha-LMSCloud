@@ -160,7 +160,7 @@ sub coverhtml {
                         || $item->{'browser_normalized_isbn'} );
                 my $baker_taylor_image_url = image_url();
                 my $baker_taylor_src
-                    = $baker_taylor_id . $baker_taylor_image_url;
+                    = $baker_taylor_image_url . $baker_taylor_id;
                 if ($baker_taylor_id) {
                     $coverhtml
                         = qq{<img alt="See Baker &amp; Taylor" src="$baker_taylor_src" />};

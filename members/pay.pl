@@ -99,7 +99,7 @@ elsif ( $input->param('cancel_selected') ) {
     payselected({ params => \@names, type => 'CANCELLATION' });
 }
 elsif ( $input->param('woall') ) {
-    writeoff_all(@names);
+    writeoff_or_cancel_all(@names);
 }
 elsif ( $input->param('apply_credits') ) {
     apply_credits({ patron => $patron, cgi => $input });

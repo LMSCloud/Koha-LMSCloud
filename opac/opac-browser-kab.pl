@@ -242,7 +242,9 @@ sub createSearchString {
         $search .= ' OR sys.phrase:I\\ 9*';
     }
     elsif ( $class->{classification} ) {
-        $search .= 'sys.phrase:(' . $class->{classification} . '*)';
+        my $searchval = $class->{classification};
+        $searchval =~ s/ /\\ /g;
+        $search .= 'sys.phrase:(' . $searchval . '*)';
     }
 
     return $search;

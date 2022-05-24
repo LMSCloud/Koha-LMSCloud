@@ -843,7 +843,7 @@ legend:hover {
                                             <li>
                                                 <label for="libraries" class="required">Library:</label>
                                                 <select name="branchcode" id="libraries">
-                                                    [% PROCESS options_for_libraries libraries => Branches.all( selected => userbranch, only_from_group => 1 ) %]
+                                                    [% PROCESS options_for_libraries libraries => Branches.all( selected => userbranch, only_from_group => 1, restrict => 'NoMobileStations' ) %]
                                                 </select>
                                                 <span class="required">Required</span>
                                             </li>

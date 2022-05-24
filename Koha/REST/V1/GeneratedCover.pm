@@ -59,7 +59,7 @@ sub get {
 
     try {
         my $generated_cover_image_source = C4::CoverGen::render_image(
-            (   first_line  => $first_line,
+            {   first_line  => $first_line,
                 second_line => $second_line,
                 font        => FONT,
                 font_path   => FONT_PATH,
@@ -67,7 +67,7 @@ sub get {
                 height      => HEIGHT,
                 fontsize    => FONTSIZE,
                 padding     => PADDING,
-            ),
+            },
         );
 
         if ( !$generated_cover_image_source ) {

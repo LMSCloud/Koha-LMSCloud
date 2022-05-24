@@ -230,11 +230,18 @@ Please open a cash register to enable cash payments.
 
             $('#pay-fines-form').preventDoubleFormSubmit();
             $("#woall").click(function(event){
-                var msg = _("Are you sure you want to write off %s in outstanding fines? This cannot be undone!").format( "[% total | $Price %]" );
-                var answer = confirm(msg);
-                    if (!answer){
-                        event.preventDefault();
-                    }
+                event.preventDefault();
+                $(".cb").each(function(){
+                    $(this).prop("checked", true );
+                });
+                $("#writeoff_selected").click();
+            });
+            $("#cancelall").click(function(event){
+                event.preventDefault();
+                $(".cb").each(function(){
+                    $(this).prop("checked", true );
+                });
+                $("#cancel-selected").click();
             });
             $('#CheckAll').click(function(e){
                 e.preventDefault();

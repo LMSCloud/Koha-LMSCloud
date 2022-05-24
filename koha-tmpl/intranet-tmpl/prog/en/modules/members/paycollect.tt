@@ -59,9 +59,9 @@
                 [% ELSE %]
                     [% IF ( selected_accts ) %]
                         [% IF type == 'WRITEOFF' %]
-                            Write off an amount toward selected fines
+                            Write off an amount or the total of selected fines
                         [% ELSIF type == 'CANCELLATION' %]
-                            Cancel an amount toward selected fines
+                            Cancel selected fines
                         [% ELSE %]
                             Pay an amount toward selected fines
                         [% END %]
@@ -315,7 +315,7 @@
                 <li role="presentation"><a href="/cgi-bin/koha/members/paycollect.pl?borrowernumber=[% patron.borrowernumber | uri %]&type=PAYMENT&amt=[% amt | uri %]&selected=[% selected_accts | uri %]&notes=[% selected_accts_notes | uri %]">Pay</a></li>
                 [% END %]
                 <li role="presentation" class="active"><a>Write off</a></li>
-                <li role="presentation"><a href="/cgi-bin/koha/members/paycollect.pl?borrowernumber=[% patron.borrowernumber | uri %]&type=CANCELLATION&amt=[% amt | uri %]&selected=[% selected_accts | uri %]&notes=[% selected_accts_notes | uri %]">Cancel</a></li>
+                <li role="presentation"><a href="/cgi-bin/koha/members/paycollect.pl?borrowernumber=[% patron.borrowernumber | uri %]&type=CANCELLATION&amt=[% amt | uri %]&selected=[% selected_accts | uri %]&notes=[% selected_accts_notes | uri %]">Cancel fee</a></li>
             [% ELSIF type == 'CANCELLATION' %]
                 [% IF (!checkCashRegisterFailed) %]
                 <li role="presentation"><a href="/cgi-bin/koha/members/paycollect.pl?borrowernumber=[% patron.borrowernumber | uri %]&type=PAYMENT&amt=[% amt | uri %]&selected=[% selected_accts | uri %]&notes=[% selected_accts_notes | uri %]">Pay</a></li>
@@ -325,7 +325,7 @@
             [% ELSIF (!checkCashRegisterFailed) %]
                 <li role="presentation" class="active"><a>Pay</a></li>
                 <li role="presentation"><a href="/cgi-bin/koha/members/paycollect.pl?borrowernumber=[% patron.borrowernumber | uri %]&type=WRITEOFF&amt=[% amt | uri %]&selected=[% selected_accts | uri %]&notes=[% selected_accts_notes | uri %]">Write off</a></li>
-                <li role="presentation"><a href="/cgi-bin/koha/members/paycollect.pl?borrowernumber=[% patron.borrowernumber | uri %]&type=CANCELLATION&amt=[% amt | uri %]&selected=[% selected_accts | uri %]&notes=[% selected_accts_notes | uri %]">Cancel</a></li>
+                <li role="presentation"><a href="/cgi-bin/koha/members/paycollect.pl?borrowernumber=[% patron.borrowernumber | uri %]&type=CANCELLATION&amt=[% amt | uri %]&selected=[% selected_accts | uri %]&notes=[% selected_accts_notes | uri %]">Cancel fee</a></li>
             [% END %]
         </ul>
     [% END %]
@@ -347,9 +347,9 @@
     <fieldset class="rows">
     [% IF ( selected_accts ) %]
         [% IF type == 'WRITEOFF' %]
-            <legend>Write off an amount toward selected fines</legend>
+            <legend>Write off an amount or the total of selected fines</legend>
         [% ELSIF type == 'CANCELLATION' %]
-            <legend>Cancel an amount toward selected fines</legend>
+            <legend>Cancel selected fines</legend>
         [% ELSE %]
             <legend>Pay an amount toward selected fines</legend>
         [% END %]
@@ -395,12 +395,10 @@
         </select>
     </li>
     [% END %]
-    [% IF type != 'CANCELLATION' %]
     <li>
         <label for="selected_accts_notes">Note: </label>
         <textarea name="selected_accts_notes" id="selected_accts_notes">[% selected_accts_notes | html %]</textarea>
     </li>
-    [% END %]
     </ol>
     </fieldset>
     <div class="action">
@@ -557,22 +555,24 @@
         function recalculatePaidAmount(payformObj) {
             payformObj.on("submit",
                 function(event) {
-                    var collectedNew = parseFloat($("#given").val().replace(",","."));
-                    
-                    if ( isNaN(collectedNew) ) {
-                        collectedNew = 0.0;
-                    }
-                    $("#paid").val(parseFloat(collectedNew));
+                    if ( $("#given").length() ) {
+                        var collectedNew = parseFloat($("#given").val().replace(",","."));
+                        
+                        if ( isNaN(collectedNew) ) {
+                            collectedNew = 0.0;
+                        }
+                        $("#paid").val(parseFloat(collectedNew));
 
-                    if ( parseFloat($("#paid").val()) > parseFloat($("#total").val())) {
-                        $("#paid").val($("#total").val());
+                        if ( parseFloat($("#paid").val()) > parseFloat($("#total").val())) {
+                            $("#paid").val($("#total").val());
 
-                        // displaying the new values for a short instant in the GUI 
-                        $("#change_given").val("0.00");
-                        $("#returnAmount").val(parseFloat("0.00").format_price());
-                        $("#given").val(parseFloat((Math.round($("#paid").val()*100.0)/100.0).toFixed(2)).format_price());
+                            // displaying the new values for a short instant in the GUI 
+                            $("#change_given").val("0.00");
+                            $("#returnAmount").val(parseFloat("0.00").format_price());
+                            $("#given").val(parseFloat((Math.round($("#paid").val()*100.0)/100.0).toFixed(2)).format_price());
+                        }
+                        $("#collected").val($("#paid").val());
                     }
-                    $("#collected").val($("#paid").val());
                 }
             );
 
