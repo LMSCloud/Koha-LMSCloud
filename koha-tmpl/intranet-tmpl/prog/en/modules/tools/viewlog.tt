@@ -195,7 +195,7 @@
 								<label for="user">Librarian:</label>
                                 <input type="text" name="user" id="user" value="[% user | html %]" />
 							</li>
-                            [% UNLESS src == "circ" %]
+                            [% UNLESS ( src == "circ" && src != "circ" ) %]    <!-- Contrary to standard Koha, LMSCloud prefers to display Modules section also if src == "circ". -->
                                 <li>
                                     <label>Modules:</label>
                                     <div class="log_modules">
