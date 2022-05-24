@@ -809,7 +809,7 @@ sub payout {
             # If it is not SIP it is a cash payment and if cash registers are activated as too,
             # the cash payment need to registered for the opened cash register as cash receipt
             if ( $cash_register_mngmt ) {    
-                $cash_register_mngmt->registerReversePayment($params->{branch}, $params->{staff_id}, $amount, $self->id);
+                $cash_register_mngmt->registerCreditPayout($params->{branch}, $params->{staff_id}, $amount, $payout->id);
             }
         }
     );

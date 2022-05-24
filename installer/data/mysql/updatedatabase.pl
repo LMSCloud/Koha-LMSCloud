@@ -12951,7 +12951,7 @@ if (C4::Context->preference("Version") < TransformToNum($DBversion)) {
                 `booking_time` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP, -- when was this entry created 
                 `accountlines_id` int(11) default NULL, -- an accountline booking to which this entry relates to (accountlines.accountlines_id)
                 `current_balance` decimal(28,6) NOT NULL, -- current balance of the cashier
-                `action` varchar(20) NOT NULL, -- which action was performed: OPEN, CLOSE, PAYMENT, REVERSE_PAYMENT, CREDIT, ADJUSTMENT, PAYOUT
+                `action` varchar(20) NOT NULL, -- which action was performed: OPEN, CLOSE, PAYMENT, REVERSE_PAYMENT, CREDIT_PAYOUT, CREDIT, ADJUSTMENT, PAYOUT
                 `booking_amount`  decimal(28,6) default NULL, -- booked amount (can be positive or negative)
                 `description` longtext, -- explains the transaction
                  PRIMARY KEY (`id`),

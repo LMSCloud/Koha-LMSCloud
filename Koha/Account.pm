@@ -622,6 +622,17 @@ sub payout_amount {
     Koha::Exceptions::ParameterTooHigh->throw( error =>
 "Amount to payout ($amount) is higher than amountoutstanding ($outstanding)"
     ) unless ( $outstanding >= $amount );
+    
+    my $cash_register_mngmt = undef;
+    # Check whether cash registers are activated and mandatory for payment actions.
+    # If thats the case than we need to check whether the manager has opened a cash
+    # register to use for payments.
+    if ( !$params->{noCashReg} && $params->{payout_type} =~ /^(CASH|SEPA|ONLINE|SIP)/ && C4::Context->preference("ActivateCashRegisterTransactionsOnly") ) {
+        $cash_register_mngmt = C4::CashRegisterManagement->new($params->{branch}, $params->{staff_id});
+        
+        # if there is no open cash register of the manager we return without a doing the payment
+        Koha::Exceptions::Account::RegisterRequired->throw() if (! $cash_register_mngmt->managerHasOpenCashRegister($params->{branch}, $params->{staff_id}) );
+    }
 
     my $payout;
     my $schema = Koha::Database->new->schema;
@@ -652,6 +663,14 @@ sub payout_amount {
 
             # Set payout as paid
             $payout->status('PAID')->store;
+            
+            # print STDERR "Payíng out credit ",$params->{amount}, " cash_register_mngmt is $cash_register_mngmt\n";
+            
+            # If it is not SIP it is a cash payment and if cash registers are activated as too,
+            # the cash payment need to registered for the opened cash register as cash receipt
+            if ( $cash_register_mngmt ) {    
+                $cash_register_mngmt->registerCreditPayout($params->{branch}, $params->{staff_id}, $params->{amount}, $payout->id);
+            }
         }
     );
 

@@ -20,7 +20,9 @@
         [%- ELSE -%]
             <label for="[% type | html %]_type">[% IF type == 'payment' %]Payment[% ELSE %]Transaction[% END %] type: </label>
             <select name="[% type | html %]_type" id="[% type | html %]_type">
+                [% IF type != 'payout' %]
                 <option value=""></option>
+                [% END %]
                 [% IF type == 'refund' %]
                 <option value="AC">Account credit</option>
                 [% END %]

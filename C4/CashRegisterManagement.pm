@@ -374,11 +374,11 @@ sub registerPayment {
     return 0;
 }
 
-=head2 registerPayment
+=head2 registerReversePayment
 
-  $cash_management->registerPayment($branch, $manager_id, $amount, $accountlines_no)
+  $cash_management->registerReversePayment($branch, $manager_id, $amount, $accountlines_no)
 
-Registers a payment to the opened cash register of the manager.
+Registers a reverse payment to the opened cash register of the manager.
 
 =cut
 
@@ -388,6 +388,25 @@ sub registerReversePayment {
     my $cashreg = getOpenedCashRegister($branch, $manager_id);
     if ( $cashreg ) {
         return $self->addCashRegisterTransaction($cashreg->id(), 'REVERSE_PAYMENT', $manager_id, '', ($amount * -1), '', $accountlines_no);
+    }
+    
+    return 0;
+}
+
+=head2 registerCreditPayout
+
+$cash_management->registerCreditPayout($branch, $manager_id, $amount, $accountlines_no)
+
+Registers a credit payout to the opened cash register of the manager.
+
+=cut
+
+sub registerCreditPayout {
+    my ($self, $branch, $manager_id, $amount, $accountlines_no) = @_;
+    
+    my $cashreg = getOpenedCashRegister($branch, $manager_id);
+    if ( $cashreg ) {
+        return $self->addCashRegisterTransaction($cashreg->id(), 'CREDIT_PAYOUT', $manager_id, '', ($amount * -1), '', $accountlines_no);
     }
     
     return 0;
@@ -2226,7 +2245,7 @@ sub getFinesOverview {
             WHERE  r.branchcode = br.branchcode
                AND $cashdateselect $cashregisterselect
                AND c.cash_register_id  = r.id
-               AND c.action NOT IN ('OPEN','CLOSE','REVERSE_PAYMENT')
+               AND c.action NOT IN ('OPEN','CLOSE','REVERSE_PAYMENT','CREDIT_PAYOUT)
             GROUP BY
                    r.name, c.action, c.reason, l.credit_type_code
             UNION ALL
@@ -2241,7 +2260,7 @@ sub getFinesOverview {
             WHERE  r.branchcode = br.branchcode
                AND $cashdateselect $cashregisterselect
                AND c.cash_register_id  = r.id
-               AND c.action = 'REVERSE_PAYMENT'
+               AND c.action IN ('REVERSE_PAYMENT','CREDIT_PAYOUT)
                AND c.booking_amount > 0.00
             GROUP BY
                    r.name, c.action, c.reason, l.credit_type_code
@@ -2257,7 +2276,7 @@ sub getFinesOverview {
             WHERE  r.branchcode = br.branchcode
                AND $cashdateselect $cashregisterselect
                AND c.cash_register_id  = r.id
-               AND c.action = 'REVERSE_PAYMENT'
+               AND c.action IN ('REVERSE_PAYMENT','CREDIT_PAYOUT)
                AND c.booking_amount < 0.00
             GROUP BY
                    r.name, c.action, c.reason, l.credit_type_code
@@ -3481,6 +3500,8 @@ sub addCashRegisterTransaction {
         elsif ( $action eq 'PAYMENT' ) {
         }
         elsif ( $action eq 'REVERSE_PAYMENT' ) {
+        }
+        elsif ( $action eq 'CREDIT_PAYOUT' ) {
         }
         elsif ( $action eq 'PAYOUT' ) {
         }

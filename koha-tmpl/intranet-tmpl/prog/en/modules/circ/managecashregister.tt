@@ -15,6 +15,7 @@
 [% CASE 'PAYOUT' %]Cash payment
 [% CASE 'DEPOSIT' %]Cash deposit
 [% CASE 'REVERSE_PAYMENT' %]Reverse payment (patron)
+[% CASE 'CREDIT_PAYOUT' %]Credit payout (patron)
 [% CASE 'ADJUSTMENT' %]Difference posting
 [% CASE 'CREDIT' %]Patron credit
 [% CASE 'CLOSE' %]Cash register closed
