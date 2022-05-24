@@ -1717,6 +1717,11 @@
                 header_collection : _("Collection: {starting_ccode}"),
                 header_close : _("Close shelf"),
             },
+            [% IF ( Koha.Preference('EKZCover') ) %]
+            configuration: {
+                coverImageExternalSources: false,
+            }
+            [% END %]
         };
 
         [% IF ( Koha.Preference('OpacCoce') && Koha.Preference('CoceProviders') ) %]
@@ -1725,7 +1730,7 @@
                     KOHA.coce.getURL('[% Koha.Preference('CoceHost') | html %]', '[% Koha.Preference('CoceProviders') | html %]',[% covernewwindow | html %]);
                 }
             });
-        [% ELSIF OpenLibraryCovers %]
+        [% ELSIF ( OpenLibraryCovers ) %]
             externalSources.subscribe((isLoaded) => {
                 if (isLoaded) {
                     KOHA.OpenLibrary.GetCoverFromIsbn();

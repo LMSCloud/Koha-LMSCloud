@@ -34,6 +34,8 @@ BEGIN {
 use GD::Image;
 use GD::Text::Align;
 use MIME::Base64;
+use Koha::Exceptions;
+use Try::Tiny;
 
 =head1 NAME
 
@@ -122,8 +124,14 @@ use constant EMPTY => q{};
 my @leftover_words = EMPTY;
 my $leftover_words = EMPTY;
 
-sub get_image_width_based_on_parameters {
+sub get_string_width_based_on_params {
     my ($args) = @_;
+
+    if ( !defined $args->{'image'} ) {
+        Koha::Exceptions::MissingParameter->throw(
+            'image is undefined as parameter in get_string_width_based_on_params'
+        );
+    }
 
     $args->{'image'}->set_font( $args->{'font'}, $args->{'fontsize'} );
     $args->{'image'}->set_text( $args->{'string'} );
@@ -154,7 +162,7 @@ sub trim_string {
     }
 
     # Check if the new line fits into the box.
-    my $new_string_width = get_image_width_based_on_parameters(
+    my $new_string_width = get_string_width_based_on_params(
         {   image    => $args->{'image'},
             font     => $args->{'font'},
             fontsize => $args->{'fontsize'},
@@ -189,7 +197,7 @@ sub check_string_overflows_box {
 
     my $content_width = $args->{'box_width'} - $args->{'padding'};
 
-    my $string_width = get_image_width_based_on_parameters(
+    my $string_width = get_string_width_based_on_params(
         {   image    => $args->{'image'},
             font     => $args->{'font'},
             fontsize => $args->{'fontsize'},
@@ -205,9 +213,7 @@ sub check_string_overflows_box {
     my $formatted_string = EMPTY;
 
     $return_value = trim_string(
-        {
-
-            image         => $args->{'image'},
+        {   image         => $args->{'image'},
             font          => $args->{'font'},
             fontsize      => $args->{'fontsize'},
             string        => $args->{'string'},
@@ -244,7 +250,7 @@ sub check_string_overflows_box {
             $leftover_words .= "$word ";
         }
 
-        my $new_string_width = get_image_width_based_on_parameters(
+        my $new_string_width = get_string_width_based_on_params(
             {   image    => $args->{'image'},
                 font     => $args->{'font'},
                 fontsize => $args->{'fontsize'},
@@ -286,7 +292,7 @@ sub draw_text {
 
     );
 
-    my $new_image_width = get_image_width_based_on_parameters(
+    my $new_image_width = get_string_width_based_on_params(
         {   image    => $args->{'image'},
             font     => $args->{'font'},
             fontsize => $args->{'fontsize'},
@@ -301,7 +307,7 @@ sub draw_text {
             $new_fontsize = $args->{'fontsize'} - 2;
         }
         $args->{'image'}->set_font( $args->{'font'}, $new_fontsize );
-        $new_image_width = get_image_width_based_on_parameters(
+        $new_image_width = get_string_width_based_on_params(
             {   image    => $args->{'image'},
                 font     => $args->{'font'},
                 fontsize => $new_fontsize,

@@ -919,7 +919,7 @@
                 lcfMediaItemCallNumber: 'text-custom-12',
             };
             this.coverFlowCustomClasses = this.config.coverFlowCustomClasses || ''; // TODO: Enable selection of aspects.
-            this.coverImageExternalSources = this.config.coverImageExternalSources || false;
+            this.coverImageExternalSources = this.config.coverImageExternalSources || true;
             this.coverImageCallbackTimeout = this.config.coverImageCallbackTimeout || 500;
             this.coverFlowContext = this.config.coverFlowContext || 'default';
             this.coverFlowShelfBrowser = this.config.coverFlowShelfBrowser || false;
@@ -1882,7 +1882,7 @@
             try {
                 const checkedData = await Promise.all(this.data.checkUrls(this.callerData));
                 let formattedData = format(checkedData);
-                if (externalSources || this.config.coverImageExternalSources) {
+                if (externalSources && this.config.coverImageExternalSources) {
                     await harvestUrls(formattedData, this.container, this.config);
                 }
                 formattedData = cleanupUrls(this.config, formattedData);
