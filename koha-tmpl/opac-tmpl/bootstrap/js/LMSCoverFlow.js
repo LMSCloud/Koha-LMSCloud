@@ -1337,9 +1337,11 @@
 
     /* eslint-disable no-underscore-dangle */
     class Observable {
+        _info;
         _listeners;
         _value;
         constructor(value) {
+            this._info = null;
             this._listeners = [];
             this._value = value;
         }
@@ -1357,6 +1359,12 @@
                 this._value = val;
                 this.notify();
             }
+        }
+        get info() {
+            return this._info;
+        }
+        set info(info) {
+            this._info = info;
         }
     }
 
@@ -1882,7 +1890,7 @@
             try {
                 const checkedData = await Promise.all(this.data.checkUrls(this.callerData));
                 let formattedData = format(checkedData);
-                if (externalSources && this.config.coverImageExternalSources) {
+                if (!(externalSources.info === 'ekz')) {
                     await harvestUrls(formattedData, this.container, this.config);
                 }
                 formattedData = cleanupUrls(this.config, formattedData);
@@ -2030,7 +2038,9 @@
         header_collection: 'Collection: {starting_ccode}',
         header_close: 'Close shelf',
     }, configuration, }) {
-        if (configuration) {
+        if (configuration
+            && !(Object.keys(configuration).length === 0)
+            && Object.getPrototypeOf(configuration) === Object.prototype) {
             shelfBrowserConfig.value = configuration;
         }
         const lmsCoverFlowShelfBrowser = document.querySelectorAll('.lmscoverflow-shelfbrowser');
@@ -2099,14 +2109,14 @@
             instance.data = {
                 left: false, right: false, leftHandler: null, rightHandler: null,
             };
-            const { coce, openLibrary, google } = externalSourcesInUse;
+            const { coce, openLibrary, google, ekz, } = externalSourcesInUse;
             this.id = id;
             this.query = query;
             this.label = label;
             this.endpoint = endpoint;
             this.offset = offset;
             this.maxcount = maxcount;
-            this.externalSourceInUse = coce || openLibrary || google;
+            this.externalSourceInUse = coce || openLibrary || google || ekz;
             this.data = {};
             this.positions = {
                 left: this.offset,
@@ -2153,6 +2163,12 @@
             });
         }
         subscribeToLoadingState() {
+            if (this.externalSourceInUse
+                && Object.keys(this.externalSourceInUse).length === 0
+                && Object.getPrototypeOf(this.externalSourceInUse) === Object.prototype) {
+                externalSources.info = 'ekz';
+                return;
+            }
             externalSources.subscribe((isLoaded) => {
                 if (isLoaded) {
                     if (this.externalSourceInUse.args) {

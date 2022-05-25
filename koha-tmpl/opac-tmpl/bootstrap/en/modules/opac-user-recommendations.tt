@@ -117,16 +117,14 @@
                 KOHA.coce.getURL('[% Koha.Preference('CoceHost') | html %]', '[% Koha.Preference('CoceProviders') | html %]',[% covernewwindow | html %]);
             }
         });
-
         recommendations.then(result => renderRecommendations({result, externalSources}));
 
-    [% ELSIF OpenLibraryCovers %]
+    [% ELSIF ( OpenLibraryCovers ) %]
         externalSources.subscribe((isLoaded) => {
             if (isLoaded) {
                 KOHA.OpenLibrary.GetCoverFromIsbn();
             }
         });
-
         recommendations.then(result => renderRecommendations({result, externalSources}));
 
     [% ELSIF ( GoogleJackets ) %]
@@ -135,7 +133,9 @@
                 KOHA.Google.GetCoverFromIsbn([% covernewwindow | html %]); 
             }
         });
-
+        recommendations.then(result => renderRecommendations({result, externalSources}));
+    [% ELSIF ( Koha.Preference('EKZCover') ) %]
+        externalSources.info = 'ekz';
         recommendations.then(result => renderRecommendations({result, externalSources}));
 
     [% ELSE %]
