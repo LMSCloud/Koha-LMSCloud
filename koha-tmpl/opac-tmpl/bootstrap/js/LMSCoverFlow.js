@@ -1154,7 +1154,7 @@
                 const checkedUrls = localData.map(async (entry) => {
                     const { coverurl, coverhtml } = entry;
                     if (coverhtml && !coverurl) {
-                        return entry;
+                        return { ...entry, coverurl: await Data.processDataUrl(`${this.config.coverImageGeneratedCoverEndpoint}?title=${window.encodeURIComponent(entry.title)}`) };
                     }
                     if (coverurl && coverurl.startsWith('/')) {
                         return { ...entry, coverurl: await Data.processDataUrl(`${this.config.coverImageGeneratedCoverEndpoint}?title=${window.encodeURIComponent(entry.title)}`) };
