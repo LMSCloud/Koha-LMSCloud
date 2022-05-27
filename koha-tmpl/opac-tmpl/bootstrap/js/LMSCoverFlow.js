@@ -4,6 +4,10 @@
     (global = typeof globalThis !== 'undefined' ? globalThis : global || self, factory(global.LMSCoverFlow = {}));
 })(this, (function (exports) { 'use strict';
 
+    function nearbyItemsRequestURI({ endpoint, itemnumber, quantity, }) {
+        return `${endpoint || '/api/v1/public/coverflow_data_nearby_items/'}${itemnumber}?quantity=${quantity}`;
+    }
+
     function domParserSupport() {
         if (!window.DOMParser)
             return false;
@@ -1110,6 +1114,10 @@
         }
     }
 
+    function generatedCoverRequestURI({ endpoint, title, author }) {
+        return `${endpoint || '/api/v1/public/generated_cover'}${title ? `?title=${window.encodeURIComponent(title)}` : ''}${author ? `&author=${window.encodeURIComponent(author)}` : ''}`;
+    }
+
     /* eslint-disable max-len */
     class Data {
         config;
@@ -1153,18 +1161,12 @@
                 // eslint-disable-next-line max-len
                 const checkedUrls = localData.map(async (entry) => {
                     const { coverurl, coverhtml } = entry;
-                    if (coverhtml && !coverurl) {
-                        return { ...entry, coverurl: await Data.processDataUrl(`${this.config.coverImageGeneratedCoverEndpoint}?title=${window.encodeURIComponent(entry.title)}`) };
-                    }
-                    if (coverurl && coverurl.startsWith('/')) {
-                        return { ...entry, coverurl: await Data.processDataUrl(`${this.config.coverImageGeneratedCoverEndpoint}?title=${window.encodeURIComponent(entry.title)}`) };
-                    }
-                    if (!coverurl) {
+                    if ((coverhtml && !coverurl) || (coverurl && coverurl.startsWith('/')) || !coverurl) {
                         return {
                             ...entry,
                             coverurl: this.config.coverImageFallbackUrl !== this.config.coverImageGeneratedCoverEndpoint
                                 ? this.config.coverImageFallbackUrl
-                                : await Data.processDataUrl(`${this.config.coverImageGeneratedCoverEndpoint}?title=${window.encodeURIComponent(entry.title)}`),
+                                : await Data.processDataUrl(generatedCoverRequestURI({ title: entry.title })),
                         };
                     }
                     const fileExists = await this.checkIfFileExists(coverurl);
@@ -1173,7 +1175,7 @@
                             ...entry,
                             coverurl: this.config.coverImageFallbackUrl !== this.config.coverImageGeneratedCoverEndpoint
                                 ? this.config.coverImageFallbackUrl
-                                : await Data.processDataUrl(`${this.config.coverImageGeneratedCoverEndpoint}?title=${window.encodeURIComponent(entry.title)}`),
+                                : await Data.processDataUrl(generatedCoverRequestURI({ title: entry.title })),
                         };
                     }
                     return entry;
@@ -1442,12 +1444,12 @@
                             }
                             else {
                                 /** We can't await the result here because of setTimeout. */
-                                dataReference[id].coverurl = Data.processDataUrl(`${config.coverImageGeneratedCoverEndpoint}?title=${window.encodeURIComponent(dataReference[id].title)}`);
+                                dataReference[id].coverurl = Data.processDataUrl(generatedCoverRequestURI({ title: dataReference[id.title] }));
                             }
                             harvesterElements.forEach((node) => {
                                 const nodeId = getLcfItemId(node);
                                 if (!resultIds.includes(nodeId)) {
-                                    dataReference[nodeId].coverurl = Data.processDataUrl(`${config.coverImageGeneratedCoverEndpoint}?title=${window.encodeURIComponent(dataReference[nodeId].title)}`);
+                                    dataReference[nodeId].coverurl = Data.processDataUrl(generatedCoverRequestURI({ title: dataReference[nodeId].title }));
                                 }
                             });
                         });
@@ -1479,7 +1481,7 @@
                             }
                             else {
                                 /** We can't await the result here because of setTimeout. */
-                                dataReference[id].coverurl = Data.processDataUrl(`${config.coverImageGeneratedCoverEndpoint}?title=${window.encodeURIComponent(dataReference[id].title)}`);
+                                dataReference[id].coverurl = Data.processDataUrl(generatedCoverRequestURI({ title: dataReference[id].title }));
                             }
                         });
                         clearHarvester(container);
@@ -1560,26 +1562,6 @@
         catch (error) {
             console.trace(`Looks like something went wrong in in ${this.checkIfFileExists.name} ->`, error);
             return error;
-        }
-    }
-
-    class ErrorLogger {
-        messages;
-        constructor() {
-            this.messages = [];
-        }
-        log(message, containerReference) {
-            const date = new Date();
-            const datePrefix = `${date.getDate()}/${date.getMonth() + 1}/${date.getFullYear()}@${date.getHours()}:${date.getMinutes()}:${date.getSeconds()}`;
-            this.messages.push(`${datePrefix}\t[${containerReference}]\t${message}`);
-        }
-        show() {
-            let output = '';
-            this.messages.forEach((message) => {
-                output += `${message}
-      `;
-            });
-            console.log(output);
         }
     }
 
@@ -1865,7 +1847,6 @@
             this.callerConfiguration = configuration;
             this.callerData = data;
             this.callerContainer = element;
-            this.logger = new ErrorLogger();
             this.updateGlobals();
         };
         this.setConfig = (configuration) => {
@@ -1925,10 +1906,7 @@
                 }
             }
             catch (error) {
-                if (this.config.debug) {
-                    this.logger.log(error, this.container.coverFlowId);
-                    this.logger.show();
-                }
+                console.trace(`Looks like something went wrong in ${this.render.name} ->`, error);
             }
             /** Autoscroll logic. */
             addAutoScroll({ config: this.config, container: this.container });
@@ -1989,8 +1967,7 @@
         lmscoverflow.render();
     }
 
-    async function fetchItemData(endpoint, itemnumber, countItems) {
-        const url = `${endpoint}${itemnumber}?quantity=${countItems}`;
+    async function fetchItemData(requestURI) {
         const options = {
             method: 'GET',
             mode: 'cors',
@@ -2001,7 +1978,7 @@
             },
             redirect: 'follow',
         };
-        const response = await fetch(url, options);
+        const response = await fetch(requestURI, options);
         return response.json();
     }
 
@@ -2009,7 +1986,6 @@
     async function loadNewShelfBrowserItems(nearbyItems, buttonDirection) {
         const { previousItemNumber, nextItemNumber } = nearbyItems;
         const coverFlowId = 'lmscoverflow';
-        const shelfBrowserEndpoint = '/api/v1/public/coverflow_data_nearby_items/';
         const args = {
             extendedCoverFlow: true,
             buttonDirection,
@@ -2018,11 +1994,11 @@
             coverFlowId,
         };
         if (buttonDirection === 'left' && previousItemNumber) {
-            const resultPrevious = fetchItemData(shelfBrowserEndpoint, previousItemNumber, 1);
+            const resultPrevious = fetchItemData(nearbyItemsRequestURI({ itemnumber: previousItemNumber, quantity: 1 }));
             resultPrevious.then((result) => extendCurrentCoverFlow({ newlyLoadedItems: result, ...args }));
         }
         else if (buttonDirection === 'right' && nextItemNumber) {
-            const resultNext = fetchItemData(shelfBrowserEndpoint, nextItemNumber, 1);
+            const resultNext = fetchItemData(nearbyItemsRequestURI({ itemnumber: nextItemNumber, quantity: 1 }));
             resultNext.then((result) => extendCurrentCoverFlow({ newlyLoadedItems: result, ...args }));
         }
         else {
@@ -2061,7 +2037,6 @@
                 node.addEventListener('click', async (e) => {
                     e.preventDefault();
                     const target = e.target;
-                    const shelfBrowserEndpoint = '/api/v1/public/coverflow_data_nearby_items/';
                     /** If new shelves are opened, the event listeners for the
                          * previous shelf have to be removed. The instance properties
                          * of left and right have to be reset to false again, so the
@@ -2076,7 +2051,7 @@
                     instance.setRightToFalse();
                     const { /* biblionumber, */ itemnumber } = target.dataset;
                     removeChildNodes(document.getElementById(coverFlowId));
-                    const result = await fetchItemData(shelfBrowserEndpoint, itemnumber, 7);
+                    const result = await fetchItemData(nearbyItemsRequestURI({ itemnumber, quantity: 7 }));
                     shelfBrowserHeading.classList.add('border', 'border-secondary', 'rounded', 'p-3', 'w-75', 'centered', 'mx-auto', 'shadow-sm', 'text-center');
                     shelfBrowserHeading.textContent = `
                     ${(result.starting_homebranch && result.starting_homebranch.description) ? header.header_browsing.replace('{starting_homebranch}', result.starting_homebranch.description) : ''}${(result.starting_location && result.starting_location.description) ? ',' : ''}
@@ -2091,6 +2066,10 @@
             });
         };
         main();
+    }
+
+    function byQueryRequestURI({ endpoint, query, offset, maxcount, }) {
+        return `${endpoint || '/api/v1/public/coverflow_data_query'}?query=${query}&offset=${offset}&maxcount=${maxcount}`;
     }
 
     class CoverflowByQuery {
@@ -2142,25 +2121,15 @@
             };
             this.renderHeader();
         }
-        async fetchItemData() {
-            const url = `${this.endpoint}?query=${this.query}&offset=${this.offset}&maxcount=${this.maxcount}`;
-            const options = {
-                method: 'GET',
-                mode: 'cors',
-                cache: 'no-cache',
-                credentials: 'same-origin',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                redirect: 'follow',
-            };
-            const response = await fetch(url, options);
-            this.data = await response.json();
-            /** Add referenceToDetailsView to the resulting object. */
+        async prepareCoverflow() {
+            this.data = await fetchItemData(byQueryRequestURI({ query: this.query, offset: this.offset, maxcount: this.maxcount }));
             this.data.items.forEach((item) => {
                 const record = item;
                 record.referenceToDetailsView = `/cgi-bin/koha/opac-detail.pl?biblionumber=${item.biblionumber}`;
             });
+            if (this.externalSourceInUse) {
+                this.subscribeToLoadingState();
+            }
         }
         subscribeToLoadingState() {
             if (this.externalSourceInUse
@@ -2188,19 +2157,13 @@
             };
             if (buttonDirection === 'left' && this.positions.left > 0) {
                 this.offset -= this.maxcount;
-                await this.fetchItemData();
-                if (this.externalSourceInUse) {
-                    this.subscribeToLoadingState();
-                }
+                this.prepareCoverflow();
                 this.render();
                 this.positions.left -= this.data.count;
             }
             else if (buttonDirection === 'right' && this.positions.right < this.data.totalcount) {
                 this.offset += this.maxcount;
-                await this.fetchItemData();
-                if (this.externalSourceInUse) {
-                    this.subscribeToLoadingState();
-                }
+                this.prepareCoverflow();
                 this.render();
                 this.positions.right += this.data.count;
             }
