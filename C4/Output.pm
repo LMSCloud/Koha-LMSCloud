@@ -298,7 +298,7 @@ sub output_with_http_headers {
 
     if ( $content_type ne 'zip' ) {
         $data =~ s/\&amp\;amp\; /\&amp\; /g;
-        # binmode(STDOUT, ":encoding($characterset)");
+        binmode(STDOUT, ":encoding($characterset)");
         print $query->header($options), $data;
     } else {
         print $query->header($options), $data;
