@@ -2245,7 +2245,7 @@ sub getFinesOverview {
             WHERE  r.branchcode = br.branchcode
                AND $cashdateselect $cashregisterselect
                AND c.cash_register_id  = r.id
-               AND c.action NOT IN ('OPEN','CLOSE','REVERSE_PAYMENT','CREDIT_PAYOUT)
+               AND c.action NOT IN ('OPEN','CLOSE','REVERSE_PAYMENT','CREDIT_PAYOUT')
             GROUP BY
                    r.name, c.action, c.reason, l.credit_type_code
             UNION ALL
@@ -2260,7 +2260,7 @@ sub getFinesOverview {
             WHERE  r.branchcode = br.branchcode
                AND $cashdateselect $cashregisterselect
                AND c.cash_register_id  = r.id
-               AND c.action IN ('REVERSE_PAYMENT','CREDIT_PAYOUT)
+               AND c.action IN ('REVERSE_PAYMENT','CREDIT_PAYOUT')
                AND c.booking_amount > 0.00
             GROUP BY
                    r.name, c.action, c.reason, l.credit_type_code
@@ -2276,7 +2276,7 @@ sub getFinesOverview {
             WHERE  r.branchcode = br.branchcode
                AND $cashdateselect $cashregisterselect
                AND c.cash_register_id  = r.id
-               AND c.action IN ('REVERSE_PAYMENT','CREDIT_PAYOUT)
+               AND c.action IN ('REVERSE_PAYMENT','CREDIT_PAYOUT')
                AND c.booking_amount < 0.00
             GROUP BY
                    r.name, c.action, c.reason, l.credit_type_code
