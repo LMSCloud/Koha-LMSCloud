@@ -889,7 +889,7 @@
             </xsl:when>
                 <!-- #1807 Strip unwanted parenthesis from subjects for searching -->
             <xsl:otherwise>
-                <xsl:attribute name="href">/cgi-bin/koha/opac-search.pl?q=su<xsl:value-of select="$SubjectModifier"/>:<xsl:value-of select="$TracingQuotesLeft"/><xsl:value-of select="str:encode-uri(translate(marc:subfield[@code='a'],'()',''), true())"/><xsl:value-of select="$TracingQuotesRight"/></xsl:attribute>
+                <xsl:attribute name="href">/cgi-bin/koha/opac-search.pl?q=su<xsl:value-of select="$SubjectModifier"/>:<xsl:value-of select="$TracingQuotesLeft"/><xsl:value-of select="str:encode-uri(translate(marc:subfield[@code='a'],'();','   '), true())"/><xsl:value-of select="$TracingQuotesRight"/></xsl:attribute>
             </xsl:otherwise>
             </xsl:choose>
             <xsl:call-template name="chopPunctuation">
@@ -2231,7 +2231,7 @@
                     <xsl:if test="contains($subdivCodes, @code)">
                         <xsl:value-of select="$subdivDelimiter"/>
                     </xsl:if>
-                    <xsl:value-of select="$prefix"/><xsl:value-of select="translate(text(),'()','')"/><xsl:value-of select="$suffix"/><xsl:value-of select="$delimeter"/>
+                    <xsl:value-of select="$prefix"/><xsl:value-of select="translate(text(),'();','   ')"/><xsl:value-of select="$suffix"/><xsl:value-of select="$delimeter"/>
                 </xsl:if>
             </xsl:for-each>
         </xsl:variable>

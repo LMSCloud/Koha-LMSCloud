@@ -1139,7 +1139,7 @@
          <xsl:for-each select="marc:datafield[substring(@tag, 1, 1) = '6' and marc:subfield[@code='a'] != ''][not(@tag=653 or @tag=655 or @tag=689)]">
          <xsl:text> | </xsl:text> 
          <a>
-            <xsl:attribute name="href">/cgi-bin/koha/opac-search.pl?q=su<xsl:value-of select="$SubjectModifier"/>:<xsl:value-of select="$TracingQuotesLeft"/><xsl:value-of select="translate(marc:subfield[@code='a'],'();','')"/><xsl:value-of select="$TracingQuotesRight"/></xsl:attribute>
+            <xsl:attribute name="href">/cgi-bin/koha/opac-search.pl?q=su<xsl:value-of select="$SubjectModifier"/>:<xsl:value-of select="$TracingQuotesLeft"/><xsl:value-of select="translate(marc:subfield[@code='a'],'();','   ')"/><xsl:value-of select="$TracingQuotesRight"/></xsl:attribute>
             <xsl:call-template name="chopPunctuation">
                  <xsl:with-param name="chopString">
                      <xsl:call-template name="subfieldSelect">
