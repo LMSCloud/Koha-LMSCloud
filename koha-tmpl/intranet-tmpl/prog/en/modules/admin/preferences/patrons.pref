@@ -206,6 +206,11 @@ Patrons:
                never: never
                preferences: according to patron messaging preferences
                cron: (Deprecated) according to --send-notices cron switch
+     -
+         - "Provide a list of letter codes (separate multiple codes with |) which can be used to send adhoc notices (available in the patron result list).<br />"
+         - pref: AdhocNoticesLetterCodes
+           class: multi
+         - "<br />An asterix can be used as wildcard character to match multiple letter codes."
     Patron forms:
      -
          - "The following <a href='http://schema.koha-community.org/__VERSION__/tables/borrowers.html' target='blank'>database columns</a> must be filled in on the patron entry screen:"
@@ -350,11 +355,6 @@ Patrons:
          - pref: PatronRemovalDelay
          - "days.<br>IMPORTANT: No action is performed when these delays are empty (no text). But a zero value ('0') is interpreted as no delay (do it now)! The actions are performed by the cleanup database cron job."
     Security:
-     -
-         - "Provide a list of letter codes (separate multiple codes with |) which can be used to send adhoc notices (available in the patron result list).<br />"
-         - pref: AdhocNoticesLetterCodes
-           class: multi
-         - "<br />An asterix can be used as wildcard character to match multiple letter codes."
      -
          - Login passwords for staff and patrons must be at least
          - pref: minPasswordLength
