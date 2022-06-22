@@ -404,7 +404,6 @@ Circulation:
         -
             - "Send all notices as a BCC to this email address:"
             - pref: NoticeBcc
-              class: email
         -
             - Consider
             - pref: OverdueNoticePeriodCalculationMethod
