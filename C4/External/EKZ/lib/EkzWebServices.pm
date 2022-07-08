@@ -64,7 +64,7 @@ sub new {
     $self->{'url'} = EKZWSURL;
 
     my $ua = LWP::UserAgent->new;
-    $ua->timeout(60);
+    $ua->timeout(900);
     $ua->env_proxy;
     $ua->ssl_opts( "verify_hostname" => 0 );
     push @{ $ua->requests_redirectable }, 'POST';
