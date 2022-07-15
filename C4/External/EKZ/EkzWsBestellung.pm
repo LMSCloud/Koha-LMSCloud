@@ -171,6 +171,8 @@ sub BestelleBeiEkz {
                     $aqbasketgroupRes->{aqorders}->{$aqorders_hit->{'ordernumber'}} = 
                         { ordernumber => $aqorders_hit->{'ordernumber'},
                           biblionumber => $aqorders_hit->{'biblionumber'},
+                          quantity => $aqorders_hit->{'quantity'},
+                          orderstatus => $aqorders_hit->{'orderstatus'},
                           orderitemnumbers => []
                         };
                     my $query_aqorders_items = "SELECT * FROM aqorders_items WHERE ordernumber = ? ORDER BY itemnumber ";
@@ -182,6 +184,20 @@ sub BestelleBeiEkz {
                         push @{$aqbasketgroupRes->{aqorders}->{$aqorders_hit->{'ordernumber'}}->{orderitemnumbers}}, $aqorders_items_hit->{'itemnumber'};
                     }
                     $sth->finish();    # finish $query_aqorders_items
+
+                    # Do not accept Koha orders with order status != 'new' or quantity == 0 or without aqorders_items.
+                    # If no regular (new, ordered, etc.) order with items exists in this aqbasket at all, then no BestellInfo request for this aqbasket/aqbasketgroup will be sent.
+                    if ( $aqorders_hit->{'orderstatus'} eq 'cancelled' ||
+                         $aqorders_hit->{'quantity'} < 1 ||
+                         scalar @{$aqbasketgroupRes->{aqorders}->{$aqorders_hit->{'ordernumber'}}->{orderitemnumbers}} < 1 ) {
+
+                        my $mess = sprintf("warning: Koha aqorder is skipped! (ordernumber:%s: orderstatus:%s: quantity:%s: items:%s:.",
+                                            $aqorders_hit->{'ordernumber'}, $aqorders_hit->{'orderstatus'}, $aqorders_hit->{'quantity'},
+                                            scalar @{$aqbasketgroupRes->{aqorders}->{$aqorders_hit->{'ordernumber'}}->{orderitemnumbers}});
+                        $logger->warn("BestelleBeiEkz() error: $mess");
+
+                        next;    # trying our luck with next aqorders hit
+                    }
 
                     # set aqorder specific parameters for callWsBestellung (representing all items of one title)
                     
@@ -338,7 +354,11 @@ sub BestelleBeiEkz {
                     $param->{titel}->[$iTitel]->{exemplar}->[0]->{lmsExemplarID} = $aqorders_hit->{'ordernumber'} . '';    # force type to string
 
                     # exemplar konfiguration info
-                    $param->{titel}->[$iTitel]->{exemplar}->[0]->{konfiguration}->{anzahl} = $aqorders_hit->{'quantity'};    # required
+                    my $minQuantity = scalar @{$aqbasketgroupRes->{aqorders}->{$aqorders_hit->{'ordernumber'}}->{orderitemnumbers}};
+                    if ( $aqorders_hit->{'quantity'} < $minQuantity ) {
+                        $minQuantity = $aqorders_hit->{'quantity'};
+                    }
+                    $param->{titel}->[$iTitel]->{exemplar}->[0]->{konfiguration}->{anzahl} = $minQuantity;    # required
 
                     #$param->{titel}->[$iTitel]->{exemplar}->[0]->{konfiguration}->{besteller} = '';    # not required (string maxlength 30)
 
@@ -397,6 +417,17 @@ sub BestelleBeiEkz {
                 }    # end foreach my $aqorders_hit ( @{$aqorders_hits} )
 
                 $sth->finish();    # finish $query_aqorders
+
+                # If this aqbasket does not refer to at least one valid aqorders record, then no BestellInfo request for this aqbasket/aqbasketgroup will be sent.
+                if ( $iTitel < 1 ) {
+                    my $mess = sprintf("aqbasket with basketno:%s: does not refer to any aqorder with regular orderstatus (new, ordered, etc.) and at least one item.",$aqbasket_hit->{basketno});
+                    $logger->warn("BestelleBeiEkz() error: $mess");
+                    $aqbasketgroupRes->{errorText} = $mess;
+                    $aqbasketgroupRes->{resultStatus} = 0;
+                    push @{$result}, $aqbasketgroupRes;
+                    $sth->finish();    # finish $query_aqbasket
+                    last;    # ignore further aqbasket hits in this aqbasketgroup - they must not exist, according to the specification
+                }
 
                 # finally set total price parameter and auftragsnummer for callWsBestellung
                 $param->{gesamtpreis} = $gesamtpreisSum;
