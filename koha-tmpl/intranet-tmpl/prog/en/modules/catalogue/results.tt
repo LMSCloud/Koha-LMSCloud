@@ -454,13 +454,13 @@
                 </div>
             [% END %]
             
-            [% IF ( SEARCH_RESULT.url && Koha.Preference('EKZCover') ) %]
+            [% IF ( SEARCH_RESULT.titlecoverurls && (Koha.Preference('EKZCover') || Koha.Preference('DivibibEnabled')) ) %]
                 [% FOREACH myurl IN SEARCH_RESULT.titlecoverurls %] 
                 <div id="ekzcover-[% SEARCH_RESULT.biblionumber | html %]" class="cover-image ekzcover-coverimg">
                     <img src="[% myurl %]" width="170" title="[% SEARCH_RESULT.biblionumber |url %]"></img>[% LAST %]
                 </div>
                 [% END # /FOREACH  %]
-            [% END # / IF url %]
+            [% END # / IF titlecoverurls %]
 
             [% IF ( AmazonCoverImages && SEARCH_RESULT.normalized_isbn ) %]
                 <div id="amazon-bookcoverimg-[% SEARCH_RESULT.biblionumber | html %]" class="cover-image amazon-bookcoverimg">

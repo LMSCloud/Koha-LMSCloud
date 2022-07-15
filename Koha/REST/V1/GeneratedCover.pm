@@ -18,7 +18,7 @@ package Koha::REST::V1::GeneratedCover;
 use Modern::Perl;
 use utf8;
 
-use C4::CoverGen;
+use Koha::CoverGenerator;
 
 use Mojo::Base 'Mojolicious::Controller';
 
@@ -58,7 +58,7 @@ sub get {
     my $second_line = $c->validation->param('title');
 
     try {
-        my $generated_cover_image_source = C4::CoverGen::render_image(
+        my $cover_generator = Koha::CoverGenerator->new(
             {   first_line  => $first_line,
                 second_line => $second_line,
                 font        => FONT,
@@ -67,8 +67,10 @@ sub get {
                 height      => HEIGHT,
                 fontsize    => FONTSIZE,
                 padding     => PADDING,
-            },
+            }
         );
+
+        my $generated_cover_image_source = $cover_generator->render_image();
 
         if ( !$generated_cover_image_source ) {
             return $c->render(

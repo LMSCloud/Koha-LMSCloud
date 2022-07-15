@@ -1703,7 +1703,7 @@ CREATE TABLE `cash_register_account` (
   `booking_time` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT 'when was this entry created ',
   `accountlines_id` int(11) default NULL COMMENT 'an accountline booking to which this entry relates to (accountlines.accountlines_id)',
   `current_balance` decimal(28,6) NOT NULL COMMENT 'current balance of the cashier',
-  `action` varchar(20) NOT NULL COMMENT 'which action was performed: OPEN, CLOSE, PAYMENT, REVERSE_PAYMENT, CREDIT, ADJUSTMENT, PAYOUT',
+  `action` varchar(20) NOT NULL COMMENT 'which action was performed: OPEN, CLOSE, PAYMENT, REVERSE_PAYMENT, CREDIT_PAYOUT, CREDIT, ADJUSTMENT, PAYOUT',
   `booking_amount`  decimal(28,6) default NULL COMMENT 'booked amount (can be positive or negative)',
   `description` longtext COMMENT 'explains the transaction',
   `reason` varchar(250) COMMENT 'specify a reason for payouts and payments (controlled with authorised_values category CASHREG_PAYOUT)',

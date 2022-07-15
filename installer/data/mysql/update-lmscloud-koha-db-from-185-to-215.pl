@@ -1075,6 +1075,7 @@ sub updateSimpleVariables {
     $dbh->do(q{UPDATE systempreferences SET value='address,zipcode,city,email,phone' WHERE variable='PrefillGuaranteeField'});
     $dbh->do(q{UPDATE systempreferences SET value='0' WHERE variable='PreserveSerialNotes'});
     $dbh->do(q{UPDATE systempreferences SET value='0.07|0.19|0.00' WHERE variable='TaxRates'});
+    $dbh->do(q{UPDATE systempreferences SET value='OFF' WHERE variable='itemBarcodeInputFilter'});
     $dbh->do(q{UPDATE systempreferences SET value='1' WHERE variable='TrapHoldsOnOrder'});
     $dbh->do(q{UPDATE systempreferences SET value='no_charge' WHERE variable='ClaimReturnedChargeFee'});
     $dbh->do(q{UPDATE systempreferences SET value='[{ "name": "ElasticsearchSuggester", "enabled": 1}, { "name": "AuthorityFile"}, { "name": "ExplodedTerms"}, { "name": "LibrisSpellcheck"}]' WHERE variable='OPACdidyoumean'});
@@ -1556,6 +1557,18 @@ sub updateIntranetMainUserBlock {
     }
 }
 
+sub replaceQuotemeta {
+    my $str = shift;
+    my $search = shift;
+    my $replace = shift;
+    
+    $search = quotemeta $search;
+    
+    $str =~ s/$search/$replace/e;
+    
+    return $str;
+}
+
 sub updateOPACUserJS {
     my $dbh = C4::Context->dbh;
     my $sth = $dbh->prepare("SELECT value,variable FROM systempreferences WHERE variable = 'OPACUserJS'");
@@ -1570,7 +1583,11 @@ sub updateOPACUserJS {
         
         $value =~ s/\.holdingst/'#holdingst'/eg;
         $value =~ s/[\n][ \t]*\$\("\.link-collection-collapse-toggle"\)\.on\([^}]+\}\);[ \t]*//s;
-
+        
+        $value = replaceQuotemeta($value,q/$('#wrap').after(/,q/$('#wrapper').after(/);
+        $value = replaceQuotemeta($value,q/$('<div>').attr('class','navbar navbar-fixed-bottom navbar-static-bottom noprint').append(/,q/$('<div>').attr('class','navbar-fixed-bottom navbar-static-bottom noprint').append(/);
+        $value = replaceQuotemeta($value,q/$('<div>').attr('class','navbar-inner').append(/,q/$('<div>').attr('class','navbar-inner').attr('style','background: #f0f3f3; margin-top:20px; margin-left:30px; margin-right:30px; padding-top: 3px').append(/);
+        
         if ( $origvalue ne $value ) {
             $dbh->do("UPDATE systempreferences SET value=? WHERE variable=?", undef, $value, $variable);
             print "Updated value of variable $variable\n";

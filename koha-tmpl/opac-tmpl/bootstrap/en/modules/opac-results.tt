@@ -405,7 +405,7 @@
                                                             </span>
                                                         [% END %]
 
-                                                        [% IF ( SEARCH_RESULT.url && (Koha.Preference('EKZCover') || Koha.Preference('DivibibEnabled')) ) %]
+                                                        [% IF ( SEARCH_RESULT.titlecoverurls && (Koha.Preference('EKZCover') || Koha.Preference('DivibibEnabled')) ) %]
                                                             [% FOREACH myurl IN SEARCH_RESULT.titlecoverurls %] 
                                                                 <img src="[% myurl %]" class="ekzcover" title="[% SEARCH_RESULT.biblionumber |url %]"></img>[% LAST %]
                                                             [% END # /FOREACH  %]

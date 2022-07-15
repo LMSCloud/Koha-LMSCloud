@@ -1191,37 +1191,37 @@ biblios:
       - facet: 1
         marc_field: 100a
         marc_type: marc21
-        sort: ~
+        sort: 1
         suggestible: 1
       - facet: 1
         marc_field: 110a
         marc_type: marc21
-        sort: ~
+        sort: 1
         suggestible: 1
       - facet: 1
         marc_field: 111a
         marc_type: marc21
-        sort: ~
+        sort: 1
         suggestible: 1
       - facet: ''
         marc_field: 245c
         marc_type: marc21
-        sort: ~
+        sort: 0
         suggestible: ''
       - facet: 1
         marc_field: 700a
         marc_type: marc21
-        sort: ~
+        sort: 1
         suggestible: 1
       - facet: 1
         marc_field: 900a
         marc_type: marc21
-        sort: ~
+        sort: 0
         suggestible: 1
       - facet: 1
         marc_field: 200f
         marc_type: unimarc
-        sort: ~
+        sort: 1
         suggestible: 1
       - facet: 1
         marc_field: 200g
@@ -4106,37 +4106,37 @@ biblios:
       - facet: ''
         marc_field: 130
         marc_type: marc21
-        sort: ~
+        sort: 0
         suggestible: ''
       - facet: ''
         marc_field: 210
         marc_type: marc21
-        sort: ~
+        sort: 0
         suggestible: ''
       - facet: ''
         marc_field: 211
         marc_type: marc21
-        sort: ~
+        sort: 0
         suggestible: ''
       - facet: ''
         marc_field: 212
         marc_type: marc21
-        sort: ~
+        sort: 0
         suggestible: ''
       - facet: ''
         marc_field: 214
         marc_type: marc21
-        sort: ~
+        sort: 0
         suggestible: ''
       - facet: ''
         marc_field: 222
         marc_type: marc21
-        sort: ~
+        sort: 0
         suggestible: ''
       - facet: ''
         marc_field: 240
         marc_type: marc21
-        sort: ~
+        sort: 0
         suggestible: ''
       - facet: ''
         marc_field: 245a
@@ -4176,57 +4176,57 @@ biblios:
       - facet: ''
         marc_field: 246
         marc_type: marc21
-        sort: ~
+        sort: 0
         suggestible: 1
       - facet: ''
         marc_field: 247
         marc_type: marc21
-        sort: ~
+        sort: 0
         suggestible: 1
       - facet: ''
         marc_field: 490a
         marc_type: marc21
-        sort: ~
+        sort: 0
         suggestible: 1
       - facet: ''
         marc_field: 505t
         marc_type: marc21
-        sort: ~
+        sort: 0
         suggestible: 1
       - facet: ''
         marc_field: 700t
         marc_type: marc21
-        sort: ~
+        sort: 0
         suggestible: 1
       - facet: ''
         marc_field: 710t
         marc_type: marc21
-        sort: ~
+        sort: 0
         suggestible: 1
       - facet: ''
         marc_field: 711t
         marc_type: marc21
-        sort: ~
+        sort: 0
         suggestible: 1
       - facet: ''
         marc_field: 730
         marc_type: marc21
-        sort: ~
+        sort: 0
         suggestible: ''
       - facet: ''
         marc_field: 740
         marc_type: marc21
-        sort: ~
+        sort: 0
         suggestible: ''
       - facet: ''
         marc_field: 780
         marc_type: marc21
-        sort: ~
+        sort: 0
         suggestible: ''
       - facet: ''
         marc_field: 785
         marc_type: marc21
-        sort: ~
+        sort: 0
         suggestible: ''
       - facet: ''
         marc_field: 200a

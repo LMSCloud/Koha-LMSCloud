@@ -10,6 +10,7 @@
 [%    SWITCH action %]
 [%        CASE 'PAYMENT'         %]Patron payment
 [%        CASE 'REVERSE_PAYMENT' %]Reverse payment
+[%        CASE 'CREDIT_PAYOUT'   %]Credit payout
 [%        CASE 'ADJUSTMENT'      %]Difference posting
 [%        CASE 'PAYOUT'          %]Cash payment
 [%        CASE 'DEPOSIT'         %]Deposit
