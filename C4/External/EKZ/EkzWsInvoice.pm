@@ -965,26 +965,30 @@ sub genKohaRecords {
                         if ( defined $itemnumber && $itemnumber > 0 ) {
 
                             # update items set <fields like specified in ekzWebServicesSetItemSubfieldsWhenInvoiced> where itemnumber = <itemnumber from above Koha::Item->new() call>
-                            my $itemHitRs = undef;
-                            my $res = undef;
-                            $itemHitRs = Koha::Items->new()->_resultset()->find( { itemnumber => $itemnumber } );
-                            $logger->trace("genKohaRecords() method4: itemHitRs->{_column_data}:" . Dumper($itemHitRs->{_column_data}) . ":");
-                            if ( defined $itemHitRs ) {
+                            my $itemHitRs = Koha::Items->new()->_resultset();
+                            my $itemSelParam = { itemnumber => $itemnumber };
+                            my $itemHitCount = $itemHitRs->count( $itemSelParam );
+                            my $itemHit = $itemHitRs->find( $itemSelParam );
+                            $logger->trace("genKohaRecords() method4: searched for itemnumber:$itemnumber: itemHitCount:$itemHitCount: itemHit->{_column_data}:" . Dumper($itemHit->{_column_data}) . ":");
+                            if ( $itemHitCount > 0 && defined($itemHit->{_column_data}) ) {
                                 # configurable items record field update via C4::Context->preference("ekzWebServicesSetItemSubfieldsWhenInvoiced")
                                 # e.g. setting the 'item available' state (or 'item processed internally' state) in items.notforloan
                                 if ( defined($ekzWebServicesSetItemSubfieldsWhenInvoiced) && length($ekzWebServicesSetItemSubfieldsWhenInvoiced) > 0 ) {
                                     my @affects = split q{\|}, $ekzWebServicesSetItemSubfieldsWhenInvoiced;
+                                    $logger->debug("genKohaRecords() method4: has to do " . scalar @affects . " affects");
                                     if ( @affects ) {
                                         my $frameworkcode = C4::Biblio::GetFrameworkCode($biblionumber);
                                         my ( $itemfield ) = C4::Biblio::GetMarcFromKohaField( 'items.itemnumber', $frameworkcode );
                                         my $item = C4::Items::GetMarcItem( $biblionumber, $itemnumber );
-                                        for my $affect ( @affects ) {
-                                            my ( $sf, $v ) = split('=', $affect, 2);
-                                            foreach ( $item->field($itemfield) ) {
-                                                $_->update( $sf => $v );
+                                        if ( $item ) {
+                                            for my $affect ( @affects ) {
+                                                my ( $sf, $v ) = split('=', $affect, 2);
+                                                foreach ( $item->field($itemfield) ) {
+                                                    $_->update( $sf => $v );
+                                                }
                                             }
+                                            C4::Items::ModItemFromMarc( $item, $biblionumber, $itemnumber );
                                         }
-                                        C4::Items::ModItemFromMarc( $item, $biblionumber, $itemnumber );
                                     }
                                 }
                             }
@@ -1335,35 +1339,54 @@ sub processItemHit
     my $titleItemObjectRS = $titleItemObject->_resultset()->search($selParam)->first();
     my $itemnumber = $titleItemObjectRS->get_column('koha_object_id');
     $logger->trace("processItemHit() titleItemObjectRS->{_column_data}:" . Dumper($titleItemObjectRS->{_column_data}) . ":");
-    $logger->trace("processItemHit() update item with itemnumber:" . $itemnumber . ":");
+    $logger->trace("processItemHit() candidate item for update has itemnumber:" . $itemnumber . ":");
     
     # 2. step: update items set <fields like specified in ekzWebServicesSetItemSubfieldsWhenInvoiced> where itemnumber = acquisition_import_objects.koha_object_id (from above result)
     #          and, if configured so, update Koha acquisition data via processItemInvoice()
-    my $itemHitRs = undef;
+    my $itemHitCount = 0;
+    my $itemHit = undef;
     my $res = undef;
     if ( defined $titleItemObjectRS && defined $itemnumber ) {
-        $itemHitRs = Koha::Items->new()->_resultset()->find( { itemnumber => $itemnumber } );
-        $logger->trace("processItemHit() 1. itemHitRs->{_column_data}:" . Dumper($itemHitRs->{_column_data}) . ":");
-        if ( defined $itemHitRs ) {
+        my $itemHitRs = Koha::Items->new()->_resultset();
+        my $itemSelParam = { itemnumber => $itemnumber };
+        $itemHitCount = $itemHitRs->count( $itemSelParam );
+        $itemHit = $itemHitRs->find( $itemSelParam );
+        $logger->trace("processItemHit() searched for itemnumber:$itemnumber: itemHitCount:$itemHitCount: itemHit->{_column_data}:" . Dumper($itemHit->{_column_data}) . ":");
+
+        if ( $itemHitCount > 0 && defined($itemHit->{_column_data}) ) {
             # configurable items record field update via C4::Context->preference("ekzWebServicesSetItemSubfieldsWhenInvoiced")
             # e.g. setting the 'item available' state (or 'item processed internally' state) in items.notforloan
             if ( defined($ekzWebServicesSetItemSubfieldsWhenInvoiced) && length($ekzWebServicesSetItemSubfieldsWhenInvoiced) > 0 ) {
                 my @affects = split q{\|}, $ekzWebServicesSetItemSubfieldsWhenInvoiced;
+                $logger->debug("processItemHit() has to do " . scalar @affects . " affects");
                 if ( @affects ) {
                     my $frameworkcode = C4::Biblio::GetFrameworkCode($biblionumber);
                     my ( $itemfield ) = C4::Biblio::GetMarcFromKohaField( 'items.itemnumber', $frameworkcode );
                     my $item = C4::Items::GetMarcItem( $biblionumber, $itemnumber );
-                    for my $affect ( @affects ) {
-                        my ( $sf, $v ) = split('=', $affect, 2);
-                        foreach ( $item->field($itemfield) ) {
-                            $_->update( $sf => $v );
+                    if ( $item ) {
+                        for my $affect ( @affects ) {
+                            my ( $sf, $v ) = split('=', $affect, 2);
+                            foreach ( $item->field($itemfield) ) {
+                                $_->update( $sf => $v );
+                            }
                         }
+                        C4::Items::ModItemFromMarc( $item, $biblionumber, $itemnumber );
+                        $logger->trace("processItemHit() after calling C4::Items::ModItemFromMarc biblionumber:$biblionumber: itemnumber:$itemnumber:");
                     }
-                    C4::Items::ModItemFromMarc( $item, $biblionumber, $itemnumber );
                 }
             }
-            $itemHitRs = Koha::Items->new()->_resultset()->find( { itemnumber => $itemnumber } );
+            $itemHitCount = $itemHitRs->count( $itemSelParam );    # one never knows ...
+            $itemHit = $itemHitRs->find( $itemSelParam );    # re-read the item in order to get the modified field values
+            $logger->trace("processItemHit() after re-reading itemHit itemnumber:$itemnumber: itemHitCount:$itemHitCount: itemHit->{_column_data}:" . Dumper($itemHit->{_column_data}) . ":");
 
+            # Before version 21.05 the following actions would have been done (but that did not work for technical reasons) even if the items record has been deleted.
+            # Design decision:
+            # We trust in method 4 that will create a supplementary order title and order item if no items record is found here (even if order item record exists in acquisition_import table).
+            # So it seems to be less confusing to do the following actions here only if the item has been found instead of doing them anyway.
+            # Otherwise there would be created 2 acquisition_import invoice item records instead of 1: one for the old original order item and one for the supplementary order item.
+            # It is clearer if only the one for the supplementary order item exists.
+
+            # attaching ekz order to Koha acquisition:
             if ( defined($ekzAqbooksellersId) && length($ekzAqbooksellersId) ) {
                 # update Koha acquisition order and update/insert invoice data
                 ($ordernumberFound, $basketnoFound, $invoiceid_ret) = processItemInvoice( $rechnungNummer, $rechnungDatum, $biblionumber, $itemnumber, $rechnungRecord, $auftragsPosition, $acquisitionImportTitleItemHit, $logger );
@@ -1386,22 +1409,80 @@ sub processItemHit
                     $logger->error("processItemHit() item not found for update of price and replacementprice! itemnumber:" . $itemnumber . ": gesamtpreis:" . $priceInfo->{gesamtpreis_tax_included} . ": replacementcost_tax_included:" . $priceInfo->{replacementcost_tax_included} . ":");
                 }
             }
+
+            # 3. step: update acquisition_import set processingstate = 'invoiced' of current $acquisitionImportTitleItemHit
+            $res = $acquisitionImportTitleItemHit->update( { processingstate => 'invoiced' } );
+            $logger->trace("processItemHit() acquisitionImportTitleItemHit->update res:" . Dumper($res->{_column_data}) . ":");
+
+            # Insert information on the invoiced item in 2 steps:
+            # 3.1. step: Insert an acquisition_import record for the invoice title, if it does not exist already.
+            $selParam = {
+                vendor_id => "ekz",
+                object_type => "invoice",
+                object_number => $rechnungNummer,
+                object_date => DateTime::Format::MySQL->format_datetime($rechnungDatum),
+                rec_type => "title",
+                object_item_number => $reArtikelNr,
+                processingstate => "invoiced",
+                object_reference => $acquisitionImportTitleHit->get_column('id')
+            };
+            $updParam = {
+                processingtime => DateTime::Format::MySQL->format_datetime($dateTimeNow)    # in local time_zone
+            };
+            $insParam = {
+                #id => 0, # AUTO
+                vendor_id => "ekz",
+                object_type => "invoice",
+                object_number => $rechnungNummer,
+                object_date => DateTime::Format::MySQL->format_datetime($rechnungDatum),
+                rec_type => "title",
+                object_item_number => $reArtikelNr,
+                processingstate => "invoiced",
+                processingtime => DateTime::Format::MySQL->format_datetime($dateTimeNow),    # in local time_zone
+                #payload => undef # NULL
+                object_reference => $acquisitionImportTitleHit->get_column('id')
+            };
+            $logger->trace("processItemHit() update or insert acquisition_import record for title calling Koha::AcquisitionImport::AcquisitionImports->new()->upd_or_ins(selParam, updParam, insParam) with selParam:" . Dumper($selParam) . ": updParam:" . Dumper($updParam) . ": insParam:" . Dumper($insParam) . ":");
+            my $acquisitionImportInvoiceTitle = Koha::AcquisitionImport::AcquisitionImports->new();
+            my $resInvoiceTitle = $acquisitionImportInvoiceTitle->upd_or_ins($selParam, $updParam, $insParam);   # TODO: evaluate $resInvoiceTitle
+            $logger->trace("processItemHit() insert acquisition_import record for invoice title res:" . Dumper($resInvoiceTitle->_resultset()->{_column_data}) . ":");
+
+            # 3.2. step: Insert an acquisition_import record for the invoiced item.
+            my $object_item_number;
+            if ( $reReferenznummer ) {
+                $object_item_number = $rechnungNummer . '-' . $reArtikelNr . '-' . $reReferenznummer;
+            } else {
+                $object_item_number = $rechnungNummer . '-' . $reArtikelNr;
+            }
+            $insParam = {
+                #id => 0, # AUTO
+                vendor_id => "ekz",
+                object_type => "invoice",
+                object_number => $rechnungNummer,
+                object_date => DateTime::Format::MySQL->format_datetime($rechnungDatum),
+                rec_type => "item",
+                object_item_number => $object_item_number,
+                processingstate => "invoiced",
+                processingtime => DateTime::Format::MySQL->format_datetime($dateTimeNow),    # in local time_zone
+                #payload => undef # NULL
+                object_reference => $acquisitionImportTitleItemHit->get_column('id')
+            };
+            $logger->trace("processItemHit() insert acquisition_import record for item calling Koha::AcquisitionImport::AcquisitionImports->new()->_resultset()->create(insParam) with insParam:" . Dumper($insParam) . ":");
+            my $acquisitionImportInvoiceItem = Koha::AcquisitionImport::AcquisitionImports->new();
+            my $resInvoiceItem = $acquisitionImportInvoiceItem->_resultset()->create($insParam);   # TODO: evaluate $resInvoiceItem
+            $logger->trace("processItemHit() END insert acquisition_import record for item res:" . Dumper($resInvoiceItem->{_column_data}) . ":");
         }
     }
-
-    # 3. step: update acquisition_import set processingstate = 'invoiced' of current $acquisitionImportTitleItemHit
-    $res = $acquisitionImportTitleItemHit->update( { processingstate => 'invoiced' } );
-    $logger->trace("processItemHit() acquisitionImportTitleItemHit->update res:" . Dumper($res->{_column_data}) . ":");
 
     # set variables of log email
     if ( $emaillog->{'foundTitlesCount'} == 0 ) {
         $emaillog->{'foundTitlesCount'} = 1;
     }
-    $emaillog->{'processedItemsCount'} += 1;
-    if ( defined $titleItemObjectRS && defined $itemnumber && defined $itemHitRs && defined $res ) {    # item successfully updated
+    if ( defined $titleItemObjectRS && defined $itemnumber && $itemHitCount > 0 && defined($itemHit->{_column_data}) && defined $res ) {    # item successfully updated
         $$updOrInsItemsCountRef += 1;
         # positive message for log email
         $emaillog->{'importresult'} = 1;
+        $emaillog->{'processedItemsCount'} += 1;
         $emaillog->{'updatedItemsCount'} += 1;
     } else {
         # negative message for log email
@@ -1409,6 +1490,7 @@ sub processItemHit
         $emaillog->{'problems'} .= "ERROR: Update der Exemplardaten für EKZ ArtikelNr.: " . $reArtikelNr . " wurde abgewiesen.\n";
         $emaillog->{'importresult'} = -1;
         $emaillog->{'importerror'} = 1;
+        $emaillog->{'processedItemsCount'} += 0;    # The item could not be processed here in processItemHit(). But probably it soon will be processed by method4.
     }
     my $tmp_cn = defined($titleHits->{'records'}->[0]->field("001")) ? $titleHits->{'records'}->[0]->field("001")->data() : $biblionumber;
     my $tmp_cna = defined($titleHits->{'records'}->[0]->field("003")) ? $titleHits->{'records'}->[0]->field("003")->data() : "undef";
@@ -1420,63 +1502,7 @@ sub processItemHit
     my ($titeldata, $isbnean) = ($itemnumber, '');
     push @{$emaillog->{'records'}}, [$reArtikelNr, defined $biblionumber ? $biblionumber : "no biblionumber", $emaillog->{'importresult'}, $titeldata, $isbnean, $emaillog->{'problems'}, $emaillog->{'importerror'}, 2, $ordernumberFound, $basketnoFound];
 
-    # Insert information on the invoiced item in 2 steps:
-    # 3.1. step: Insert an acquisition_import record for the invoice title, if it does not exist already.
-    $selParam = {
-        vendor_id => "ekz",
-        object_type => "invoice",
-        object_number => $rechnungNummer,
-        object_date => DateTime::Format::MySQL->format_datetime($rechnungDatum),
-        rec_type => "title",
-        object_item_number => $reArtikelNr,
-        processingstate => "invoiced",
-        object_reference => $acquisitionImportTitleHit->get_column('id')
-    };
-    $updParam = {
-        processingtime => DateTime::Format::MySQL->format_datetime($dateTimeNow)    # in local time_zone
-    };
-    $insParam = {
-        #id => 0, # AUTO
-        vendor_id => "ekz",
-        object_type => "invoice",
-        object_number => $rechnungNummer,
-        object_date => DateTime::Format::MySQL->format_datetime($rechnungDatum),
-        rec_type => "title",
-        object_item_number => $reArtikelNr,
-        processingstate => "invoiced",
-        processingtime => DateTime::Format::MySQL->format_datetime($dateTimeNow),    # in local time_zone
-        #payload => undef # NULL
-        object_reference => $acquisitionImportTitleHit->get_column('id')
-    };
-    $logger->trace("processItemHit() update or insert acquisition_import record for title calling Koha::AcquisitionImport::AcquisitionImports->new()->upd_or_ins(selParam, updParam, insParam) with selParam:" . Dumper($selParam) . ": updParam:" . Dumper($updParam) . ": insParam:" . Dumper($insParam) . ":");
-    my $acquisitionImportInvoiceTitle = Koha::AcquisitionImport::AcquisitionImports->new();
-    $res = $acquisitionImportInvoiceTitle->upd_or_ins($selParam, $updParam, $insParam);   # TODO: evaluate $res
-    $logger->trace("processItemHit() insert acquisition_import record for invoice title res:" . Dumper($res->_resultset()->{_column_data}) . ":");
-
-    # 3.2. step: Insert an acquisition_import record for the invoiced item.
-    my $object_item_number;
-    if ( $reReferenznummer ) {
-        $object_item_number = $rechnungNummer . '-' . $reArtikelNr . '-' . $reReferenznummer;
-    } else {
-        $object_item_number = $rechnungNummer . '-' . $reArtikelNr;
-    }
-    $insParam = {
-        #id => 0, # AUTO
-        vendor_id => "ekz",
-        object_type => "invoice",
-        object_number => $rechnungNummer,
-        object_date => DateTime::Format::MySQL->format_datetime($rechnungDatum),
-        rec_type => "item",
-        object_item_number => $object_item_number,
-        processingstate => "invoiced",
-        processingtime => DateTime::Format::MySQL->format_datetime($dateTimeNow),    # in local time_zone
-        #payload => undef # NULL
-        object_reference => $acquisitionImportTitleItemHit->get_column('id')
-    };
-    $logger->trace("processItemHit() insert acquisition_import record for item calling Koha::AcquisitionImport::AcquisitionImports->new()->_resultset()->insert(insParam) with insParam:" . Dumper($insParam) . ":");
-    my $acquisitionImportInvoiceItem = Koha::AcquisitionImport::AcquisitionImports->new();
-    $res = $acquisitionImportInvoiceItem->_resultset()->create($insParam);   # TODO: evaluate $res
-    $logger->trace("processItemHit() END insert acquisition_import record for item res:" . Dumper($res->{_column_data}) . ": returns invoiceid_ret:$invoiceid_ret:");
+    $logger->trace("processItemHit() END returns invoiceid_ret:$invoiceid_ret:");
 
     return $invoiceid_ret;
 }
