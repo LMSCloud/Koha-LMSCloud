@@ -211,7 +211,11 @@ $(document).ready(function(){
         var myRegEx=new RegExp(/(.*)\|(.*)\|(.*)\|(.*)/);
         var matches = selected_city.match( myRegEx );
         $(this).closest('fieldset').find("input[name='" + addressfield + "zipcode']").val( matches[1] );
-        $(this).closest('fieldset').find("input[name='" + addressfield + "city']").val( matches[2] );
+        if ( addressfield != "altcontact" ) {
+            $(this).closest('fieldset').find("input[name='" + addressfield + "city']").val( matches[2] );
+        } else {
+            $(this).closest('fieldset').find("input[name='" + addressfield + "address3']").val( matches[2] );
+        }
         $(this).closest('fieldset').find("input[name='" + addressfield + "state']").val( matches[3] );
         $(this).closest('fieldset').find("input[name='" + addressfield + "country']").val( matches[4] );
     });
