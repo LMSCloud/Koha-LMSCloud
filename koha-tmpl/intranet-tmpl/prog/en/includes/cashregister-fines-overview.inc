@@ -714,7 +714,7 @@
                 "oLanguage": {
                     "sEmptyTable": _("No changes during the selected period.")
                 }
-            }));
+            });
             [% END %]
             
             $("#finesoverview_wrapper .pager").removeClass("pager");
