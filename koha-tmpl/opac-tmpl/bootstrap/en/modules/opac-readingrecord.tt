@@ -125,7 +125,12 @@
                                                              <span class="no-image">No cover image available</span>
                                                         [% END %]
                                                     [% END %]
-
+                                                    [% IF ( issue.titlecoverurls && (Koha.Preference('EKZCover') || Koha.Preference('DivibibEnabled')) ) %]
+                                                        [% FOREACH myurl IN issue.titlecoverurls %] 
+                                                            <img src="[% myurl %]" class="ekzcover" title="[% issue.biblionumber |url %]"></img>[% LAST %]
+                                                        [% END # /FOREACH  %]
+                                                    [% END # / IF url %]
+x
                                                 [% IF GoogleJackets %]
                                                     [% IF  issue.normalized_isbn %]
                                                         <div title="[% issue.biblionumber |url %]" class="[% issue.normalized_isbn | html %]" id="gbs-thumbnail[% loop.count | html %]"></div>
