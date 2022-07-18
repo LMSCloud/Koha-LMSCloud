@@ -234,13 +234,15 @@ Please open a cash register to enable cash payments.
                 $(".cb").each(function(){
                     $(this).prop("checked", true );
                 });
-                $("#writeoff_selected").click();
+                enableCheckboxActions();
+                $("#writeoff-selected").click();
             });
             $("#cancelall").click(function(event){
                 event.preventDefault();
                 $(".cb").each(function(){
                     $(this).prop("checked", true );
                 });
+                enableCheckboxActions();
                 $("#cancel-selected").click();
             });
             $('#CheckAll').click(function(e){
