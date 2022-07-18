@@ -555,7 +555,7 @@
         function recalculatePaidAmount(payformObj) {
             payformObj.on("submit",
                 function(event) {
-                    if ( $("#given").length() ) {
+                    if ( $("#given").val().length ) {
                         var collectedNew = parseFloat($("#given").val().replace(",","."));
                         
                         if ( isNaN(collectedNew) ) {
