@@ -130,7 +130,6 @@
                                                             <img src="[% myurl %]" class="ekzcover" title="[% issue.biblionumber |url %]"></img>[% LAST %]
                                                         [% END # /FOREACH  %]
                                                     [% END # / IF url %]
-x
                                                 [% IF GoogleJackets %]
                                                     [% IF  issue.normalized_isbn %]
                                                         <div title="[% issue.biblionumber |url %]" class="[% issue.normalized_isbn | html %]" id="gbs-thumbnail[% loop.count | html %]"></div>
