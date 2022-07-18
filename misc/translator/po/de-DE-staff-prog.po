@@ -1,8 +1,8 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: Koha 21.05\n"
-"POT-Creation-Date: 2022-06-16 12:37+0200\n"
-"PO-Revision-Date: 2022-05-24 16:24+0200\n"
+"POT-Creation-Date: 2022-07-18 17:10+0200\n"
+"PO-Revision-Date: 2022-07-18 14:48+0200\n"
 "Last-Translator: Katrin Fischer <katrin.fischer@bsz-bw.de>\n"
 "Language-Team: \n"
 "Language: de\n"
@@ -13778,7 +13778,7 @@ msgstr "Neue Gruppe "
 #: koha-tmpl/intranet-tmpl/prog/en/includes/members-toolbar.inc:25
 #, c-format
 msgid "Add guarantee"
-msgstr "Neuen Bürgenden"
+msgstr "Neuer verknüpfter Ausweis"
 
 #: koha-tmpl/intranet-tmpl/prog/en/modules/members/memberentrygen.tt:558
 #, c-format
