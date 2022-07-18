@@ -1,7 +1,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: Koha 21.05\n"
-"POT-Creation-Date: 2022-05-11 17:25+0200\n"
+"POT-Creation-Date: 2022-07-18 13:59+0200\n"
 "PO-Revision-Date: 2022-04-29 14:51+0200\n"
 "Last-Translator: Katrin Fischer <katrin.fischer@bsz-bw.de>\n"
 "Language-Team: \n"
@@ -2661,7 +2661,7 @@ msgstr ""
 msgid "(Cancelled)"
 msgstr "(Storniert)"
 
-#: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-readingrecord.tt:183
+#: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-readingrecord.tt:187
 #, c-format
 msgid "(Checked out)"
 msgstr "(Ausgeliehen)"
@@ -3976,7 +3976,7 @@ msgstr ""
 #. %2$s:  ratings.count | html 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-detail.tt:337
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-detail.tt:1373
-#: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-readingrecord.tt:209
+#: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-readingrecord.tt:213
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-user.tt:1127
 #: koha-tmpl/opac-tmpl/bootstrap/en/includes/user-star-ratings.inc:52
 #, c-format
@@ -4297,7 +4297,7 @@ msgstr "Signatur (absteigend)"
 msgid "Call number (Z-A)"
 msgstr "Signatur (Z-A)"
 
-#: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-readingrecord.tt:174
+#: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-readingrecord.tt:178
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-user.tt:383
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-user.tt:940
 #, c-format
@@ -4530,7 +4530,7 @@ msgstr "Rückgabe"
 msgid "Check out"
 msgstr "Ausleihen"
 
-#: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-readingrecord.tt:179
+#: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-readingrecord.tt:183
 #, c-format
 msgid "Check-in date:"
 msgstr "Rückgabedatum:"
@@ -7262,7 +7262,7 @@ msgstr "Exemplar verlängert"
 msgid "Item type"
 msgstr "Medientyp"
 
-#: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-readingrecord.tt:171
+#: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-readingrecord.tt:175
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-suggestions.tt:175
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-suggestions.tt:179
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-user.tt:286
@@ -8395,8 +8395,8 @@ msgstr "Keine Ausleihen"
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-detail.tt:110
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-detail.tt:840
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-readingrecord.tt:125
-#: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-readingrecord.tt:133
-#: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-readingrecord.tt:142
+#: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-readingrecord.tt:137
+#: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-readingrecord.tt:146
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-results.tt:418
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-results.tt:426
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-results.tt:434
@@ -10834,7 +10834,7 @@ msgstr "Neues Exemplar scannen oder Barcode eingeben:"
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-browse.tt:82
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-detail.tt:1070
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-holdshistory.tt:176
-#: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-readingrecord.tt:209
+#: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-readingrecord.tt:213
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-search-history.tt:71
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-search-history.tt:116
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-search-history.tt:168
@@ -10992,7 +10992,7 @@ msgstr "Bereich:"
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-detail.tt:128
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-detail.tt:130
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-detail.tt:133
-#: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-readingrecord.tt:140
+#: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-readingrecord.tt:144
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-results.tt:458
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-results.tt:469
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-shelves.tt:454
@@ -14334,7 +14334,7 @@ msgstr "Anschaffungsvorschläge"
 #. For the first occurrence,
 #. SCRIPT
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-detail.tt:1373
-#: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-readingrecord.tt:209
+#: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-readingrecord.tt:213
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-user.tt:1127
 msgid "Your rating: %s, "
 msgstr "Ihre Bewertung: %s, "
@@ -15590,6 +15590,10 @@ msgstr "×"
 #~ msgid ""
 #~ "%s %s %s Koha online %s catalog &rsaquo; Libraries %s &rsaquo; %s %s "
 #~ msgstr "%s %s %s Koha %s - Katalog &rsaquo; Bibliotheken %s &rsaquo; %s %s "
+
+#, fuzzy
+#~ msgid "%s %s %s x %s %s "
+#~ msgstr "%s von %s %s %s %s "
 
 #~ msgid ""
 #~ "%s %s [%% IF ( OpacAdvSearchMoreOptions and OpacAdvSearchMoreOptions.size "
