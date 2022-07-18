@@ -121,11 +121,11 @@
             });
             [% UNLESS amount.defined %]
             $("#maninvoice #desc").val($("#maninvoice #type option:selected").text());
-            $("#maninvoice #amount").val(type_fees[$("#maninvoice #type option:selected").val()]);
+            $("#maninvoice #amount").val(type_fees[$("#maninvoice #type option:selected").val()].replace(",","."));
             [% END %]
             $("#maninvoice #type").change(function(){
                 $("#maninvoice #desc").val($(this).find("option:selected").text());
-                $("#maninvoice #amount").val(type_fees[$(this).val()]);
+                $("#maninvoice #amount").val(type_fees[$(this).val()].replace(",","."));
             });
         });
     </script>
