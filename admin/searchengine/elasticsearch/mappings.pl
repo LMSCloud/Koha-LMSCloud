@@ -160,7 +160,7 @@ if ( $op eq 'edit' ) {
             $seen_fields{$search_field_name} = 1;
 
             # TODO Check mapping format
-            $mapping_marc_field =~ s/\s//g;
+            $mapping_marc_field =~ s/(^\s+|\s+$)//;
 
             my $marc_field = Koha::SearchMarcMaps->find_or_create({
                 index_name => $index_name,
