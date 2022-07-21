@@ -23160,14 +23160,15 @@ if( CheckVersion( $DBversion ) ) {
         |);
         $dbh->do(q|
             DELETE FROM authorised_values WHERE id IN (
-            SELECT id 
+            SELECT a.id 
             FROM   authorised_values a
             WHERE  a.category IN ('YES_NO','ACCOUNT_TYPE_MAPPING','Bsort1')
-              AND  id NOT IN (
-                               SELECT MAX(id) 
+              AND  a.id NOT IN (
+                               SELECT MAX(ab.id) 
                                FROM   authorised_values ab
                                WHERE  ab.category = a.category
-                             GROUP BY authorised_value HAVING COUNT(*)>=2
+                                  AND ab.authorised_value = a.authorised_value
+                             GROUP BY ab.category, ab.authorised_value
                    )
             )
         |);
