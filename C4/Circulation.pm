@@ -3268,9 +3268,17 @@ sub AddRenewal {
         $item_object->onloan($datedue);
         $item_object->store({ log_action => 0 });
 
+        # Check whether the patrons category is selected for renew fees
+        my $addRenewRentalFee = 1;
+        if ( C4::Context->preference('RenewalDiscardRentalFeesOfPatronCategory') ) {
+            my $checkval = $patron->categorycode;
+            my @categoryList = split /[\|,]/, C4::Context->preference('RenewalDiscardRentalFeesOfPatronCategory');
+            @categoryList = map { s/^\s+|\s+$//gr } @categoryList;
+            $addRenewRentalFee = 0 if ( grep( /^$checkval$/, @categoryList ) );
+        }
         # Charge a new rental fee, if applicable
         my ( $charge, $type ) = GetIssuingCharges( $itemnumber, $borrowernumber );
-        if ( $charge > 0 ) {
+        if ( $charge > 0 && $addRenewRentalFee ) {
             AddIssuingCharge($issue, $charge, 'RENT_RENEW');
         }
 
@@ -3278,11 +3286,12 @@ sub AddRenewal {
         my $itemtype_object = Koha::ItemTypes->find( $itemtype );
         if ( $itemtype_object ) {
             my $accumulate_charge = $fees->accumulate_rentalcharge();
-            if ( $accumulate_charge > 0 ) {
+            if ( $accumulate_charge > 0 && $addRenewRentalFee ) {
                 AddIssuingCharge( $issue, $accumulate_charge, 'RENT_DAILY_RENEW' )
             }
             $charge += $accumulate_charge;
         }
+        $charge = 0 if (! $addRenewRentalFee);
 
         # Send a renewal slip according to checkout alert preferencei
         if ( C4::Context->preference('RenewalSendNotice') eq '1' ) {
