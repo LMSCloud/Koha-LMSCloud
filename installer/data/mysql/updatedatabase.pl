@@ -26287,16 +26287,22 @@ if( CheckVersion( $DBversion ) ) {
         $dbh->do("UPDATE systempreferences SET value = ? WHERE variable = ?", undef, $updvalue, 'SepaDirectDebitAccountTypes') if ($updvalue ne $value);
     }
     
-    $upd = C4::Context->dbh->prepare(q{ UPDATE authorised_values SET authorised_value = ? WHERE category = 'PaymentAccounttypeEpaybl' AND authorised_value = ? });
-    my $ins = C4::Context->dbh->prepare(q{ INSERT INTO authorised_values ( category, authorised_value, lib, lib_opac, imageurl) VALUES( ?, ?, ?, ?, ?) });
+    $upd = C4::Context->dbh->prepare(q{ UPDATE authorised_values SET authorised_value = ? WHERE category = 'PaymentAccounttypeEpaybl' AND authorised_value = BINARY ? });
+    my $ins = C4::Context->dbh->prepare(q{ INSERT IGNORE INTO authorised_values ( category, authorised_value, lib, lib_opac, imageurl) VALUES( ?, ?, ?, ?, ?) });
     $sth = C4::Context->dbh->prepare(q{ SELECT category, authorised_value, lib, lib_opac, imageurl FROM authorised_values WHERE category = 'PaymentAccounttypeEpaybl' });
+    my $chk = C4::Context->dbh->prepare(q{ SELECT count(*) FROM authorised_values WHERE category = 'PaymentAccounttypeEpaybl' AND authorised_value = BINARY ?});
+
     $sth->execute;
     $authvals = $sth->fetchall_arrayref( {} );
 
     if ( $authvals ) {
         foreach my $authval(@$authvals) {
             if ( $authval->{authorised_value} && exists( $maptype->{std_code}->{$authval->{authorised_value}} ) ) {
-                $upd->execute($maptype->{std_code}->{$authval->{authorised_value}}->[0],$authval->{authorised_value});
+                $chk->execute($maptype->{std_code}->{$authval->{authorised_value}}->[0]);
+                my ($res) = $chk->fetchrow;
+                if (! $res) {
+                    $upd->execute($maptype->{std_code}->{$authval->{authorised_value}}->[0],$authval->{authorised_value});
+                }
             }
             if ( $authval->{authorised_value} && exists( $maptype->{additional_code}->{$authval->{authorised_value}} ) ) {
                 $ins->execute( $authval->{category}, $maptype->{additional_code}->{$authval->{authorised_value}}->[0], $authval->{lib}, $authval->{lib_opac}, $authval->{imageurl} );
@@ -26304,15 +26310,20 @@ if( CheckVersion( $DBversion ) ) {
         }
     }
     
-    $upd = C4::Context->dbh->prepare(q{ UPDATE authorised_values SET authorised_value = ? WHERE category = 'ACCOUNT_TYPE_MAPPING' AND authorised_value = ? });
+    $upd = C4::Context->dbh->prepare(q{ UPDATE authorised_values SET authorised_value = ? WHERE category = 'ACCOUNT_TYPE_MAPPING' AND authorised_value = BINARY ? });
     $sth = C4::Context->dbh->prepare(q{ SELECT category, authorised_value, lib, lib_opac, imageurl FROM authorised_values WHERE category = 'ACCOUNT_TYPE_MAPPING' });
+    $chk = C4::Context->dbh->prepare(q{ SELECT count(*) FROM authorised_values WHERE category = 'ACCOUNT_TYPE_MAPPING' AND authorised_value = BINARY ?});
     $sth->execute;
     $authvals = $sth->fetchall_arrayref( {} );
 
     if ( $authvals ) {
         foreach my $authval(@$authvals) {
             if ( $authval->{authorised_value} && exists( $maptype->{std_code}->{$authval->{authorised_value}} ) ) {
-                $upd->execute($maptype->{std_code}->{$authval->{authorised_value}}->[0],$authval->{authorised_value});
+                $chk->execute($maptype->{std_code}->{$authval->{authorised_value}}->[0]);
+                my ($res) = $chk->fetchrow;
+                if (! $res) {
+                    $upd->execute($maptype->{std_code}->{$authval->{authorised_value}}->[0],$authval->{authorised_value});
+                }
             }
             if ( $authval->{authorised_value} && exists( $maptype->{additional_code}->{$authval->{authorised_value}} ) ) {
                 $ins->execute( $authval->{category}, $maptype->{additional_code}->{$authval->{authorised_value}}->[0], $authval->{lib}, $authval->{lib_opac}, $authval->{imageurl} );
