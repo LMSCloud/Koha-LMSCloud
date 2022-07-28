@@ -369,6 +369,10 @@ sub paySelectedFeesForSepaDirectDebitPatrons {
         $branchSelect = " AND b.branchcode = '$params->{branchcode}' ";
     }
 
+    # providing selection for not accruing overdue fees
+    my $overdueSelect = '';
+    my $overdueSelectAl2 = '';
+
     # providing selection for accountlines.debit_type_code
     my $debit_type_code_sel = "'ACCOUNT','ACCOUNT_RENEW'";    # In the first version of SEPA direct debit payment only membership fees (since 21.05 represented by debit_type_code 'ACCOUNT' and 'ACCOUNT_RENEW') had to be handled.
     my $sepaDirectDebitAccountTypes = $self->{sepaSysPrefs}->{SepaDirectDebitAccountTypes};
@@ -381,6 +385,15 @@ sub paySelectedFeesForSepaDirectDebitPatrons {
                 $debit_type_code_sel .= ",";
             }
             $debit_type_code_sel .= "'" . $accountType . "'";
+
+            # Overdue fees should be paid only if they are not accruing any more.
+            # Until version 18.05 (incl.) this was solved by selecting accounttype 'F', but not 'FU'.
+            # Regrettably since version 21.05 the successor, debit_type_code 'OVERDUE', is used for both types of overdue fees.
+            # So additionally to accountlines.debit_type_code='OVERDUE' also the field accountlines.status has to be evaluated.
+            if ( $accountType eq 'OVERDUE' ) {
+                $overdueSelect = " AND (a.debit_type_code != 'OVERDUE' OR ( a.debit_type_code = 'OVERDUE' AND a.status IN ('RETURNED', 'LOST') )) ";
+                $overdueSelectAl2 = " AND (al2.debit_type_code != 'OVERDUE' OR ( al2.debit_type_code = 'OVERDUE' AND al2.status IN ('RETURNED', 'LOST') )) ";
+            }
         }
     }
 
@@ -410,6 +423,7 @@ sub paySelectedFeesForSepaDirectDebitPatrons {
         LEFT JOIN borrower_attributes ba ON ( ba.borrowernumber = b.borrowernumber AND ba.code IN ('SEPA_BIC', 'SEPA_IBAN', 'SEPA_Sign', 'Konto_von') )
 
         WHERE a.debit_type_code IN ($debit_type_code_sel)
+          $overdueSelect
           AND a.amountoutstanding >= 0.01
           $branchSelect
           AND EXISTS (
@@ -417,6 +431,7 @@ sub paySelectedFeesForSepaDirectDebitPatrons {
                 FROM accountlines al2
                 WHERE al2.borrowernumber = a.borrowernumber
                   AND al2.debit_type_code IN ($debit_type_code_sel)
+                  $overdueSelectAl2
                   AND al2.amountoutstanding >= 0.01
                 GROUP BY al2.borrowernumber
                 HAVING SUM( al2.amountoutstanding ) >= $minSumAmountoutstanding
