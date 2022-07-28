@@ -710,21 +710,23 @@ sub checkIban {
 sub checkBic {
     my $self = shift;
     my ($borrowersSelectedFees) = @_;
-    my $ret = 0;
+    my $ret = 0;    # 0: BIC entry not accepted
 
     print STDERR "Koha::SEPAPayment::checkBic() START\n" if $self->{verbose} > 1;
+
+    # Since version 21.05 the BIC is handled as optional.
     if( ! ( defined($borrowersSelectedFees->{borrower_attributes}) && defined($borrowersSelectedFees->{borrower_attributes}->{SEPA_BIC}) ) ) {
         print STDERR "Koha::SEPAPayment::checkBic() BIC not defined (borrower:" . $borrowersSelectedFees->{borrowers}->{borrowernumber} . ":)\n" if $self->{verbose} > 0;
-        my $errormsg = 'BIC ist nicht definiert';
-        push @{$borrowersSelectedFees->{errormsg}}, $errormsg;
+        $ret = 1;
     } else {
         $borrowersSelectedFees->{borrower_attributes}->{SEPA_BIC} =~ s/[\s,\r,\n]//g;
-        if ( ! ( length($borrowersSelectedFees->{borrower_attributes}->{SEPA_BIC}) == 8 || length($borrowersSelectedFees->{borrower_attributes}->{SEPA_BIC}) == 11 ) ) {
+        my $bicLen = length($borrowersSelectedFees->{borrower_attributes}->{SEPA_BIC});
+        if ( $bicLen == 0 || $bicLen == 8 || $bicLen == 11 ) {
+            $ret = 1;
+        } else {
             print STDERR "Koha::SEPAPayment::checkBic() invalid BIC:" . $borrowersSelectedFees->{borrower_attributes}->{SEPA_BIC} . ": (borrower:" . $borrowersSelectedFees->{borrowers}->{borrowernumber} . ":)\n" if $self->{verbose} > 0;
             my $errormsg = sprintf('BIC:%s: ist fehlerhaft', $borrowersSelectedFees->{borrower_attributes}->{SEPA_BIC});
             push @{$borrowersSelectedFees->{errormsg}}, $errormsg;
-        } else {
-            $ret = 1;
         }
     }
     return $ret;
@@ -985,6 +987,10 @@ sub writeSepaDirectDebitFile {
         }
         my $dateOfSignature = $borrFeesPaid->{borrower_attributes}->{SEPA_Sign};
         $dateOfSignature = sprintf("%04d-%02d-%02d",$year+1900, $mon+1, $mday);    # there may be invalid entries in $borrFeesPaid->{borrower_attributes}->{SEPA_Sign}, so we ignore it and use today date
+        my $bic = '';
+        if ( defined($borrFeesPaid->{borrower_attributes}->{SEPA_BIC}) ) {
+            $bic = $borrFeesPaid->{borrower_attributes}->{SEPA_BIC};
+        }
 
         $xmlwriter->startTag(     'DrctDbtTxInf');                                                  # DirectDebitTransactionInformation
         $xmlwriter->startTag(       'PmtId');                                                       # PaymentID
@@ -1002,8 +1008,10 @@ sub writeSepaDirectDebitFile {
         $xmlwriter->endTag(         'DrctDbtTx');
 
         $xmlwriter->startTag(       'DbtrAgt');                                                     # DebtorAgent
-        $xmlwriter->startTag(         'FinInstnId');                                                # FinancialInstitutionIdentification
-        $xmlwriter->dataElement(        'BIC' => $borrFeesPaid->{borrower_attributes}->{SEPA_BIC}); # FinancialInstitutionIdentification.BIC
+        $xmlwriter->startTag(         'FinInstnId');                                                # FinancialInstitutionIdentification (mandatory)
+        if ( $bic ) {
+        $xmlwriter->dataElement(        'BIC' => $bic);                                             # FinancialInstitutionIdentification.BIC (optional)
+        }
         $xmlwriter->endTag(           'FinInstnId');
         $xmlwriter->endTag(         'DbtrAgt');
 
