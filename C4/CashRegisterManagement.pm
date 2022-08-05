@@ -3369,7 +3369,7 @@ sub getCashTransactionOverviewByBranch {
                AND a.credit_type_code IS NOT NULL AND a.credit_type_code <> '' 
                AND a.credit_type_code NOT IN ('CANCELLATION','FORGIVEN','WRITEOFF','DISCOUNT')
                AND NOT EXISTS (SELECT 1 FROM cash_register_account c WHERE c.accountlines_id = a.accountlines_id)
-            GROUP BY b.branchcode, a.credit_type_code
+            GROUP BY b.branchcode, a.credit_type_code, a.payment_type
 
             UNION ALL
             SELECT a.credit_type_code, a.payment_type, sum(a.amount-a.amountoutstanding) as amount, count(*) count_transactions
@@ -3382,7 +3382,7 @@ sub getCashTransactionOverviewByBranch {
                AND a.credit_type_code IS NOT NULL AND a.credit_type_code <> '' 
                AND a.credit_type_code NOT IN ('CANCELLATION','FORGIVEN','WRITEOFF','DISCOUNT')
                AND NOT EXISTS (SELECT 1 FROM cash_register_account c WHERE c.accountlines_id = a.accountlines_id)
-            GROUP BY b.branchcode, a.credit_type_code
+            GROUP BY b.branchcode, a.credit_type_code, a.payment_type
         }; $query =~ s/^\s+/ /mg;
 
     $sth = $dbh->prepare($query);
