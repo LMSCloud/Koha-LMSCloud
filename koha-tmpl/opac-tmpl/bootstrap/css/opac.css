@@ -464,5 +464,10 @@ img {
 }
 #bibtip_reclist {
     margin-top: 1rem;
-    clear :left;
+    clear: left;
 }
+/* Anpassung der Größe bei Exemplarcover */
+table#holdingst .thumbnail {
+    height: 100%;
+    width: 100%;
+} 
