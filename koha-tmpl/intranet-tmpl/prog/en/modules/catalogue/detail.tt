@@ -215,7 +215,7 @@
                     [% IF ( titlecoverurls && ( Koha.Preference('EKZCover') || Koha.Preference('DivibibEnabled') ) ) %]
                         [% FOREACH myurl IN titlecoverurls %] 
                             <div class="cover-image">
-                                <img src="[% myurl %]" style="max-width:300px" alt="Cover image of record [% biblionumber %]"></img>
+                                <img src="[% myurl %]" alt="Cover image of record [% biblionumber %]"></img>
                                 [% IF myurl.match('ekz') %]
                                     <div class="hint">ekz cover image</div>
                                 [% ELSIF myurl.match('onleihe') %]
