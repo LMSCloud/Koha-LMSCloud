@@ -1,7 +1,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: Koha 21.05\n"
-"POT-Creation-Date: 2022-07-18 13:59+0200\n"
+"POT-Creation-Date: 2022-08-05 16:33+0200\n"
 "PO-Revision-Date: 2022-04-29 14:51+0200\n"
 "Last-Translator: Katrin Fischer <katrin.fischer@bsz-bw.de>\n"
 "Language-Team: \n"
@@ -242,7 +242,7 @@ msgstr "%s %s %s [%%~ SET line_break = \""
 #. %1$s:  author.firstname | html 
 #. %2$s:  author.surname | html 
 #. %3$s:  ELSE 
-#: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-main.tt:140
+#: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-main.tt:145
 #, c-format
 msgid "%s %s %s by "
 msgstr "%s %s %s von "
@@ -368,7 +368,7 @@ msgstr "%s %s Keine Titel gefunden. %s "
 #. %9$s:  ELSE 
 #. %10$s:  END 
 #. %11$s:  END 
-#: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-main.tt:156
+#: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-main.tt:161
 #, c-format
 msgid ""
 "%s %s RSS feed for %s library news %s RSS feed for library news %s %s %s RSS "
@@ -5572,7 +5572,7 @@ msgstr "Haben Sie keinen Bibliotheksausweis?"
 msgid "Don't have a password yet?"
 msgstr "Haben Sie noch kein Passwort?"
 
-#: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-main.tt:239
+#: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-main.tt:244
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-registration-confirmation.tt:102
 #: koha-tmpl/opac-tmpl/bootstrap/en/includes/masthead.inc:416
 #, c-format
@@ -6190,7 +6190,7 @@ msgstr ""
 "möchten."
 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-auth.tt:200
-#: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-main.tt:234
+#: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-main.tt:239
 #: koha-tmpl/opac-tmpl/bootstrap/en/includes/masthead.inc:411
 #, c-format
 msgid "Forgot your password?"
@@ -7718,7 +7718,7 @@ msgstr "Standorte"
 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-auth.tt:29
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-auth.tt:194
-#: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-main.tt:225
+#: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-main.tt:230
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-registration-confirmation.tt:100
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/sco/sco-main.tt:415
 #: koha-tmpl/opac-tmpl/bootstrap/en/includes/masthead.inc:424
@@ -7775,7 +7775,7 @@ msgstr "Benutzerkonto"
 msgid "Log in to your account."
 msgstr "Melden Sie sich an."
 
-#: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-main.tt:219
+#: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-main.tt:224
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-registration-confirmation.tt:86
 #, c-format
 msgid "Log in to your account:"
@@ -7846,7 +7846,7 @@ msgid "Login page"
 msgstr "Anmeldeseite"
 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-auth.tt:186
-#: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-main.tt:220
+#: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-main.tt:225
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-password-recovery.tt:125
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-registration-confirmation.tt:87
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/sco/sco-main.tt:410
@@ -8480,7 +8480,7 @@ msgstr "keine Begrenzung"
 msgid "No matching records found"
 msgstr "Keine übereinstimmenden Datensätze gefunden"
 
-#: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-main.tt:181
+#: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-main.tt:186
 #, c-format
 msgid "No news to display."
 msgstr "Keine News."
@@ -9188,7 +9188,7 @@ msgid "Password updated"
 msgstr "Passwort aktualisiert"
 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-auth.tt:190
-#: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-main.tt:222
+#: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-main.tt:227
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-memberentry.tt:840
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-registration-confirmation.tt:55
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-registration-confirmation.tt:93
@@ -9974,7 +9974,7 @@ msgstr "Veröffentlicht von: %s %s in %s %s %s , %s %s %s , %s %s "
 #. %2$s:  IF ( (newsdisp == 'opac' || newsdisp == 'both') && koha_new.borrowernumber ) 
 #. %3$s:  IF news_item 
 #. %4$s:  SET author = koha_new.author 
-#: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-main.tt:135
+#: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-main.tt:140
 #, c-format
 msgid "Published on %s %s %s %s by "
 msgstr "Veröffentlicht am %s %s %s %s von "
@@ -10007,7 +10007,7 @@ msgstr "Anschaffungsvorschläge"
 msgid "Quantity:"
 msgstr "Anzahl:"
 
-#: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-main.tt:192
+#: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-main.tt:197
 #, c-format
 msgid "Quote of the day"
 msgstr "Zitat des Tages"
@@ -10180,7 +10180,7 @@ msgstr "Präzisieren Sie die Suche"
 msgid "Register a new account"
 msgstr "Benutzerkonto eröffnen"
 
-#: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-main.tt:239
+#: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-main.tt:244
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-registration-confirmation.tt:102
 #: koha-tmpl/opac-tmpl/bootstrap/en/includes/masthead.inc:416
 #, c-format
@@ -11344,7 +11344,7 @@ msgstr "Zeige _MENU_ Einträge"
 msgid "Show all items"
 msgstr "Zeige alle Exemplare"
 
-#: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-main.tt:146
+#: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-main.tt:151
 #, c-format
 msgid "Show all news"
 msgstr "Zeige alle Nachrichteneinträge"
@@ -12721,7 +12721,7 @@ msgstr ""
 msgid "This message can have the following reason(s):"
 msgstr "Diese Meldung kann folgende Gründe haben:"
 
-#: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-main.tt:117
+#: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-main.tt:122
 #, c-format
 msgid "This news item does not exist. "
 msgstr "Dieser Nachrichteneintrag existiert nicht. "
@@ -13128,7 +13128,7 @@ msgstr "Benutzt für:"
 msgid "Used for/see from:"
 msgstr "Verwendet für/Siehe auch:"
 
-#: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-main.tt:251
+#: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-main.tt:256
 #, c-format
 msgid "User summary"
 msgstr "Kontoübersicht"
@@ -13328,7 +13328,7 @@ msgstr "Mi"
 msgid "Wednesday"
 msgstr "Mittwoch"
 
-#: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-main.tt:252
+#: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-main.tt:257
 #, c-format
 msgid "Welcome, "
 msgstr "Willkommen, "
@@ -14687,7 +14687,7 @@ msgstr ""
 msgid "desired_due_date"
 msgstr "desired_due_date"
 
-#: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-main.tt:289
+#: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-main.tt:294
 #, c-format
 msgid "due in fines and charges "
 msgstr "fällig an Gebühren und Entgelten"

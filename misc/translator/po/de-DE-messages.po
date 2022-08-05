@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Koha 21.05\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2022-03-10 12:16+0100\n"
+"POT-Creation-Date: 2022-08-05 16:33+0200\n"
 "PO-Revision-Date: 2021-05-14 10:55+0000\n"
 "Last-Translator: Katrin Fischer <katrin.fischer@bsz-bw.de>\n"
 "Language-Team: none\n"
@@ -177,32 +177,32 @@ msgstr ""
 "Sie haben versucht alle Mappings für einen erforderlichen Index zu löschen, "
 "es muss mindestens ein Mapping verbleiben"
 
-#: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-main.tt:258
+#: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-main.tt:263
 msgid "checkout"
 msgid_plural "checkouts"
 msgstr[0] "Ausleihe"
 msgstr[1] "Ausleihen"
 
-#: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-main.tt:274
+#: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-main.tt:279
 msgid "hold pending"
 msgid_plural "holds pending"
 msgstr[0] "offene Vormerkung"
 msgstr[1] "offene Vormerkungen"
 
-#: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-main.tt:282
+#: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-main.tt:287
 msgid "hold waiting"
 msgid_plural "holds waiting"
 msgstr[0] "abholbereite Vormerkung"
 msgstr[1] "abholbereite Vormerkungen"
 
-#: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-main.tt:299
-#: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-main.tt:306
+#: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-main.tt:304
+#: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-main.tt:311
 msgid "message"
 msgid_plural "messages"
 msgstr[0] "Mitteilung"
 msgstr[1] "Mitteilungen"
 
-#: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-main.tt:266
+#: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-main.tt:271
 msgid "overdue"
 msgid_plural "overdues"
 msgstr[0] "überfällig"
