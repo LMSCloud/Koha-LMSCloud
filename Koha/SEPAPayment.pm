@@ -369,6 +369,10 @@ sub paySelectedFeesForSepaDirectDebitPatrons {
         $branchSelect = " AND b.branchcode = '$params->{branchcode}' ";
     }
 
+    # providing selection for not accruing overdue fees
+    my $overdueSelect = '';
+    my $overdueSelectAl2 = '';
+
     # providing selection for accountlines.debit_type_code
     my $debit_type_code_sel = "'ACCOUNT','ACCOUNT_RENEW'";    # In the first version of SEPA direct debit payment only membership fees (since 21.05 represented by debit_type_code 'ACCOUNT' and 'ACCOUNT_RENEW') had to be handled.
     my $sepaDirectDebitAccountTypes = $self->{sepaSysPrefs}->{SepaDirectDebitAccountTypes};
@@ -381,6 +385,15 @@ sub paySelectedFeesForSepaDirectDebitPatrons {
                 $debit_type_code_sel .= ",";
             }
             $debit_type_code_sel .= "'" . $accountType . "'";
+
+            # Overdue fees should be paid only if they are not accruing any more.
+            # Until version 18.05 (incl.) this was solved by selecting accounttype 'F', but not 'FU'.
+            # Regrettably since version 21.05 the successor, debit_type_code 'OVERDUE', is used for both types of overdue fees.
+            # So additionally to accountlines.debit_type_code='OVERDUE' also the field accountlines.status has to be evaluated.
+            if ( $accountType eq 'OVERDUE' ) {
+                $overdueSelect = " AND (a.debit_type_code != 'OVERDUE' OR ( a.debit_type_code = 'OVERDUE' AND a.status IN ('RETURNED', 'LOST') )) ";
+                $overdueSelectAl2 = " AND (al2.debit_type_code != 'OVERDUE' OR ( al2.debit_type_code = 'OVERDUE' AND al2.status IN ('RETURNED', 'LOST') )) ";
+            }
         }
     }
 
@@ -410,6 +423,7 @@ sub paySelectedFeesForSepaDirectDebitPatrons {
         LEFT JOIN borrower_attributes ba ON ( ba.borrowernumber = b.borrowernumber AND ba.code IN ('SEPA_BIC', 'SEPA_IBAN', 'SEPA_Sign', 'Konto_von') )
 
         WHERE a.debit_type_code IN ($debit_type_code_sel)
+          $overdueSelect
           AND a.amountoutstanding >= 0.01
           $branchSelect
           AND EXISTS (
@@ -417,6 +431,7 @@ sub paySelectedFeesForSepaDirectDebitPatrons {
                 FROM accountlines al2
                 WHERE al2.borrowernumber = a.borrowernumber
                   AND al2.debit_type_code IN ($debit_type_code_sel)
+                  $overdueSelectAl2
                   AND al2.amountoutstanding >= 0.01
                 GROUP BY al2.borrowernumber
                 HAVING SUM( al2.amountoutstanding ) >= $minSumAmountoutstanding
@@ -695,21 +710,23 @@ sub checkIban {
 sub checkBic {
     my $self = shift;
     my ($borrowersSelectedFees) = @_;
-    my $ret = 0;
+    my $ret = 0;    # 0: BIC entry not accepted
 
     print STDERR "Koha::SEPAPayment::checkBic() START\n" if $self->{verbose} > 1;
+
+    # Since version 21.05 the BIC is handled as optional.
     if( ! ( defined($borrowersSelectedFees->{borrower_attributes}) && defined($borrowersSelectedFees->{borrower_attributes}->{SEPA_BIC}) ) ) {
         print STDERR "Koha::SEPAPayment::checkBic() BIC not defined (borrower:" . $borrowersSelectedFees->{borrowers}->{borrowernumber} . ":)\n" if $self->{verbose} > 0;
-        my $errormsg = 'BIC ist nicht definiert';
-        push @{$borrowersSelectedFees->{errormsg}}, $errormsg;
+        $ret = 1;
     } else {
         $borrowersSelectedFees->{borrower_attributes}->{SEPA_BIC} =~ s/[\s,\r,\n]//g;
-        if ( ! ( length($borrowersSelectedFees->{borrower_attributes}->{SEPA_BIC}) == 8 || length($borrowersSelectedFees->{borrower_attributes}->{SEPA_BIC}) == 11 ) ) {
+        my $bicLen = length($borrowersSelectedFees->{borrower_attributes}->{SEPA_BIC});
+        if ( $bicLen == 0 || $bicLen == 8 || $bicLen == 11 ) {
+            $ret = 1;
+        } else {
             print STDERR "Koha::SEPAPayment::checkBic() invalid BIC:" . $borrowersSelectedFees->{borrower_attributes}->{SEPA_BIC} . ": (borrower:" . $borrowersSelectedFees->{borrowers}->{borrowernumber} . ":)\n" if $self->{verbose} > 0;
             my $errormsg = sprintf('BIC:%s: ist fehlerhaft', $borrowersSelectedFees->{borrower_attributes}->{SEPA_BIC});
             push @{$borrowersSelectedFees->{errormsg}}, $errormsg;
-        } else {
-            $ret = 1;
         }
     }
     return $ret;
@@ -970,6 +987,10 @@ sub writeSepaDirectDebitFile {
         }
         my $dateOfSignature = $borrFeesPaid->{borrower_attributes}->{SEPA_Sign};
         $dateOfSignature = sprintf("%04d-%02d-%02d",$year+1900, $mon+1, $mday);    # there may be invalid entries in $borrFeesPaid->{borrower_attributes}->{SEPA_Sign}, so we ignore it and use today date
+        my $bic = '';
+        if ( defined($borrFeesPaid->{borrower_attributes}->{SEPA_BIC}) ) {
+            $bic = $borrFeesPaid->{borrower_attributes}->{SEPA_BIC};
+        }
 
         $xmlwriter->startTag(     'DrctDbtTxInf');                                                  # DirectDebitTransactionInformation
         $xmlwriter->startTag(       'PmtId');                                                       # PaymentID
@@ -987,8 +1008,10 @@ sub writeSepaDirectDebitFile {
         $xmlwriter->endTag(         'DrctDbtTx');
 
         $xmlwriter->startTag(       'DbtrAgt');                                                     # DebtorAgent
-        $xmlwriter->startTag(         'FinInstnId');                                                # FinancialInstitutionIdentification
-        $xmlwriter->dataElement(        'BIC' => $borrFeesPaid->{borrower_attributes}->{SEPA_BIC}); # FinancialInstitutionIdentification.BIC
+        $xmlwriter->startTag(         'FinInstnId');                                                # FinancialInstitutionIdentification (mandatory)
+        if ( $bic ) {
+        $xmlwriter->dataElement(        'BIC' => $bic);                                             # FinancialInstitutionIdentification.BIC (optional)
+        }
         $xmlwriter->endTag(           'FinInstnId');
         $xmlwriter->endTag(         'DbtrAgt');
 

@@ -1544,7 +1544,7 @@
             [% END %]
             [% IF OPACLocalCoverImages %]
                 KOHA.LocalCover.GetCoverFromBibnumber(true);
-                [% IF itemloop_has_images OR oheritemloop_has_images %]
+                [% IF itemloop_has_images OR otheritemloop_has_images %]
                     KOHA.LocalCover.GetCoverFromItemnumber(true);
                 [% END %]
             [% END %]
