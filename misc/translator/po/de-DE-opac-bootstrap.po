@@ -3398,7 +3398,7 @@ msgstr ""
 msgid "Allow your guarantor to view your current fines?"
 msgstr ""
 "Möchten Sie dem Bürgen/Erziehungsberechtigten erlauben Ihre aktuellen "
-"Ausleihen einzusehen?"
+"Gebühren einzusehen?"
 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-user.tt:85
 #, c-format
