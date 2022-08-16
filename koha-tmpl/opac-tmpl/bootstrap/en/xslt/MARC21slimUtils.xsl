@@ -514,7 +514,7 @@
             <xsl:for-each select="marc:datafield[@tag=830]">
                 <xsl:choose>
                     <xsl:when test="$UseControlNumber = '1' and marc:subfield[@code='w']">
-                        <a href="/cgi-bin/koha/catalogue/search.pl?q=rcn:{marc:subfield[@code='w']}">
+                        <a><xsl:attribute name="href"><xsl:value-of select="$searchurl"/>?q=rcn:<xsl:value-of select="str:encode-uri(marc:subfield[@code='w'], true())"/></xsl:attribute>
                             <xsl:call-template name="chopPunctuation">
                                 <xsl:with-param name="chopString">
                                     <xsl:call-template name="subfieldSelect">
