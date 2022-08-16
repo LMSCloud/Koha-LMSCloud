@@ -2870,6 +2870,7 @@ sub CanBookBeRenewed {
     return ( 0, 'item_denied_renewal') if _item_denied_renewal({ item => $item });
 
     my $patron = $issue->patron or return;
+    my $hasToMany = 0;
 
     # override_limit will override anything else except on_reserve
     unless ( $override_limit ){
@@ -2892,8 +2893,8 @@ sub CanBookBeRenewed {
             }
         );
 
-        return ( 0, "too_many" )
-          if not $issuing_rule->{renewalsallowed} or $issuing_rule->{renewalsallowed} <= $issue->renewals;
+        $hasToMany = 1
+		  if not $issuing_rule->{renewalsallowed} or $issuing_rule->{renewalsallowed} <= $issue->renewals;
 
         return ( 0, "too_unseen" )
           if C4::Context->preference('UnseenRenewals') &&
@@ -3054,6 +3055,8 @@ sub CanBookBeRenewed {
     }
 
     return ( 0, "auto_renew" ) if $auto_renew eq "ok" && !$override_limit; # 0 if auto-renewal should not succeed
+
+    return ( 0, "too_many" ) if $hasToMany;
 
     return ( 1, undef );
 }
