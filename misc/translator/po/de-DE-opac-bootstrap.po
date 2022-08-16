@@ -1,8 +1,8 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: Koha 21.05\n"
-"POT-Creation-Date: 2022-08-05 16:33+0200\n"
-"PO-Revision-Date: 2022-04-29 14:51+0200\n"
+"POT-Creation-Date: 2022-08-16 18:47+0200\n"
+"PO-Revision-Date: 2022-08-15 16:24+0200\n"
 "Last-Translator: Katrin Fischer <katrin.fischer@bsz-bw.de>\n"
 "Language-Team: \n"
 "Language: de\n"
@@ -5199,7 +5199,7 @@ msgstr "Guthaben (%s)"
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-detail.tt:1095
 #, c-format
 msgid "Current library"
-msgstr "Heimatbibliothek"
+msgstr "Aktuelle Bibliothek"
 
 #. A
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-authoritiessearchresultlist.tt:18
