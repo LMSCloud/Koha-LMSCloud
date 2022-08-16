@@ -209,6 +209,7 @@ sub transform {
     return $retval if $self->{err};
 
     #parse input and transform
+    XML::LibXSLT->max_depth(1000);
     my $parser = XML::LibXML->new();
     $self->{_security}->set_parser_options($parser);
     my $source = eval { $parser->parse_string($xml) };
