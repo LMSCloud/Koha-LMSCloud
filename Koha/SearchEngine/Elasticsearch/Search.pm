@@ -43,6 +43,7 @@ use Modern::Perl;
 use base qw(Koha::SearchEngine::Elasticsearch);
 use C4::Context;
 use C4::AuthoritiesMarc;
+use C4::Biblio qw( GetMarcBiblio );
 use Koha::ItemTypes;
 use Koha::AuthorisedValues;
 use Koha::SearchEngine::QueryBuilder;
@@ -379,7 +380,11 @@ sub decode_record_from_result {
     # and first element will be $result
     my ( $self, $result ) = @_;
     if ($result->{marc_format} eq 'base64ISO2709') {
-        return MARC::Record->new_from_usmarc(decode_base64($result->{marc_data}));
+        my $record = MARC::Record->new_from_usmarc(decode_base64($result->{marc_data}));
+        if ( !( $record && $record->subfield('999', 'c') && exists($result->{biblioitemnumber}->[0])) ) {
+            $record = GetMarcBiblio({ biblionumber => $result->{biblioitemnumber}->[0], embed_items  => 1 });
+        }
+        return $record;
     }
     elsif ($result->{marc_format} eq 'MARCXML') {
         return MARC::Record->new_from_xml($result->{marc_data}, 'UTF-8', uc C4::Context->preference('marcflavour'));
