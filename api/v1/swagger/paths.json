@@ -164,6 +164,9 @@
   "/patrons/{patron_id}/password": {
     "$ref": "paths/patrons_password.json#/~1patrons~1{patron_id}~1password"
   },
+  "/public/biblios": {
+    "$ref": "paths/biblios.json#/~1public~1biblios"
+  },
   "/ill_backends": {
     "$ref": "paths/ill_backends.json#/~1ill_backends"
   },

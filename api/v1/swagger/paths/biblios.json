@@ -331,6 +331,72 @@
       }
     }
   },
+  "/public/biblios": {
+    "get": {
+      "x-mojo-to": "Biblios#get_biblios_public",
+      "operationId": "getBibliosPublic",
+      "tags": [
+        "biblios"
+      ],
+      "summary": "Get biblios (public)",
+      "parameters": [
+        {
+          "$ref": "../parameters.json#/q_ccl"
+        }
+      ],
+      "produces": [
+        "application/marc-in-json"
+      ],
+      "responses": {
+        "200": {
+          "description": "List of biblios",
+          "schema": {
+            "type": "array"
+          }
+        },
+        "401": {
+          "description": "Authentication required",
+          "schema": {
+            "$ref": "../definitions.json#/error"
+          }
+        },
+        "403": {
+          "description": "Access forbidden",
+          "schema": {
+            "$ref": "../definitions.json#/error"
+          }
+        },
+        "404": {
+          "description": "Biblio not found",
+          "schema": {
+            "$ref": "../definitions.json#/error"
+          }
+        },
+        "406": {
+          "description": "Not acceptable",
+          "schema": {
+            "type": "array",
+            "description": "Accepted content-types",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "500": {
+          "description": "Internal server error. Possible `error_code` attribute values:\n\n* `internal_server_error`\n",
+          "schema": {
+            "$ref": "../definitions.json#/error"
+          }
+        },
+        "503": {
+          "description": "Under maintenance",
+          "schema": {
+            "$ref": "../definitions.json#/error"
+          }
+        }
+      }
+    }
+  },
   "/public/biblios/{biblio_id}": {
     "get": {
       "x-mojo-to": "Biblios#get_public",
