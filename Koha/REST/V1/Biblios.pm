@@ -171,10 +171,17 @@ sub get_biblios_public {
         my $patron                = $c->stash('koha.user');
         my $is_public             = $c->stash('is_public');
         my $opachiddenitems_rules = C4::Context->yaml_preference('OpacHiddenItems');
-        my @biblionumbers         = map { $_->field('999')->subfield('c') } $results->@*;
-        my @biblios               = map { Koha::Biblios->find( { biblionumber => $_ } ) } @biblionumbers;
-        my @records               = map {
-            next if ( $is_public && !( $patron && $patron->category->override_hidden_items )
+        my $marcflavour           = C4::Context->preference('marcflavour');
+        my $searchengine          = C4::Context->preference('SearchEngine');
+
+        my @biblionumbers
+            = $searchengine eq 'Zebra'
+            ? map { MARC::Record->new_from_xml( $_, 'UTF-8' )->field('999')->subfield('c') } $results->@*
+            : map { $_->field('999')->subfield('c') } $results->@*;
+        my @biblios = map { Koha::Biblios->find( { biblionumber => $_ } ) } @biblionumbers;
+        my @records = map {
+            next if ( $is_public
+                && !( $patron && $patron->category->override_hidden_items )
                 && $_->hidden_in_opac( { rules => $opachiddenitems_rules } ) );
             $_->metadata->record;
         } @biblios;
@@ -183,7 +190,7 @@ sub get_biblios_public {
             mij => {
                 status => 200,
                 format => 'mij',
-                data   => '[' . ( join ',', map { $_->to_mij } @records ) . ']',
+                data   => '[' . ( join q{,}, map { $_->to_mij } @records ) . ']',
             },
             any => {
                 status  => 406,
