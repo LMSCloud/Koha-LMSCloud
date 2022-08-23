@@ -120,6 +120,13 @@
     "description": "Query filter sent as a request header",
     "type": "string"
   },
+  "q_ccl": {
+    "name": "q_ccl",
+    "in": "query",
+    "required": false,
+    "description": "CCL query sent as a query parameter",
+    "type": "string"
+  },
   "fundidPathParam": {
     "$ref": "parameters/fund.json#/fundidPathParam"
   },
