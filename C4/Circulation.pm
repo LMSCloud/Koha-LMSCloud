@@ -1293,14 +1293,20 @@ sub CanBookBeReturned {
   my $fbr = Koha::Libraries->get_effective_branch($item->{'holdingbranch'});
   $branch = Koha::Libraries->get_effective_branch($branch);
 
-  # identify all cases where return is forbidden
+  # check whether the item is on transfer 
+  # if that's the case, the checkin for the target branch needs to be allowed
+  my $transferbranch ='';
+  my ( $transferwhen, $transferfrom, $transferto ) = GetTransfers($item->{'itemnumber'});
+  $transferbranch = Koha::Libraries->get_effective_branch($transferto) if ( defined $transferwhen && $transferwhen ne '' );
+  
+  # identify all cases where return is forbidden  
   if ($allowreturntobranch eq 'homebranch' && $branch ne $hbr) {
      $allowed = 0;
      $message = $item->{'homebranch'};
-  } elsif ($allowreturntobranch eq 'holdingbranch' && $branch ne $fbr) {
+  } elsif ($allowreturntobranch eq 'holdingbranch' && $branch ne $fbr && $branch ne $transferbranch ) {
      $allowed = 0;
      $message = $item->{'holdingbranch'};
-  } elsif ($allowreturntobranch eq 'homeorholdingbranch' && $branch ne $hbr && $branch ne $fbr) {
+  } elsif ($allowreturntobranch eq 'homeorholdingbranch' && $branch ne $hbr && $branch ne $fbr && $branch ne $transferbranch) {
      $allowed = 0;
      $message = $item->{'homebranch'}; # FIXME: choice of homebranch is arbitrary
   }
