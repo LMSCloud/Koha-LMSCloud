@@ -550,7 +550,9 @@ foreach my $code ( keys %$messages ) {
         $err{foreverdebarred}        = $messages->{'ForeverDebarred'};
     }
     elsif ( $code eq 'ItemLocationUpdated' ) {
-        $err{ItemLocationUpdated} = $messages->{ItemLocationUpdated};
+        # LMSCloud: the location update should not be considered as an error
+        # The location update ist an normal configured update.
+        # $err{ItemLocationUpdated} = $messages->{ItemLocationUpdated};
     }
     elsif ( $code eq 'NotForLoanStatusUpdated' ) {
         $err{NotForLoanStatusUpdated} = $messages->{NotForLoanStatusUpdated};
