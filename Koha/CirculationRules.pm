@@ -219,7 +219,7 @@ sub get_effective_rule {
         
         $search_params->{categorycode} = defined $categorycode ? [ $categorycode, undef ] : undef;
         $search_params->{itemtype}     = defined $itemtype     ? [ $itemtype, undef ] : undef;
-        $search_params->{branchcode}   = defined $branchcode   ? [ $branchcode,   undef ] : undef;
+        $search_params->{branchcode}   = defined $branchcode   ? [ $branchcode ] : undef;
 
         my $rule = $self->search(
             $search_params,
