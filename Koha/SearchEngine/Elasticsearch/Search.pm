@@ -167,7 +167,7 @@ sub search_compat {
     my $index = $offset;
     my $hits = $results->{'hits'};
     foreach my $es_record (@{$hits->{'hits'}}) {
-        $records[$index++] = $self->decode_record_from_result($es_record->{'_source'});
+        $records[$index++] = $self->decode_record_from_result($es_record->{'_source'},0);
     }
 
     # consumers of this expect a name-spaced result, we provide the default
@@ -228,7 +228,7 @@ sub search_auth_compat {
             # it's not reproduced here yet.
             my $authtype           = $rs->single;
             my $auth_tag_to_report = $authtype ? $authtype->auth_tag_to_report : "";
-            my $marc               = $self->decode_record_from_result($record);
+            my $marc               = $self->decode_record_from_result($record,1);
             my $mainentry          = $marc->field($auth_tag_to_report);
             my $reported_tag;
             if ($mainentry) {
@@ -348,7 +348,7 @@ sub simple_search_compat {
     my @records;
     my $hits = $results->{'hits'};
     foreach my $es_record (@{$hits->{'hits'}}) {
-        push @records, $self->decode_record_from_result($es_record->{'_source'});
+        push @records, $self->decode_record_from_result($es_record->{'_source'},0);
     }
     return (undef, \@records, $hits->{'total'}->{'value'});
 }
@@ -378,10 +378,10 @@ Extracts marc data from Elasticsearch result and decodes to MARC::Record object
 sub decode_record_from_result {
     # Result is passed in as array, will get flattened
     # and first element will be $result
-    my ( $self, $result ) = @_;
+    my ( $self, $result, $isAuth ) = @_;
     if ($result->{marc_format} eq 'base64ISO2709') {
         my $record = MARC::Record->new_from_usmarc(decode_base64($result->{marc_data}));
-        if ( !( $record && $record->subfield('999', 'c') && exists($result->{biblioitemnumber}->[0])) ) {
+        if ( !$isAuth && !($record && $record->subfield('999', 'c')) && exists($result->{biblioitemnumber}) ) {
             $record = GetMarcBiblio({ biblionumber => $result->{biblioitemnumber}->[0], embed_items  => 1 });
         }
         return $record;
