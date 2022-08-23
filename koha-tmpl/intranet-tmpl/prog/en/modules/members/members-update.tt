@@ -53,6 +53,7 @@
 [% CASE 'relationship'        %]<span>Contact: Relationship</span>
 [% CASE 'sex'                 %]<span>Gender</span>
 [% CASE 'autorenew_checkouts' %]<span>Auto-renewal</span>
+[% CASE 'altcontacttitle'     %]<span>Alternate contact: Title</span>
 [% CASE 'altcontactfirstname' %]<span>Alternate contact: First name</span>
 [% CASE 'altcontactsurname'   %]<span>Alternate contact: Surname</span>
 [% CASE 'altcontacttitle'     %]<span>Alternate contact: Title</span>
