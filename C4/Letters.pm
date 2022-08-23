@@ -989,7 +989,8 @@ sub _parseletter {
         }
 
         # Dates replacement
-        my $replacedby   = defined ($val) ? $val : '';
+        $val = '' if (!defined ($val));
+        my $replacedby   = $val;
         if (    $replacedby
             and not $replacedby =~ m|9999-12-31|
             and $replacedby =~ m|^\d{4}-\d{2}-\d{2}( \d{2}:\d{2}:\d{2})?$| )
@@ -997,6 +998,7 @@ sub _parseletter {
             # If the value is XXXX-YY-ZZ[ AA:BB:CC] we assume it is a date
             my $dateonly = defined $1 ? 0 : 1; #$1 refers to the capture group wrapped in parentheses. In this case, that's the hours, minutes, seconds.
             my $re_dateonly_filter = qr{ $field( \s* \| \s* dateonly\s*)?>> }xms;
+            my $isodate = qr{s*\|s*isodate\s*};
 
             for my $letter_field ( qw( title content ) ) {
                 my $filter_string_used = q{};
@@ -1008,8 +1010,12 @@ sub _parseletter {
                 my $replacedby_date = eval {
                     output_pref({ dt => dt_from_string( $replacedby ), dateonly => $dateonly });
                 };
+                
+                
 
                 if ( $letter->{ $letter_field } ) {
+                    $letter->{ $letter_field } =~ s/\Q<<$table.$field\E$isodate\Q>>\E/$val/g;
+                    $letter->{ $letter_field } =~ s/\Q<<$field\E$isodate\Q>>\E/$val/g;
                     $letter->{ $letter_field } =~ s/\Q<<$table.$field$filter_string_used>>\E/$replacedby_date/g;
                     $letter->{ $letter_field } =~ s/\Q<<$field$filter_string_used>>\E/$replacedby_date/g;
                 }
