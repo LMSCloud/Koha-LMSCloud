@@ -53,6 +53,7 @@
      [%- CASE 'contactnote' -%]<span>Contact note</span>
      [%- CASE 'sort1' -%]<span>Sort 1</span>
      [%- CASE 'sort2' -%]<span>Sort 2</span>
+     [%- CASE 'altcontacttitle' -%]<span>Alternate contact title</span>
      [%- CASE 'altcontactfirstname' -%]<span>Alternate contact first name</span>
      [%- CASE 'altcontactsurname' -%]<span>Alternate contact surname</span>
      [%- CASE 'altcontactaddress1' -%]<span>Alternate contact address</span>
