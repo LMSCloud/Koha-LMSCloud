@@ -42,6 +42,7 @@
     "userid": "userid",
     "opacnote": "opacnote",
     "contactnote": "contactnote",
+    "altcontacttitle": "altcontacttitle",
     "altcontactfirstname": "altcontactfirstname",
     "altcontactsurname": "altcontactsurname",
     "altcontactaddress1": "altcontactaddress1",
