@@ -779,7 +779,7 @@ legend:hover {
                             [% END # /IF ( step_6 ) %]
 
                             [% IF ( step_2 ) %]
-                                [% UNLESS noaltcontactsurname && noaltcontactfirstname && noaltcontactaddress1 && noaltcontactaddress2 && noaltcontactaddress3 && noaltcontactstate && noaltcontactzipcode && noaltcontactcountry && noaltcontactphone %]
+                                [% UNLESS noaltcontacttitle && noaltcontactsurname && noaltcontactfirstname && noaltcontactaddress1 && noaltcontactaddress2 && noaltcontactaddress3 && noaltcontactstate && noaltcontactzipcode && noaltcontactcountry && noaltcontactphone %]
                                     [% PROCESS 'alt-contact-style' %]
                                 [% END # UNLESS noaltcontactsurname && noaltcontactfirstname etc %]
                             [% END # /IF ( step_2 ) %]
