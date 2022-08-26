@@ -451,7 +451,6 @@ sub get_onshelfholds_policy {
     return unless $item;
     my $itemtype = $item->effective_itemtype;
     my $patron = $params->{patron};
-    return unless $patron;
     my $rule = Koha::CirculationRules->get_effective_rule(
         {
             categorycode => ( $patron ? $patron->categorycode : undef ),
