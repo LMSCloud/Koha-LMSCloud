@@ -1087,6 +1087,18 @@ sub _fix_limit_special_cases {
             $date = $self->_modify_string_by_type(type => 'st-year', operand => $date);
             push @new_lim, "date-of-publication:$date";
         }
+        elsif ( $l =~ /^copydate,st-numeric,ge=/ ) {
+            my ( $start, $end ) =
+              ( $l =~ /^copydate,st-numeric,ge=(.*) and copydate,st-numeric,le=(.*)$/ );
+            next unless defined($start) && defined($end);
+            push @new_lim, "copydate:[$start TO $end]";
+        }
+        elsif ( $l =~ /^copydate,st-numeric=/ ) {
+            my ($date) = ( $l =~ /^copydate,st-numeric=(.*)$/ );
+            next unless defined($date);
+            $date = $self->_modify_string_by_type(type => 'st-year', operand => $date);
+            push @new_lim, "copydate:$date";
+        }
         elsif ( $l =~ 'multibranchlimit|^branch' ) {
             my $branchfield  = C4::Context->preference('SearchLimitLibrary');
             my @branchcodes;
