@@ -3103,13 +3103,13 @@ sub getFinesOverview {
     
         my ($fmtfrom,$fmtto);
         # get the accountlines statistics by type
-        $fmtfrom = DateTime::Format::MySQL->format_date($date_from);
-        $fmtto = DateTime::Format::MySQL->format_date($date_to);
+        $fmtfrom = DateTime::Format::MySQL->format_datetime($date_from);
+        $fmtto = DateTime::Format::MySQL->format_datetime($date_to);
 
         # get the accountlines statistics by type
         my $query = qq{
             SELECT  1 as entrytype,
-                    a.date as date, 
+                    DATE(a.date) as date, 
                     a.debit_type_code as debit_type_code, 
                     a.amount as amount,
                     a.borrowernumber as borrowernumber,
@@ -3387,12 +3387,12 @@ sub getCashTransactionOverviewByBranch {
 
     $sth = $dbh->prepare($query);
     $sth->execute( 
-        DateTime::Format::MySQL->format_date($date_from),
-        DateTime::Format::MySQL->format_date($date_to),
+        DateTime::Format::MySQL->format_datetime($date_from),
+        DateTime::Format::MySQL->format_datetime($date_to),
         $branchcode,
         $branchcode,
-        DateTime::Format::MySQL->format_date($date_from),
-        DateTime::Format::MySQL->format_date($date_to),
+        DateTime::Format::MySQL->format_datetime($date_from),
+        DateTime::Format::MySQL->format_datetime($date_to),
         $branchcode,
         $branchcode
     );
