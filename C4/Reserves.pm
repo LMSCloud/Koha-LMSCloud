@@ -1994,20 +1994,24 @@ sub _koha_notify_reserve {
         }
     };
 
-    while ( my ( $mtt, $letter_code ) = each %{ $messagingprefs->{transports} } ) {
-        next if (
-               ( $mtt eq 'email' and not $to_address ) # No email address
-            or ( $mtt eq 'sms'   and not $patron->smsalertnumber ) # No SMS number
-            or ( $mtt eq 'itiva' and C4::Context->preference('TalkingTechItivaPhoneNotification') ) # Notice is handled by TalkingTech_itiva_outbound.pl
-            or ( $mtt eq 'phone' and not $patron->phone ) # No phone number to call
-        );
+    if ( !C4::Context->preference('SuppressNotificationOnHolds') ) {
+        while ( my ( $mtt, $letter_code ) = each %{ $messagingprefs->{transports} } ) {
+            next
+                if (
+                ( $mtt eq 'email'    and not $to_address )                                                 # No email address
+                or ( $mtt eq 'sms'   and not $patron->smsalertnumber )                                     # No SMS number
+                or ( $mtt eq 'itiva' and C4::Context->preference('TalkingTechItivaPhoneNotification') )    # Notice is handled by TalkingTech_itiva_outbound.pl
+                or ( $mtt eq 'phone' and not $patron->phone )                                              # No phone number to call
+                );
 
-        &$send_notification($mtt, $letter_code);
-        $notification_sent++;
-    }
-    #Making sure that a print notification is sent if no other transport types can be utilized.
-    if (! $notification_sent) {
-        &$send_notification('print', 'HOLD');
+            &$send_notification( $mtt, $letter_code );
+            $notification_sent++;
+        }
+
+        #Making sure that a print notification is sent if no other transport types can be utilized.
+        if ( !$notification_sent ) {
+            &$send_notification( 'print', 'HOLD' );
+        }
     }
 
 }
