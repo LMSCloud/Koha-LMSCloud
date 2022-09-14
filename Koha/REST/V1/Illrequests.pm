@@ -45,7 +45,9 @@ sub list {
 
     my $args = $c->req->params->to_hash // {};
     my $output = [];
-    my @format_dates = ( 'placed', 'updated', 'completed' );
+    # my @format_dates = ( 'placed', 'updated', 'completed' );    # Koha master
+    my @format_dates = ( 'placed', 'completed' );    # Koha-LMSCloud
+    my @format_datetimes = ( 'updated' );    # Koha-LMSCloud
     my $filter;
 
     # Create a hash where all keys are embedded values
@@ -188,10 +190,20 @@ sub list {
                     $to_push->{$field},
                     undef,
                     undef,
-                    ### 1  # Koha master
-                    0    # LMSCloud
+                    1
                 );
-
+            }
+        }
+        # Create new "formatted" columns for each datetime column
+        # that needs formatting
+        foreach my $field(@format_datetimes) {
+            if (defined $to_push->{$field}) {
+                $to_push->{$field . "_formatted"} = format_sqldatetime(
+                    $to_push->{$field},
+                    undef,
+                    undef,
+                    0
+                );
             }
         }
 
