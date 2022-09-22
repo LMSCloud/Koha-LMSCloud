@@ -9,7 +9,7 @@
 </head>
 <body id="batch_print-notices" class="batch">
     [% FOREACH message IN messages %]
-        <pre>[% message.content | $raw %]</pre>
+        [% message.content | $raw %]
     [% END %]
 </body>
 </html>
