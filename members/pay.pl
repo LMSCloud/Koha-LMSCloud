@@ -291,7 +291,7 @@ sub payselected {
     }
     $amt = '&amt=' . $amt;
     my $sel = '&selected=' . join ',', @lines_to_pay;
-    my $notes = '&notes=' . join("%0A", map { scalar $input->param("payment_note_$_") } @lines_to_pay );
+    my $notes = '&notes=' . join("%0A", map { uri_escape_utf8(scalar $input->param("payment_note_$_")) } @lines_to_pay );
     my $redirect =
         "/cgi-bin/koha/members/paycollect.pl?borrowernumber=$borrowernumber"
       . "&type=$type"
