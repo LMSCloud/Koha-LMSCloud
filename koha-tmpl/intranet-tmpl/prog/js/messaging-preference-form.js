@@ -6,6 +6,10 @@ $(document).ready(function(){
         message_prefs_dirty = true;
     });
 
+    if ( window.location.href.indexOf("op=add") === -1 ) {
+        message_prefs_dirty = true; // unless op=add consider the message prefs dirty
+    }
+
     if( $("#messaging_prefs_loading").length ){ // This element only appears in the template if op=add
         $('#categorycode_entry').change(function() {
             var messaging_prefs_loading = $("#messaging_prefs_loading");
@@ -13,7 +17,7 @@ $(document).ready(function(){
             messaging_prefs_loading.show();
             var categorycode = $(this).val();
             if (message_prefs_dirty) {
-                if (!confirm( MSG_MESSAGING_DFEAULTS )) {
+                if (!confirm( __("Change messaging preferences to default for this category?") )) {
                     // Not loading messaging defaults. Hide loading indicator
                     messaging_prefs_loading.hide();
                     return;
@@ -26,8 +30,10 @@ $(document).ready(function(){
                     $.each(transports, function(j, transport) {
                         if (item['transports_' + transport] == 1) {
                             $('#' + transport + attrid).prop('checked', true);
+                            toggle_digest(attrid);
                         } else {
                             $('#' + transport + attrid).prop('checked', false);
+                            toggle_digest(attrid);
                         }
                     });
                     if (item.digest && item.digest != ' ') {

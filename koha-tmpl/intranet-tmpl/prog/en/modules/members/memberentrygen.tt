@@ -1777,50 +1777,6 @@ legend:hover {
         [% END %]
         $("#guarantor_template").hide();
 
-        [% IF ( step_5 ) %]
-            [% IF ( EnhancedMessagingPreferences ) %]
-                [% IF ( opadd ) %]
-                    $(document).ready(function(){
-                        var message_prefs_dirty = false;
-                        $('#memberentry_messaging_prefs > *').change(function() {
-                            message_prefs_dirty = true;
-                        });
-                        $('#categorycode_entry').change(function() {
-                            var categorycode = $(this).val();
-                            if (message_prefs_dirty) {
-                                if (!confirm(_("Change messaging preferences to default for this category?"))) {
-                                    return;
-                                }
-                            }
-                            $.getJSON('/cgi-bin/koha/members/default_messageprefs.pl?categorycode=' + categorycode,
-                                function(data) {
-                                    $.each(data.messaging_preferences, function(i, item) {
-                                        var attrid = item.message_attribute_id;
-                                        var transports = ['email', 'rss', 'sms'];
-                                        $.each(transports, function(j, transport) {
-                                            if (item['transports_' + transport] == 1) {
-                                                $('#' + transport + attrid).prop('checked', true);
-                                            } else {
-                                                $('#' + transport + attrid).prop('checked', false);
-                                            }
-                                        });
-                                        if (item.digest && item.digest != ' ') {
-                                            $('#digest' + attrid).prop('checked', true);
-                                        } else {
-                                            $('#digest' + attrid).prop('checked', false);
-                                        }
-                                        if (item.takes_days == '1') {
-                                            $('[name=' + attrid + '-DAYS]').val('' + item.days_in_advance);
-                                        }
-                                    });
-                                    message_prefs_dirty = false;
-                                }
-                            );
-                        });
-                    });
-                [% END %]
-            [% END %]
-        [% END %]
     </script>
     [% Asset.js("js/members.js") | $raw %]
     [% Asset.js("js/messaging-preference-form.js") | $raw %]
