@@ -513,8 +513,8 @@ sub readTitleDubletten {
         # 4. titel and author and erscheinungsJahr
 
         # check for ekzArtikelNr search
-        if ( !defined $selParam->{'ekzArtikelNr'} || length($selParam->{'ekzArtikelNr'}) == 0 ) {
-            my $mess = sprintf("readTitleDubletten(): ekzArtikelNr is empty -> not searching for ekzArtikelNr.");
+        if ( !defined $selParam->{'ekzArtikelNr'} || length($selParam->{'ekzArtikelNr'}) == 0 || $selParam->{'ekzArtikelNr'} == 0 ) {
+            my $mess = sprintf("readTitleDubletten(): ekzArtikelNr is empty or 0 -> not searching for ekzArtikelNr.");
             $self->{'logger'}->warn($mess);
             #carp "EkzKohaRecords::" . $mess . "\n";
         } else
@@ -744,7 +744,7 @@ sub readTitleInLMSPool {
     my $pool = new LMSPoolSRU;
     my $result = {'count' => 0, 'records' => []};
 
-    if(defined $selEkzArtikelNr && length($selEkzArtikelNr) > 0) {
+    if(defined $selEkzArtikelNr && length($selEkzArtikelNr) > 0 && $selEkzArtikelNr != 0) {
         # search by EKZ id
         my @EKZIDList = ($selEkzArtikelNr);
         $self->{'logger'}->debug("readTitleInLMSPool() is calling getbyId.");
@@ -799,8 +799,8 @@ sub readTitleInLMSPool {
         }
     }
 
-    $self->{'logger'}->debug("readTitleDubletten() selEkzArtikelNr:" . $selEkzArtikelNr . ": selIsbn:" . $selIsbn . ": selIsbn13:" . $selIsbn13 . ": foundInPool:" . $foundInPool . ":");
-    $self->{'logger'}->debug("readTitleDubletten() result->{'count'}:$result->{'count'}:");
+    $self->{'logger'}->debug("readTitleInLMSPool() selEkzArtikelNr:" . $selEkzArtikelNr . ": selIsbn:" . $selIsbn . ": selIsbn13:" . $selIsbn13 . ": foundInPool:" . $foundInPool . ":");
+    $self->{'logger'}->debug("readTitleInLMSPool() result->{'count'}:$result->{'count'}:");
     return $result;
 }
 
