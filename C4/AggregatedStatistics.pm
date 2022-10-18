@@ -168,6 +168,7 @@ B<returns:> AggregatedStatistics object containing the found records from table 
 sub GetAggregatedStatistics {
     my ($param) = @_;
     my $selParam = {};
+    my $orderByParam = { order_by => { -desc => 'id' } };
 
     if ( defined($param->{'id'}) ) {
         $selParam = {
@@ -188,8 +189,8 @@ sub GetAggregatedStatistics {
 print STDERR "AggregatedStatistics::GetAggregatedStatistics() read aggregated_statistics records by calling Koha::AggregatedStatistics::AggregatedStatistics->new\n" if $debugIt;
     my $aggregatedStatistics = Koha::AggregatedStatistics::AggregatedStatistics->new();
 print STDERR "AggregatedStatistics::GetAggregatedStatistics() aggregatedStatistics:", Dumper($aggregatedStatistics), ":\n" if $debugIt;
-print STDERR "AggregatedStatistics::GetAggregatedStatistics() read aggregated_statistics records by calling Koha::AggregatedStatistics::AggregatedStatistics->search \nselParam:", Dumper($selParam), ":\n" if $debugIt;
-    my $res = $aggregatedStatistics->search($selParam);
+print STDERR "AggregatedStatistics::GetAggregatedStatistics() read aggregated_statistics records by calling Koha::AggregatedStatistics::AggregatedStatistics->search(); selParam:", Dumper($selParam), ": orderByParam:", Dumper($orderByParam), ":\n" if $debugIt;
+    my $res = $aggregatedStatistics->search($selParam, $orderByParam);
 print STDERR "AggregatedStatistics::GetAggregatedStatistics() read aggregated_statistics records count:", $res->_resultset()+0, ":\n" if $debugIt;
 if ( $res->_resultset() > 0 ) {
     print STDERR "AggregatedStatistics::GetAggregatedStatistics() read aggregated_statistics first record:", Dumper($res->_resultset()->first()->{_column_data}), ":\n" if $debugIt;
