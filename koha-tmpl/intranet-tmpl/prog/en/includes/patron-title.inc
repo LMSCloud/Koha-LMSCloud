@@ -3,7 +3,7 @@
 [%- USE Branches -%]
 [%- SET data = {} -%]
 [%- IF patron -%]
-    [%- SET data.category_type  = patron.category.category_type -%]
+    [% IF (patron.categorycode && patron.category) %][%- SET data.category_type  = patron.category.category_type -%][% END %]
     [%- SET data.surname        = patron.surname -%]
     [%- SET data.othernames     = patron.othernames -%]
     [%- SET data.firstname      = patron.firstname -%]
