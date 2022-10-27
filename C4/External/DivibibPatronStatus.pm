@@ -52,6 +52,7 @@ sub new {
                             };
     
     $self->{patron} = undef;
+    $self->{updAttempts} = {};
     if ( $borrowernumber && $password ) {
         my ($patron, $age, $checkpw);
         
@@ -61,7 +62,10 @@ sub new {
             $checkpw = $patron->password;
             if (!($checkpw eq $password || &checkpw_hash($password,$checkpw)) ) {
                 $self->{patronResponse}->{'status'} = -2; # wrong password
-                $patron->update({ login_attempts => $patron->login_attempts + 1 });
+                if (! exists($self->{updAttempts}->{$patron->borrowernumber}) ) {
+                    $patron->update({ login_attempts => $patron->login_attempts + 1 });
+                    $self->{updAttempts}->{$patron->borrowernumber} = 1;
+                }
                 $patron = undef;
             }
             else {
@@ -79,7 +83,10 @@ sub new {
                 $checkpw = $patron->password;
                 if (!($checkpw eq $password || &checkpw_hash($password,$checkpw)) ) {
                     $self->{patronResponse}->{'status'} = -2; # wrong password
-                    $patron->update({ login_attempts => $patron->login_attempts + 1 });
+                    if (! exists($self->{updAttempts}->{$patron->borrowernumber}) ) {
+                        $patron->update({ login_attempts => $patron->login_attempts + 1 });
+                        $self->{updAttempts}->{$patron->borrowernumber} = 1;
+                    }
                     $patron = undef;
                 }
                 else {
@@ -103,7 +110,10 @@ sub new {
                     $patron->track_login if ( C4::Context->preference('TrackLastPatronActivity') );
                 } else {
                     $self->{patronResponse}->{'status'} = -2; # wrong password
-                    $patron->update({ login_attempts => $patron->login_attempts + 1 });
+                    if (! exists($self->{updAttempts}->{$patron->borrowernumber}) ) {
+                        $patron->update({ login_attempts => $patron->login_attempts + 1 });
+                        $self->{updAttempts}->{$patron->borrowernumber} = 1;
+                    }
                     $patron = undef;
                 }
             }
