@@ -184,7 +184,9 @@ if ($newvirtualshelf) {
 }
 
 my @biblios;
+my $bibliofound = {};
 for my $biblionumber (@biblionumbers) {
+	
     my $biblio = Koha::Biblios->find( $biblionumber );
     push(
         @biblios,
@@ -192,7 +194,8 @@ for my $biblionumber (@biblionumbers) {
             title        => $biblio->title,
             author       => $biblio->author,
         }
-    );
+    ) if ($biblio && !exists($bibliofound->{$biblionumber}));
+    $bibliofound->{$biblionumber} = 1 if ($biblio);
 }
 $template->param(
     multiple => ( scalar(@biblios) > 1 ),
