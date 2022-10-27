@@ -204,15 +204,15 @@
                                                         <option value="ns">ISSN</option>
                                                     [% END # /ms_ns%]
                                                     [% IF ( ms_se ) %]
-                                                        <option selected="selected" value="se,phr">Series</option>
+                                                        <option selected="selected" value="se">Series</option>
                                                     [% ELSE %]
-                                                        <option value="se,phr">Series</option>
+                                                        <option value="se">Series</option>
                                                     [% END # /ms_se %]
                                                     [% IF ( Koha.Preference('OPACNumbersPreferPhrase') ) %]
-                                                        [% IF ( ms_callnumcommaphr ) %]
-                                                            <option selected="selected" value="callnum,phr">Call number</option>
+                                                        [% IF ( ms_callnumdotphrase ) %]
+                                                            <option selected="selected" value="callnum.phrase">Call number</option>
                                                         [% ELSE %]
-                                                            <option value="callnum,phr">Call number</option>
+                                                            <option value="callnum.phrase">Call number</option>
                                                         [% END #/ms_callnumcommaphr %]
                                                     [% ELSE %]
                                                         [% IF ( ms_callnum ) %]
