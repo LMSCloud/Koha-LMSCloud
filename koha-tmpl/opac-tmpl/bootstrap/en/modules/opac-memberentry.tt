@@ -719,7 +719,7 @@
                                                 <select id="borrower_altcontacttitle" name="borrower_altcontacttitle" class="[% required.altcontacttitle | html %]">
                                                     <option value=""></option>
                                                     [% FOREACH mt IN Koha.Preference('BorrowersTitles').split('\|') %]
-                                                        [% IF mt == borrower.title %]
+                                                        [% IF mt == borrower.altcontacttitle %]
                                                             <option value="[% mt | html %]" selected="selected">[% mt | html %]</option>
                                                         [% ELSE %]
                                                             <option value="[% mt | html %]">[% mt | html %]</option>

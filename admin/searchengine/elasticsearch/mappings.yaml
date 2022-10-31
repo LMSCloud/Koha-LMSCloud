@@ -4826,3 +4826,31 @@ biblios:
         sort: ~
         suggestible: ''
     type: number
+  bzsh:
+    label: bzsh
+    mappings:
+      - facet: ''
+        marc_field: 591
+        marc_type: marc21
+        sort: ~
+        suggestible: ''
+      - facet: ''
+        marc_field: 592
+        marc_type: marc21
+        sort: ~
+        suggestible: ''
+      - facet: ''
+        marc_field: 998
+        marc_type: marc21
+        sort: ~
+        suggestible: ''
+    type: string
+  ekzdata:
+    label: ekzdata
+    mappings:
+      - facet: ''
+        marc_field: 945
+        marc_type: marc21
+        sort: ~
+        suggestible: ''
+    type: string

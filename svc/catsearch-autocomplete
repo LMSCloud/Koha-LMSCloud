@@ -83,7 +83,7 @@ if ( C4::Context->preference("SearchEngine") eq 'Elasticsearch' ) {
     foreach my $option (@result) {
         my $label = $option;
         $option =~ s/ [\-+;|] / /g;
-        $option =~ s/["'*()~]//g;
+        $option =~ s/["*()~]//g;
         $option =~ s/\?/\\?/g;
         push @resultlist, { label => $label, value => $option };
     }

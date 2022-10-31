@@ -65,10 +65,10 @@
     [% ELSE %]
         <option value="se">&nbsp;&nbsp;&nbsp;&nbsp; Series title</option>
     [% END %]
-    [% IF ms_syscommaphrcommaextcommartrn %]
-        <option selected="seleced" value="sys,phr,ext,rtrn">&nbsp;&nbsp;&nbsp;&nbsp; Classification</option>
+    [% IF ms_sys %]
+        <option selected="seleced" value="sys">&nbsp;&nbsp;&nbsp;&nbsp; Classification</option>
     [% ELSE %]
-        <option value="sys,phr,ext,rtrn">&nbsp;&nbsp;&nbsp;&nbsp; Classification</option>
+        <option value="sys">&nbsp;&nbsp;&nbsp;&nbsp; Classification</option>
     [% END %]
     [% IF ms_su %]
         <option selected="selected" value="su">Subject</option>
@@ -177,10 +177,10 @@
     [%# http://www.loc.gov/marc/bibliographic/bd008a.html %]
     [%# This search is also for date ranges due to the %]
     [%# special Zebra r=r CCL mapping for 'yr' %]
-    [% IF ms_yrcommastdashyear %]
-        <option selected="selected" value="yr,st-year">Publication date (yyyy-yyyy)</option>
+    [% IF ms_publyear %]
+        <option selected="selected" value="publyear">Publication date (yyyy-yyyy)</option>
     [% ELSE %]
-        <option value="yr,st-year">Publication date (yyyy-yyyy)</option>
+        <option value="publyear">Publication date (yyyy-yyyy)</option>
     [% END %]
     [% IF ms_acqdatecommastdashdatedashnormalized %]
         <option selected="selected" value="acqdate,st-date-normalized">Acquisition date (yyyy-mm-dd)</option>

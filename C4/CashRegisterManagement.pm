@@ -3367,7 +3367,7 @@ sub getCashTransactionOverviewByBranch {
                AND a.branchcode = br.branchcode
                AND ( br.branchcode = ? OR br.mobilebranch = ? )
                AND a.credit_type_code IS NOT NULL AND a.credit_type_code <> '' 
-               AND a.credit_type_code NOT IN ('CANCELLATION','FORGIVEN','WRITEOFF','DISCOUNT')
+               AND a.credit_type_code NOT IN ('CANCELLATION','FORGIVEN','WRITEOFF','DISCOUNT','REFUND')
                AND NOT EXISTS (SELECT 1 FROM cash_register_account c WHERE c.accountlines_id = a.accountlines_id)
             GROUP BY b.branchcode, a.credit_type_code, a.payment_type
 
@@ -3380,7 +3380,7 @@ sub getCashTransactionOverviewByBranch {
                AND a.branchcode = br.branchcode
                AND ( br.branchcode = ? OR br.mobilebranch = ? )
                AND a.credit_type_code IS NOT NULL AND a.credit_type_code <> '' 
-               AND a.credit_type_code NOT IN ('CANCELLATION','FORGIVEN','WRITEOFF','DISCOUNT')
+               AND a.credit_type_code NOT IN ('CANCELLATION','FORGIVEN','WRITEOFF','DISCOUNT','REFUND')
                AND NOT EXISTS (SELECT 1 FROM cash_register_account c WHERE c.accountlines_id = a.accountlines_id)
             GROUP BY b.branchcode, a.credit_type_code, a.payment_type
         }; $query =~ s/^\s+/ /mg;

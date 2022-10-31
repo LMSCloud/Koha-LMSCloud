@@ -2067,6 +2067,7 @@ sub to_api_mapping {
         altcontactaddress2  => 'altcontact_address2',
         altcontactaddress3  => 'altcontact_city',
         altcontactcountry   => 'altcontact_country',
+        altcontacttitle     => 'altcontact_title',
         altcontactfirstname => 'altcontact_firstname',
         altcontactphone     => 'altcontact_phone',
         altcontactsurname   => 'altcontact_surname',

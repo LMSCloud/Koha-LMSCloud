@@ -765,7 +765,7 @@ if ( C4::Context->preference('OPACAcquisitionDetails' ) ) {
         my $order = Koha::Acquisition::Orders->find( $order->{ordernumber} );
         my $basket = $order->basket;
         if ( $basket->effective_create_items eq 'ordering' ) {
-            @itemnumbers_on_order = $order->items->get_column('itemnumber');
+            push(@itemnumbers_on_order,$order->items->get_column('itemnumber'));
         }
         $total_quantity += $order->quantity;
     }

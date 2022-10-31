@@ -746,7 +746,7 @@
                         'value': 'borrowers.borrowernotes'
                     },{
                         'name': 'debarred_sorton',
-                        'value': 'debarredcomment borrowers.lost borrowers.gonenoaddress',
+                        'value': 'debar.comment borrowers.lost borrowers.gonenoaddress',
                     },{
                         'name': 'template_path',
                         'value': 'members/tables/members_results.tt',
