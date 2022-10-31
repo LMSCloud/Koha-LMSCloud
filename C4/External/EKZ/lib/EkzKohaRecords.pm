@@ -34,11 +34,12 @@ use MARC::File::XML ( BinaryEncoding => 'utf8', RecordFormat => 'MARC21' );
 
 use C4::Context;
 use C4::Biblio qw( AddBiblio GetMarcBiblio );
-use C4::Breeding qw(Z3950SearchGeneral);
+use C4::Breeding qw( Z3950SearchGeneral );
 use C4::External::EKZ::EkzAuthentication;
 use C4::External::EKZ::lib::LMSPoolSRU;
 use C4::External::EKZ::lib::EkzWsConfig;
 use C4::External::EKZ::lib::EkzWebServices;
+use C4::Koha qw( GetAuthorisedValues );
 #use C4::Letters qw( _wrap_html );    # C4::Letters::_wrap_html is required here, but it is not exported by C4::Letters, so we have to use it inofficially
 use Koha::SearchEngine::Search qw( new simple_search_compat );
 use Koha::Biblios;
@@ -111,7 +112,7 @@ sub ccodeBySupplyOption {
     $self->{'logger'}->debug("ccodeBySupplyOption(supplyOption:" . (defined($supplyOption)?$supplyOption:'undef') . ") START; defined(self->{localCatalogSourceDelegateClass}):" . defined($self->{localCatalogSourceDelegateClass}) . ":");
 
     if ( defined($self->{localCatalogSourceDelegateClass}) ) {
-        my $auth_values = GetAuthorisedValues('CCODE');
+        my $auth_values = C4::Koha::GetAuthorisedValues('CCODE');
         foreach my $auth_value ( @{$auth_values} ) {
             if ( $auth_value->{lib} eq $supplyOption ) {
                 $retCcode = $auth_value->{authorised_value};

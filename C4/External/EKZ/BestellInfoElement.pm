@@ -40,6 +40,7 @@ use Koha::Acquisition::Order;
 use Koha::Acquisition::Orders;
 use Koha::Acquisition::Baskets;
 use Koha::Database;
+use Koha::Exceptions;
 use Koha::Item;
 use Koha::Items;
 use Koha::Logger;
