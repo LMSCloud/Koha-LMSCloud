@@ -70,6 +70,7 @@
                                     <select name="illfilter_status" id="illfilter_status">
                                         <option value=""></option>
                                     </select>
+                                    <input type="hidden" name="illfilter_status_selected" id="illfilter_status_selected" />
                                 </li>
                                 <li>
                                     <label for="illfilter_dateplaced_start">Date placed between:</label>
@@ -92,6 +93,7 @@
                                     <select name="illfilter_branchname" id="illfilter_branchname">
                                         <option value=""></option>
                                     </select>
+                                    <input type="hidden" name="illfilter_branchname_selected" id="illfilter_branchname_selected" />
                                 </li>
                                 <li>
                                     <label for="illfilter_patron">Patron:</label>

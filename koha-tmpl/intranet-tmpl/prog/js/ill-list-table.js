@@ -60,15 +60,23 @@ $(document).ready(function() {
                         activeFilters[me] = function() {
                             table.api().column(13).search(sel);
                         }
+                        $('#illfilter_status_selected').val(sel);
                     } else {
                         if (activeFilters.hasOwnProperty(me)) {
                             delete activeFilters[me];
+                            $('#illfilter_status_selected').val('');
                         }
                     }
                 });
             },
             clear: function() {
                 $('#illfilter_status').val('');
+                $('#illfilter_status_selected').val($('#illfilter_status').val());
+            },
+            refresh: function () {
+                var selectedValue = $('#illfilter_status_selected').val();
+                $("#illfilter_status option[value='" + selectedValue + "']").prop('selected', true);
+                $('#illfilter_status').change();
             }
         },
         pickupBranch: {
@@ -92,15 +100,23 @@ $(document).ready(function() {
                         activeFilters[me] = function() {
                             table.api().column(12).search(sel);
                         }
+                        $('#illfilter_branchname_selected').val(sel);
                     } else {
                         if (activeFilters.hasOwnProperty(me)) {
                             delete activeFilters[me];
+                            $('#illfilter_branchname_selected').val('');
                         }
                     }
                 });
             },
             clear: function() {
                 $('#illfilter_branchname').val('');
+                $('#illfilter_branchname_selected').val($('#illfilter_branchname').val());
+            },
+            refresh: function () {
+                var selectedValue = $('#illfilter_branchname_selected').val();
+                $("#illfilter_branchname option[value='" + selectedValue + "']").prop('selected', true);
+                $('#illfilter_branchname').change();
             }
         },
         patron: {
@@ -121,6 +137,9 @@ $(document).ready(function() {
             },
             clear: function() {
                 $('#illfilter_patron').val('');
+            },
+            refresh: function () {
+                $('#illfilter_patron').change();
             }
         },
         keyword: {
@@ -141,6 +160,9 @@ $(document).ready(function() {
             },
             clear: function () {
                 $('#illfilter_keyword').val('');
+            },
+            refresh: function () {
+                $('#illfilter_keyword').change();
             }
         },
         dateModified: {
@@ -631,6 +653,8 @@ $(document).ready(function() {
 
             });
 
+            refreshFilterSearch(dataCopy, data);
+            $('#illfilter_form').submit();
         });
     } //END if window.location.search.length == 0
 
@@ -646,6 +670,16 @@ $(document).ready(function() {
             }
         }
         table.api().draw();
+    };
+
+    var refreshFilterSearch = function(dataCopy, data) {
+        for (var filter in filterable) {
+            if ( filterable.hasOwnProperty(filter) ) {
+                if ( filterable[filter].hasOwnProperty('refresh') ) {
+                    filterable[filter].refresh();
+                }
+            }
+        }
     };
 
     // Apply any search filters, or clear any previous
