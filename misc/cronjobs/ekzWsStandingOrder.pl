@@ -57,6 +57,7 @@ my $logger = Koha::Logger->get({ interface => 'C4::External::EKZ' });
 $logger->info("ekzWsStandingOrder.pl START starttime:$startTime:");
 
 $currentYear = &getCurrentYear();
+my @publicationYears = ( $currentYear+1, $currentYear );    # sequence so that the acquisition_import record (where rec_type = 'message') stores StoList response of current year
 $lastRunDate = C4::External::EKZ::lib::EkzWebServices::getLastRunDate('StoList', 'A');    # value for 'von' / 'from', required in american form yyyy-mm-dd
 $todayDate = `date +%Y-%m-%d`;
 chomp($todayDate);
@@ -118,7 +119,7 @@ if ( $testMode == 2 ) {
 
                 if ( $genKohaRecords ) {
                     if ( $result->{'standingOrderCount'} > 0 ) {
-                        if ( &genKohaRecords($ekzCustomerNumber, $result->{'messageID'}, $stoListElement, $result->{'standingOrderRecords'}->[0], $selStatusDatum, $todayDate, $createdTitleRecords) ) {
+                        if ( &genKohaRecords($ekzCustomerNumber, $result->{'messageID'}, $stoListElement, $result->{'standingOrderRecords'}->[0], $selStatusDatum, $todayDate, $createdTitleRecords, $selYear) ) {
                             $res = 1;
                         }
                     }
@@ -136,27 +137,29 @@ if ( $testMode == 0 ) {
     # some libraries use different ekz Kundennummer for different branches, so we have to call the standing order synchronization for each of these.
     my @ekzCustomerNumbers = C4::External::EKZ::lib::EkzWsConfig->new()->getEkzCustomerNumbers();
     foreach my $ekzCustomerNumber (sort @ekzCustomerNumbers) {
-        # read all stoIDs of current year
-        $logger->info("ekzWsStandingOrder.pl read STO of year:$currentYear: by calling readStoFromEkzWsStoList ($ekzCustomerNumber,$currentYear,undef,false,false,false,undef,undef,undef,undef)");
-        my $stoOfYear = &readStoFromEkzWsStoList ($ekzCustomerNumber,$currentYear,undef,'false','false','false',undef,undef,undef,undef);
-        
-        foreach my $sto ( @{$stoOfYear->{'standingOrderRecords'}} ) {
-            $logger->info("ekzWsStandingOrder.pl read StoId:$sto->{stoID}: read complete info; calling readStoFromEkzWsStoList ($ekzCustomerNumber,$currentYear,$sto->{stoID},true,true,true,undef,'true','true',\\\$stoListElement)");
-            $result = &readStoFromEkzWsStoList ($ekzCustomerNumber,$currentYear,$sto->{stoID},'true','true','true',undef,'true','true',\$stoListElement);    # read *complete* info (i.e. all titles, even without new status) of the standing order
+        foreach my $publicationYear ( @publicationYears ) {
+            # read all stoIDs of publication year
+            $logger->info("ekzWsStandingOrder.pl read STO of year:$publicationYear: by calling readStoFromEkzWsStoList ($ekzCustomerNumber,$publicationYear,undef,false,false,false,undef,undef,undef,undef)");
+            my $stoOfYear = &readStoFromEkzWsStoList ($ekzCustomerNumber,$publicationYear,undef,'false','false','false',undef,undef,undef,undef);
 
-            if ( $addReferenznummer ) {
-                if ( $result->{'standingOrderCount'} > 0 ) {
-                    &addReferenznummerToObjectItemNumber($ekzCustomerNumber, $result->{'messageID'}, $stoListElement, $result->{'standingOrderRecords'}->[0], $lastRunDate, $todayDate);
+            foreach my $sto ( @{$stoOfYear->{'standingOrderRecords'}} ) {
+                $logger->info("ekzWsStandingOrder.pl read StoId:$sto->{stoID}: read complete info; calling readStoFromEkzWsStoList ($ekzCustomerNumber,$publicationYear,$sto->{stoID},true,true,true,undef,'true','true',\\\$stoListElement)");
+                $result = &readStoFromEkzWsStoList ($ekzCustomerNumber,$publicationYear,$sto->{stoID},'true','true','true',undef,'true','true',\$stoListElement);    # read *complete* info (i.e. all titles, even without new status) of the standing order
+
+                if ( $addReferenznummer ) {
+                    if ( $result->{'standingOrderCount'} > 0 ) {
+                        &addReferenznummerToObjectItemNumber($ekzCustomerNumber, $result->{'messageID'}, $stoListElement, $result->{'standingOrderRecords'}->[0], $lastRunDate, $todayDate);
+                    }
                 }
-            }
-            $logger->info("ekzWsStandingOrder.pl read StoId:" . $sto->{stoID} . ": state changes since lastRunDate:$lastRunDate: by calling readStoFromEkzWsStoList ($ekzCustomerNumber,$currentYear," . $sto->{stoID} . ",true,true,true,$lastRunDate,true,true,undef)");
-            $result = &readStoFromEkzWsStoList ($ekzCustomerNumber,$currentYear,$sto->{stoID},'true','true','true',$lastRunDate,'true','true',undef);        # read titles with modified state of the standig order 
-            $logger->debug("ekzWsStandingOrder.pl Dumper(result->{'standingOrderRecords'}->[0]:" . Dumper($result->{'standingOrderRecords'}->[0]) . ":");
+                $logger->info("ekzWsStandingOrder.pl read StoId:" . $sto->{stoID} . ": state changes since lastRunDate:$lastRunDate: by calling readStoFromEkzWsStoList ($ekzCustomerNumber,$publicationYear," . $sto->{stoID} . ",true,true,true,$lastRunDate,true,true,undef)");
+                $result = &readStoFromEkzWsStoList ($ekzCustomerNumber,$publicationYear,$sto->{stoID},'true','true','true',$lastRunDate,'true','true',undef);        # read titles with modified state of the standig order 
+                $logger->debug("ekzWsStandingOrder.pl Dumper(result->{'standingOrderRecords'}->[0]:" . Dumper($result->{'standingOrderRecords'}->[0]) . ":");
 
-            if ( $genKohaRecords ) {
-                if ( $result->{'standingOrderCount'} > 0 ) {
-                    if ( &genKohaRecords($ekzCustomerNumber, $result->{'messageID'}, $stoListElement, $result->{'standingOrderRecords'}->[0], $lastRunDate, $todayDate, $createdTitleRecords) ) {
-                        $res = 1;
+                if ( $genKohaRecords ) {
+                    if ( $result->{'standingOrderCount'} > 0 ) {
+                        if ( &genKohaRecords($ekzCustomerNumber, $result->{'messageID'}, $stoListElement, $result->{'standingOrderRecords'}->[0], $lastRunDate, $todayDate, $createdTitleRecords, $publicationYear) ) {
+                            $res = 1;
+                        }
                     }
                 }
             }
