@@ -112,7 +112,7 @@ sub pay {
 
     # NOTE: Pay historically always applied as much credit as it could to all
     # existing outstanding debits, whether passed specific debits or otherwise.
-    if ( $payment->amountoutstanding ) {
+    if ( $payment->amountoutstanding < -0.001 || $payment->amountoutstanding > 0.001 ) {    # calculation with MariaDB: -6.40 + 0.30 + 0.30 + 3.30 + 2.50 = -8.88178419700125e-16
         $payment =
           $payment->apply(
             { debits => [ $self->outstanding_debits->as_list ] } );

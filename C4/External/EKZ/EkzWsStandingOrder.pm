@@ -255,7 +255,7 @@ sub addReferenznummerToObjectItemNumber {
 # generate title data and item data as required
 ###################################################################################################
 sub genKohaRecords {
-    my ($ekzCustomerNumber, $messageID, $stoListElement, $stoWithNewState, $lastRunDate, $todayDate, $createdTitleRecords) = @_;
+    my ($ekzCustomerNumber, $messageID, $stoListElement, $stoWithNewState, $lastRunDate, $todayDate, $createdTitleRecords, $publicationYear) = @_;
     my $logger = Koha::Logger->get({ interface => 'C4::External::EKZ::EkzWsStandingOrder' });
     my $ekzKohaRecord = C4::External::EKZ::lib::EkzKohaRecords->new();
 
@@ -283,6 +283,7 @@ sub genKohaRecords {
                                        ": stoWithNewState->titelCount:" . (defined($stoWithNewState->{'titelCount'}) ? $stoWithNewState->{'titelCount'} : 'undef') .
                                        ": lastRunDate:" . (defined($lastRunDate) ? $lastRunDate : 'undef') .
                                        ": todayDate:" . (defined($todayDate) ? $todayDate : 'undef') .
+                                       ": publicationYear:" . (defined($publicationYear) ? $publicationYear : 'undef') .
                                        ":");
 
     my $zweigstellencode = '';
@@ -1045,7 +1046,7 @@ SEQUENCEOFKOSTENSTELLE: for ( my $i = 0; $i < $sequenceOfKostenstelle; $i += 1 )
         $logger->info("genKohaRecords() cntTitlesHandled:$cntTitlesHandled: cntItemsHandled:$cntItemsHandled:");
         if ( scalar(@logresult) > 0 && ($cntTitlesHandled > 0 || $cntItemsHandled > 0) ) {
             my @importIds = keys %importIds;
-            ($message, $subject, $haserror) = $ekzKohaRecord->createProcessingMessageText(\@logresult, "headerTEXT", $dt, \@importIds, $ekzBestellNr);  # we use ekzBestellNr as part of importID in MARC field 025.a: (EKZImport)$importIDs->[0]
+            ($message, $subject, $haserror) = $ekzKohaRecord->createProcessingMessageText(\@logresult, "headerTEXT", $dt, \@importIds, $ekzBestellNr, $publicationYear);  # we use ekzBestellNr as part of importID in MARC field 025.a: (EKZImport)$importIDs->[0]
             $ekzKohaRecord->sendMessage($ekzCustomerNumber, $message, $subject);
         }
     }

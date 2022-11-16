@@ -1290,6 +1290,7 @@ sub createProcessingMessageText {
     my $dt = shift;
     my $importIDs  = shift;
     my $ekzBestell_Ls_Re_Nr = shift;
+    my $publicationYear = shift;    # used by STO imports only
 
     my $message = '';
     my $haserror = 0;
@@ -1314,9 +1315,12 @@ sub createProcessingMessageText {
     if ( defined($envKohaInstanceUrl) && length($envKohaInstanceUrl) ) {
         $kohaInstanceUrl = $envKohaInstanceUrl;
     }
+    if ( ! defined($publicationYear) ) {
+        $publicationYear = '';
+    }
     $self->{'logger'}->info("createProcessingMessageText() envKohaInstanceUrl:$envKohaInstanceUrl: kohaInstanceUrl:$kohaInstanceUrl:");
     my $printdate =  $dt->dmy('.') . ' um ' . sprintf("%02d:%02d Uhr", $dt->hour, $dt->minute);
-    $self->{'logger'}->info("createProcessingMessageText() printdate:$printdate: Anz. logresult:" . scalar @{$logresult} . ": importIDs->[0]:$importIDs->[0]: ekzBestell_Ls_Re_Nr:$ekzBestell_Ls_Re_Nr:");
+    $self->{'logger'}->info("createProcessingMessageText() printdate:$printdate: Anz. logresult:" . scalar @{$logresult} . ": importIDs->[0]:$importIDs->[0]: ekzBestell_Ls_Re_Nr:$ekzBestell_Ls_Re_Nr: publicationYear:$publicationYear:");
     $self->{'logger'}->debug("createProcessingMessageText() Dumper(logresult):" . Dumper($logresult) . ":");
     $self->{'logger'}->debug("createProcessingMessageText() Dumper(importIDs):" . Dumper($importIDs) . ":");
     
@@ -1328,7 +1332,7 @@ sub createProcessingMessageText {
     } elsif ( $logresult->[0]->[0] eq 'FortsetzungDetail' ) {
         $subject = "Import ekz Fortsetzung-Titel $ekzBestell_Ls_Re_Nr ($libraryName) " . $dt->dmy('.') . sprintf(" %02d:%02d Uhr", $dt->hour, $dt->minute);
     } elsif ( $logresult->[0]->[0] eq 'StoList' ) {
-        $subject = "Import ekz standing-order-Titel $ekzBestell_Ls_Re_Nr ($libraryName) " . $dt->dmy('.') . sprintf(" %02d:%02d Uhr", $dt->hour, $dt->minute);
+        $subject = "Import ekz standing-order-Titel $ekzBestell_Ls_Re_Nr $publicationYear ($libraryName) " . $dt->dmy('.') . sprintf(" %02d:%02d Uhr", $dt->hour, $dt->minute);
     } else {    # eq 'BestellInfo'
         $subject = "Import ekz Bestellung $ekzBestell_Ls_Re_Nr ($libraryName) " . $dt->dmy('.') . sprintf(" %02d:%02d Uhr", $dt->hour, $dt->minute);
     }
@@ -1344,7 +1348,7 @@ sub createProcessingMessageText {
     } elsif ( $logresult->[0]->[0] eq 'FortsetzungDetail' ) {
         $message .= '    '. h("Ergebnisse Import ekz Fortsetzung-Titel $ekzBestell_Ls_Re_Nr ($libraryName)") . "\n";
     } elsif ( $logresult->[0]->[0] eq 'StoList' ) {
-        $message .= '    '. h("Ergebnisse Import ekz standing-order-Titel $ekzBestell_Ls_Re_Nr ($libraryName)") . "\n";
+        $message .= '    '. h("Ergebnisse Import ekz standing-order-Titel $ekzBestell_Ls_Re_Nr $publicationYear ($libraryName)") . "\n";
     } else {    # eq 'BestellInfo'
         $message .= '    '. h("Ergebnisse Import ekz Bestellung $ekzBestell_Ls_Re_Nr ($libraryName)") . "\n";
     }
@@ -1474,7 +1478,7 @@ sub createProcessingMessageText {
         $message .= '<h1>' . h("Ergebnisse Import ekz Fortsetzung-Titel $ekzBestell_Ls_Re_Nr ($libraryName)") .' </h1>'."\n";
         $message .= '<p>' . h('Datum: ' .  $printdate. ', FortsetzungDetail-Response messageID: ' . $logresult->[0]->[1]);
     } elsif ( $logresult->[0]->[0] eq 'StoList' ) {
-        $message .= '<h1>' . h("Ergebnisse Import ekz standing-order-Titel $ekzBestell_Ls_Re_Nr ($libraryName)") .' </h1>'."\n";
+        $message .= '<h1>' . h("Ergebnisse Import ekz standing-order-Titel $ekzBestell_Ls_Re_Nr $publicationYear ($libraryName)") .' </h1>'."\n";
         $message .= '<p>' . h('Datum: ' .  $printdate. ', StoList-Response messageID: ' . $logresult->[0]->[1]);
     } else {    # eq 'BestellInfo'
         $message .= '<h1>' . h("Ergebnisse Import ekz Bestellung $ekzBestell_Ls_Re_Nr ($libraryName)") .' </h1>'."\n";
@@ -1568,7 +1572,7 @@ sub createProcessingMessageText {
         } elsif ( $logresult->[0]->[0] eq 'FortsetzungDetail' ) {
             $message .= h("Beim Import von Titeln der ekz Fortsetzung " . $ekzBestell_Ls_Re_Nr . " trat ein Problem auf. Es wurden keine Titeldaten erkannt.");
         } elsif ( $logresult->[0]->[0] eq 'StoList' ) {
-            $message .= h("Beim Import von Titeln der ekz standing-order " . $ekzBestell_Ls_Re_Nr . " trat ein Problem auf. Es wurden keine Titeldaten erkannt.");
+            $message .= h("Beim Import von Titeln der ekz standing-order " . $ekzBestell_Ls_Re_Nr . " mit Erscheinungstermin in " . $publicationYear . " trat ein Problem auf. Es wurden keine Titeldaten erkannt.");
         } else {    # eq 'BestellInfo'
             $message .= h("Beim Import der ekz Bestellung " . $ekzBestell_Ls_Re_Nr . " trat ein Problem auf. Es wurden keine Titeldaten erkannt.");
         }
@@ -1581,7 +1585,7 @@ sub createProcessingMessageText {
             } elsif ( $logresult->[0]->[0] eq 'FortsetzungDetail' ) {
                 $message .= h("Beim Import von Titeln der ekz Fortsetzung " . $ekzBestell_Ls_Re_Nr . " traten Probleme auf. Details sind der folgenden Liste zu entnehmen.");
             } elsif ( $logresult->[0]->[0] eq 'StoList' ) {
-                $message .= h("Beim Import von Titeln der ekz standing-order " . $ekzBestell_Ls_Re_Nr . " traten Probleme auf. Details sind der folgenden Liste zu entnehmen.");
+                $message .= h("Beim Import von Titeln der ekz standing-order " . $ekzBestell_Ls_Re_Nr . " mit Erscheinungstermin in " . $publicationYear . " traten Probleme auf. Details sind der folgenden Liste zu entnehmen.");
             } else {    # eq 'BestellInfo'
                 $message .= h("Beim Import der ekz Bestellung " . $ekzBestell_Ls_Re_Nr . " traten Probleme auf. Details sind der folgenden Liste zu entnehmen.");
             }
@@ -1593,7 +1597,7 @@ sub createProcessingMessageText {
             } elsif ( $logresult->[0]->[0] eq 'FortsetzungDetail' ) {
                 $message .= h("Die aktualisierten Titel- und Exemplardaten der ekz Fortsetzung " . $ekzBestell_Ls_Re_Nr . " wurden komplett übernommen. Details sind der folgenden Liste zu entnehmen.");
             } elsif ( $logresult->[0]->[0] eq 'StoList' ) {
-                $message .= h("Die aktualisierten Titel- und Exemplardaten der ekz standing-order " . $ekzBestell_Ls_Re_Nr . " wurden komplett übernommen. Details sind der folgenden Liste zu entnehmen.");
+                $message .= h("Die aktualisierten Titel- und Exemplardaten der ekz standing-order " . $ekzBestell_Ls_Re_Nr . " mit Erscheinungstermin in " . $publicationYear . " wurden komplett übernommen. Details sind der folgenden Liste zu entnehmen.");
             } else {    # eq 'BestellInfo'
                 $message .= h("Die Titel- und Exemplardaten zur ekz Bestellung " . $ekzBestell_Ls_Re_Nr . " wurden komplett übernommen. Details sind der folgenden Liste zu entnehmen.");
             }
