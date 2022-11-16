@@ -732,7 +732,7 @@
                     <xsl:choose>
                         <xsl:when test="marc:datafield[@tag=337 and marc:subfield[@code='a' and text()='ebook']]"><img src="/opac-tmpl/lib/famfamfam/AR.png" title="computer file" alt="computer file" class="materialtype mt_icon_ebook" /> downloadable eBook</xsl:when>
                         <xsl:when test="marc:datafield[@tag=337 and marc:subfield[@code='a' and text()='evideo']]"><img src="/opac-tmpl/lib/famfamfam/VM.png" title="computer file" alt="computer file" class="materialtype mt_icon_evideo" /> downloadable Video</xsl:when>
-                        <xsl:when test="marc:datafield[@tag=337 and marc:subfield[@code='a' and text()='emusic']]"><img src="/opac-tmpl/lib/famfamfam/PR.png" title="computer file" alt="computer file" class="materialtype mt_icon_emusic" /> downloadable Music</xsl:when>
+                        <xsl:when test="marc:datafield[@tag=337 and marc:subfield[@code='a' and text()='emusic']]"><img src="/opac-tmpl/lib/famfamfam/MU.png" title="computer file" alt="computer file" class="materialtype mt_icon_emusic" /> downloadable Music</xsl:when>
                         <xsl:when test="marc:datafield[@tag=337 and marc:subfield[@code='a' and text()='eaudio']]"><img src="/opac-tmpl/lib/famfamfam/MU.png" title="computer file" alt="computer file" class="materialtype mt_icon_eaudio" /> downloadable Audio Book</xsl:when>
                         <xsl:when test="marc:datafield[@tag=337 and marc:subfield[@code='a' and text()='epaper']]"><img src="/opac-tmpl/lib/famfamfam/MP.png" title="computer file" alt="computer file" class="materialtype mt_icon_epaper" /> downloadable Newspaper</xsl:when>
                         <xsl:when test="marc:datafield[@tag=337 and marc:subfield[@code='a' and text()='elearning']]"><img src="/opac-tmpl/lib/famfamfam/VM.png" title="computer file" alt="computer file" class="materialtype mt_icon_elearning" /> online Learning</xsl:when>
@@ -745,7 +745,7 @@
                 <xsl:when test="$leader6='r'"><img src="/opac-tmpl/lib/famfamfam/OB.png" alt="Object" class="materialtype mt_icon_OB"/> Object</xsl:when>
                 <xsl:when test="$leader6='c' or $leader6='d'"><img src="/opac-tmpl/lib/famfamfam/PR.png" alt="Score" class="materialtype mt_icon_PR"/> Score</xsl:when>
                 <xsl:when test="$leader6='i'"><img src="/opac-tmpl/lib/famfamfam/MU.png" alt="Sound" class="materialtype mt_icon_MU"/> Sound</xsl:when>
-                <xsl:when test="$leader6='j'"><img src="/opac-tmpl/lib/famfamfam/PR.png" alt="Music" class="materialtype mt_icon_PR"/> Music</xsl:when>
+                <xsl:when test="$leader6='j'"><img src="/opac-tmpl/lib/famfamfam/MU.png" alt="Music" class="materialtype mt_icon_MU"/> Music</xsl:when>
             </xsl:choose>
         </span>
     </xsl:if>
@@ -1303,26 +1303,44 @@
         <xsl:when test="marc:datafield[@tag=520 and @ind1=8]">
             <xsl:if test="not(contains($ExcludeReviewsWithMARC520Indicator1Value,'|8|'))">
                 <xsl:for-each select="marc:datafield[@tag=520 and @ind1=8]">
-                    <xsl:if test="position()=1 and marc:subfield[@code='a']">
-                        <span class="results_summary summary truncable-txt">
-                            <xsl:call-template name="subfieldSelect">
-                                <xsl:with-param name="codes">a</xsl:with-param>
-                            </xsl:call-template>
-                        </span>
-                    </xsl:if> 
+                    <xsl:choose>
+                        <xsl:when test="position()=1 and marc:subfield[@code='b']">
+                            <span class="results_summary summary truncable-txt">
+                                <xsl:call-template name="subfieldSelect">
+                                    <xsl:with-param name="codes">b</xsl:with-param>
+                                </xsl:call-template>
+                            </span>
+                        </xsl:when>
+                        <xsl:when test="position()=1 and marc:subfield[@code='a']">
+                            <span class="results_summary summary truncable-txt">
+                                <xsl:call-template name="subfieldSelect">
+                                    <xsl:with-param name="codes">a</xsl:with-param>
+                                </xsl:call-template>
+                            </span>
+                        </xsl:when>
+                    </xsl:choose> 
                 </xsl:for-each>
             </xsl:if>
         </xsl:when>
         <xsl:when test="count(marc:datafield[@tag=520])=1">
             <xsl:if test="not(contains($ExcludeReviewsWithMARC520Indicator1Value,'| |'))">
                 <xsl:for-each select="marc:datafield[@tag=520 and @ind1=' ']">
-                    <xsl:if test="marc:subfield[@code='a']">
-                        <span class="results_summary summary truncable-txt">
-                            <xsl:call-template name="subfieldSelect">
-                                <xsl:with-param name="codes">a</xsl:with-param>
-                            </xsl:call-template>
-                        </span>
-                    </xsl:if> 
+                    <xsl:choose>
+                        <xsl:when test="position()=1 and marc:subfield[@code='b']">
+                            <span class="results_summary summary truncable-txt">
+                                <xsl:call-template name="subfieldSelect">
+                                    <xsl:with-param name="codes">b</xsl:with-param>
+                                </xsl:call-template>
+                            </span>
+                        </xsl:when>
+                        <xsl:when test="position()=1 and marc:subfield[@code='a']">
+                            <span class="results_summary summary truncable-txt">
+                                <xsl:call-template name="subfieldSelect">
+                                    <xsl:with-param name="codes">a</xsl:with-param>
+                                </xsl:call-template>
+                            </span>
+                        </xsl:when>
+                    </xsl:choose>
                 </xsl:for-each>
             </xsl:if>
         </xsl:when>
