@@ -157,16 +157,25 @@ for my $overdue ( @{$overdues} ) {
         && ( $amount && $amount > 0 )
       )
     {
-        UpdateFine(
-            {
-                issue_id       => $overdue->{issue_id},
-                itemnumber     => $overdue->{itemnumber},
-                borrowernumber => $overdue->{borrowernumber},
-                amount         => $amount,
-                due            => output_pref($datedue),
-            }
-        );
-        $updated++;
+		try {
+            UpdateFine(
+                {
+                    issue_id       => $overdue->{issue_id},
+                    itemnumber     => $overdue->{itemnumber},
+                    borrowernumber => $overdue->{borrowernumber},
+                    amount         => $amount,
+                    due            => output_pref($datedue),
+                }
+            );
+            $updated++;
+        }
+        catch {
+            my $message = "Error updating fine of issue " . 
+                          $overdue->{issue_id} . " failed: $_ " .
+                          "(itemnumber: " . $overdue->{itemnumber} . 
+                          ", borrowernumber: " . $overdue->{borrowernumber} . ").\n";
+            print STDERR "$message\n"
+        };
     }
     my $borrower = $patron->unblessed;
     if ($filename) {
