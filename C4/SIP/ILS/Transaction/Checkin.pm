@@ -16,6 +16,7 @@ use C4::Debug;
 use Sys::Syslog qw(syslog);
 use C4::Items qw( ModItemTransfer );
 use C4::Reserves qw( ModReserveAffect CheckReserves );
+use C4::RotatingCollections;
 use Koha::DateUtils qw( dt_from_string );
 use Koha::Items;
 
@@ -102,6 +103,13 @@ sub do_checkin {
     ( $return, $messages, $issue, $borrower ) =
       AddReturn( $barcode, $branch, undef, $return_date )
       unless $human_required || $checkin_blocked_by_holds;
+      
+    if ( $item && C4::RotatingCollections::isItemInAnyCollection( $item->itemnumber ) ) {
+        my ( $holdingBranch, $collectionBranch ) = C4::RotatingCollections::GetCollectionItemBranches( $item->itemnumber );
+        if ( $holdingBranch && $collectionBranch && $holdingBranch ne $collectionBranch ) {
+            $messages->{NeedsTransfer} = $collectionBranch;
+        }
+    }
 
     if ( $checked_in_ok ) {
         delete $messages->{ItemLocationUpdated};
