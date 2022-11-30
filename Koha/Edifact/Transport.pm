@@ -134,8 +134,15 @@ sub sftp_download {
     # C = ready to retrieve E = Edifact
     my $msg_hash = $self->message_hash();
     my @downloaded_files;
+    my $port = 22;
+    my $host = $self->{account}->host;
+    if ( $host =~ /^(.+):([0-9]+)$/ ) {
+		$host = $1;
+		$port = $2;
+	}
     my $sftp = Net::SFTP::Foreign->new(
-        host     => $self->{account}->host,
+        host     => $host,
+        port     => $port,
         user     => $self->{account}->username,
         password => $self->{account}->password,
         timeout  => 10,
@@ -291,8 +298,15 @@ sub ftp_upload {
 
 sub sftp_upload {
     my ( $self, @messages ) = @_;
+    my $port = 22;
+    my $host = $self->{account}->host;
+    if ( $host =~ /^(.+):([0-9]+)$/ ) {
+		$host = $1;
+		$port = $2;
+	}
     my $sftp = Net::SFTP::Foreign->new(
-        host     => $self->{account}->host,
+        host     => $host,
+        port     => $port,
         user     => $self->{account}->username,
         password => $self->{account}->password,
         timeout  => 10,
