@@ -659,6 +659,7 @@ sub can_be_transferred {
     my $to   = $params->{to};
     my $from = $params->{from};
 
+    return 0 if (!$to);
     $to   = $to->branchcode;
     $from = defined $from ? $from->branchcode : $self->holdingbranch;
 
