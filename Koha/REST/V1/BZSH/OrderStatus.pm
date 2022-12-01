@@ -25,8 +25,6 @@ use Data::Dumper;
 
 use Scalar::Util qw(blessed);
 use Try::Tiny;
-use DateTime::Format::W3CDTF;
-use DateTime::Format::MySQL;
 
 use C4::Biblio qw(GetMarcBiblio);
 use C4::Context;
@@ -35,7 +33,7 @@ use LWP::UserAgent;
 
 =head1 NAME
 
-Koha::REST::V1::ExternalOrder
+KKoha::REST::V1::BZSH::OrderStatus
 
 =head1 API
 
@@ -44,7 +42,7 @@ Koha::REST::V1::ExternalOrder
 
 =head3 add
 
-Controller function that handles external aquisition order requests.
+Controller function that handles delivers status of externally ordered material.
 
 =cut
 

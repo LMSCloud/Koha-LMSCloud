@@ -42,7 +42,7 @@ use LWP::UserAgent;
 
 =head1 NAME
 
-Koha::REST::V1::ExternalOrder
+Koha::REST::V1::BZSH::ExternalOrder
 
 =head1 API
 
