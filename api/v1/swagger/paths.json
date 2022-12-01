@@ -140,6 +140,9 @@
   "/bzsh/external_order": {
     "$ref": "paths/external_order.json#/~1bzsh~1external_order"
   },
+  "/bzsh/external_order_item_biblionumber_updates": {
+    "$ref": "paths/bzsh_external_order_item_biblionumber_updates.json#/~1bzsh~1external_order_item_biblionumber_updates"
+  },
   "/bzsh/order_status": {
     "$ref": "paths/bzsh_order_status.json#/~1bzsh~1order_status"
   },
