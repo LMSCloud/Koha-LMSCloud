@@ -1067,7 +1067,7 @@
                 <xsl:for-each select="marc:subfield[@code='a' and text()]">
                     <xsl:variable name="wupidupi"><xsl:call-template name="url-encode"><xsl:with-param name="str" select="text()"/></xsl:call-template></xsl:variable>
                     <a>
-                        <xsl:attribute name="href">/cgi-bin/koha/opac-search.pl?q=sys.phrase:(<xsl:value-of select="$wupidupi"/>)</xsl:attribute>
+                        <xsl:attribute name="href">/cgi-bin/koha/opac-search.pl?q=sys.phrase:"<xsl:value-of select="$wupidupi"/>"</xsl:attribute>
                         <xsl:call-template name="chopPunctuation">
                             <xsl:with-param name="chopString">
                                 <xsl:value-of select="text()"/>
@@ -1399,7 +1399,7 @@
                 <xsl:if test="position()=1">
                     <span class="results_summary summary truncable-txt"><span class="label">Summary: </span>
                     <xsl:choose>
-                        <xsl:when test="@ind1=1 and marc:subfield[@code='b']">
+                        <xsl:when test="@ind1=8 and marc:subfield[@code='b']">
                             <xsl:call-template name="subfieldSelect">
                                 <xsl:with-param name="codes">b</xsl:with-param>
                             </xsl:call-template>
@@ -1420,7 +1420,7 @@
                 <xsl:if test="position()=1">
                     <xsl:element name="span">
                     <xsl:choose> 
-                        <xsl:when test="//marc:datafield[@tag=520 and @ind1=8]">
+                        <xsl:when test="//marc:datafield[@tag=520 and @ind1=' ']">
                             <xsl:attribute name="class"><xsl:text>results_summary summary truncable-txt</xsl:text></xsl:attribute>
                             <span class="label">Scope: </span>
                         </xsl:when>
@@ -1430,7 +1430,7 @@
                         </xsl:otherwise>
                     </xsl:choose>
                     <xsl:choose>
-                        <xsl:when test="@ind1=1 and marc:subfield[@code='b']">
+                        <xsl:when test="@ind1=' ' and marc:subfield[@code='b']">
                             <xsl:call-template name="subfieldSelect">
                                 <xsl:with-param name="codes">b</xsl:with-param>
                             </xsl:call-template>
@@ -1451,7 +1451,7 @@
                 <xsl:if test="position()=1">
                     <span class="results_summary summary truncable-txt"><span class="label">Publisher recommendation: </span>
                     <xsl:choose>
-                        <xsl:when test="@ind1=1 and marc:subfield[@code='b']">
+                        <xsl:when test="@ind1=4 and marc:subfield[@code='b']">
                             <xsl:call-template name="subfieldSelect">
                                 <xsl:with-param name="codes">b</xsl:with-param>
                             </xsl:call-template>

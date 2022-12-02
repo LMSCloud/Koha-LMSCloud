@@ -96,4 +96,4 @@ if ( $auth_status ne "ok" ) {
         }
     }
 
-output_with_http_headers $query, undef, to_json(\@summaries, { utf8 => 1 }), 'json';
+output_with_http_headers $query, undef, to_json(\@summaries), 'json';

@@ -1,0 +1,25 @@
+{
+  "type": "object",
+  "properties": {
+    "external_order_id": {
+      "type": ["string", "null"],
+      "description": "external order id of an external system"
+    },
+    "biblionumber_old": {
+        "$ref": "../x-primitives.json#/biblionumber"
+    },
+    "biblionumber": {
+        "$ref": "../x-primitives.json#/biblionumber"
+    },
+    "library_id": {
+      "$ref": "../x-primitives.json#/library_id"
+    },
+    "change_time": {
+      "type": "string",
+      "format": "date-time",
+      "description": "time of the biblionumber change"
+    }
+  },
+  "additionalProperties": false,
+  "required": [ "external_order_id", "biblionumber_old", "biblionumber", "library_id", "change_time" ]
+}

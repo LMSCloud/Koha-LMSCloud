@@ -14,6 +14,9 @@
   "bzsh_bib_updates": {
     "$ref": "definitions/bzsh_bib_updates.json"
   },
+  "bzsh_external_order_item_biblionumber_updates": {
+    "$ref": "definitions/bzsh_external_order_item_biblionumber_updates.json"
+  },
   "bzsh_order_items_status": {
     "$ref": "definitions/bzsh_order_items_status.json"
   },

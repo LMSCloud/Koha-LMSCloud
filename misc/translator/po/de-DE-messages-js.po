@@ -7,8 +7,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Koha 21.05\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2022-03-27 18:57+0200\n"
-"PO-Revision-Date: 2022-02-23 11:54+0100\n"
+"POT-Creation-Date: 2022-11-16 10:53+0100\n"
+"PO-Revision-Date: 2022-11-16 11:01+0100\n"
 "Last-Translator: Katrin Fischer <katrin.fischer@bsz-bw.de>\n"
 "Language-Team: none\n"
 "Language: de\n"
@@ -363,6 +363,12 @@ msgid ""
 msgstr ""
 "Ein Code darf nur die folgenden Zeichen enthalten: Buchstaben, Zahlen, - und "
 "_."
+
+#: koha-tmpl/intranet-tmpl/prog/js/messaging-preference-form.js:20
+msgid "Change messaging preferences to default for this category?"
+msgstr ""
+"Sollen die Benachrichtigungseinstellungen auf den Standard für diesen "
+"Benutzertyp geändert werden?"
 
 #: koha-tmpl/intranet-tmpl/prog/js/audio_alerts.js:66
 msgid "Check the box next to the alert you want to delete."
