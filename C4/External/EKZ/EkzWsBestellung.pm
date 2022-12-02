@@ -223,8 +223,10 @@ sub BestelleBeiEkz {
                                 if ( $subfield ) {
                                     if ( $subfield =~ /^\s*\(DE\-Rt5\)(.*?)\s*$/ ) {
                                         $ekzArtikelNr = $1;
-                                        if ( $ekzArtikelNr =~ /^\s*(.*?)\s*$/ ) {
+                                        if ( $ekzArtikelNr =~ /^\s*([0-9]+)\s*$/ ) {
                                             $ekzArtikelNr = $1;
+                                        } else {
+                                            $ekzArtikelNr = '';
                                         }
                                         last;
                                     }
