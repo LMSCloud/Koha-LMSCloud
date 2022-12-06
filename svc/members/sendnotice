@@ -262,7 +262,7 @@ sub SendAdhocNotices {
                 if ( $no_notice_fees ne 'yes' && $noticeFees->checkForNoticeFeeRules() == 1) {
                     #check whether there is a matching notice fee rule
                     
-                    my $noticeFeeRule = $noticeFees->getNoticeFeeRule($branchcode, $patron->category, $transport_type, $lettercode );
+                    my $noticeFeeRule = $noticeFees->getNoticeFeeRule($branchcode, $patron->categorycode, $transport_type, $lettercode );
                     
                     if ( $noticeFeeRule ) {
                         my $fee = $noticeFeeRule->notice_fee();
