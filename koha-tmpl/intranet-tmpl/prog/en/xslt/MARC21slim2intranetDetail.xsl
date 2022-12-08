@@ -1159,7 +1159,7 @@
                         </xsl:when>
                         <xsl:otherwise>
                             <a>
-                                <xsl:attribute name="href">/cgi-bin/koha/catalogue/search.pl?q=ti,phr:<xsl:value-of select="str:encode-uri(translate(marc:subfield[@code='t'], '()', ''), true())"/><xsl:if test="marc:subfield[@code='a']">+AND+au:<xsl:value-of select="str:encode-uri(translate(marc:subfield[@code='a'], '()', ''), true())"/></xsl:if></xsl:attribute>
+                                <xsl:attribute name="href">/cgi-bin/koha/catalogue/search.pl?q=ti,phr:<xsl:value-of select="str:encode-uri(translate(marc:subfield[@code='t'], '()', ''), true())"/><xsl:if test="marc:subfield[@code='a']">+AND+name:<xsl:value-of select="str:encode-uri(translate(marc:subfield[@code='a'], '()', ''), true())"/></xsl:if></xsl:attribute>
                                 <xsl:value-of select="$f773"/>
                             </a>
                         </xsl:otherwise>
@@ -1561,7 +1561,7 @@
                 <xsl:attribute name="href">/cgi-bin/koha/catalogue/search.pl?q=an:<xsl:value-of select="str:encode-uri(marc:subfield[@code=9], true())"/></xsl:attribute>
             </xsl:when>
             <xsl:otherwise>
-            <xsl:attribute name="href">/cgi-bin/koha/catalogue/search.pl?q=au:"<xsl:value-of select="str:encode-uri(marc:subfield[@code='a'], true())"/>"</xsl:attribute>
+            <xsl:attribute name="href">/cgi-bin/koha/catalogue/search.pl?q=name:"<xsl:value-of select="str:encode-uri(marc:subfield[@code='a'], true())"/>"</xsl:attribute>
             </xsl:otherwise>
         </xsl:choose>
         <xsl:choose>

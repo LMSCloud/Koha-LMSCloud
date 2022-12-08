@@ -412,7 +412,7 @@
         <span class="results_summary series"><span class="label">Series: </span>
         <!-- 440 -->
         <xsl:for-each select="marc:datafield[@tag=440]">
-            <a><xsl:attribute name="href"><xsl:value-of select="$searchurl"/>?q=se:"<xsl:value-of select="str:encode-uri(marc:subfield[@code='a'], true())"/>"</xsl:attribute>
+            <a><xsl:attribute name="href"><xsl:value-of select="$searchurl"/>?q=se:(<xsl:value-of select="str:encode-uri(marc:subfield[@code='a'], true())"/>)</xsl:attribute>
             <xsl:call-template name="chopPunctuation">
                             <xsl:with-param name="chopString">
                                 <xsl:call-template name="subfieldSelect">
