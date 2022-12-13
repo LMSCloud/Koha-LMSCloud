@@ -234,7 +234,7 @@ sub searchDubletten {
     } else
     {
         # search priority:  1. ekzArtikelNr  /  2. isbn or isbn13  /  3. issn or ismn or ean  /  4. titel and author and erscheinungsJahr
-        $marcresults = $ekzKohaRecord->readTitleDubletten($reqParamTitelInfo,3,0);
+        $marcresults = $ekzKohaRecord->readTitleDubletten($reqParamTitelInfo,0);
     }
 
     $hits = scalar @{$marcresults} if $marcresults;

@@ -467,26 +467,19 @@ sub genKohaRecords {
             $logger->info("genKohaRecords() reqParamTitelInfo->{'ekzArtikelNr'}:" . $reqParamTitelInfo->{'ekzArtikelNr'} . ":");
 
             # priority of title sources to be checked:
-            # In a first run, check for identical ekzArtikelNr if it was sent in the request:
-            #   In any case:
-            #     Search title in local database using ekzArtikelNr.
-            #     If title found, only the items have to be added.
-            #     Otherwise search in title sources '_LMSC' and '_EKZWSMD' in the sequence stored in system preference 'ekzTitleDataServicesSequence' using ekzArtikelNr.
-            #
-            # If title not found by ekzArtikelNr, then search by the other criteria in a second run:
-            #   In any case:
-            #     Search title in local database using isbn / isbn13; if not found, search for issn / ismn / ean.
+            # In any case:
+            #     Search title in local database using ekzArtikelNr; if not found, search for isbn / isbn13; if not found, search for issn / ismn / ean.
             #     If title found, only the items have to be added.
             #
-            #     Otherwise search in different title sources in the sequence stored in system preference 'ekzTitleDataServicesSequence':
-            #       title source '_LMSC':
-            #         Search title in LMSPool using isbn / isbn13; if not found, search for issn / ismn / ean.
-            #       title source '_EKZWSMD':
-            #         As search via the ekz title information webservice ('MedienDaten') uses ekzArtikelNr exclusively, it is done already in the first run.
-            #       title source '_WS':
-            #         Use the sparse title data from the BestellinfoElement (tag titelInfo) for creating a title entry.
-            #       other title source:
-            #         The name of the title source is used as a name of a Z39/50 target with z3950servers.servername; a z39/50 query is sent to this target.
+            # Otherwise search in different title sources in the sequence stored in system preference 'ekzTitleDataServicesSequence':
+            #   title source '_LMSC':
+            #     Search title in LMSPool using ekzArtikelNr; if not found, search for isbn / isbn13; if not found, search for issn / ismn / ean.
+            #   title source '_EKZWSMD':
+            #     Send a query to the ekz title information web service ('MedienDaten') using ekzArtikelNr.
+            #   title source '_WS':
+            #     Use the sparse title data from the BestellinfoElement (tag titelInfo) for creating a title entry.
+            #   other title source:
+            #     The name of the title source is used as a name of a Z39/50 target with z3950servers.servername; a z39/50 query is sent to this target.
             #
             #   With data from one of these alternatives a title record has to be created in Koha, and an item record for each ordered copy.
 
@@ -504,58 +497,43 @@ sub genKohaRecords {
                 $titleHits = $createdTitleRecords->{$titleSelHashkey}->{titleHits};
                 $biblionumber = $createdTitleRecords->{$titleSelHashkey}->{biblionumber};
                 $logger->info("genKohaRecords() got used biblionumber:$biblionumber: from createdTitleRecords->{$titleSelHashkey}");
+            } else {
+                $titleHits = $ekzKohaRecord->readTitleInLocalDB($reqParamTitelInfo, 1);
+                $logger->info("genKohaRecords() from local DB titleHits->{'count'}:" . $titleHits->{'count'} . ":");
+                if ( $titleHits->{'count'} > 0 && defined $titleHits->{'records'}->[0] ) {
+                    $biblionumber = $titleHits->{'records'}->[0]->subfield("999","c");
+                }
             }
 
             my @titleSourceSequence = split('\|',$titleSourceSequence);
             my $volumeEkzArtikelNr = undef;
-            for ( my $searchmode = 1; $searchmode < 3; $searchmode += 1 ) {
-                $logger->info("genKohaRecords() in loop searchmode:$searchmode: ekzArtikelNr:" . $reqParamTitelInfo->{'ekzArtikelNr'} . ": titleHits->{'count'}:" . $titleHits->{'count'} . ":");
+
+            foreach my $titleSource (@titleSourceSequence) {
+                $logger->info("genKohaRecords() in loop titleSource:$titleSource:");
                 if ( $titleHits->{'count'} > 0 && defined $titleHits->{'records'}->[0] ) {
                     last;    # title data have been found in lastly tested title source
                 }
-                if ( $searchmode == 1 && ! $reqParamTitelInfo->{'ekzArtikelNr'} ) {
-                    next;    # ekzArtikelNr not sent in request, so search for remaining criteria (ISBN, EAN, etc.)
-                }
-                $titleHits = $ekzKohaRecord->readTitleInLocalDB($reqParamTitelInfo, $searchmode, 1);
-                $logger->info("genKohaRecords() from local DB searchmode:$searchmode: titleHits->{'count'}:" . $titleHits->{'count'} . ":");
-                if ( $titleHits->{'count'} > 0 && defined $titleHits->{'records'}->[0] ) {
-                    $biblionumber = $titleHits->{'records'}->[0]->subfield("999","c");
-                    next;
-                }
 
-                foreach my $titleSource (@titleSourceSequence) {
-                    $logger->info("genKohaRecords() searchmode:$searchmode: in loop titleSource:$titleSource:");
-                    if ( $titleHits->{'count'} > 0 && defined $titleHits->{'records'}->[0] ) {
-                        last;    # title data have been found in lastly tested title source
+                if ( $titleSource eq '_LMSC' ) {
+                    # search title in LMSPool
+                    $titleHits = $ekzKohaRecord->readTitleInLMSPool($reqParamTitelInfo);
+                    $logger->info("genKohaRecords() from LMS Pool titleHits->{'count'}:" . $titleHits->{'count'} . ":");
+                } elsif ( $titleSource eq '_EKZWSMD' ) {
+                    # send query to the ekz title information webservice 'MedienDaten'
+                    # (This is the only case where we handle series titles in addition to the volume title.)
+                    $titleHits = $ekzKohaRecord->readTitleFromEkzWsMedienDaten($reqParamTitelInfo->{'ekzArtikelNr'});
+                    $logger->info("genKohaRecords() from ekz Webservice 'MedienDaten' titleHits->{'count'}:" . $titleHits->{'count'} . ":");
+                    if ( $titleHits->{'count'} > 1 ) {
+                        $volumeEkzArtikelNr = $reqParamTitelInfo->{'ekzArtikelNr'};
                     }
-
-                    if ( $titleSource eq '_LMSC' ) {
-                        # search title in LMSPool
-                        $titleHits = $ekzKohaRecord->readTitleInLMSPool($reqParamTitelInfo, $searchmode);
-                        $logger->info("genKohaRecords() from LMS Pool searchmode:$searchmode: titleHits->{'count'}:" . $titleHits->{'count'} . ":");
-                    } elsif ( $titleSource eq '_EKZWSMD' ) {
-                        if ( $searchmode == 1 ) {
-                            # send query to the ekz title information webservice 'MedienDaten'
-                            # (This is the only case where we handle series titles in addition to the volume title.)
-                            $titleHits = $ekzKohaRecord->readTitleFromEkzWsMedienDaten($reqParamTitelInfo->{'ekzArtikelNr'});
-                            $logger->info("genKohaRecords() from ekz Webservice titleHits->{'count'}:" . $titleHits->{'count'} . ":");
-                            if ( $titleHits->{'count'} > 1 ) {
-                                $volumeEkzArtikelNr = $reqParamTitelInfo->{'ekzArtikelNr'};
-                            }
-                        }
-                    } elsif ( $titleSource eq '_WS' ) {
-                        if ( $searchmode == 2 ) {
-                            # use sparse title data from the StoListElement
-                            $titleHits = $ekzKohaRecord->createTitleFromFields($reqParamTitelInfo);    # creates marc data, not a biblio DB record
-                            $logger->info("genKohaRecords() from sent titel fields:" . $titleHits->{'count'} . ":");
-                        }
-                    } else {    # in this case $titleSource contains the name of a Z39/50 target
-                        if ( $searchmode == 2 ) {
-                            # search title in the Z39.50 target with z3950servers.servername=$titleSource
-                            $titleHits = $ekzKohaRecord->readTitleFromZ3950Target($titleSource,$reqParamTitelInfo);
-                            $logger->info("genKohaRecords() from z39.50 search on target:" . $titleSource . ": titleHits->{'count'}:" . $titleHits->{'count'} . ":");
-                        }
-                    }
+                } elsif ( $titleSource eq '_WS' ) {
+                    # use sparse title data from the StoListElement
+                    $titleHits = $ekzKohaRecord->createTitleFromFields($reqParamTitelInfo);    # creates marc data, not a biblio DB record
+                    $logger->info("genKohaRecords() from sent titel fields:" . $titleHits->{'count'} . ":");
+                } else {    # in this case $titleSource contains the name of a Z39/50 target
+                    # search title in the Z39.50 target with z3950servers.servername=$titleSource
+                    $titleHits = $ekzKohaRecord->readTitleFromZ3950Target($titleSource,$reqParamTitelInfo);
+                    $logger->info("genKohaRecords() from z39.50 search on target:" . $titleSource . ": titleHits->{'count'}:" . $titleHits->{'count'} . ":");
                 }
             }
 
