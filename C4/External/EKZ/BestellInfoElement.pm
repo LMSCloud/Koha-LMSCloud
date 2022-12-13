@@ -563,16 +563,22 @@ foreach my $tag  (keys %{$soapEnvelopeBody->{'ns2:BestellInfoElement'}}) {
     }
     catch {
         $exceptionThrown = $_;
+        my $excptMessage = Dumper($exceptionThrown);
+
         if (ref($exceptionThrown) eq 'Koha::Exceptions::WrongParameter') {
-            $self->{logger}->error("process() caught special exception:" . Dumper($exceptionThrown) . ":");
-            $self->{logger}->error("process() caught special exception having message:" . Dumper($exceptionThrown->{message}) . ":");
+            $self->{logger}->error("process() caught WrongParameter exception:" . Dumper($exceptionThrown) . ":");
         } else {
-            $self->{logger}->error("process() caught generic exception:" . Dumper($exceptionThrown) . ":");
-            $self->{logger}->error("process() caught generic exception having message:" . Dumper($exceptionThrown->{message}) . ":");
-            my %excpt = ();
-            $excpt{message} = $exceptionThrown;
-            $exceptionThrown = \%excpt;
+            $self->{logger}->error("process() caught generic exception:" . Dumper($exceptionThrown) . ":");    # unbelievable: croak throws a string
         }
+        if ( ref($exceptionThrown) && exists($exceptionThrown->{message}) && $exceptionThrown->{message} ) {
+            $self->{logger}->error("process() caught exception having message:" . Dumper($exceptionThrown->{message}) . ":");
+            $excptMessage = $exceptionThrown->{message};
+        } else {
+            eval { $excptMessage = $exceptionThrown . ''; };
+        }
+        my %excpt = ();
+        $excpt{message} = $excptMessage;
+        $exceptionThrown = \%excpt;
     };
 
     $self->{logger}->info("process() Anzahl idPaarListe:" . scalar @idPaarListe . ": idPaarListe:" . Dumper(@idPaarListe) . ":");
@@ -946,6 +952,16 @@ sub handleTitelBestellInfo {
             my $ekzExemplarID = (defined $exemplare->[$i]->{'ekzExemplarID'} && length($exemplare->[$i]->{'ekzExemplarID'}) > 0) ? $exemplare->[$i]->{'ekzExemplarID'} : "ekzExemplarID not set";
             my $exemplar_anzahl = $exemplare->[$i]->{'konfiguration'}->{'anzahl'};
             $self->{logger}->debug("handleTitelBestellInfo() exemplar itemCount:$itemCount: loop i:$i: exemplar_anzahl:$exemplar_anzahl:");
+
+            if ( $exemplar_anzahl+0 < 1 ) {
+                my $mess = sprintf("handleTitelBestellInfo(): The BestellInfo-request having ekzBestellNr '%s' and lmsBestellCode '%s' has invalid value ('%s') in field <anzahl>. Processing of whole ekz BestellInfo denied.",$reqEkzBestellNr,$reqLmsBestellCode,$exemplar_anzahl);
+                $self->{logger}->error($mess);
+                carp "BestellInfoElement::" . $mess . "\n";
+
+                Koha::Exceptions::WrongParameter->throw(
+                    error => sprintf("Der BestellInfo-Request mit ekzBestellNr '%s' und lmsBestellCode '%s' enthaelt im Feld (Exemplar-)Anzahl einen unzulaessigen Wert ('%s'). Abbruch der Verarbeitung der gesamten ekz BestellInfo.\n",$reqEkzBestellNr,$reqLmsBestellCode,$exemplar_anzahl),
+                );
+            }
 
             $self->{logger}->debug("handleTitelBestellInfo() exemplare->[$i]->{'konfiguration'}->{'ExemplarFelderElement'}:" . $exemplare->[$i]->{'konfiguration'}->{'ExemplarFelderElement'} . ":");
             $self->{logger}->debug("handleTitelBestellInfo() ref exemplare->[$i]->{'konfiguration'}->{'ExemplarFelderElement'}:" . ref($exemplare->[$i]->{'konfiguration'}->{'ExemplarFelderElement'}) . ":");
