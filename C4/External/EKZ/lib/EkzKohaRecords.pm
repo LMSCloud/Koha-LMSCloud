@@ -1784,8 +1784,11 @@ sub sendMessage {
         my $exception = $_;
         $self->{'logger'}->error("sendMessage() ekzCustomerNumber:$ekzCustomerNumber: branch:$branch: emailParams:" . Dumper($emailParams) . ": exception:" . Dumper($exception) . ":");
         if ( defined($exception) ) {
+            $error = Dumper($exception);
             # We expect ref(exception) eq 'Email::Sender::Failure'
-            $error = $exception->message;
+            if ( ref($exception) && exists($exception->{message}) && $exception->{message} ) {
+                $error = $exception->message;
+            }
             carp "$exception";
         } else {
             $error = "Mail not sent! Maybe the library's SMTP-server configuration is incorrect.";
