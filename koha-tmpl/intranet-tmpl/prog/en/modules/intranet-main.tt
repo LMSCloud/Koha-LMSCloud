@@ -134,7 +134,7 @@
                             </li>
                             [% END %]
 
-                            [% IF ( CAN_user_parameters ) %]
+                            [% IF ( CAN_user_parameters || (CAN_user_plugins && plugins_enabled)) %]
                             <li>
                                 <a class="icon_general icon_administration" href="/cgi-bin/koha/admin/admin-home.pl"><i class="fa fa-cogs"></i>Koha administration</a>
                             </li>
