@@ -331,6 +331,8 @@ sub process_invoice {
                     if ( $order->quantity > $quantity ) {
                         my $ordered = $order->quantity;
 
+                        my $replacementprice = $order->replacementprice;
+                        $replacementprice = $price if (! $replacementprice);
                         # part receipt
                         $order->orderstatus('partial');
                         $order->quantity( $ordered - $quantity );
@@ -341,6 +343,7 @@ sub process_invoice {
                                 quantity               => $quantity,
                                 quantityreceived       => $quantity,
                                 orderstatus            => 'complete',
+                                replacementprice       => $replacementprice,
                                 unitprice              => $price,
                                 unitprice_tax_included => $price,
                                 unitprice_tax_excluded => $price_excl_tax,
@@ -359,6 +362,7 @@ sub process_invoice {
                         $order->quantityreceived( $quantity );
                         $order->datereceived($msg_date);
                         $order->invoiceid($invoiceid);
+                        $order->replacementprice($price) if (! $order->replacementprice);
                         $order->unitprice($price);
                         $order->unitprice_tax_excluded($price_excl_tax);
                         $order->unitprice_tax_included($price);
