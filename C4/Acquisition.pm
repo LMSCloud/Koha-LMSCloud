@@ -2778,6 +2778,7 @@ sub GetInvoiceDetails {
                 biblioitems.publishercode,
                 biblioitems.publicationyear,
                 aqbasket.basketname,
+                aqbasket.branch AS branchcode,
                 aqbasketgroups.id AS basketgroupid,
                 aqbasketgroups.name AS basketgroupname
         FROM aqorders
