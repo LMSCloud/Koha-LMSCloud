@@ -1331,13 +1331,15 @@ sub handleTitelBestellInfo {
                                 my $frameworkcode = C4::Biblio::GetFrameworkCode($biblionumber);
                                 my ( $itemfield ) = C4::Biblio::GetMarcFromKohaField( 'items.itemnumber', $frameworkcode );
                                 my $item = C4::Items::GetMarcItem( $biblionumber, $itemnumber );
-                                for my $affect ( @affects ) {
-                                    my ( $sf, $v ) = split('=', $affect, 2);
-                                    foreach ( $item->field($itemfield) ) {
-                                            $_->update( $sf => $v );
+                                if ( $item ) {
+                                    for my $affect ( @affects ) {
+                                        my ( $sf, $v ) = split('=', $affect, 2);
+                                        foreach ( $item->field($itemfield) ) {
+                                                $_->update( $sf => $v );
+                                        }
                                     }
+                                    C4::Items::ModItemFromMarc( $item, $biblionumber, $itemnumber );
                                 }
-                                C4::Items::ModItemFromMarc( $item, $biblionumber, $itemnumber );
                             }
                         }
 
