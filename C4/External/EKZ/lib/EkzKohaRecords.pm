@@ -1459,31 +1459,64 @@ sub createProcessingMessageText {
         $message .= '<p>' . h('Datum: ' .  $printdate. ', BestellInfo-Request messageID: ' . $logresult->[0]->[1]);
     }
     if ( $importedTitlesCount + $foundTitlesCount > 0 and scalar @{$importIDs} > 0 ) {
+        my $importIDsGrouped = {};
         my $controlNumberQuery = '';
         my $controlNumberCnt = 0;
         my $orderQuery = '';
         my $orderCnt = 0;
         my $allQuery = '';
-        foreach my $importID (@{$importIDs}) {
+
+        # In order to keep the controlNumberQuery compact, we group by cna value / 'cna_not_known_LMSCloud' / 'other_control_number_LMSCloud'
+        foreach my $importID ( sort @{$importIDs} ) {
             $self->{'logger'}->info("createProcessingMessageText() importID:" . $importID . ":");
             if ( $importID =~ /^\(ControlNumber\)(\d+)\(ControlNrId\)(.*)$/s ) {
-                if ( length($controlNumberQuery) > 0 ) {
-                    $controlNumberQuery .= " or ";
+                if ( not defined($importIDsGrouped->{$2}) ) {
+                    $importIDsGrouped->{$2} = [];
                 }
-                $controlNumberQuery .= '(cn%3A%22' . $1 . '%22 and cna%3A%22' . $2 . '%22)';    # i.e. '(cn:"' . $1 . '" and cna:"' . $2 . '")'
-                $controlNumberCnt += 1;
+                push @{$importIDsGrouped->{$2}}, $1;
             } elsif ( $importID =~ /^\(ControlNumber\)(\d+)$/s ) {
-                if ( length($controlNumberQuery) > 0 ) {
-                    $controlNumberQuery .= " or ";
+                if ( not defined($importIDsGrouped->{cna_not_known_LMSCloud}) ) {
+                    $importIDsGrouped->{cna_not_known_LMSCloud} = [];
                 }
-                $controlNumberQuery .= '(cn%3A%22' . $1 . '%22)';    # i.e. '(cn:"' . $1 . '")'
-                $controlNumberCnt += 1;
+                push @{$importIDsGrouped->{cna_not_known_LMSCloud}}, $1;
             } else {
-                if ( length($orderQuery) > 0 ) {
-                    $orderQuery .= ' or ';
+                if ( not defined($importIDsGrouped->{other_control_number_LMSCloud}) ) {
+                    $importIDsGrouped->{other_control_number_LMSCloud} = [];
                 }
-                $orderQuery .= '(Other-control-number%3A%22' . $importID . '%22)';    # i.e. '(Other-control-number:"' . $importID . '")'
-                $orderCnt += 1;
+                push @{$importIDsGrouped->{other_control_number_LMSCloud}}, $importID;
+            }
+        }
+        foreach my $importIDsGroup ( sort keys %{$importIDsGrouped} ) {
+            $self->{'logger'}->info("createProcessingMessageText() importIDsGroup:" . $importIDsGroup . ":");
+            if ( scalar @{$importIDsGrouped->{$importIDsGroup}} > 0 ) {
+                if ( $importIDsGroup eq 'other_control_number_LMSCloud' ) {
+                    my $idList = '';
+                    foreach my $importID (@{$importIDsGrouped->{$importIDsGroup}}) {
+                        if ( length($idList) > 0 ) {
+                            $idList .= ' OR ';
+                        }
+                        $idList .= '(' . $importID . ')';    # e.g. '(1234567)'
+                        $orderCnt += 1;
+                    }
+                    $orderQuery .= '(other-control-number:(' . $idList . ')';    # e.g. 'other-control-number:((1234567) OR (1234569))'
+                } else {
+                    if ( length($controlNumberQuery) > 0 ) {
+                        $controlNumberQuery .= " OR ";
+                    }
+                    my $cnList = '';
+                    foreach my $importID (@{$importIDsGrouped->{$importIDsGroup}}) {
+                        if ( length($cnList) > 0 ) {
+                            $cnList .= " OR ";
+                        }
+                        $cnList .= $importID;
+                        $controlNumberCnt += 1;
+                    }
+                    if ( $importIDsGroup eq 'cna_not_known_LMSCloud' ) {
+                        $controlNumberQuery .= 'cn:(' . $cnList . ')';    # e.g. 'cn:(1234765 OR 1234768)'
+                    } else {    # the regular case: search for some cn of a certain cna
+                        $controlNumberQuery .= '(cna:(' . $importIDsGroup . ') AND cn:(' . $cnList . '))';    # e.g. '(cna:(DE-Rt5) AND cn:(1234760 or 1234761))'
+                    }
+                }
             }
         }
         if ( length($orderQuery) > 0 ) {
