@@ -105,6 +105,8 @@ unless ( $logged_in_user->has_permission( { parameters => 'manage_background_job
     $template->param( already_ran_jobs => $already_ran_jobs );
 }
 
+my $plugins_enabled = C4::Context->config("enable_plugins");
+
 $template->param(
     pendingcomments                => $pendingcomments,
     pendingtags                    => $pendingtags,
@@ -112,7 +114,8 @@ $template->param(
     pending_discharge_requests     => $pending_discharge_requests,
     pending_article_requests       => $pending_article_requests,
     backends_available             => $backends_available,
-    pending_problem_reports        => $pending_problem_reports
+    pending_problem_reports        => $pending_problem_reports,
+    plugins_enabled                => $plugins_enabled
 );
 
 output_html_with_http_headers $query, $cookie, $template->output;

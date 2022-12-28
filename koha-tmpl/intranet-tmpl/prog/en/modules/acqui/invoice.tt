@@ -5,6 +5,7 @@
 [% USE Price %]
 [% SET footerjs = 1 %]
 [% USE AuthorisedValues %]
+[% USE Branches %]
 
 [% INCLUDE 'doc-head-open.inc' %]
 <title>Invoice &rsaquo; Acquisitions &rsaquo; Koha</title>
@@ -376,7 +377,7 @@
                         [% ELSIF ( order.copyrightdate ) %][% order.copyrightdate | html %][% END %]
                     [% END %]
                   </td>
-                  <td><p>[% order.branchcode | html %]</p></td>
+                  <td><p>[% Branches.GetName(order.branchcode) | html %]</p></td>
                   <td class="number tax_excluded">[% order.unitprice_tax_excluded | $Price %]</td>
                   <td class="number tax_included">[% order.unitprice_tax_included | $Price %]</td>
                   <td class="number replacementprice">[% order.replacementprice | $Price %] [% IF ( order.uncertainprice ) %] (Uncertain) [% END %]</td>
