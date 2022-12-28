@@ -163,6 +163,7 @@ sub genKohaRecords {
         $titleSourceSequence = '_LMSC|_EKZWSMD|DNB|_WS';
     }
     my $ekzWebServicesHideOrderedTitlesInOpac = C4::Context->preference("ekzWebServicesHideOrderedTitlesInOpac");
+    my $ekzWebServicesSetItemSubfieldsWhenOrdered = C4::Context->preference("ekzWebServicesSetItemSubfieldsWhenOrdered");
     my $ekzWebServicesSetItemSubfieldsWhenInvoiced = C4::Context->preference("ekzWebServicesSetItemSubfieldsWhenInvoiced");
     # design decision by Norbert: 
     # acquisition_import processingstate 'invoiced' implies 'delivered'.
@@ -973,7 +974,7 @@ sub genKohaRecords {
                             $item_hash->{price} = $priceInfo->{gesamtpreis_tax_included};
                             $item_hash->{replacementprice} = $priceInfo->{replacementcost_tax_included};    # without regard to $auftragsPosition->{'nachlass'}
                         }
-                        $item_hash->{notforloan} = 0;    # default initialization: 'item is invoiced' implicitly means 'item is delivered' -> can be loaned (may be overwritten via syspref ekzWebServicesSetItemSubfieldsWhenInvoiced)
+                        $item_hash->{notforloan} = 0;    # default initialization: 'item is invoiced' implicitly means 'item is delivered' -> can be loaned (may be overwritten via sysprefs ekzWebServicesSetItemSubfieldsWhenOrdered and ekzWebServicesSetItemSubfieldsWhenInvoiced)
 
                         $item_hash->{biblionumber} = $biblionumber;
                         $item_hash->{biblioitemnumber} = $biblionumber;
@@ -982,18 +983,45 @@ sub genKohaRecords {
 
                         if ( defined $itemnumber && $itemnumber > 0 ) {
 
-                            # update items set <fields like specified in ekzWebServicesSetItemSubfieldsWhenInvoiced> where itemnumber = <itemnumber from above Koha::Item->new() call>
+                            # update items set <fields like specified in ekzWebServicesSetItemSubfieldsWhenOrdered> where itemnumber = <itemnumber from above Koha::Item->new()->store() call>
                             my $itemHitRs = Koha::Items->new()->_resultset();
                             my $itemSelParam = { itemnumber => $itemnumber };
                             my $itemHitCount = $itemHitRs->count( $itemSelParam );
                             my $itemHit = $itemHitRs->find( $itemSelParam );
-                            $logger->trace("genKohaRecords() method4: searched for itemnumber:$itemnumber: itemHitCount:$itemHitCount: itemHit->{_column_data}:" . Dumper($itemHit->{_column_data}) . ":");
+                            $logger->trace("genKohaRecords() method4: searched first time for itemnumber:$itemnumber: itemHitCount:$itemHitCount: itemHit->{_column_data}:" . Dumper($itemHit->{_column_data}) . ":");
+                            if ( $itemHitCount > 0 && defined($itemHit->{_column_data}) ) {
+                                # configurable items record field initialization via C4::Context->preference("ekzWebServicesSetItemSubfieldsWhenOrdered")
+                                # e.g. setting the 'item ordered' state in items.notforloan
+                                if ( defined($ekzWebServicesSetItemSubfieldsWhenOrdered) && length($ekzWebServicesSetItemSubfieldsWhenOrdered) > 0 ) {
+                                    my @affects = split q{\|}, $ekzWebServicesSetItemSubfieldsWhenOrdered;
+                                    $logger->debug("genKohaRecords() method4: has to do " . scalar @affects . " affects (ordering)");
+                                    if ( @affects ) {
+                                        my $frameworkcode = C4::Biblio::GetFrameworkCode($biblionumber);
+                                        my ( $itemfield ) = C4::Biblio::GetMarcFromKohaField( 'items.itemnumber', $frameworkcode );
+                                        my $item = C4::Items::GetMarcItem( $biblionumber, $itemnumber );
+                                        if ( $item ) {
+                                            for my $affect ( @affects ) {
+                                                my ( $sf, $v ) = split('=', $affect, 2);
+                                                foreach ( $item->field($itemfield) ) {
+                                                        $_->update( $sf => $v );
+                                                }
+                                            }
+                                            C4::Items::ModItemFromMarc( $item, $biblionumber, $itemnumber );
+                                        }
+                                    }
+                                }
+                            }
+
+                            # update items set <fields like specified in ekzWebServicesSetItemSubfieldsWhenInvoiced> where itemnumber = <itemnumber from above Koha::Item->new()->store() call>
+                            $itemHitCount = $itemHitRs->count( $itemSelParam );
+                            $itemHit = $itemHitRs->find( $itemSelParam );
+                            $logger->trace("genKohaRecords() method4: searched second time for itemnumber:$itemnumber: itemHitCount:$itemHitCount: itemHit->{_column_data}:" . Dumper($itemHit->{_column_data}) . ":");
                             if ( $itemHitCount > 0 && defined($itemHit->{_column_data}) ) {
                                 # configurable items record field update via C4::Context->preference("ekzWebServicesSetItemSubfieldsWhenInvoiced")
                                 # e.g. setting the 'item available' state (or 'item processed internally' state) in items.notforloan
                                 if ( defined($ekzWebServicesSetItemSubfieldsWhenInvoiced) && length($ekzWebServicesSetItemSubfieldsWhenInvoiced) > 0 ) {
                                     my @affects = split q{\|}, $ekzWebServicesSetItemSubfieldsWhenInvoiced;
-                                    $logger->debug("genKohaRecords() method4: has to do " . scalar @affects . " affects");
+                                    $logger->debug("genKohaRecords() method4: has to do " . scalar @affects . " affects (invoicing)");
                                     if ( @affects ) {
                                         my $frameworkcode = C4::Biblio::GetFrameworkCode($biblionumber);
                                         my ( $itemfield ) = C4::Biblio::GetMarcFromKohaField( 'items.itemnumber', $frameworkcode );

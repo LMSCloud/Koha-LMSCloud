@@ -148,6 +148,7 @@ sub genKohaRecords {
         $titleSourceSequence = '_LMSC|_EKZWSMD|DNB|_WS';
     }
     my $ekzWebServicesHideOrderedTitlesInOpac = C4::Context->preference("ekzWebServicesHideOrderedTitlesInOpac");
+    my $ekzWebServicesSetItemSubfieldsWhenOrdered = C4::Context->preference("ekzWebServicesSetItemSubfieldsWhenOrdered");
     my $ekzWebServicesSetItemSubfieldsWhenReceived = C4::Context->preference("ekzWebServicesSetItemSubfieldsWhenReceived");
     my $ekzWsHideOrderedTitlesInOpac = 1;    # policy: hide title if not explictly set to 'show'
     if( defined($ekzWebServicesHideOrderedTitlesInOpac) && 
@@ -929,18 +930,45 @@ sub genKohaRecords {
 
                         if ( defined $itemnumber && $itemnumber > 0 ) {
 
-                            # update items set <fields like specified in ekzWebServicesSetItemSubfieldsWhenReceived> where itemnumber = <itemnumber from above Koha::Item->new() call>
+                            # update items set <fields like specified in ekzWebServicesSetItemSubfieldsWhenOrdered> where itemnumber = <itemnumber from above Koha::Item->new()->store() call>
                             my $itemHitRs = Koha::Items->new()->_resultset();
                             my $itemSelParam = { itemnumber => $itemnumber };
                             my $itemHitCount = $itemHitRs->count( $itemSelParam );
                             my $itemHit = $itemHitRs->find( $itemSelParam );
-                            $logger->trace("genKohaRecords() method4: searched for itemnumber:$itemnumber: itemHitCount:$itemHitCount: itemHit->{_column_data}:" . Dumper($itemHit->{_column_data}) . ":");
+                            $logger->trace("genKohaRecords() method4: searched first time for itemnumber:$itemnumber: itemHitCount:$itemHitCount: itemHit->{_column_data}:" . Dumper($itemHit->{_column_data}) . ":");
+                            if ( $itemHitCount > 0 && defined($itemHit->{_column_data}) ) {
+                                # configurable items record field initialization via C4::Context->preference("ekzWebServicesSetItemSubfieldsWhenOrdered")
+                                # e.g. setting the 'item ordered' state in items.notforloan
+                                if ( defined($ekzWebServicesSetItemSubfieldsWhenOrdered) && length($ekzWebServicesSetItemSubfieldsWhenOrdered) > 0 ) {
+                                    my @affects = split q{\|}, $ekzWebServicesSetItemSubfieldsWhenOrdered;
+                                    $logger->debug("genKohaRecords() method4: has to do " . scalar @affects . " affects (ordering)");
+                                    if ( @affects ) {
+                                        my $frameworkcode = C4::Biblio::GetFrameworkCode($biblionumber);
+                                        my ( $itemfield ) = C4::Biblio::GetMarcFromKohaField( 'items.itemnumber', $frameworkcode );
+                                        my $item = C4::Items::GetMarcItem( $biblionumber, $itemnumber );
+                                        if ( $item ) {
+                                            for my $affect ( @affects ) {
+                                                my ( $sf, $v ) = split('=', $affect, 2);
+                                                foreach ( $item->field($itemfield) ) {
+                                                        $_->update( $sf => $v );
+                                                }
+                                            }
+                                            C4::Items::ModItemFromMarc( $item, $biblionumber, $itemnumber );
+                                        }
+                                    }
+                                }
+                            }
+
+                            # update items set <fields like specified in ekzWebServicesSetItemSubfieldsWhenReceived> where itemnumber = <itemnumber from above Koha::Item->new()->store() call>
+                            $itemHitCount = $itemHitRs->count( $itemSelParam );
+                            $itemHit = $itemHitRs->find( $itemSelParam );
+                            $logger->trace("genKohaRecords() method4: searched second time for itemnumber:$itemnumber: itemHitCount:$itemHitCount: itemHit->{_column_data}:" . Dumper($itemHit->{_column_data}) . ":");
                             if ( $itemHitCount > 0 && defined($itemHit->{_column_data}) ) {
                                 # configurable items record field update via C4::Context->preference("ekzWebServicesSetItemSubfieldsWhenReceived")
                                 # e.g. setting the 'item available' state (or 'item processed internally' state) in items.notforloan
                                 if ( defined($ekzWebServicesSetItemSubfieldsWhenReceived) && length($ekzWebServicesSetItemSubfieldsWhenReceived) > 0 ) {
                                     my @affects = split q{\|}, $ekzWebServicesSetItemSubfieldsWhenReceived;
-                                    $logger->debug("genKohaRecords() method4: has to do " . scalar @affects . " affects");
+                                    $logger->debug("genKohaRecords() method4: has to do " . scalar @affects . " affects (receiving)");
                                     if ( @affects ) {
                                         my $frameworkcode = C4::Biblio::GetFrameworkCode($biblionumber);
                                         my ( $itemfield ) = C4::Biblio::GetMarcFromKohaField( 'items.itemnumber', $frameworkcode );
