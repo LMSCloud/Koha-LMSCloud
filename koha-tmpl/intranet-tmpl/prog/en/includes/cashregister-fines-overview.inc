@@ -130,7 +130,7 @@
    
 [% IF (finesstats.type == 'finesoverview') %]
     <h3 style="margin-top:30px">Fines overviews</h3>
-    [% IF (finesstats.data.account.unmapped || finesstats.data.account.mapped) %]
+    [% IF (finesstats.data.account.mapped) %]
         [% IF (finesstats.data.account.mapped) %]
         <h4 style="margin-top:20px">Paid fines by account</h4>
         <table id="mappedaccountoverview">
@@ -155,13 +155,20 @@
         [% END %]
 
         [% IF (finesstats.data.account.unmapped) %]
+        [% IF (finesstats.data.account.mapped) %]
         <h4 style="margin-top:20px">Unmapped paid fines (to above accounts)</h4>
+        [% ELSE %]
+        <h4 style="margin-top:20px">Paid fines</h4>
+        [% END %]
         <table id="unmappedaccountoverview">
             <thead>
                 <tr>
+					[% IF (finesstats.data.account.mapped) %]
                     <th>Unmapped fine type</th>
                     <th>Description</th>
-                    <th>Count</th>
+                    [% ELSE %]
+                    <th>Fine type</th>
+                    [% END %]
                     <th>Sum</th>
                 </tr>
             </thead>
@@ -169,9 +176,10 @@
                 [% FOREACH ptype IN finesstats.data.account.unmapped.keys.sort %]
                     [% showstat = finesstats.data.account.unmapped.$ptype %]
                     <tr>
+						[% IF (finesstats.data.account.mapped) %]
                         <td>[% ptype %]</td>
+                        [% END %]
                         <td>[% resolveFinesTypeName(ptype) %] </td>
-                        <td style="text-align:right;">[% showstat.count %]</td>
                         <td style="text-align:right;">[% showstat.fines_amount_formatted %]</td>
                     </tr>
                 [% END %]
