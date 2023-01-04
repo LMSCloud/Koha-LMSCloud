@@ -130,7 +130,7 @@
    
 [% IF (finesstats.type == 'finesoverview') %]
     <h3 style="margin-top:30px">Fines overviews</h3>
-    [% IF (finesstats.data.account.mapped) %]
+    [% IF (finesstats.data.account.mapped || finesstats.data.account.unmapped) %]
         [% IF (finesstats.data.account.mapped) %]
         <h4 style="margin-top:20px">Paid fines by account</h4>
         <table id="mappedaccountoverview">
