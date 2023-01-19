@@ -287,25 +287,33 @@ sub createSearchString {
         return $search;
     }
     
+    my $classval = $class->{classification};
+    $classval =~ s/ /\\ /g;
+    
     if ( $class->{prefix} && $class->{prefix} eq 'NOTEN' && $class->{classification} ) {
         my $sval = $class->{classification};
         $sval =~ s/^(NOTEN \/ [A-Y])([^O]?)/$1.'O'.($2 ? $2 : '')/e;
-        $search .= 'sys.phrase:(' . $class->{classification} . '*)';
-        $search .= ' OR sys.phrase:(' . $sval . '*)' if ( $sval ne $class->{classification});
+        $search .= 'sys.phrase:(' . $classval . '*)';
+        if ( $sval ne $class->{classification}) {
+            $sval =~ s/ /\\ /g;
+            $search .= ' OR sys.phrase:(' . $sval . '*)' ;
+        }
         return $search;
     }
     if ( $class->{prefix} && $class->{prefix} eq 'MUSIK' && $class->{classification} ) {
-        $search .= 'sys.phrase:(' . $class->{classification} . '*)';
+        $search .= 'sys.phrase:(' . $classval . '*)';
         return $search;
     }
     
     if ( $class->{classification} =~ /,[0-9]$/ ) {
-        $search .= 'sys.phrase:(' . $class->{classification} . '*)';
+        $search .= 'sys.phrase:(' . $classval . '*)';
         return $search;
     }
     if ( $class->{prefix} ) {
+        my $pref = $class->{prefix};
+        $pref =~ s/ /\\ /g;
         $search .= ' AND ' if ( $search ne '' );
-        $search .= 'sys.phrase:(' . $class->{prefix} . '*)';
+        $search .= 'sys.phrase:(' . $pref . '*)';
     }
     
     if ( $class->{classval} ) {
