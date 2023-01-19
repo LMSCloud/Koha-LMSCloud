@@ -1390,6 +1390,7 @@ sub _SearchItems_build_where_fragment {
                         }
                     }
                     $column = "ExtractValue($sqlfield, '$xpath')";
+                    $query =~ s/&/&amp;/g if (!(ref $query eq 'ARRAY'));
                 }
             } else {
                 $column = $field;
