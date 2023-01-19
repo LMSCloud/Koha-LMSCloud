@@ -33,7 +33,7 @@ use LWP::UserAgent;
 
 =head1 NAME
 
-KKoha::REST::V1::BZSH::OrderStatus
+Koha::REST::V1::BZSH::OrderStatus
 
 =head1 API
 
@@ -164,13 +164,39 @@ sub handleBZSHOrderStatusRequest {
         push @addselect, "i.homebranch IN (" . join(",", map { ($_) x scalar(@branchcodeList) } ("?")) . ")";
         push @addparameter, @branchcodeList;
     }
+    
+    my @addselectdel = @addselect;
+    my @addparameterdel = @addparameter;
     if ( scalar(@orderStatusList) ) {
         push @addselect, "i.notforloan IN (" . join(",", map { ($_) x scalar(@orderStatusList) } ("?")) . ")";
         push @addparameter, @orderStatusList;
     }
+    
     if ( scalar(@addselect) ) {
         $select .= " WHERE " . join(" AND ",@addselect);
         $select .= " GROUP BY i.biblionumber, i.homebranch, i.stocknumber, i.notforloan, v.lib_opac, DATE(i.timestamp)";
+        
+        if ( scalar(@orderStatusList)==0 || ( grep $_ eq '-1', @orderStatusList ) ) {
+            $select .= qq{
+                UNION ALL
+                SELECT i.biblionumber AS biblionumber,
+                   i.homebranch AS library_id,
+                   i.stocknumber AS external_order_id,
+                   '-1' AS order_status_code,
+                   v.lib_opac AS order_status_text,
+                   DATE(i.timestamp) AS date_last_changed,
+                   count(*) AS copies
+                FROM   deleteditems i
+                       JOIN aqorders_items o ON (o.itemnumber = i.itemnumber)
+                       JOIN aqorders r ON (r.ordernumber = o.ordernumber)
+                       LEFT JOIN authorised_values v ON (v.category = 'NOT_LOAN' AND v.authorised_value = '-1' )
+                WHERE  r.orderstatus = 'cancelled'
+                };
+            $select .= " AND " . join(" AND ",@addselectdel) if ( scalar(@addselectdel) );
+            $select .= " GROUP BY i.biblionumber, i.homebranch, i.stocknumber, v.lib_opac, DATE(i.timestamp)";
+            push @addparameter, @addparameterdel;
+        }
+        
         $select .= " ORDER BY " . join(", ",@$sortParams) if ( scalar(@$sortParams) );
         
         my $pagesize   = $orderItemStatusRequestRarams->param('_per_page');
