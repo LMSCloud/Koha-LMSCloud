@@ -108,25 +108,25 @@
 
                             <tr>
                                 <td>2</td>
-                                <td>Zahl der Bibliotheken (Einrichtungen)</td>
+                                <td>Zahl der Bibliotheken (Einrichtungen) - Eingabe gesperrt</td>
                                 <td>
-                                    <input type="number" id="st_gen_libcount" name="st_gen_libcount" min="0" size="12" maxlength="12" value="[% st.gen_libcount %]" />
+                                    <input type="number" id="st_gen_libcount" name="st_gen_libcount" min="0" size="12" maxlength="12" value="[% st.gen_libcount %]" disabled />
                                 </td>
                             </tr>
 
                             <tr>
                                 <td>3</td>
-                                <td>... darunter: Zweigstellen</td>
+                                <td>... darunter: Zweigstellen - Eingabe gesperrt</td>
                                 <td>
-                                    <input type="number" id="st_gen_branchcount" name="st_gen_branchcount" min="0" size="12" maxlength="12" value="[% st.gen_branchcount %]" />
+                                    <input type="number" id="st_gen_branchcount" name="st_gen_branchcount" min="0" size="12" maxlength="12" value="[% st.gen_branchcount %]" disabled />
                                 </td>
                             </tr>
 
                             <tr>
                                 <td>4</td>
-                                <td>... darunter: Fahrbibliotheken</td>
+                                <td>... darunter: Fahrbibliotheken - Eingabe gesperrt</td>
                                 <td>
-                                    <input type="number" id="st_gen_buscount" name="st_gen_buscount" min="0" size="12" maxlength="12" value="[% st.gen_buscount %]" />
+                                    <input type="number" id="st_gen_buscount" name="st_gen_buscount" min="0" size="12" maxlength="12" value="[% st.gen_buscount %]" disabled />
                                 </td>
                             </tr>
 
@@ -411,6 +411,14 @@
                             </tr>
 
                             <tr>
+                                <td>36.1</td>
+                                <td>... darunter: Anzahl geschenkter Medien</td>
+                                <td>
+                                    <input type="number" id="st_med_access_units_donated" name="st_med_access_units_donated" min="0" size="12" maxlength="12" value="[% st.med_access_units_donated %]" />
+                                </td>
+                            </tr>
+
+                            <tr>
                                 <td>38</td>
                                 <td>Lizenzierte virtuelle Plattformen, Dienste und Datenbanken</td>
                                 <td>
@@ -422,7 +430,7 @@
                                 <td>38.1</td>
                                 <td>Nutzung lizenzierter virtueller Plattformen (Anzahl der Logins)</td>
                                 <td>
-                                    <input type="number" id="st_med_database_login_cnt" name="st_med_database_login_cnt" min="0" size="12" maxlength="12" value="[% st.med_database_login_cnt %]" /> <b style="font-size: 125%">*</b>
+                                    <input type="number" id="st_med_database_login_cnt" name="st_med_database_login_cnt" min="0" size="12" maxlength="12" value="[% st.med_database_login_cnt %]" /> <b style="font-size: 125%">*</b> (obsolet)
                                 </td>
                             </tr>
 
@@ -430,12 +438,7 @@
                                 <td>38.2</td>
                                 <td>Die Authentifizierung wird über Single-Sign-On vorgenommen</td>
                                 <td>
-                                    <!-- [% IF ( st.med_database_authsso_yn ) %]
-                                        <input type="checkbox" id="st_med_database_authsso_yn" name="st_med_database_authsso_yn" value="1" checked="checked" />
-                                    [% ELSE %]
-                                        <input type="checkbox" id="st_med_database_authsso_yn" name="st_med_database_authsso_yn" value="1" />
-                                    [% END %] XXXWH -->
-                                    <input disabled type="checkbox" id="st_med_database_authsso_yn" name="st_med_database_authsso_yn" value="1" checked="checked" />
+                                    <input disabled type="checkbox" id="st_med_database_authsso_yn" name="st_med_database_authsso_yn" value="1" checked="checked" /> (obsolet)
                                 </td>
                             </tr>
 
@@ -457,7 +460,7 @@
 
                             <tr>
                                 <td>41.1</td>
-                                <td>Nutzen Sie Austausch-,Blockbestände?</td>
+                                <td>Nutzen Sie Austausch-, Blockbestände?</td>
                                 <td>
                                     [% IF ( st.med_blockcollection_used_yn ) %]
                                         <input type="checkbox" id="st_med_blockcollection_used_yn" name="st_med_blockcollection_used_yn" value="1" checked="checked" />
@@ -495,7 +498,7 @@
                         <tbody>
                             <tr>
                                 <td>49</td>
-                                <td>Laufende Ausgaben insgesamt</td>
+                                <td>Ausgaben insgesamt</td>
                                 <td>
                                     <input type="text" id="st_fin_current_expenses_tot" name="st_fin_current_expenses_tot" value="[% st.fin_current_expenses_tot | $Price %]"  oninput="floatInput(document.DBS_edit.st_fin_current_expenses_tot,2)"  onchange="moneyFormat(document.DBS_edit.st_fin_current_expenses_tot)" />
                                 </td>
@@ -559,7 +562,7 @@
 
                             <tr>
                                 <td>56</td>
-                                <td>Fremdmittel insgesamt</td>
+                                <td>Drittmittel insgesamt</td>
                                 <td>
                                     <input type="text" id="st_fin_external_funds_tot" name="st_fin_external_funds_tot" value="[% st.fin_external_funds_tot | $Price %]"  oninput="floatInput(document.DBS_edit.st_fin_external_funds_tot,2)"  onchange="moneyFormat(document.DBS_edit.st_fin_external_funds_tot)" />
                                 </td>
@@ -647,7 +650,7 @@
                                 <td>66</td>
                                 <td>Stellen laut Stellenplan</td>
                                 <td>
-                                    <input type="number" id="st_stf_staff_scheme_appointments" name="st_stf_staff_scheme_appointments" min="0" size="12" maxlength="12" value="[% st.stf_staff_scheme_appointments %]" />
+                                    <input type="text" id="st_stf_staff_scheme_appointments" name="st_stf_staff_scheme_appointments" value="[% st.stf_staff_scheme_appointments | $Price %]"  oninput="floatInput(document.DBS_edit.st_stf_staff_scheme_appointments,2)"  onchange="moneyFormat(document.DBS_edit.st_stf_staff_scheme_appointments)" />
                                 </td>
                             </tr>
 
@@ -875,7 +878,7 @@
 
                             <tr>
                                 <td>93</td>
-                                <td>Anzahl der Kooperationen</td>
+                                <td>Anzahl der Kooperationspartner</td>
                                 <td>
                                     <input type="number" id="st_srv_coops_tot" name="st_srv_coops_tot" min="0" size="12" maxlength="12" value="[% st.srv_coops_tot %]" />
                                 </td>
@@ -1848,8 +1851,8 @@
         function exportTableToCSV($table, filename, format) {
             var $rows = $table.find('tr:has(td)');
 
-            // Temporary delimiter characters unlikely to be typed by keyboard
-            // This is to avoid accidentally splitting the actual contents
+            // Temporary delimiter characters unlikely to be typed in by keyboard.
+            // This is to avoid accidentally splitting the actual contents.
             tmpColDelim = String.fromCharCode(11); // vertical tab character
             tmpRowDelim = String.fromCharCode(0); // null character
 
@@ -1921,7 +1924,6 @@
                 //  }
                 //  csv += '"' + values.get().join(tmpColDelim)
                 //          .split(tmpColDelim).join('"' + colDelim + '"') + '"' + rowDelim;
-                //
 
                 // since DBS 2021:
                 //     old fields, dropped for export: query 9, 10.1, 10.2, 11 (index: 13, 14, 15, 17)
@@ -1936,18 +1938,28 @@
                 //     length dbs_incl_music_lib: 137 fields (index 0 - 141, but not exported: index 13-17)
                 //     length dbs_incl_school_lib: 175 fields (index 0 - 179, but not exported: index 13-17)
 
-                var valuesNew = (values.slice(0,13).get()).concat(values.slice(18,180).get());
+                // since DBS 2022:
+                //     old fields, dropped for export: query 38.1, 38.2 (index: 39, 40)
+                //     added fields (base questionaire): query 36.1 (index: 37 )
+                //     default length total (all fields): 181
+                //     length dbs_base_questionaire: 96 (index 0 - 102, but not exported: index 13-17, 39-40)
+                //     length dbs_incl_patients_lib: 107 fields (index 0 - 113, but not exported: index 13-17, 39-40)
+                //     length dbs_incl_mobile_lib: 114 fields (index 0 - 120, but not exported: index 13-17, 39-40)
+                //     length dbs_incl_music_lib: 136 fields (index 0 - 142, but not exported: index 13-17, 39-40)
+                //     length dbs_incl_school_lib: 174 fields (index 0 - 180, but not exported: index 13-17, 39-40)
+
+                var valuesNew = (values.slice(0,13).get()) . concat(values.slice(18,39).get()) . concat(values.slice(41,181).get());
                 if ( format == "dbs_base_questionaire" ) {
-                    valuesNew = valuesNew.slice(0,97);    // index 0..96 corresponds to index 0..101 of var 'values', but excluding index 13-17 of var 'values')
+                    valuesNew = valuesNew.slice(0,96);    // index 0..95 corresponds to index 0..102 of var 'values', but excluding index 13-17,39-40,  of var 'values')
                 } else if ( format == "dbs_incl_patients_lib" ) {
-                    valuesNew = valuesNew.slice(0,108);    // index 0..107 corresponds to index 0..112 of var 'values', but excluding index 13-17 of var 'values')
+                    valuesNew = valuesNew.slice(0,107);    // index 0..106 corresponds to index 0..113 of var 'values', but excluding index 13-17,39-40 of var 'values')
                 } else if ( format == "dbs_incl_mobile_lib" ) {
-                    valuesNew = valuesNew.slice(0,115);    // index 0-114 corresponds to index 0 - 119 of var 'values', but excluding index 13-17 of var 'values')
+                    valuesNew = valuesNew.slice(0,114);    // index 0-113 corresponds to index 0 - 120 of var 'values', but excluding index 13-17,39-40 of var 'values')
                 } else if ( format == "dbs_incl_music_lib" ) {
-                    valuesNew = valuesNew.slice(0,137);    // index 0-136 corresponds to index 0 - 141 of var 'values', but excluding index 13-17 of var 'values')
+                    valuesNew = valuesNew.slice(0,136);    // index 0-135 corresponds to index 0 - 142 of var 'values', but excluding index 13-17,39-40 of var 'values')
                 } else if ( format == "dbs_incl_school_lib" ) {
-                    // valuesNew needs not be sliced, because in this case valuesNew == valuesNew.slice(0,175) already
-                    //valuesNew = valuesNew.slice(0,175);    // index 0-174 corresponds to index 0 - 179 of var 'values', but excluding index 13-17 of var 'values')
+                    // valuesNew needs not be sliced, because in this case valuesNew == valuesNew.slice(0,174) already
+                    //valuesNew = valuesNew.slice(0,174);    // index 0-173 corresponds to index 0 - 180 of var 'values', but excluding index 13-17,39-40 of var 'values')
                 }
 
                 csv += '"' + valuesNew.join(tmpColDelim)
