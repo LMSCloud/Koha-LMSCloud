@@ -242,7 +242,7 @@ sub addNewRecords {
                     my $biblionumber = $createdTitleRecords->{$selHashkey}->{biblionumber};
                     $self->{'logger'}->info("addNewRecords() for series title got used biblionumber:$biblionumber: from createdTitleRecords->{$selHashkey} and seriesTitleHits->{'count'}:" . $seriesTitleHits->{'count'} . ":");
                 } else {
-                    $seriesTitleHits = $self->readTitleInLocalDB($reqParamTitelInfo, 1);
+                    $seriesTitleHits = $self->readTitleInLocalDB($reqParamTitelInfo, 7, 1);
                     $self->{'logger'}->info("addNewRecords() for series title readTitleInLocalDB returned seriesTitleHits->{'count'}:" . $seriesTitleHits->{'count'} . ":");
                 }
                 if ( $seriesTitleHits->{'count'} > 0 && defined $seriesTitleHits->{'records'}->[0] ) {    # XXXWH obsolete
@@ -331,6 +331,7 @@ sub addNewRecords {
 sub readTitleInLocalDB {
     my $self = shift;
     my $reqParamTitelInfo = shift;
+    my $searchmode = shift;    # 1: search for ekzArtikelNr   2: search for isbn/isbn13/issn/ismn/ean   4: search for author&&title&&publicationyear   (may be 'ored')
     my $maxhits = shift;
 
     my $selParam->{'ekzArtikelNr'} = $reqParamTitelInfo->{'ekzArtikelNr'};
@@ -339,7 +340,11 @@ sub readTitleInLocalDB {
     $selParam->{'issn'} = $reqParamTitelInfo->{'issn'};
     $selParam->{'ismn'} = $reqParamTitelInfo->{'ismn'};
     $selParam->{'ean'} = $reqParamTitelInfo->{'ean'};
+    $selParam->{'erscheinungsJahr'} = $reqParamTitelInfo->{'erscheinungsJahr'};
 
+    my @marcRecordResultsEkz = ();
+    my @marcRecordResultsNonEkz = ();
+    my $standardBehaviour = 1;
     my $result = {'count' => 0, 'records' => []};
     my $hits = 0;
     $self->{'logger'}->info("readTitleInLocalDB() selEkzArtikelNr:" . (defined($selParam->{'ekzArtikelNr'}) ? $selParam->{'ekzArtikelNr'} : 'undef') .
@@ -348,13 +353,54 @@ sub readTitleInLocalDB {
                                                ": selIssn:" . (defined($selParam->{'issn'}) ? $selParam->{'issn'} : 'undef') .
                                                ": selIsmn:" . (defined($selParam->{'ismn'}) ? $selParam->{'ismn'} : 'undef') .
                                                ": selEan:" . (defined($selParam->{'ean'}) ? $selParam->{'ean'} : 'undef') .
+                                               ": selErscheinungsJahr:" . (defined($selParam->{'erscheinungsJahr'}) ? $selParam->{'erscheinungsJahr'} : 'undef') .
+                                               ": searchmode:" . (defined($searchmode) ? $searchmode : 'undef') .
                                                ": maxhits:" . (defined($maxhits) ? $maxhits : 'undef') .
                                                ":");
 
-    my $marcRecordResults = $self->readTitleDubletten($selParam,1);    # array of objects of type MARC::Record
-    $hits = scalar @$marcRecordResults if $marcRecordResults;
+    my $marcRecordResults = $self->readTitleDubletten($selParam, $searchmode, 1);    # array of objects of type MARC::Record
+    $hits = scalar @{$marcRecordResults} if $marcRecordResults;
+    $self->{'logger'}->info("readTitleInLocalDB() after readTitleDubletten hits:$hits:");
 
-    HITS: for (my $i = 0; $i < $hits && $maxhits > 0 and defined $marcRecordResults->[$i]; $i++)
+    if ( $searchmode == 2 && !( defined $selParam->{'erscheinungsJahr'} && length($selParam->{'erscheinungsJahr'}) > 0 ) ) {    # no search for publication year was done
+        for ( my $i = 0; $i < $hits && $maxhits > 0 and defined $marcRecordResults->[$i]; $i++ ) {
+            if ( $marcRecordResults->[$i]->field('003') && $marcRecordResults->[$i]->field('003')->data() && $marcRecordResults->[$i]->field('003')->data() eq 'DE-Rt5' ) {
+                push @marcRecordResultsEkz, $marcRecordResults->[$i];
+            } else {
+                push @marcRecordResultsNonEkz, $marcRecordResults->[$i];
+            }
+        }
+        $self->{'logger'}->debug("readTitleInLocalDB() searchmode==2; hits:$hits: scalar marcRecordResultsEkz:" . scalar @marcRecordResultsEkz . ": scalar marcRecordResultsNonEkz:" . scalar @marcRecordResultsNonEkz . ":");
+
+        # If all of the DE-Rt5 hits have different ekzArtikelNr and there are no non-DE-Rt5 hits,
+        # we ignore the hits in order to trigger a LMS Pool search or a ekz Webservice 'MedienDaten' request.
+        if ( scalar @marcRecordResultsNonEkz == 0 ) {
+            if ( scalar @marcRecordResultsEkz && defined($selParam->{'ekzArtikelNr'}) && $selParam->{'ekzArtikelNr'} > 0 ) {
+                for ( my $i = 0; $i < $hits && $maxhits > 0 and defined $marcRecordResultsEkz[$i]; $i++ ) {
+                    $self->{'logger'}->debug("readTitleInLocalDB() in loop marcRecordResultsEkz; i:$i: selParam->{ekzArtikelNr}:" . $selParam->{'ekzArtikelNr'} . ": marcRecordResultsEkz[$i]->field('001')->data():" . ($marcRecordResultsEkz[$i]->field('001')?$marcRecordResultsEkz[$i]->field('001')->data():'undef') . ":");
+
+                    if ( $marcRecordResultsEkz[$i]->field('001') && $marcRecordResultsEkz[$i]->field('001')->data() ) {
+                        if ( $selParam->{'ekzArtikelNr'} == $marcRecordResultsEkz[$i]->field('001')->data() ) {    # just in case - should never happen (should have been found using searchmode 1)
+                            my $marcrecord =  $marcRecordResultsEkz[$i];
+                            push @{$result->{'records'}}, $marcrecord;
+                            $result->{'count'} += 1;
+                            if ( defined($maxhits) && $maxhits >= 0 && $result->{'count'} >= $maxhits ) {
+                                last;
+                            }
+                        }
+                    }
+
+                }
+                $standardBehaviour = 0;    # Ignore the hits in order to trigger a LMS Pool search or a ekz Webservice 'MedienDaten' request.
+            }
+        } else {
+            # The DE-Rt5 hits have different ekzArtikelNr, so we ignore them and hope that the non-DE-Rt5 hits are better.
+            $marcRecordResults = \@marcRecordResultsNonEkz;
+        }
+    }
+    if ( $standardBehaviour ) {
+    $hits = scalar @{$marcRecordResults} if $marcRecordResults;    # recalculate $hits because $marcRecordResults may have been changed
+    HITS: for ( my $i = 0; $i < $hits && $maxhits > 0 and defined $marcRecordResults->[$i]; $i++ )
     {
         my $marcrecord =  $marcRecordResults->[$i];
 
@@ -378,6 +424,7 @@ sub readTitleInLocalDB {
             }
        
         }
+    }
     }
     $self->{'logger'}->debug("readTitleInLocalDB() result->{'count'}:$result->{'count'}: result->{'records'}:" . Dumper($result->{'records'}) . ":");
 
@@ -497,16 +544,34 @@ sub mergeMarcresults {
 sub readTitleDubletten {
     my $self = shift;
     my $selParam = shift;
+    my $searchmode = shift;    # 1: search for ekzArtikelNr   2: search for isbn/isbn13/issn/ismn/ean   4: search for author&&title&&publicationyear   (may be 'ored')
     my $strictMatch = shift;
-    $self->{'logger'}->debug("readTitleDubletten() selParam:" . Dumper($selParam) . ": strictMatch:$strictMatch:");
+    my $searchForEkzArticleNr = $searchmode%2;    # searchmode 1 or 3 or 5 or 7   search for ekzArtikelNr && cna == DE-Rt5
+    my $searchForIsxnEan = ($searchmode/2)%2;    # searchmode 2 or 3 or 6 or 7   search for ISBN, ISSN, ISMN, EAN (and publicationyear if not empty)
+    my $searchForAuTiPy = ($searchmode/4)%2;    # searchmode 4 or 6 or 7   search for author && title && publicationyear
+
+    $self->{'logger'}->debug("readTitleDubletten() selParam:" . Dumper($selParam) . ": searchmode:$searchmode: strictMatch:$strictMatch:");
 
     my $allmarcresults = [];
     if ( $self->{localCatalogSourceDelegateClass} ) {
         my $searchClass = $self->{localCatalogSourceDelegateClass};
+        my $selectParam;    # for picking select criteria from $selParam depending of $searchmode
 
-        if ( scalar ( keys %{$selParam} ) ) {
-            $self->{'logger'}->debug("readTitleDubletten() now calling searchClass->searchLocalRecords() with selParam:" . Dumper($selParam) . ":");
-            $allmarcresults = $searchClass->searchLocalRecords($selParam);    # will not use $selParam->{'ekzArtikelNr'} if $selParam->{'ekzArtikelNr'} == 0
+        if ( $searchForEkzArticleNr ) {    # search for ekzArtikelNr
+            if ( defined $selParam->{'ekzArtikelNr'} && length($selParam->{'ekzArtikelNr'}) ) {    # search for ekzArtikelNr
+                $selectParam->{'ekzArtikelNr'} = $selParam->{'ekzArtikelNr'};
+            }
+        }
+        if ( $searchForIsxnEan ) {    # search for other criteria than ekzArtikelNr (but author, title, publicationyear are not used by $searchClass->searchLocalRecords() )
+            foreach my $k ( keys %{$selParam} ) {
+                if ( $k ne 'ekzArtikelNr' && defined($selParam->{$k}) ) {
+                    $selectParam->{$k} = $selParam->{$k};
+                }
+            }
+        }
+        if ( scalar ( keys %{$selectParam} ) ) {
+            $self->{'logger'}->debug("readTitleDubletten() now calling searchClass->searchLocalRecords() with selectParam:" . Dumper($selectParam) . ":");
+            $allmarcresults = $searchClass->searchLocalRecords($selectParam);    # will not use $selectParam->{'ekzArtikelNr'} if $selectParam->{'ekzArtikelNr'} == 0
         }
     } else {
         my $query = "cn:(-1)";                    # control number search, initial definition for no hit
@@ -520,149 +585,134 @@ sub readTitleDubletten {
         # 4. titel and author and erscheinungsJahr
 
         # check for ekzArtikelNr search
-        if ( !defined $selParam->{'ekzArtikelNr'} || length($selParam->{'ekzArtikelNr'}) == 0 || $selParam->{'ekzArtikelNr'} == 0 ) {
-            my $mess = sprintf("readTitleDubletten(): ekzArtikelNr is empty or 0 -> not searching for ekzArtikelNr.");
-            $self->{'logger'}->warn($mess);
-            #carp "EkzKohaRecords::" . $mess . "\n";
-        } else {
-            # build search query for ekzArtikelNr search
-            # If used for spotting the title the new item is assigned to (e.g. webservice BestellInfo), $strictMatch has to be set.
-            # If also related titles have to be found (e.g. webservice DublettencheckElement), a wider hit set is recommended, so $strictMatch has to be 0.
-            if ( $strictMatch ) {    # used for web service BestellInfo etc.
-                $query = "(cn:($selParam->{'ekzArtikelNr'}) and cna:(DE-Rt5))";
-            } else {    # used for web service DublettenCheckElement
-                $query = "(cn:($selParam->{'ekzArtikelNr'}) and cna:(DE-Rt5)) or (other-control-number:(\(DE-Rt5\)$selParam->{'ekzArtikelNr'}))";
-            }
-            $self->{'logger'}->debug("readTitleDubletten() query:$query:");
-
-            my ( $error, $marcXmlResults, $total_hits ) = ( '', [], 0 );
-            eval {
-                ( $error, $marcXmlResults, $total_hits ) = $self->{searcher}->simple_search_compat( $query, 0, 100000 );
-            };
-
-            if (defined $error) {
-                my $mess = sprintf("readTitleDubletten(): search for ekzArtikelNr:%s: returned error:%d/%s:", $selParam->{'ekzArtikelNr'}, $error, $error);
+        if ( $searchForEkzArticleNr ) {
+            if ( !defined $selParam->{'ekzArtikelNr'} || length($selParam->{'ekzArtikelNr'}) == 0 || $selParam->{'ekzArtikelNr'} == 0 ) {
+                my $mess = sprintf("readTitleDubletten(): ekzArtikelNr is empty or 0 -> not searching for ekzArtikelNr.");
                 $self->{'logger'}->warn($mess);
-                carp "EkzKohaRecords::" . $mess . "\n";
+                #carp "EkzKohaRecords::" . $mess . "\n";
             } else {
-                if ( scalar @{$marcXmlResults} > 0 ) {
-                    $foundEkzArticleNumberHit = 1;
-                    $self->mergeMarcresults($allmarcresults,\%biblionumbersfound,$marcXmlResults,\$allinall_hits,$foundEkzArticleNumberHit);
+                # build search query for ekzArtikelNr search
+                # If used for spotting the title the new item is assigned to (e.g. webservice BestellInfo), $strictMatch has to be set.
+                # If also related titles have to be found (e.g. webservice DublettencheckElement), a wider hit set is recommended, so $strictMatch has to be 0.
+                if ( $strictMatch ) {    # used for web service BestellInfo etc.
+                    $query = "(cn:($selParam->{'ekzArtikelNr'}) and cna:(DE-Rt5))";
+                } else {    # used for web service DublettenCheckElement
+                    $query = "(cn:($selParam->{'ekzArtikelNr'}) and cna:(DE-Rt5)) or (other-control-number:(\(DE-Rt5\)$selParam->{'ekzArtikelNr'}))";
                 }
+                $self->{'logger'}->debug("readTitleDubletten() query:$query:");
+
+                my ( $error, $marcXmlResults, $total_hits ) = ( '', [], 0 );
+                eval {
+                    ( $error, $marcXmlResults, $total_hits ) = $self->{searcher}->simple_search_compat( $query, 0, 100000 );
+                };
+
+                if (defined $error) {
+                    my $mess = sprintf("readTitleDubletten(): search for ekzArtikelNr:%s: returned error:%d/%s:", $selParam->{'ekzArtikelNr'}, $error, $error);
+                    $self->{'logger'}->warn($mess);
+                    carp "EkzKohaRecords::" . $mess . "\n";
+                } else {
+                    if ( scalar @{$marcXmlResults} > 0 ) {
+                        $foundEkzArticleNumberHit = 1;
+                        $self->mergeMarcresults($allmarcresults,\%biblionumbersfound,$marcXmlResults,\$allinall_hits,$foundEkzArticleNumberHit);
+                    }
+                }
+                $self->{'logger'}->debug("readTitleDubletten() ekzArtikelNr search total_hits:$total_hits: allinall_hits:$allinall_hits:");
             }
-            $self->{'logger'}->debug("readTitleDubletten() ekzArtikelNr search total_hits:$total_hits: allinall_hits:$allinall_hits:");
         }
 
         # check for isbn/isbn13 search
-        if ( (!defined $selParam->{'isbn'} || length($selParam->{'isbn'}) == 0) &&
-             (!defined $selParam->{'isbn13'} || length($selParam->{'isbn13'}) == 0) ) {
-            my $mess = sprintf("readTitleDubletten(): isbn and isbn13 are empty -> not searching for isbn or isbn13.");
-            $self->{'logger'}->warn($mess);
-            #carp "EkzKohaRecords::" . $mess . "\n";
-        } else {
-            my ( $error, $marcXmlResults, $total_hits ) = ( '', [], 0 );
-            my @isbnSelFields = ('isbn', 'isbn13');
-            ISBNSEARCH: for ( my $k = 0; $k < 2; $k += 1 ) {
-                if ( defined $selParam->{$isbnSelFields[$k]} && length($selParam->{$isbnSelFields[$k]}) > 0 ) {
-                    my @selISBN = ();
-                    eval {
-                        my $businessIsbn = Business::ISBN->new($selParam->{$isbnSelFields[$k]});
-                        if ( defined($businessIsbn) && ! $businessIsbn->error ) {
-                            $selISBN[0] = $businessIsbn->as_string([]);
-                            $selISBN[1] = $businessIsbn->as_string();
-                            $selISBN[2] = $businessIsbn->as_isbn10->as_string([]);
-                            $selISBN[3] = $businessIsbn->as_isbn10->as_string();
-                        }
-                    };
-                    if ( ! defined($selISBN[0]) ) {
-                        my $mess = sprintf("readTitleDubletten(): %s not valid -> not searching for %s %s.", $isbnSelFields[$k], $isbnSelFields[$k], $selParam->{$isbnSelFields[$k]});
-                        $self->{'logger'}->warn($mess);
-                        carp "EkzKohaRecords::" . $mess . "\n";
-                    } else {
-                        for ( my $i = 0; $i < 4; $i += 1 ) {
-                            if ( defined($selISBN[$i]) && length($selISBN[$i]) > 0 ) {
-                                # build search query for isbn/isbn13 search
-                                # search for catalog title record by MARC21 category 020/024 (ISBN/EAN)
-                                my $query = "nb:($selISBN[$i]) or identifier-other:($selISBN[$i])";
-                                $self->{'logger'}->debug("readTitleDubletten() query:$query:");
+        if ( $searchForIsxnEan ) {
+            # additional condition, if a strict match is required and parameter 'erscheinungsJahr' is sent by ekz
+            my $publYearCondition = '';
+            if ( $strictMatch && defined $selParam->{'erscheinungsJahr'} && length($selParam->{'erscheinungsJahr'}) > 0) {
+                $publYearCondition = " and publyear:($selParam->{'erscheinungsJahr'})";
+            }
+            if ( (!defined $selParam->{'isbn'} || length($selParam->{'isbn'}) == 0) &&
+                 (!defined $selParam->{'isbn13'} || length($selParam->{'isbn13'}) == 0) ) {
+                my $mess = sprintf("readTitleDubletten(): isbn and isbn13 are empty -> not searching for isbn or isbn13.");
+                $self->{'logger'}->warn($mess);
+                #carp "EkzKohaRecords::" . $mess . "\n";
+            } else {
+                my ( $error, $marcXmlResults, $total_hits ) = ( '', [], 0 );
+                my @isbnSelFields = ('isbn', 'isbn13');
+                ISBNSEARCH: for ( my $k = 0; $k < 2; $k += 1 ) {
+                    if ( defined $selParam->{$isbnSelFields[$k]} && length($selParam->{$isbnSelFields[$k]}) > 0 ) {
+                        my @selISBN = ();
+                        eval {
+                            my $businessIsbn = Business::ISBN->new($selParam->{$isbnSelFields[$k]});
+                            if ( defined($businessIsbn) && ! $businessIsbn->error ) {
+                                $selISBN[0] = $businessIsbn->as_string([]);
+                                $selISBN[1] = $businessIsbn->as_string();
+                                $selISBN[2] = $businessIsbn->as_isbn10->as_string([]);
+                                $selISBN[3] = $businessIsbn->as_isbn10->as_string();
+                            }
+                        };
+                        if ( ! defined($selISBN[0]) ) {
+                            my $mess = sprintf("readTitleDubletten(): %s not valid -> not searching for %s %s.", $isbnSelFields[$k], $isbnSelFields[$k], $selParam->{$isbnSelFields[$k]});
+                            $self->{'logger'}->warn($mess);
+                            carp "EkzKohaRecords::" . $mess . "\n";
+                        } else {
+                            for ( my $i = 0; $i < 4; $i += 1 ) {
+                                if ( defined($selISBN[$i]) && length($selISBN[$i]) > 0 ) {
+                                    # build search query for isbn/isbn13 search
+                                    # search for catalog title record by MARC21 category 020/024 (ISBN/EAN)
+                                    my $query = "(nb:($selISBN[$i]) or identifier-other:($selISBN[$i]))" . $publYearCondition;
+                                    $self->{'logger'}->debug("readTitleDubletten() query:$query:");
 
-                                eval {
-                                    ( $error, $marcXmlResults, $total_hits ) = $self->{searcher}->simple_search_compat( $query, 0, 100000 );
-                                };
+                                    eval {
+                                        ( $error, $marcXmlResults, $total_hits ) = $self->{searcher}->simple_search_compat( $query, 0, 100000 );
+                                    };
 
-                                if (defined $error) {
-                                    my $mess = sprintf("readTitleDubletten(): search for %s:%s: returned error:%d/%s:", $isbnSelFields[$k], $selISBN[$i], $error,$error);
-                                    $self->{'logger'}->warn($mess);
-                                    carp "EkzKohaRecords::" . $mess . "\n";
-                                } else {
-                                    if ( $total_hits > 0 ) {
-                                        $self->mergeMarcresults($allmarcresults,\%biblionumbersfound,$marcXmlResults,\$allinall_hits,$foundEkzArticleNumberHit);
-                                        last ISBNSEARCH;
+                                    if (defined $error) {
+                                        my $mess = sprintf("readTitleDubletten(): search for %s:%s: returned error:%d/%s:", $isbnSelFields[$k], $selISBN[$i], $error,$error);
+                                        $self->{'logger'}->warn($mess);
+                                        carp "EkzKohaRecords::" . $mess . "\n";
+                                    } else {
+                                        if ( $total_hits > 0 ) {
+                                            $self->mergeMarcresults($allmarcresults,\%biblionumbersfound,$marcXmlResults,\$allinall_hits,$foundEkzArticleNumberHit);
+                                            last ISBNSEARCH;
+                                        }
                                     }
                                 }
                             }
                         }
                     }
                 }
+                $self->{'logger'}->debug("readTitleDubletten() isbn/isbn13 search total_hits:$total_hits: allinall_hits:$allinall_hits:");
             }
-            $self->{'logger'}->debug("readTitleDubletten() isbn/isbn13 search total_hits:$total_hits: allinall_hits:$allinall_hits:");
-        }
 
-        # check for issn/ismn/ean search
-        if ( (!defined $selParam->{'issn'} || length($selParam->{'issn'}) == 0) &&
-             (!defined $selParam->{'ismn'} || length($selParam->{'ismn'}) == 0) &&
-             (!defined $selParam->{'ean'} || length($selParam->{'ean'}) == 0) ) {
-            my $mess = sprintf("readTitleDubletten(): issn and ismn and ean are empty -> not searching for issn or ismn or ean.");
-            $self->{'logger'}->warn($mess);
-            #carp "EkzKohaRecords::" . $mess . "\n";
-        } else {
-            # build search query for issn/ismn/ean search for searching index ident
-            # search for catalog title record by MARC21 category 020/022/024 (ISBN/ISSN/ISMN/EAN)
-            my $query1 = '';
-            my $query2 = '';
-            my $query3 = '';
-            if ( defined $selParam->{'issn'} && length($selParam->{'issn'}) > 0 ) {
-                $query1 .= "ident:($selParam->{'issn'})";
-            }
-            if ( defined $selParam->{'ismn'} && length($selParam->{'ismn'}) > 0 ) {
-                if ( length($query1) > 0 ) {
-                    $query1 .= ' or ';
-                }
-                $query1 .= "ident:($selParam->{'ismn'})";
-            }
-            if ( defined $selParam->{'ean'} && length($selParam->{'ean'}) > 0 ) {
-                if ( length($query1) > 0 ) {
-                    $query2 .= ' or ';
-                }
-                $query2 .= "ident:($selParam->{'ean'})";
-            }
-            $query = $query1 . $query2;
-            $self->{'logger'}->debug("readTitleDubletten() query:$query:");
-
-            my ( $error, $marcXmlResults, $total_hits ) = ( '', [], 0 );
-            eval {
-                ( $error, $marcXmlResults, $total_hits ) = $self->{searcher}->simple_search_compat( $query, 0, 100000 );
-            };
-
-            if (defined $error) {
-                my $mess = sprintf("readTitleDubletten(): search for issn:%s: or ismn:%s: or ean:%s: returned error:%d/%s:", $selParam->{'issn'}, $selParam->{'ismn'}, $selParam->{'ean'}, $error,$error);
+            # check for issn/ismn/ean search
+            if ( (!defined $selParam->{'issn'} || length($selParam->{'issn'}) == 0) &&
+                 (!defined $selParam->{'ismn'} || length($selParam->{'ismn'}) == 0) &&
+                 (!defined $selParam->{'ean'} || length($selParam->{'ean'}) == 0) ) {
+                my $mess = sprintf("readTitleDubletten(): issn and ismn and ean are empty -> not searching for issn or ismn or ean.");
                 $self->{'logger'}->warn($mess);
-                carp "EkzKohaRecords::" . $mess . "\n";
+                #carp "EkzKohaRecords::" . $mess . "\n";
             } else {
-                $self->mergeMarcresults($allmarcresults,\%biblionumbersfound,$marcXmlResults,\$allinall_hits,$foundEkzArticleNumberHit);
-            }
-            $self->{'logger'}->debug("readTitleDubletten() issn/ismn/ean search1 total_hits:$total_hits:");
-
-            # ekz sends EAN without leading 0
-            if ($total_hits == 0 && defined $selParam->{'ean'} && length($selParam->{'ean'}) > 0 && length($selParam->{'ean'}) < 13) {
-                if ( length($query1) > 0 ) {
-                    $query3 .= ' or ';
+                # build search query for issn/ismn/ean search for searching index ident
+                # search for catalog title record by MARC21 category 020/022/024 (ISBN/ISSN/ISMN/EAN)
+                my $query1 = '';
+                my $query2 = '';
+                my $query3 = '';
+                if ( defined $selParam->{'issn'} && length($selParam->{'issn'}) > 0 ) {
+                    $query1 .= "ident:($selParam->{'issn'})";
                 }
-                $query3 .= sprintf("ident:(%013d)",$selParam->{'ean'});
-                $query = $query1 . $query3;
+                if ( defined $selParam->{'ismn'} && length($selParam->{'ismn'}) > 0 ) {
+                    if ( length($query1) > 0 ) {
+                        $query1 .= ' or ';
+                    }
+                    $query1 .= "ident:($selParam->{'ismn'})";
+                }
+                if ( defined $selParam->{'ean'} && length($selParam->{'ean'}) > 0 ) {
+                    if ( length($query1) > 0 ) {
+                        $query2 .= ' or ';
+                    }
+                    $query2 .= "ident:($selParam->{'ean'})";
+                }
+                $query = '(' . $query1 . $query2 . ')' . $publYearCondition;
                 $self->{'logger'}->debug("readTitleDubletten() query:$query:");
 
-                ( $error, $marcXmlResults, $total_hits ) = ( '', [], 0 );
+                my ( $error, $marcXmlResults, $total_hits ) = ( '', [], 0 );
                 eval {
                     ( $error, $marcXmlResults, $total_hits ) = $self->{searcher}->simple_search_compat( $query, 0, 100000 );
                 };
@@ -674,51 +724,78 @@ sub readTitleDubletten {
                 } else {
                     $self->mergeMarcresults($allmarcresults,\%biblionumbersfound,$marcXmlResults,\$allinall_hits,$foundEkzArticleNumberHit);
                 }
-                $self->{'logger'}->debug("readTitleDubletten() issn/ismn/ean search2 total_hits:$total_hits: allinall_hits:$allinall_hits:");
+                $self->{'logger'}->debug("readTitleDubletten() issn/ismn/ean search1 total_hits:$total_hits:");
+
+                # ekz sends EAN without leading 0
+                if ($total_hits == 0 && defined $selParam->{'ean'} && length($selParam->{'ean'}) > 0 && length($selParam->{'ean'}) < 13) {
+                    if ( length($query1) > 0 ) {
+                        $query3 .= ' or ';
+                    }
+                    $query3 .= sprintf("ident:(%013d)",$selParam->{'ean'});
+                    $query = '(' . $query1 . $query3 . ')' . $publYearCondition;
+                    $self->{'logger'}->debug("readTitleDubletten() query:$query:");
+
+                    ( $error, $marcXmlResults, $total_hits ) = ( '', [], 0 );
+                    eval {
+                        ( $error, $marcXmlResults, $total_hits ) = $self->{searcher}->simple_search_compat( $query, 0, 100000 );
+                    };
+
+                    if (defined $error) {
+                        my $mess = sprintf("readTitleDubletten(): search for issn:%s: or ismn:%s: or ean:%s: returned error:%d/%s:", $selParam->{'issn'}, $selParam->{'ismn'}, $selParam->{'ean'}, $error,$error);
+                        $self->{'logger'}->warn($mess);
+                        carp "EkzKohaRecords::" . $mess . "\n";
+                    } else {
+                        $self->mergeMarcresults($allmarcresults,\%biblionumbersfound,$marcXmlResults,\$allinall_hits,$foundEkzArticleNumberHit);
+                    }
+                    $self->{'logger'}->debug("readTitleDubletten() issn/ismn/ean search2 total_hits:$total_hits: allinall_hits:$allinall_hits:");
+                }
             }
         }
 
-        # check for author and title and publication year search
-        if ( (!defined $selParam->{'author'} || length($selParam->{'author'}) == 0) || (!defined $selParam->{'titel'} || length($selParam->{'titel'}) == 0) || (!defined $selParam->{'erscheinungsJahr'} || length($selParam->{'erscheinungsJahr'}) == 0) ) {
-            my $mess = sprintf("readTitleDubletten(): author and titel and erscheinungsJahr is empty -> not searching for it.");
-            $self->{'logger'}->warn($mess);
-            #carp "EkzKohaRecords::" . $mess . "\n";
-        } else {
-            # build search query for author and title and publication year search
-            my @words = split(/\s/, $selParam->{'titel'});
-            for (my $i = 0; $i < scalar @words; $i += 1) {
-                if ( $words[$i] =~ /^.*\?.*$/ ) {
-                    $words[$i]  =~ s/\?/\\\?/g;
-                }
-                if ( $words[$i] =~ /^.*\*.*$/ ) {
-                    $words[$i]  =~ s/\*/\\\*/g;
-                }
-                if ( length($words[$i]) == 1 ) {
-                    $words[$i] = '\\' . $words[$i];
-                }
-            }
-            my $titelForSearch = join ('\ ',@words);
-
-            $query = "au.phrase:($selParam->{'author'}) and ti.phrase:($titelForSearch) and publyear:($selParam->{'erscheinungsJahr'})";
-            $self->{'logger'}->debug("readTitleDubletten() query:$query:");
-
-            my ( $error, $marcXmlResults, $total_hits ) = ( '', [], 0 );
-            eval {
-                ( $error, $marcXmlResults, $total_hits ) = $self->{searcher}->simple_search_compat( $query, 0, 100000 );
-            };
-
-            if (defined $error) {
-                my $mess = sprintf("readTitleDubletten(): search for author:%s: or title:%s: publication year:%s: returned error:%d/%s:", $selParam->{'author'}, $selParam->{'titel'}, $selParam->{'erscheinungsJahr'}, $error, $error);
+        # check for author and title and publication year search (not used for strict title identification; so finally only used by DublettenCheck)
+        if ( !$strictMatch && $searchForAuTiPy ) {
+            if ( (!defined $selParam->{'author'} || length($selParam->{'author'}) == 0) || (!defined $selParam->{'titel'} || length($selParam->{'titel'}) == 0) || (!defined $selParam->{'erscheinungsJahr'} || length($selParam->{'erscheinungsJahr'}) == 0) ) {
+                my $mess = sprintf("readTitleDubletten(): author and titel and erscheinungsJahr is empty -> not searching for it.");
                 $self->{'logger'}->warn($mess);
-                carp "EkzKohaRecords::" . $mess . "\n";
-
+                #carp "EkzKohaRecords::" . $mess . "\n";
             } else {
-                $self->mergeMarcresults($allmarcresults,\%biblionumbersfound,$marcXmlResults,\$allinall_hits,$foundEkzArticleNumberHit);
+                # build search query for author and title and publication year search
+                my @words = split(/\s/, $selParam->{'titel'});
+                for (my $i = 0; $i < scalar @words; $i += 1) {
+                    if ( $words[$i] =~ /^.*\?.*$/ ) {
+                        $words[$i]  =~ s/\?/\\\?/g;
+                    }
+                    if ( $words[$i] =~ /^.*\*.*$/ ) {
+                        $words[$i]  =~ s/\*/\\\*/g;
+                    }
+                    if ( length($words[$i]) == 1 ) {
+                        $words[$i] = '\\' . $words[$i];
+                    }
+                }
+                my $titelForSearch = join ('\ ',@words);
+
+                $query = "au.phrase:($selParam->{'author'}) and ti.phrase:($titelForSearch) and publyear:($selParam->{'erscheinungsJahr'})";
+                $self->{'logger'}->debug("readTitleDubletten() query:$query:");
+
+                my ( $error, $marcXmlResults, $total_hits ) = ( '', [], 0 );
+                eval {
+                    ( $error, $marcXmlResults, $total_hits ) = $self->{searcher}->simple_search_compat( $query, 0, 100000 );
+                };
+
+                if (defined $error) {
+                    my $mess = sprintf("readTitleDubletten(): search for author:%s: or title:%s: publication year:%s: returned error:%d/%s:", $selParam->{'author'}, $selParam->{'titel'}, $selParam->{'erscheinungsJahr'}, $error, $error);
+                    $self->{'logger'}->warn($mess);
+                    carp "EkzKohaRecords::" . $mess . "\n";
+
+                } else {
+                    $self->mergeMarcresults($allmarcresults,\%biblionumbersfound,$marcXmlResults,\$allinall_hits,$foundEkzArticleNumberHit);
+                }
+                $self->{'logger'}->debug("readTitleDubletten() author/title/publicationyear search total_hits:$total_hits: allinall_hits:$allinall_hits:");
             }
-            $self->{'logger'}->debug("readTitleDubletten() author/title/publicationyear search total_hits:$total_hits: allinall_hits:$allinall_hits:");
         }
     }
     
+    $self->{'logger'}->debug("readTitleDubletten() returns allmarcresults containing count of hits:" . (scalar @{$allmarcresults}) . ":");
     return $allmarcresults;
 }
 
@@ -731,6 +808,7 @@ sub readTitleDubletten {
 sub readTitleInLMSPool {
     my $self = shift;
     my $reqParamTitelInfo = shift;
+    my $searchmode = shift;    # 1: search for ekzArtikelNr   2: search for isbn/isbn13/issn/ismn/ean   >2: both 1 and 2
 
     my $selEkzArtikelNr = $reqParamTitelInfo->{'ekzArtikelNr'};
     my $selIsbn = $reqParamTitelInfo->{'isbn'};
@@ -739,11 +817,14 @@ sub readTitleInLMSPool {
     my $selIsmn = $reqParamTitelInfo->{'ismn'};
     my $selEan = $reqParamTitelInfo->{'ean'};
 
+    my $searchForEkzArticleNr = $searchmode%2;    # searchmode 1 or 3 or 5 or 7   search for ekzArtikelNr
+    my $searchForIsxnEan = ($searchmode/2)%2;    # searchmode 2 or 3 or 6 or 7   search for ISBN, ISSN, ISMN, EAN
+
     my $foundInPool = 0;
     my $pool = new LMSPoolSRU;
     my $result = {'count' => 0, 'records' => []};
 
-    if ( defined $selEkzArtikelNr && length($selEkzArtikelNr) > 0 && $selEkzArtikelNr != 0 ) {
+    if ( $searchForEkzArticleNr && defined $selEkzArtikelNr && length($selEkzArtikelNr) > 0 && $selEkzArtikelNr != 0 ) {
         # search by EKZ id
         my @EKZIDList = ($selEkzArtikelNr);
         $self->{'logger'}->debug("readTitleInLMSPool() is calling getbyId.");
@@ -754,7 +835,7 @@ sub readTitleInLMSPool {
         }
     }
     
-    if ( $foundInPool == 0 ) {
+    if ( $foundInPool == 0 && $searchForIsxnEan ) {
         my $searchIsbn = (defined $selIsbn && length($selIsbn) > 0);
         my $searchIsbn13 = (defined $selIsbn13 && length($selIsbn13) > 0);
         
@@ -776,7 +857,7 @@ sub readTitleInLMSPool {
         }
     }
     
-    if ( $foundInPool == 0 ) {
+    if ( $foundInPool == 0 && $searchForIsxnEan ) {
         # search in MARC fields 22/24 for ISSN / ISMN / EAN
         my @standardIdentifierList = ();
         if(defined $selIssn && length($selIssn) > 0) {
