@@ -58,7 +58,7 @@ use DateTime;
 
 use Data::Dumper;
 
-use C4::Auth;
+use C4::Auth qw(checkauth);
 use C4::Context;
 use C4::Output;
 use CGI qw ( -utf8 );
@@ -66,7 +66,8 @@ use C4::Log qw( logaction );
 use C4::Stats qw( UpdateStats );
 use C4::External::DivibibPatronStatus;
 
-my $query = new CGI;
+my $query = CGI->new;
+my ($userid, $cookie, $sessionID) = checkauth( $query, 1, {}, 'opac' );
 
 # Generate the CGI response (text/xml in this case) without using template toolkit
 # in order to avoid errors caused by translation of templates containing a xml prolog.
