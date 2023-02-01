@@ -52,20 +52,17 @@ sub new {
                             };
     
     $self->{patron} = undef;
-    $self->{updAttempts} = {};
+    my $foundPatron;
     if ( $borrowernumber && $password ) {
         my ($patron, $age, $checkpw);
         
         # Check the patron with the internal borrower number
-        $patron = Koha::Patrons->find( $borrowernumber );
+        $patron = Koha::Patrons->find( $borrowernumber ) if ( $borrowernumber =~ /^[0-9]+$/ );
         if ( $patron ) {
             $checkpw = $patron->password;
             if (!($checkpw eq $password || &checkpw_hash($password,$checkpw)) ) {
                 $self->{patronResponse}->{'status'} = -2; # wrong password
-                if (! exists($self->{updAttempts}->{$patron->borrowernumber}) ) {
-                    $patron->update({ login_attempts => $patron->login_attempts + 1 });
-                    $self->{updAttempts}->{$patron->borrowernumber} = 1;
-                }
+                $foundPatron = $patron;
                 $patron = undef;
             }
             else {
@@ -83,10 +80,7 @@ sub new {
                 $checkpw = $patron->password;
                 if (!($checkpw eq $password || &checkpw_hash($password,$checkpw)) ) {
                     $self->{patronResponse}->{'status'} = -2; # wrong password
-                    if (! exists($self->{updAttempts}->{$patron->borrowernumber}) ) {
-                        $patron->update({ login_attempts => $patron->login_attempts + 1 });
-                        $self->{updAttempts}->{$patron->borrowernumber} = 1;
-                    }
+                    $foundPatron = $patron;
                     $patron = undef;
                 }
                 else {
@@ -110,14 +104,15 @@ sub new {
                     $patron->track_login if ( C4::Context->preference('TrackLastPatronActivity') );
                 } else {
                     $self->{patronResponse}->{'status'} = -2; # wrong password
-                    if (! exists($self->{updAttempts}->{$patron->borrowernumber}) ) {
-                        $patron->update({ login_attempts => $patron->login_attempts + 1 });
-                        $self->{updAttempts}->{$patron->borrowernumber} = 1;
-                    }
+                    $foundPatron = $patron;
                     $patron = undef;
                 }
             }
         }
+        
+		if (!$patron && $foundPatron) {
+			$foundPatron->update({ login_attempts => $foundPatron->login_attempts + 1 });
+		}
         
         $self->{patron} = $patron;
     }
