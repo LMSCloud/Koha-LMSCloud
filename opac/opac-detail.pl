@@ -1429,18 +1429,20 @@ if (C4::Context->preference('OpacDetailVolumeDisplay')) {
     my @linkedRecords;
     my $marcOrgCode =  C4::Context->preference('MARCOrgCode') || '';
     my $checkRecNum = $biblionumber;
+    my $institutionCode =  '';
     $checkRecNum = $record->field("001")->data() if ( $record->field("001") );
+    $institutionCode = $record->field("003")->data() if ( $record->field("003") );
     foreach my $hostfield ( $record->field('770','772','773','774','775','776','777','780','785','787','800','810','811','830')) {
         my $linkedbiblionumber = $hostfield->subfield("w");
         if ( $linkedbiblionumber && $linkedbiblionumber =~ /\(([^\)]*)\)/ ) {
             my $isil = $1;
-            next if ( $isil && $marcOrgCode ne $isil );
+            next if ( $isil && ($marcOrgCode ne $isil && $institutionCode ne $isil) );
             $linkedbiblionumber =~ s/\([^\)]*\)//g;
         }
         push @linkedRecords, $linkedbiblionumber if ($linkedbiblionumber);
     }
     eval {
-        my ($volError,$volumeData,$linkedRecordData) = C4::VolumeData::GetVolumeData($checkRecNum,$biblionumber,\@linkedRecords);
+        my ($volError,$volumeData,$linkedRecordData) = C4::VolumeData::GetVolumeData($checkRecNum,$biblionumber,\@linkedRecords,$institutionCode);
         if ( !$volError ) {
             $template->param(
                 'OpacDetailVolumeDisplay'     =>     C4::Context->preference('OpacDetailVolumeDisplay'),
