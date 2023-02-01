@@ -990,6 +990,8 @@ sub BuildSummary {
                 $type = substr $field->subfield('w'), 2, 1;
                 $type = 'earlier' if $type && $type ne 'n';
             }
+            my $linkid = $field->subfield('9');
+            $linkid = undef if ( $linkid && $linkid !~ /^[0-9]+$/ );
             if ($type eq 'subfi') {
                 push @seealso, {
                     heading => $field->as_string($marc21subfields),
@@ -997,7 +999,7 @@ sub BuildSummary {
                     type    => scalar $field->subfield('i'),
                     field   => $field->tag(),
                     search  => $field->as_string($marc21subfields) || '',
-                    authid  => $field->subfield('9') || ''
+                    authid  => $linkid || ''
                 };
             } else {
                 push @seealso, {
@@ -1006,7 +1008,7 @@ sub BuildSummary {
                     type    => $type,
                     field   => $field->tag(),
                     search  => $field->as_string($marc21subfields) || '',
-                    authid  => $field->subfield('9') || ''
+                    authid  => $linkid || ''
                 };
             }
         }
