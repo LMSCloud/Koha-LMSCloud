@@ -2642,6 +2642,7 @@ sub getFinesOverview {
                        branches br
                 WHERE      a.credit_type_code IS NULL
                        AND c.branchcode = br.branchcode
+                       AND $dateselect $branchselect
                        AND a.debit_type_code IN ('ACCOUNT','ACCOUNT_RENEW')
                 GROUP BY 
                        paytype, $groupfield
@@ -2664,6 +2665,7 @@ sub getFinesOverview {
                        branches br
                 WHERE      a.credit_type_code IS NULL
                        AND c.branchcode = br.branchcode
+                       AND $dateselect $branchselect
                        AND a.debit_type_code IN ('ACCOUNT','ACCOUNT_RENEW')
                 GROUP BY 
                        paytype, $groupfield
