@@ -118,7 +118,7 @@
                                             <button class="btn btn-default btn-xs"><i class="fa fa-gears"></i> Parameters</button>
                                         </form>
 
-                                        <a class="btn btn-default btn-xs" href="/cgi-bin/koha/reports/aggregated_statistics.pl?op=delete_confirm&amp;statisticstype=[% hit.type %]&amp;name=[% hit.name %]"><i class="fa fa-trash"></i> Delete</a>
+                                        <a class="btn btn-default btn-xs" href="/cgi-bin/koha/reports/aggregated_statistics.pl?op=delete_confirm&amp;statisticstype=[% hit.type | uri %]&amp;name=[% hit.name | uri %]"><i class="fa fa-trash"></i> Delete</a>
 
                                         <form method="post" action="/cgi-bin/koha/reports/aggregated_statistics.pl">
                                             <input type="hidden" name="op" value="eval_form" />
@@ -206,7 +206,7 @@
 
                         <fieldset class="action">
                             <input type="submit" id="submit_form" value="Submit" class="button" /> 
-                            <a class="cancel" href="/cgi-bin/koha/reports/aggregated_statistics.pl?statisticstype=[% statisticstype %]">Cancel</a>
+                            <a class="cancel" href="/cgi-bin/koha/reports/aggregated_statistics.pl?statisticstype=[% statisticstype | uri %]">Cancel</a>
                         </fieldset>
                         <input type="hidden" name="searchfield" value="[% searchfield %]" />
                     </form>
