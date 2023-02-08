@@ -17,7 +17,7 @@ $(document).ready(function(){
             messaging_prefs_loading.show();
             var categorycode = $(this).val();
             if (message_prefs_dirty) {
-                if (!confirm( __("Change messaging preferences to default for this category?") )) {
+                if (!confirm( MSG_MESSAGING_DEFAULTS )) {
                     // Not loading messaging defaults. Hide loading indicator
                     messaging_prefs_loading.hide();
                     return;
