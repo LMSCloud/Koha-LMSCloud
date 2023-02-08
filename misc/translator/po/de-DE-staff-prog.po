@@ -2,7 +2,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Koha 21.05\n"
 "POT-Creation-Date: 2023-01-04 16:27+0100\n"
-"PO-Revision-Date: 2023-01-19 17:46+0100\n"
+"PO-Revision-Date: 2023-02-08 12:15+0100\n"
 "Last-Translator: Katrin Fischer <katrin.fischer@bsz-bw.de>\n"
 "Language-Team: \n"
 "Language: de\n"
@@ -48976,7 +48976,7 @@ msgstr "Dieser Benutzer ist aus einer anderen Bibliothek"
 #: koha-tmpl/intranet-tmpl/prog/en/modules/circ/returns.tt:22
 #, c-format
 msgid "Patron is not notified."
-msgstr "Benutzer wird nicht benachrichtigt."
+msgstr "Benutzer wird nicht per Email benachrichtigt."
 
 #: koha-tmpl/intranet-tmpl/prog/en/modules/circ/circulation.tt:421
 #: koha-tmpl/intranet-tmpl/prog/en/modules/circ/offline.tt:240
