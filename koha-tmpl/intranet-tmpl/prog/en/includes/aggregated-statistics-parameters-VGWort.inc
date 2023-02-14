@@ -103,7 +103,7 @@
             <table>
                 <thead>
                     <th>Koha media type</th>
-                    <th>VG Wort media type</th>
+                    <th>VG WORT media type</th>
                 </thead>
                 <tbody>
                     [% FOREACH itemtype IN additionalparameters.itemtypes %]
