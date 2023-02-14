@@ -26550,6 +26550,15 @@ if( CheckVersion( $DBversion ) ) {
     NewVersion( $DBversion, "", "DBS 2022 changed query 66 from int to float");
 }
 
+$DBversion = '21.05.14.002';
+if( CheckVersion( $DBversion ) ) {
+    $dbh->do(q{
+        UPDATE systempreferences SET value='de' WHERE variable = 'KohaManualLanguage'
+        });
+
+    NewVersion( $DBversion, "", "Language update of the LMSCloud-Koha when accessing the Koha manual.");
+}
+
 # SEE bug 13068
 # if there is anything in the atomicupdate, read and execute it.
 my $update_dir = C4::Context->config('intranetdir') . '/installer/data/mysql/atomicupdate/';
