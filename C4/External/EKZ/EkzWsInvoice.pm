@@ -163,6 +163,7 @@ sub genKohaRecords {
         $titleSourceSequence = '_LMSC|_EKZWSMD|DNB|_WS';
     }
     my $ekzWebServicesHideOrderedTitlesInOpac = C4::Context->preference("ekzWebServicesHideOrderedTitlesInOpac");
+    my $ekzWebServicesSetItemSubfieldsWhenOrdered = C4::Context->preference("ekzWebServicesSetItemSubfieldsWhenOrdered");
     my $ekzWebServicesSetItemSubfieldsWhenInvoiced = C4::Context->preference("ekzWebServicesSetItemSubfieldsWhenInvoiced");
     # design decision by Norbert: 
     # acquisition_import processingstate 'invoiced' implies 'delivered'.
@@ -567,7 +568,7 @@ sub genKohaRecords {
 #                        $biblioExisting = 0;
 #                        $invEkzArtikelNr = '';
 #                        # Search title in local database by ekzArtikelNr or ISBN or ISSN/ISMN/EAN
-#                        $titleHits = $ekzKohaRecord->readTitleInLocalDB($reqParamTitelInfo, 1);
+#                        $titleHits = $ekzKohaRecord->readTitleInLocalDB($reqParamTitelInfo, 7, 1);
 #                        $logger->trace("genKohaRecords() method3: from local DB titleHits->{'count'}:" . $titleHits->{'count'} . ":");
 #                        if ( $titleHits->{'count'} > 0 && defined $titleHits->{'records'}->[0] ) {
 #                            $biblionumber = $titleHits->{'records'}->[0]->subfield("999","c");
@@ -651,22 +652,30 @@ sub genKohaRecords {
                     $biblioExisting = 0;
                     $invEkzArtikelNr = '';
 
-                    # priority of title sources to be checked:
-                    # In any case:
-                    # Search title in local database using ekzArtikelNr; if not found, search for isbn / isbn13; if not found, search for issn / ismn / ean.
-                    # If title found, only the items have to be added.
+                    # New method of title search/identification since 2023-01:
+                    # In a first run ($searchmode==1):
+                    #   If ekzArtikelNr was sent in the request (in XML element artikelNummer) (and if it is != 0, of course):
+                    #       Search in local database for cna = 'DE-Rt5' and cn = <ekzArtikelNr>.
+                    #       If titles are found, take the one with the highest biblionumber. Only the items have to be added.
                     #
-                    # Otherwise search in different title sources in the sequence stored in system preference 'ekzTitleDataServicesSequence':
-                    #   title source '_LMSC':
-                    #     Search title in LMSPool using ekzArtikelNr; if not found, search for isbn / isbn13; if not found, search for issn / ismn / ean.
-                    #   title source '_EKZWSMD':
-                    #     Send a query to the ekz title information webservice ('MedienDaten') using ekzArtikelNr.
-                    #   title source '_WS':
-                    #     Use the sparse title data from the BestellinfoElement (tag titelInfo) for creating a title entry.
-                    #   other title source:
-                    #     The name of the title source is used as a name of a Z39/50 target with z3950servers.servername; a z39/50 query is sent to this target.
+                    # In a second run (required only if title not found yet) ($searchmode==2):
+                    #   Search in local database for ISBN, ISSN, ISMN, EAN (if at least one of those fields was sent in the request)
+                    #   with additional condition for publishing year, if SOAP parameter 'erscheinungsJahr' is sent by ekz (possibly in the future).
                     #
-                    #   With data from one of these alternatives a title record has to be created in Koha, and an item record for each ordered copy.
+                    # In a third run (required only if title not found yet) ($searchmode==2):
+                    #   Search in different title sources in the sequence stored in system preference 'ekzTitleDataServicesSequence':
+                    #       title source '_LMSC':
+                    #           (will only be done in certain constellations of second run ($searchmode==2))
+                    #           Search title in LMSPool using isbn / isbn13; if not found, search for issn / ismn / ean.
+                    #       title source '_EKZWSMD':
+                    #           (will only be done in certain constellations of second run ($searchmode==2))
+                    #           Search via the ekz title information webservice ('MedienDaten') using ekzArtikelNr.
+                    #       title source '_WS':
+                    #           Use the sparse title data from the RechnungDetailResponseElement (tag auftragsPosition) for creating a title entry.
+                    #       other title source:
+                    #           The name of the title source is used as a name of a Z39/50 target with z3950servers.servername; a z39/50 query is sent to this target.
+                    #
+                    #   Now a title record has been found or has to be created in Koha with data from one of these alternatives, and an item record for each ordered copy has to be created.
 
                     # Search title in local database by ekzArtikelNr or ISBN or ISSN/ISMN/EAN
                     my $titleSelHashkey =
@@ -682,51 +691,78 @@ sub genKohaRecords {
                         $titleHits = $createdTitleRecords->{$titleSelHashkey}->{titleHits};
                         $biblionumber = $createdTitleRecords->{$titleSelHashkey}->{biblionumber};
                         $logger->info("genKohaRecords() method4: got used biblionumber:$biblionumber: from createdTitleRecords->{$titleSelHashkey}");
-                    } else {
-                        $titleHits = $ekzKohaRecord->readTitleInLocalDB($reqParamTitelInfo, 1);
-                        $logger->trace("genKohaRecords() method4: from local DB titleHits->{'count'}:" . $titleHits->{'count'} . ":");
-                        if ( $titleHits->{'count'} > 0 && defined $titleHits->{'records'}->[0] ) {
-                            $biblionumber = $titleHits->{'records'}->[0]->subfield("999","c");
-                        }
-                    }
-                    if ( $titleHits->{'count'} > 0 && defined $titleHits->{'records'}->[0] ) {
-                        my $tmp_cn = defined($titleHits->{'records'}->[0]->field("001")) ? $titleHits->{'records'}->[0]->field("001")->data() : $biblionumber;
-                        my $tmp_cna = defined($titleHits->{'records'}->[0]->field("003")) ? $titleHits->{'records'}->[0]->field("003")->data() : "undef";
-                        if ( $tmp_cna eq "DE-Rt5" ) {
-                            $invEkzArtikelNr = $tmp_cn;
-                        } else {
-                            $invEkzArtikelNr = $tmp_cna . '-' . $tmp_cn;
-                        }
                     }
 
                     my @titleSourceSequence = split('\|',$titleSourceSequence);
                     my $volumeEkzArtikelNr = undef;
-                    foreach my $titleSource (@titleSourceSequence) {
-                        $logger->info("genKohaRecords() method4: in loop titleSource:$titleSource:");
+
+                    # searchmode 1: search in local database for cn==ekzArtikelNr and cna=='DE-Rt5'
+                    # searchmode 2: search in local database for ISBN/ISBN13/ISMN/ISSN/EAN, and for publication year if parameter erscheinungsJahr is sent by ekz LieferscheinDetail (in future).
+                    #               If no title found, then try to get title via LMS Pool search and ekz Webservice 'MedienDaten' request.
+                    # searchmode 4: search in local database for author && title && publication year. Only used by webservice DublettenCheck ($strictMatch==0).
+                    for ( my $searchmode = 1; $searchmode <= 2; $searchmode *= 2 ) {
+                        $logger->info("genKohaRecords() method4: in loop searchmode:$searchmode: ekzArtikelNr:" . $reqParamTitelInfo->{'ekzArtikelNr'} . ": titleHits->{'count'}:" . $titleHits->{'count'} . ":");
                         if ( $titleHits->{'count'} > 0 && defined $titleHits->{'records'}->[0] ) {
+                            my $tmp_cn = defined($titleHits->{'records'}->[0]->field("001")) ? $titleHits->{'records'}->[0]->field("001")->data() : $biblionumber;
+                            my $tmp_cna = defined($titleHits->{'records'}->[0]->field("003")) ? $titleHits->{'records'}->[0]->field("003")->data() : "undef";
+                            if ( $tmp_cna eq "DE-Rt5" ) {
+                                $invEkzArtikelNr = $tmp_cn;
+                            } else {
+                                $invEkzArtikelNr = $tmp_cna . '-' . $tmp_cn;
+                            }
+                            $logger->debug("genKohaRecords() method4: in loop last; searchmode:$searchmode: ekzArtikelNr:" . $reqParamTitelInfo->{'ekzArtikelNr'} . ": titleHits->{'count'}:" . $titleHits->{'count'} . ": biblionumber:" . $biblionumber . ": invEkzArtikelNr:" . $invEkzArtikelNr . ":");
                             last;    # title data have been found in lastly tested title source
                         }
+                        if ( $searchmode == 1 && ! $reqParamTitelInfo->{'ekzArtikelNr'} ) {
+                            $logger->debug("genKohaRecords() method4: in loop next1; searchmode:$searchmode: ekzArtikelNr:" . $reqParamTitelInfo->{'ekzArtikelNr'} . ": titleHits->{'count'}:" . $titleHits->{'count'} . ":");
+                            next;    # ekzArtikelNr not sent in request, so search for remaining criteria (ISBN, EAN, etc.)
+                        }
+                        $titleHits = $ekzKohaRecord->readTitleInLocalDB($reqParamTitelInfo, $searchmode, 1);
+                        $logger->info("genKohaRecords() method4: in loop searchmode:$searchmode: from local DB titleHits->{'count'}:" . $titleHits->{'count'} . ":");
+                        if ( $titleHits->{'count'} > 0 && defined $titleHits->{'records'}->[0] ) {
+                            $biblionumber = $titleHits->{'records'}->[0]->subfield("999","c");
+                            $logger->debug("genKohaRecords() method4: in loop next2; searchmode:$searchmode: ekzArtikelNr:" . $reqParamTitelInfo->{'ekzArtikelNr'} . ": titleHits->{'count'}:" . $titleHits->{'count'} . ": biblionumber:" . $biblionumber . ":");
+                            next;
+                        }
+                        if ( $searchmode < 2 ) {
+                            next;
+                        }
 
-                        if ( $titleSource eq '_LMSC' ) {
-                            # search title in LMSPool
-                            $titleHits = $ekzKohaRecord->readTitleInLMSPool($reqParamTitelInfo);
-                            $logger->info("genKohaRecords() method4: from LMS Pool titleHits->{'count'}:" . $titleHits->{'count'} . ":");
-                        } elsif ( $titleSource eq '_EKZWSMD' ) {
-                            # send query to the ekz title information webservice 'MedienDaten'
-                            # (This is the only case where we handle series titles in addition to the volume title.)
-                            $titleHits = $ekzKohaRecord->readTitleFromEkzWsMedienDaten($reqParamTitelInfo->{'ekzArtikelNr'});
-                            $logger->info("genKohaRecords() method4: from ekz Webservice 'MedienDaten' titleHits->{'count'}:" . $titleHits->{'count'} . ":");
-                            if ( $titleHits->{'count'} > 1 ) {
-                                $volumeEkzArtikelNr = $reqParamTitelInfo->{'ekzArtikelNr'};
+                        foreach my $titleSource (@titleSourceSequence) {
+                            $logger->info("genKohaRecords() method4: searchmode:$searchmode: in loop titleSource:$titleSource:");
+                            if ( $titleHits->{'count'} > 0 && defined $titleHits->{'records'}->[0] ) {
+                                last;    # title data have been found in lastly tested title source
                             }
-                        } elsif ( $titleSource eq '_WS' ) {
-                            # use sparse title data from the RechnungDetailElement
-                            $titleHits = $ekzKohaRecord->createTitleFromFields($reqParamTitelInfo);
-                            $logger->info("genKohaRecords() method4: from sent titel fields:" . $titleHits->{'count'} . ":");
-                        } else {    # in this case $titleSource contains the name of a Z39/50 target
-                            # search title in in the Z39.50 target with z3950servers.servername=$titleSource
-                            $titleHits = $ekzKohaRecord->readTitleFromZ3950Target($titleSource,$reqParamTitelInfo);
-                            $logger->info("genKohaRecords() method4: from z39.50 search on target:" . $titleSource . ": titleHits->{'count'}:" . $titleHits->{'count'} . ":");
+
+                            if ( $titleSource eq '_LMSC' ) {
+                                if ( $searchmode == 2 ) {
+                                    # search title in LMSPool
+                                    $titleHits = $ekzKohaRecord->readTitleInLMSPool($reqParamTitelInfo, $searchmode);
+                                    $logger->info("genKohaRecords() method4: from LMS Pool searchmode:$searchmode: titleHits->{'count'}:" . $titleHits->{'count'} . ":");
+                                }
+                            } elsif ( $titleSource eq '_EKZWSMD' ) {
+                                if ( $searchmode == 2 ) {
+                                    # send query to the ekz title information webservice 'MedienDaten'
+                                    # (This is the only case where we handle series titles in addition to the volume title.)
+                                    $titleHits = $ekzKohaRecord->readTitleFromEkzWsMedienDaten($reqParamTitelInfo->{'ekzArtikelNr'});
+                                    $logger->info("genKohaRecords() method4: from ekz Webservice 'MedienDaten' searchmode:$searchmode: titleHits->{'count'}:" . $titleHits->{'count'} . ":");
+                                    if ( $titleHits->{'count'} > 1 ) {
+                                        $volumeEkzArtikelNr = $reqParamTitelInfo->{'ekzArtikelNr'};
+                                    }
+                                }
+                            } elsif ( $titleSource eq '_WS' ) {
+                                if ( $searchmode == 2 ) {
+                                    # use sparse title data from the RechnungDetailElement
+                                    $titleHits = $ekzKohaRecord->createTitleFromFields($reqParamTitelInfo);    # creates marc data, not a biblio DB record
+                                    $logger->info("genKohaRecords() method4: from sent titel fields searchmode:$searchmode: titleHits->{'count'}:" . $titleHits->{'count'} . ":");
+                                }
+                            } else {    # in this case $titleSource contains the name of a Z39/50 target
+                                if ( $searchmode == 2 ) {
+                                    # search title in the Z39.50 target with z3950servers.servername=$titleSource
+                                    $titleHits = $ekzKohaRecord->readTitleFromZ3950Target($titleSource,$reqParamTitelInfo);
+                                    $logger->info("genKohaRecords() method4: from z39.50 search on target:" . $titleSource . ": searchmode:$searchmode: titleHits->{'count'}:" . $titleHits->{'count'} . ":");
+                                }
+                            }
                         }
                     }
 
@@ -973,7 +1009,7 @@ sub genKohaRecords {
                             $item_hash->{price} = $priceInfo->{gesamtpreis_tax_included};
                             $item_hash->{replacementprice} = $priceInfo->{replacementcost_tax_included};    # without regard to $auftragsPosition->{'nachlass'}
                         }
-                        $item_hash->{notforloan} = 0;    # default initialization: 'item is invoiced' implicitly means 'item is delivered' -> can be loaned (may be overwritten via syspref ekzWebServicesSetItemSubfieldsWhenInvoiced)
+                        $item_hash->{notforloan} = 0;    # default initialization: 'item is invoiced' implicitly means 'item is delivered' -> can be loaned (may be overwritten via sysprefs ekzWebServicesSetItemSubfieldsWhenOrdered and ekzWebServicesSetItemSubfieldsWhenInvoiced)
 
                         $item_hash->{biblionumber} = $biblionumber;
                         $item_hash->{biblioitemnumber} = $biblionumber;
@@ -982,18 +1018,45 @@ sub genKohaRecords {
 
                         if ( defined $itemnumber && $itemnumber > 0 ) {
 
-                            # update items set <fields like specified in ekzWebServicesSetItemSubfieldsWhenInvoiced> where itemnumber = <itemnumber from above Koha::Item->new() call>
+                            # update items set <fields like specified in ekzWebServicesSetItemSubfieldsWhenOrdered> where itemnumber = <itemnumber from above Koha::Item->new()->store() call>
                             my $itemHitRs = Koha::Items->new()->_resultset();
                             my $itemSelParam = { itemnumber => $itemnumber };
                             my $itemHitCount = $itemHitRs->count( $itemSelParam );
                             my $itemHit = $itemHitRs->find( $itemSelParam );
-                            $logger->trace("genKohaRecords() method4: searched for itemnumber:$itemnumber: itemHitCount:$itemHitCount: itemHit->{_column_data}:" . Dumper($itemHit->{_column_data}) . ":");
+                            $logger->trace("genKohaRecords() method4: searched first time for itemnumber:$itemnumber: itemHitCount:$itemHitCount: itemHit->{_column_data}:" . Dumper($itemHit->{_column_data}) . ":");
+                            if ( $itemHitCount > 0 && defined($itemHit->{_column_data}) ) {
+                                # configurable items record field initialization via C4::Context->preference("ekzWebServicesSetItemSubfieldsWhenOrdered")
+                                # e.g. setting the 'item ordered' state in items.notforloan
+                                if ( defined($ekzWebServicesSetItemSubfieldsWhenOrdered) && length($ekzWebServicesSetItemSubfieldsWhenOrdered) > 0 ) {
+                                    my @affects = split q{\|}, $ekzWebServicesSetItemSubfieldsWhenOrdered;
+                                    $logger->debug("genKohaRecords() method4: has to do " . scalar @affects . " affects (ordering)");
+                                    if ( @affects ) {
+                                        my $frameworkcode = C4::Biblio::GetFrameworkCode($biblionumber);
+                                        my ( $itemfield ) = C4::Biblio::GetMarcFromKohaField( 'items.itemnumber', $frameworkcode );
+                                        my $item = C4::Items::GetMarcItem( $biblionumber, $itemnumber );
+                                        if ( $item ) {
+                                            for my $affect ( @affects ) {
+                                                my ( $sf, $v ) = split('=', $affect, 2);
+                                                foreach ( $item->field($itemfield) ) {
+                                                        $_->update( $sf => $v );
+                                                }
+                                            }
+                                            C4::Items::ModItemFromMarc( $item, $biblionumber, $itemnumber );
+                                        }
+                                    }
+                                }
+                            }
+
+                            # update items set <fields like specified in ekzWebServicesSetItemSubfieldsWhenInvoiced> where itemnumber = <itemnumber from above Koha::Item->new()->store() call>
+                            $itemHitCount = $itemHitRs->count( $itemSelParam );
+                            $itemHit = $itemHitRs->find( $itemSelParam );
+                            $logger->trace("genKohaRecords() method4: searched second time for itemnumber:$itemnumber: itemHitCount:$itemHitCount: itemHit->{_column_data}:" . Dumper($itemHit->{_column_data}) . ":");
                             if ( $itemHitCount > 0 && defined($itemHit->{_column_data}) ) {
                                 # configurable items record field update via C4::Context->preference("ekzWebServicesSetItemSubfieldsWhenInvoiced")
                                 # e.g. setting the 'item available' state (or 'item processed internally' state) in items.notforloan
                                 if ( defined($ekzWebServicesSetItemSubfieldsWhenInvoiced) && length($ekzWebServicesSetItemSubfieldsWhenInvoiced) > 0 ) {
                                     my @affects = split q{\|}, $ekzWebServicesSetItemSubfieldsWhenInvoiced;
-                                    $logger->debug("genKohaRecords() method4: has to do " . scalar @affects . " affects");
+                                    $logger->debug("genKohaRecords() method4: has to do " . scalar @affects . " affects (invoicing)");
                                     if ( @affects ) {
                                         my $frameworkcode = C4::Biblio::GetFrameworkCode($biblionumber);
                                         my ( $itemfield ) = C4::Biblio::GetMarcFromKohaField( 'items.itemnumber', $frameworkcode );

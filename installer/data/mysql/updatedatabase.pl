@@ -26541,6 +26541,15 @@ if( CheckVersion( $DBversion ) ) {
     NewVersion( $DBversion, "", "Koha 21.05.14 release" );
 }
 
+$DBversion = '21.05.14.001';
+if( CheckVersion( $DBversion ) ) {
+    $dbh->do(q{
+        UPDATE aggregated_statistics_values SET type='float' WHERE name = 'stf_staff_scheme_appointments'
+        });
+
+    NewVersion( $DBversion, "", "DBS 2022 changed query 66 from int to float");
+}
+
 # SEE bug 13068
 # if there is anything in the atomicupdate, read and execute it.
 my $update_dir = C4::Context->config('intranetdir') . '/installer/data/mysql/atomicupdate/';

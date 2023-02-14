@@ -40,9 +40,9 @@ my $as_values = {};    # hash for storing all read records from table aggregated
 # general information / 1. ALLGEMEINE ANGABEN
 $as_values->{'gen_dbs_id'} = { 'id' => '', 'name' => 'gen_dbs_id', 'value' => '', 'type' => 'text' };                                                                                                           # DBS2017:0 (for cvs downloads)
 $as_values->{'gen_population'} = { 'id' => '', 'name' => 'gen_population', 'value' => '', 'type' => 'int' };                                                                                                    # DBS2017:1
-$as_values->{'gen_libcount'} = { 'id' => '', 'name' => 'gen_libcount', 'value' => '', 'type' => 'int' };                                                                                                        # DBS2017:2
-$as_values->{'gen_branchcount'} = { 'id' => '', 'name' => 'gen_branchcount', 'value' => '', 'type' => 'int' };                                                                                                  # DBS2017:3
-$as_values->{'gen_buscount'} = { 'id' => '', 'name' => 'gen_buscount', 'value' => '', 'type' => 'int' };                                                                                                        # DBS2017:4
+$as_values->{'gen_libcount'} = { 'id' => '', 'name' => 'gen_libcount', 'value' => '', 'type' => 'int' };                                                                                                        # DBS2017:2 (input locked since DBS 2022)
+$as_values->{'gen_branchcount'} = { 'id' => '', 'name' => 'gen_branchcount', 'value' => '', 'type' => 'int' };                                                                                                  # DBS2017:3 (input locked since DBS 2022)
+$as_values->{'gen_buscount'} = { 'id' => '', 'name' => 'gen_buscount', 'value' => '', 'type' => 'int' };                                                                                                        # DBS2017:4 (input locked since DBS 2022)
 $as_values->{'gen_extservlocation'} = { 'id' => '', 'name' => 'gen_extservlocation', 'value' => '', 'type' => 'int' };                                                                                          # DBS2017:5
 $as_values->{'gen_publicarea'} = { 'id' => '', 'name' => 'gen_publicarea', 'value' => '', 'type' => 'float' };                                                                                                  # DBS2017:6
 $as_values->{'gen_publicarea_central'} = { 'id' => '', 'name' => 'gen_publicarea_central', 'value' => '', 'type' => 'float' };                                                                                  # DBS2018:6.1 (new since DBS 2018)
@@ -59,7 +59,7 @@ $as_values->{'pat_active_from_60'} = { 'id' => '', 'name' => 'pat_active_from_60
 $as_values->{'pat_active_below_18'} = { 'id' => '', 'name' => 'pat_active_below_18', 'value' => '', 'type' => 'int', 'calc' => \&func_call_sql, 'param' => ['pat_active_below_18'] };                           # DBS2021:10.3 (no export since DBS 2021)
 $as_values->{'pat_new_registrations'} = { 'id' => '', 'name' => 'pat_new_registrations', 'value' => '', 'type' => 'int', 'calc' => \&func_call_sql, 'param' => ['pat_new_registrations'] };                     # DBS2017:11 (no export since DBS 2021)
 $as_values->{'pat_visits'} = { 'id' => '', 'name' => 'pat_visits', 'value' => '', 'type' => 'int' };                                                                                                            # DBS2017:12
-$as_values->{'pat_visits_virt'} = { 'id' => '', 'name' => 'pat_visits_virt', 'value' => '', 'type' => 'int' };    # input deactivated                                                                           # DBS2017:12.1
+$as_values->{'pat_visits_virt'} = { 'id' => '', 'name' => 'pat_visits_virt', 'value' => '', 'type' => 'int' };    # input deactivated                                                                           # DBS2017:12.1 (input locked since DBS 2019)
 
 # media offers and usage / 3. MEDIENANGEBOTE UND NUTZUNG
 $as_values->{'med_tot_phys_stock'} = { 'id' => '', 'name' => 'med_tot_phys_stock', 'value' => '', 'type' => 'int', 'calc' => \&func_call_sql, 'param' => ['med_tot_phys_stock'] };                              # DBS2017:13
@@ -89,10 +89,11 @@ $as_values->{'med_virtconsort_stock'} = { 'id' => '', 'name' => 'med_virtconsort
 $as_values->{'med_consort_libcount'} = { 'id' => '', 'name' => 'med_consort_libcount', 'value' => '', 'type' => 'int' };                                                                                        # DBS2017:34.2
 $as_values->{'med_virtsupply_issues'} = { 'id' => '', 'name' => 'med_virtsupply_issues', 'value' => '', 'type' => 'int' };                                                                                      # DBS2017:35
 $as_values->{'med_access_units'} = { 'id' => '', 'name' => 'med_access_units', 'value' => '', 'type' => 'int', 'calc' => \&func_call_sql, 'param' => ['med_access_units'] };                                    # DBS2017:36
+$as_values->{'med_access_units_donated'} = { 'id' => '', 'name' => 'med_access_units_donated', 'value' => '', 'type' => 'int' };                                                                                # DBS2022:36.1
 #$as_values->{'med_withdrawal_units'} = { 'id' => '', 'name' => 'med_withdrawal_units', 'value' => '', 'type' => 'int', 'calc' => \&func_call_sql, 'param' => ['med_withdrawal_units'] };                        # DBS2017:37 (dropped since DBS 2019)
 $as_values->{'med_database_cnt'} = { 'id' => '', 'name' => 'med_database_cnt', 'value' => '', 'type' => 'int' };                                                                                                # DBS2017:38
-$as_values->{'med_database_login_cnt'} = { 'id' => '', 'name' => 'med_database_login_cnt', 'value' => '', 'type' => 'int', 'calc' => \&func_call_sql, 'param' => ['med_database_login_cnt'] };                  # DBS2019:38.1 (new since DBS 2019)
-$as_values->{'med_database_authsso_yn'} = { 'id' => '', 'name' => 'med_database_authsso_yn', 'value' => '', 'type' => 'bool' };                                                                                 # DBS2019:38.2 (new since DBS 2019, always true with Divibib)
+$as_values->{'med_database_login_cnt'} = { 'id' => '', 'name' => 'med_database_login_cnt', 'value' => '', 'type' => 'int', 'calc' => \&func_call_sql, 'param' => ['med_database_login_cnt'] };                  # DBS2019:38.1 (new since DBS 2019) (no export since DBS 2022)
+$as_values->{'med_database_authsso_yn'} = { 'id' => '', 'name' => 'med_database_authsso_yn', 'value' => '', 'type' => 'bool' };                                                                                 # DBS2019:38.2 (new since DBS 2019, always true with Divibib) (no export since DBS 2022)
 $as_values->{'med_subscription_print'} = { 'id' => '', 'name' => 'med_subscription_print', 'value' => '', 'type' => 'int', 'calc' => \&func_call_sql, 'param' => ['med_subscription_print'] };                  # DBS2017:39
 $as_values->{'med_subscription_elect'} = { 'id' => '', 'name' => 'med_subscription_elect', 'value' => '', 'type' => 'int' };                                                                                    # DBS2017:40
 #$as_values->{'med_blockcollection_rcvd'} = { 'id' => '', 'name' => 'med_blockcollection_rcvd', 'value' => '', 'type' => 'int' };                                                                                # DBS2017:41  (dropped since DBS 2019)
@@ -1031,7 +1032,7 @@ $dbs_sql_statements->{'med_withdrawal_units'} = q{
               )
     ) x
 };
-# DBS2019:38.1
+# DBS2019:38.1    # filtered out from csv export since DBS2022
 $dbs_sql_statements->{'med_database_login_cnt'} = q{
     select sum(cnt) as res from
     (   select count(*) as cnt from statistics s 

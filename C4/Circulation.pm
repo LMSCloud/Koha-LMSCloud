@@ -3841,6 +3841,15 @@ sub updateWrongTransfer {
         }
     );
 
+    # LMSCloud 2022-12-21:
+    # The user may abort the (non-modal and even the modal (depending on system preference TransfersBlockCirc)) dialog 
+    # 'Wrong Transfer detected, please return item to:...'.
+    # Then field branchtransfers.datesent would stay NULL, so in case of AutomaticItemReturn we have set it here explicitly.
+    # (The request_transfer() function above does nor support setting of datesent.)
+    if ( C4::Context->preference("AutomaticItemReturn") ) {
+        $new_transfer->set({ datesent => dt_from_string })->store();
+    }
+
     return $new_transfer;
 }
 
