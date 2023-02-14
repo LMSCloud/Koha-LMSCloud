@@ -16,6 +16,12 @@
             }
             return _("The RFID Service returned the following error: ") + errorMessage;
         },
+        GetRFIDCheckoutConfirmationTitle: function () {
+            return _("RFID tag checked out");
+        },
+        GetRFIDCheckinConfirmationTitle: function () {
+            return _("RFID tag checked in");
+        },
         GetRFIDErrorDialogNames: function () {
             return {
                         title:                  _("RFID Error Message"),
