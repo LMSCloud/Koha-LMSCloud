@@ -22,11 +22,6 @@
             [% END %]
         [% END %]
         
-        var itemtypes = {};
-        [% FOREACH itemtype IN additionalparameters.itemtypes %]
-            categories["[% itemtype.itemtype | html %]"] = { name: "[% itemtype.description | html %], mapped: "[% itemtype.mapped | html %]" };
-        [% END %]
-        
         function resetLibrarySelection() {
             var selgroup = $( "#groups" ).val();
             var libs = new Array();
