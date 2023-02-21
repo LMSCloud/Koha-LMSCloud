@@ -69,6 +69,7 @@
         <h2>Aggregated statistics</h2>
         <ul>
             <li><a href="/cgi-bin/koha/reports/aggregated_statistics.pl?statisticstype=DBS">DBS</a></li>
+            <li><a href="/cgi-bin/koha/reports/aggregated_statistics.pl?statisticstype=VGWort">VG WORT Export</a></li>
         </ul>
 
         [% IF Koha.ArePluginsEnabled() %]

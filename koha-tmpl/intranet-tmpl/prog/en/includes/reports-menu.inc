@@ -20,6 +20,7 @@
         <h5>Aggregated statistics</h5>
             <ul>
                 <li><a href="/cgi-bin/koha/reports/aggregated_statistics.pl?statisticstype=DBS">DBS</a></li>
+                <li><a href="/cgi-bin/koha/reports/aggregated_statistics.pl?statisticstype=VGWort">VG WORT Export</a></li>
             </ul>
         <h5>Statistics wizards</h5>
             <ul>

@@ -365,7 +365,7 @@ sub order_line {
 
     # PIA isbn or other id
     my @identifiers;
-    foreach my $id ( $biblioitem->ean, $biblioitem->issn, $biblioitem->isbn ) {
+    foreach my $id ( $biblioitem->isbn, $biblioitem->ean, $biblioitem->issn ) {
         if ( $id && $id ne $id_string ) {
             push @identifiers, $id;
         }

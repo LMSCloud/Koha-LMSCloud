@@ -203,6 +203,10 @@
                         [% IF ( statisticstype == 'DBS' ) %]
                         [% PROCESS 'aggregated-statistics-parameters-DBS.inc' %]
                         [% END %]
+                        
+                        [% IF ( statisticstype == 'VGWort' ) %]
+                        [% PROCESS 'aggregated-statistics-parameters-VGWort.inc' %]
+                        [% END %]
 
                         <fieldset class="action">
                             <input type="submit" id="submit_form" value="Submit" class="button" /> 
@@ -270,7 +274,7 @@
                 ],
                 "order": [[ 2, "desc" ], [ 0, "asc" ]],
                 "bPaginate": true,
-                "sPaginationType": "four_button",
+                "sPaginationType": "full_numbers",
                 "pageLength": 20,
                 "stateSave": true,
                 "stateDuration": -1

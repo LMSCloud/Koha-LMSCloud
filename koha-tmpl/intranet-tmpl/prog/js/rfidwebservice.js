@@ -375,7 +375,7 @@ var RFIDWebService = {
     
     // Unlock item barcode with the RFID Web service
     UnlockItemBarcode: function(barcode) {
-        console.log("UnlockItemBarcode called to unlock item");
+        console.log("UnlockItemBarcode called to unlock item " + barcode);
         
         // read URL and status from the sessionStorage
         var rfidWebServiceURL = window.sessionStorage.getItem('RFIDWebServiceURL');
@@ -395,7 +395,11 @@ var RFIDWebService = {
                 window.sessionStorage.setItem('RFIDWebServiceCheckoutItem','');
                 if ( data.itemResult && data.itemResult.length == 1) {
                     if ( data.itemResult[0].requestSuccess && data.itemResult[0].requestSuccess == true ) {
-                        
+                        var title = 'RFID checked in';
+                        if ( this.messageServiceProvider ) {
+                            title = this.messageServiceProvider.GetRFIDCheckinConfirmationTitle();
+                        }
+                        $('#circ_circulation .lastchecked p').append('<span class="rfidchecked" style="color:green; font-size: x-large;" title="' + title + '">&nbsp;&nbsp;<i class="fa fa-check-square-o fa-3"></i></span>');
                         if ( $(RFIDWebService.checkoutBlockingSelector).length < 1 ) {
                             var itemCount = window.sessionStorage.getItem('RFIDWebServiceCheckoutItemCount');
                         
@@ -408,20 +412,25 @@ var RFIDWebService = {
                         if ( data.itemResult[0].errorCode && data.itemResult[0].errorMessage ) {
                             RFIDWebService.DisplayRFIDServiceErrorMessage(data.itemResult[0].errorCode,data.itemResult[0].errorMessage, barcode);
                             console.log("RFIDWebService CheckoutItems returns error " + data.itemResult[0].errorCode + ": " + data.itemResult[0].errorMessage);
+                        } else {
+                            console.log("RFIDWebService CheckoutItems returned error for barcode " + barcode, data);
                         }
                     }
                     return;
                 }
+                else {
+                    console.log("RFID CheckoutItems request returned without a result for barcode " + barcode);
+                }
             },
             error: function (data) { 
-                console.log("RFIDWebService CheckoutItems calling error " + data);
+                console.log("RFIDWebService CheckoutItems for barcode" + barcode + " calling error " + data);
             }
         });
     },
     
     // Lock item barcode with the RFID Web service
     LockItemBarcode: function(barcode) {
-        console.log("LockItemBarcode called to lock item");
+        console.log("LockItemBarcode called to lock item " + barcode);
         
         // read URL and status from the sessionStorage
         var rfidWebServiceURL = window.sessionStorage.getItem('RFIDWebServiceURL');
@@ -440,7 +449,11 @@ var RFIDWebService = {
                 window.sessionStorage.setItem('RFIDWebServiceCheckinItem','');
                 if ( data.itemResult && data.itemResult.length == 1) {
                     if ( data.itemResult[0].requestSuccess && data.itemResult[0].requestSuccess == true ) {
-                        
+                        var title = 'RFID checked in';
+                        if ( this.messageServiceProvider ) {
+                            title = this.messageServiceProvider.GetRFIDCheckinConfirmationTitle();
+                        }
+                        $('.lastcheckinbarcode').after('<span class="rfidchecked" style="color:green; font-size: x-large;" title="' + title + '">&nbsp;<i class="fa fa-check-square-o fa-3"></i></span>');
                         if ( $(RFIDWebService.checkinBlockingSelector).length < 1 ) {
                             var itemCount = window.sessionStorage.getItem('RFIDWebServiceCheckinItemCount');
                         
@@ -456,6 +469,9 @@ var RFIDWebService = {
                         }
                     }
                     return;
+                }
+                else {
+                    console.log("RFID CheckinItems request returned without a result for barcode " + barcode);
                 }
             },
             error: function (data) { 

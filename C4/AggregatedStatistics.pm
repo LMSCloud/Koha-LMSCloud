@@ -31,25 +31,7 @@ use Koha::AggregatedStatistics::AggregatedStatistic;
 use Koha::AggregatedStatistics::AggregatedStatistics;
 use Koha::AggregatedStatistics::AggregatedStatisticsParameters;
 use Koha::AggregatedStatistics::AggregatedStatisticsValues;
-#use Carp;
-#use C4::Debug;
-#use C4::Suggestions;
-#use C4::Biblio;
-#use C4::Contract;
-#use C4::Debug;
-#use C4::Templates qw(gettemplate);
-#use Koha::DateUtils qw( dt_from_string output_pref );
-#use Koha::Acquisition::Order;
-#use Koha::Acquisition::Bookseller;
-#use Koha::Number::Price;
-#use Koha::Libraries;
-#
-#use C4::Koha;
-#
-#use MARC::Field;
-#use MARC::Record;
-#
-#use Time::localtime;
+
 
 use vars qw(@ISA @EXPORT);
 
@@ -104,9 +86,7 @@ B<returns:> AggregatedStatistics object containing the values of the new / updat
 
 sub CreateAggregatedStatistics {
     my ($param) = @_;
-
-# XXXWH is param checking required? 
-# XXXWH is date formatting required?    
+  
     my $selParam;
     my $updParam;
     if ( defined($param->{'id'}) && length($param->{'id'}) > 0 ) {
@@ -139,11 +119,9 @@ sub CreateAggregatedStatistics {
         startdate => $param->{'startdate'},
         enddate => $param->{'enddate'}
     };
-print STDERR "AggregatedStatistics::CreateAggregatedStatistics() update or insert aggregated_statistics record calling Koha::AggregatedStatistics::AggregatedStatistics->new()->upd_or_ins(selParam, updParam, insParam) \nselParam:", Dumper($selParam), ": updParam:", Dumper($updParam), ": insParam:", Dumper($insParam), ":\n" if $debugIt;
     my $aggregatedStatistics = Koha::AggregatedStatistics::AggregatedStatistics->new();
-    my $res = $aggregatedStatistics->upd_or_ins($selParam, $updParam, $insParam);   # TODO: evaluate $res
-print STDERR "AggregatedStatistics::CreateAggregatedStatistics() insert aggregated_statistics record res:", Dumper($res->_resultset()->{_column_data}), ":\n" if $debugIt;
-
+    my $res = $aggregatedStatistics->upd_or_ins($selParam, $updParam, $insParam);
+    
     return $res;
 }
 
@@ -175,26 +153,13 @@ sub GetAggregatedStatistics {
             id => $param->{'id'}
         };
     } else {
-        #$selParam = {
-        #    type => $param->{'type'},
-        #    name => $param->{'name'},
-        #    startdate => $param->{'startdate'},
-        #    enddate => $param->{'enddate'}
-        #};
         $selParam->{'type'} = $param->{'type'} if defined($param->{'type'});
         $selParam->{'name'} = $param->{'name'} if defined($param->{'name'});
         $selParam->{'startdate'} = $param->{'startdate'} if defined($param->{'startdate'});
         $selParam->{'enddate'} = $param->{'enddate'} if defined($param->{'enddate'});
     }
-print STDERR "AggregatedStatistics::GetAggregatedStatistics() read aggregated_statistics records by calling Koha::AggregatedStatistics::AggregatedStatistics->new\n" if $debugIt;
     my $aggregatedStatistics = Koha::AggregatedStatistics::AggregatedStatistics->new();
-print STDERR "AggregatedStatistics::GetAggregatedStatistics() aggregatedStatistics:", Dumper($aggregatedStatistics), ":\n" if $debugIt;
-print STDERR "AggregatedStatistics::GetAggregatedStatistics() read aggregated_statistics records by calling Koha::AggregatedStatistics::AggregatedStatistics->search(); selParam:", Dumper($selParam), ": orderByParam:", Dumper($orderByParam), ":\n" if $debugIt;
     my $res = $aggregatedStatistics->search($selParam, $orderByParam);
-print STDERR "AggregatedStatistics::GetAggregatedStatistics() read aggregated_statistics records count:", $res->_resultset()+0, ":\n" if $debugIt;
-if ( $res->_resultset() > 0 ) {
-    print STDERR "AggregatedStatistics::GetAggregatedStatistics() read aggregated_statistics first record:", Dumper($res->_resultset()->first()->{_column_data}), ":\n" if $debugIt;
-}
     return $res;
 }
 
@@ -263,7 +228,6 @@ B<returns:> AggregatedStatisticsParameters object containing the values of the n
 sub UpdAggregatedStatisticsParameters {
     my ($param) = @_;
     my $res;
-# XXXWH is param checking required? 
 
     if ( length($param->{'statistics_id'}) and length($param->{'name'}) and defined($param->{'value'}) ) {
         my $selParam = {
@@ -310,15 +274,9 @@ sub GetAggregatedStatisticsParameters {
     my $res;
 
     if ( defined($selParam->{'statistics_id'}) ) {
-print STDERR "AggregatedStatistics::GetAggregatedStatisticsParameters() read aggregated_statistics_parameters records by calling Koha::AggregatedStatistics::AggregatedStatisticsParameters->new\n" if $debugIt;
         my $aggregatedStatisticsParameters = Koha::AggregatedStatistics::AggregatedStatisticsParameters->new();
-print STDERR "AggregatedStatistics::GetAggregatedStatisticsParameters() aggregatedStatisticsParameters:", Dumper($aggregatedStatisticsParameters), ":\n" if $debugIt;
-print STDERR "AggregatedStatistics::GetAggregatedStatisticsParameters() read aggregated_statistics_parameters records by calling aggregatedStatisticsParameters->search \nselParam:", Dumper($selParam), ":\n" if $debugIt;
+
         $res = $aggregatedStatisticsParameters->search($selParam);
-print STDERR "AggregatedStatistics::GetAggregatedStatisticsParameters() read aggregated_statistics_parameters records count:", $res->_resultset()+0, ":\n" if $debugIt;
-if ( $res->_resultset()+0 > 0 ) {
-#print STDERR "AggregatedStatistics::GetAggregatedStatisticsParameters() read aggregated_statistics_parameters first record:", Dumper($res->_resultset()->first()->{_column_data}), ":\n" if $debugIt;
-}
     }
 
     return $res;
@@ -347,13 +305,8 @@ sub DelAggregatedStatisticsParameters {
     my $res;
 
     if ( length($selParam->{'statistics_id'}) > 0 ) {
-print STDERR "AggregatedStatistics::DelAggregatedStatisticsParameters() read aggregated_statistics_parameters records by calling Koha::AggregatedStatistics::AggregatedStatisticsParameters->new\n" if $debugIt;
         my $aggregatedStatisticsParameters = Koha::AggregatedStatistics::AggregatedStatisticsParameters->new();
-print STDERR "AggregatedStatistics::DelAggregatedStatisticsParameters() aggregatedStatisticsParameters:", Dumper($aggregatedStatisticsParameters), ":\n" if $debugIt;
-print STDERR "AggregatedStatistics::DelAggregatedStatisticsParameters() read aggregated_statistics_parameters records by calling aggregatedStatisticsParameters->search \nselParam:", Dumper($selParam), ":\n" if $debugIt;
         my $resASP = $aggregatedStatisticsParameters->search($selParam);
-print STDERR "AggregatedStatistics::DelAggregatedStatisticsParameters() read aggregated_statistics_parameters records count:", $resASP->_resultset()+0, ":\n" if $debugIt;
-print STDERR "AggregatedStatistics::DelAggregatedStatisticsParameters() delete aggregated_statistics_parameters records by calling resASP->_resultset()->delete_all \n" if $debugIt;
         $res = $resASP->_resultset()->delete_all();
 
     }
@@ -376,9 +329,7 @@ B<returns:> AggregatedStatisticsValues object containing the values of the new /
 
 sub UpdAggregatedStatisticsValues {
     my ($param) = @_;
-
-# XXXWH is param checking required? 
-# XXXWH is date formatting required?    
+ 
     my $selParam = {
         statistics_id => $param->{'statistics_id'},
         name => $param->{'name'}
@@ -393,10 +344,8 @@ sub UpdAggregatedStatisticsValues {
         value => $param->{'value'},
         type => $param->{'type'}
     };
-print STDERR "AggregatedStatistics::UpdAggregatedStatisticsValues() update or insert aggregated_statistics_values record calling Koha::AggregatedStatistics::AggregatedStatisticsValues->new()->upd_or_ins(selParam, updParam, insParam) \nselParam:", Dumper($selParam), ": updParam:", Dumper($updParam), ": insParam:", Dumper($insParam), ":\n" if $debugIt;
     my $aggregatedStatisticsValues = Koha::AggregatedStatistics::AggregatedStatisticsValues->new();
     my $res = $aggregatedStatisticsValues->upd_or_ins($selParam, $updParam, $insParam);   # TODO: evaluate $res
-print STDERR "AggregatedStatistics::UpdAggregatedStatisticsValues() insert aggregated_statistics_values record res:", Dumper($res->_resultset()->{_column_data}), ":\n" if $debugIt;
 
     return $res;
 }
@@ -424,15 +373,8 @@ sub GetAggregatedStatisticsValues {
     my $res;
 
     if ( defined($selParam->{'statistics_id'}) ) {
-print STDERR "AggregatedStatistics::GetAggregatedStatisticsValues() read aggregated_statistics_values records by calling Koha::AggregatedStatistics::AggregatedStatisticsValues->new\n" if $debugIt;
         my $aggregatedStatisticsValues = Koha::AggregatedStatistics::AggregatedStatisticsValues->new();
-print STDERR "AggregatedStatistics::GetAggregatedStatisticsValues() aggregatedStatisticsValues:", Dumper($aggregatedStatisticsValues), ":\n" if $debugIt;
-print STDERR "AggregatedStatistics::GetAggregatedStatisticsValues() read aggregated_statistics_values records by calling AggregatedStatisticsValues->search \nselParam:", Dumper($selParam), ":\n" if $debugIt;
         $res = $aggregatedStatisticsValues->search($selParam);
-print STDERR "AggregatedStatistics::GetAggregatedStatisticsValues() read aggregated_statistics_values records count:", $res->_resultset()+0, ":\n" if $debugIt;
-if ( $res->_resultset()+0 > 0 ) {
-print STDERR "AggregatedStatistics::GetAggregatedStatisticsValues() read aggregated_statistics_values first record:", Dumper($res->_resultset()->first()->{_column_data}), ":\n" if $debugIt;
-}
     }
 
     return $res;
@@ -461,13 +403,8 @@ sub DelAggregatedStatisticsValues {
     my $res;
 
     if ( length($selParam->{'statistics_id'}) > 0 ) {
-print STDERR "AggregatedStatistics::DelAggregatedStatisticsValues() read aggregated_statistics_values records by calling Koha::AggregatedStatistics::AggregatedStatisticsValues->new\n" if $debugIt;
         my $aggregatedStatisticsValues = Koha::AggregatedStatistics::AggregatedStatisticsValues->new();
-print STDERR "AggregatedStatistics::DelAggregatedStatisticsValues() aggregatedStatisticsValues:", Dumper($aggregatedStatisticsValues), ":\n" if $debugIt;
-print STDERR "AggregatedStatistics::DelAggregatedStatisticsValues() read aggregated_statistics_values records by calling aggregatedStatisticsValues->search \nselParam:", Dumper($selParam), ":\n" if $debugIt;
         my $resASV = $aggregatedStatisticsValues->search($selParam);
-print STDERR "AggregatedStatistics::DelAggregatedStatisticsValues() read aggregated_statistics_values records count:", $resASV->_resultset()+0, ":\n" if $debugIt;
-print STDERR "AggregatedStatistics::DelAggregatedStatisticsValues() delete aggregated_statistics_values records by calling resASV->_resultset()->delete_all \n" if $debugIt;
         $res = $resASV->_resultset()->delete_all();
 
     }

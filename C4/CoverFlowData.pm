@@ -282,6 +282,7 @@ sub GetCatalogueData {
     for my $item ( @items ) {
         my $biblio = Koha::Biblios->find( $item->{biblionumber} );
         next unless defined $biblio;
+        next if ( $biblio->hidden_in_opac({ rules => C4::Context->yaml_preference('OpacHiddenItems') }) );
         
         $item->{local_image_count} = 0;
         my $cover_images = $biblio->cover_images;
@@ -303,7 +304,17 @@ sub GetCatalogueData {
         $item->{'browser_normalized_oclc'} = GetNormalizedOCLCNumber($record,$marcflavour);
         $item->{'browser_normalized_isbn'} = GetNormalizedISBN(undef,$record,$marcflavour);
         $item->{'browser_normalized_ean'}  = GetNormalizedEAN($record,$marcflavour);
-        
+
+		if (C4::Context->preference('OpacSuppression')) {
+			my $opacsuppressionfield = '942';
+			my $opacsuppressionfieldvalue = $record->field($opacsuppressionfield);
+			if ( $opacsuppressionfieldvalue &&
+				$opacsuppressionfieldvalue->subfield("n") &&
+				$opacsuppressionfieldvalue->subfield("n") == 1) 
+			{
+				next;
+			}
+		}
         my $field = $record->field('245');
         my $titleblock = q{};
         my $title = q{};

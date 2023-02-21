@@ -80,14 +80,15 @@ sub GetVolumeData {
     my $refnumber = shift;
     my $biblionumber = shift;
     my $linkedRecords = shift;
+    my $institutionCode = shift;
     my $lang = shift;
     
     $lang = C4::Languages::getlanguage() if (! $lang );
 
-    my $marcOrgCode =  C4::Context->preference('MARCOrgCode') || '';
+    my $marcOrgCode = $institutionCode || C4::Context->preference('MARCOrgCode') || '';
 
-    my $searchstring = "rcn:$refnumber"; # not (bib-level:a or bib-level:b)";
-    $searchstring .= " AND cna:$marcOrgCode" if ( $marcOrgCode );
+    my $searchstring = "rcn:($refnumber)"; # not (bib-level:a or bib-level:b)";
+    $searchstring .= " AND cna:($marcOrgCode)" if ( $marcOrgCode );
 
     my ($error,$volumes) = SearchVolumeData($searchstring,$lang,'opacvolume');
     return ($error,$volumes,undef) if ($error);
@@ -98,8 +99,8 @@ sub GetVolumeData {
     if ( $linkedRecords && scalar(@$linkedRecords) > 0 ) {
         $searchstring = '';
         foreach my $linknumber(@$linkedRecords) {
-            $searchstring .= ' or ' if ( $searchstring ne '');
-            $searchstring .= "Control-number:$linknumber";
+            $searchstring .= ' OR ' if ( $searchstring ne '');
+            $searchstring .= "Control-number:($linknumber)";
         }
         ($error,$linkedRecordData) = SearchVolumeData($searchstring,$lang,'opac',$biblionumber);
         

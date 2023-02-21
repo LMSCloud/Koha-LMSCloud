@@ -26553,6 +26553,15 @@ if( CheckVersion( $DBversion ) ) {
 $DBversion = '21.05.14.002';
 if( CheckVersion( $DBversion ) ) {
     $dbh->do(q{
+        UPDATE systempreferences SET value='de' WHERE variable = 'KohaManualLanguage'
+        });
+
+    NewVersion( $DBversion, "", "Language update of the LMSCloud-Koha when accessing the Koha manual.");
+}
+
+$DBversion = '21.05.14.003';
+if( CheckVersion( $DBversion ) ) {
+    $dbh->do(q{
         INSERT IGNORE INTO columns_settings VALUES 
                 ('illrequests','ill-requests','ill-requests','metadata_isil',0,1)
         });

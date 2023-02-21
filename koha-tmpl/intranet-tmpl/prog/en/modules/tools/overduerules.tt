@@ -177,7 +177,7 @@
         <div id="overdue-fines-policy" class="container">
 	    <h3 class="parameters">
 		[% IF ( branch && branch != '*' ) %]
-		    Rules for overdue fines: "[% Branches.getName( branch ) | html %]"
+		    Rules for overdue fines: [% Branches.GetName( branch ) | html %]
 		[% ELSE %]
 		    Rules for overdue fines: all libraries
 		[% END %]

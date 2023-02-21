@@ -208,4 +208,5 @@ biblios:
         8023: barcode
         8024: onloan
         8031: itemtype
+        9001: Control-number
         9013: control-number-agency

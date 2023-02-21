@@ -1,0 +1,120 @@
+#!/usr/bin/perl
+
+# Copyright 2023 LMSCloud GmbH
+#
+# This file is part of Koha.
+#
+# Koha is free software; you can redistribute it and/or modify it
+# under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 3 of the License, or
+# (at your option) any later version.
+#
+# Koha is distributed in the hope that it will be useful, but
+# WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with Koha; if not, see <http://www.gnu.org/licenses>.
+
+use Modern::Perl;
+
+use C4::AggregatedStatistics;
+use C4::External::VGWortExport;
+
+use C4::Auth qw(checkauth);
+use CGI qw ( -utf8 );
+
+=head1 NAME
+
+vgwort_export - create an export file with media usage data as requested by the VG WORT
+
+=head1 DESCRIPTION
+
+The service function creates a VG WORT media usage file as requested by the the German VG WORT.
+
+The VG WORT, based in Munich, manages the royalties from secondary exploitation rights to 
+language works, also from radio and television, in Germany. Eligible are authors and translators 
+of aesthetic and dramatic, journalistic and scientific texts.
+
+The output format is XML is described with a DTD.
+See http://download.vgwort.de/xsd/1_0/crv-meldung-nutzung-ausleihen_1_0.dtd
+
+=cut
+
+my $mediaTypeMapping = {};
+my $fromDate;
+my $toDate;
+my $libraryGroup = undef;
+my $library = undef;
+
+my $query = CGI->new;
+my ($userid, $cookie, $sessionID) = checkauth( $query, 0, {reports => '*'}, 'intranet' );
+my $aggregatedStatisticsId = $query->param('aggregatedStatisticsId');
+
+if ( $aggregatedStatisticsId && $aggregatedStatisticsId =~ /^[0-9]+$/ ) {
+
+    my $aggregatedStatisticsParameters = C4::AggregatedStatistics::GetAggregatedStatisticsParameters({ statistics_id => $aggregatedStatisticsId } );
+
+    if ($aggregatedStatisticsParameters && $aggregatedStatisticsParameters->_resultset()) {
+        while ( my $rsHit = $aggregatedStatisticsParameters->_resultset()->next() ) {
+            my $value = $rsHit->get_column('value');
+            my $name = $rsHit->get_column('name');
+            if ( $name && $name =~ /^itype_/ ) {
+                $name =~ s/^itype_//;
+                $mediaTypeMapping->{$name} = $value;
+            }
+            elsif ( $name && $name =~ /^branchcode$/ && $value ) {
+                $library = $value;
+            }
+            elsif ( $name && $name =~ /^branchgroup$/ && $value ) {
+                $libraryGroup = $value;
+            }
+        }
+    }
+
+    my $aggregatedStatistics = C4::AggregatedStatistics::GetAggregatedStatistics({ id => $aggregatedStatisticsId } );
+
+    if ($aggregatedStatistics && $aggregatedStatistics->_resultset()) {
+        while ( my $rsHit = $aggregatedStatistics->_resultset()->next() ) {
+            if ( $rsHit->get_column('type') eq 'VGWort' ) {
+                $fromDate = $rsHit->get_column('startdate');
+                $toDate = $rsHit->get_column('enddate');
+            }
+        }
+    }
+
+    if ( $fromDate && $toDate ) {
+        my $exporter = C4::External::VGWortExport->new($fromDate,$toDate,$mediaTypeMapping,$libraryGroup,$library);
+        my $titleList = $exporter->getExportTitleList();
+
+        my $options = {
+                type              => 'text/xml',
+                status            => '200 OK',
+                Pragma            => 'no-cache',
+                'Cache-Control'   => 'no-cache',
+                'X-Frame-Options' => 'SAMEORIGIN',
+                expires           => 'now',
+                attachment        => $exporter->getOutputFilename(),
+            };
+        $options->{'Access-Control-Allow-Origin'} = C4::Context->preference('AccessControlAllowOrigin')
+                if C4::Context->preference('AccessControlAllowOrigin');
+        $options->{cookie} = $cookie if $cookie;
+        my $characterset = 'UTF-8';
+
+        print $query->header($options);
+
+        binmode(STDOUT, ":utf8");
+        print $exporter->createXMLHeader();
+        foreach my $title(@$titleList) {
+            my $titleData = $exporter->createXMLTitleEntry($title);
+            print $titleData;
+        }
+        print $exporter->createXMLFooter();
+    }
+    else {
+        print $query->header(-type => 'text/xml', -status => '404 Not Found');
+    }
+} else {
+    print $query->header(-type => 'text/xml', -status => '404 Not Found');
+}
