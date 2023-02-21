@@ -26550,6 +26550,16 @@ if( CheckVersion( $DBversion ) ) {
     NewVersion( $DBversion, "", "DBS 2022 changed query 66 from int to float");
 }
 
+$DBversion = '21.05.14.002';
+if( CheckVersion( $DBversion ) ) {
+    $dbh->do(q{
+        INSERT IGNORE INTO columns_settings VALUES 
+                ('illrequests','ill-requests','ill-requests','metadata_isil',0,1)
+        });
+
+    NewVersion( $DBversion, "", "Add column 'ISIL' to illrequests hit table.");
+}
+
 # SEE bug 13068
 # if there is anything in the atomicupdate, read and execute it.
 my $update_dir = C4::Context->config('intranetdir') . '/installer/data/mysql/atomicupdate/';
