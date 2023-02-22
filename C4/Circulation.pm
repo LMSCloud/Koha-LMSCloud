@@ -1703,7 +1703,11 @@ sub AddIssue {
             # if it is an ILL item then update also the ILL backend status
             if ( $itisanillitem && $illrequest ) {
                 eval {
-                    $illrequest->_backend_capability( "itemCheckedOut", $illrequest );
+                    # It is necessary to read the illrequest record a second time here, because meanwhile it may have been updated by AddReturn() called a few lines above. 
+                    ( $itisanillitem, $illrequest ) = Koha::Illrequest->checkIfIllItem($item_unblessed);
+                    if ( $itisanillitem && $illrequest ) {    # for safety's sake only, of course this always should be true
+                        $illrequest->_backend_capability( "itemCheckedOut", $illrequest );
+                    }
                 }
             }
 
