@@ -58,7 +58,7 @@ $(document).ready(function() {
                     var sel = $('#illfilter_status option:selected').val();
                     if (sel && sel.length > 0) {
                         activeFilters[me] = function() {
-                            table.api().column(13).search(sel);
+                            table.api().column(14).search(sel);
                         }
                         $('#illfilter_status_selected').val(sel);
                     } else {
@@ -98,7 +98,7 @@ $(document).ready(function() {
                     var sel = $('#illfilter_branchname option:selected').val();
                     if (sel && sel.length > 0) {
                         activeFilters[me] = function() {
-                            table.api().column(12).search(sel);
+                            table.api().column(13).search(sel);
                         }
                         $('#illfilter_branchname_selected').val(sel);
                     } else {
@@ -126,7 +126,7 @@ $(document).ready(function() {
                     var val = $('#illfilter_patron').val();
                     if (val && val.length > 0) {
                         activeFilters[me] = function() {
-                            table.api().column(10).search(val);
+                            table.api().column(11).search(val);
                         }
                     } else {
                         if (activeFilters.hasOwnProperty(me)) {
@@ -364,6 +364,15 @@ $(document).ready(function() {
         return res;
     };
 
+    // Render function for ISIL
+    var createIsil = function(data, type, row) {
+        var res = '';
+        if ( row.metadata_isil ) {
+            res = row.metadata_isil;
+        }
+        return res;
+    };
+
     // Columns that require special treatment
     var specialCols = {
         action: {
@@ -404,6 +413,10 @@ $(document).ready(function() {
         metadata_checkedBy: {
             name: _("ILL order last checked by"),
             func: createCheckedBy
+        },
+        metadata_isil: {
+            name: _("ISIL"),
+            func: createIsil
         }
     };
 
@@ -587,20 +600,20 @@ $(document).ready(function() {
                     { // When sorting 'placed', we want to use the
                         // unformatted column
                         'aTargets': [ 'placed_formatted'],
-                        'iDataSort': 14
+                        'iDataSort': 15
                     },
                     { // When sorting 'updated', we want to use the
                         // unformatted column
                         'aTargets': [ 'updated_formatted'],
-                        'iDataSort': 16
+                        'iDataSort': 17
                     },
                     { // When sorting 'completed', we want to use the
                         // unformatted column
                         'aTargets': [ 'completed_formatted'],
-                        'iDataSort': 19
+                        'iDataSort': 20
                     }
                 ],
-                'aaSorting': [[ 16, 'desc' ]], // Default sort, updated descending
+                'aaSorting': [[ 17, 'desc' ]], // Default sort, updated descending
                 'processing': true, // Display a message when manipulating
                 'sPaginationType': "full_numbers", // Pagination display
                 'deferRender': true, // Improve performance on big datasets
