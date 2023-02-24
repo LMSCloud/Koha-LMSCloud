@@ -3,7 +3,7 @@ msgstr ""
 "Project-Id-Version: Koha 21.05\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2013-05-16 03:26+0200\n"
-"PO-Revision-Date: 2022-04-29 15:05+0200\n"
+"PO-Revision-Date: 2023-02-24 16:15+0100\n"
 "Last-Translator: Katrin Fischer <katrin.fischer@bsz-bw.de>\n"
 "Language-Team: \n"
 "Language: de\n"
@@ -12220,6 +12220,66 @@ msgid ""
 msgstr ""
 "dass Benutzer ihr Passwort im OPAC ändern. Dieser Parameter muss deaktiviert "
 "sein, wenn Sie LDAP zur Authentifikation verwenden."
+
+# OPAC > Appearance
+msgid ""
+"opac.pref#OpacPatronBarcodeDisplay#  the patron barcode in OPAC account "
+"pages.<br>"
+msgstr ""
+" den Barcode der Ausweisnummer eines Benutzers auf den Benutzerkonten-Seiten "
+"des OPACs.<br>"
+
+# OPAC > Appearance
+msgid "opac.pref#OpacPatronBarcodeDisplay# ."
+msgstr "."
+
+# OPAC > Appearance
+msgid "opac.pref#OpacPatronBarcodeDisplay# Code 128"
+msgstr "Code 128"
+
+# OPAC > Appearance
+msgid "opac.pref#OpacPatronBarcodeDisplay# Code 128 with character set A"
+msgstr "Code 128 mit Zeichensatz A"
+
+# OPAC > Appearance
+msgid "opac.pref#OpacPatronBarcodeDisplay# Code 128 with character set B"
+msgstr "Code 128 mit Zeichensatz B"
+
+# OPAC > Appearance
+msgid "opac.pref#OpacPatronBarcodeDisplay# Code 128 with character set C"
+msgstr "Code 128 mit Zeichensatz C"
+
+# OPAC > Appearance
+msgid "opac.pref#OpacPatronBarcodeDisplay# Code 39"
+msgstr "Code 39"
+
+# OPAC > Features
+msgid "opac.pref#OpacPatronBarcodeDisplay# Don't show"
+msgstr "Zeige nicht"
+
+# OPAC > Appearance
+msgid "opac.pref#OpacPatronBarcodeDisplay# EAN"
+msgstr "EAN"
+
+# OPAC > Appearance
+msgid "opac.pref#OpacPatronBarcodeDisplay# EAN-13 (GTIN-13)"
+msgstr "EAN-13 (GTIN-13)"
+
+# OPAC > Appearance
+msgid "opac.pref#OpacPatronBarcodeDisplay# EAN-8"
+msgstr "EAN-8"
+
+# OPAC > Features
+msgid "opac.pref#OpacPatronBarcodeDisplay# Show"
+msgstr "Zeige"
+
+# OPAC > Appearance
+msgid "opac.pref#OpacPatronBarcodeDisplay# UPC"
+msgstr "UPC"
+
+# OPAC > Appearance
+msgid "opac.pref#OpacPatronBarcodeDisplay# Use the barcode format "
+msgstr "Benutze das Barcode-Format "
 
 # OPAC > Appearance
 msgid "opac.pref#OpacPublic# Disable"
