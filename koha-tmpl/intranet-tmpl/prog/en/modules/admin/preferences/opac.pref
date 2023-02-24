@@ -687,7 +687,7 @@ OPAC:
               default: CODE39
               choices:
                   CODE39: "Code 39"
-                  CODE128: "Code128"
+                  CODE128: "Code 128"
                   EAN: "EAN"
                   CODE128A: "Code 128 with character set A"
                   CODE128B: "Code 128 with character set B"
