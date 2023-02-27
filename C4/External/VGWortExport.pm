@@ -21,6 +21,7 @@ use base 'XML::Simple';
 
 use Modern::Perl;
 use utf8;
+use Carp;
 
 use C4::Context;
 use C4::Biblio;
@@ -140,7 +141,8 @@ sub new {
                sums.itype,
                IFNULL(SUM(sums.isscount),0) AS isscount,
                IFNULL(SUM(sums.issued),0) AS issued,
-               IFNULL(SUM(sums.renewed),0) AS renewed
+               IFNULL(SUM(sums.renewed),0) AS renewed,
+               SUM(sums.deleteditems) AS deleteditems
         FROM
             (
                 SELECT i.biblionumber,
@@ -150,7 +152,8 @@ sub new {
                        count(*) AS isscount,
                        SUM( IF(s.type = 'issue',1,0) ) AS issued,
                        SUM( IF(s.type = 'renew',1,0) ) AS renewed,
-                       YEAR(s.datetime) AS year
+                       YEAR(s.datetime) AS year,
+                       0 AS deleteditems
                 FROM   statistics s
                        JOIN items i ON ( i.itemnumber = s.itemnumber )
                 WHERE  ( date(s.datetime) >= ( @startdatum := ? ) ) 
@@ -166,7 +169,8 @@ sub new {
                        count(*) AS isscount,
                        SUM( IF(s.type = 'issue',1,0) ) AS issued,
                        SUM( IF(s.type = 'renew',1,0) ) AS renewed,
-                       YEAR(s.datetime) AS year
+                       YEAR(s.datetime) AS year,
+                       1 AS deleteditems
                 FROM   statistics s
                        JOIN deleteditems i ON ( i.itemnumber = s.itemnumber )
                 WHERE  ( date(s.datetime) >= ( @startdatum ) ) 
@@ -344,6 +348,8 @@ sub createXMLTitleEntry {
     my $biblionumber = $titleEntry->{biblionumber};
     my $record = GetMarcBiblio({ biblionumber => $biblionumber });
     
+    $record = GetDeletedMarcBiblio({ biblionumber => $biblionumber }) if (! $record );
+    
     if ( $record ) {
         my $mediatype = 'BUCH';
         
@@ -365,7 +371,7 @@ sub createXMLTitleEntry {
                 $media = 'DISKETTE';
             }
             elsif ( $contentSpec =~ /CD/i ) {
-                $media = 'COMPACT DISK';
+                $media = 'COMPACT DISC';
             }
             elsif ( $contentSpec =~ /platte/i ) {
                 $media = 'PLATTE';
@@ -489,6 +495,74 @@ sub createXMLTitleEntry {
                         };
         return $self->XMLout($titleData, KeepRoot => 1 );
     }
+}
+
+sub GetDeletedMarcBiblio {
+    my ($params) = @_;
+
+    if (not defined $params) {
+        carp 'GetDeletedMarcBiblio called without parameters';
+        return;
+    }
+
+    my $biblionumber = $params->{biblionumber};
+
+    if (not defined $biblionumber) {
+        carp 'GetDeletedMarcBiblio called with undefined biblionumber';
+        return;
+    }
+
+    my $dbh          = C4::Context->dbh;
+    my $sth          = $dbh->prepare("SELECT biblioitemnumber FROM deletedbiblioitems WHERE biblionumber=? ");
+    $sth->execute($biblionumber);
+    my $row     = $sth->fetchrow_hashref;
+    my $biblioitemnumber = $row->{'biblioitemnumber'};
+    my $marcxml = GetDeletedXmlBiblio( $biblionumber );
+    $marcxml = C4::Biblio::StripNonXmlChars( $marcxml );
+    my $frameworkcode = GetDeletedFrameworkCode($biblionumber);
+    MARC::File::XML->default_record_format( C4::Context->preference('marcflavour') );
+    my $record = MARC::Record->new();
+    if ($marcxml) {
+        $record = eval {
+            MARC::Record::new_from_xml( $marcxml, "UTF-8",
+                C4::Context->preference('marcflavour') );
+        };
+        if ($@) { warn " problem with :$biblionumber : $@ \n$marcxml"; }
+        return unless $record;
+
+        C4::Biblio::_koha_marc_update_bib_ids( $record, $frameworkcode, $biblionumber,
+            $biblioitemnumber );
+
+        return $record;
+    }
+    else {
+        return;
+    }
+}
+
+sub GetDeletedXmlBiblio {
+    my ($biblionumber) = @_;
+    my $dbh = C4::Context->dbh;
+    return unless $biblionumber;
+    my ($marcxml) = $dbh->selectrow_array(
+        q|
+        SELECT metadata
+        FROM deletedbiblio_metadata
+        WHERE biblionumber=?
+            AND format='marcxml'
+            AND `schema`=?
+    |, undef, $biblionumber, C4::Context->preference('marcflavour')
+    );
+    return $marcxml;
+}
+
+sub GetDeletedFrameworkCode {
+    my ($biblionumber) = @_;
+    my $dbh            = C4::Context->dbh;
+    my $sth            = $dbh->prepare("SELECT frameworkcode FROM deletedbiblio WHERE biblionumber=?");
+    $sth->execute($biblionumber);
+    my ($frameworkcode) = $sth->fetchrow;
+    return $frameworkcode;
 }
 
 =head2 createXMLHeader

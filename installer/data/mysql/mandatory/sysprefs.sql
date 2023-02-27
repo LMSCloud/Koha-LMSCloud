@@ -484,6 +484,8 @@ INSERT INTO systempreferences ( `variable`, `value`, `options`, `explanation`, `
 ('OPACAllowUserToChooseBranch','1','1','Allow the user to choose the branch they want to pickup their hold from','YesNo'),
 ('OPACAmazonCoverImages','0','','Display cover images on OPAC from Amazon Web Services','YesNo'),
 ('OpacAuthorities','1',NULL,'If ON, enables the search authorities link on OPAC','YesNo'),
+('OpacPatronBarcodeDisplay','0',NULL,'Display the patron barcode at OPAC patron pages','YesNo'),
+('OpacPatronBarcodeFormat','CODE39','CODE39|CODE128|EAN|CODE128A|CODE128B|CODE128C|EAN13|EAN8|UPC','Format of the patron barcode to be displayed at OPAC patron pages','Choice'),
 ('OPACBaseURL','',NULL,'Specify the Base URL of the OPAC, e.g., http://opac.mylibrary.com, including the protocol (http:// or https://). Otherwise, the http:// will be added automatically by Koha upon saving.','Free'),
 ('opacbookbag','1','','If ON, enables display of Cart feature','YesNo'),
 ('OpacBrowser','0',NULL,'If ON, enables subject authorities browser on OPAC (needs to set misc/cronjob/sbuild_browser_and_cloud.pl)','YesNo'),

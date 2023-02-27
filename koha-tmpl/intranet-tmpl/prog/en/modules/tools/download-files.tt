@@ -2,7 +2,7 @@
 [% USE Branches %]
 [% SET footerjs = 1 %]
 [% INCLUDE 'doc-head-open.inc' %]
-<title>Notice fee rules &rsaquo; Tools &rsaquo; Koha</title>
+<title>Download batch prints &rsaquo; Tools &rsaquo; Koha</title>
 [% INCLUDE 'doc-head-close.inc' %]
 
 <style>

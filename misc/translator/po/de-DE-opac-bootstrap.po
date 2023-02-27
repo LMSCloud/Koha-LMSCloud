@@ -1,8 +1,8 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: Koha 21.05\n"
-"POT-Creation-Date: 2022-08-16 18:47+0200\n"
-"PO-Revision-Date: 2022-08-15 16:24+0200\n"
+"POT-Creation-Date: 2023-02-24 16:14+0100\n"
+"PO-Revision-Date: 2023-02-24 16:07+0100\n"
 "Last-Translator: Katrin Fischer <katrin.fischer@bsz-bw.de>\n"
 "Language-Team: \n"
 "Language: de\n"
@@ -14691,6 +14691,11 @@ msgstr "desired_due_date"
 #, c-format
 msgid "due in fines and charges "
 msgstr "fällig an Gebühren und Entgelten"
+
+#. CANVAS
+#: koha-tmpl/opac-tmpl/bootstrap/en/includes/navigation.inc:6
+msgid "e-card"
+msgstr "Barcode des Bibliotheksausweises"
 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/ilsdi.tt:471
 #, c-format

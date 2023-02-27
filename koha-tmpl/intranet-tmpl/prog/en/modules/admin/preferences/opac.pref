@@ -391,7 +391,6 @@ OPAC:
                   1: Show
                   0: Don't show
             - "a single hit search result as result hit list rather than in the detailed result view."
-        -
     Features:
         -
             - pref: OPACReportProblem
@@ -676,6 +675,27 @@ OPAC:
             - " search results. If a search result count reaches the limit, it's assumed that a OPAC user got sufficient qualified results and does not need alternativ search suggestions."
             - '<br />Leave the value empty or set to 0 to look always for suggestions of activated "Did you mean?" sources.'
             - '<br />Configure <a href="/cgi-bin/koha/admin/didyoumean.pl">"Did you mean?" sources here</a>.'
+        -
+            - pref: OpacPatronBarcodeDisplay
+              default: 0
+              choices:
+                  1: Show
+                  0: "Don't show"
+            - " the patron barcode in OPAC account pages.<br>"
+            - "Use the barcode format "
+            - pref: OpacPatronBarcodeFormat
+              default: CODE39
+              choices:
+                  CODE39: "Code 39"
+                  CODE128: "Code 128"
+                  EAN: "EAN"
+                  CODE128A: "Code 128 with character set A"
+                  CODE128B: "Code 128 with character set B"
+                  CODE128C: "Code 128 with character set C"
+                  EAN13: "EAN-13 (GTIN-13)"
+                  EAN8: "EAN-8"
+                  UPC: "UPC"
+            - "."
     OpenURL:
         -
             - 'Complete URL of OpenURL resolver (starting with <code>http://</code> or <code>https://</code>):'

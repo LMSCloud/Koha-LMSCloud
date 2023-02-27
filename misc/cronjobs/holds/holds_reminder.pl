@@ -230,6 +230,8 @@ else {
     $date_to_run = dt_from_string();
 }
 
+my $waiting_date_static = $date_to_run->clone->subtract( days => $days );
+
 # Loop through each branch
 foreach my $branchcode (@branchcodes) { #BEGIN BRANCH LOOP
     # Check that this branch has the letter code specified or skip this branch
@@ -246,7 +248,7 @@ foreach my $branchcode (@branchcodes) { #BEGIN BRANCH LOOP
         my $duration = DateTime::Duration->new( days => -$days );
         $waiting_date = $calendar->addDays($date_to_run,$duration); #Add negative of days
     } else {
-        $waiting_date = $date_to_run->subtract( days => $days );
+        $waiting_date = $waiting_date_static;
     }
 
     # Find all the holds waiting since this date for the current branch
@@ -258,7 +260,7 @@ foreach my $branchcode (@branchcodes) { #BEGIN BRANCH LOOP
         'me.branchcode'  => $branchcode,
     },{ prefetch => 'patron' });
 
-    $verbose and warn "No reserves found for $branchcode\n" unless $reserves->count;
+    $verbose and warn "No reserves found for $branchcode waiting since $waiting_since\n" unless $reserves->count;
     next unless $reserves->count;
     $verbose and warn $reserves->count . " reserves waiting since $waiting_since for $branchcode\n";
 

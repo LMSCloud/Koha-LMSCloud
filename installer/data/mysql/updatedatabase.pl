@@ -26569,6 +26569,17 @@ if( CheckVersion( $DBversion ) ) {
     NewVersion( $DBversion, "", "Add column 'ISIL' to illrequests hit table.");
 }
 
+$DBversion = '21.05.14.004';
+if( CheckVersion( $DBversion ) ) {
+    $dbh->do(q{ 
+        INSERT IGNORE INTO `systempreferences` VALUES 
+                ('OpacPatronBarcodeDisplay','0',NULL,'Display the patron barcode at OPAC patron pages','YesNo'),
+                ('OpacPatronBarcodeFormat','CODE39','CODE39|CODE128|EAN|CODE128A|CODE128B|CODE128C|EAN13|EAN8|UPC','Format of the patron barcode to be displayed at OPAC patron pages','Choice')
+        });
+    
+    NewVersion( $DBversion, "", "Add system preferences OpacPatronBarcodeDisplay and OpacPatronBarcodeFormat.");
+}
+
 # SEE bug 13068
 # if there is anything in the atomicupdate, read and execute it.
 my $update_dir = C4::Context->config('intranetdir') . '/installer/data/mysql/atomicupdate/';
