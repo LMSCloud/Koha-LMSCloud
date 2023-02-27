@@ -24,6 +24,7 @@ use utf8;
 use Data::Dumper;
 use CGI::Carp;
 use Exporter;
+use Try::Tiny;
 
 use C4::Context;
 use C4::Acquisition qw( NewBasket GetBasket GetBaskets ModBasket GetBasketgroupsGeneric NewBasketgroup );
@@ -265,6 +266,9 @@ sub genKohaRecords {
     my $basketno = -1;
     my $basketgroupid = undef;
     my $authorisedby = undef;
+    my $exceptionThrown;
+    my $schema = Koha::Database->new->schema;
+    $schema->storage->txn_begin;
 
     # variables for email log
     my @logresult = ();
@@ -286,6 +290,7 @@ sub genKohaRecords {
                                        ": publicationYear:" . (defined($publicationYear) ? $publicationYear : 'undef') .
                                        ":");
 
+    try {
     my $zweigstellencode = '';
     my $homebranch = $ekzKohaRecord->{ekzWsConfig}->getEkzWebServicesDefaultBranch($ekzCustomerNumber);
     $homebranch =~ s/^\s+|\s+$//g; # trim spaces
@@ -316,34 +321,45 @@ sub genKohaRecords {
 
     my $minStatusDatum = '9999-12-31';
     foreach my $titel ( @{$stoWithNewState->{'titelRecords'}} ) {
-        my $statusDatum = substr($titel->{'statusDatum'},0,10);    # format yyyy-mm-ddT00:00:00.000 to yyyy-mm-dd
-        if ( $minStatusDatum gt $statusDatum ) {
-            $minStatusDatum = $statusDatum;
-        }
-        if ( $lastRunDateIsSet ) {
-            if ( ($titel->{'status'} == 10 || $titel->{'status'} == 20 || $titel->{'status'} == 99) &&    # 'vorbreitet' || 'in nächster Lieferung' || 'Bereits geliefert' (i.e. 'prepared' || 'included in next delivery' || 'delivered')
-                $statusDatum ge $lastRunDate && 
-                $statusDatum lt $todayDate ) {
-                    $insOrUpd = 1;    # the acquisition_import message record must be inserted or updated
-                    last;
-            }
-        } else {
-            if ( ($titel->{'status'} == 10 || $titel->{'status'} == 20) &&    # 'vorbreitet' || 'in nächster Lieferung' (i.e. 'prepared' || 'included in next delivery'
-                $statusDatum lt $todayDate ) {
-                    $insOrUpd = 1;    # the acquisition_import message record must be inserted or updated
-                    last;
+        if ( $titel->{'statusDatum'} && length(substr($titel->{'statusDatum'},0,10)) == 10 ) {
+            my $statusDatum = substr($titel->{'statusDatum'},0,10);    # format yyyy-mm-ddT00:00:00.000 to yyyy-mm-dd
+            if ( $statusDatum =~ /^\d\d\d\d-\d\d-\d\d$/ ) {
+                my $testDatum = eval { DateTime->new( year => substr($statusDatum,0,4), month => substr($statusDatum,5,2), day => substr($statusDatum,8,2), time_zone => 'local' ); };
+                if ( !defined($testDatum) || $@ ) {
+                    my $mess = sprintf("genKohaRecords() when setting DateTime->new() from statusDatum:%s: error:%s:", $statusDatum, $@);
+                    $logger->warn($mess);
+                    carp "EkzWsStandindOrder:" . $mess . "\n";
+                } else {
+                    if ( $minStatusDatum gt $statusDatum ) {
+                        $minStatusDatum = $statusDatum;
+                    }
+                    if ( $lastRunDateIsSet ) {
+                        if ( ($titel->{'status'} == 10 || $titel->{'status'} == 20 || $titel->{'status'} == 99) &&    # 'vorbreitet' || 'in nächster Lieferung' || 'Bereits geliefert' (i.e. 'prepared' || 'included in next delivery' || 'delivered')
+                            $statusDatum ge $lastRunDate && 
+                            $statusDatum lt $todayDate ) {
+                                $insOrUpd = 1;    # the acquisition_import message record must be inserted or updated
+                                last;
+                        }
+                    } else {
+                        if ( ($titel->{'status'} == 10 || $titel->{'status'} == 20) &&    # 'vorbreitet' || 'in nächster Lieferung' (i.e. 'prepared' || 'included in next delivery'
+                            $statusDatum lt $todayDate ) {
+                                $insOrUpd = 1;    # the acquisition_import message record must be inserted or updated
+                                last;
+                        }
+                    }
+                }
             }
         }
     }
+$logger->info("genKohaRecords() will now set bestellDatum from minStatusDatum:$minStatusDatum:");
     my $bestellDatum = DateTime->new( year => substr($minStatusDatum,0,4), month => substr($minStatusDatum,5,2), day => substr($minStatusDatum,8,2), time_zone => 'local' );
     my $dateTimeNow = DateTime->now(time_zone => 'local');
+$logger->info("genKohaRecords() bestellDatum was set from minStatusDatum:$minStatusDatum:");
 
     $logger->info("genKohaRecords() insOrUpd:$insOrUpd:");
     if ( $insOrUpd ) {
 
         # Insert/update record in table acquisition_import representing the standing order request.
-        my $schema = Koha::Database->new->schema;
-        $schema->storage->txn_begin;
 
         $ekzBestellNr = 'sto.' . $ekzCustomerNumber . '.ID' . $stoWithNewState->{'stoID'};    # StoList response contains no order number, so we create this dummy order number
 
@@ -1052,18 +1068,52 @@ SEQUENCEOFKOSTENSTELLE: for ( my $i = 0; $i < $sequenceOfKostenstelle; $i += 1 )
         $logger->debug("genKohaRecords() ####################################################################################################################");
         $logger->debug("genKohaRecords() Dumper(\\\@logresult):" . Dumper(\@logresult) . ":");
 
+    }
+    }
+    catch {
+        $exceptionThrown = $_;
 
-        #$schema->storage->txn_rollback;    # crude rollback for TEST only XXXWH
-
-        # commit the complete standing order update (only as a single transaction)
-        $schema->storage->txn_commit;    # in case of a thrown exception this statement is not executed, so the transaction would be rolled back automatically
-
-        $logger->info("genKohaRecords() cntTitlesHandled:$cntTitlesHandled: cntItemsHandled:$cntItemsHandled:");
-        if ( scalar(@logresult) > 0 && ($cntTitlesHandled > 0 || $cntItemsHandled > 0) ) {
-            my @importIds = keys %importIds;
-            ($message, $subject, $haserror) = $ekzKohaRecord->createProcessingMessageText(\@logresult, "headerTEXT", $dt, \@importIds, $ekzBestellNr, $publicationYear);  # we use ekzBestellNr as part of importID in MARC field 025.a: (EKZImport)$importIDs->[0]
-            $ekzKohaRecord->sendMessage($ekzCustomerNumber, $message, $subject);
+        if (ref($exceptionThrown) eq 'Koha::Exceptions::WrongParameter') {
+            $logger->error("genKohaRecords() caught WrongParameter exception:" . Dumper($exceptionThrown) . ":");
+        } else {
+            $logger->error("genKohaRecords() caught generic exception:" . Dumper($exceptionThrown) . ":");    # unbelievable: croak throws a string
         }
+
+        $logger->error("genKohaRecords() roll back based on thrown exception");
+        $schema->storage->txn_rollback;    # roll back the complete standing order import, based on thrown exception
+        if ( $createdTitleRecords ) {
+            foreach my $titleSelHashkey ( sort keys %{$createdTitleRecords} ) {
+                if ( $createdTitleRecords->{$titleSelHashkey}->{isAlreadyCommitted} ) {
+                    next;    # keep elements of createdTitleRecords of preceeding calls
+                }
+                my $biblionumber = $createdTitleRecords->{$titleSelHashkey}->{biblionumber};
+                $logger->debug("genKohaRecords() is calling ekzKohaRecord->deleteFromIndex() with bibliomumber:" . (defined($biblionumber)?$biblionumber:'undef') . ":");
+                $ekzKohaRecord->deleteFromIndex($biblionumber);
+                $logger->debug("genKohaRecords() is deleting createdTitleRecords->{$titleSelHashkey}");
+                delete $createdTitleRecords->{$titleSelHashkey};    # remove elements of createdTitleRecords of current call because this transaction is rolled back
+            }
+        }
+
+        $exceptionThrown->throw();
+    };
+
+    # commit the complete standing order import (only as a single transaction)
+    $schema->storage->txn_commit;    # in case of a thrown exception this statement is not executed
+    if ( $createdTitleRecords ) {
+        foreach my $titleSelHashkey ( sort keys %{$createdTitleRecords} ) {
+            if ( $createdTitleRecords->{$titleSelHashkey}->{isAlreadyCommitted} ) {
+                next;    # keep elements of createdTitleRecords of preceeding calls
+            }
+            $createdTitleRecords->{$titleSelHashkey}->{isAlreadyCommitted} = 1;    # mark elements of createdTitleRecords newly added by current call as committed
+            $logger->debug("genKohaRecords() has set createdTitleRecords->{$titleSelHashkey}->{isAlreadyCommitted}:" . $createdTitleRecords->{$titleSelHashkey}->{isAlreadyCommitted} . ":");
+        }
+    }
+
+    $logger->info("genKohaRecords() cntTitlesHandled:$cntTitlesHandled: cntItemsHandled:$cntItemsHandled:");
+    if ( scalar(@logresult) > 0 && ($cntTitlesHandled > 0 || $cntItemsHandled > 0) ) {
+        my @importIds = keys %importIds;
+        ($message, $subject, $haserror) = $ekzKohaRecord->createProcessingMessageText(\@logresult, "headerTEXT", $dt, \@importIds, $ekzBestellNr, $publicationYear);  # we use ekzBestellNr as part of importID in MARC field 025.a: (EKZImport)$importIDs->[0]
+        $ekzKohaRecord->sendMessage($ekzCustomerNumber, $message, $subject);
     }
 
     return 1;
