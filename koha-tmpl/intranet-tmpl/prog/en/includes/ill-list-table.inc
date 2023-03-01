@@ -11,7 +11,7 @@
                 <th scope="col">Year</th>
                 <th scope="col">Pages</th>
                 <th scope="col">Type</th>
-                <th scope="col">ISIL</th>
+                <th scope="col">Sigel</th>
                 <th scope="col">Order ID</th>
                 <th scope="col">Patron</th>
                 <th scope="col">Bibliographic record</th>
