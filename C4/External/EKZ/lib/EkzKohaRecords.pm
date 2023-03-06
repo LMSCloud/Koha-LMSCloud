@@ -19,6 +19,7 @@ package C4::External::EKZ::lib::EkzKohaRecords;
 
 use strict;
 use warnings;
+use Modern::Perl;
 
 use Encode qw(encode decode);
 use utf8;
@@ -41,12 +42,14 @@ use C4::External::EKZ::lib::EkzWsConfig;
 use C4::External::EKZ::lib::EkzWebServices;
 use C4::Koha qw( GetAuthorisedValues );
 #use C4::Letters qw( _wrap_html );    # C4::Letters::_wrap_html is required here, but it is not exported by C4::Letters, so we have to use it inofficially
-use Koha::SearchEngine::Search qw( new simple_search_compat );
 use Koha::Biblios;
 use Koha::Database;
 use Koha::Email;
 use Koha::Libraries;
 use Koha::Logger;
+use Koha::SearchEngine;
+use Koha::SearchEngine::Indexer;
+use Koha::SearchEngine::Search qw( new simple_search_compat );
 
 
 
@@ -2194,6 +2197,22 @@ sub defaultUstSatz {
     }
 
     return $defaultUstSatzRet;
+}
+
+sub deleteFromIndex {
+    my $self = shift;
+    my ($biblionumber) = @_;
+
+    $self->{'logger'}->debug("deleteFromIndex() START; biblionumber:$biblionumber:");
+
+    if( $biblionumber ) {
+       my $biblio = Koha::Biblios->find( $biblionumber );    # For safety's sake only. Do not delete from index if still existing in biblio table. Should never happen.
+        $self->{'logger'}->debug("deleteFromIndex() biblionumber:$biblionumber: biblio:" . Dumper($biblio) . ":");
+        if ( !( $biblio ) ) {
+            my $indexer = Koha::SearchEngine::Indexer->new({ index => $Koha::SearchEngine::BIBLIOS_INDEX });
+            $indexer->index_records( $biblionumber, "recordDelete", "biblioserver" );
+        }
+    }
 }
 
 1;

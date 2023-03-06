@@ -25,6 +25,7 @@ use Data::Dumper;
 use CGI::Carp;
 use DateTime::Format::MySQL;
 use Exporter;
+use Try::Tiny;
 
 use C4::Acquisition qw( NewBasket GetBasket GetBaskets ModBasket ReopenBasket 
                         GetBasketgroupsGeneric NewBasketgroup CloseBasketgroup ReOpenBasketgroup 
@@ -127,6 +128,7 @@ sub genKohaRecords {
     my $rechnungDatum = '';
     my $mehrpreisRechnung = '';
     my $logger = Koha::Logger->get({ interface => 'C4::External::EKZ::EkzWsInvoice' });
+    my $exceptionThrown;
     my $schema = Koha::Database->new->schema;
     $schema->storage->txn_begin;
 
@@ -148,6 +150,7 @@ sub genKohaRecords {
                                        ": auftragsPositionCount:" . (defined($rechnungRecord->{'auftragsPositionCount'}) ? $rechnungRecord->{'auftragsPositionCount'} : 'undef') .
                                        ":");
 
+    try {
     my $updOrInsItemsCount = 0;
     my $zweigstellencode = '';
     my $homebranch = $ekzKohaRecord->{ekzWsConfig}->getEkzWebServicesDefaultBranch($ekzCustomerNumber);
@@ -1197,12 +1200,6 @@ $logger->debug("genKohaRecords() method4: after processItemInvoice() itemnumber:
         # create @logresult message for log email, representing all titles of the current $rechnungResult with all their processed items
         push @{$emaillog->{'logresult'}}, ['RechnungDetail', $messageID, $emaillog->{'actionresult'}, $acquisitionError, $ekzAqbooksellersId, undef, $invoiceids ];    # arg basketno is undef, because with standing orders multiple delivery/invoice baskets are possible
         $logger->trace("genKohaRecords() Dumper(emaillog->{'logresult'}):" . Dumper($emaillog->{'logresult'}) . ":");
-        
-        if ( scalar(@{$emaillog->{'logresult'}}) > 0 ) {
-            my @importIds = keys %{$emaillog->{'importIds'}};
-            ($message, $subject, $haserror) = $ekzKohaRecord->createProcessingMessageText($emaillog->{'logresult'}, "headerTEXT", $emaillog->{'dt'}, \@importIds, $rechnungNummer);
-            $ekzKohaRecord->sendMessage($ekzCustomerNumber, $message, $subject);
-        }
 
         # attaching ekz order to Koha acquisition:
         if ( length($ekzAqbooksellersId) && defined($basketno) && $basketno > 0 ) {
@@ -1261,13 +1258,53 @@ $logger->debug("genKohaRecords() method4: after processItemInvoice() itemnumber:
         }
 
     }
+    }
+    catch {
+        $exceptionThrown = $_;
 
+        if (ref($exceptionThrown) eq 'Koha::Exceptions::WrongParameter') {
+            $logger->error("genKohaRecords() caught WrongParameter exception:" . Dumper($exceptionThrown) . ":");
+        } else {
+            $logger->error("genKohaRecords() caught generic exception:" . Dumper($exceptionThrown) . ":");    # unbelievable: croak throws a string
+        }
 
-    # deactivated for production:
-    #$schema->storage->txn_rollback;    # crude rollback for TEST only XXXWH
+        $logger->error("genKohaRecords() roll back based on thrown exception");
+        $schema->storage->txn_rollback;    # roll back the complete invoice import, based on thrown exception
+        if ( $createdTitleRecords ) {
+            foreach my $titleSelHashkey ( sort keys %{$createdTitleRecords} ) {
+                if ( $createdTitleRecords->{$titleSelHashkey}->{isAlreadyCommitted} ) {
+                    next;    # keep elements of createdTitleRecords of preceeding calls
+                }
+                my $biblionumber = $createdTitleRecords->{$titleSelHashkey}->{biblionumber};
+                $logger->debug("genKohaRecords() is calling ekzKohaRecord->deleteFromIndex() with bibliomumber:" . (defined($biblionumber)?$biblionumber:'undef') . ":");
+                $ekzKohaRecord->deleteFromIndex($biblionumber);
+                $logger->debug("genKohaRecords() is deleting createdTitleRecords->{$titleSelHashkey}");
+                delete $createdTitleRecords->{$titleSelHashkey};    # remove elements of createdTitleRecords of current call because this transaction is rolled back
+            }
+        }
+$logger->info("genKohaRecords() after deleting elements of createdTitleRecords:" . Dumper($createdTitleRecords) . ":");
 
-    # commit the complete invoice (only as a single transaction)
-    $schema->storage->txn_commit;
+        $exceptionThrown->throw();
+    };
+
+    # commit the complete invoice import (only as a single transaction)
+    $schema->storage->txn_commit;    # in case of a thrown exception this statement is not executed
+    if ( $createdTitleRecords ) {
+        foreach my $titleSelHashkey ( sort keys %{$createdTitleRecords} ) {
+            if ( $createdTitleRecords->{$titleSelHashkey}->{isAlreadyCommitted} ) {
+                next;    # keep elements of createdTitleRecords of preceeding calls
+            }
+            $createdTitleRecords->{$titleSelHashkey}->{isAlreadyCommitted} = 1;    # mark elements of createdTitleRecords newly added by current call as committed
+            $logger->debug("genKohaRecords() has set createdTitleRecords->{$titleSelHashkey}->{isAlreadyCommitted}:" . $createdTitleRecords->{$titleSelHashkey}->{isAlreadyCommitted} . ":");
+        }
+    }
+$logger->info("genKohaRecords() after marking new elements to isAlreadyCommitted createdTitleRecords:" . Dumper($createdTitleRecords) . ":");
+
+    if ( $emaillog && defined($emaillog->{'logresult'}) && scalar(@{$emaillog->{'logresult'}}) > 0 ) {
+        my @importIds = keys %{$emaillog->{'importIds'}};
+        ($message, $subject, $haserror) = $ekzKohaRecord->createProcessingMessageText($emaillog->{'logresult'}, "headerTEXT", $emaillog->{'dt'}, \@importIds, $rechnungNummer);
+        $ekzKohaRecord->sendMessage($ekzCustomerNumber, $message, $subject);
+    }
 
     return 1;
 }

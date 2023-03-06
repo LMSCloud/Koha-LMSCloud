@@ -654,16 +654,25 @@ foreach my $tag  (keys %{$soapEnvelopeBody->{'ns2:BestellInfoElement'}}) {
     if ( $respStatusCode eq 'ERROR' ) {
         $self->{logger}->error("process() roll back based on thrown exception or other error");
         $schema->storage->txn_rollback;    # roll back the complete BestellInfo, based on thrown exception or other error
+        if ( $self->{createdTitleRecords} ) {
+            foreach my $titleSelHashkey ( sort keys %{$self->{createdTitleRecords}} ) {
+                my $biblionumber = $self->{createdTitleRecords}->{$titleSelHashkey}->{biblionumber};
+                $self->{logger}->debug("process() is calling self->{ekzKohaRecordClass}->deleteFromIndex() with bibliomumber:" . (defined($biblionumber)?$biblionumber:'undef') . ":");
+                $self->{ekzKohaRecordClass}->deleteFromIndex($biblionumber);
+                $self->{logger}->debug("process() is deleting self->{createdTitleRecords}->{$titleSelHashkey}");
+                delete $self->{createdTitleRecords}->{$titleSelHashkey};
+            }
+        }
     } else {
         $self->{logger}->info("process() commit");
         # commit the complete BestellInfo (only as a single transaction)
         $schema->storage->txn_commit;
-    }
     
-    if ( scalar @{$self->{emaillog}->{logresult}} > 0 ) {    # RG 31.03.2020: send e-mail also if reqLmsBestellCode
-        my @importIds = keys %{$self->{emaillog}->{importIds}};
-        my ($message, $subject, $haserror) = $self->{ekzKohaRecordClass}->createProcessingMessageText($self->{emaillog}->{logresult}, "headerTEXT", $self->{emaillog}->{dt}, \@importIds, $reqEkzBestellNr);  # we use ekzBestellNr as part of importID in MARc field 025.a: (EKZImport)$importIDs[0]
-        $self->{ekzKohaRecordClass}->sendMessage($soapEnvelopeBody->{'ns2:BestellInfoElement'}->{'hauptstelle'}, $message, $subject);
+        if ( scalar @{$self->{emaillog}->{logresult}} > 0 ) {    # RG 31.03.2020: send e-mail also if reqLmsBestellCode
+            my @importIds = keys %{$self->{emaillog}->{importIds}};
+            my ($message, $subject, $haserror) = $self->{ekzKohaRecordClass}->createProcessingMessageText($self->{emaillog}->{logresult}, "headerTEXT", $self->{emaillog}->{dt}, \@importIds, $reqEkzBestellNr);  # we use ekzBestellNr as part of importID in MARc field 025.a: (EKZImport)$importIDs[0]
+            $self->{ekzKohaRecordClass}->sendMessage($soapEnvelopeBody->{'ns2:BestellInfoElement'}->{'hauptstelle'}, $message, $subject);
+        }
     }
 
     my $soapResponseElement = SOAP::Data->name( 'ns2:BestellInfoResultatElement' )->SOAP::Header::value(
