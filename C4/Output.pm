@@ -296,7 +296,7 @@ sub output_with_http_headers {
     # We can't encode here, that will double encode our templates, and xslt
     # We need to fix the encoding as it comes out of the database, or when we pass the variables to templates
 
-    if ( $content_type ne 'zip' ) {
+    if ( $content_type ne 'zip' && !($extra_options->{no_encoding}) ) {
         $data =~ s/\&amp\;amp\; /\&amp\; /g;
         binmode(STDOUT, ":encoding($characterset)");
         print $query->header($options), $data;
