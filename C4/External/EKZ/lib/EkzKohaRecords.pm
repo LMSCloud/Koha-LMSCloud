@@ -146,6 +146,36 @@ sub addNewRecords {
 
     $self->{'logger'}->trace("addNewRecords() START; volumeEkzArtikelNr:" . ($volumeEkzArtikelNr?$volumeEkzArtikelNr:'undef') . ": titleHits:" . Dumper($titleHits) . ":");
     $self->{'logger'}->trace("addNewRecords() START; titleSelHashkey:" . ($titleSelHashkey?$titleSelHashkey:'undef') . ": createdTitleRecords:" . Dumper($createdTitleRecords) . ":");
+
+    # In year 2022 the ekz introduced a so called 'mehrbändige Verkaufseinheit' that bundles subordinated multiple different volumes via the entry of its ekzArtikelNr in their
+    # MARC21 field 945 like this:
+    # <datafield tag="945" ind1="V" ind2="e">
+    #    <subfield code="a">1667444</subfield>
+    # </datafield>
+    # But ekz does not create title data for this ekzArtikelNr, so a call of webservice MedienDaten delivers only data for the subordinated volumes, not for this ekzArtikelNr.
+    # LMSCloud does not accept this.
+    if ( $volumeEkzArtikelNr ) {    # check if webservice MedienDaten delivered data for a 'mehrbändige Verkaufseinheit'
+        my $volumeEkzArtikelNrExistsInTitleHits = 0;
+        foreach my $record ( @{$titleHits->{records}} ) {
+            # look for ekzArtikelNr in field 001 and for "DE-Rt5" in field 003
+            my $tmp_cna = defined($record->field("003")) ? $record->field("003")->data() : "undef";
+            $self->{'logger'}->debug("addNewRecords() checking for volumeEkzArtikelNr:$volumeEkzArtikelNr: tmp_cna:$tmp_cna:");
+            if ( $tmp_cna eq "DE-Rt5" ) {
+                my $ekzArtikelNr = defined($record->field("001")) ? $record->field("001")->data() : "undef";
+                $self->{'logger'}->debug("addNewRecords() checking for volumeEkzArtikelNr:$volumeEkzArtikelNr:  ekzArtikelNr:$ekzArtikelNr:");
+                if ( $volumeEkzArtikelNr eq $ekzArtikelNr ) {
+                    $volumeEkzArtikelNrExistsInTitleHits = 1;
+                    last;
+                }
+            }
+        }
+        if ( $volumeEkzArtikelNrExistsInTitleHits == 0 ) {
+            Koha::Exceptions::WrongParameter->throw(
+                error => sprintf("ekz Webservice MedienDaten liefert keine Titeldaten zur ekzArtikelNr:$volumeEkzArtikelNr:. Abbruch der Verarbeitung der gesamten ekz BestellInfo.\n"),
+            );
+        }
+    }
+
     foreach my $record ( @{$titleHits->{records}} ) {
         my $selHashkey =  $titleSelHashkey;
         my $ekzArtikelNr;
