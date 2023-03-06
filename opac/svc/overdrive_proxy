@@ -83,4 +83,4 @@ if ( $response->code eq '500' ) {
     exit;
 }
 
-output_with_http_headers $query, undef, $response->content, 'json', $response->status_line;
+output_with_http_headers $query, undef, $response->content, 'json', $response->status_line, { no_encoding => 1 };
