@@ -40,7 +40,7 @@
       this.modalBackdrop = {
         ref: undefined,
         styles:
-          'display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.5); z-index: 99;',
+          'cursor: pointer; display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.5); z-index: 99;',
       };
 
       this.expanded = false;
@@ -155,6 +155,7 @@
           href: '#',
           'aria-label': 'e-card',
           id: 'e-card-mobile',
+          role: 'button',
         },
       });
       const barcodeIcon = ECard.createElementWithAttributes({
@@ -166,6 +167,11 @@
         },
       });
 
+      eCardMobileAnchor.addEventListener('keydown', (e) => {
+        if (e.code === 'Space') {
+          e.preventDefault();
+        }
+      });
       eCardMobileAnchor.addEventListener('click', (e) => {
         e.preventDefault();
         this.expand(e);
@@ -173,7 +179,6 @@
       eCardMobileButton.addEventListener('keyup', (e) => {
         if (['Enter', 'Space'].includes(e.code)) {
           this.expand(e);
-          this.entryPoint.ref.focus();
         }
       });
 
@@ -196,6 +201,8 @@
         this.entryPoint.ref.insertAdjacentHTML('afterend', mediaQuery);
         const styles = `${this.entryPoint.styles} position: fixed; top: 50%;left: 50%; width: 85.60mm; height: 53.98mm; transform: translate(-50%, -50%); background-color: white; box-shadow: 0px 2px 4px rgba(0, 0, 0, 0.1);`;
         ECard.setStyles({ element: this.entryPoint.ref, styles });
+        this.entryPoint.ref.role = 'dialog';
+        this.entryPoint.ref.focus();
 
         this.expanded = true;
       }
@@ -214,6 +221,7 @@
           element: this.entryPoint.ref,
           styles: this.entryPoint.styles,
         });
+        this.entryPoint.ref.role = 'button';
 
         if (this.isMobileView && !force) {
           this.eCardMobile.ref.firstElementChild.focus();
@@ -245,11 +253,16 @@
         this.style();
       };
 
+      ref.addEventListener('keydown', (e) => {
+        if (e.code === 'Space') {
+          e.preventDefault();
+        }
+      });
       ref.addEventListener('click', this.expand.bind(this));
       ref.addEventListener('keyup', (e) => {
         e.preventDefault();
         if (this.expanded) {
-          if (['Enter', 'Space', 'Escape'].includes(e.code)) {
+          if (['Escape'].includes(e.code)) {
             collapseFn(e);
           }
           return;
@@ -263,7 +276,7 @@
   }
 
   const entryPoint = document.getElementById('e-card');
-  const { barcodeFormat, hintMobile } = entryPoint.dataset;
+  const { barcodeFormat } = entryPoint.dataset;
 
   const entryPointMobile = document.getElementById('moresearches');
 
@@ -274,7 +287,6 @@
         entryPointMobile,
         format: barcodeFormat,
         throttleDelay: 150,
-        hintMobile,
       },
     });
     eCard.render();
