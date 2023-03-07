@@ -15,12 +15,12 @@
 
       const loggedInUsername = document.querySelector('.loggedinusername');
       if (!loggedInUsername) {
-        throw new Error('Cannot find logged in username element.');
+        throw new Error( _("Cannot find logged in username element.") );
       }
 
       this.borrowernumber = loggedInUsername.getAttribute('data-borrowernumber');
       if (!this.borrowernumber) {
-        throw new Error('Cannot find borrowernumber attribute.');
+        throw new Error( _("Cannot find borrowernumber attribute.") );
       }
 
       this.cardnumber = undefined;
@@ -35,7 +35,7 @@
         entryPoint: options?.entryPointMobile,
         ref: undefined,
         styles: '',
-        hint: options?.hintMobile || 'Click to open eCard',
+        hint: _("Your library card"),
       };
       this.modalBackdrop = {
         ref: undefined,
