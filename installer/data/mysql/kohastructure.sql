@@ -2202,7 +2202,8 @@ CREATE TABLE `collections_tracking` (
   `itemnumber` int(11) NOT NULL DEFAULT 0 COMMENT 'items.itemnumber',
   PRIMARY KEY (`collections_tracking_id`),
   KEY `collectionst_ibfk_1` (`colId`),
-  CONSTRAINT `collectionst_ibfk_1` FOREIGN KEY (`colId`) REFERENCES `collections` (`colId`) ON DELETE CASCADE ON UPDATE CASCADE
+  CONSTRAINT `collectionst_ibfk_1` FOREIGN KEY (`colId`) REFERENCES `collections` (`colId`) ON DELETE CASCADE ON UPDATE CASCADE,
+  CONSTRAINT `collectionst_ibfk_2` FOREIGN KEY (`itemnumber`) REFERENCES `items` (`itemnumber`) ON DELETE CASCADE ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 

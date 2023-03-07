@@ -26580,6 +26580,21 @@ if( CheckVersion( $DBversion ) ) {
     NewVersion( $DBversion, "", "Add system preferences OpacPatronBarcodeDisplay and OpacPatronBarcodeFormat.");
 }
 
+$DBversion = '21.05.14.005';
+if( CheckVersion( $DBversion ) ) {
+    unless( foreign_key_exists( 'collections_tracking', 'collectionst_ibfk_2' ) ) {
+        $dbh->do(q{
+            DELETE FROM collections_tracking WHERE NOT EXISTS ( SELECT 1 FROM items WHERE items.itemnumber = collections_tracking.itemnumber)
+        });
+        $dbh->do(q{
+            ALTER TABLE collections_tracking
+            ADD CONSTRAINT `collectionst_ibfk_2` FOREIGN KEY (`itemnumber`) REFERENCES `items` (`itemnumber`) ON DELETE CASCADE ON UPDATE CASCADE
+        });
+    }
+
+    NewVersion( $DBversion, "", "Add FK constraint for itemnumber to collections_tracking.");
+}
+
 # SEE bug 13068
 # if there is anything in the atomicupdate, read and execute it.
 my $update_dir = C4::Context->config('intranetdir') . '/installer/data/mysql/atomicupdate/';
