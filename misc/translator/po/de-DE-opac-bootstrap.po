@@ -1,8 +1,8 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: Koha 21.05\n"
-"POT-Creation-Date: 2023-03-07 17:45+0100\n"
-"PO-Revision-Date: 2023-03-07 17:49+0100\n"
+"POT-Creation-Date: 2023-03-09 12:49+0100\n"
+"PO-Revision-Date: 2023-03-09 12:51+0100\n"
 "Last-Translator: Katrin Fischer <katrin.fischer@bsz-bw.de>\n"
 "Language-Team: \n"
 "Language: de\n"
@@ -4414,10 +4414,9 @@ msgstr "Kann nicht vorgemerkt werden"
 
 #. SCRIPT
 #: koha-tmpl/opac-tmpl/bootstrap/en/includes/e-card.inc:4
-msgid "Cannot find borrowernumber attribute."
+msgid "Cannot find cardnumber attribute."
 msgstr ""
-"Das Attribut borrowernumber des HTML-Element der Anzeige das Buntzernamens "
-"kann nicht gefunden werden."
+"Die Ausweisnummer des eingeloggten Benutzers konnte nicht ermittelt werden."
 
 #. SCRIPT
 #: koha-tmpl/opac-tmpl/bootstrap/en/includes/e-card.inc:4

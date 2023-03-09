@@ -1,8 +1,8 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: Koha 21.05\n"
-"POT-Creation-Date: 2023-03-07 17:45+0100\n"
-"PO-Revision-Date: 2023-03-07 17:50+0100\n"
+"POT-Creation-Date: 2023-03-09 12:49+0100\n"
+"PO-Revision-Date: 2023-03-09 12:55+0100\n"
 "Last-Translator: Katrin Fischer <katrin.fischer@bsz-bw.de>\n"
 "Language-Team: \n"
 "Language: de\n"
@@ -2166,7 +2166,7 @@ msgstr "%s %s (%s angezeigt) %s. "
 #. %1$s:  FOR itype IN stat.itypes
 #. %2$s:  ItemTypes.GetDescription(itype)
 #. %3$s:  stat.itypeCount.$itype
-#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_VGWort.tt:79
+#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_VGWort.tt:91
 #, c-format
 msgid "%s %s (%s titles)"
 msgstr "%s %s (%s Titel)"
@@ -25372,7 +25372,7 @@ msgstr "Anzahl gelöschte Exemplare"
 msgid "Count holds:"
 msgstr "Anzahl Vormerkungen:"
 
-#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_VGWort.tt:69
+#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_VGWort.tt:81
 #, c-format
 msgid "Count issues (issues + renewals)"
 msgstr "Anzahl Ausleihen (Ausleihen und Verlängerungen)"
@@ -25387,7 +25387,7 @@ msgstr "Anzahl Exemplare:"
 msgid "Count of checkouts"
 msgstr "Anzahl Ausleihen"
 
-#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_VGWort.tt:68
+#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_VGWort.tt:80
 #, c-format
 msgid "Count titles"
 msgstr "Anzahl Titel"
@@ -28115,6 +28115,15 @@ msgid ""
 "Departments are required by and will be used in the Course Reserves module"
 msgstr ""
 "Abteilungen werden für die Verwendung des Semesterapparate-Moduls verwendet"
+
+#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_VGWort.tt:60
+#, c-format
+msgid ""
+"Depending on the amount of data it can take several minutes to complete the "
+"Download. "
+msgstr ""
+"Abhängig vom Umfang der zu exportierenden Daten kann der Download einige "
+"Minuten in Anspruch nehmen."
 
 #: koha-tmpl/intranet-tmpl/prog/en/modules/circ/managecashregister.tt:107
 #: koha-tmpl/intranet-tmpl/prog/en/modules/circ/managecashregister.tt:176
@@ -38758,7 +38767,7 @@ msgstr "Koha link:"
 msgid "Koha media type"
 msgstr "Koha Medientyp"
 
-#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_VGWort.tt:70
+#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_VGWort.tt:82
 #, c-format
 msgid "Koha media types"
 msgstr "Koha Medientypen"
@@ -48167,7 +48176,7 @@ msgstr "Verlängerungslimits überschreiben:"
 msgid "Override restriction temporarily"
 msgstr "Benutzersperre temporär aufheben"
 
-#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_VGWort.tt:55
+#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_VGWort.tt:67
 #, c-format
 msgid "Overview"
 msgstr "Übersicht"
@@ -51137,6 +51146,15 @@ msgstr ""
 #, c-format
 msgid "Please verify the integrity of the zip file and retry."
 msgstr "Bitte überprüfen Sie die ZIP-Datei und versuchen es erneut."
+
+#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_VGWort.tt:58
+#, c-format
+msgid ""
+"Please wait after clicking on Download! It may take a while until the "
+"Download starts."
+msgstr ""
+"Bitte warten Sie den Start der Dateiübertragung nach Klick auf Download ab. "
+"Der Start kann mit einigen Sekunden Verzögerung erfolgen."
 
 #: koha-tmpl/intranet-tmpl/prog/en/modules/plugins/plugins-home.tt:119
 #, c-format
@@ -62387,7 +62405,7 @@ msgstr ""
 msgid "The following fields are wrong. Please fix them."
 msgstr "Folgende Felder sind fehlerhaft. Bitte berichtigen Sie diese."
 
-#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_VGWort.tt:57
+#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_VGWort.tt:69
 #, c-format
 msgid ""
 "The following figures show the amount of data to be contained in export file."
@@ -67502,7 +67520,7 @@ msgstr "VG WORT Export"
 msgid "VG WORT Export "
 msgstr "VG WORT Export "
 
-#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_VGWort.tt:67
+#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_VGWort.tt:79
 #: koha-tmpl/intranet-tmpl/prog/en/includes/aggregated-statistics-parameters-VGWort.inc:101
 #, c-format
 msgid "VG WORT media type"
@@ -68914,7 +68932,7 @@ msgid "Year"
 msgstr "Jahr"
 
 #. %1$s:  yearstat.year
-#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_VGWort.tt:64
+#: koha-tmpl/intranet-tmpl/prog/en/modules/reports/aggregated_statistics_VGWort.tt:76
 #, c-format
 msgid "Year %s"
 msgstr "Jahr %s"
