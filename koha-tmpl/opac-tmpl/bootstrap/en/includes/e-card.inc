@@ -9,7 +9,7 @@
   /* eslint-disable no-undef */
   class ECard {
     constructor({ entryPoint, options = {} }) {
-      const { breakpoint = 992, format } = options;
+      const { breakpoint = 992, format, cardnumber } = options;
       this.options = options;
       this.format = format;
 
@@ -18,12 +18,10 @@
         throw new Error( _("Cannot find logged in username element.") );
       }
 
-      this.borrowernumber = loggedInUsername.getAttribute('data-borrowernumber');
-      if (!this.borrowernumber) {
-        throw new Error( _("Cannot find borrowernumber attribute.") );
+      this.cardnumber = cardnumber;
+      if (!this.cardnumber) {
+        throw new Error( _("Cannot find cardnumber attribute.") );
       }
-
-      this.cardnumber = undefined;
 
       this.entryPoint = {
         ref: entryPoint,
@@ -103,13 +101,6 @@
         isWaiting = true;
         setTimeout(timeoutFunc, delay);
       };
-    }
-
-    async getData() {
-      const response = await fetch(`/api/v1/patrons/${this.borrowernumber}`);
-      if (!response.ok) throw new Error('Failed to fetch patron data.');
-      const { cardnumber } = await response.json();
-      this.cardnumber = cardnumber;
     }
 
     style() {
@@ -231,8 +222,7 @@
       }
     }
 
-    async render() {
-      await this.getData();
+    render() {
       if (!this.cardnumber) return;
 
       this.addECardMobile();
@@ -276,7 +266,7 @@
   }
 
   const entryPoint = document.getElementById('e-card');
-  const { barcodeFormat } = entryPoint.dataset;
+  const { barcodeFormat, cardnumber } = entryPoint.dataset;
 
   const entryPointMobile = document.getElementById('moresearches');
 
@@ -286,6 +276,7 @@
       options: {
         entryPointMobile,
         format: barcodeFormat,
+        cardnumber,
         throttleDelay: 150,
       },
     });
