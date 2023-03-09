@@ -86,7 +86,6 @@ if ( $aggregatedStatisticsId && $aggregatedStatisticsId =~ /^[0-9]+$/ ) {
 
     if ( $fromDate && $toDate ) {
         my $exporter = C4::External::VGWortExport->new($fromDate,$toDate,$mediaTypeMapping,$libraryGroup,$library);
-        my $titleList = $exporter->getExportTitleList();
 
         my $options = {
                 type              => 'text/xml',
@@ -106,9 +105,15 @@ if ( $aggregatedStatisticsId && $aggregatedStatisticsId =~ /^[0-9]+$/ ) {
 
         binmode(STDOUT, ":utf8");
         print $exporter->createXMLHeader();
-        foreach my $title(@$titleList) {
-            my $titleData = $exporter->createXMLTitleEntry($title);
-            print $titleData;
+        
+        my $titleList = $exporter->openExportTitleList();
+        my ($res,$title) = $exporter->fetchExportListTitle();
+        while ( $res ) {
+            if ( $title ) {
+                my $titleData = $exporter->createXMLTitleEntry($title);
+                print $titleData if ($titleData);
+            }
+            ($res,$title) = $exporter->fetchExportListTitle();
         }
         print $exporter->createXMLFooter();
     }
