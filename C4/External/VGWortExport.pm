@@ -318,6 +318,33 @@ sub getExportTitleList {
     return $result;
 }
 
+sub openExportTitleList {
+    my $self = shift;
+    
+    my $dbh = C4::Context->dbh;
+    
+    my $sth = $dbh->prepare($self->{selectTitles});
+    
+    # print STDERR "VGWort export:", $self->{fromDate},$self->{toDate},$self->{useLibraryGroup},$self->{libraryGroup},$self->{useSingleLibrary},$self->{singleLibrary},"\n";
+    
+    $sth->execute($self->{fromDate},$self->{toDate},@{$self->{itypes}},@{$self->{itypes}},$self->{useLibraryGroup},$self->{libraryGroup},$self->{useSingleLibrary},$self->{singleLibrary});
+    
+    $self->{exportTitlesSTH} = $sth;
+    
+    return 1;
+}
+
+sub fetchExportListTitle {
+    my $self = shift;
+    
+    my $sth = $self->{exportTitlesSTH};
+    
+    if ( my $titleInfo = $sth->fetchrow_hashref ) {
+        return (1,$titleInfo);
+    }
+    return (0,undef);
+}
+
 =head2 createXMLTitleEntry
 
 Create an xml fragment containing the data of one title entry in an VG WORT xml export.

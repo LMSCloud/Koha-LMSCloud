@@ -441,7 +441,7 @@ sub TransferCollection {
 
     $sth = $dbh->prepare(q{
         SELECT items.itemnumber, items.barcode FROM collections_tracking
-        LEFT JOIN items ON collections_tracking.itemnumber = items.itemnumber
+        JOIN items ON collections_tracking.itemnumber = items.itemnumber
         LEFT JOIN issues ON items.itemnumber = issues.itemnumber
         WHERE issues.borrowernumber IS NULL
           AND collections_tracking.colId = ?

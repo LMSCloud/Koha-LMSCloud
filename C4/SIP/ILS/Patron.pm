@@ -81,6 +81,7 @@ sub new {
 
     # Get fines and add fines for guarantees (depends on preference NoIssuesChargeGuarantees)
     my $fines_amount = $flags->{CHARGES}->{amount}; #TODO Replace with $patron->account->non_issues_charges
+    my $personal_fines_amount = $fines_amount;
     $fines_amount = ($fines_amount and $fines_amount > 0) ? $fines_amount : 0;
     if ( C4::Context->preference('NoIssuesChargeGuarantorsWithGuarantees') ) {
         $fines_amount += $patron->relationships_debt({ include_guarantors => 1, only_this_guarantor => 0, include_this_patron => 0 });
@@ -115,7 +116,7 @@ sub new {
         hold_ok         => ( !$debarred && !$expired && !$fine_blocked),
         card_lost       => ( $kp->{lost} || $kp->{gonenoaddress} || $flags->{LOST} ),
         claims_returned => 0,
-        fines           => $fines_amount,
+        fines           => $personal_fines_amount,
         fees            => 0,             # currently not distinct from fines
         recall_overdue  => 0,
         items_billed    => 0,

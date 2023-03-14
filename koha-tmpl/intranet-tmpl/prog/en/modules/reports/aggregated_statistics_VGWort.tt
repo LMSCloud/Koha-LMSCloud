@@ -50,6 +50,18 @@
                         <a href="/cgi-bin/koha/svc/vgwort_export?aggregatedStatisticsId=[% id %]" class="btn btn-default btn-xs" download><i class="fa fa-download"></i> Download</a>
                     </div>
                 </div>
+                <div class="dialog message" style="width: 100%">
+                     <div class="row">
+                        <div class="col-sm-1">
+                            <i class="fa fa-exclamation-triangle" aria-hidden="true" style="font-size: x-large; color: darkblue"></i>
+                        </div>
+                        <div class="col-sm-11" style="text-align: left">
+                           Please wait after clicking on Download! 
+                           It may take a while until the Download starts.<br>
+                           Depending on the amount of data it can take several minutes to complete the Download.
+                        </div>
+                    </div>
+                </div>
                 <br>
                 
                 <h2>Overview</h2>
