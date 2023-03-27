@@ -32,7 +32,8 @@
         ILLALV: _("ALV"),
         ILLSLNPKoha: _("SLNP-passive"),
         ILLZKSHA: _("RLV-active"),
-        ILLZKSHP: _("RLV-passive")
+        ILLZKSHP: _("RLV-passive"),
+        PFL: _("PFL")
     };
 </script>
 <!-- / ill-list-table-strings.inc -->

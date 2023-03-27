@@ -341,6 +341,9 @@
                     case "ILLZKSHP":
                         backend_designation =  _("RLV-passive");
                     break;
+                    case "PFL":
+                        backend_designation =  _("PFL");
+                    break;
                     default:
                         backend_designation = backend_name;
                 }
@@ -373,6 +376,9 @@
                             break;
                             case "Order ID":
                                 labeltext =  _("Order ID");
+                            break;
+                            case "ordererRemark":
+                                labeltext =  _("Remark");
                             break;
                             case "title":
                                 labeltext =  _("Title");

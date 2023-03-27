@@ -71,6 +71,9 @@
                 case "ILLZKSHP":
                     backend_designation =  ill_backend.ILLZKSHP;
                 break;
+                case "PFL":
+                    backend_designation =  ill_backend.PFL;
+                break;
                 default:
                     backend_designation = backend_name;
             }
