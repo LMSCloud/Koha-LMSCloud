@@ -1,8 +1,8 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: Koha 21.05\n"
-"POT-Creation-Date: 2023-03-09 12:49+0100\n"
-"PO-Revision-Date: 2023-03-09 12:51+0100\n"
+"POT-Creation-Date: 2023-03-31 11:53+0200\n"
+"PO-Revision-Date: 2023-03-31 11:55+0200\n"
 "Last-Translator: Katrin Fischer <katrin.fischer@bsz-bw.de>\n"
 "Language-Team: \n"
 "Language: de\n"
@@ -3549,6 +3549,11 @@ msgstr "Irgendein Medientyp"
 msgid "Anyone seeing this list"
 msgstr "Alle die diese Liste anzeigen können"
 
+#. SCRIPT
+#: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-results.tt:751
+msgid "Appearence: "
+msgstr "Fundstellen: "
+
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-advsearch.tt:137
 #, c-format
 msgid "Apply field weights to search "
@@ -6388,11 +6393,6 @@ msgstr "GetRecords"
 msgid "GetServices"
 msgstr "GetServices"
 
-#. A
-#: koha-tmpl/opac-tmpl/bootstrap/en/includes/account-table.inc:175
-msgid "GiroSolution - A member of the Sparkassen group"
-msgstr "GiroSolution - Ein Mitglied der Sparkassen-Gruppe"
-
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/ilsdi.tt:399
 #, c-format
 msgid ""
@@ -8131,16 +8131,12 @@ msgstr "Weitere Details"
 msgid "More information about Epay21"
 msgstr "Mehr Informationen zu Epay21"
 
-#: koha-tmpl/opac-tmpl/bootstrap/en/includes/account-table.inc:175
-#, c-format
-msgid "More information about GiroSolution"
-msgstr "Mehr Informationen zu GiroSolution"
-
 #: koha-tmpl/opac-tmpl/bootstrap/en/includes/account-table.inc:189
 #, c-format
 msgid "More information about Giropay"
 msgstr "Mehr Informationen zu Giropay"
 
+#: koha-tmpl/opac-tmpl/bootstrap/en/includes/account-table.inc:175
 #: koha-tmpl/opac-tmpl/bootstrap/en/includes/account-table.inc:204
 #, c-format
 msgid "More information about S-Public Services"
@@ -9098,6 +9094,11 @@ msgstr "Überfällige "
 #, c-format
 msgid "Owner only"
 msgstr "Nur Besitzer"
+
+#. SCRIPT
+#: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-illrequests.tt:288
+msgid "PFL"
+msgstr "PFL"
 
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-results.tt:697
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-user.tt:1013
@@ -10254,6 +10255,11 @@ msgstr "Ausleihen der Verwandten"
 msgid "Relevance"
 msgstr "Relevanz"
 
+#. SCRIPT
+#: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-illrequests.tt:288
+msgid "Remark"
+msgstr "Anmerkung"
+
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-basket.tt:58
 #, c-format
 msgid "Remove"
@@ -10718,6 +10724,7 @@ msgid "Routing lists"
 msgstr "Umlauflisten"
 
 #. A
+#: koha-tmpl/opac-tmpl/bootstrap/en/includes/account-table.inc:175
 #: koha-tmpl/opac-tmpl/bootstrap/en/includes/account-table.inc:204
 msgid "S-Public Services - digital payment and administration solutions"
 msgstr "S-Public Services - Digitale Bezahl-und Administrationslösungen"
@@ -11411,6 +11418,11 @@ msgstr "Zeige nicht-vormerkbare Exemplare"
 #, c-format
 msgid "Show year: "
 msgstr "Zeige Jahr: "
+
+#. SCRIPT
+#: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-results.tt:751
+msgid "Show/Hide appearences"
+msgstr "Fundstellen anzeigen/ausblenden"
 
 #. %1$s:  resultcount | html
 #. %2$s:  total | html
@@ -12925,6 +12937,11 @@ msgstr "Beliebteste Titel"
 #, c-format
 msgid "Top level"
 msgstr "Oberste Ebene"
+
+#. SCRIPT
+#: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-results.tt:751
+msgid "Top-Hit"
+msgstr "Top-Treffer"
 
 #: koha-tmpl/opac-tmpl/bootstrap/en/includes/opac-facets.inc:26
 #, c-format
@@ -14660,8 +14677,8 @@ msgstr "Mit der Bestellung fortfahren"
 
 #: koha-tmpl/opac-tmpl/bootstrap/en/includes/account-table.inc:170
 #, c-format
-msgid "credit card payment via GiroSolution "
-msgstr "Kreditkartenzahlung über GiroSolution"
+msgid "credit card payment via S-Public Services "
+msgstr "Online-Zahlung mit S-Public Services "
 
 #. SPAN
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-basket.tt:91
@@ -15880,6 +15897,9 @@ msgstr "×"
 #~ msgid "Fine amount"
 #~ msgstr "Mahngebühr"
 
+#~ msgid "GiroSolution - A member of the Sparkassen group"
+#~ msgstr "GiroSolution - Ein Mitglied der Sparkassen-Gruppe"
+
 #~ msgid "How PayPal Works"
 #~ msgstr "Funktionsweise von PayPal"
 
@@ -15924,6 +15944,9 @@ msgstr "×"
 
 #~ msgid "Local Login"
 #~ msgstr "Lokale Anmeldung"
+
+#~ msgid "More information about GiroSolution"
+#~ msgstr "Mehr Informationen zu GiroSolution"
 
 #~ msgid "No results"
 #~ msgstr "Keine Treffer"
@@ -16032,6 +16055,9 @@ msgstr "×"
 
 #~ msgid "click here to login"
 #~ msgstr "Login"
+
+#~ msgid "credit card payment via GiroSolution "
+#~ msgstr "Kreditkartenzahlung über GiroSolution"
 
 #~ msgid "e-card"
 #~ msgstr "Barcode des Bibliotheksausweises"

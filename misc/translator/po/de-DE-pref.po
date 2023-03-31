@@ -3,7 +3,7 @@ msgstr ""
 "Project-Id-Version: Koha 21.05\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2013-05-16 03:26+0200\n"
-"PO-Revision-Date: 2023-02-24 16:15+0100\n"
+"PO-Revision-Date: 2023-03-31 12:00+0200\n"
 "Last-Translator: Katrin Fischer <katrin.fischer@bsz-bw.de>\n"
 "Language-Team: \n"
 "Language: de\n"
@@ -7954,7 +7954,7 @@ msgstr "Zeige maximal "
 msgid ""
 "enhanced_content.pref#BrockhausNumSearchResults# results of the Brockhaus "
 "search per page in the OPAC."
-msgstr "Treffer bei der Brockhaus-Suche im OPAC an."
+msgstr "Treffer bei der Brockhaus-Suche pro Trefferseite im OPAC an."
 
 # Enhanced content > Novelist Select
 msgid "enhanced_content.pref#BrockhausSearchActive# Activate"
@@ -8270,7 +8270,7 @@ msgstr "Zeige maximal "
 msgid ""
 "enhanced_content.pref#FilmfriendNumSearchResults# results of the filmfriend "
 "search per page in the OPAC."
-msgstr " Treffer der filmfriend-Filmportal-Suche im OPAC an."
+msgstr " Treffer der filmfriend-Filmportal-Suche pro Trefferseite im OPAC an."
 
 # Enhanced content > filmfriend > FilmfriendProviderID
 msgid ""
@@ -8653,6 +8653,16 @@ msgstr ""
 "Munzinger-Dienste zu nutzen, müssen in der Datei /etc/koha/munzinger.key auf "
 "dem Server die von Munzinger bereitgestellten Daten zur Generierung des "
 "verschlüsselten Session-Keys wie folgt abgelegt werden:"
+
+# Enhanced content > Open Library
+msgid "enhanced_content.pref#MunzingerNumSearchResults# Show a maximum of"
+msgstr "Zeige maximal "
+
+# Searching > Results display
+msgid ""
+"enhanced_content.pref#MunzingerNumSearchResults# results of the Munzinger "
+"search per page in the OPAC."
+msgstr " Treffer der Munzinger Lexikonsuche pro Trefferseite im OPAC an."
 
 # Enhanced content > Munzinger > MunzingerPortalID
 msgid ""
