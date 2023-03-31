@@ -240,7 +240,7 @@
                             <tbody>
                                 <tr>
                                     <th>[% tp('purchase suggestion created by', 'Created by:') | html %]</th>
-                                    <td>[% suggesteddate | $KohaDates %]</td>
+                                    <td><span style="display:none;">[% suggesteddate %]</span>[% suggesteddate | $KohaDates %]</td>
                                     <td>
                                         [% IF ( suggestedby_patron.borrowernumber ) %]
                                             <a href="/cgi-bin/koha/members/moremember.pl?borrowernumber=[% suggestedby_patron.borrowernumber | uri %]">[% suggestedby_patron.surname | html %], [% suggestedby_patron.firstname | html %] ([% suggestedby_patron.cardnumber | html %])</a>
@@ -250,7 +250,7 @@
                                 </tr>
                                 <tr>
                                     <th>Managed by:</th>
-                                    <td>[% manageddate | $KohaDates %]</td>
+                                    <td><span style="display:none;">[% manageddate %]</span>[% manageddate | $KohaDates %]</td>
                                     <td>
                                         [% IF ( managedby_patron.borrowernumber ) %]
                                             <a href="/cgi-bin/koha/members/moremember.pl?borrowernumber=[% managedby_patron.borrowernumber | uri %]">[% managedby_patron.surname | html %], [% managedby_patron.firstname | html %] ([% managedby_patron.cardnumber | html %])</a>
@@ -260,7 +260,7 @@
                                 </tr>
                                 <tr>
                                     <th>Accepted on:</th>
-                                    <td>[% accepteddate | $KohaDates %]</td>
+                                    <td><span style="display:none;">[% accepteddate %]</span>[% accepteddate | $KohaDates %]</td>
                                     <td>
                                         [% IF ( acceptedby_patron.borrowernumber ) %]
                                             <a href="/cgi-bin/koha/members/moremember.pl?borrowernumber=[% acceptedby_patron.borrowernumber | uri %]">[% acceptedby_patron.surname | html %], [% acceptedby_patron.firstname | html %] ([% acceptedby_patron.cardnumber | html %])</a>
@@ -270,7 +270,7 @@
                                 </tr>
                                 <tr>
                                     <th>Last modification on:</th>
-                                    <td>[% lastmodificationdate | $KohaDates %]</td>
+                                    <td><span style="display:none;">[% lastmodificationdate %]</span>[% lastmodificationdate | $KohaDates %]</td>
                                     <td>
                                         [% IF ( lastmodificationby_patron.borrowernumber ) %]
                                             <a href="/cgi-bin/koha/members/moremember.pl?borrowernumber=[% lastmodificationby_patron.borrowernumber | uri %]">[% lastmodificationby_patron.surname | html %], [% lastmodificationby_patron.firstname | html %] ([% lastmodificationby_patron.cardnumber | html %])</a>
