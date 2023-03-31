@@ -48,7 +48,7 @@ unless ( $biblionumber ) {
 }
 my $biblio = Koha::Biblios->find( $biblionumber );
 
-if ( C4::Context->preference("OPACLocalCoverImages") ) {
+if ( $biblio && C4::Context->preference("OPACLocalCoverImages") ) {
     my $images = !$imagenumber ? Koha::Biblios->find($biblionumber)->cover_images->as_list : [];
     $template->param(
         OPACLocalCoverImages => 1,
