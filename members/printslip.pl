@@ -41,6 +41,7 @@ use C4::Members;
 use C4::Koha;
 use Koha::DateUtils;
 use Koha::Database;
+use Koha::Libraries;
 
 #use Smart::Comments;
 #use Data::Dumper;
@@ -98,7 +99,7 @@ if ( $print eq 'checkinslip' ) {
 							 'IN' => $stats->search( 
 								{ 
 									 itemnumber => { -ident => 'me.itemnumber' }, 
-									 branch => $checkinslip_branch,
+									 branch => Koha::Libraries->get_effective_branch($checkinslip_branch),
 									 datetime => { '>=' => $today_start, '<=' => $today_end },
 									 type => 'return',
 									 borrowernumber => $borrowernumber,
