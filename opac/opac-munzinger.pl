@@ -35,8 +35,9 @@ if ( C4::Context->preference('MunzingerEncyclopediaSearchEnabled') ) {
     my $search = $query->param('search');
     my $publication = $query->param('publication');
     my $maxcount = $query->param('maxcount');
+    my $offset = $query->param('offset');
     my $munzingerService = C4::External::Munzinger->new();
-    $result = $munzingerService->getCategorySummary($userid,$search,$publication,$maxcount);
+    $result = $munzingerService->getCategorySummary($userid,$search,$publication,$maxcount,$offset);
 }
 
 my $json_reply = JSON->new->encode( { result => $result } );

@@ -26595,6 +26595,64 @@ if( CheckVersion( $DBversion ) ) {
     NewVersion( $DBversion, "", "Add FK constraint for itemnumber to collections_tracking.");
 }
 
+$DBversion = '21.05.14.006';
+if( CheckVersion( $DBversion ) ) {
+    my ($count) = $dbh->selectrow_array("SELECT count(*) FROM language_rfc4646_to_iso639  
+                                         WHERE rfc4646_subtag = 'bs' AND iso639_2_code = 'bos'");
+    if ($count < 1) {
+        $dbh->do(q{ 
+            INSERT IGNORE INTO language_subtag_registry( subtag, type, description, added) VALUES ( 'bs', 'language', 'Bosnian','2023-25-03')
+            });
+        $dbh->do(q{ 
+            INSERT IGNORE INTO language_rfc4646_to_iso639(rfc4646_subtag,iso639_2_code) VALUES ( 'bs', 'bos')
+            });
+        $dbh->do(q{ 
+            INSERT IGNORE INTO language_descriptions(subtag, type, lang, description) VALUES 
+                    ( 'bs', 'language', 'bs', 'босански'),
+                    ( 'bs', 'language', 'en', 'Bosnian'),
+                    ( 'bs', 'language', 'de', 'Bosnisch'),
+                    ( 'bs', 'language', 'fr', 'Bosniaque'),
+                    ( 'bs', 'language', 'es', 'Bosnio'),
+                    ( 'am', 'language', 'de', 'Amharisch'),
+                    ( 'az', 'language', 'de', 'Aserbaidschanisch'),
+                    ( 'be', 'language', 'de', 'Belarussisch'),
+                    ( 'bn', 'language', 'de', 'Bengalisch'),
+                    ( 'eu', 'language', 'de', 'Baskisch'),
+                    ( 'fo', 'language', 'de', 'Färöisch'),
+                    ( 'is', 'language', 'de', 'Isländisch'),
+                    ( 'kn', 'language', 'de', 'Kannada'),
+                    ( 'km', 'language', 'de', 'Khmer'),
+                    ( 'mi', 'language', 'de', 'Maori'),
+                    ( 'mn', 'language', 'de', 'Mongolisch'),
+                    ( 'ms', 'language', 'de', 'Malaiisch'),
+                    ( 'ne', 'language', 'de', 'Nepali'),
+                    ( 'pbr', 'language', 'de', 'Pangwa'),
+                    ( 'prs', 'language', 'de', 'Dari'),
+                    ( 'rw', 'language', 'de', 'Kinyarwanda'),
+                    ( 'sd', 'language', 'de', 'Sindhi'),
+                    ( 'sk', 'language', 'de', 'Slowakisch'),
+                    ( 'sl', 'language', 'de', 'Slowenisch'),
+                    ( 'sq', 'language', 'de', 'Albanisch'),
+                    ( 'sw', 'language', 'de', 'Swahili'),
+                    ( 'ta', 'language', 'de', 'Tamil'),
+                    ( 'tl', 'language', 'de', 'Tagalog'),
+                    ( 'mr', 'language', 'de', 'Marathi')
+            });
+    }
+    
+    NewVersion( $DBversion, "", "Add Bosnian language and German language descriptions.");
+}
+
+$DBversion = "21.05.14.007";
+if ( CheckVersion($DBversion) ) {
+    $dbh->do(q{
+        INSERT IGNORE INTO systempreferences (variable, value, options, explanation, type ) VALUES
+            ('MunzingerNumSearchResults','20',NULL,'Maximum number of results per page displayed in the OPAC.','Integer');
+    });
+    
+    NewVersion( $DBversion, "", "Add system preference MunzingerNumSearchResults.");
+}
+
 # SEE bug 13068
 # if there is anything in the atomicupdate, read and execute it.
 my $update_dir = C4::Context->config('intranetdir') . '/installer/data/mysql/atomicupdate/';

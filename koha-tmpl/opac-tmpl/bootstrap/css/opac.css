@@ -151,9 +151,31 @@ th {
     font-size: 100%;
     text-align: center;
 }
-#encyclopediaheader.encyclopediasource {
-    top: 0.55em;
-    position: relative;
+#encyclopediaheader nav .pagination {
+    margin-top: 0.15em;
+}
+#encyclopediaheader .encyclopediasource {
+    margin-top: 0.4em;
+    display: inline-block;
+}
+#encyclopediahits .encyclopediahitdescription {
+    margin-top: 0.3em;
+}
+#encyclopediahits .encyclopediahitheader {
+    opacity: 0.5
+}
+.encyclopediahitdescription .results_summary {
+    font-size: 100%;
+}
+.encyclopediahitdescription .results_summary {
+    font-size: 100%;
+}
+#encyclopediahits .munzingerHitFoundDisplay {
+    display: none;
+}
+#encyclopediahits .munzingerHitFoundDisplayName {
+    font-size: 100%;
+    color: slategray;
 }
 .detail_volume_list { 
     margin-top: 1em; 

@@ -37,6 +37,7 @@ my %scrubbertypes = (
         default => [ 1 => { '*' => 1 } ],
         comment => 1,
     },
+    munzinger => { allow => [qw( span )], rules => [ span => { class => 1 } ] },
 );
 
 

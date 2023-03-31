@@ -435,6 +435,7 @@ INSERT INTO systempreferences ( `variable`, `value`, `options`, `explanation`, `
 ('MembershipExpiryDaysNotice','',NULL,'Send an account expiration notice that a patron\'s card is about to expire after','Integer'),
 ('MergeReportFields','',NULL,'Displayed fields for deleted MARC records after merge','Free'),
 ('MunzingerEncyclopediaSearchEnabled','0',NULL,'Enable Munzinger encyclopedia collection search in OPAC. Activate only if you want to enrich OPAC search results with results of the Munzinger encyclopedia collections. You need to contract with Munzinger to use this feature.','YesNo'),
+('MunzingerNumSearchResults','20',NULL,'Maximum number of results per page displayed in the OPAC.','Integer'),
 ('MunzingerPortalID','',NULL,'In order to use Munzinger encyclopedia collection search, configure the Portal ID (portalid) provided by Munzinger to enable the Munzinger search feature.','Free'),
 ('minPasswordLength','8',NULL,'Specify the minimum length of a patron/staff password','free'),
 ('NewItemsDefaultLocation','','','If set, all new items will have a location of the given Location Code ( Authorized Value type LOC )',''),

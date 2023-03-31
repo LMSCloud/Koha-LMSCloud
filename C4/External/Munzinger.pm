@@ -1,6 +1,6 @@
 package C4::External::Munzinger;
 
-# Copyright 2017 LMSCloud GmbH
+# Copyright 2017,2023 LMSCloud GmbH
 #
 # This file is part of Koha.
 #
@@ -22,28 +22,23 @@ use Modern::Perl;
 use utf8;
 
 use C4::Context;
-use Koha::Patrons;
+use C4::Scrubber;
 use C4::External::DivibibPatronStatus;
+use Koha::Patrons;
 
 use LWP::UserAgent;
 use XML::Simple;
-use POSIX qw(strftime);
-use MIME::Base64;
-use Crypt::Twofish;
-use File::Slurp;
-use Crypt::CBC;
-use Encode;
-use Scalar::Util qw(reftype);
+use Digest::SHA qw(sha512_hex);
 use URI::Escape;
-
 use Data::Dumper;
 use Carp;
+use Scalar::Util qw(reftype);
 
 use vars qw($VERSION @ISA @EXPORT @EXPORT_OK %EXPORT_TAGS);
 
 BEGIN {
     require Exporter;
-    $VERSION = 3.07.00.049;
+    $VERSION = 2.00;
     @ISA = qw(Exporter);
     @EXPORT = qw();
     @EXPORT_OK = qw();
@@ -59,7 +54,9 @@ use C4::External::Munzinger;
 
 my $munzingerService = C4::External::Munzinger->new();
 
-$munzingerService->getCategorySummary("Queen");
+$munzingerService->getCategorySummary($user,'Queen');
+$munzingerService->getCategorySummary($user,'Merkel','',20);
+$munzingerService->getCategorySummary($user,'Merkel','biographien',25,1);
 
 =head1 DESCRIPTION
 
@@ -83,34 +80,11 @@ sub new {
     my $self = {};
     bless $self, $class;
     
-    my $simplesearch   = "https://www.munzinger.de/metasearch/xml/simple/simple.jsp?";
-    my $detailedsearch = "https://www.munzinger.de/metasearch/xml/simple/";
-    my $allsearch = "https://www.munzinger.de/search/katalog/query-simple?";
-    
-    $self->{'simplesearch'} = $simplesearch;
-    $self->{'detailedsearch'} = $detailedsearch;
-    $self->{'allsearch'} = $allsearch;
-    $self->{'publications'} = {
-                                    'Film'                       => 'film.jsp',
-                                    'Personen'                   => 'personen.jsp',
-                                    'Länder'                     => 'länder.jsp',
-                                    'Pop'                        => 'pop.jsp',
-                                    'Biographien'                => 'biographien.jsp',
-                                    'Sport'                      => 'sport.jsp',
-                                    'Duden Basiswissen Schule'   => 'basiswissen.jsp',
-                                    'Duden'                      => 'duden.jsp',
-                                    'Filmkritiken'               => 'film.jsp',
-                                    'Kindler'                    => 'kindler.jsp',
-                                    'KLG'                        => 'klg.jsp',
-                                    'KLFG'                       => 'klfg.jsp',
-                                    'KDG '                       => 'kdg.jsp',
-                                    'KLL'                        => 'kll.jsp',
-                                    'Kindlers Literatur Lexikon' => 'klg.jsp',
-                                    'Chronik'                    => 'chronik.jsp'
-                              };
-    
+    $self->{'search'} = "https://online.munzinger.de/metasearch/xml/simple";
+    $self->{'allsearch'} = "https://online.munzinger.de/search/katalog/query-simple?";
+
     my $ua = LWP::UserAgent->new;
-    $ua->timeout(3);
+    $ua->timeout(10);
     $ua->env_proxy;
     
     $self->{'ua'} = $ua;
@@ -132,14 +106,18 @@ sub new {
         close $fh;
     }
     
-    carp "key value not defined in Munzinger config '$file'" if (! exists($config{'key'}) );
-    carp "iv value not defined in Munzinger config '$file'" if (! exists($config{'iv'}) );
+    carp "salt value not defined in Munzinger config '$file'" if (! exists($config{'salt'}) );
     
-    $self->{'key'} = $config{'key'} if ( exists($config{'key'}) );
-    $self->{'iv'}  = $config{'iv'} if ( exists($config{'iv'}) );
+    $self->{'salt'} = $config{'salt'} if ( exists($config{'salt'}) );
+    $self->{'portalid'} = C4::Context->preference('MunzingerPortalID');
     
     $self->{'conf_ok'} = 0;
-    $self->{'conf_ok'} = 1 if ( exists($config{'key'}) && exists($config{'iv'}) );
+    $self->{'conf_ok'} = 1 if ( exists($self->{'salt'}) && exists($self->{'portalid'}) );
+    
+    $self->{'trace'} = 0;
+    $self->{'trace'} = 1 if (C4::Context->preference('MunzingerTraceEnabled'));
+    
+    $self->{'scrubber'} = C4::Scrubber->new('munzinger');
 
     return $self;
 }
@@ -156,21 +134,37 @@ Ask Munzinger to provide the related data.
 
 sub encryptKey {
     my $self = shift;
-    my $keydata = shift;
+    my $userid = shift;
     
-    my $cipher = Crypt::CBC->new(
-                            -literal_key => 1,
-                            -key    => $self->{'key'},
-                            -cipher => 'Twofish',
-                            -iv => $self->{'iv'},
-                            -header => 'none'
-                      );
-    my $requestkey = encode_base64($cipher->encrypt($keydata)); 
-    $requestkey =~ s/[+]/(/g;
-    $requestkey =~ s/[=]/_/g;
-    $requestkey =~ s/[\/]/)/g;
-    $requestkey =~ s/[\r\t\n]//g;
-    return $requestkey;
+    my $user = 'dummy';
+    my $munzingerKey = '';
+    
+    if ( $userid ) {
+        my $patron = Koha::Patrons->find({ userid => $userid } );
+        my $patronStatus = C4::External::DivibibPatronStatus->new();
+        my $pStatus = $patronStatus->getPatronStatus( $patron );
+            
+        if ( $pStatus && $pStatus->{status} eq '3' ) {
+            $user = $patron->cardnumber;
+        }
+    }
+    
+    my $time = time;
+    my $key = $self->{'salt'} . ':' . $self->{'portalid'} . ':' . $time . ':' . $user;
+    
+    my $requestkey = sha512_hex($key);
+    
+    my $parameters = { 
+                        ifmtoken  => $requestkey, 
+                        portalid  => $self->{'portalid'},
+                        timestamp => $time,
+                        user      => $user
+                     };
+                     
+    carp "C4::External::Munzinger->encryptKey() key (salt:portalid:time:userid): $key" if ( $self->{trace} );
+    carp "C4::External::Munzinger->encryptKey() SHA512 key: $requestkey" if ( $self->{trace} );
+    
+    return ($parameters,$requestkey,$key);
 }
 
 
@@ -187,319 +181,61 @@ sub simpleSearch {
     my $userid = shift;
     my $searchtext = shift;
     my $publication = shift;
-    my $maxcount = shift;
+    my $maxcount = shift || 20;
+    my $offset = shift || 0;
     
     return undef if (! $self->{'conf_ok'} );
-    return undef unless ( C4::Context->preference('MunzingerPortalID') );
     
     $searchtext = $self->normalizeSearchRequest($searchtext);
     
     return undef if (! $searchtext );
-   
-    my $requestkey = '';
-    my $user = 'dummy';
-    my $munzingerKey = '';
     
-    if ( $userid ) {
-        my $patron = Koha::Patrons->find({ userid => $userid } );
-        my $patronStatus = C4::External::DivibibPatronStatus->new();
-        my $pStatus = $patronStatus->getPatronStatus( $patron );
-            
-        if ( $pStatus && $pStatus->{status} eq '3' ) {
-            $user = $patron->cardnumber;
-        }
-    }
-    
-    if ( exists($self->{'key'}) ) {
-        my $datestring = strftime "%Y%m%e%H%M%S", localtime;
-        $munzingerKey = "userid=". $user . "&portalid=" . C4::Context->preference('MunzingerPortalID') . "&ts=$datestring";
-        $requestkey = $self->encryptKey($munzingerKey);
-    }
- 
-    my $url;
-    if ( $publication ) {
-        $url = $self->{'detailedsearch'};
-        
-        my $sort = '&sort=field:title';
-        
-        if ( exists($self->{'publications'}->{$publication}) ) {
-            $url .= $self->{'publications'}->{$publication};
-            
-            if ( $publication eq 'Chronik' ) {
-                $sort = ''; # '&sort=-field:sort';
+    my ($parameters,$requestkey,$munzingerKey) = $self->encryptKey($userid);
+
+    my $authenticationParametersAdd = '';
+    if ( $parameters->{user} ne 'dummy' ) {
+        foreach my $parameter (sort keys %$parameters) {
+            if ( $parameter ne 'portalid' ) {
+                $authenticationParametersAdd .= '&' . uri_escape_utf8($parameter) . '=' . uri_escape_utf8($parameters->{$parameter});
             }
         }
-        if ( $maxcount && $maxcount > 200 ) {
-            $maxcount = 200;
-        }
-        $url .= "?text=" . uri_escape_utf8($searchtext) . $sort;
-        $url .= "&size=$maxcount&page=1" if ( $maxcount );
     }
-    else {
-        $url = $self->{'simplesearch'};
-        $url .= "text=" . uri_escape_utf8($searchtext);
-    }
-        
-    $url .= "&key=" . uri_escape_utf8($requestkey) if ($requestkey ne '');
     
-    my $response = $self->{'ua'}->get($url);
+    $parameters->{text} = $searchtext;
     
-    if ( defined($response) && $response->is_success ) {
-        # print Dumper($response->content);
-        
-        carp "C4::External::Munzinger->simpleSearch() with URL $url (key=$munzingerKey)" if (C4::Context->preference('MunzingerTraceEnabled'));
-            
-        my $respstruct = XMLin( $response->content, KeyAttr => { hit => 'id' }, ForceArray => ["hitlist","hit"], KeepRoot => 1 );
-        
-        if ( defined($respstruct->{error}) ) {
-            carp "C4::External::Munzinger->simpleSearch() with URL $url (key=$munzingerKey) returned with error result. Error id " . $respstruct->{error}->{id} . ": " . $respstruct->{error}->{content} if (C4::Context->preference('MunzingerTraceEnabled')); 
+    my $url = $self->{'search'};
+    if ( $publication ) {
+        if ( $maxcount && $maxcount > 1000 ) {
+            $maxcount = 1000;
         }
+        if ( $offset ) {
+            $parameters->{start} = $offset+1;
+        }
+        $parameters->{scope} = $publication;
+        $parameters->{hits} = 'all';
+        $parameters->{size} = $maxcount;
+    }
+    
+    my $linkadd = '';
+    
+    carp "C4::External::Munzinger->simpleSearch() sending request to url: $url\nwith parameters:" . Dumper($parameters) if ( $self->{trace} );
+    my $response = $self->{'ua'}->post($url,$parameters);
+    
+    carp "C4::External::Munzinger->simpleSearch() returns status: " . $response->status_line if ( $self->{trace} );
+    carp "C4::External::Munzinger->simpleSearch() returns content: " . $response->content if ( $self->{trace} );
+    
+    if ( defined($response) && $response->is_success ) {  
+        my $respstruct = XMLin( $response->content, KeyAttr => { hit => 'count' }, ForceArray=> qr/^(hitlist|hit)$/, KeepRoot => 1 );
         
-        $respstruct->{'searchmunzinger'}  = $self->{'allsearch'} . "stichwort=$searchtext&portalid=" . C4::Context->preference('MunzingerPortalID');
-        $respstruct->{'searchmunzinger'} .= "&key=$requestkey" if ($requestkey ne '');
-
-        # 
-        carp Dumper($respstruct) if (C4::Context->preference('MunzingerTraceEnabled'));
+        $respstruct->{'authenticationParameters'} = $authenticationParametersAdd;
+        $respstruct->{'searchmunzinger'}  = $self->{'allsearch'} . "stichwort=" . uri_escape_utf8($searchtext) . "&portalid=" . $self->{'portalid'} . $authenticationParametersAdd;
         
         return $respstruct;
     }
     else {
-        carp "C4::External::Munzinger->simpleSearch() with URL $url returned with HTTP error code " . $response->error_as_HTML if (C4::Context->preference('MunzingerTraceEnabled'));   
+        carp "C4::External::Munzinger->simpleSearch() with URL $url returned with HTTP error code " . $response->error_as_HTML if ($self->{trace});   
     }
     return undef;
-}
-
-=head2 getCategorySummary
-
-Execute a simple search and return the as new data structure grouping the results by facet categories. The return result may look like the following:
-
-{
-  'categorycount' => 3,
-  'hitcount' => 6,
-  'categories' => [
-            {
-              'name' => 'Personen',
-              'count' => '3',
-              'hits' => [
-                  {
-                    'link' => 'https://www.munzinger.de/document/00000002405',
-                    'title' => "Elizabeth; Mutter von K\x{f6}nigin Elizabeth II. von Gro\x{df}britannien",
-                    'text' => "* 4. August 1900 London, \x{2020} 30. M\x{e4}rz 2002 Windsor, Mutter von K\x{f6}nigin Elizabeth II. von Gro\x{df}britannien"
-                  },
-                  {
-                    'text' => "* 21. April 1926 London, geb. Prinzessin Elizabeth Alexandra Mary Windsor; ab 6.2.1952 K\x{f6}nigin des Vereinigten K\x{f6}nigreichs nach dem Tod des Vaters George VI.(Kr\x{f6}nung am 2. 6.1953 in der Westminster-Abtei), seit 1947 verheiratet mit Philip Mountbatten  (nach der Heirat: Herzog von Edinburgh), 2012/2013 60-j\x{e4}hriges Thron- und Kr\x{f6}nungsjubil\x{e4}um",
-                    'title' => "Elizabeth II.; K\x{f6}nigin von Gro\x{df}britannien und Nordirland",
-                    'link' => 'https://www.munzinger.de/document/00000000073'
-                  },
-                  {
-                    'title' => "Mary; K\x{f6}nigin von England",
-                    'text' => "* 26. Mai 1867 im Kensington Palast/London, \x{2020} 24. M\x{e4}rz 1953 London,  K\x{f6}nigin von England; verheiratet mit Georg V. ab 1893; Mutter von George VI.",
-                    'link' => 'https://www.munzinger.de/document/00000000801'
-                  }
-                ]
-            },
-            {
-              'name' => 'Pop',
-              'count' => '1',
-              'hits' => [
-                  {
-                    'link' => 'https://www.munzinger.de/document/02000000117',
-                    'title' => 'Queen; britische Art-Rock-Band',
-                    'text' => 'Britische Art-Rock-Band'
-                  }
-                ]
-            },
-            {
-              'name' => 'Duden Basiswissen Schule',
-              'count' => '2',
-              'hits' => [
-                  {
-                    'text' => "Sprechen<br />N\x{fc}tzliches Basisvokabular 2.5.1 Describing ourselves and others<br />Taking part in politics",
-                    'title' => "Duden Basiswissen Schule \x{2013} Englisch",
-                    'link' => 'http://www.munzinger.de/search/duden/basiswissen.jsp?id=BWSEN0087&query=Queen'
-                  },
-                  {
-                    'title' => "Duden Basiswissen Schule \x{2013} Englisch",
-                    'text' => "Lern- und Arbeitsstrategien f\x{fc}r den Englischunterricht<br />Produktion eigener Texte<br />Der Bericht und der Brief",
-                    'link' => 'http://www.munzinger.de/search/duden/basiswissen.jsp?id=BWSEA0056&query=Queen'
-                  }
-                ]
-            }
-          ]
-}
-
-
-=cut
-
-sub getCategorySummary {
-    my $self = shift;
-    my $userid = shift;
-    my $searchtext = shift;
-    my $publication = shift;
-    my $maxcount = shift;
-    
-    my $categories = { categorycount => 0, hitcount => 0, categories => [] };
-    
-    my $result;
-    
-    $result = $self->simpleSearch($userid,$searchtext,$publication,$maxcount) if ( defined($searchtext) );
-        
-    if ( defined($result) && exists($result->{'hitlists'} ) ) {
-        $categories->{'searchmunzinger'} = $result->{'searchmunzinger'};
-        $result = $result->{'hitlists'};
-    }
-    
-    if ( defined($result) && exists($result->{'hitlist'}) ) {
-        my @categhits = @{$result->{'hitlist'}};
-        
-        foreach my $categhit (@categhits) {
-            if ( defined($categhit->{publikation}) && defined($categhit->{totalCount}) ) {
-                
-                my $categentry = { name => $categhit->{publikation}, count => $categhit->{totalCount}, hits => [] };
-
-                my $hitcount = 0;
-                if ( defined($categhit->{hit}) && reftype($categhit->{hit}) eq 'HASH' ) {
-                    my @keys;
-                    if ( $categhit->{publikation} && $categhit->{publikation} eq 'Chronik' ) {
-                        @keys = reverse sort {
-                                        if ( exists($categhit->{hit}->{$a}->{datum}) && 
-                                             exists($categhit->{hit}->{$b}->{datum}) )
-                                        {
-                                            my $date1 = 0;
-                                            my $date2 = 0;
-                                            if ( $categhit->{hit}->{$a}->{datum} =~ /^([0-9]+)\.([0-9]+)\.([0-9]+)$/ ) {
-                                                $date1 = sprintf("%04d%02d%02d",$3,$2,$1);
-                                            }
-                                            if ( $categhit->{hit}->{$b}->{datum} =~ /^([0-9]+)\.([0-9]+)\.([0-9]+)$/ ) {
-                                                $date2 = sprintf("%04d%02d%02d",$3,$2,$1);
-                                            }
-                                            return $date1 <=> $date2;
-                                        }
-                                        return $a cmp $b;
-                                     }
-                                     keys %{$categhit->{'hit'}};
-                    } else {
-                        @keys = sort {
-                                        if ( exists($categhit->{hit}->{$a}->{title}) && 
-                                             exists($categhit->{hit}->{$b}->{title}) )
-                                        {
-                                            return lc($categhit->{hit}->{$a}->{title}) cmp lc($categhit->{hit}->{$b}->{title});
-                                        }
-                                        return $a cmp $b;
-                                     } keys %{$categhit->{'hit'}};
-                    }
-                    foreach my $hit( @keys ) {
-                        push @{$categentry->{hits}}, $self->formatCategoryHit($categhit->{hit}->{$hit});
-                        $hitcount++;
-                    }
-                }
-                if ($hitcount) {
-                    push(@{$categories->{categories}}, $categentry);
-                    $categories->{categorycount} += 1;
-                    $categories->{hitcount} += $categhit->{totalCount};
-                }
-            }
-        }
-    }
-
-    # print Dumper($categories);
-    
-    return $categories;
-    
-}
-
-=head2 formatCategoryHit
-
-Return a hash ref that puts Munzinger hit data into a unified data structure consisting of title, text and link.
-
-=cut
-
-sub formatCategoryHit {
-    my $self = shift;
-    my $hit = shift;
-    my $entry = { title => '', text => '', link => '' };
-    
-    if ( $hit->{'xsi:type'} eq 'person' ) {
-        $entry->{title} = $hit->{title} if (defined($hit->{title}));
-        $entry->{text}  = $hit->{text} if (defined($hit->{text}));
-        $entry->{link}  = $hit->{url} if (defined($hit->{url}));
-    }
-    elsif ( $hit->{'xsi:type'} eq 'bws' ) {
-        $entry->{title} = $hit->{book} if (defined($hit->{book}));
-        my $text = '';
-        $text .= ( $text ne '' ? '<br />' : '' ) . $hit->{chapter} if (defined($hit->{chapter}));
-        $text .= ( $text ne '' ? '<br />' : '' ) . $hit->{section} if (defined($hit->{section}));
-        $text .= ( $text ne '' ? '<br />' : '' ) . $hit->{subsection} if (defined($hit->{subsection}));
-        $entry->{text}  = $text;
-        $entry->{link}  = $hit->{url} if (defined($hit->{url}));
-    }
-    elsif ( $hit->{'xsi:type'} eq 'ereignis' ) {
-        $entry->{title} = $hit->{title} if (defined($hit->{title}));
-        $entry->{text}  = $hit->{text};
-        if ( 
-                reftype($hit->{text}) eq 'HASH' 
-             && defined($hit->{text}->{div}) 
-             && defined($hit->{text}->{div}->{content}) ) 
-        {
-            if ( reftype($hit->{text}->{div}->{content}) && reftype($hit->{text}->{div}->{content}) eq 'ARRAY' ) {
-                my $text = $hit->{text};
-                my $textout = '';
-                for (my $i=0; $i < scalar(@{ $text->{div}->{content} }); $i++) {
-                    $textout .= $text->{div}->{content}->[$i];
-                    
-                    if ( exists($text->{div}->{a}) && 
-                         reftype($text->{div}->{a}) eq 'ARRAY' &&
-                         $text->{div}->{a}->[$i]->{content}
-                         ) 
-                    {
-                        $textout .= $text->{div}->{a}->[$i]->{content};
-                    }
-                    if ( exists($text->{div}->{a}) && 
-                         reftype($text->{div}->{a}) eq 'HASH'
-                         ) 
-                    {
-                        $textout .= $text->{div}->{a}->{content};
-                        delete($text->{div}->{a});
-                    }
-                };
-                $textout =~ s/(\s)\s+/$1/g;
-                $entry->{text}  = $textout;
-            }
-            else {
-                $entry->{text} = $hit->{text}->{div}->{content};
-            }
-        }
-        $entry->{link}  = $hit->{url} if (defined($hit->{url}));
-    }
-    else {
-        $entry->{title} = $hit->{title} if (defined($hit->{title}));
-        if ( defined($hit->{text}) ) {
-            my $text = $hit->{text};
-            if ( reftype($text) && reftype($text) eq 'HASH' && defined($text->{div}) && defined($text->{div}->{content}) && reftype($text->{div}->{content}) && reftype($text->{div}->{content}) eq 'ARRAY' ) {
-                $text = $text->{div};
-            }
-            if ( reftype($text) && reftype($text) eq 'HASH' && defined($text->{content}) && reftype($text->{content}) && reftype($text->{content}) eq 'ARRAY' && defined($text->{i}) ) {
-                my $settext = '';
-                my @inserttext = ();
-                if ( reftype($text->{i}) && reftype($text->{i}) eq 'ARRAY' ) {
-                    @inserttext = @{$text->{i}};
-                }
-                else {
-                    $inserttext[0] = $text->{i};
-                }
-                my @textlist = @{$text->{content}};
-                
-                for (my $i=0; $i < scalar(@textlist); $i++ ) {
-                    $settext .= $textlist[$i];
-                    $settext .= $inserttext[$i] if ( $i < scalar(@inserttext) );
-                }
-                $text = $settext;
-            }
-            $entry->{text}  = $text;
-        }
-        $entry->{link}  = $hit->{url} if (defined($hit->{url}));
-    }
-    return $entry;
 }
 
 sub normalizeSearchRequest {
@@ -534,4 +270,134 @@ sub normalizeSearchRequest {
     return $search;
 }
 
+=head2 getCategorySummary
+
+Execute a simple search and return the as new data structure grouping the results by facet categories. The return result may look like the following:
+
+{
+  'categorycount' => 2,
+  'hitcount' => 1013,
+  'categories' => [
+                    {
+                      'id' => 'biographien',
+                      'hits' => [
+                                  {
+                                    'title' => 'Merkel, Angela',
+                                    'words' => " Angela <span class=\"highlighter\">Merkel</span> deutsche Physikerin und Politikerin ... www.cdu.de Herkunft Angela Dorothea <span class=\"highlighter\">Merkel</span>, geb. Kasner, wurde am 17.  ...  und SPD 1. Kabinett <span class=\"highlighter\">Merkel</span> 2005-2009 \x{2013} Koalition aus Union ...  und FDP 2. Kabinett <span class=\"highlighter\">Merkel</span> 2009-2013 \x{2013} Koalition aus Union ...  und SPD 4. Kabinett <span class=\"highlighter\">Merkel</span> ab 2018 \x{2013} Koalition aus Union",
+                                    'text' => "*\x{a0}17. Juli 1954 Hamburg, deutsche Physikerin und Politikerin; Bundeskanzlerin 2005-2021; Bundesvorsitzende der CDU 2000-2018; Bundesministerin f\x{fc}r Frauen und Jugend (1991-1994) sowie f\x{fc}r Umwelt, Naturschutz und Reaktorsicherheit (1994-1998); CDU/CSU-Fraktionschefin im Bundestag 2002-2005; CDU-Generalsekret\x{e4}rin 1998-2000; MdB ab 1990",
+                                    'top' => 'true',
+                                    'link' => 'https://online.munzinger.de/document/00000019778?portalid=59013&ifmtoken=a174bdd0f719a38ffcb3f927bdf86f9f5b901c2978dde2e08b8e974d4d6b0a5e5b095ebce9127039300a8592d1b0e3ea0263ca65f2bc77abfca82990b5cc539b&timestamp=1679997969&user=1',
+                                    'date' => '06/2023'
+                                  },
+                                  {
+                                    'title' => 'Merkel, Max',
+                                    'words' => " Max <span class=\"highlighter\">Merkel</span> \x{f6}sterreichischer Fu\x{df}balltrainer ... bei M\x{fc}nchen (Deutschland) Max <span class=\"highlighter\">Merkel</span> z\x{e4}hlte vor allem in den 60er ... Ruf als Erfolgstrainer. Max <span class=\"highlighter\">Merkel</span> war einer der schillernden, ... Bei Rapid bildete <span class=\"highlighter\">Merkel</span> zusammen mit dem gro\x{df}en Ernst ... <span class=\"highlighter\">Merkel</span> war ein Spieler, der seine ",
+                                    'text' => "*\x{a0}7. Dezember 1918 Wien, \x{2020}\x{a0}28. November 2006 Putzbrunn bei M\x{fc}nchen (Deutschland), \x{f6}sterreichischer Fu\x{df}balltrainer; bestritt als Spieler je ein L\x{e4}nderspiel f\x{fc}r \x{d6}sterreich und Deutschland; arbeitete als holl\x{e4}ndischer Nationaltrainer und bei diversen Klubs in \x{d6}sterrreich (Rapid Wien), Deutschland (u. a. Bor. Dortmund, 1860 M\x{fc}nchen, 1. FC N\x{fc}rnberg) und Spanien (FC Sevilla, Atletico Madrid), [...]",
+                                    'top' => 'true',
+                                    'link' => 'https://online.munzinger.de/document/01000000187?portalid=59013&ifmtoken=a174bdd0f719a38ffcb3f927bdf86f9f5b901c2978dde2e08b8e974d4d6b0a5e5b095ebce9127039300a8592d1b0e3ea0263ca65f2bc77abfca82990b5cc539b&timestamp=1679997969&user=1',
+                                    'date' => '48/2006'
+                                  },
+                                  {
+                                    'date' => '09/2009',
+                                    'link' => 'https://online.munzinger.de/document/00000018863?portalid=59013&ifmtoken=a174bdd0f719a38ffcb3f927bdf86f9f5b901c2978dde2e08b8e974d4d6b0a5e5b095ebce9127039300a8592d1b0e3ea0263ca65f2bc77abfca82990b5cc539b&timestamp=1679997969&user=1',
+                                    'top' => 'true',
+                                    'text' => "*\x{a0}1. Oktober 1922 Wien, \x{2020}\x{a0}15. Januar 2006 San Miguel de Allend (Mexiko), \x{f6}sterreichische  Altphilologin und Schriftstellerin; Werke u.\x{a0}a.: \"Das andere Gesicht\", \"Die letzte Posaune\", \"Eine ganz gew\x{f6}hnliche Ehe\", \"Aus den Geleisen\", \"Sie kam zu K\x{f6}nig Salomo\"",
+                                    'title' => 'Merkel, Inge',
+                                    'words' => " Inge <span class=\"highlighter\">Merkel</span> \x{f6}sterreichische Altphilologin ... +43\x{a0}1\x{a0}4065189 Herkunft Inge <span class=\"highlighter\">Merkel</span>, r\x{f6}m.-kath., wurde 1922 als ... verstorbenen Arzt K. Lucius <span class=\"highlighter\">Merkel</span>, einem Sohn des Malers Georg Joshua <span class=\"highlighter\">Merkel</span>, entstammten die Kinder Eva ... 04; Erz\x{e4}hlungen). 2008:\x{a0}Inge <span class=\"highlighter\">Merkel</span>: \"Das gro\x{df}e Spektakel. Eine"
+                                  },
+                                  {
+                                    'date' => '05/2019',
+                                    'link' => 'https://online.munzinger.de/document/00000028067?portalid=59013&ifmtoken=a174bdd0f719a38ffcb3f927bdf86f9f5b901c2978dde2e08b8e974d4d6b0a5e5b095ebce9127039300a8592d1b0e3ea0263ca65f2bc77abfca82990b5cc539b&timestamp=1679997969&user=1',
+                                    'text' => "*\x{a0}26. Mai 1964 K\x{f6}ln, deutscher Schriftsteller; Ver\x{f6}ffentl. u.\x{a0}a.: \"Das Jahr der Wunder\",  \"Lichtjahre entfernt\", \"Das Ungl\x{fc}ck der anderen. Kosovo, Liberia, Afghanistan\", \"Bo\", \"Stadt ohne Gott\"",
+                                    'title' => 'Merkel, Rainer',
+                                    'words' => " Rainer <span class=\"highlighter\">Merkel</span> deutscher Schriftsteller; Ver\x{f6}ffentl ... www.fischerverlage.de Herkunft Rainer <span class=\"highlighter\">Merkel</span> wurde am 26. Mai 1964 in K\x{f6}ln",
+                                    'top' => 'true'
+                                  }
+                                ],
+                      'count' => '962',
+                      'name' => 'Biographien'
+                    },
+                    {
+                      'name' => 'Filmdienst',
+                      'count' => '51',
+                      'hits' => [
+                                  {
+                                    'text' => "Dokumentarisches Portr\x{e4}t \x{fc}ber Angela Merkel, das ihre Biografie und ihre politische Karriere in ein spannungsvolles Verh\x{e4}ltnis setzt, wenngleich die Inhalte ihrer Politik und die Zeitl\x{e4}ufte nur am Rande gestreift werden. In Kombination aus Archivmaterialien und Kurzinterviews treibt die aufw\x{e4}ndig gestaltete [...]",
+                                    'title' => 'Merkel - Macht der Freiheit',
+                                    'words' => " <span class=\"highlighter\">Merkel</span> - Macht der Freiheit Dokumentarisches Portr\x{e4}t \x{fc}ber Angela <span class=\"highlighter\">Merkel</span>, das ihre Biografie und ihre ... <span class=\"highlighter\">Merkel</span> danach. Manchmal scheinen sich ...  Physikerin, und Angela <span class=\"highlighter\">Merkel</span>, die Politikerin, unterscheiden ... Wesentlichen l\x{e4}sst der Film <span class=\"highlighter\">Merkel</span> selbst sprechen, die an \x{201e}<span class=\"highlighter\">Merkel</span>",
+                                    'top' => 'true',
+                                    'date' => '48/2022',
+                                    'link' => 'https://online.munzinger.de/document/10000049010?portalid=59013&ifmtoken=a174bdd0f719a38ffcb3f927bdf86f9f5b901c2978dde2e08b8e974d4d6b0a5e5b095ebce9127039300a8592d1b0e3ea0263ca65f2bc77abfca82990b5cc539b&timestamp=1679997969&user=1'
+                                  }
+                                ],
+                      'id' => 'film'
+                    }
+                  ]
+}
+
+=cut
+
+sub getCategorySummary {
+    my $self = shift;
+    my $userid = shift;
+    my $searchtext = shift;
+    my $publication = shift;
+    my $maxcount = shift;
+    my $offset = shift || 0;
+    
+    my $categories = { categorycount => 0, hitcount => 0, categories => [] };
+    
+    my $result;
+    my $authlinkAdd = '';
+    
+    $result = $self->simpleSearch($userid,$searchtext,$publication,$maxcount,$offset) if ( defined($searchtext) );
+    
+    if ( defined($result) && exists($result->{'hitlists'} ) ) {
+        $categories->{'searchmunzinger'} = $result->{'searchmunzinger'};
+        $authlinkAdd = $result->{'authenticationParameters'};
+        
+        $result = $result->{'hitlists'};
+    }
+    
+    if ( defined($result) && exists($result->{'hitlist'}) ) {
+        my @categhits = @{$result->{'hitlist'}};
+        
+        foreach my $categhit (@categhits) {
+            if ( defined($categhit->{publikation}) && defined($categhit->{id}) && defined($categhit->{totalCount}) ) {
+                
+                my $categentry = { id => $self->{'scrubber'}->scrub($categhit->{id}), name => $self->{'scrubber'}->scrub($categhit->{publikation}), count => $categhit->{totalCount}+0, offset => $offset+0, hits => [] };
+
+                my $hitcount = 0;
+                if ( defined($categhit->{hit}) && reftype($categhit->{hit}) eq 'HASH' ) {
+                    my @keys = sort { $a <=> $b } keys %{$categhit->{hit}};
+                    foreach my $hit( @keys ) {
+                        my $link    = $self->{'scrubber'}->scrub($categhit->{hit}->{$hit}->{url}) . $authlinkAdd;
+                        my $title   = $self->{'scrubber'}->scrub($categhit->{hit}->{$hit}->{title}) || '';
+                        my $date    = $self->{'scrubber'}->scrub($categhit->{hit}->{$hit}->{date}) || '';
+                        my $text    = $self->{'scrubber'}->scrub($categhit->{hit}->{$hit}->{teaser}) || '';
+                        my $top     = $self->{'scrubber'}->scrub($categhit->{hit}->{$hit}->{top}) || "false";
+                        my $words   = $self->{'scrubber'}->scrub($categhit->{hit}->{$hit}->{words}) || '';
+                        push @{$categentry->{hits}}, {
+                                                         link  => $link,
+                                                         title => $title,
+                                                         date  => $date,
+                                                         text  => $text,
+                                                         top   => $top,
+                                                         words => $words
+                                                     };
+                        $hitcount++;
+                    }
+                }
+                push(@{$categories->{categories}}, $categentry);
+                $categories->{categorycount} += 1;
+                $categories->{hitcount} += $categhit->{totalCount};
+            }
+        }
+    }
+    
+    return $categories;
+    
+}
+
 1;
+

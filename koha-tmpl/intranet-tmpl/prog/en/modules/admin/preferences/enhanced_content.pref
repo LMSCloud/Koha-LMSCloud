@@ -165,6 +165,11 @@ Enhanced content:
             - In order to use Munzinger encyclopedia collection search, configure the Portal ID (portalid) 
             - pref: MunzingerPortalID
             - provided by Munzinger to enable the Munzinger search feature.
+        -
+            - Show a maximum of  
+            - pref: MunzingerNumSearchResults
+              class: integer
+            - results of the Munzinger search per page in the OPAC.
     Open Library:
         -
             - pref: OpenLibraryCovers
