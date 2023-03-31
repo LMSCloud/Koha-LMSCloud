@@ -150,6 +150,7 @@ function showBrockhausResult(facetID) {
         $('#numresults').html($('#encyclopedianumresults').html());
     $('#showCatalogHitList').attr("href", "javascript:showCatalogHitListBrockhaus()");
 }
+
 function getBrockhausPagination(facetID, maxHitCount) {
     var paginationText = '';
     if ( brockhausData.results[facetID].numFound <= maxHitCount ) {
