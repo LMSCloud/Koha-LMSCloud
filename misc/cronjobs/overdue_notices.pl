@@ -570,7 +570,7 @@ END_SQL
     $rqoverduerules->execute($branchcode, @myborcat, @myborcatout);
     
     # If it is a mobile branch station check wether there are rules for the mobile branch
-    if ($rqoverduerules->rows == 0 && $library->mobilebranch ){
+    if ( $library->mobilebranch && ($rqoverduerules->rows == 0 || !C4::Context->preference('BookMobileStationOverdueRulesActive')) ){
         $query = "SELECT * FROM overduerules WHERE delay1 IS NOT NULL AND branchcode = ? ";
         $query .= " AND categorycode IN (".join( ',' , ('?') x @myborcat ).") " if (@myborcat);
         $query .= " AND categorycode NOT IN (".join( ',' , ('?') x @myborcatout ).") " if (@myborcatout);
@@ -940,7 +940,9 @@ END_SQL
                 } # end item loop
                 $sth2->finish;
 
-                my @message_transport_types = @{ GetOverdueMessageTransportTypes( $usebranch, $overdue_rules->{categorycode}, $i) };
+                my @message_transport_types = @{ GetOverdueMessageTransportTypes( $branchcode, $overdue_rules->{categorycode}, $i) };
+                @message_transport_types = @{ GetOverdueMessageTransportTypes( $library->mobilebranch, $overdue_rules->{categorycode}, $i) }
+                    if ( $library->mobilebranch && (!@message_transport_types || !C4::Context->preference('BookMobileStationOverdueRulesActive') ) );
                 @message_transport_types = @{ GetOverdueMessageTransportTypes( q{}, $overdue_rules->{categorycode}, $i) }
                     unless @message_transport_types;
 
