@@ -22,7 +22,7 @@
 
     [% FOREACH generatedSlip IN generatedSlips %]
         <div class="message">
-            <iframe id="ProcessingSlip_[% generatedSlip.illrequestid %]" style="height:297mm; width:170mm; border:none; margin-top: 20px; margin-left: 10px;"
+            <iframe id="ProcessingSlip_[% generatedSlip.illrequestid %]" style="height:271mm; width:184mm; border:none; margin-top: -2mm; margin-bottom: 0mm; margin-left: -2mm; margin-right: 0mm;"
                 title="ProcessingSlip [% generatedSlip.illrequestid %]"
                 src="https:/cgi-bin/koha/tools/download-files.pl?filename=[% generatedSlip.filename %]&op=download">
             </iframe>
