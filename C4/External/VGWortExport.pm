@@ -30,7 +30,6 @@ use Koha::DateUtils;
 
 use Data::Dumper;
 use XML::Simple;
-use HTML::Entities;
 use DateTime;
 
 =head1 NAME
@@ -608,15 +607,24 @@ The xml header has the following format:
 sub createXMLHeader {
     my $self = shift;
     
-    my $library = encode_entities( C4::Context->preference('LibraryName') );
+    my $library = encodeXML( C4::Context->preference('LibraryName') );
     
     return $self->{xmlheader} . 
            "\n" .
            '<DATEI VERSION="1.0" ' .
            'BIBLIOTHEK="' . $library . '" ' .
            'ERSTELLT="' . $self->{today} . '" ' . 
-           'FILE_CRV="' . encode_entities($self->{filename}) . '" ' .
+           'FILE_CRV="' . encodeXML($self->{filename}) . '" ' .
            'TRANSACTION="MELDUNG">' . "\n";
+}
+
+sub encodeXML {
+	my $value = shift;
+	$value =~ s/&/&amp;/g;
+	$value =~ s/</&lt;/g;
+	$value =~ s/>/&gt;/g;
+	$value =~ s/"/&quot;/g;
+	return $value;
 }
 
 =head2 createXMLFooter

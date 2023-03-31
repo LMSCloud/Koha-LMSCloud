@@ -306,7 +306,7 @@ sub read_categories_branches_and_itemtypes {
 sub normalizeItypeName {
     my $s = shift;
     $s = NFD($s); 
-    $s =~ s/^[^a-zA-Z_:]/_/;
+    $s =~ s/^[^a-zA-Z0-9_:]/_/;
     $s =~ s/[^-a-zA-Z0-9_:.]/_/g;
     return $s;
 }
