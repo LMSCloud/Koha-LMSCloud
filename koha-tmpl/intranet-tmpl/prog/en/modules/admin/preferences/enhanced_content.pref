@@ -157,9 +157,8 @@ Enhanced content:
                   1: Activate
                   0: "Don't activate"
             - Munzinger encyclopedia search in OPAC. Activate only if you want to enrich OPAC search results with results of the Munzinger encyclopedia collections. You need to contract with Munzinger to use this feature.
-            - Munzinger supports communication using an encrypted key. A library, that wants to use Munzinger must create a key file /etc/koha/munzinger.key containing the two lines
-            - <br>key=[KEY]
-            - <br>iv=[IV]
+            - Munzinger supports communication using an encrypted key. A library, that wants to use Munzinger must create a key file /etc/koha/munzinger.key containing the the line
+            - <br>salt=[salt, provided by munzinger]
             - <br>Ask Munzinger to provide the related data.
         -
             - In order to use Munzinger encyclopedia collection search, configure the Portal ID (portalid) 
@@ -619,7 +618,7 @@ Enhanced content:
             - that will be searched. <br>Each collection will be queried separately in order to retrieve the search results.
             - "The following collections are available:<br>"
             - "ecs.enzy: the encyclopedia<br>"
-            - "ecs.julex: the youth-lexicon<br>"
+            - "ecs.julex: the school-lexicon<br>"
             - "ecs: the encyclopedia and the youth-lexicon<br>"
             - "ecs.kilex: the children-lexicon<br>"
             - "Multiple collections can be combined split by | (bar). E.g. ecs.enzy|ecs.julex. Default: ecs"

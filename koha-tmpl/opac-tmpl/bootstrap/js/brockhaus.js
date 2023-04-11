@@ -108,10 +108,10 @@ function setBrockhausCollectionName(facetData, i)  {
         facetElementName = "Enzyklopädie";
     }
     else if ( facetData[i].searchType == "ecs.julex" ) {
-        facetElementName = "Jugendlexikon";
+        facetElementName = "Schullexikon";
     }
     else if ( facetData[i].searchType == "ecs" ) {
-        facetElementName = "Enzyklopädie und Jugendlexikon";
+        facetElementName = "Enzyklopädie und Schullexikon";
     }
     else if ( facetData[i].searchType == "ecs.kilex" ) {
         facetElementName = "Kinderlexikon";
