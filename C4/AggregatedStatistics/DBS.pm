@@ -124,7 +124,7 @@ $as_values->{'fin_lib_revenue'} = { 'id' => '', 'name' => 'fin_lib_revenue', 'va
 $as_values->{'fin_user_charge_yn'} = { 'id' => '', 'name' => 'fin_user_charge_yn', 'value' => '', 'type' => 'bool' };                                                                                           # DBS2017:65
 
 # staff capacity / 5. PERSONALKAPAZITÄT
-$as_values->{'stf_staff_scheme_appointments'} = { 'id' => '', 'name' => 'stf_staff_scheme_appointments', 'value' => '', 'type' => 'int' };                                                                      # DBS2017:66
+$as_values->{'stf_staff_scheme_appointments'} = { 'id' => '', 'name' => 'stf_staff_scheme_appointments', 'value' => '', 'type' => 'float' };                                                                      # DBS2017:66
 $as_values->{'stf_staff_cnt'} = { 'id' => '', 'name' => 'stf_staff_cnt', 'value' => '', 'type' => 'int' };                                                                                                      # DBS2017:67
 $as_values->{'stf_capacity_FTE'} = { 'id' => '', 'name' => 'stf_capacity_FTE', 'value' => '', 'type' => 'float' };                                                                                              # DBS2017:68
 $as_values->{'stf_cap_FTE_librarians'} = { 'id' => '', 'name' => 'stf_cap_FTE_librarians', 'value' => '', 'type' => 'float' };                                                                                  # DBS2017:69
