@@ -885,12 +885,12 @@
                 strategyManager.getStrategy('shelfBrowserMobileStrategy').makePlay();
                 return;
             }
-            if ((coverFlowContext === 'default' && window.screen.width >= config.gridCoverFlowBreakpoints.s) || !config.coverFlowMobileAllowGridForDefault) {
-                strategyManager.getStrategy('defaultContextStrategy').makePlay();
+            if (coverFlowContext === 'grid' || (window.screen.width <= (config.gridCoverFlowBreakpoints.s - 1) && config.coverFlowMobileAllowGridForDefault)) {
+                strategyManager.getStrategy('gridContextStrategy').makePlay();
                 return;
             }
-            if (coverFlowContext === 'grid' || window.screen.width <= (config.gridCoverFlowBreakpoints.s - 1)) {
-                strategyManager.getStrategy('gridContextStrategy').makePlay();
+            if ((coverFlowContext === 'default' && window.screen.width >= config.gridCoverFlowBreakpoints.s) || !config.coverFlowMobileAllowGridForDefault) {
+                strategyManager.getStrategy('defaultContextStrategy').makePlay();
             }
         }
         catch (error) {
