@@ -141,7 +141,7 @@ function showBrockhausResult(facetID) {
     }
     $('.encyclopediasource').html(brockhausData.results[facetID].name);
     
-    $('.encyclopediaprovider').html(' <a href="' + brockhausData.results[facetID].searchAtBrockhaus + '" target="_blank">' + 'Brockhaus</a> ' );
+    $('.encyclopediaprovider').html(' <a class="external-offer-link" href="' + brockhausData.results[facetID].searchAtBrockhaus + '" target="_blank">' + 'Brockhaus</a> ' );
     $('.encyclopediasearchhitcount').html(' ' + brockhausData.results[facetID].numFound + ' ');
     
     if ( $('.onlyAdditionalOfferFacets').length > 0 )
@@ -219,6 +219,7 @@ function generateBrockhausEntry(facetID,entryID) {
     linkElement.setAttribute('target','_blank');
     linkElement.setAttribute('href',brockhausData.results[facetID].hitList[entryID].url);
     linkElement.setAttribute('alt',brockhausData.results[facetID].hitList[entryID].title);
+    linkElement.setAttribute('title',brockhausData.results[facetID].hitList[entryID].title);
     if ( brockhausData.results[facetID].hitList[entryID].thumbnail ) {
         var imageElement = document.createElement("img");
         imageElement.setAttribute('width','170');
@@ -242,7 +243,7 @@ function generateBrockhausEntry(facetID,entryID) {
     colElement = document.createElement("td");
     colElement.setAttribute('class','bibliocol');
     var txtElement = document.createElement("a");
-    txtElement.setAttribute('class','title');
+    txtElement.setAttribute('class','title external-offer-link');
     txtElement.setAttribute('target','_blank');
     txtElement.setAttribute('href',brockhausData.results[facetID].hitList[entryID].url);
     txtElement.textContent = brockhausData.results[facetID].hitList[entryID].title;

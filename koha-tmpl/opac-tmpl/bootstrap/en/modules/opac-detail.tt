@@ -1218,23 +1218,23 @@
                         [% IF ( ITEM_RESULT.onleihe ) %]
                             [% IF ( ITEM_RESULT.available ) %]
                                 [% IF ( loggedinusername ) %]
-                                    <a href="#" onclick="accessDivibibResource('loan','[% ITEM_RESULT.itemId %]'); return false;">
+                                    <a class="external-offer-link" href="#" onclick="accessDivibibResource('loan','[% ITEM_RESULT.itemId %]'); return false;">
                                        <b><span class="available">Online available for download.</span></b>
                                    </a>
                                 [% ELSE %]
                                    [% IF Koha.Preference( 'DivibibTitleAccessURL' ) %]
-                                   <a href="[% Koha.Preference( 'DivibibTitleAccessURL' ).replace('{TITLEID}',ITEM_RESULT.itemId) %]" alt="Link to Onleihe" target="_blank"><b><span class="available">Available as digital version. Click here for online lending.</span></b></a>
+                                   <a class="external-offer-link" href="[% Koha.Preference( 'DivibibTitleAccessURL' ).replace('{TITLEID}',ITEM_RESULT.itemId) %]" alt="Link to Onleihe" target="_blank"><b><span class="available">Available as digital version. Click here for online lending.</span></b></a>
                                    [% ELSE %]
                                    <span class="available">Download available for logged in users.</span>
                                    [% END %]
                                 [% END %]
                             [% ELSIF ITEM_RESULT.reservable %]
                                 [% IF ( loggedinusername ) %]
-                                     <a href="#" onclick="accessDivibibResource('reservation','[% ITEM_RESULT.itemId %]'); return false;">
+                                     <a class="external-offer-link" href="#" onclick="accessDivibibResource('reservation','[% ITEM_RESULT.itemId %]'); return false;">
                                         <b><span class="available">A copy is available on the [% ITEM_RESULT.datedue | $KohaDates %]. Click here to place a hold.</span></b></a>
                                 [% ELSE %]
                                      [% IF Koha.Preference( 'DivibibTitleAccessURL' ) %]
-                                     <a href="[% Koha.Preference( 'DivibibTitleAccessURL' ).replace('{TITLEID}',ITEM_RESULT.itemId) %]" alt="Link to Onleihe" target="_blank"><b><span class="available">Becomes available as digital version on [% ITEM_RESULT.datedue | $KohaDates %]. Click here to make a reservation.</span></b></a>
+                                     <a class="external-offer-link" href="[% Koha.Preference( 'DivibibTitleAccessURL' ).replace('{TITLEID}',ITEM_RESULT.itemId) %]" alt="Link to Onleihe" target="_blank"><b><span class="available">Becomes available as digital version on [% ITEM_RESULT.datedue | $KohaDates %]. Click here to make a reservation.</span></b></a>
                                      [% ELSE %]
                                      <span class="available"><b>Available on the  [% ITEM_RESULT.datedue | $KohaDates %]. Reservable for logged in users.</b></span>
                                      [% END %]
