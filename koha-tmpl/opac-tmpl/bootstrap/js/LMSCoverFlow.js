@@ -885,7 +885,7 @@
                 strategyManager.getStrategy('shelfBrowserMobileStrategy').makePlay();
                 return;
             }
-            if (coverFlowContext === 'default' && window.screen.width >= config.gridCoverFlowBreakpoints.s) {
+            if ((coverFlowContext === 'default' && window.screen.width >= config.gridCoverFlowBreakpoints.s) || !config.coverFlowMobileAllowGridForDefault) {
                 strategyManager.getStrategy('defaultContextStrategy').makePlay();
                 return;
             }
@@ -926,6 +926,7 @@
             this.coverImageExternalSources = this.config.coverImageExternalSources || true;
             this.coverImageCallbackTimeout = this.config.coverImageCallbackTimeout || 500;
             this.coverFlowContext = this.config.coverFlowContext || 'default';
+            this.coverFlowMobileAllowGridForDefault = this.config.coverFlowMobileAllowGridForDefault || false;
             this.coverFlowShelfBrowser = this.config.coverFlowShelfBrowser || false;
             this.coverFlowContainerWidth = this.config.coverFlowContainerWidth || '100%';
             this.coverFlowContainerMargin = this.config.coverFlowContainerMargin || '0%';
