@@ -16,12 +16,14 @@
 
       const loggedInUsername = document.querySelector('.loggedinusername');
       if (!loggedInUsername) {
+        // eslint-disable-next-line quotes
         this.initializationError = _("Cannot find logged in username element.");
         return;
       }
 
       this.cardnumber = cardnumber;
       if (!this.cardnumber) {
+        // eslint-disable-next-line quotes
         this.initializationError = _("Cannot find cardnumber attribute.");
         return;
       }
@@ -229,6 +231,7 @@
     render() {
       if (!this.cardnumber) return;
       if (this.initializationError) {
+        this.entryPoint.style.display = 'none';
         console.error(this.initializationError);
         return;
       }
