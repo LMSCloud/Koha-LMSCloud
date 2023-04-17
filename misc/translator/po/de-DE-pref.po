@@ -3,7 +3,7 @@ msgstr ""
 "Project-Id-Version: Koha 21.05\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2013-05-16 03:26+0200\n"
-"PO-Revision-Date: 2023-03-31 12:00+0200\n"
+"PO-Revision-Date: 2023-04-11 15:54+0200\n"
 "Last-Translator: Katrin Fischer <katrin.fischer@bsz-bw.de>\n"
 "Language-Team: \n"
 "Language: de\n"
@@ -8004,9 +8004,9 @@ msgstr "ecs.enzy: die Brockhaus-Enzyklopädie<br>"
 
 # Enhanced content > Novelist Select
 msgid ""
-"enhanced_content.pref#BrockhausSearchCollections# ecs.julex: the youth-"
+"enhanced_content.pref#BrockhausSearchCollections# ecs.julex: the school-"
 "lexicon<br>"
-msgstr "ecs.julex: das Jugendlexikon<br>"
+msgstr "ecs.julex: das Schullexikon<br>"
 
 # Enhanced content > Syndetics
 msgid ""
@@ -8018,7 +8018,7 @@ msgstr "ecs.kilex: das Kinderlexikon<br>"
 msgid ""
 "enhanced_content.pref#BrockhausSearchCollections# ecs: the encyclopedia and "
 "the youth-lexicon<br>"
-msgstr "ecs: die Brockhaus-Enzyklopädie und das Jugendlexikon<br>"
+msgstr "ecs: die Brockhaus-Enzyklopädie und das Schullexikon<br>"
 
 # Enhanced content > Brockhaus > BrockhausSearchCollections
 msgid ""
@@ -8616,12 +8616,10 @@ msgid ""
 msgstr " <br>Munzinger stellt diese Informationen auf Anfrage zur Verfügung."
 
 # Enhanced content > Baker and Taylor
-msgid "enhanced_content.pref#MunzingerEncyclopediaSearchEnabled# <br>iv=[IV]"
-msgstr " <br>iv=[IV]"
-
-# Enhanced content > Baker and Taylor
-msgid "enhanced_content.pref#MunzingerEncyclopediaSearchEnabled# <br>key=[KEY]"
-msgstr " <br>key=[KEY]"
+msgid ""
+"enhanced_content.pref#MunzingerEncyclopediaSearchEnabled# <br>salt=[salt, "
+"provided by munzinger]"
+msgstr "<br>salt=[salt, bereitgestellt von Munzinger]"
 
 # Enhanced content > Baker and Taylor
 msgid "enhanced_content.pref#MunzingerEncyclopediaSearchEnabled# Activate"
@@ -8647,12 +8645,12 @@ msgstr ""
 msgid ""
 "enhanced_content.pref#MunzingerEncyclopediaSearchEnabled# Munzinger supports "
 "communication using an encrypted key. A library, that wants to use Munzinger "
-"must create a key file /etc/koha/munzinger.key containing the two lines"
+"must create a key file /etc/koha/munzinger.key containing the the line"
 msgstr ""
-"Munzinger Dienste können über einen verschlüsselten Session-Key. Um "
-"Munzinger-Dienste zu nutzen, müssen in der Datei /etc/koha/munzinger.key auf "
-"dem Server die von Munzinger bereitgestellten Daten zur Generierung des "
-"verschlüsselten Session-Keys wie folgt abgelegt werden:"
+"Munzinger Dienste werden mit Hilfe eines Session-Keys verschlüsselt. Um "
+"Munzinger-Dienste zu nutzen, muss in der Datei /etc/koha/munzinger.key auf "
+"dem Server der von Munzinger bereitgestellte Shared Key (salt) zur "
+"Generierung des verschlüsselten Session-Keys wie folgt abgelegt werden:"
 
 # Enhanced content > Open Library
 msgid "enhanced_content.pref#MunzingerNumSearchResults# Show a maximum of"
@@ -16666,6 +16664,11 @@ msgstr ""
 # Circulation > Holds policy
 #~ msgid "circulation.pref#maxreserves# holds at once."
 #~ msgstr "offene Vormerkungen haben."
+
+# Enhanced content > Baker and Taylor
+#~ msgid ""
+#~ "enhanced_content.pref#MunzingerEncyclopediaSearchEnabled# <br>key=[KEY]"
+#~ msgstr " <br>key=[KEY]"
 
 # I18N/L10N
 #~ msgid ""
