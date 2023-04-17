@@ -885,12 +885,12 @@
                 strategyManager.getStrategy('shelfBrowserMobileStrategy').makePlay();
                 return;
             }
-            if (coverFlowContext === 'default' && window.screen.width >= config.gridCoverFlowBreakpoints.s) {
-                strategyManager.getStrategy('defaultContextStrategy').makePlay();
+            if (coverFlowContext === 'grid' || (window.screen.width <= (config.gridCoverFlowBreakpoints.s - 1) && config.coverFlowMobileAllowGridForDefault)) {
+                strategyManager.getStrategy('gridContextStrategy').makePlay();
                 return;
             }
-            if (coverFlowContext === 'grid' || window.screen.width <= (config.gridCoverFlowBreakpoints.s - 1)) {
-                strategyManager.getStrategy('gridContextStrategy').makePlay();
+            if ((coverFlowContext === 'default' && window.screen.width >= config.gridCoverFlowBreakpoints.s) || !config.coverFlowMobileAllowGridForDefault) {
+                strategyManager.getStrategy('defaultContextStrategy').makePlay();
             }
         }
         catch (error) {
@@ -926,6 +926,7 @@
             this.coverImageExternalSources = this.config.coverImageExternalSources || true;
             this.coverImageCallbackTimeout = this.config.coverImageCallbackTimeout || 500;
             this.coverFlowContext = this.config.coverFlowContext || 'default';
+            this.coverFlowMobileAllowGridForDefault = this.config.coverFlowMobileAllowGridForDefault || false;
             this.coverFlowShelfBrowser = this.config.coverFlowShelfBrowser || false;
             this.coverFlowContainerWidth = this.config.coverFlowContainerWidth || '100%';
             this.coverFlowContainerMargin = this.config.coverFlowContainerMargin || '0%';

@@ -12,15 +12,20 @@
       const { breakpoint = 992, format, cardnumber } = options;
       this.options = options;
       this.format = format;
+      this.initializationError = undefined;
 
       const loggedInUsername = document.querySelector('.loggedinusername');
       if (!loggedInUsername) {
-        throw new Error( _("Cannot find logged in username element.") );
+        // eslint-disable-next-line quotes
+        this.initializationError = _("Cannot find logged in username element.");
+        return;
       }
 
       this.cardnumber = cardnumber;
       if (!this.cardnumber) {
-        throw new Error( _("Cannot find cardnumber attribute.") );
+        // eslint-disable-next-line quotes
+        this.initializationError = _("Cannot find cardnumber attribute.");
+        return;
       }
 
       this.entryPoint = {
@@ -33,6 +38,7 @@
         entryPoint: options?.entryPointMobile,
         ref: undefined,
         styles: '',
+        // eslint-disable-next-line quotes
         hint: _("Your library card"),
       };
       this.modalBackdrop = {
@@ -224,6 +230,11 @@
 
     render() {
       if (!this.cardnumber) return;
+      if (this.initializationError) {
+        this.entryPoint.style.display = 'none';
+        console.error(this.initializationError);
+        return;
+      }
 
       this.addECardMobile();
       this.addModalBackdrop();
