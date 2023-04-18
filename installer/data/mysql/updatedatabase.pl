@@ -26653,6 +26653,38 @@ if ( CheckVersion($DBversion) ) {
     NewVersion( $DBversion, "", "Add system preference MunzingerNumSearchResults.");
 }
 
+$DBversion = "21.05.14.008";
+if ( CheckVersion($DBversion) ) {
+    
+    $dbh->do(q{ ALTER TABLE `browser` MODIFY `parent` VARCHAR(1024) });
+    
+    unless ( index_exists( 'browser', 'browser_by_description' ) ) {
+        $dbh->do(q{ ALTER TABLE `browser` ADD KEY `browser_by_description` (`description`) });
+    }
+    unless ( index_exists( 'browser', 'browser_by_level' ) ) {
+        $dbh->do(q{ ALTER TABLE `browser` ADD KEY `browser_by_level` (`level`) });
+    }
+    unless ( index_exists( 'browser', 'browser_by_classification' ) ) {
+        $dbh->do(q{ ALTER TABLE `browser` ADD KEY `browser_by_classification` (`classification`) });
+    }
+    unless ( index_exists( 'browser', 'browser_by_parent' ) ) {
+        $dbh->do(q{ ALTER TABLE `browser` ADD KEY `browser_by_parent` (`parent`) });
+    }
+    
+    NewVersion( $DBversion, "", "Add indexes to table browser and increase length of field parent.");
+}
+
+$DBversion = "21.05.14.009";
+if ( CheckVersion($DBversion) ) {
+    $dbh->do(q{
+        INSERT IGNORE INTO systempreferences (variable, value, options, explanation, type ) VALUES
+            ('ekzWebServicesOverwriteCatalogDataOnDelivery','0',NULL,'If enabled, title records wille overwritten on delivery (delivery note or invoice) by available newer titles.','YesNo'),
+            ('ekzWebServicesOverwriteCatalogDataKeepFields','',NULL,'List of MARC fields separated by | which will be kept of the local record when overwriting a title record on delivery.','Free');
+    });
+    
+    NewVersion( $DBversion, "", "Add system preferences ekzWebServicesOverwriteTitleDataOnDelivery and ekzWebServicesOverwriteTitleKeepFields.");
+}
+
 # SEE bug 13068
 # if there is anything in the atomicupdate, read and execute it.
 my $update_dir = C4::Context->config('intranetdir') . '/installer/data/mysql/atomicupdate/';
