@@ -134,7 +134,7 @@
                                         <th>Request ID</th>
                                         <th>Author</th>
                                         <th>Title</th>
-                                        <th>Requested from</th>
+                                        <th>Requested via</th>
                                         <th>Request type</th>
                                         <th>Status</th>
                                         <th>Request placed</th>
@@ -186,7 +186,7 @@
                                             [% request.id | html %]
                                         </li>
                                         <li>
-                                            <label for="backend">Requested from:</label>
+                                            <label for="backend">Requested via:</label>
                                             <span name="HitsBackendName">[% request.backend | html %]</span>
                                         </li>
                                         [% IF (request.biblio_id && request.status != 'COMP' && 0) %]
