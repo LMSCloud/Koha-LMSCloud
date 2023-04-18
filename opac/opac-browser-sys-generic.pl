@@ -51,6 +51,7 @@ my ( $template, $loggedinuser, $cookie ) = get_template_and_user(
 
 # the level of browser to display
 my $level = $query->param('level') || 0;
+my $parentfilter = $query->param('parent') || '';
 my $filter = $query->param('filter');
 my $entries = [];
 
@@ -63,13 +64,13 @@ my $sth;
 my $i=0;
 
 if ( $filter ne '' ) {
-    $sth = $dbh->prepare("SELECT * FROM browser WHERE parent = ? ORDER BY description");
-    $sth->execute($filter);
-    
-    my @level_entries_loop;
+	my @level_entries_loop;
     my @level_folder_loop;
     my @level_loop;
     my @hierarchy_loop;
+    
+    $sth = $dbh->prepare("SELECT * FROM browser WHERE parent = ? ORDER BY description");
+    $sth->execute(($parentfilter ? "$parentfilter | $filter" : "$filter"));
     
     while (my $line = $sth->fetchrow_hashref) {
         $line->{'browse_classification'} = $line->{'classification'};
@@ -80,9 +81,8 @@ if ( $filter ne '' ) {
     }
     
     my $myentry;
-    
-    $sth = $dbh->prepare("SELECT * FROM browser WHERE classification = ?");
-    $sth->execute($filter);
+    $sth = $dbh->prepare("SELECT * FROM browser WHERE description = ? AND parent = ? AND level = ?");
+    $sth->execute($filter,$parentfilter,$level);
     while (my $line = $sth->fetchrow_hashref) {
         $line->{'browse_classification'} = $line->{'classification'};
         $line->{'search'} = createSearchString($line);
@@ -90,11 +90,19 @@ if ( $filter ne '' ) {
     }
 
     my %washere;
-    $sth = $dbh->prepare("SELECT * FROM browser WHERE description = ? ORDER BY description");
+    $sth = $dbh->prepare("SELECT * FROM browser WHERE description = ? AND parent = ? ORDER BY description");
+    my $sthnull = $dbh->prepare("SELECT * FROM browser WHERE description = ? AND (parent = '' OR parent IS NULL) ORDER BY description");
     my $val = $filter;
+    my $pfilter = $parentfilter;
     while ( $val ) {
-        $sth->execute($val);
-        my $line = $sth->fetchrow_hashref;
+		my $line;
+		if ( $pfilter ) {
+			$sth->execute($val,$pfilter);
+			$line = $sth->fetchrow_hashref;
+		} else {
+			$sthnull->execute($val);
+			$line = $sthnull->fetchrow_hashref;
+		}
         if ( $line ) {
 			$line->{'browse_classification'} = $line->{'classification'};
             $val = $line->{'parent'};
@@ -103,6 +111,11 @@ if ( $filter ne '' ) {
             unshift @hierarchy_loop, $line;
             last if ( $line->{'level'} eq '1' );
             $washere{$val} = 1;
+			
+			last if (! $val);
+			my @hierarchy = split(/ \| /,$val);
+            $val = shift @hierarchy;
+            $pfilter = join(" | ",@hierarchy);
         }
         else {
             last;

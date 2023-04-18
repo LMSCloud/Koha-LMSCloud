@@ -23,25 +23,25 @@
 
     <h1>Browse our catalog</h1>
  
-    <h3 style="margin-top: 0px; margin-bottom:0px; margin-top:20px"><a href="opac-browser-sfb.pl">Complete collection</a></h3>
+    <h3 style="margin-top: 0px; margin-bottom:0px; margin-top:20px"><a href="opac-browser-sys-generic.pl">Complete collection</a></h3>
  
-    [% FOREACH HIERACHY_ENTRY IN HIERARCHY_LOOP %]
+    [% FOREACH ENTRY IN HIERARCHY_LOOP %]
         <div class="taxonomy-hierachy-entry">
-            [% IF ( HIERACHY_ENTRY.level != MYENTRY.level ) %]
-            <h3 class="taxononmy-hierarchy-header"><a href="opac-browser-sfb.pl?level=[% HIERACHY_ENTRY.level %]&amp;filter=[% HIERACHY_ENTRY.description |uri %]">&#10149; [% HIERACHY_ENTRY.description | html %]</a></h3>
+            [% IF ( ENTRY.level != MYENTRY.level ) %]
+            <h3 class="taxononmy-hierarchy-header"><a href="opac-browser-sys-generic.pl?level=[% ENTRY.level %]&amp;filter=[% ENTRY.description |uri %]&amp;parent=[% ENTRY.parent |uri %]">&#10149; [% ENTRY.description | html %]</a></h3>
             [% ELSE %]
-            <h3 class="taxononmy-hierarchy-header"><a href="opac-browser-sfb.pl?level=[% HIERACHY_ENTRY.level %]&amp;filter=[% HIERACHY_ENTRY.description |uri %]">&#10149; [% HIERACHY_ENTRY.description | html %]</a></h3>
+            <h3 class="taxononmy-hierarchy-header"><a href="opac-browser-sys-generic.pl?level=[% ENTRY.level %]&amp;filter=[% ENTRY.description |uri %]&amp;parent=[% ENTRY.parent |uri %]">&#10149; [% ENTRY.description | html %]</a></h3>
             [% END %]
     [% END %]
  
-             [% IF ( LEVEL == 1 ) %]
+            [% IF ( LEVEL == 1 ) %]
 				<div class="container-fluid" style="padding-left:0px">
             [% ELSE %]
 				<div class="container-fluid" style="padding-left:25px">
             [% END %]
             
             
-            [% IF ( LEVEL > 1  and MYENTRY ) %]
+            [% IF ( LEVEL > 1 && MYENTRY ) %]
                 <div class="row entry-page-row">
                     <div class="col-lg-12 entry-page-col">&nbsp;</div>
                 </div>
@@ -78,7 +78,7 @@
                                     <i class="fa fa-list-ul"></i>&nbsp;&nbsp;[% ENTRY.description |html %]
                                 [% END %]
                             [% ELSE %]
-                                <a href="opac-browser-sfb.pl?level=[% ENTRY.level %]&amp;filter=[% ENTRY.description |uri %]"><i class="fa fa-folder-o"></i>&nbsp;&nbsp;[% ENTRY.description |html %]</a>
+                                <a href="opac-browser-sys-generic.pl?level=[% ENTRY.level %]&amp;filter=[% ENTRY.description |uri %]&amp;parent=[% ENTRY.parent |uri %]"><i class="fa fa-folder-o"></i>&nbsp;&nbsp;[% ENTRY.description |html %]</a>
                             [% END %]
                             [% IF ( ENTRY.search ) %]
                                 <span style="font-size:0.75em"><i> <a href='opac-search.pl?q=[% ENTRY.search |uri %]'>([% ENTRY.number %] titles)</a></i></span>
@@ -105,7 +105,7 @@
 									[% IF ( ENTRY.endnode ) %]
 										<a href='opac-search.pl?q=[% ENTRY.search |uri %]'><i class="fa fa-list-ul"></i>&nbsp;&nbsp;[% ENTRY.description |html %]</a>
 									[% ELSE %]
-										<a href="opac-browser-sfb.pl?level=[% ENTRY.level %]&amp;filter=[% ENTRY.description |uri %]"><i class="fa fa-folder-o"></i>&nbsp;&nbsp;[% ENTRY.description |html %]</a>
+										<a href="opac-browser-sys-generic.pl?level=[% ENTRY.level %]&amp;filter=[% ENTRY.description |uri %]&amp;parent=[% ENTRY.parent |uri %]"><i class="fa fa-folder-o"></i>&nbsp;&nbsp;[% ENTRY.description |html %]</a>
 									[% END %]
 									<span style="font-size:0.75em"><i> <a href='opac-search.pl?q=[% ENTRY.search |uri %]'>([% ENTRY.number %] titles)</a></i></span>
 								</div>
