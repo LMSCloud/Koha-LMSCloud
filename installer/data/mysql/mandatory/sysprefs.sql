@@ -215,6 +215,8 @@ INSERT INTO systempreferences ( `variable`, `value`, `options`, `explanation`, `
 ('ekzInvoiceSkipAdditionalCosts','0',NULL,'If enabled, additional costs transferred in invoice data (e.g. handling costs) are ignored, otherwise are added to the item price.','YesNo'),
 ('ekzInvoiceWSLastRunDate','',NULL,'Date of last effective execution of the ekz web service handling invoice information.','Free'),
 ('ekzLocalServicesEnabled','0',NULL,'Enable/disable the local ekz web services that will create title data and items as required for media ordered online in the media shop of ekz.bibliotheksservice GmbH.','YesNo'),
+('ekzWebServicesOverwriteCatalogDataOnDelivery','0',NULL,'If enabled, title records wille overwritten on delivery (delivery note or invoice) by available newer titles.','YesNo'),
+('ekzWebServicesOverwriteCatalogDataKeepFields','',NULL,'List of MARC fields separated by | which will be kept of the local record when overwriting a title record on delivery.','Free'),
 ('ekzProcessingNoticesEmailAddress','',NULL,'The handlers of ekz web services will send their processing notices to this e-mail address.','Free'),
 ('ekzSerialOrderWSLastRunDate','',NULL,'Date of last effective execution of the ekz web service handling serial order information.','Free'),
 ('ekzStandingOrderWSLastRunDate','',NULL,'Date of last effective execution of the ekz web service handling standing order information.','Free'),

@@ -126,7 +126,7 @@ function showMunzingerResult(facetID) {
         $('.encyclopediasourceaction').html('<a href="#" onclick="try{$(\'.munzingerHitFoundDisplay\').toggle()}catch(e){}return false" title="' + munzingerHitShowHide + '"><i class="fa fa-search"></i></a> ');
     }
     
-    $('.encyclopediaprovider').html(' <a href="' + munzingerData.results.searchmunzinger + '" target="_blank">' + 'Munzinger</a> ' );
+    $('.encyclopediaprovider').html(' <a class="external-offer-link" href="' + munzingerData.results.searchmunzinger + '" target="_blank">' + 'Munzinger</a> ' );
     $('.encyclopediasearchhitcount').html(' ' + munzingerData.results.categories[facetID].count + ' ');
     
     $('.munzingerHitFoundDisplay span.highlighter').css('font-weight','bold');
@@ -215,7 +215,7 @@ function generateMunzingerEntry(facetID,entryID) {
     }
     colElement.appendChild(dateElement);
     var txtElement = document.createElement("a");
-    txtElement.setAttribute('class','title');
+    txtElement.setAttribute('class','title external-offer-link');
     txtElement.setAttribute('target','_blank');
     txtElement.setAttribute('href',munzingerData.results.categories[facetID].hits[entryID].link);
     if ( munzingerData.results.categories[facetID].hits[entryID].title.length > 0 ) {

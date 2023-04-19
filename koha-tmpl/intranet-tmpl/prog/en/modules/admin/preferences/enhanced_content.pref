@@ -547,6 +547,18 @@ Enhanced content:
                   1: close
                   0: "not close"
             - the invoices it creates in Koha.
+        -
+            - pref: ekzWebServicesOverwriteCatalogDataOnDelivery
+              choices:
+                  1: Do overwrite
+                  0: "Don't overwrite"
+            - cataloge records when processing invoices or delivery notes. <br>
+            - Catalog records may change during the time from ordering to delivery. If this preference is activated, catalog records of ordered material will be retrieved again from sources specified with parameter 'ekzTitleDataServicesSequence' and used to overwrite the local stored catalog record of the delivered material.<br>
+            - If this parameter is activated, catalog records of delivered items will be overwritten if all items of the catalog record were ordered via ekz services but not delivered so far or if no item exists with a notforloan-status greater or equal 0 (means all items have an ordered status).<br>
+            - "You may provide a list of MARC record field numbers (separated by '|') "
+            - pref:  ekzWebServicesOverwriteTitleKeepFields
+            - "which will be kept of the overwritten record (for example: 072|852|942). Field content of the listed fields will be removed from the new record first before copying the content of the record to overwrite."
+
     ekz Cover:
         -
             - pref: EKZCover

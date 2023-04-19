@@ -87,7 +87,7 @@ function checkDivibibAvalability(idList) {
                         [% IF Koha.Preference( 'DivibibTitleAccessURL' ) %]
                         var accessURL = "[% Koha.Preference( 'DivibibTitleAccessURL' ) | html %]";
                         accessURL = accessURL.replace('{TITLEID}',data.titles[i].result.ItemId);
-                        statusDisplay = '<a href="' 
+                        statusDisplay = '<a class="external-offer-link" href="' 
                                         + accessURL 
                                         + '" alt="' 
                                         + _("Link to Onleihe") 
@@ -100,7 +100,7 @@ function checkDivibibAvalability(idList) {
                                         + '</span></b>';
                         [% END %]
                         if ( loggedIn ) {
-                            statusDisplay = '<a href="#" onclick="accessDivibibResource(' 
+                            statusDisplay = '<a class="external-offer-link" href="#" onclick="accessDivibibResource(' 
                                             + "'loan','" + data.titles[i].result.ItemId 
                                             + "'); return false;"
                                             + '">'
@@ -119,7 +119,7 @@ function checkDivibibAvalability(idList) {
                         [% IF Koha.Preference( 'DivibibTitleAccessURL' ) %]
                         var accessURL = '[% Koha.Preference( 'DivibibTitleAccessURL' ) | html %]';
                         accessURL = accessURL.replace('{TITLEID}',data.titles[i].result.ItemId);
-                        statusDisplay = '<a href="' 
+                        statusDisplay = '<a class="external-offer-link" href="' 
                                         + accessURL 
                                         + '" alt="' 
                                         + _("Link to Onleihe") 
@@ -138,7 +138,7 @@ function checkDivibibAvalability(idList) {
                                         + '</b>';
                         [% END %]
                         if ( loggedIn ) {
-                            statusDisplay = '<a href="#" onclick="accessDivibibResource(' 
+                            statusDisplay = '<a class="external-offer-link" href="#" onclick="accessDivibibResource(' 
                                             + "'reservation','" 
                                             + data.titles[i].result.ItemId 
                                             + "'); return false;" 

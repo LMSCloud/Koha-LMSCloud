@@ -3,7 +3,7 @@ msgstr ""
 "Project-Id-Version: Koha 21.05\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2013-05-16 03:26+0200\n"
-"PO-Revision-Date: 2023-04-11 15:54+0200\n"
+"PO-Revision-Date: 2023-04-18 20:54+0200\n"
 "Last-Translator: Katrin Fischer <katrin.fischer@bsz-bw.de>\n"
 "Language-Team: \n"
 "Language: de\n"
@@ -9704,6 +9704,73 @@ msgstr ""
 "Koha-Katalog importiert wurde. Wird die OPAC-Anzeige unterdrückt, so muss "
 "bei der Eingangsverarbeitung die OPAC-Anzeige manuell aktiviert werden, wenn "
 "der Titel im OPAC angezeigt werden soll."
+
+# Enhanced content > ekz Data Services > ekzWebServicesOverwriteCatalogDataOnDelivery
+msgid ""
+"enhanced_content.pref#ekzWebServicesOverwriteCatalogDataOnDelivery# Catalog "
+"records may change during the time from ordering to delivery. If this "
+"preference is activated, catalog records of ordered material will be "
+"retrieved again from sources specified with parameter "
+"'ekzTitleDataServicesSequence' and used to overwrite the local stored "
+"catalog record of the delivered material.<br>"
+msgstr ""
+"Katalogsätze bestellter Medien können bis zur Lieferung der Medien durch die "
+"ekz wiederholt aktualisiert werden. Bei Aktivierung dieser Einstellung "
+"werden Katalogsätze bestellter Medien bei Lieferung (Lieferschein- oder "
+"Rechnungsverarbeitung) durch die ekz-Schnittstelle anhand der Einstellung "
+"des Parameters 'ekzTitleDataServicesSequence' automatisch aktualisiert.<br>"
+
+# Enhanced content > Syndetics
+msgid ""
+"enhanced_content.pref#ekzWebServicesOverwriteCatalogDataOnDelivery# Do "
+"overwrite"
+msgstr "Überschreibe"
+
+# Enhanced content > Syndetics
+msgid ""
+"enhanced_content.pref#ekzWebServicesOverwriteCatalogDataOnDelivery# Don't "
+"overwrite"
+msgstr "Überschreibe nicht"
+
+# Enhanced content > ekz Data Services > ekzWebServicesOverwriteCatalogDataOnDelivery
+msgid ""
+"enhanced_content.pref#ekzWebServicesOverwriteCatalogDataOnDelivery# If this "
+"parameter is activated, catalog records of delivered items will be "
+"overwritten if all items of the catalog record were ordered via ekz services "
+"but not delivered so far or if no item exists with a notforloan-status "
+"greater or equal 0 (means all items have an ordered status).<br>"
+msgstr ""
+"Ein vorhandener Katalogsatz wird dann überschrieben, wenn entweder alle "
+"vorhandenen Exemplare des Titels bei der ekz bestellt und noch nicht "
+"geliefert sind, oder wenn es kein Exemplar mit einem Nicht-entleihbar-Status "
+"größer oder gleich 0 gibt (d.h. alle Exemplare sind bestellt)."
+
+# Enhanced content > ekz Data Services > ekzWebServicesOverwriteCatalogDataOnDelivery
+msgid ""
+"enhanced_content.pref#ekzWebServicesOverwriteCatalogDataOnDelivery# You may "
+"provide a list of MARC record field numbers (separated by '|') "
+msgstr "Es kann eine Liste von MARC-Feldnummern (getrennt durch |)"
+
+# Enhanced content > ekz Data Services > ekzWebServicesDefaultBranch
+msgid ""
+"enhanced_content.pref#ekzWebServicesOverwriteCatalogDataOnDelivery# cataloge "
+"records when processing invoices or delivery notes. <br>"
+msgstr ""
+"bestehende Katalogsätze mit neueren Versionen beim Verarbeiten von "
+"Rechnungen oder Lieferscheinen der ekz.<br>"
+
+# Enhanced content > ekz Data Services > ekzWebServicesOverwriteCatalogDataOnDelivery
+msgid ""
+"enhanced_content.pref#ekzWebServicesOverwriteCatalogDataOnDelivery# which "
+"will be kept of the overwritten record (for example: 072|852|942). Field "
+"content of the listed fields will be removed from the new record first "
+"before copying the content of the record to overwrite."
+msgstr ""
+"angegeben werden, die beim Überschreiben vom bestehenden Katalogsatz "
+"übernommen werden (z.B.: 072|852|942). Der Inhalt der angegebenen MARC-"
+"Feldnummern wird vollständig ersetzt. Sind die Felder im bestehenden "
+"Katalogsatz nicht belegt, bleibt der Inhalt - wenn vorhanden - im neuen "
+"Katalogsatz erhalten."
 
 # Enhanced content > ekz Data Services > ekzWebServicesSetItemSubfieldsWhenInvoiced
 msgid ""
