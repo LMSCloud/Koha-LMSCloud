@@ -45,6 +45,7 @@ use Koha::Items;
 use Koha::ItemTypes;
 use Koha::Patrons;
 use Koha::SearchEngine::Indexer;
+use Koha::Illrequests;
 
 my $input = CGI->new;
 my $dbh = C4::Context->dbh;
@@ -264,13 +265,27 @@ if ($op eq "action") {
                                         )
                                       )
                                     {
-                                        LostItem(
-                                            $itemnumber,
-                                            'batchmod',
-                                            undef,
-                                            { skip_record_index => 1 }
-                                        ) if $item->{itemlost}
-                                          and not $itemdata->{itemlost};
+                                        if ( $item->{itemlost} and not $itemdata->{itemlost} ) {
+
+                                            LostItem(
+                                                $itemnumber,
+                                                'batchmod',
+                                                undef,
+                                                { skip_record_index => 1 }
+                                            );
+
+                                            # by LMSCloud: update also the ILL backend status if it is an ILL item
+                                            if ( C4::Context->preference("IllModule") ) {    # check if the ILL module is activated at all
+                                                my ( $itisanillitem, $illrequest ) = ( 0, undef );
+                                                eval {
+                                                    ( $itisanillitem, $illrequest ) = Koha::Illrequest->checkIfIllItem($item);
+                                                    if ( $itisanillitem && $illrequest ) {
+                                                        $illrequest->_backend_capability( "itemLost", $illrequest );
+                                                    }
+                                                };
+                                            }
+
+                                        }
                                     }
                                 };
                                 push @$upd_biblionumbers, $itemdata->{'biblionumber'};
