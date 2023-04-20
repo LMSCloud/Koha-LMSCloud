@@ -30,7 +30,7 @@ use Koha::Exceptions::Object;
 use C4::Context;
 use C4::Koha;
 use C4::Items qw( ModItemFromMarc );    # additionally GetMarcItem is required here, but it is not exported by C4::Items, so we have to use it inofficially
-use C4::Biblio qw( ModBiblio GetFrameworkCode GetMarcFromKohaField );
+use C4::Biblio qw( GetFrameworkCode GetMarcFromKohaField );
 use C4::Acquisition qw( NewBasket GetBasket GetBaskets ModBasket GetBasketgroupsGeneric NewBasketgroup CloseBasketgroup );
 use C4::External::EKZ::EkzAuthentication;
 use C4::External::EKZ::lib::EkzKohaRecords;
@@ -84,22 +84,6 @@ sub new {
         'emaillog' => $emaillog    # hash with variables for email log
     };
     $self->{logger} = Koha::Logger->get({ interface => 'C4::External::EKZ::BestellInfoElement' });
-    
-    # initialize fields 
-    $self->{keepFieldsWhenOverwrite} = [];
-    my $keepFieldsWhenOverwrite = C4::Context->preference("ekzWebServicesOverwriteTitleKeepFields");
-    if ( $keepFieldsWhenOverwrite ) {
-        my %keepFields = ();
-        foreach my $marcField (split(/\|/,$keepFieldsWhenOverwrite)) {
-            $marcField =~ s/(^\s+|\s+$)//;
-            if ( $marcField =~ /^(header|leader|[0-9]{3})$/i ) {
-                $marcField = lc($1);
-                $keepFields{$marcField} = 1;
-            }
-        }
-        my @keepFieldList = sort { $a cmp $b } keys %keepFields;
-        $self->{keepFieldsWhenOverwrite} = \@keepFieldList;
-    }
     
     bless $self, $class;
     $self->init();
@@ -1479,42 +1463,6 @@ sub handleTitelBestellInfo {
     $self->{logger}->info("handleTitelBestellInfo() actionresult:" . Dumper(@actionresult) . ":");
 
     return (@idPaarListe);
-}
-
-sub overwriteCatalogRecord {
-    my ($self,$oldrecord,$newrecord,$biblionumber,$save) = @_;
-    
-    my $keepFields = $self->{keepFieldsWhenOverwrite};
-    
-    if ( $oldrecord && $newrecord ) {
-        my $record = $newrecord->clone;
-        
-        my @delfields = $record->field('999');
-        $record->delete_fields(@delfields) if ( scalar(@delfields) );
-        my @addfields = $oldrecord->field('999');
-        $record->insert_fields_ordered(reverse @addfields) if ( scalar(@addfields) );
-        
-        foreach my $field( @$keepFields ) {
-            @delfields = $record->field($field);
-            
-            if ( $field eq 'header' || $field eq 'leader' ) {
-                $record->leader($oldrecord->leader());
-            } else {
-                @addfields = $oldrecord->field($field);
-                
-                if ( scalar(@addfields) ) {
-                    $record->delete_fields(@delfields) if ( scalar(@delfields) );
-                    $record->insert_fields_ordered(reverse @addfields);
-                }
-            }
-        }
-        
-        if ( $biblionumber && $save ) {
-            ModBiblio($record,$biblionumber,GetFrameworkCode($biblionumber));
-        }
-        return $record;
-    }
-    return undef;
 }
 
 1;
