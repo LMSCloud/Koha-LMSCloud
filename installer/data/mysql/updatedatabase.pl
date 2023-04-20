@@ -26682,7 +26682,7 @@ if ( CheckVersion($DBversion) ) {
             ('ekzWebServicesOverwriteCatalogDataKeepFields','',NULL,'List of MARC fields separated by | which will be kept of the local record when overwriting a title record on delivery.','Free');
     });
     
-    NewVersion( $DBversion, "", "Add system preferences ekzWebServicesOverwriteTitleDataOnDelivery and ekzWebServicesOverwriteTitleKeepFields.");
+    NewVersion( $DBversion, "", "Add system preferences ekzWebServicesOverwriteCatalogDataOnDelivery and ekzWebServicesOverwriteCatalogDataKeepFields.");
 }
 
 # SEE bug 13068
