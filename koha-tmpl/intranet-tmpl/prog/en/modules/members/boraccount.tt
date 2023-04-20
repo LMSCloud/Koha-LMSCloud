@@ -134,7 +134,7 @@
               [% END %]
           [% END %]
         [% END %]
-        [% IF account.is_debit && account.amount == account.amountoutstanding && account.status != 'CANCELLED' && !(account.debit_type_code == 'PAYOUT') %]
+        [% IF account.is_debit && CAN_user_updatecharges_cancel_fee && account.amount == account.amountoutstanding && account.status != 'CANCELLED' && !(account.debit_type_code == 'PAYOUT') %]
           <form method="post" action="/cgi-bin/koha/members/cancel-charge.pl">
             <input type="hidden" name="csrf_token" value="[% csrf_token | html %]">
             <input type="hidden" name="borrowernumber" value="[% patron.borrowernumber | html %]">
