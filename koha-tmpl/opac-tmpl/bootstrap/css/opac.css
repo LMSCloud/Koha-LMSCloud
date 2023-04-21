@@ -493,3 +493,9 @@ table#holdingst .thumbnail {
     height: 100%;
     width: 100%;
 } 
+
+a.external-offer-link::after {
+    font-family: 'FontAwesome';
+    content: " \f08e";
+    font-size: xx-small;
+}

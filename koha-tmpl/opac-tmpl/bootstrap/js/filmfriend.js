@@ -158,7 +158,7 @@ function showFilmfriendResult(facetID) {
     }
     $('.encyclopediasource').html(filmfriendData.results[facetID].name);
     
-    $('.encyclopediaprovider').html(' <a href="' + filmfriendData.results[facetID].searchAtFilmFriend + '"  target="' + targetLinkFilmfriend + '">' + 'filmfriend</a> ' );
+    $('.encyclopediaprovider').html(' <a class="external-offer-link" href="' + filmfriendData.results[facetID].searchAtFilmFriend + '"  target="' + targetLinkFilmfriend + '">' + 'filmfriend</a> ' );
     $('.encyclopediasearchhitcount').html(' ' + filmfriendData.results[facetID].numFound + ' ');
     if ( $('.onlyAdditionalOfferFacets').length > 0 )
         $('#numresultsAdditionalOffers').html($('#encyclopedianumresults').html());
@@ -244,7 +244,7 @@ function generateFilmfriendEntryPerson(facetID,entryID) {
     colElement = document.createElement("td");
     colElement.setAttribute('class','bibliocol');
     var txtElement = document.createElement("a");
-    txtElement.setAttribute('class','title');
+    txtElement.setAttribute('class','title external-offer-link');
     txtElement.setAttribute('target',targetLinkFilmfriend);
     txtElement.setAttribute('href',filmfriendData.results[facetID].hitList[entryID].filmfriendLink);
     txtElement.textContent = name;
@@ -272,6 +272,7 @@ function generateFilmfriendEntryMovie(facetID,entryID) {
         linkElement.setAttribute('target',targetLinkFilmfriend);
         linkElement.setAttribute('href',filmfriendData.results[facetID].hitList[entryID].filmfriendLink);
         linkElement.setAttribute('alt',filmfriendData.results[facetID].hitList[entryID].title);
+        linkElement.setAttribute('title',filmfriendData.results[facetID].hitList[entryID].title);
     
         var imageElement = document.createElement("img");
         imageElement.setAttribute('width','170');
@@ -286,7 +287,7 @@ function generateFilmfriendEntryMovie(facetID,entryID) {
     colElement = document.createElement("td");
     colElement.setAttribute('class','bibliocol');
     var txtElement = document.createElement("a");
-    txtElement.setAttribute('class','title');
+    txtElement.setAttribute('class','title external-offer-link');
     txtElement.setAttribute('target',targetLinkFilmfriend);
     txtElement.setAttribute('href',filmfriendData.results[facetID].hitList[entryID].filmfriendLink);
     txtElement.textContent = filmfriendData.results[facetID].hitList[entryID].title;
@@ -312,6 +313,7 @@ function generateFilmfriendEntryMovie(facetID,entryID) {
                 var personNameLink = document.createElement("a");
                 personNameLink.setAttribute('href',filmfriendData.results[facetID].hitList[entryID].regie[s].filmfriendLink);
                 personNameLink.setAttribute('target',targetLinkFilmfriend);
+                personNameLink.setAttribute('class',"external-offer-link");
                 personNameLink.textContent = filmfriendData.results[facetID].hitList[entryID].regie[s].person.lastName + ", " + filmfriendData.results[facetID].hitList[entryID].regie[s].person.firstName;
                 personNameSpan.appendChild(personNameLink);
                 persons.appendChild(personNameSpan);
@@ -330,6 +332,7 @@ function generateFilmfriendEntryMovie(facetID,entryID) {
                 var personNameLink = document.createElement("a");
                 personNameLink.setAttribute('href',filmfriendData.results[facetID].hitList[entryID].actors[s].filmfriendLink);
                 personNameLink.setAttribute('target',targetLinkFilmfriend);
+                personNameLink.setAttribute('class',"external-offer-link");
                 personNameLink.textContent = filmfriendData.results[facetID].hitList[entryID].actors[s].person.lastName + ", " + filmfriendData.results[facetID].hitList[entryID].actors[s].person.firstName;
                 personNameSpan.appendChild(personNameLink);
                 persons.appendChild(personNameSpan);
