@@ -24,6 +24,7 @@ Return catalogue data that is needed to support coverflows in Koha.
 =cut
 
 use Modern::Perl;
+use utf8;
 
 use CGI qw ( -utf8 );
 
@@ -32,14 +33,10 @@ use C4::Auth;
 use C4::Output;
 use C4::External::BibtipRecommendations;
 
-
-my @bibids;
-
 my $cgi = CGI->new;
 
 my ( $template, $borrowernumber, $cookie ) = get_template_and_user(
-    {
-        template_name   => "svc/user-recommendations.tt",
+    {   template_name   => "svc/user-recommendations.tt",
         query           => $cgi,
         type            => "opac",
         authnotrequired => ( C4::Context->preference("OpacPublic") ? 1 : 0 ),
@@ -49,15 +46,16 @@ my ( $template, $borrowernumber, $cookie ) = get_template_and_user(
 # get cover flow data used for the recommendations
 if ( C4::Context->preference("BibtipPatronSpecificRecommendations") ) {
     my $borrowernumber = C4::Context->userenv->{'number'};
-    
-    if (defined($borrowernumber)) {
-        my $bibtip = C4::External::BibtipRecommendations->new();
-        my $count = $cgi->param('count');
-        my $coverdata = $bibtip->getPatronSpecificRecommendations($borrowernumber,$count);
 
+    if ( defined($borrowernumber) ) {
+        my $bibtip    = C4::External::BibtipRecommendations->new;
+        my $count     = $cgi->param('count');
+        my $coverdata = $bibtip->getPatronSpecificRecommendations( $borrowernumber, $count );
+
+        my $is_hashref = ref($coverdata) eq 'HASH';
         $template->param(
-            count => (exists($coverdata->{count}) ? $coverdata->{count} : 0),
-            items => (exists($coverdata->{items}) ? $coverdata->{items} : ())
+            count => $is_hashref ? ( $coverdata->{count} // 0 )  : 0,
+            items => $is_hashref ? ( $coverdata->{items} // () ) : ()
         );
     }
 }
