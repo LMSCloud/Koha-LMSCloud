@@ -16,15 +16,21 @@
 
       const loggedInUsername = document.querySelector('.loggedinusername');
       if (!loggedInUsername) {
-        // eslint-disable-next-line quotes
-        this.initializationError = _("Cannot find logged in username element.");
+        this.initializationError = {
+          // eslint-disable-next-line quotes
+          message: _("Cannot find logged in username element."),
+          ref: entryPoint,
+        };
         return;
       }
 
       this.cardnumber = cardnumber;
       if (!this.cardnumber) {
-        // eslint-disable-next-line quotes
-        this.initializationError = _("Cannot find cardnumber attribute.");
+        this.initializationError = {
+          // eslint-disable-next-line quotes
+          message: _("Cannot find cardnumber attribute."),
+          ref: entryPoint,
+        };
         return;
       }
 
@@ -229,10 +235,10 @@
     }
 
     render() {
-      if (!this.cardnumber) return;
       if (this.initializationError) {
-        this.entryPoint.style.display = 'none';
-        console.error(this.initializationError);
+        this.initializationError.ref.style.display = 'none';
+        // eslint-disable-next-line no-console
+        console.error(this.initializationError.message);
         return;
       }
 
