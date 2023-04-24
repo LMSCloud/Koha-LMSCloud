@@ -391,8 +391,8 @@ sub paySelectedFeesForSepaDirectDebitPatrons {
             # Regrettably since version 21.05 the successor, debit_type_code 'OVERDUE', is used for both types of overdue fees.
             # So additionally to accountlines.debit_type_code='OVERDUE' also the field accountlines.status has to be evaluated.
             if ( $accountType eq 'OVERDUE' ) {
-                $overdueSelect = " AND (a.debit_type_code != 'OVERDUE' OR ( a.debit_type_code = 'OVERDUE' AND a.status IN ('RETURNED', 'LOST') )) ";
-                $overdueSelectAl2 = " AND (al2.debit_type_code != 'OVERDUE' OR ( al2.debit_type_code = 'OVERDUE' AND al2.status IN ('RETURNED', 'LOST') )) ";
+                $overdueSelect = " AND (a.debit_type_code != 'OVERDUE' OR ( a.debit_type_code = 'OVERDUE' AND a.status NOT IN ('UNRETURNED') )) ";
+                $overdueSelectAl2 = " AND (al2.debit_type_code != 'OVERDUE' OR ( al2.debit_type_code = 'OVERDUE' AND al2.status NOT IN ('UNRETURNED') )) ";
             }
         }
     }
@@ -414,6 +414,7 @@ sub paySelectedFeesForSepaDirectDebitPatrons {
             a.accountlines_id AS 'a.accountlines_id',
             a.amountoutstanding AS 'a.amountoutstanding',
             a.debit_type_code AS 'a.debit_type_code',
+            a.status AS 'a.status',
             ba.code as 'ba.code',
             ba.attribute as 'ba.attribute'
 
@@ -471,6 +472,7 @@ sub paySelectedFeesForSepaDirectDebitPatrons {
             $currentFeeHit->{accountlines}->{accountlines_id} = $openFee->{'a.accountlines_id'};
             $currentFeeHit->{accountlines}->{amountoutstanding} = $openFee->{'a.amountoutstanding'};
             $currentFeeHit->{accountlines}->{debit_type_code} = $openFee->{'a.debit_type_code'};
+            $currentFeeHit->{accountlines}->{status} = $openFee->{'a.status'};
             $currentFeeHit->{borrower_attributes}->{$openFee->{'ba.code'}} = $openFee->{'ba.attribute'};
         } else {
             # ad further borrower attribute to CURRENT fee hit hash
