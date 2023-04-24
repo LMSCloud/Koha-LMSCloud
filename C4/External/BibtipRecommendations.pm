@@ -32,8 +32,6 @@ use Koha::DateUtils;
 
 use LWP::UserAgent;
 use JSON;
-use Data::Dumper;
-
 
 =head1 NAME
 
@@ -66,20 +64,20 @@ sub new {
 
     my $self = {};
     bless $self, $class;
-    
+
     my $ua = LWP::UserAgent->new;
     $ua->timeout(60);
     $ua->env_proxy;
-    
+
     my $bibtipCatalog = C4::Context->preference('BibtipCatalog');
-    
-    $self->{'ua'}   = $ua;
-    $self->{'url'}  = 'https://recommender.bibtip.de/recommender/vector_recs/apiv1/' . $bibtipCatalog . '/vector_reclist.json';
-    
+
+    $self->{'ua'}  = $ua;
+    $self->{'url'} = 'https://recommender.bibtip.de/recommender/vector_recs/apiv1/' . $bibtipCatalog . '/vector_reclist.json';
+
     $self->{'requestHeader'} = [ 'Accept' => 'application/json' ];
-    
+
     return $self;
-    
+
 }
 
 =head2 getPatronSpecificRecommendations
@@ -88,95 +86,92 @@ Get recommendations for a specific user based on the reading history (list of bi
 
 =cut
 
-sub getPatronSpecificRecommendations {  
-    my $self           = shift;
-    my $borrowernumber = shift;
-    my $count          = shift;
-    
+sub getPatronSpecificRecommendations {
+    my ( $self, $borrowernumber, $count ) = @_;
     my $result = [];
-    
-    # Get old issues
-    # Check old issues table
-    
-    # Create (old)issues search criteria
-    my $criteria = {
-        borrowernumber => $borrowernumber,
-    };
-    my $sort = { 'order_by' => { '-desc' => 'issuedate' } };
-    
-    my $biblionumbers = [];
-    my %checkbiblio;
-    
-    # get current issues of the patron
-    foreach my $issue ( Koha::Checkouts->search($criteria,$sort) ) {
-        my $itemnumber = $issue->itemnumber;
-        
-        if ( $itemnumber ) {
-            my $item = Koha::Items->find($itemnumber);
-            
-            if ( $item ) {
-                next if ( exists( $checkbiblio{$item->biblionumber} ) );
-                push @$biblionumbers, [ $item->biblionumber, $issue->issuedate ];
-                $checkbiblio{$item->biblionumber} = 1;
-            }
-        }
-    }
-    # get old issue history of the patron
-    foreach my $oldissue ( Koha::Old::Checkouts->search($criteria,$sort) ) {
-        my $itemnumber = $oldissue->itemnumber;
-        
-        if ( $itemnumber ) {
-            my $item = Koha::Items->find($itemnumber);
-            
-            if ( $item ) {
-                next if ( exists( $checkbiblio{$item->biblionumber} ) );
-                push @$biblionumbers, [ $item->biblionumber, $oldissue->issuedate ];
-                $checkbiblio{$item->biblionumber} = 1;
-            }
-        }
+
+    my $biblionumbers = $self->_get_old_issues($borrowernumber);
+    my $requestData   = $self->_get_request_data($biblionumbers);
+
+    my $content  = JSON->new->utf8->allow_nonref->encode($requestData);
+    my $response = $self->{'ua'}->post( $self->{'url'}, $self->{'requestHeader'}, Content => $content );
+
+    return $result unless ( defined($response) && $response->is_success );
+
+    my $data = JSON->new->decode( $response->content );
+    unless ( $data && exists( $data->{recommended_nds} ) && $data->{recommended_nds} && scalar( @{ $data->{recommended_nds} } ) ) {
+        carp "C4::External::BibtipRecommendations => Invalid response from Bibtip API";
+        return $result;
     }
 
-    if ( scalar(@$biblionumbers) ) {
-        my $json = JSON->new->utf8->allow_nonref;
-        
-        my $requestData = { items => [] };
-        
-        foreach my $issue(@$biblionumbers) {
-            my $biblionumber = $issue->[0];
-            my $issuedate = dt_from_string($issue->[1]);
-            
-            push @{ $requestData->{items} }, { nd => "$biblionumber", date => output_pref({ dt => $issuedate, dateonly => 1, dateformat => 'iso' }) }; 
-        }
+    my $bibnumbers = [];
+    my $i          = 0;
+    foreach my $biblionumber ( @{ $data->{recommended_nds} } ) {
+        last if ( $count && ++$i > $count );
+        push @{$bibnumbers}, $biblionumber;
+    }
+    my $coverFlowData = GetCoverFlowDataByBiblionumber( @{$bibnumbers} );
+    if ( ref($coverFlowData) eq 'ARRAY' ) {
+        carp sprintf( "C4::External::BibtipRecommendations => Unexpected response from GetCoverFlowDataByBiblionumber: %s", $coverFlowData );
+        return $result;
+    }
 
-        my $content = $json->encode($requestData);
-        
-        # carp Dumper($content);
-        
-        my $response = $self->{'ua'}->post($self->{'url'}, $self->{'requestHeader'}, Content => $content );
-        
-        if ( defined($response) && $response->is_success ) {
-            
-            my $data = $json->decode( $response->content );
-            
-            if ( $data && exists($data->{recommended_nds}) && $data->{recommended_nds} && scalar( @{ $data->{recommended_nds} } ) ) {
-                my @bibnumbers;
-                my $i = 0;
-                foreach my $biblionumber( @{ $data->{recommended_nds} } ) {
-                    last if ( $count && ++$i > $count);
-                    push @bibnumbers, $biblionumber;
-                }
-                return GetCoverFlowDataByBiblionumber( @bibnumbers );
-            }
-            
-        }
-        else {
-            carp "C4::External::BibtipRecommendations => Error requesting recommendations using url " .
-                 $self->{'url'}.  ": " .
-                 $response->error_as_HTML;
+    return $coverFlowData;
+}
+
+sub _get_old_issues {
+    my ( $self, $borrowernumber ) = @_;
+    my $biblionumbers      = [];
+    my $seen_biblionumbers = {};
+
+    # Get current and old issues of the patron combined
+    my $criteria   = { borrowernumber => $borrowernumber, };
+    my $sort       = { 'order_by'     => { '-desc' => 'issuedate' } };
+    my $rs_current = Koha::Checkouts->search( $criteria, $sort );
+    my $rs_old     = Koha::Old::Checkouts->search( $criteria, $sort );
+
+    # Process current checkouts
+    while ( my $issue = $rs_current->next ) {
+        _process_issue( $issue, $biblionumbers, $seen_biblionumbers );
+    }
+
+    # Process old checkouts
+    while ( my $issue = $rs_old->next ) {
+        _process_issue( $issue, $biblionumbers, $seen_biblionumbers );
+    }
+
+    return $biblionumbers;
+}
+
+sub _process_issue {
+    my ( $issue, $biblionumbers, $seen_biblionumbers ) = @_;
+    my $itemnumber = $issue->itemnumber;
+    if ($itemnumber) {
+        my $item = Koha::Items->find($itemnumber);
+        if ($item) {
+            return if ( exists( $seen_biblionumbers->{ $item->biblionumber } ) );
+            push @{$biblionumbers}, [ $item->biblionumber, $issue->issuedate ];
+            $seen_biblionumbers->{ $item->biblionumber } = 1;
         }
     }
-    
-    return $result;
+}
+
+sub _get_request_data {
+    my ( $self, $biblionumbers ) = @_;
+    my $requestData = { items => [] };
+
+    foreach my $issue ( @{$biblionumbers} ) {
+        my $biblionumber = $issue->[0];
+        my $issuedate    = dt_from_string( $issue->[1] );
+
+        push @{ $requestData->{items} },
+            {
+            nd   => "$biblionumber",
+            date => output_pref( { dt => $issuedate, dateonly => 1, dateformat => 'iso' } )
+            };
+    }
+
+    return $requestData;
 }
 
 1;

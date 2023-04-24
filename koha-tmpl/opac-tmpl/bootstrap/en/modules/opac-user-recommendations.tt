@@ -39,7 +39,7 @@
                     
                     <p>Based on your checkout history we recommend ...</p>
 
-                    <div class="recs-container-main">
+                    <div class="recs-container-main mb-3">
                         [% IF (privacy != 2) %]
                             <div id="lmscoverflow"></div>
                             <div id="nothingFound" class="d-none">
@@ -89,7 +89,7 @@
     }
 
     const renderRecommendations = ({ result, externalSources }) => {
-        if ( result.items.length === 0 ) {
+        if ( result.items.length === 0 || !Array.isArray(result.items) ) {
             document.getElementById('nothingFound').classList.toggle("d-none");
             return;
         }

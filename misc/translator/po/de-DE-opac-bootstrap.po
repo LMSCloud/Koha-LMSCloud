@@ -1,8 +1,8 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: Koha 21.05\n"
-"POT-Creation-Date: 2023-04-18 20:15+0200\n"
-"PO-Revision-Date: 2023-04-18 20:31+0200\n"
+"POT-Creation-Date: 2023-04-20 17:15+0200\n"
+"PO-Revision-Date: 2023-04-20 17:16+0200\n"
 "Last-Translator: Katrin Fischer <katrin.fischer@bsz-bw.de>\n"
 "Language-Team: \n"
 "Language: de\n"
@@ -5508,7 +5508,7 @@ msgstr "Details"
 #: koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-illrequests.tt:229
 #, c-format
 msgid "Details (%s)"
-msgstr "Details zu %s"
+msgstr "Details (%s)"
 
 #. For the first occurrence,
 #. %1$s:  bibliotitle | html

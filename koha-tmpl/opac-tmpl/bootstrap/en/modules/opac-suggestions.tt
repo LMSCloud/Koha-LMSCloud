@@ -422,7 +422,7 @@
                                                         </p>
                                                     </td>
                                                     <td>
-                                                        [% IF ( suggestions_loo.suggesteddate ) %][% suggestions_loo.suggesteddate |$KohaDates %][% END %]
+                                                        [% IF ( suggestions_loo.suggesteddate ) %]<span style="display:none;">[% suggestions_loo.suggesteddate %]</span>[% suggestions_loo.suggesteddate |$KohaDates %][% END %]
                                                     </td>
                                                     <td>
                                                         [% IF ( suggestions_loo.note ) %]
