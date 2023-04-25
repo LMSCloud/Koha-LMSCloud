@@ -21,6 +21,7 @@ use strict;
 use warnings;
 
 use utf8;
+use Try::Tiny;
 use Data::Dumper;
 
 use C4::External::EKZ::EkzWsSerialOrder qw( readSerialOrdersFromEkzWsFortsetzungList readSerialOrderFromEkzWsFortsetzungDetail genKohaRecords );
@@ -155,43 +156,55 @@ if ( $testMode == 0 ) {
     # some libraries use different ekz Kundennummer for different branches, so we have to call the serial order synchronization for each of these.
     my @ekzCustomerNumbers = C4::External::EKZ::lib::EkzWsConfig->new()->getEkzCustomerNumbers();
     foreach my $ekzCustomerNumber (sort @ekzCustomerNumbers) {
-        # read all serial orders ordered since lastRunDate
-        # XXXWH 'von' selection results in empty list $logger->info("ekzWsSerialOrder.pl read fortsetzungList since lastRunDate:$lastRunDate: by calling readSerialOrdersFromEkzWsFortsetzungList ($ekzCustomerNumber,$lastRunDate,undef)");
-        # XXXWH 'von' selection results in empty list my $serList = &readSerialOrdersFromEkzWsFortsetzungList ($ekzCustomerNumber,$lastRunDate,undef);
+        try {
+            # read all serial orders ordered since lastRunDate
+            # XXXWH 'von' selection results in empty list $logger->info("ekzWsSerialOrder.pl read fortsetzungList since lastRunDate:$lastRunDate: by calling readSerialOrdersFromEkzWsFortsetzungList ($ekzCustomerNumber,$lastRunDate,undef)");
+            # XXXWH 'von' selection results in empty list my $serList = &readSerialOrdersFromEkzWsFortsetzungList ($ekzCustomerNumber,$lastRunDate,undef);
 
-        # XXXWH ekz ERROR: any real date in von/bis-Selection results in empty hit list, so we use undef
-        $logger->info("ekzWsSerialOrder.pl read fortsetzungList NOT since lastRunDate:$lastRunDate BUT ALL: by calling readSerialOrdersFromEkzWsFortsetzungList ($ekzCustomerNumber,undef,undef)");
-        my $serList = &readSerialOrdersFromEkzWsFortsetzungList ($ekzCustomerNumber,undef,undef);
+            # XXXWH ekz ERROR: any real date in von/bis-Selection results in empty hit list, so we use undef
+            $logger->info("ekzWsSerialOrder.pl read fortsetzungList NOT since lastRunDate:$lastRunDate BUT ALL: by calling readSerialOrdersFromEkzWsFortsetzungList ($ekzCustomerNumber,undef,undef)");
+            my $serList = &readSerialOrdersFromEkzWsFortsetzungList ($ekzCustomerNumber,undef,undef);
 
-        if ( $serList->{'fortsetzungStatusRecords'} && $serList->{'fortsetzungStatusRecords'}->{inProgress} && $serList->{'fortsetzungStatusRecords'}->{inProgress}->{fortsetzungVariante} ) {
-            foreach my $fortsetzungVariante ( @{$serList->{'fortsetzungStatusRecords'}->{inProgress}->{fortsetzungVariante}} ) {
-                $logger->info("ekzWsSerialOrder.pl loop fortsetzungVariante artikelArt:$fortsetzungVariante->{artikelArt}:");
-                foreach my $fortsetzungRubrik ( @{$fortsetzungVariante->{fortsetzungRubrik}} ) {
-                    $logger->info("ekzWsSerialOrder.pl loop fortsetzungRubrik rubrik:$fortsetzungRubrik->{rubrik}:");
-                    foreach my $fortsetzungTitel ( @{$fortsetzungRubrik->{'fortsetzungTitel'}} ) {
-                        $logger->info("ekzWsSerialOrder.pl loop fortsetzungTitel artikelnum:$fortsetzungTitel->{artikelnum}: artikelname:$fortsetzungTitel->{artikelname}: fortsetzungsAuftragsNummer:$fortsetzungTitel->{fortsetzungsAuftragsNummer}:");
+            if ( $serList->{'fortsetzungStatusRecords'} && $serList->{'fortsetzungStatusRecords'}->{inProgress} && $serList->{'fortsetzungStatusRecords'}->{inProgress}->{fortsetzungVariante} ) {
+                foreach my $fortsetzungVariante ( @{$serList->{'fortsetzungStatusRecords'}->{inProgress}->{fortsetzungVariante}} ) {
+                    $logger->info("ekzWsSerialOrder.pl loop fortsetzungVariante artikelArt:$fortsetzungVariante->{artikelArt}:");
+                    foreach my $fortsetzungRubrik ( @{$fortsetzungVariante->{fortsetzungRubrik}} ) {
+                        $logger->info("ekzWsSerialOrder.pl loop fortsetzungRubrik rubrik:$fortsetzungRubrik->{rubrik}:");
+                        foreach my $fortsetzungTitel ( @{$fortsetzungRubrik->{'fortsetzungTitel'}} ) {
+                            try {
+                                $logger->info("ekzWsSerialOrder.pl loop fortsetzungTitel artikelnum:$fortsetzungTitel->{artikelnum}: artikelname:$fortsetzungTitel->{artikelname}: fortsetzungsAuftragsNummer:$fortsetzungTitel->{fortsetzungsAuftragsNummer}:");
 
-                        $logger->info("ekzWsSerialOrder.pl read serial order via fortsetzungsId:" . $fortsetzungTitel->{artikelnum} . ": by calling readSerialOrderFromEkzWsFortsetzungDetail($ekzCustomerNumber," . $fortsetzungTitel->{artikelnum} . ",undef,undef,undef,1,\\\$fortsetzungDetailElement)");
-                        $result = &readSerialOrderFromEkzWsFortsetzungDetail($ekzCustomerNumber,$fortsetzungTitel->{artikelnum},undef,undef,undef,1,\$fortsetzungDetailElement);    # read complete info (i.e. all titles) of the serial order
-                        $logger->debug("ekzWsSerialOrder.pl Dumper(\$result->{'fortsetzungRecords'}->[0]):" . Dumper($result->{'fortsetzungRecords'}->[0]) . ":");
+                                $logger->info("ekzWsSerialOrder.pl read serial order via fortsetzungsId:" . $fortsetzungTitel->{artikelnum} . ": by calling readSerialOrderFromEkzWsFortsetzungDetail($ekzCustomerNumber," . $fortsetzungTitel->{artikelnum} . ",undef,undef,undef,1,\\\$fortsetzungDetailElement)");
+                                $result = &readSerialOrderFromEkzWsFortsetzungDetail($ekzCustomerNumber,$fortsetzungTitel->{artikelnum},undef,undef,undef,1,\$fortsetzungDetailElement);    # read complete info (i.e. all titles) of the serial order
+                                $logger->debug("ekzWsSerialOrder.pl Dumper(\$result->{'fortsetzungRecords'}->[0]):" . Dumper($result->{'fortsetzungRecords'}->[0]) . ":");
 
-                        if ( $genKohaRecords ) {
-                            if ( $result->{'fortsetzungCount'} > 0 &&
-                                 $result->{fortsetzungRecords}->[0] &&
-                                 $result->{fortsetzungRecords}->[0]->{fortsetzungDetailStatusRecords} &&
-                                 $result->{fortsetzungRecords}->[0]->{fortsetzungDetailStatusRecords}->{alreadyPlanned} &&
-                                 $result->{fortsetzungRecords}->[0]->{fortsetzungDetailStatusRecords}->{alreadyPlanned}->{fortsetzungDetailStatus} ) {
+                                if ( $genKohaRecords ) {
+                                    if ( $result->{'fortsetzungCount'} > 0 &&
+                                         $result->{fortsetzungRecords}->[0] &&
+                                         $result->{fortsetzungRecords}->[0]->{fortsetzungDetailStatusRecords} &&
+                                         $result->{fortsetzungRecords}->[0]->{fortsetzungDetailStatusRecords}->{alreadyPlanned} &&
+                                         $result->{fortsetzungRecords}->[0]->{fortsetzungDetailStatusRecords}->{alreadyPlanned}->{fortsetzungDetailStatus} ) {
 
-                                # XXXWH ekz ERROR: at the moment there is no statusdatum sent, so we can not compare with $lastRunDate => use undef instead
-                                #if ( &genKohaRecords($ekzCustomerNumber, $result->{fortsetzungRecords}->[0]->{messageID}, $fortsetzungDetailElement, $result->{fortsetzungRecords}->[0], $lastRunDate, $todayDate, $createdTitleRecords) ) {
-                                if ( &genKohaRecords($ekzCustomerNumber, $result->{fortsetzungRecords}->[0]->{messageID}, $fortsetzungDetailElement, $result->{fortsetzungRecords}->[0], undef, $todayDate, $createdTitleRecords) ) {
-                                    $res = 1;
+                                        # XXXWH ekz ERROR: at the moment there is no statusdatum sent, so we can not compare with $lastRunDate => use undef instead
+                                        #if ( &genKohaRecords($ekzCustomerNumber, $result->{fortsetzungRecords}->[0]->{messageID}, $fortsetzungDetailElement, $result->{fortsetzungRecords}->[0], $lastRunDate, $todayDate, $createdTitleRecords) ) {
+                                        if ( &genKohaRecords($ekzCustomerNumber, $result->{fortsetzungRecords}->[0]->{messageID}, $fortsetzungDetailElement, $result->{fortsetzungRecords}->[0], undef, $todayDate, $createdTitleRecords) ) {
+                                            $res = 1;
+                                        }
+                                    }
                                 }
+                            }
+                            catch {
+                                my $exceptionThrown = $_;
+                                $logger->info("ekzWsSerialOrder.pl caught exception in loop fortsetzungTitel artikelnum:$fortsetzungTitel->{artikelnum}: exceptionThrown:" . Dumper($exceptionThrown) . ":");
                             }
                         }
                     }
                 }
             }
+        }
+        catch {
+            my $exceptionThrown = $_;
+            $logger->info("ekzWsSerialOrder.pl caught exception in loop ekzCustomerNumber:" . $ekzCustomerNumber . ": exceptionThrown:" . Dumper($exceptionThrown) . ":");
         }
     }
     if ( $res == 1 ) {

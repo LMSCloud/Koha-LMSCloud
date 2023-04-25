@@ -21,6 +21,7 @@ use strict;
 use warnings;
 
 use utf8;
+use Try::Tiny;
 use Data::Dumper;
 
 use C4::External::EKZ::lib::EkzWsConfig;
@@ -130,22 +131,34 @@ if ( $testMode == 0 ) {
     # some libraries use different ekz Kundennummer for different branches, so we have to call the delivery note synchronization for each of these.
     my @ekzCustomerNumbers = C4::External::EKZ::lib::EkzWebServices->new()->getEkzCustomerNumbers();
     foreach my $ekzCustomerNumber (sort @ekzCustomerNumbers) {
-        # read all new delivery notes since $lastRunDate until including yesterday
-        $logger->info("ekzWsDeliveryNote.pl read delivery notes from lastRunDate:$lastRunDate to yesterdayDate:$yesterdayDate: by calling readLSFromEkzWsLieferscheinList ($ekzCustomerNumber,$lastRunDate,$yesterdayDate,undef)");
-        my $lsList = &readLSFromEkzWsLieferscheinList ($ekzCustomerNumber,$lastRunDate,$yesterdayDate,undef);
-        
-        foreach my $lieferschein ( @{$lsList->{'lieferscheinRecords'}} ) {
-            $logger->info("ekzWsDeliveryNote.pl read delivery note via lieferscheinnummer:" . $lieferschein->{nummer} . ": by calling readLSFromEkzWsLieferscheinDetail($ekzCustomerNumber,undef," . $lieferschein->{nummer} . ",\\\$lieferscheinDetailElement)");
-            $result = &readLSFromEkzWsLieferscheinDetail($ekzCustomerNumber,undef,$lieferschein->{nummer},\$lieferscheinDetailElement);    # read *complete* info (i.e. all titles) of the delivery note
+        try {
+            # read all new delivery notes since $lastRunDate until including yesterday
+            $logger->info("ekzWsDeliveryNote.pl read delivery notes from lastRunDate:$lastRunDate to yesterdayDate:$yesterdayDate: by calling readLSFromEkzWsLieferscheinList ($ekzCustomerNumber,$lastRunDate,$yesterdayDate,undef)");
+            my $lsList = &readLSFromEkzWsLieferscheinList ($ekzCustomerNumber,$lastRunDate,$yesterdayDate,undef);
 
-            $logger->debug("ekzWsDeliveryNote.pl Dumper(\$result->{'lieferscheinRecords'}->[0]):" . Dumper($result->{'lieferscheinRecords'}->[0]) . ":");
-            if ( $genKohaRecords ) {
-                if ( $result->{'lieferscheinCount'} > 0 ) {
-                    if ( &genKohaRecords($ekzCustomerNumber, $result->{'messageID'}, $lieferscheinDetailElement,$result->{'lieferscheinRecords'}->[0], $createdTitleRecords) ) {
-                        $res = 1;
+            foreach my $lieferschein ( @{$lsList->{'lieferscheinRecords'}} ) {
+                try {
+                    $logger->info("ekzWsDeliveryNote.pl read delivery note via lieferscheinnummer:" . $lieferschein->{nummer} . ": by calling readLSFromEkzWsLieferscheinDetail($ekzCustomerNumber,undef," . $lieferschein->{nummer} . ",\\\$lieferscheinDetailElement)");
+                    $result = &readLSFromEkzWsLieferscheinDetail($ekzCustomerNumber,undef,$lieferschein->{nummer},\$lieferscheinDetailElement);    # read *complete* info (i.e. all titles) of the delivery note
+
+                    $logger->debug("ekzWsDeliveryNote.pl Dumper(\$result->{'lieferscheinRecords'}->[0]):" . Dumper($result->{'lieferscheinRecords'}->[0]) . ":");
+                    if ( $genKohaRecords ) {
+                        if ( $result->{'lieferscheinCount'} > 0 ) {
+                            if ( &genKohaRecords($ekzCustomerNumber, $result->{'messageID'}, $lieferscheinDetailElement,$result->{'lieferscheinRecords'}->[0], $createdTitleRecords) ) {
+                                $res = 1;
+                            }
+                        }
                     }
                 }
+                catch {
+                    my $exceptionThrown = $_;
+                    $logger->info("ekzWsDeliveryNote.pl caught exception in loop lieferscheinnummer:" . $lieferschein->{nummer} . ": exceptionThrown:" . Dumper($exceptionThrown) . ":");
+                }
             }
+        }
+        catch {
+            my $exceptionThrown = $_;
+            $logger->info("ekzWsDeliveryNote.pl caught exception in loop ekzCustomerNumber:" . $ekzCustomerNumber . ": exceptionThrown:" . Dumper($exceptionThrown) . ":");
         }
     }
     if ( $res == 1 ) {

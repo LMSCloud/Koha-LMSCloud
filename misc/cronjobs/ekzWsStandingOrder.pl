@@ -21,6 +21,7 @@ use strict;
 use warnings;
 
 use utf8;
+use Try::Tiny;
 use Data::Dumper;
 
 use C4::External::EKZ::lib::EkzWsConfig;
@@ -138,30 +139,42 @@ if ( $testMode == 0 ) {
     my @ekzCustomerNumbers = C4::External::EKZ::lib::EkzWsConfig->new()->getEkzCustomerNumbers();
     foreach my $ekzCustomerNumber (sort @ekzCustomerNumbers) {
         foreach my $publicationYear ( @publicationYears ) {
-            # read all stoIDs of publication year
-            $logger->info("ekzWsStandingOrder.pl read STO of year:$publicationYear: by calling readStoFromEkzWsStoList ($ekzCustomerNumber,$publicationYear,undef,false,false,false,undef,undef,undef,undef)");
-            my $stoOfYear = &readStoFromEkzWsStoList ($ekzCustomerNumber,$publicationYear,undef,'false','false','false',undef,undef,undef,undef);
+            try {
+                # read all stoIDs of publication year
+                $logger->info("ekzWsStandingOrder.pl read STO of year:$publicationYear: by calling readStoFromEkzWsStoList ($ekzCustomerNumber,$publicationYear,undef,false,false,false,undef,undef,undef,undef)");
+                my $stoOfYear = &readStoFromEkzWsStoList ($ekzCustomerNumber,$publicationYear,undef,'false','false','false',undef,undef,undef,undef);
 
-            foreach my $sto ( @{$stoOfYear->{'standingOrderRecords'}} ) {
-                $logger->info("ekzWsStandingOrder.pl read StoId:$sto->{stoID}: read complete info; calling readStoFromEkzWsStoList ($ekzCustomerNumber,$publicationYear,$sto->{stoID},true,true,true,undef,'true','true',\\\$stoListElement)");
-                $result = &readStoFromEkzWsStoList ($ekzCustomerNumber,$publicationYear,$sto->{stoID},'true','true','true',undef,'true','true',\$stoListElement);    # read *complete* info (i.e. all titles, even without new status) of the standing order
+                foreach my $sto ( @{$stoOfYear->{'standingOrderRecords'}} ) {
+                    try {
+                        $logger->info("ekzWsStandingOrder.pl read StoId:$sto->{stoID}: read complete info; calling readStoFromEkzWsStoList ($ekzCustomerNumber,$publicationYear,$sto->{stoID},true,true,true,undef,'true','true',\\\$stoListElement)");
+                        $result = &readStoFromEkzWsStoList ($ekzCustomerNumber,$publicationYear,$sto->{stoID},'true','true','true',undef,'true','true',\$stoListElement);    # read *complete* info (i.e. all titles, even without new status) of the standing order
 
-                if ( $addReferenznummer ) {
-                    if ( $result->{'standingOrderCount'} > 0 ) {
-                        &addReferenznummerToObjectItemNumber($ekzCustomerNumber, $result->{'messageID'}, $stoListElement, $result->{'standingOrderRecords'}->[0], $lastRunDate, $todayDate);
-                    }
-                }
-                $logger->info("ekzWsStandingOrder.pl read StoId:" . $sto->{stoID} . ": state changes since lastRunDate:$lastRunDate: by calling readStoFromEkzWsStoList ($ekzCustomerNumber,$publicationYear," . $sto->{stoID} . ",true,true,true,$lastRunDate,true,true,undef)");
-                $result = &readStoFromEkzWsStoList ($ekzCustomerNumber,$publicationYear,$sto->{stoID},'true','true','true',$lastRunDate,'true','true',undef);        # read titles with modified state of the standig order 
-                $logger->debug("ekzWsStandingOrder.pl Dumper(result->{'standingOrderRecords'}->[0]:" . Dumper($result->{'standingOrderRecords'}->[0]) . ":");
+                        if ( $addReferenznummer ) {
+                            if ( $result->{'standingOrderCount'} > 0 ) {
+                                &addReferenznummerToObjectItemNumber($ekzCustomerNumber, $result->{'messageID'}, $stoListElement, $result->{'standingOrderRecords'}->[0], $lastRunDate, $todayDate);
+                            }
+                        }
+                        $logger->info("ekzWsStandingOrder.pl read StoId:" . $sto->{stoID} . ": state changes since lastRunDate:$lastRunDate: by calling readStoFromEkzWsStoList ($ekzCustomerNumber,$publicationYear," . $sto->{stoID} . ",true,true,true,$lastRunDate,true,true,undef)");
+                        $result = &readStoFromEkzWsStoList ($ekzCustomerNumber,$publicationYear,$sto->{stoID},'true','true','true',$lastRunDate,'true','true',undef);        # read titles with modified state of the standig order 
+                        $logger->debug("ekzWsStandingOrder.pl Dumper(result->{'standingOrderRecords'}->[0]:" . Dumper($result->{'standingOrderRecords'}->[0]) . ":");
 
-                if ( $genKohaRecords ) {
-                    if ( $result->{'standingOrderCount'} > 0 ) {
-                        if ( &genKohaRecords($ekzCustomerNumber, $result->{'messageID'}, $stoListElement, $result->{'standingOrderRecords'}->[0], $lastRunDate, $todayDate, $createdTitleRecords, $publicationYear) ) {
-                            $res = 1;
+                        if ( $genKohaRecords ) {
+                            if ( $result->{'standingOrderCount'} > 0 ) {
+                                if ( &genKohaRecords($ekzCustomerNumber, $result->{'messageID'}, $stoListElement, $result->{'standingOrderRecords'}->[0], $lastRunDate, $todayDate, $createdTitleRecords, $publicationYear) ) {
+                                    $res = 1;
+                                }
+                            }
                         }
                     }
+                    catch {
+                        my $exceptionThrown = $_;
+                        $logger->info("ekzWsStandingOrder.pl caught exception in loop read StoId:" . $sto->{stoID} . ": exceptionThrown:" . Dumper($exceptionThrown) . ":");
+                    }
                 }
+            }
+            catch {
+                my $exceptionThrown = $_;
+                $logger->info("ekzWsStandingOrder.pl caught exception in loop publicationYear:" . $publicationYear . ": exceptionThrown:" . Dumper($exceptionThrown) . ":");
             }
         }
     }

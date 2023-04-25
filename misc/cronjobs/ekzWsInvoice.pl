@@ -21,6 +21,7 @@ use strict;
 use warnings;
 
 use utf8;
+use Try::Tiny;
 use Data::Dumper;
 
 use C4::External::EKZ::lib::EkzWsConfig;
@@ -123,22 +124,34 @@ if ( $testMode == 0 ) {
     my @ekzCustomerNumbers = C4::External::EKZ::lib::EkzWsConfig->new()->getEkzCustomerNumbers();
     $logger->info("ekzWsInvoice.pl is trying to call readReFromEkzWsRechnungList for each ekzCustomerNumbers:" . Dumper(@ekzCustomerNumbers) . ":");
     foreach my $ekzCustomerNumber (sort @ekzCustomerNumbers) {
-        # read all new invoices since $lastRunDate until including yesterday
-        $logger->info("ekzWsInvoice.pl read RechnungList from lastRunDate:$lastRunDate: to yesterdayDate:$yesterdayDate: by calling readReFromEkzWsRechnungList ($ekzCustomerNumber,$lastRunDate,$yesterdayDate,undef)");
-        my $lsListe = &readReFromEkzWsRechnungList ($ekzCustomerNumber,$lastRunDate,$yesterdayDate,undef);
-        
-        foreach my $rechnung ( @{$lsListe->{'rechnungRecords'}} ) {
-            $logger->info("ekzWsInvoice.pl read rechnung via id:" . $rechnung->{id} . ": by calling readReFromEkzWsRechnungDetail($ekzCustomerNumber," . $rechnung->{id} . ",undef,\\\$rechnungDetailElement)");
-            $result = &readReFromEkzWsRechnungDetail($ekzCustomerNumber,$rechnung->{id},undef,\$rechnungDetailElement);    # read *complete* info (i.e. all titles) of the invoice
+        try {
+            # read all new invoices since $lastRunDate until including yesterday
+            $logger->info("ekzWsInvoice.pl read RechnungList from lastRunDate:$lastRunDate: to yesterdayDate:$yesterdayDate: by calling readReFromEkzWsRechnungList ($ekzCustomerNumber,$lastRunDate,$yesterdayDate,undef)");
+            my $lsListe = &readReFromEkzWsRechnungList ($ekzCustomerNumber,$lastRunDate,$yesterdayDate,undef);
 
-            if ( $genKohaRecords ) {
-                $logger->debug("ekzWsInvoice.pl Dumper(\$result->{'rechnungRecords'}->[0]):" . Dumper($result->{'rechnungRecords'}->[0]) . ":");
-                if ( $result->{'rechnungCount'} > 0 ) {
-                    if ( &genKohaRecords($ekzCustomerNumber, $result->{'messageID'}, $rechnungDetailElement,$result->{'rechnungRecords'}->[0], $createdTitleRecords) ) {
-                        $res = 1;
+            foreach my $rechnung ( @{$lsListe->{'rechnungRecords'}} ) {
+                try {
+                    $logger->info("ekzWsInvoice.pl read rechnung via id:" . $rechnung->{id} . ": by calling readReFromEkzWsRechnungDetail($ekzCustomerNumber," . $rechnung->{id} . ",undef,\\\$rechnungDetailElement)");
+                    $result = &readReFromEkzWsRechnungDetail($ekzCustomerNumber,$rechnung->{id},undef,\$rechnungDetailElement);    # read *complete* info (i.e. all titles) of the invoice
+
+                    if ( $genKohaRecords ) {
+                        $logger->debug("ekzWsInvoice.pl Dumper(\$result->{'rechnungRecords'}->[0]):" . Dumper($result->{'rechnungRecords'}->[0]) . ":");
+                        if ( $result->{'rechnungCount'} > 0 ) {
+                            if ( &genKohaRecords($ekzCustomerNumber, $result->{'messageID'}, $rechnungDetailElement,$result->{'rechnungRecords'}->[0], $createdTitleRecords) ) {
+                                $res = 1;
+                            }
+                        }
                     }
                 }
+                catch {
+                    my $exceptionThrown = $_;
+                    $logger->info("ekzWsInvoice.pl caught exception in loop rechnung->{id}:" . $rechnung->{id} . ": rechnung->{nummer}:" . $rechnung->{nummer} . ": exceptionThrown:" . Dumper($exceptionThrown) . ":");
+                }
             }
+        }
+        catch {
+            my $exceptionThrown = $_;
+            $logger->info("ekzWsInvoice.pl caught exception in loop ekzCustomerNumber:" . $ekzCustomerNumber . ": exceptionThrown:" . Dumper($exceptionThrown) . ":");
         }
     }
     if ( $res == 1 ) {
