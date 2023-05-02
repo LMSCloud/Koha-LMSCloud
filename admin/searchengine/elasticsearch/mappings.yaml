@@ -3794,7 +3794,7 @@ biblios:
         marc_type: marc21
         sort: ~
         suggestible: 1
-      - facet: 1
+      - facet: ''
         marc_field: 653a
         marc_type: marc21
         sort: ~
