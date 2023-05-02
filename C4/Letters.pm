@@ -978,7 +978,7 @@ sub _parseletter {
     }
 
     while ( my ($field, $val) = each %$values ) {
-        $val =~ s/\p{P}$// if $val && $table=~/biblio/;
+        $val =~ s/\p{Po}$// if $val && $table=~/biblio/;
             #BZ 9886: Assuming that we want to eliminate ISBD punctuation here
             #Therefore adding the test on biblio. This includes biblioitems,
             #but excludes items. Removed unneeded global and lookahead.
