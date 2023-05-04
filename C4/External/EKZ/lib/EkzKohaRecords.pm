@@ -34,7 +34,7 @@ use MARC::Record;
 use MARC::File::XML ( BinaryEncoding => 'utf8', RecordFormat => 'MARC21' );
 
 use C4::Context;
-use C4::Biblio qw( AddBiblio GetMarcBiblio );
+use C4::Biblio qw( AddBiblio GetFrameworkCode GetMarcBiblio ModBiblio );
 use C4::Breeding qw( Z3950SearchGeneral );
 use C4::External::EKZ::EkzAuthentication;
 use C4::External::EKZ::lib::LMSPoolSRU;
@@ -98,6 +98,26 @@ sub new {
 
     $self->{searcher} = Koha::SearchEngine::Search->new( { index => $Koha::SearchEngine::BIBLIOS_INDEX } );
 
+    # initialize fields concerning overwriting of catalog data on medium delivery or invoice
+    $self->{overwriteCatalogDataOnDelivery} = C4::Context->preference("ekzWebServicesOverwriteCatalogDataOnDelivery");
+    $self->{overwriteCatalogDataKeepFields} = [];
+    my $overwriteCatalogDataKeepFields = '035';    # LMSCloud prefers to keep field 035 that was set by BestellInfo or previous ekz data synchronizations, e.g. FortsetzungDetail.
+    my $ekzWebServicesOverwriteCatalogDataKeepFields = C4::Context->preference("ekzWebServicesOverwriteCatalogDataKeepFields");
+    if ( $ekzWebServicesOverwriteCatalogDataKeepFields ) {
+        $overwriteCatalogDataKeepFields .= '|' . $ekzWebServicesOverwriteCatalogDataKeepFields;
+    }
+    my %keepFields = ();
+    foreach my $marcField (split(/\|/,$overwriteCatalogDataKeepFields)) {
+        $marcField =~ s/(^\s+|\s+$)//;
+        if ( $marcField =~ /^(header|leader|[0-9]{3})$/i ) {
+            $marcField = lc($1);
+            $keepFields{$marcField} = 1;
+        }
+    }
+    my @keepFieldList = sort { $a cmp $b } keys %keepFields;
+    $self->{overwriteCatalogDataKeepFields} = \@keepFieldList;
+
+    $self->{logger}->debug("new() self->{overwriteCatalogDataOnDelivery}:$self->{overwriteCatalogDataOnDelivery}: self->{overwriteCatalogDataKeepFields}:" . Dumper($self->{overwriteCatalogDataKeepFields}) . ":");
     return $self;
 }
 
@@ -158,10 +178,10 @@ sub addNewRecords {
         my $volumeEkzArtikelNrExistsInTitleHits = 0;
         foreach my $record ( @{$titleHits->{records}} ) {
             # look for ekzArtikelNr in field 001 and for "DE-Rt5" in field 003
-            my $tmp_cna = defined($record->field("003")) ? $record->field("003")->data() : "undef";
+            my $tmp_cna = defined($record->field("003")) ? $record->field("003")->data() : 'undef';
             $self->{'logger'}->debug("addNewRecords() checking for volumeEkzArtikelNr:$volumeEkzArtikelNr: tmp_cna:$tmp_cna:");
             if ( $tmp_cna eq "DE-Rt5" ) {
-                my $ekzArtikelNr = defined($record->field("001")) ? $record->field("001")->data() : "undef";
+                my $ekzArtikelNr = defined($record->field("001")) ? $record->field("001")->data() : 'undef';
                 $self->{'logger'}->debug("addNewRecords() checking for volumeEkzArtikelNr:$volumeEkzArtikelNr:  ekzArtikelNr:$ekzArtikelNr:");
                 if ( $volumeEkzArtikelNr eq $ekzArtikelNr ) {
                     $volumeEkzArtikelNrExistsInTitleHits = 1;
@@ -190,10 +210,10 @@ sub addNewRecords {
             # Check that this record is not the volume (if volume title exists, addNewRecords() would not have been called):
 
             # 1st attempt: look for ekzArtikelNr in field 001
-            my $tmp_cna = defined($record->field("003")) ? $record->field("003")->data() : "undef";
+            my $tmp_cna = defined($record->field("003")) ? $record->field("003")->data() : 'undef';
             $self->{'logger'}->trace("addNewRecords() tmp_cna:$tmp_cna:");
             if ( $tmp_cna eq "DE-Rt5" ) {
-                $ekzArtikelNr = defined($record->field("001")) ? $record->field("001")->data() : "undef";
+                $ekzArtikelNr = defined($record->field("001")) ? $record->field("001")->data() : 'undef';
                 $self->{'logger'}->trace("addNewRecords() ekzArtikelNr:$ekzArtikelNr:");
                 if ( $volumeEkzArtikelNr eq $ekzArtikelNr ) {
                     $thisIsTheVolumeRecord = 1;
@@ -841,7 +861,7 @@ sub readTitleDubletten {
 sub readTitleInLMSPool {
     my $self = shift;
     my $reqParamTitelInfo = shift;
-    my $searchmode = shift;    # 1: search for ekzArtikelNr   2: search for isbn/isbn13/issn/ismn/ean   >2: both 1 and 2
+    my $searchmode = shift;    # 1: search for ekzArtikelNr   2: search for isbn/isbn13/issn/ismn/ean   >2: combination of 1 and 2 etc,
 
     my $selEkzArtikelNr = $reqParamTitelInfo->{'ekzArtikelNr'};
     my $selIsbn = $reqParamTitelInfo->{'isbn'};
@@ -2229,6 +2249,7 @@ sub defaultUstSatz {
     return $defaultUstSatzRet;
 }
 
+# Deleting from biblioserver index may be required in case of database transaction rollback
 sub deleteFromIndex {
     my $self = shift;
     my ($biblionumber) = @_;
@@ -2236,13 +2257,276 @@ sub deleteFromIndex {
     $self->{'logger'}->debug("deleteFromIndex() START; biblionumber:$biblionumber:");
 
     if( $biblionumber ) {
-       my $biblio = Koha::Biblios->find( $biblionumber );    # For safety's sake only. Do not delete from index if still existing in biblio table. Should never happen.
+        my $biblio = Koha::Biblios->find( $biblionumber );    # For safety's sake only. Do not delete from index if still existing in biblio table. Should never happen.
         $self->{'logger'}->debug("deleteFromIndex() biblionumber:$biblionumber: biblio:" . Dumper($biblio) . ":");
         if ( !( $biblio ) ) {
             my $indexer = Koha::SearchEngine::Indexer->new({ index => $Koha::SearchEngine::BIBLIOS_INDEX });
             $indexer->index_records( $biblionumber, "recordDelete", "biblioserver" );
         }
     }
+}
+
+# Re-indexing of titles may be required in case of database transaction rollback
+sub updateInIndex {
+    my $self = shift;
+    my @biblionumbers = @_;
+
+    $self->{'logger'}->debug("updateInIndex() START; biblionumbers:" . Dumper(@biblionumbers) . ":");
+
+    if ( scalar @biblionumbers > 0 ) {
+        my $indexer = Koha::SearchEngine::Indexer->new({ index => $Koha::SearchEngine::BIBLIOS_INDEX });
+        $indexer->index_records( @biblionumbers, "specialUpdate", "biblioserver", undef );
+    }
+    $self->{'logger'}->debug("updateInIndex() returns (scalar \@biblionumbers:" . scalar @biblionumbers . ":");
+}
+
+# Check if to reread title data via webservice MedienDaten etc. and, if required, (partially) overwrite the title record.
+sub overwriteCatalogDataIfRequired {
+    my $self = shift;
+    my ($ekzCustomerNumber, $biblionumber, $reqParamTitelInfoOfCaller, $titleHitRecordOfBiblionumber, $updatedTitleRecords) = @_;
+    my $ret = 0;
+
+    $self->{'logger'}->debug("overwriteCatalogDataIfRequired() START; ekzCustomerNumber:$ekzCustomerNumber: biblionumber:$biblionumber: reqParamTitelInfoOfCaller:" . Dumper($reqParamTitelInfoOfCaller) . ": self->{overwriteCatalogDataOnDelivery}:$self->{overwriteCatalogDataOnDelivery}: updatedTitleRecords->{$biblionumber}:$updatedTitleRecords->{$biblionumber}:");
+
+    if ( ! $updatedTitleRecords->{$biblionumber} ) {    # update data of a title only one time per synchronisation run
+        my $rereadUpdateCatalogData = $self->checkOverwriteCatalogDataOnDelivery($ekzCustomerNumber,$biblionumber);
+        $self->{'logger'}->debug("overwriteCatalogDataIfRequired() rereadUpdateCatalogData:$rereadUpdateCatalogData:");
+        if ( $rereadUpdateCatalogData ) {
+            $ret = $self->tryOverwriteCatalogDataOnDelivery($biblionumber, $reqParamTitelInfoOfCaller, $titleHitRecordOfBiblionumber);
+            if ( $ret ) {
+                $updatedTitleRecords->{$biblionumber} = $biblionumber;
+            }
+        }
+    }
+
+    $self->{'logger'}->debug("overwriteCatalogDataIfRequired() END; ekzCustomerNumber:$ekzCustomerNumber: biblionumber:$biblionumber: reqParamTitelInfoOfCaller->{'ekzArtikelNr'}:$reqParamTitelInfoOfCaller->{'ekzArtikelNr'}: self->{overwriteCatalogDataOnDelivery}:$self->{overwriteCatalogDataOnDelivery}: updatedTitleRecords->{$biblionumber}:$updatedTitleRecords->{$biblionumber}: ret:$ret:");
+    return $ret;
+}
+
+# Check if to overwrite title data via webservice MedienDaten etc., what depends on systempreferences and the notforloan status of the title's items.
+sub checkOverwriteCatalogDataOnDelivery {
+    my $self = shift;
+    my ($ekzCustomerNumber, $biblionumber) = @_;
+    my $retOverwrite = 0;
+
+    $self->{'logger'}->debug("checkOverwriteCatalogDataOnDelivery() START; ekzCustomerNumber:$ekzCustomerNumber: biblionumber:$biblionumber: self->{overwriteCatalogDataOnDelivery}:$self->{overwriteCatalogDataOnDelivery}:");
+
+    if ( $biblionumber && $self->{overwriteCatalogDataOnDelivery} ) {
+        # On the one hand we have to overwrite catalog data because it is configured so in systempreferences,
+        # on the other hand we want to avoid overwriting of catalog data if there is a certain probability that library staff has already updated it.
+
+        # First case for overwriting: Overwrite catalog data if all items of the title have notforloan < 0. Or more precisely: If no item exists with notforloan >= 0.
+        $self->{'logger'}->debug("checkOverwriteCatalogDataOnDelivery() search items of biblionumber:$biblionumber: having notforloan >= 0");
+        my $itemsHitsRS = Koha::Items->new()->_resultset()->search({ biblionumber => $biblionumber, notforloan => { '>=', 0 } });
+        my $cnt = $itemsHitsRS->count();
+        $self->{'logger'}->debug("checkOverwriteCatalogDataOnDelivery() count of items of biblionumber:$biblionumber: having notforloan >= 0:$cnt:");
+
+        if ( $cnt == 0 ) {
+            $retOverwrite = 1;    # first case is the case
+        } else {    # There exists at least one item with notforloan >= 0.
+            # Second case for overwriting:
+            # All items of this title from other booksellers than ekz have notforloan < 0
+            # (more precisely: all items with no entry in acquisition_import_objects have notforloan < 0)
+            # and all items of the title that are registered in acquisition_import_objects are not yet delivered or invoiced.
+            $retOverwrite = 1;    # inverting conditions
+
+            my @itemsHits = Koha::Items->new()->_resultset()->search({ biblionumber => $biblionumber });
+
+            # for debugging only:
+            my @itemnumbers = ();
+            foreach my $itemHit (@itemsHits ) {
+                push @itemnumbers, $itemHit->get_column('itemnumber');
+                $self->{'logger'}->debug("checkOverwriteCatalogDataOnDelivery() pushed itemnumber:$itemnumbers[$#itemnumbers]: into itemnumbers");
+            }
+
+            # Here starts the real check of the second case:
+  ITEMHITS: foreach my $itemHit ( @itemsHits ) {
+                # Test if itemnumber exists in acquisition_import_object.
+                my $selParam = {
+                    koha_object_id => $itemHit->get_column('itemnumber'),
+                    koha_object => "item"
+                };
+                $self->{'logger'}->trace("checkOverwriteCatalogDataOnDelivery() search item order record in acquisition_import_objects selParam:" . Dumper($selParam) . ":");
+                my $itemObject = Koha::AcquisitionImport::AcquisitionImportObjects->new();
+                my $itemObjectRS = $itemObject->_resultset()->search($selParam);
+
+                if ( $itemObjectRS->count() == 0 && $itemHit->get_column('notforloan') >= 0) {
+                    # Do not overwrite catalog data if an item exists whose itemnumber does not exist in acquisition_import_object and that has notforloan > 0
+                    # (i.e. checkout-ready item of other bookseller than ekz (more precisely: There exists a checkout-ready item not handled by ekz media services) ).
+                    $retOverwrite = 0;
+                    last ITEMHITS;
+                } else {
+                    while ( my $itemObjectHit = $itemObjectRS->next() ) {
+                        # Test if processingstate of the item is 'delivered' or 'invoiced';
+                        # if so, we do not overwrite the catalog data.
+                        my $selParam = {
+                            id => $itemObjectHit->get_column('acquisition_import_id')
+                        };
+                        $self->{'logger'}->trace("checkOverwriteCatalogDataOnDelivery() search item order record in acquisition_import selParam:" . Dumper($selParam) . ":");
+                        my $acquisitionImportItem = Koha::AcquisitionImport::AcquisitionImports->new();
+                        my $acquisitionImportItemRS = $acquisitionImportItem->_resultset()->search($selParam)->first();
+                        if ( $acquisitionImportItemRS ) {
+                            $self->{'logger'}->trace("checkOverwriteCatalogDataOnDelivery() acquisitionImportItemRS->{_column_data}:" . Dumper($acquisitionImportItemRS->{_column_data}) . ":");
+                            my $processingstate = $acquisitionImportItemRS->get_column('processingstate');
+                            if ( $processingstate && ($processingstate eq 'delivered' || $processingstate eq 'invoiced') ) {
+                                # Do not overwrite catalog data if an item exists whose itemnumber does exist in acquisition_import_object and that has already been delivered or invoiced
+                                $retOverwrite = 0;
+                                last ITEMHITS;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    $self->{'logger'}->debug("checkOverwriteCatalogDataOnDelivery() returns retOverwrite:$retOverwrite:");
+    return $retOverwrite;
+}
+
+# try to find a more up to date MARC record and overwrite/merge the title data
+sub tryOverwriteCatalogDataOnDelivery {
+    my $self = shift;
+    my ( $biblionumber, $reqParamTitelInfoOfCaller, $marcBiblioOld) = @_;
+    my $ret = 0;
+
+    my $titleHits = { 'count' => 0, 'records' => [] };
+    my $reqParamTitelInfo = ();
+    my $cnMarcBiblioOld = defined($marcBiblioOld->field("001")) ? $marcBiblioOld->field("001")->data() : undef;
+    my $cnaMarcBiblioOld = defined($marcBiblioOld->field("003")) ? $marcBiblioOld->field("003")->data() : 'undefOld';
+    my $cnMarcBiblioHit =  undef;
+    my $cnaMarcBiblioHit = 'undefHit';
+
+    $self->{'logger'}->info("tryOverwriteCatalogDataOnDelivery() START biblionumber:$biblionumber: reqParamTitelInfoOfCaller:" . Dumper($reqParamTitelInfoOfCaller) . ": cnMarcBiblioOld:$cnMarcBiblioOld: cnaMarcBiblioOld:$cnaMarcBiblioOld:");
+
+    if ( $cnaMarcBiblioOld eq "DE-Rt5" ) {
+        $reqParamTitelInfo->{'ekzArtikelNr'} = $cnMarcBiblioOld;    # preliminary initialization
+    }
+    if ( $reqParamTitelInfoOfCaller->{'ekzArtikelNr'} ) {
+        $reqParamTitelInfo->{'ekzArtikelNr'} = $reqParamTitelInfoOfCaller->{'ekzArtikelNr'};    # preferred initialization, may be more up to date than $cnMarcBiblioOld
+    }
+
+    my $titleSourceSequence = C4::Context->preference("ekzTitleDataServicesSequence");
+    if ( !defined($titleSourceSequence) ) {
+        $titleSourceSequence = '_LMSC|_EKZWSMD|DNB|_WS';    # default as usual
+    }
+    my @titleSourceSequence = split('\|',$titleSourceSequence);
+    my $volumeEkzArtikelNr = undef;    # will be set only if call of webservice MedienDaten shows that it is the title of a series volume
+
+    # Beeing careful: It is less disastrous to not overwrite with current data than to overwrite with data of a different title.
+    foreach my $titleSource (@titleSourceSequence) {
+        $self->{'logger'}->info("tryOverwriteCatalogDataOnDelivery() in loop titleSource:$titleSource: old titleHits->{'count'}:$titleHits->{'count'}:");
+        if ( $titleHits->{'count'} > 0 && defined $titleHits->{'records'}->[0] ) {
+            last;    # title data have been found in lastly tested title source
+        }
+
+        if ( $titleSource eq '_WS' ) {
+            # use sparse title data from the LieferscheinDetailElement
+            next;    # skip this, it is of no use here
+        } elsif ( $titleSource eq '_LMSC' ) {
+            if ( $reqParamTitelInfo->{'ekzArtikelNr'} ) {
+                # search title in LMSPool (via ekzArtikelNr only)
+                $titleHits = $self->readTitleInLMSPool($reqParamTitelInfo, 1);    # searchmode == 1, i.e. search via ekzArtikelNr only
+                $self->{'logger'}->info("tryOverwriteCatalogDataOnDelivery() from LMS Pool titleHits->{'count'}:" . $titleHits->{'count'} . ":");
+            }
+        } elsif ( $titleSource eq '_EKZWSMD' ) {
+            if ( $reqParamTitelInfo->{'ekzArtikelNr'} ) {
+                # send query to the ekz title information webservice 'MedienDaten' (search via ekzArtikelNr only)
+                # (This is the only case where we handle series titles in addition to the volume title.)
+                $titleHits = $self->readTitleFromEkzWsMedienDaten($reqParamTitelInfo->{'ekzArtikelNr'});
+                $self->{'logger'}->info("tryOverwriteCatalogDataOnDelivery() from ekz Webservice 'MedienDaten' titleHits->{'count'}:" . $titleHits->{'count'} . ":");
+                if ( $titleHits->{'count'} > 1 ) {
+                    $volumeEkzArtikelNr = $reqParamTitelInfo->{'ekzArtikelNr'};
+                }
+            }
+        } else {    # in this case $titleSource contains the name of a Z39/50 target
+            # search title in the Z39.50 target with z3950servers.servername=$titleSource
+
+            # Only in this case we use select criteria other than ekzArtikelNr
+            $reqParamTitelInfo->{'isbn'} = $reqParamTitelInfoOfCaller->{'isbn'} if $reqParamTitelInfoOfCaller->{'isbn'};
+            $reqParamTitelInfo->{'isbn13'} = $reqParamTitelInfoOfCaller->{'isbn13'} if $reqParamTitelInfoOfCaller->{'isbn13'};
+            $reqParamTitelInfo->{'issn'} = $reqParamTitelInfoOfCaller->{'issn'} if $reqParamTitelInfoOfCaller->{'issn'};
+            $reqParamTitelInfo->{'ismn'} = $reqParamTitelInfoOfCaller->{'ismn'} if $reqParamTitelInfoOfCaller->{'ismn'};
+            $reqParamTitelInfo->{'ean'} = $reqParamTitelInfoOfCaller->{'ean'} if $reqParamTitelInfoOfCaller->{'ean'};
+
+            $titleHits = $self->readTitleFromZ3950Target($titleSource,$reqParamTitelInfo);
+            $self->{'logger'}->info("tryOverwriteCatalogDataOnDelivery() from z39.50 search on target:" . $titleSource . ": titleHits->{'count'}:" . $titleHits->{'count'} . ":");
+        }
+    }
+
+    if ( $titleHits->{'count'} > 0 && defined $titleHits->{'records'}->[0] ) {
+        my $hitIndex = -1;
+        for ( my $i = 0; $i < $titleHits->{'count'}; $i += 1 ) {
+            $cnMarcBiblioHit = defined($titleHits->{'records'}->[$i]->field("001")) ? $titleHits->{'records'}->[$i]->field("001")->data() : undef;
+            $cnaMarcBiblioHit = defined($titleHits->{'records'}->[$i]->field("003")) ? $titleHits->{'records'}->[$i]->field("003")->data() : 'undefHit';
+            $self->{'logger'}->debug("tryOverwriteCatalogDataOnDelivery() in loop titleHits; i:$i: volumeEkzArtikelNr:" . (defined($volumeEkzArtikelNr)?$volumeEkzArtikelNr:'undef') . ": cnMarcBiblioHit:$cnMarcBiblioHit: cnaMarcBiblioHit:$cnaMarcBiblioHit: cnMarcBiblioOld:$cnMarcBiblioOld: cnaMarcBiblioOld:$cnaMarcBiblioOld:");
+
+            if ( $volumeEkzArtikelNr ) {    # multiple hits by webservice MedienDaten, so we have to pick the matching hit (series volume data)
+                if ( $cnMarcBiblioHit && $cnaMarcBiblioHit ne 'undefHit' && $cnMarcBiblioHit == $reqParamTitelInfo->{'ekzArtikelNr'} && $cnaMarcBiblioHit eq "DE-Rt5" ) {
+                    $hitIndex = $i;
+                    last;
+                }
+            } else {
+                if ( $cnMarcBiblioHit && $cnaMarcBiblioHit ne 'undefHit' && $cnMarcBiblioHit == $cnMarcBiblioOld && $cnaMarcBiblioHit eq $cnaMarcBiblioOld ) {
+                    $hitIndex = $i;
+                    last;
+                }
+            }
+        }
+        $self->{'logger'}->debug("tryOverwriteCatalogDataOnDelivery() after loop titleHits; hitIndex:$hitIndex:");
+
+        if ( $hitIndex >= 0 ) {
+            my $retRecord = $self->overwriteCatalogRecord($marcBiblioOld, $titleHits->{'records'}->[$hitIndex], $biblionumber, 1);
+            if ( defined($retRecord) ) {
+                $ret = 1;
+            }
+        }
+    }
+
+    $self->{'logger'}->info("tryOverwriteCatalogDataOnDelivery() biblionumber:$biblionumber: reqParamTitelInfoOfCaller->{'ekzArtikelNr'}:$reqParamTitelInfoOfCaller->{'ekzArtikelNr'}: cnMarcBiblioOld:$cnMarcBiblioOld: cnaMarcBiblioOld:$cnaMarcBiblioOld: cnMarcBiblioHit:$cnMarcBiblioHit: cnaMarcBiblioHit:$cnaMarcBiblioHit: returns ret:$ret:");
+}
+
+# merge new into old MARC record
+sub overwriteCatalogRecord {
+    my ($self, $oldRecord, $newRecord, $biblionumber, $save) = @_;
+    my $retRecord;
+
+    $self->{'logger'}->info("overwriteCatalogRecord() START biblionumber:$biblionumber: save:$save:");
+    $self->{'logger'}->debug("overwriteCatalogRecord() START oldRecord:" . Dumper($oldRecord) . ":");
+    $self->{'logger'}->debug("overwriteCatalogRecord() START newRecord:" . Dumper($newRecord) . ":");
+
+    if ( $oldRecord && $newRecord ) {
+        my $record = $newRecord->clone;
+
+        my @delfields = $record->field('999');
+        $record->delete_fields(@delfields) if ( scalar(@delfields) );
+        my @addfields = $oldRecord->field('999');
+        $record->insert_fields_ordered(reverse @addfields) if ( scalar(@addfields) );
+
+        foreach my $field( @{$self->{overwriteCatalogDataKeepFields}} ) {
+            @delfields = $record->field($field);
+
+            if ( $field eq 'header' || $field eq 'leader' ) {
+                $record->leader($oldRecord->leader());
+            } else {
+                @addfields = $oldRecord->field($field);
+
+                if ( scalar(@addfields) ) {
+                    $record->delete_fields(@delfields) if ( scalar(@delfields) );
+                    $record->insert_fields_ordered(reverse @addfields);
+                }
+            }
+        }
+
+        if ( $biblionumber && $save ) {
+            my $retModBiblio = &C4::Biblio::ModBiblio($record, $biblionumber, &C4::Biblio::GetFrameworkCode($biblionumber));
+            $self->{'logger'}->debug("overwriteCatalogRecord() after C4::Biblio::ModBiblio(biblionumber:$biblionumber) retModBiblio:$retModBiblio:");
+        }
+        $retRecord = $record;
+    }
+
+    $self->{'logger'}->debug("overwriteCatalogRecord() returns retRecord:" . Dumper($retRecord) . ":");
+    return $retRecord;
 }
 
 1;

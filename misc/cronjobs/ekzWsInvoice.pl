@@ -26,7 +26,7 @@ use Data::Dumper;
 
 use C4::External::EKZ::lib::EkzWsConfig;
 use C4::External::EKZ::lib::EkzWebServices;
-use C4::External::EKZ::EkzWsInvoice qw( readReFromEkzWsRechnungList readReFromEkzWsRechnungDetail genKohaRecords );
+use C4::External::EKZ::EkzWsInvoice qw( readReFromEkzWsRechnungList readReFromEkzWsRechnungDetail genKohaRecords updBiblioIndex );
 use Koha::Logger;
 
 
@@ -49,6 +49,9 @@ my $rechnungDetailElement = '';    # for storing the RechnungDetailElement of th
 # than the Zebra or Elasticsearch index works, and therefore the local title search would (incorrectly) return no hit.
 # (As we do not catch thrown exceptions, there is no need to update $createdTitleRecords in case of database transaction rollbacks.)
 my $createdTitleRecords = {};
+# The hash %{$updatedTitleRecords} stores the biblionumbers of titles that have been overwritten (or inserted) in this run of ekzWsInvoice.pl 
+# based on system preferences 'ekzWebServicesOverwriteCatalogDataOnDelivery' and 'ekzWebServicesOverwriteCatalogDataKeepFields'.
+my $updatedTitleRecords = {};
 
 my ($sec,$min,$hour,$mday,$mon,$year,$wday,$yday,$isdst) = localtime(time);
 my $startTime = sprintf("%04d-%02d-%02d at %02d:%02d:%02d",1900+$year,1+$mon,$mday,$hour,$min,$sec);
@@ -102,17 +105,26 @@ if ( $testMode == 2 ) {
     #$rechnung->{id} = '1710429';    # an rita_rendsburg, Rechnung über 66.70 €, 22 Auftragspositionen
     #$rechnung->{id} = '1861204';    # an rita_rendsburg, Rechnung über 517.50 €, 151 Auftragspositionen
 
+    my @rechnungList = ($rechnung);
+    foreach my $rechnung ( @rechnungList ) {
+        try {
             $logger->info("ekzWsInvoice.pl read rechnung via id:" . $rechnung->{id} . ": by calling readReFromEkzWsRechnungDetail($ekzCustomerNumber," . $rechnung->{id} . ",undef,\\\$rechnungDetailElement)");
             $result = &readReFromEkzWsRechnungDetail($ekzCustomerNumber,$rechnung->{id},undef,\$rechnungDetailElement);    # read *complete* info (i.e. all titles) of the invoice
 
             if ( $genKohaRecords ) {
             $logger->debug("ekzWsInvoice.pl Dumper(\$result->{'rechnungRecords'}->[0]):" . Dumper($result->{'rechnungRecords'}->[0]) . ":");
                 if ( $result->{'rechnungCount'} > 0 ) {
-                    if ( &genKohaRecords($ekzCustomerNumber, $result->{'messageID'}, $rechnungDetailElement,$result->{'rechnungRecords'}->[0], $createdTitleRecords) ) {
+                    if ( &genKohaRecords($ekzCustomerNumber, $result->{'messageID'}, $rechnungDetailElement,$result->{'rechnungRecords'}->[0], $createdTitleRecords, $updatedTitleRecords) ) {
                         $res = 1;
                     }
                 }
             }
+        }
+        catch {
+            my $exceptionThrown = $_;
+            $logger->info("ekzWsInvoice.pl caught exception in loop rechnung->{id}:" . $rechnung->{id} . ": exceptionThrown:" . Dumper($exceptionThrown) . ":");
+        } # continue work with next invoice
+    }
 
 }
 
@@ -137,7 +149,7 @@ if ( $testMode == 0 ) {
                     if ( $genKohaRecords ) {
                         $logger->debug("ekzWsInvoice.pl Dumper(\$result->{'rechnungRecords'}->[0]):" . Dumper($result->{'rechnungRecords'}->[0]) . ":");
                         if ( $result->{'rechnungCount'} > 0 ) {
-                            if ( &genKohaRecords($ekzCustomerNumber, $result->{'messageID'}, $rechnungDetailElement,$result->{'rechnungRecords'}->[0], $createdTitleRecords) ) {
+                            if ( &genKohaRecords($ekzCustomerNumber, $result->{'messageID'}, $rechnungDetailElement,$result->{'rechnungRecords'}->[0], $createdTitleRecords, $updatedTitleRecords) ) {
                                 $res = 1;
                             }
                         }
@@ -159,6 +171,9 @@ if ( $testMode == 0 ) {
     }
 
 }
+
+# Re-indexing of all titles registered in $updatedTitleRecords (just in case there happened a database transaction rollback in this run).
+&updBiblioIndex($updatedTitleRecords);
 
 ($sec,$min,$hour,$mday,$mon,$year,$wday,$yday,$isdst) = localtime(time);
 my $endTime = sprintf("%04d-%02d-%02d at %02d:%02d:%02d",1900+$year,1+$mon,$mday,$hour,$min,$sec);

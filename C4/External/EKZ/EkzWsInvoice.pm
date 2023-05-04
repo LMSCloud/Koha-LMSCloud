@@ -54,7 +54,7 @@ binmode( STDOUT, ":utf8" );
 binmode( STDERR, ":utf8" );
 
 our @ISA = qw(Exporter);
-our @EXPORT = qw( readReFromEkzWsRechnungList readReFromEkzWsRechnungDetail genKohaRecords );
+our @EXPORT = qw( readReFromEkzWsRechnungList readReFromEkzWsRechnungDetail genKohaRecords updBiblioIndex );
 
 
 
@@ -119,7 +119,7 @@ sub readReFromEkzWsRechnungDetail {
 # generate title data and item data as required
 ###################################################################################################
 sub genKohaRecords {
-    my ($ekzCustomerNumber, $messageID, $rechnungDetailElement, $rechnungRecord, $createdTitleRecords) = @_;
+    my ($ekzCustomerNumber, $messageID, $rechnungDetailElement, $rechnungRecord, $createdTitleRecords, $updatedTitleRecords) = @_;
     my $ekzKohaRecord = C4::External::EKZ::lib::EkzKohaRecords->new();
 
     my $rechnungNummerIsDuplicate = 0;
@@ -286,6 +286,16 @@ sub genKohaRecords {
             $emaillog->{'records'} = [];                   # one record for the title and one for each item (array ref)
             my ($titeldata, $isbnean) = ("", "");
 
+            my $reqParamTitelInfo = ();
+            $reqParamTitelInfo->{'ekzArtikelNr'} = $auftragsPosition->{'artikelNummer'};
+            my $isbn = $auftragsPosition->{'isbn'};
+            if ( length($isbn) == 10 ) {
+                $reqParamTitelInfo->{'isbn'} = $isbn;
+            } else {
+                $reqParamTitelInfo->{'isbn13'} = $isbn;
+            }
+            $reqParamTitelInfo->{'ean'} = $auftragsPosition->{'ean'};
+
             # search corresponding item hits with same ekzExemplarid in table acquisition_import, if sent in $auftragsPosition->{'ekzexemplarid'}.
             # otherwise:
             # search corresponding item hits with same ekzArtikelNr and same referenznummer in table acquisition_import, if sent in $auftragsPosition->{'artikelNummer'} and  in $auftragsPosition->{'referenzummer'}.
@@ -379,6 +389,10 @@ sub genKohaRecords {
                                         $invEkzArtikelNr = $tmp_cna . '-' . $tmp_cn;
                                     }
                                     $biblioExisting = 1;    # this flag may be required in method 4
+
+                                    # Check if to reread title data via webservice MedienDaten etc. and, if required, (partially) overwrite the title record.
+                                    $ekzKohaRecord->overwriteCatalogDataIfRequired($ekzCustomerNumber, $biblionumber, $reqParamTitelInfo, $titleHits->{'records'}->[0], $updatedTitleRecords);
+
                                     # positive message for log email
                                     $emaillog->{'importresult'} = 2;
                                     $emaillog->{'importedTitlesCount'} += 0;
@@ -502,6 +516,10 @@ sub genKohaRecords {
                                         $invEkzArtikelNr = $tmp_cna . '-' . $tmp_cn;
                                     }
                                     $biblioExisting = 1;    # this flag may be required in method 4
+
+                                    # Check if to reread title data via webservice MedienDaten etc. and, if required, (partially) overwrite the title record.
+                                    $ekzKohaRecord->overwriteCatalogDataIfRequired($ekzCustomerNumber, $biblionumber, $reqParamTitelInfo, $titleHits->{'records'}->[0], $updatedTitleRecords);
+
                                     # positive message for log email
                                     $emaillog->{'importresult'} = 2;
                                     $emaillog->{'importedTitlesCount'} += 0;
@@ -556,15 +574,6 @@ sub genKohaRecords {
 #
 #                    if ( $titleHits->{'count'} == 0 || !defined $titleHits->{'records'}->[0] || !defined($titleHits->{'records'}->[0]->field("001")) || $titleHits->{'records'}->[0]->field("001")->data() != $auftragsPosition->{'artikelNummer'} || !defined($titleHits->{'records'}->[0]->field("003")) || $titleHits->{'records'}->[0]->field("003")->data() ne "DE-Rt5" ) {
 #                        # search the biblio record; if not found, create the biblio record in the '$updOrInsItemsCount < $invoicedItemsCount' block below (= method4)
-#                        my $reqParamTitelInfo = ();
-#                        $reqParamTitelInfo->{'ekzArtikelNr'} = $auftragsPosition->{'artikelNummer'};
-#                        my $isbn = $auftragsPosition->{'isbn'};
-#                        if ( length($isbn) == 10 ) {
-#                            $reqParamTitelInfo->{'isbn'} = $isbn;
-#                        } else {
-#                            $reqParamTitelInfo->{'isbn13'} = $isbn;
-#                        }
-#                        $reqParamTitelInfo->{'ean'} = $auftragsPosition->{'ean'};
 #
 #                        $titleHits = { 'count' => 0, 'records' => [] };
 #                        $biblionumber = 0;
@@ -630,16 +639,8 @@ sub genKohaRecords {
 
                 if ( $titleHits->{'count'} == 0 || !defined $titleHits->{'records'}->[0] || !defined($titleHits->{'records'}->[0]->field("001")) || $titleHits->{'records'}->[0]->field("001")->data() != $auftragsPosition->{'artikelNummer'} || !defined($titleHits->{'records'}->[0]->field("003")) || $titleHits->{'records'}->[0]->field("003")->data() ne "DE-Rt5" ) {
 
-                    my $reqParamTitelInfo = ();
+                    # get additional fields of title data
                     $reqParamTitelInfo->{'ekzArtikelArt'}  = $auftragsPosition->{'artikelart'};    # TODO: this is not a code value as in BestellInfo, but plain text (e.g. 'Bücher' instead of 'B', so a mapping function is required
-                    $reqParamTitelInfo->{'ekzArtikelNr'} = $auftragsPosition->{'artikelNummer'};
-                    my $isbn = $auftragsPosition->{'isbn'};
-                    if ( length($isbn) == 10 ) {
-                        $reqParamTitelInfo->{'isbn'} = $isbn;
-                    } else {
-                        $reqParamTitelInfo->{'isbn13'} = $isbn;
-                    }
-                    $reqParamTitelInfo->{'ean'} = $auftragsPosition->{'ean'};
                     my $autorTitel = $auftragsPosition->{'autorTitel1'} . $auftragsPosition->{'autorTitel2'};
                     my ($author, $titel) = split(':',$autorTitel);
                     $reqParamTitelInfo->{'author'} = $author;
@@ -781,6 +782,7 @@ sub genKohaRecords {
                             $logger->trace("genKohaRecords() method4: titleSelHashkey:" . $titleSelHashkey . ": createdTitleRecords->{titleSelHashkey}->{biblionumber}:" . $createdTitleRecords->{$titleSelHashkey}->{biblionumber} . ": ->{titleHits}:" . Dumper($createdTitleRecords->{$titleSelHashkey}->{titleHits}) . ":");
 
                             if ( defined $biblionumber && $biblionumber > 0 ) {
+                                $updatedTitleRecords->{$biblionumber} = $biblionumber;    # it makes no sense to overwrite title data that have been inserted in this run
                                 $biblioInserted = 1;
                                 # positive message for log
                                 $emaillog->{'importresult'} = 1;
@@ -794,6 +796,10 @@ sub genKohaRecords {
                             }
                         } else {    # title record has been found in local database
                             $biblioExisting = 1;
+
+                            # Check if to reread title data via webservice MedienDaten etc. and, if required, (partially) overwrite the title record.
+                            $ekzKohaRecord->overwriteCatalogDataIfRequired($ekzCustomerNumber, $biblionumber, $reqParamTitelInfo, $titleHits->{'records'}->[0], $updatedTitleRecords);
+
                             # positive message for log
                             $emaillog->{'importresult'} = 2;
                             $emaillog->{'importedTitlesCount'} += 0;
@@ -1282,7 +1288,6 @@ $logger->debug("genKohaRecords() method4: after processItemInvoice() itemnumber:
                 delete $createdTitleRecords->{$titleSelHashkey};    # remove elements of createdTitleRecords of current call because this transaction is rolled back
             }
         }
-$logger->info("genKohaRecords() after deleting elements of createdTitleRecords:" . Dumper($createdTitleRecords) . ":");
 
         $exceptionThrown->throw();
     };
@@ -1298,7 +1303,6 @@ $logger->info("genKohaRecords() after deleting elements of createdTitleRecords:"
             $logger->debug("genKohaRecords() has set createdTitleRecords->{$titleSelHashkey}->{isAlreadyCommitted}:" . $createdTitleRecords->{$titleSelHashkey}->{isAlreadyCommitted} . ":");
         }
     }
-$logger->info("genKohaRecords() after marking new elements to isAlreadyCommitted createdTitleRecords:" . Dumper($createdTitleRecords) . ":");
 
     if ( $emaillog && defined($emaillog->{'logresult'}) && scalar(@{$emaillog->{'logresult'}}) > 0 ) {
         my @importIds = keys %{$emaillog->{'importIds'}};
@@ -1308,6 +1312,26 @@ $logger->info("genKohaRecords() after marking new elements to isAlreadyCommitted
 
     return 1;
 }
+
+
+###################################################################################################
+# Re-indexing of all titles registered in $updatedTitleRecords
+###################################################################################################
+sub updBiblioIndex {
+    my ($updatedTitleRecords) = @_;
+    my $logger = Koha::Logger->get({ interface => 'C4::External::EKZ::EkzWsInvoice' });
+
+    $logger->debug("updBiblioIndex() Start updatedTitleRecords:" . Dumper($updatedTitleRecords) . ":");
+
+    my @biblionumbers = ( sort keys %{$updatedTitleRecords} );
+    if ( scalar @biblionumbers > 0 ) {
+        my $ekzKohaRecord = C4::External::EKZ::lib::EkzKohaRecords->new();
+        $logger->debug("updBiblioIndex() is calling ekzKohaRecord->updateInIndex() with biblionumbers:" . Dumper(@biblionumbers) . ":");
+        $ekzKohaRecord->updateInIndex(@biblionumbers);
+    }
+    $logger->debug("updBiblioIndex() returns (scalar \@biblionumbers:" . scalar @biblionumbers . ":");
+}
+
 
 # Info der ekz (Hauke Laun) vom 30.09.2020 zu den Geldbetrag-Angaben innerhalb des XML-Elements <auftragsPosition>:
 #
