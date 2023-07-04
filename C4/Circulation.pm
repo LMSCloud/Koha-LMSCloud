@@ -2928,6 +2928,8 @@ sub CanBookBeRenewed {
             if ( $patron->category->effective_BlockExpiredPatronOpacActions and $patron->is_expired ) {
                 return ( 0, 'auto_account_expired' );
             }
+            
+            return ( 0, "too_many" ) if $hasToMany;
 
             if ( defined $issuing_rule->{no_auto_renewal_after}
                     and $issuing_rule->{no_auto_renewal_after} ne "" ) {
@@ -3064,9 +3066,9 @@ sub CanBookBeRenewed {
         return ( 0, $auto_renew  ) if $auto_renew =~ 'too_soon';#$auto_renew ne "no" && $auto_renew ne "ok";
     }
 
-    return ( 0, "auto_renew" ) if $auto_renew eq "ok" && !$override_limit; # 0 if auto-renewal should not succeed
-
     return ( 0, "too_many" ) if $hasToMany;
+
+    return ( 0, "auto_renew" ) if $auto_renew eq "ok" && !$override_limit; # 0 if auto-renewal should not succeed
 
     return ( 1, undef );
 }
