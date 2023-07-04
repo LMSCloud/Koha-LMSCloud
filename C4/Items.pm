@@ -305,6 +305,15 @@ sub ModItemFromMarc {
     my $item_object = Koha::Items->find($itemnumber);
     my $item = TransformMarcToKoha( $localitemmarc, $frameworkcode, 'items' );
 
+    # When importing items we blank this column, we need to set it to the existing value
+    # to prevent it being blanked by set_or_blank
+    $item->{onloan}           = $item_object->onloan if( $item_object->onloan && !defined $item->{onloan} );
+    $item->{datelastborrowed} = $item_object->datelastborrowed if( $item_object->datelastborrowed && !defined $item->{datelastborrowed} );
+    $item->{datelastseen}     = $item_object->datelastseen if( $item_object->datelastseen && !defined $item->{datelastseen} );
+    $item->{issues}           = $item_object->issues if( $item_object->issues && !defined $item->{issues} );
+    $item->{renewals}         = $item_object->renewals if( $item_object->renewals && !defined $item->{renewals} );
+    $item->{reserves}         = $item_object->reserves if( $item_object->reserves && !defined $item->{reserves} );
+    
     my ( $perm_loc_tag, $perm_loc_subfield ) = C4::Biblio::GetMarcFromKohaField( "items.permanent_location" );
     my $has_permanent_location = defined $perm_loc_tag && defined $item_marc->subfield( $perm_loc_tag, $perm_loc_subfield );
 
