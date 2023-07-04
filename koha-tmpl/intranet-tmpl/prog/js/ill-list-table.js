@@ -223,15 +223,23 @@ $(document).ready(function() {
     // Our 'render' function for borrowerlink
     var createPatronLink = function(data, type, row) {
         var patronLink = '';
-        if ( row.borrowernumber ) {
+        if ( row && row.borrowernumber ) {
             patronLink = '<a title="' + ill_borrower_details + '" ' +
                 'href="/cgi-bin/koha/members/moremember.pl?' +
                 'borrowernumber='+row.borrowernumber+'">';
-            if ( row.patron_firstname ) {
-                patronLink = patronLink + row.patron_firstname + ' ';
+            if ( row.patron_firstname && row.patron_firstname.length ) {
+                patronLink = patronLink + row.patron_firstname.escapeHtml() + ' ';
             }
-            patronLink = patronLink + row.patron_surname +
-                ' (' + row.patron_cardnumber + ')' + '</a>';
+            if ( row.patron_surname && row.patron_surname.length ) {
+                patronLink = patronLink + row.patron_surname.escapeHtml() + ' ';
+            }
+            patronLink = patronLink + '(';
+            if ( row.patron_cardnumber && row.patron_cardnumber.length ) {
+                patronLink = patronLink + row.patron_cardnumber.escapeHtml();
+            } else {
+                patronLink = patronLink + 'N/A';
+            }
+            patronLink = patronLink + ')' + '</a>';
         } else {
             if ( row.patron_cardnumber ) {
                 patronLink = row.patron_cardnumber;
@@ -249,9 +257,12 @@ $(document).ready(function() {
     // Our 'render' function for biblio_id
     var createBiblioLink = function(data, type, row) {
         var ret = '';
-        var textToDisplay = row.metadata_title;
-        if ( ! textToDisplay ) {
-            textToDisplay = row.biblio_id ? row.biblio_id : '';
+        var textToDisplay = '';
+        if ( row && row.metadata_title && row.metadata_title.length > 0 ) {
+            textToDisplay = row.metadata_title.escapeHtml();
+        }
+        if ( ! textToDisplay && row && row.biblio_id && row.biblio_id.length > 0 ) {
+            textToDisplay = row.biblio_id.escapeHtml();
         }
         if ( row.biblio_id  && row.status !== 'COMP' ) {
             ret = '<a title="' + ill_biblio_details + '" ' +
@@ -645,8 +656,8 @@ $(document).ready(function() {
                 var placedEnd = $('#illfilter_dateplaced_end').datepicker('getDate');
                 var modifiedStart = $('#illfilter_datemodified_start').datepicker('getDate');
                 var modifiedEnd = $('#illfilter_datemodified_end').datepicker('getDate');
-                var rowPlaced = data[14] ? new Date(data[14]) : null;
-                var rowModified = data[16] ? new Date(data[16]) : null;
+                var rowPlaced = data[15] ? new Date(data[15]) : null;
+                var rowModified = data[17] ? new Date(data[17]) : null;
                 var placedPassed = true;
                 var modifiedPassed = true;
                 if (placedStart && rowPlaced && rowPlaced < placedStart) {
