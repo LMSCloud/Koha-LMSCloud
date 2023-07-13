@@ -1,6 +1,6 @@
 #!/usr/bin/perl
 
-# Copyright 2018 LMSCloud GmbH
+# Copyright 2022-2023 LMSCloud GmbH
 #
 # This file is part of Koha
 #
@@ -216,7 +216,7 @@ sub CreatePrintOutput {
     @messageIDs = @{$params->{printmessages}} if ( $params->{printmessages} );
     my $lettercode = $params->{lettercode} if ( $params->{lettercode} );
 print STDERR "svc/ill/genIllDeliverySlip::CreatePrintOutput START; lettercode:$lettercode: count messageIDs:" . scalar @messageIDs . ":\n";
-print STDERR "svc/ill/genIllDeliverySlip::CreatePrintOutput START; lmessageIDs:", @messageIDs, ":\n";
+print STDERR "svc/ill/genIllDeliverySlip::CreatePrintOutput START; messageIDs:", @messageIDs, ":\n";
     
     my @messages = @{ GetMessagesById( { message_id => \@messageIDs } ) };
 print STDERR "svc/ill/genIllDeliverySlip::CreatePrintOutput count found messages:" . scalar @messages . ":\n";
@@ -239,6 +239,7 @@ print STDERR "svc/ill/genIllDeliverySlip::CreatePrintOutput count found messages
 print STDERR "svc/ill/genIllDeliverySlip::CreatePrintOutput after File::Spec->catdir() generatefilename:$generatefilename:\n";
     
     Generate_html({
+                lettercode => $lettercode,
                 messages => \@messages,
                 filepath => $generatefilename,
             });
@@ -257,6 +258,7 @@ print STDERR "svc/ill/genIllDeliverySlip::CreatePrintOutput after File::Spec->ca
 
 sub Generate_html {
     my ( $params ) = @_;
+    my $lettercode = $params->{lettercode};
     my $messages = $params->{messages};
     my $filepath = $params->{filepath};
 
@@ -265,9 +267,14 @@ sub Generate_html {
         new CGI );
 
     my $today_syspref = output_pref( { dt => dt_from_string, dateonly => 1 } );
-print STDERR "svc/ill/genIllDeliverySlip::Generate_html today_syspref:$today_syspref:\n";
+    my $stylesheet = C4::Context->preference("NoticeCSS");
+    # If the letter.code ends with '_NOCSS' or '_NOCSS_CHARGE', then no NoticeCSS content should be transferred in param 'stylesheet'.
+    if ( $lettercode =~ /^.*_NOCSS$/ || $lettercode =~ /^.*_NOCSS_CHARGE$/ ) {
+        $stylesheet = '';
+    }
+print STDERR "svc/ill/genIllDeliverySlip::Generate_html lettercode:$lettercode: stylesheet:$stylesheet: filepath:$filepath: today_syspref:$today_syspref:\n";
     $template->param(
-        stylesheet => C4::Context->preference("NoticeCSS"),
+        stylesheet => $stylesheet,
         today      => $today_syspref,
         messages   => $messages,
     );
@@ -280,40 +287,3 @@ print STDERR "svc/ill/genIllDeliverySlip::Generate_html today_syspref:$today_sys
 
 __END__
 
-=head1 NAME
-
-adhocletters - get available letters for adhoc notices
-
-=head1 SYNOPSIS
-
-This script provides a service to get the letters available for adhoc notices
-
-=head2 Performing a search
-
-Return a list of letters that are admitted to be sent to patrons adhoc.
-Only letters of the following modules are provided: circulation, members, reserves, suggestions
-One of the values of the systempreference 'AdhocNoticesLetterCodes' must match the letter ocde
-to be returned by this function.
-
-=cut
-
-=back
-
-=head1 LICENSE
-
-Copyright 2017 LMSCloud GmbH
-
-This file is part of Koha.
-
-Koha is free software; you can redistribute it and/or modify it under the
-terms of the GNU General Public License as published by the Free Software
-Foundation; either version 2 of the License, or (at your option) any later
-version.
-
-Koha is distributed in the hope that it will be useful, but WITHOUT ANY
-WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
-A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License along
-with Koha; if not, write to the Free Software Foundation, Inc.,
-51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
