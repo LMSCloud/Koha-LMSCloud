@@ -26685,6 +26685,61 @@ if ( CheckVersion($DBversion) ) {
     NewVersion( $DBversion, "", "Add system preferences ekzWebServicesOverwriteCatalogDataOnDelivery and ekzWebServicesOverwriteCatalogDataKeepFields.");
 }
 
+$DBversion = "21.05.14.010";
+if ( CheckVersion($DBversion) ) {
+    my $portalid = '';
+    my $sth = $dbh->prepare("SELECT value FROM systempreferences WHERE variable = 'MunzingerPortalID'");
+    $sth->execute;
+    while ( my ($value) = $sth->fetchrow ) {
+        $portalid = $value;
+        last;
+    }
+    
+    my @changedContent;
+    $sth = $dbh->prepare("SELECT value,variable FROM systempreferences WHERE variable like 'OpacEntryPage%'");
+    $sth->execute;
+    while ( my ($value,$variable) = $sth->fetchrow ) {
+        my $origvalue = $value;
+        $value =~ s/(["'])https?:\/\/www\.munzinger\.de([^"']*["'])/$1 . 'https:\/\/online.munzinger.de' . $2/eig;
+        if ( $portalid ) {
+            $value =~ s/(["']https:\/\/online\.munzinger\.de[^"']+portalid=)([&"'])/$1 . $portalid . $2/eig;
+        }
+    
+        if ( $origvalue ne $value ) {
+            C4::Context->set_preference($variable,$value);
+            push @changedContent, $variable;
+        }
+    }
+    
+    $sth = $dbh->prepare("SELECT idnew,lang,content FROM opac_news WHERE lang like 'OpacNavRight_%' OR lang like 'OpacMainPageLeftPanel_%' OR lang like 'OpacMainUserBlock_%' OR lang like 'OpacLoginInstructions_%' OR lang like 'opacheader_%'");
+    $sth->execute;
+    while ( my ($id,$name,$value) = $sth->fetchrow ) {
+        my $origvalue = $value;
+        $value =~ s/(["'])https?:\/\/www\.munzinger\.de([^"']*["'])/$1 . 'https:\/\/online.munzinger.de' . $2/eig;
+        if ( $portalid ) {
+            $value =~ s/(["']https:\/\/online\.munzinger\.de[^"']+portalid=)([&"'])/$1 . $portalid . $2/eig;
+        }
+    
+        if ( $origvalue ne $value ) {
+            $dbh->do("UPDATE opac_news SET content=? WHERE idnew=? AND lang=?", undef, $value, $id, $name);
+            push @changedContent, $name;
+        }
+    }
+    my $result = "No Munzinger link found.";
+    if ( scalar(@changedContent) ) {
+        $result = "Links update in " . join(', ',@changedContent) . ".";
+    }
+    
+    NewVersion( $DBversion, "", "Update Munzinger link in OPAC configuration. $result");
+}
+
+$DBversion = "21.05.14.011";
+if ( CheckVersion($DBversion) ) {
+    C4::Context->set_preference('CreateAVFromCataloguing','0');
+    
+    NewVersion( $DBversion, "", "Set systempreference CreateAVFromCataloguing by default to 0.");
+}
+
 # SEE bug 13068
 # if there is anything in the atomicupdate, read and execute it.
 my $update_dir = C4::Context->config('intranetdir') . '/installer/data/mysql/atomicupdate/';

@@ -20,7 +20,7 @@
 use Modern::Perl;
 
 use constant DEFAULT_ZEBRAQ_PURGEDAYS             => 30;
-use constant DEFAULT_MAIL_PURGEDAYS               => 180;
+use constant DEFAULT_MAIL_PURGEDAYS               => 365;
 use constant DEFAULT_IMPORT_PURGEDAYS             => 60;
 use constant DEFAULT_LOGS_PURGEDAYS               => 180;
 use constant DEFAULT_MESSAGES_PURGEDAYS           => 365;
